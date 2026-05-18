@@ -52,9 +52,12 @@ def d(offset: int) -> datetime.date:
 
 with Session(engine) as session:
     # ── Team members ──────────────────────────────────────────────────────────
-    alice = TeamMember(name="Alice Chen", email="alice@example.com", role="lead")
-    bob = TeamMember(name="Bob Martin", email="bob@example.com", role="developer")
-    carol = TeamMember(name="Carol Davies", email="carol@example.com", role="designer")
+    alice = TeamMember(name="Alice Chen", email="alice@example.com", role="lead",
+                       avatar_url="https://i.pravatar.cc/150?img=47")
+    bob = TeamMember(name="Bob Martin", email="bob@example.com", role="developer",
+                     avatar_url="https://i.pravatar.cc/150?img=12")
+    carol = TeamMember(name="Carol Davies", email="carol@example.com", role="designer",
+                       avatar_url="https://i.pravatar.cc/150?img=32")
     session.add_all([alice, bob, carol])
     session.flush()
 

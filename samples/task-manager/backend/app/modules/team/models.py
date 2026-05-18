@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional
 from safemantiq_framework import TimestampedModel, jm_relationship
 
 if TYPE_CHECKING:
@@ -8,10 +8,12 @@ if TYPE_CHECKING:
 
 class TeamMember(TimestampedModel, table=True):
     __tablename__ = "team_member"
+    __safem_ui__: ClassVar[Dict] = {"listViewType": "gallery"}
 
     name: str
     email: str
     role: str = "member"  # admin | member | viewer
+    avatar_url: Optional[str] = None
 
     owned_projects: List["Project"] = jm_relationship(back_populates="owner")
     assigned_tasks: List["Task"] = jm_relationship(back_populates="assignee")

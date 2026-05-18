@@ -231,7 +231,7 @@ def _build_ts_schema(module_name: str, models: list) -> str:
                 if p.key == pk_field:
                     continue
                 col = p.columns[0]
-                ts_type = _col_to_ts_type(col)
+                ts_type = _col_to_ts_type(col, field_key=p.key)
                 label = p.key.replace("_", " ").title()
                 # If the column is a FK, add reference so the UI renders a dropdown.
                 reference_extra = ""
@@ -239,7 +239,7 @@ def _build_ts_schema(module_name: str, models: list) -> str:
                     fk = next(iter(col.foreign_keys))
                     ref_table = fk.column.table.name
                     reference_extra = f', reference: "{ref_table}"'
-                field_str = f'    {{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra} }}'
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:
@@ -285,18 +285,25 @@ def _build_ts_schema(module_name: str, models: list) -> str:
                 else:
                     extra = ''
                 relations.append(
-                    f'    {{ resource: "{other_tablename}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
+                    f'{{ resource: "{other_tablename}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
                 )
         except Exception:
             pass
 
         model_label = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', model_name)
+        # Extra UI config declared on the model via __safem_ui__ = {"listViewType": "gallery", ...}
+        safem_ui: dict = getattr(model, "__safem_ui__", {}) or {}
+        extra_props = []
+        if "listViewType" in safem_ui:
+            extra_props.append(f'    listViewType: "{safem_ui["listViewType"]}",')
+
         lines += [
             "  {",
             f'    name: "{model_name}",',
             f'    label: "{model_label}",',
             f'    resource: "{tablename}",',
             f'    pkField: "{pk_field}",',
+            *extra_props,
             "    fields: [",
             *[f"      {f}," for f in fields],
             "    ],",
@@ -310,9 +317,14 @@ def _build_ts_schema(module_name: str, models: list) -> str:
     return "\n".join(lines)
 
 
-def _col_to_ts_type(col) -> str:
+_IMAGE_URL_FIELD_NAMES = {"avatar_url", "image_url", "photo_url", "thumbnail_url", "cover_url", "picture_url"}
+
+
+def _col_to_ts_type(col, field_key: str = "") -> str:
     """Map a SQLAlchemy column type to a DynamicResource field type string."""
     from sqlalchemy import types
+    if field_key in _IMAGE_URL_FIELD_NAMES:
+        return "image_url"
     t = col.type
     if isinstance(t, (types.Integer, types.BigInteger, types.SmallInteger, types.Numeric, types.Float)):
         return "number"

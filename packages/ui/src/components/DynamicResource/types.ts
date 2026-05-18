@@ -9,7 +9,7 @@ export interface VisibilityCondition {
 export interface FieldDef {
     key: string;
     label: string;
-    type: "string" | "number" | "boolean" | "date" | "datetime" | "time";
+    type: "string" | "number" | "boolean" | "date" | "datetime" | "time" | "image_url";
     isPk?: boolean;
     required?: boolean;
     reference?: string;
@@ -79,6 +79,7 @@ export interface ModelDef {
     resource?: string;
     description?: string;
     pkField?: string;
+    listViewType?: "table" | "gallery" | "calendar" | "totals-details";
 }
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };

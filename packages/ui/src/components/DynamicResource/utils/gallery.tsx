@@ -4,6 +4,8 @@ import { FileTextOutlined } from "@ant-design/icons";
 export const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 
 export const isImageRecord = (record: any) => {
+    // Direct URL fields (avatar_url, image_url, photo_url) always qualify.
+    if (record?.avatar_url || record?.image_url || record?.photo_url) return true;
     const format = String(record?.data_format || "").toLowerCase();
     if (format.startsWith("image/")) return true;
     const name = String(record?.data_name || "");
@@ -25,10 +27,13 @@ export const getGalleryItemId = (record: any, fallbackId?: any) => record?.eid ?
 
 export const getGalleryItemLabel = (record: any, fallbackId?: any) => {
     const fileId = fallbackId ?? "";
-    return record?.title || record?.data_name || record?._label || `File ${fileId}`;
+    return record?.title || record?.name || record?.data_name || record?._label || `File ${fileId}`;
 };
 
 export const getGalleryItemContentUrl = (apiUrl: string, record: any, id: any) => {
+    // Prefer a direct image URL field before falling back to file storage.
+    const directUrl = record?.avatar_url || record?.image_url || record?.photo_url;
+    if (directUrl && typeof directUrl === "string") return directUrl;
     const hasData = recordHasData(record);
     const isImage = isImageRecord(record) && hasData;
     if (!isImage || !id) return "";

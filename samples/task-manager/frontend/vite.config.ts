@@ -1,10 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    dedupe: ["react", "react-dom", "@tanstack/react-query"],
+    alias: {
+      "@safemantiq/ui": path.resolve(__dirname, "../../../packages/ui/src/index.ts"),
+    },
+    dedupe: ["react", "react-dom", "antd", "@ant-design/icons", "@refinedev/antd", "@refinedev/core", "@tanstack/react-query", "axios", "dayjs", "react-resizable-panels", "react-router-dom"],
   },
   server: {
     host: true,

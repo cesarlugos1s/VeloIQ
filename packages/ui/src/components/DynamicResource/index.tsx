@@ -302,7 +302,8 @@ export const DynamicList: React.FC<{
         || model.fields[0];
 
     const isFileModel = (model.resource || model.name).toLowerCase() === "file";
-    const defaultListViewType = String(viewSettings?.listViewType || "table").toLowerCase();
+    const modelDefaultListViewType = String(model.listViewType || "").toLowerCase();
+    const defaultListViewType = String(modelDefaultListViewType || viewSettings?.listViewType || "table").toLowerCase();
     const fileListViewType = String(viewSettings?.fileListViewType || "").toLowerCase();
     const resolvedListViewType = String(
         listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
