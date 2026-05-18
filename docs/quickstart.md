@@ -7,7 +7,10 @@ task-manager demo app is live in your browser.
 
 ## Get the repo
 
+Navigate to the directory where you want the project to live, then clone:
+
 ```bash
+cd ~/projects          # or wherever you keep your code
 git clone https://github.com/cesarlugos1s/SafeMantIQ.git
 cd SafeMantIQ
 ```

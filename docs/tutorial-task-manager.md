@@ -38,7 +38,10 @@ By the end you will have:
 
 ## Step 1 — Create the project (1 min)
 
+Navigate to the directory where you want the project to live, then clone:
+
 ```bash
+cd ~/projects          # or wherever you keep your code
 git clone https://github.com/cesarlugos1s/SafeMantIQ.git
 cd SafeMantIQ
 python3 -m venv .venv
