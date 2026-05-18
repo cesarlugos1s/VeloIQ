@@ -39,25 +39,14 @@ By the end you will have:
 ## Step 1 — Create the project (1 min)
 
 ```bash
-pip install safemantiq-framework
+git clone https://github.com/cesarlugos1s/SafeMantIQ.git
+cd SafeMantIQ
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e backend/
 safem new task-manager
 cd task-manager
 ```
-
-> **Before PyPI release:** clone the repo, create a virtual environment, then
-> install an editable copy of the framework:
->
-> ```bash
-> git clone https://github.com/cesarlugos1s/SafeMantIQ.git
-> cd SafeMantIQ
-> python3 -m venv .venv
-> source .venv/bin/activate          # Windows: .venv\Scripts\activate
-> pip install -e backend/
-> safem new task-manager
-> cd task-manager
-> ```
->
-> Everything else in this tutorial is identical.
 
 You get this layout:
 
