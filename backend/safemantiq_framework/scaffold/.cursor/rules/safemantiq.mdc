@@ -1,0 +1,64 @@
+---
+description: SafeMantIQ framework conventions — always apply when working in this project
+globs: "**/*"
+alwaysApply: true
+---
+
+# SafeMantIQ — {{app_title}}
+
+This project was generated with the SafeMantIQ framework. Use the `safem` CLI for scaffolding; do not create module files manually.
+
+## Adding a feature module
+
+```bash
+safem add-module <name>                              # basic
+safem add-module <name> --with-custom-api --with-admin  # with custom endpoints + admin
+```
+
+After scaffolding:
+1. Edit `backend/app/modules/<name>/models.py` — define your SQLModel fields
+2. `safem generate` — regenerates `api.py` and frontend TypeScript schemas
+3. `safem db upgrade` — creates the database table
+
+## File rules
+
+| File | Rule |
+|---|---|
+| `modules/*/api.py` | Auto-generated — never edit |
+| `modules/*/models.py` | Edit this to define your schema |
+| `modules/*/custom_api.py` | Add custom endpoints here; import `router` from `api.py` |
+| `modules/*/admin/admin_views.py` | SQLAdmin config |
+| `frontend/src/**/*.gen.ts` | Auto-generated — never edit |
+
+## Model conventions
+
+```python
+from safemantiq_framework import TimestampedModel
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"   # snake_case, no safem_ prefix
+    name: str
+    description: Optional[str] = None
+```
+
+- Always extend `TimestampedModel` (provides `id`, `created_at`, `updated_at`)
+- Table names: snake_case matching module name; `safem_` prefix is reserved for auth tables
+
+## Custom endpoints
+
+```python
+# custom_api.py
+from .api import router        # import auto-generated router
+from .models import MyModel
+
+@router.post("/{id}/activate")
+def activate(id: int, session: Session = Depends(get_session)):
+    ...
+```
+
+## Environment
+
+- `AUTH_SECRET` — JWT signing key (required)
+- `DATABASE_URL` — database connection (defaults to SQLite)
+- `SAFEM_AUTH_DISABLED=1` — disable auth enforcement in development
+- Run `cp .env.example .env` in `backend/` before first start

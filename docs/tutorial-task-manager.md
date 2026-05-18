@@ -143,6 +143,127 @@ backend/app/modules/
 
 ---
 
+## Using a vibe coding tool (optional shortcut for Steps 4 – 8)
+
+Once the project skeleton exists, you can hand the remaining work to an AI coding
+tool instead of writing models and endpoints by hand.  Every project created with
+`safem new` ships with context files that tell the tool the framework conventions,
+which CLI commands to run, and which files it must not edit.
+
+| Tool | Context file loaded automatically |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| Cursor | `.cursor/rules/safemantiq.mdc` + `models.mdc` |
+| Windsurf | `.windsurfrules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| OpenAI Codex CLI | `AGENTS.md` |
+| Continue.dev | `.continue/config.json` |
+
+Open the project root in your tool and use the prompts below.  The AI will run
+the right `safem` commands, write the correct model fields, and call
+`safem generate` and `safem db upgrade` at the right moments — you do not need
+to spell those out.
+
+---
+
+### Build the entire app in one prompt
+
+Paste this into your AI coding tool to complete Steps 4 – 8 in a single
+interaction:
+
+> Build the task-manager app using the SafeMantIQ framework.
+>
+> Create three modules:
+>
+> - **team** — `TeamMember` model with fields `name: str`, `email: str`,
+>   `role: str = "member"`. Relationships: `owned_projects` → Project,
+>   `assigned_tasks` → Task.
+> - **projects** — `Project` model with fields `name: str`,
+>   `description: Optional[str]`, `status: str = "active"`, FK
+>   `owner_id → team_member.id`. Relationships: `owner` → TeamMember,
+>   `tasks` → Task.
+> - **tasks** — `Task` model with fields `title: str`,
+>   `description: Optional[str]`, `status: str = "todo"`,
+>   `priority: str = "medium"`, `due_date: Optional[datetime.date]`,
+>   `planned_work_hours: Optional[float]`, `actual_work_hours: Optional[float]`,
+>   FK `project_id → project.id`, FK `assignee_id → team_member.id`,
+>   self-referential FK `parent_task_id → task.id` with `subtasks` and
+>   `parent_task` relationships. Add a custom endpoint
+>   `POST /task/{task_id}/complete` that sets `status = "done"`.
+>
+> After writing the models run `safem generate` then `safem db upgrade`.
+>
+> Finally configure search:
+> `safem search add-model TeamMember --fields name,email`
+> `safem search add-model Project --fields name,description`
+> `safem search add-model Task --fields title,description`
+
+---
+
+### Build module by module
+
+If you prefer to work incrementally, prompt one module at a time:
+
+**Team module**
+> Add a `team` module to this SafeMantIQ app. Model: `TeamMember` with fields
+> `name: str`, `email: str`, `role: str = "member"`. After writing the model
+> run `safem generate` and `safem db upgrade`.
+
+**Projects module**
+> Add a `projects` module. Model: `Project` with fields `name: str`,
+> `description: Optional[str]`, `status: str = "active"`, and a foreign key
+> `owner_id` pointing to `team_member.id`. Relationship `owner` back-populates
+> `TeamMember.owned_projects`. Run `safem generate` and `safem db upgrade`.
+
+**Tasks module**
+> Add a `tasks` module with `--with-custom-api`. Model: `Task` with fields
+> `title: str`, `description: Optional[str]`, `status: str = "todo"`,
+> `priority: str = "medium"`, `due_date: Optional[datetime.date]`,
+> `planned_work_hours: Optional[float]`, `actual_work_hours: Optional[float]`,
+> FK `project_id → project.id`, FK `assignee_id → team_member.id`, and a
+> self-referential FK `parent_task_id → task.id` with `subtasks` / `parent_task`
+> relationships. In `custom_api.py` add `POST /task/{task_id}/complete` that sets
+> `status = "done"`. Run `safem generate` and `safem db upgrade`.
+
+**Search config**
+> Configure search for this app:
+> `safem search add-model TeamMember --fields name,email`
+> `safem search add-model Project --fields name,description`
+> `safem search add-model Task --fields title,description`
+
+---
+
+### Modifying an existing app
+
+Use these prompt patterns any time you need to change a running app:
+
+**Add a new module**
+> Add a `comments` module to this SafeMantIQ app. Model: `Comment` with fields
+> `content: str`, FK `task_id → task.id`, FK `author_id → team_member.id`.
+> Run `safem generate` and `safem db upgrade`.
+
+**Add a field to an existing model**
+> Add an `estimated_hours: Optional[float]` field to the `Task` model in
+> `backend/app/modules/tasks/models.py`. Run `safem generate` and
+> `safem db upgrade`.
+
+**Add a custom endpoint**
+> In `backend/app/modules/tasks/custom_api.py` add a
+> `POST /task/{task_id}/reopen` endpoint that sets `status = "todo"` and
+> clears `actual_work_hours`.
+
+**Add an admin view**
+> Add an admin view for the `tasks` module. Create
+> `backend/app/modules/tasks/admin/admin_views.py` with `TaskAdmin` showing
+> `title` and `status` columns, `title` as searchable.
+
+---
+
+When you are done with the AI tool, continue from **Step 9** below to start the
+backend and frontend.
+
+---
+
 ## Step 4 — Write the Team module (1 min)
 
 Replace `backend/app/modules/team/models.py` with:

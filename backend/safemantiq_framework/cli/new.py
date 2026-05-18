@@ -12,7 +12,7 @@ SCAFFOLD_DIR = Path(__file__).resolve().parents[1] / "scaffold"
 
 # Token substitution applied to every text file in the scaffold.
 _TEXT_EXTENSIONS = {
-    ".py", ".ts", ".tsx", ".json", ".toml", ".txt", ".md",
+    ".py", ".ts", ".tsx", ".json", ".toml", ".txt", ".md", ".mdc",
     ".ini", ".cfg", ".env", ".example", ".mako", ".html",
 }
 

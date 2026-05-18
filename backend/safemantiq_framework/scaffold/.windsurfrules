@@ -1,0 +1,50 @@
+# WindsurfRules — {{app_title}}
+
+This project was generated with the SafeMantIQ framework. Use the `safem` CLI for all scaffolding.
+
+## Project layout
+
+```
+backend/
+  app/
+    main.py               # Entry point — do not edit
+    modules/              # Feature modules
+      <module>/
+        models.py         # SQLModel table definition — edit this
+        api.py            # Auto-generated CRUD — do not edit
+        custom_api.py     # Custom endpoints (optional)
+        admin/
+          admin_views.py  # SQLAdmin views (optional)
+  alembic/                # Migrations
+
+frontend/
+  src/
+    allModels.gen.ts                          # Auto-generated — do not edit
+    pages/<module>/<module>Schema.gen.ts      # Auto-generated — do not edit
+```
+
+## CLI commands
+
+```bash
+safem add-module <name>                        # scaffold a new module
+safem add-module <name> --with-custom-api --with-admin
+safem generate       # regenerate api.py + TS schemas after model changes
+safem db upgrade     # run Alembic migration after model changes
+safem run            # start backend at http://localhost:{{backend_port}}
+```
+
+## Workflow for every new feature
+
+1. `safem add-module <name>`
+2. Edit `backend/app/modules/<name>/models.py` — add SQLModel fields
+3. `safem generate` — regenerates `api.py` and frontend TypeScript schemas
+4. `safem db upgrade` — creates the database table
+5. Custom logic goes in `custom_api.py`, importing `router` from `api.py`
+
+## Key conventions
+
+- Base class for all models: `TimestampedModel` (from `safemantiq_framework`)
+- Table names: snake_case, matching module name; never use `safem_` prefix (reserved for auth)
+- `eid` in API responses equals `id` — the frontend depends on this field
+- Required env vars: `AUTH_SECRET`, `DATABASE_URL`; `SAFEM_AUTH_DISABLED=1` skips auth in dev
+- Copy `backend/.env.example` to `backend/.env` before first run

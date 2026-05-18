@@ -1,0 +1,13 @@
+{
+  "systemMessage": "This is a SafeMantIQ framework project called {{app_title}}. Always use the `safem` CLI for scaffolding — never create module files manually.\n\nWorkflow to add a feature:\n1. `safem add-module <name>` (add `--with-custom-api --with-admin` as needed)\n2. Edit `backend/app/modules/<name>/models.py` to define SQLModel fields\n3. `safem generate` — regenerates api.py and frontend TypeScript schemas\n4. `safem db upgrade` — creates the database table\n5. Custom endpoints go in `custom_api.py`, importing `router` from `api.py`\n\nNever edit `api.py` or `*.gen.ts` files — they are overwritten by `safem generate`.\n\nModel base class: `TimestampedModel` from `safemantiq_framework`. Table names: snake_case, no `safem_` prefix.\n\nRequired env vars: `AUTH_SECRET` (JWT), `DATABASE_URL`. Set `SAFEM_AUTH_DISABLED=1` to skip auth in dev.",
+  "contextProviders": [
+    {
+      "name": "file",
+      "params": {}
+    },
+    {
+      "name": "code",
+      "params": {}
+    }
+  ]
+}
