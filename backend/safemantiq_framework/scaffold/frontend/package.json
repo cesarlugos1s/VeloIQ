@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@safemantiq/ui": "^0.1.0",
+    "@safemantiq/ui": "file:{{ui_package_path}}",
     "@refinedev/antd": "^5.40.0",
     "@refinedev/core": "^4.54.0",
     "@refinedev/react-router-v6": "^4.6.0",

@@ -87,20 +87,13 @@ cp .env.example .env
 
 ### Option A — SQLite (fastest start, no server required)
 
-The sample app ships with a pre-filled `taskmanager.db` file.  `.env.example`
-already points to it:
+`.env.example` already points to a local SQLite file — no changes needed:
 
 ```
-DATABASE_URL=sqlite:///./taskmanager.db
+DATABASE_URL=sqlite:///./app.db
 ```
 
-Skip `safem db upgrade` in Step 9 — the tables and sample data are already
-there.  If you want a clean slate, delete `taskmanager.db` and run:
-
-```bash
-safem db upgrade          # recreates the tables
-python seed_sqlite.py     # optional: re-seed with sample data
-```
+SQLite will create `app.db` automatically the first time you run `safem db upgrade` in Step 9.
 
 ### Option B — PostgreSQL
 
@@ -123,7 +116,7 @@ safemantiq-framework[postgres]
 Instead of creating directories by hand, use the CLI:
 
 ```bash
-# still inside task-manager/ (the project root)
+cd ..                  # back to task-manager/ (the project root)
 safem add-module team
 safem add-module projects
 safem add-module tasks --with-custom-api
@@ -252,6 +245,8 @@ one-to-many and automatically sets `showViewType: "tree-details"` in the
 TypeScript schema — which tells the React UI to render the sub-tasks relation
 as a **Miller columns** tree browser instead of a flat table.
 
+The framework auto-generates standard CRUD endpoints (list, get, create, update, delete) for every module.  `custom_api.py` is where you add endpoints that go beyond that — business logic specific to your app.  Here you will add a `POST /task/{id}/complete` endpoint that marks a task as done in a single call, so the frontend (or any API client) does not need to know the exact field name or value to update.
+
 Now fill in `backend/app/modules/tasks/custom_api.py`:
 
 ```python
@@ -280,7 +275,7 @@ def complete_task(task_id: int, session: Session = Depends(get_session)):
 ## Step 7 — Generate the API and frontend schemas (1 min)
 
 ```bash
-# still in backend/
+cd backend
 python api_schema_gen.py
 ```
 
@@ -292,12 +287,15 @@ This writes, for each module:
 You will see output like:
 
 ```
-Generated: modules/team/api.py
-Generated: modules/projects/api.py
-Generated: modules/tasks/api.py
-Generated: frontend/src/pages/team/teamSchema.gen.ts
-Generated: frontend/src/pages/projects/projectsSchema.gen.ts
-Generated: frontend/src/pages/tasks/tasksSchema.gen.ts
+  ✅ projects/api.py (1 model(s))
+  ✅ projectsSchema.gen.ts
+  ✅ tasks/api.py (1 model(s))
+  ✅ tasksSchema.gen.ts
+  ✅ team/api.py (1 model(s))
+  ✅ teamSchema.gen.ts
+📦 allModels.gen.ts updated (3 modules)
+
+✅ Generation complete — 3 module(s).
 ```
 
 Open `frontend/src/pages/tasks/tasksSchema.gen.ts` and notice the auto-generated
@@ -322,7 +320,7 @@ you to tell the framework which models to search and which fields to match
 against:
 
 ```bash
-# still inside task-manager/ (the project root)
+# still inside task-manager/backend/
 safem search add-model TeamMember --fields name,email
 safem search add-model Project    --fields name,description
 safem search add-model Task       --fields title,description
@@ -361,13 +359,12 @@ safem search remove-model Project  # remove a model
 
 ```bash
 pip install -r requirements.txt
-safem db upgrade        # creates tables  (skip if using the pre-filled SQLite file)
 safem run               # http://localhost:8000
 ```
 
-> **SQLite shortcut:** if you are using the bundled `taskmanager.db`, the
-> tables and sample data are already present — omit `safem db upgrade` and
-> jump straight to `safem run`.
+The framework creates all database tables automatically the first time the app starts — no migration step needed for a fresh project.
+
+> **After changing your models:** run `safem db upgrade` to apply schema changes via Alembic instead of restarting the app.
 
 Open `http://localhost:8000/docs`.  You have a fully documented REST API for
 all three entities plus the `POST /task/{id}/complete` endpoint you wrote — with
@@ -382,25 +379,13 @@ Open `http://localhost:8000/admin/` to explore the SQLAdmin back-office.
 In a second terminal:
 
 ```bash
-cd frontend
+cd ../../packages/ui && npm install && npm run build   # build UI library (one-time)
+cd ../../task-manager/frontend
 npm install
 npm run dev     # http://localhost:5173
 ```
 
-> **Before npm registry release:** build and install `@safemantiq/ui` from the
-> cloned repo first — same idea as the Python editable install:
->
-> ```bash
-> # Build the UI package once (relative to SafeMantIQ/task-manager/frontend/)
-> cd ../../packages/ui
-> npm install && npm run build
->
-> # Back to your project frontend
-> cd ../../task-manager/frontend
-> npm install ../../packages/ui
-> npm install
-> npm run dev
-> ```
+The first line builds `@safemantiq/ui` from the local repo — needed once until the package is published to npm.  Subsequent runs skip it since `npm run dev` re-uses the already-built dist.
 
 Open `http://localhost:5173`.  You will be redirected to `/login`.
 
@@ -412,14 +397,23 @@ Every SafeMantIQ application ships with **authentication enabled by default**.
 The first time the backend starts it seeds a default admin user and the three
 built-in roles.
 
-### Pre-seeded credentials (task-manager sample)
+### Default credentials
 
-| Username | Password   | Role    | Access                          |
-|----------|------------|---------|---------------------------------|
-| `admin`  | `admin`    | Admin   | Full CRUD — all resources       |
-| `alice`  | `alice123` | Manager | Create and edit — no delete     |
-| `bob`    | `bob123`   | Manager | Create and edit — no delete     |
-| `carol`  | `carol123` | Viewer  | Read-only                       |
+The framework seeds one admin user automatically on first start:
+
+| Username | Password | Role  | Access                    |
+|----------|----------|-------|---------------------------|
+| `admin`  | `admin`  | Admin | Full CRUD — all resources |
+
+### Sample users (optional)
+
+To test the different roles you can add these sample users via the **Users** page or the register API:
+
+| Username | Password   | Role    | Access                      |
+|----------|------------|---------|-----------------------------|
+| `alice`  | `alice123` | Manager | Create and edit — no delete |
+| `bob`    | `bob123`   | Manager | Create and edit — no delete |
+| `carol`  | `carol123` | Viewer  | Read-only                   |
 
 Log in with `admin` / `admin`.  After a successful login you are redirected to
 the first resource list and will see the sidebar with:
@@ -440,24 +434,11 @@ the backend returns `403` for any mutating requests.
 
 ### Add more users
 
-```bash
-# POST /auth/register (Admin token required in Authorization header)
-curl -X POST http://localhost:8000/auth/register \
-  -H "Authorization: Bearer <admin-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"diana","password":"diana123","email":"diana@example.com","role_names":["Manager"]}'
-```
-
-Or manage users directly in the **Users** page inside the app.
+Go to **Access Control → Users** in the sidebar and click **Create**.  Fill in the username, password, email, and assign a role.
 
 ### Change your password
 
-```bash
-curl -X PUT http://localhost:8000/auth/change-password \
-  -H "Authorization: Bearer <your-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"current_password":"admin","new_password":"my-new-password"}'
-```
+Go to **Access Control → Users**, open the admin user, and edit the password field.
 
 ### Disable auth during development
 
@@ -522,7 +503,7 @@ Open the Show page for a project that has several tasks.  The **Tasks** table at
 the bottom of the page is a fully interactive data table you can configure
 without any code changes.
 
-**Analyse:** the **Analyse** panel opens automatically when a relation table has
+**Analyze:** the **Analyze** panel opens automatically when a relation table has
 more than one row.  It renders distribution charts for the columns in that
 relation (status, priority, etc.), giving a quick at-a-glance breakdown of the
 related records.  Click the bar-chart icon (📊) in the table toolbar to toggle

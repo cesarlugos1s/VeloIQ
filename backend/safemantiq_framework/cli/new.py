@@ -48,10 +48,19 @@ def new(app_name: str, title: str | None, port: int, output_dir: str | None):
         click.echo(f"❌ Directory already exists: {dest}", err=True)
         raise SystemExit(1)
 
+    # Resolve the local @safemantiq/ui package path so the scaffold
+    # package.json can reference it with a file: specifier instead of the
+    # npm registry (the package is not published yet).
+    package_root = Path(__file__).resolve().parents[2]  # backend/
+    ui_pkg_path = (package_root.parent / "packages" / "ui").resolve()
+    ui_src_path = ui_pkg_path / "src" / "index.ts"
+
     tokens = {
         "{{app_name}}": app_name,
         "{{app_title}}": app_title,
         "{{backend_port}}": str(port),
+        "{{ui_package_path}}": str(ui_pkg_path),
+        "{{ui_src_path}}": str(ui_src_path),
     }
 
     click.echo(f"\n🚀 Creating SafeMantIQ project: {app_title}")
@@ -62,12 +71,14 @@ def new(app_name: str, title: str | None, port: int, output_dir: str | None):
 
     click.echo(f"\n✅ Project created at {dest}")
     click.echo("\nNext steps:")
-    click.echo(f"  cd {dest}/backend")
+    click.echo(f"  cd {dest}")
+    click.echo("\n  # Backend")
+    click.echo("  cd backend")
     click.echo("  cp .env.example .env        # then set DATABASE_URL")
     click.echo("  pip install -r requirements.txt")
-    click.echo("  safem db upgrade")
-    click.echo("  safem run")
-    click.echo(f"\n  cd {dest}/frontend")
+    click.echo("  safem run                   # tables are created automatically on first start")
+    click.echo("\n  # Frontend (second terminal)")
+    click.echo(f"  cd {dest}/frontend")
     click.echo("  npm install")
     click.echo("  npm run dev")
 
