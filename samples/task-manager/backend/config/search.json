@@ -1,0 +1,4 @@
+{
+  "models": ["TeamMember", "Project", "Task"],
+  "fields": ["name", "title", "email", "description", "status", "role"]
+}

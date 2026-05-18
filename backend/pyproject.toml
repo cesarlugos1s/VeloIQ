@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "safemantiq-framework"
+version = "0.1.0"
+description = "SafeMantIQ — AI-native FastAPI + React admin framework. The speed of No-Code. The power of Pro-Code."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [{ name = "JuiceMantics", email = "cesar.lugo.marcos@juicemantics.com" }]
+keywords = ["fastapi", "sqlmodel", "admin", "framework", "AI", "ERP"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+
+# ── Core dependencies (always installed) ─────────────────────────────────────
+dependencies = [
+    "fastapi>=0.109,<1.0",
+    "uvicorn[standard]>=0.27",
+    "python-multipart>=0.0.6",
+    "sqlmodel>=0.0.14,<1.0",
+    "sqlalchemy>=2.0.25,<3.0",
+    "alembic>=1.13,<2.0",
+    "pydantic>=2.5,<3.0",
+    "pydantic-settings>=2.1",
+    "python-jose[cryptography]>=3.3",
+    "passlib[bcrypt]>=1.7",
+    "sqladmin>=0.16",
+    "click>=8.0",
+    "python-dotenv>=1.0",
+    "typing-extensions>=4.9",
+]
+
+# ── Optional extras ───────────────────────────────────────────────────────────
+[project.optional-dependencies]
+postgres = ["psycopg2-binary>=2.9"]
+ai = [
+    "openai>=1.0",
+    "langchain>=0.2",
+    "langgraph>=0.1",
+]
+analytics = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "plotly>=5.0",
+    "statsmodels>=0.14",
+]
+all = ["safemantiq-framework[postgres,ai,analytics]"]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.26",
+    "ruff>=0.3",
+    "mypy>=1.8",
+]
+
+# ── CLI entry point ───────────────────────────────────────────────────────────
+[project.scripts]
+safem = "safemantiq_framework.cli.main:cli"
+
+# ── Package discovery ─────────────────────────────────────────────────────────
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["safemantiq_framework*"]
+
+# Include scaffold templates and static assets in the distribution.
+[tool.setuptools.package-data]
+"safemantiq_framework" = [
+    "scaffold/**/*",
+    "scaffold/**/.*",
+]
+
+# ── Ruff (linting) ────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

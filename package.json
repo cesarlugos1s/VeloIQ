@@ -1,0 +1,17 @@
+{
+  "name": "safemantiq-framework",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:ui": "npm run build --workspace=packages/ui",
+    "dev:ui": "npm run dev --workspace=packages/ui"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tanstack/react-query": "4.44.0",
+      "@tanstack/query-core": "4.44.0"
+    }
+  }
+}

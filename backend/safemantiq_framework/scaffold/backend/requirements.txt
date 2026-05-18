@@ -1,0 +1,8 @@
+# SafeMantIQ framework
+safemantiq-framework[postgres]
+
+# Auth dependencies (JWT + bcrypt — required for built-in auth module)
+python-jose[cryptography]>=3.3
+bcrypt>=4.0
+
+# Add your app-specific dependencies below:

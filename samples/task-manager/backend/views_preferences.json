@@ -1,0 +1,178 @@
+{
+  "__color_mode__": {
+    "colorMode": "light"
+  },
+  "user:all": {
+    "task": {
+      "current_view_name": "Progress Tracking",
+      "current_view_names": [
+        "default view",
+        "Progress Tracking"
+      ],
+      "views": {
+        "Progress Tracking": {
+          "EditLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "Progress Tracking",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": false,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "parent_task_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ],
+              "selectedKeys": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "parent_task_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          },
+          "ShowLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "Progress Tracking",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": false,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "parent_task_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ],
+              "selectedKeys": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "parent_task_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          }
+        },
+        "default view": {
+          "Analyze": {
+            "categoryField1": "title",
+            "categoryField2": "description",
+            "chartType": "bubble",
+            "custom_view_name": "default view",
+            "rankingFieldKey": "planned_work_hours",
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "planned_work_hours",
+              "actual_work_hours"
+            ],
+            "summaryFn": "sum"
+          },
+          "EditLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "default view",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": false,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ],
+              "selectedKeys": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          },
+          "ShowLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "default view",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": false,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ],
+              "selectedKeys": [
+                "title",
+                "description",
+                "status",
+                "priority",
+                "due_date",
+                "assignee_id",
+                "planned_work_hours",
+                "actual_work_hours"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          }
+        }
+      }
+    }
+  }
+}

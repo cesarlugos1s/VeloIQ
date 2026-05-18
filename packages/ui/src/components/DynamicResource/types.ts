@@ -1,0 +1,125 @@
+import React from "react";
+
+export interface VisibilityCondition {
+    field: string;
+    operator: "eq" | "ne" | "in" | "not_in" | "truthy" | "falsy" | "gt" | "lt" | "gte" | "lte" | "ilike";
+    value?: any;
+}
+
+export interface FieldDef {
+    key: string;
+    label: string;
+    type: "string" | "number" | "boolean" | "date" | "datetime" | "time";
+    isPk?: boolean;
+    required?: boolean;
+    reference?: string;
+    referencePath?: string;
+    optionLabel?: string;
+    options?: { label: string; value: any }[];
+    optionsUrl?: string;
+    valueColors?: Record<string, string>;
+    default?: any;
+    defaultValue?: any;
+    default_value?: any;
+    description?: string;
+    constraints?: string[];
+    formula?: string;
+    readOnly?: boolean;
+    unique?: boolean;
+    nullable?: boolean;
+}
+
+export interface MillerLeafConfig {
+    relationPath: string;
+    targetKey: string;
+    otherKey: string;
+    resource: string;
+    resourcePath?: string;
+}
+
+export interface RelationDef {
+    resource: string;
+    resourcePath?: string;
+    targetKey: string;
+    label: string;
+    otherKey?: string;
+    otherResource?: string;
+    otherResourcePath?: string;
+    relationName?: string;
+    polymorphicType?: string;
+    isRecursive?: boolean;
+    minItems?: number;
+    maxItems?: number;
+    showViewType?: "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+    editViewType?: "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+    showViewTypeFromCsv?: boolean;
+    editViewTypeFromCsv?: boolean;
+    showCustomPageName?: string;
+    editCustomPageName?: string;
+    showTab?: string;
+    editTab?: string;
+    description?: string;
+    // Miller columns (tree / tree-details) leaf configuration — single source (legacy)
+    millerLeafResource?: string;
+    millerLeafResourcePath?: string;
+    millerLeafRelationPath?: string;
+    millerLeafTargetKey?: string;
+    millerLeafOtherKey?: string;
+    // Miller columns — multiple leaf sources (takes precedence over single-source fields)
+    millerLeafConfigs?: MillerLeafConfig[];
+}
+
+export interface ModelDef {
+    name: string;
+    label: string;
+    module?: string;
+    fields: FieldDef[];
+    relations?: RelationDef[];
+    hideInMenu?: boolean;
+    resource?: string;
+    description?: string;
+    pkField?: string;
+}
+
+export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };
+export const PrimaryShowContext = React.createContext<React.ComponentType<PrimaryShowRendererProps> | null>(null);
+
+export type RelationViewType = "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+
+export interface BulkActionDef {
+    key: string;
+    label: string;
+    icon?: React.ReactNode;
+    /** Called once per selected record during bulk execution. */
+    onExecuteOne: (record: any) => Promise<void>;
+}
+
+export interface ViewConfigRow {
+    view_type: string;
+    subject_name: string;
+    relation_name: string;
+    object_name: string;
+    form_type: string;
+    section: string;
+    section_id?: string | null;
+    section_grid_row?: number | null;
+    section_grid_col?: number | null;
+    tab_name?: string | null;
+    vid?: string;
+    show_vid?: string;
+    edit_vid?: string;
+    showVid?: string;
+    editVid?: string;
+    limit?: number | null;
+    row?: number | null;
+    column?: number | null;
+    show_label?: boolean;
+    reload?: boolean;
+    html_format?: string;
+    attribute_or_relation_type: "attribute" | "relation" | "nlsentence";
+    nl_sentence_eid?: number | null;
+    nl_sentence_title?: string | null;
+    name: string;
+    visibility_condition?: VisibilityCondition | null;
+    read_only_in_edit?: boolean;
+}
