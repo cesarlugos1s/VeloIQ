@@ -8,6 +8,8 @@ venv/
 *.db
 *.db-shm
 *.db-wal
+# Keep the pre-seeded quickstart database in the repo
+!samples/task-manager/backend/taskmanager.db
 
 # Node
 node_modules/
