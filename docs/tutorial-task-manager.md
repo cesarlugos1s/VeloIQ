@@ -44,13 +44,14 @@ safem new task-manager
 cd task-manager
 ```
 
-> **Before PyPI release:** create a virtual environment first, then install an
-> editable copy of the framework from the source repository:
+> **Before PyPI release:** clone the repo, create a virtual environment, then
+> install an editable copy of the framework:
 >
 > ```bash
+> git clone https://github.com/cesarlugos1s/SafeMantIQ.git
 > python3 -m venv .venv
 > source .venv/bin/activate          # Windows: .venv\Scripts\activate
-> pip install -e /path/to/fastapi_sqladmin_prototype/backend
+> pip install -e SafeMantIQ/backend
 > ```
 >
 > Everything else in this tutorial is identical.
@@ -391,17 +392,17 @@ npm install
 npm run dev     # http://localhost:5173
 ```
 
-> **Before npm registry release:** build and install `@safemantiq/ui` locally
-> first — same idea as the Python editable install:
+> **Before npm registry release:** build and install `@safemantiq/ui` from the
+> cloned repo first — same idea as the Python editable install:
 >
 > ```bash
-> # Build the UI package once (from the framework source repo)
-> cd /path/to/fastapi_sqladmin_prototype/packages/ui
+> # Build the UI package once (from the cloned repo)
+> cd SafeMantIQ/packages/ui
 > npm install && npm run build
 >
 > # Install it into your project
 > cd /path/to/task-manager/frontend
-> npm install /path/to/fastapi_sqladmin_prototype/packages/ui
+> npm install /path/to/SafeMantIQ/packages/ui
 > npm install
 > npm run dev
 > ```

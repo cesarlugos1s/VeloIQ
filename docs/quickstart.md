@@ -5,6 +5,15 @@ task-manager demo app is live in your browser.
 
 ---
 
+## Get the repo
+
+```bash
+git clone https://github.com/cesarlugos1s/SafeMantIQ.git
+cd SafeMantIQ
+```
+
+---
+
 ## Prerequisites
 
 | Tool | Minimum version | Check |
