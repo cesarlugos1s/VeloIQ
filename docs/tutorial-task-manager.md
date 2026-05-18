@@ -49,9 +49,12 @@ cd task-manager
 >
 > ```bash
 > git clone https://github.com/cesarlugos1s/SafeMantIQ.git
+> cd SafeMantIQ
 > python3 -m venv .venv
 > source .venv/bin/activate          # Windows: .venv\Scripts\activate
-> pip install -e SafeMantIQ/backend
+> pip install -e backend/
+> safem new task-manager
+> cd task-manager
 > ```
 >
 > Everything else in this tutorial is identical.
@@ -396,13 +399,13 @@ npm run dev     # http://localhost:5173
 > cloned repo first — same idea as the Python editable install:
 >
 > ```bash
-> # Build the UI package once (from the cloned repo)
-> cd SafeMantIQ/packages/ui
+> # Build the UI package once (relative to SafeMantIQ/task-manager/frontend/)
+> cd ../../packages/ui
 > npm install && npm run build
 >
-> # Install it into your project
-> cd /path/to/task-manager/frontend
-> npm install /path/to/SafeMantIQ/packages/ui
+> # Back to your project frontend
+> cd ../../task-manager/frontend
+> npm install ../../packages/ui
 > npm install
 > npm run dev
 > ```
