@@ -13,10 +13,12 @@ import { buildShowTabFormOptions } from "../hooks/buildShowTabFormOptions";
 import { useShowActionsPreferences } from "../hooks/useShowActionsPreferences";
 import { ShowFooterButtons } from "../ShowFooterButtons";
 import { useStandardShowTabs } from "../../DynamicResource";
+import { useRoleFilteredModel } from "../utils/roleAccess";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean }> = ({ model, allModels, idOverride, embedded }) => {
+export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean }> = ({ model: modelProp, allModels, idOverride, embedded }) => {
+    const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const allModelsList = useMemo(() => allModels || [], [allModels]);

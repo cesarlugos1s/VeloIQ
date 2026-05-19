@@ -61,6 +61,52 @@ cd frontend && npm run dev  # frontend at http://localhost:5173
 - `AUTH_SECRET` env var is required for JWT signing; set `SAFEM_AUTH_DISABLED=1` to skip auth in development
 - `DATABASE_URL` env var controls the database (defaults to SQLite)
 
+## Access control
+
+The framework supports four layers of access control — all opt-in per model:
+
+**Layer 1 — Configurable roles** (defined in `main.py` via `SafemConfig(roles=[...])`).
+Roles map to HTTP methods.  They are seeded on startup and editable in the admin UI.
+
+**Layer 2 — Model-level exceptions** (`@model_access`): restrict which actions a role
+may perform on one specific model.
+
+```python
+from safemantiq_framework import model_access, TimestampedModel
+
+@model_access(Viewer=["list", "show"])
+class Invoice(TimestampedModel, table=True):
+    ...
+```
+
+**Layer 3 — Field-level exceptions** (`safem_field`): control which roles can read
+or write a specific field.
+
+```python
+from safemantiq_framework import safem_field, TimestampedModel
+
+class Employee(TimestampedModel, table=True):
+    salary: float = safem_field(default=0.0, read_roles=["Admin"], write_roles=["Admin"])
+```
+
+**ReBAC — Row-level access** (`@rebac`): filter which rows a user can access.
+
+```python
+from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+
+@rebac(owner_field="created_by")          # user sees only their own rows
+class Note(TimestampedModel, table=True):
+    created_by: int = Field(foreign_key="safem_user.id")
+
+@rebac(filter=lambda user, cls, session:  # inherit access from parent
+           cls.folder_id.in_(rebac_subquery(Folder, user, session)))
+class Document(TimestampedModel, table=True):
+    folder_id: int
+```
+
+After changing any model annotations run `safem generate` to update the API and
+frontend schemas.
+
 ## Environment variables
 
 See `.env.example` for all available variables. Copy it to `.env` before running:

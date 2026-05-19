@@ -54,6 +54,8 @@ export const authSystemModels: ModelDef[] = [
             { key: "id", label: "ID", type: "number", isPk: true },
             { key: "name", label: "Name", type: "string", required: true, unique: true },
             { key: "description", label: "Description", type: "string" },
+            { key: "allowed_methods", label: "Allowed Methods", type: "string", readRoles: ["Admin"], writeRoles: ["Admin"], description: "JSON array of permitted HTTP methods, e.g. [\"GET\",\"POST\",\"PUT\",\"PATCH\",\"DELETE\"]" },
+            { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." },
         ],
         relations: [
             {

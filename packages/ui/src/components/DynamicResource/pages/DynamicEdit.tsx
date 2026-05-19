@@ -11,6 +11,7 @@ import { useModelTone, getModelTone, type ModelTone } from "../../../utils/model
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 import type { ModelDef, ViewConfigRow } from "../types";
 import { asDisplayText, applyI18nLabelsToModel, applyI18nLabelsToModels, getModuleLabel } from "../utils/i18n";
+import { useRoleFilteredModel } from "../utils/roleAccess";
 import { renderWrappedPageTitle, parseInlineStyle } from "../utils/formatting";
 import { isDarkColor, toneScopeStyle, ToneSharedStyles, renderToneTabLabel } from "../utils/colors";
 import { renderIconOnlyButtons } from "../utils/buttons";
@@ -64,7 +65,8 @@ export const DynamicEdit: React.FC<{
     extraHeaderButtons?: React.ReactNode;
     journeyCallbacks?: JourneyCallbacks;
     idOverride?: string;
-}> = ({ model, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+}> = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+    const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const go = useGo();

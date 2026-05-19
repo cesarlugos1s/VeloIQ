@@ -11,6 +11,8 @@ import type { AuthProvider } from "@refinedev/core";
 const AUTH_BASE = "/auth";
 const TOKEN_KEY = "jm_access_token";
 const USER_KEY = "jm_user";
+const ROLE_PERMISSIONS_KEY = "jm_role_permissions";
+const RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -39,6 +41,30 @@ export const authProvider: AuthProvider = {
             const data = await response.json();
             localStorage.setItem(TOKEN_KEY, data.access_token);
             localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+
+            // Fetch and cache role + resource permissions for the access control provider.
+            const token = data.access_token;
+            try {
+                const [rolesRes, resourceRes] = await Promise.all([
+                    fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
+                    fetch(`${AUTH_BASE}/resource-permissions`, { headers: { Authorization: `Bearer ${token}` } }),
+                ]);
+                if (rolesRes.ok) {
+                    const roles: Array<{ name: string; allowed_actions: string[] }> = await rolesRes.json();
+                    const permsMap: Record<string, string[]> = {};
+                    for (const role of roles) {
+                        permsMap[role.name] = role.allowed_actions;
+                    }
+                    localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
+                }
+                if (resourceRes.ok) {
+                    const resourcePerms = await resourceRes.json();
+                    localStorage.setItem(RESOURCE_PERMISSIONS_KEY, JSON.stringify(resourcePerms));
+                }
+            } catch {
+                // Non-critical — accessControlProvider falls back to built-in defaults.
+            }
+
             return { success: true, redirectTo: "/" };
         } catch (err: any) {
             return {
@@ -57,6 +83,8 @@ export const authProvider: AuthProvider = {
     logout: async () => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(ROLE_PERMISSIONS_KEY);
+        localStorage.removeItem(RESOURCE_PERMISSIONS_KEY);
         return { success: true, redirectTo: "/login" };
     },
 

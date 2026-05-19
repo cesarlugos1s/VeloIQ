@@ -11,6 +11,7 @@ import { useModelTone, getModelTone, type ModelTone } from "../../../utils/model
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 import type { FieldDef, ModelDef, ViewConfigRow } from "../types";
 import { asDisplayText, applyI18nLabelsToModel, applyI18nLabelsToModels } from "../utils/i18n";
+import { useRoleFilteredModel } from "../utils/roleAccess";
 import { renderWrappedPageTitle, parseInlineStyle } from "../utils/formatting";
 import { isDarkColor, toneScopeStyle, ToneSharedStyles, renderToneTabLabel } from "../utils/colors";
 import { renderIconOnlyButtons } from "../utils/buttons";
@@ -59,7 +60,8 @@ export const DynamicCreate: React.FC<{
     allModels?: ModelDef[];
     journeyCallbacks?: JourneyCallbacks;
     injectedValues?: Record<string, any>;
-}> = ({ model, allModels, journeyCallbacks, injectedValues }) => {
+}> = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
+    const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const navigate = useNavigate();

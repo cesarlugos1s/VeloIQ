@@ -239,7 +239,22 @@ def _build_ts_schema(module_name: str, models: list) -> str:
                     fk = next(iter(col.foreign_keys))
                     ref_table = fk.column.table.name
                     reference_extra = f', reference: "{ref_table}"'
-                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra} }}'
+                # Emit safem_field read/write role restrictions if present.
+                role_extra = ""
+                try:
+                    fi = model.model_fields.get(p.key)
+                    if fi is not None:
+                        jse = getattr(fi, "json_schema_extra", None)
+                        if isinstance(jse, dict):
+                            if "safem_read_roles" in jse:
+                                rr = jse["safem_read_roles"]
+                                role_extra += f', readRoles: {_to_ts_array(rr)}'
+                            if "safem_write_roles" in jse:
+                                wr = jse["safem_write_roles"]
+                                role_extra += f', writeRoles: {_to_ts_array(wr)}'
+                except Exception:
+                    pass
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{role_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:
@@ -315,6 +330,12 @@ def _build_ts_schema(module_name: str, models: list) -> str:
 
     lines += ["];", "", f"export default {module_name}Models;", ""]
     return "\n".join(lines)
+
+
+def _to_ts_array(values: list[str]) -> str:
+    """Convert a Python list of strings to a TypeScript array literal."""
+    inner = ", ".join(f'"{v}"' for v in values)
+    return f"[{inner}]"
 
 
 _IMAGE_URL_FIELD_NAMES = {"avatar_url", "image_url", "photo_url", "thumbnail_url", "cover_url", "picture_url"}

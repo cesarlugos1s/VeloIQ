@@ -5,6 +5,8 @@ dependency on JuiceMantics utilities or database engine singletons.
 """
 from __future__ import annotations
 
+import json
+import time
 import uuid
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List
@@ -120,43 +122,140 @@ def require_role(*allowed_roles: str):
 
 
 # ---------------------------------------------------------------------------
-# RBAC helper
+# RBAC helper — DB-backed with in-process cache
 # ---------------------------------------------------------------------------
 
-_ROLE_METHODS: dict = {
-    "Admin":   {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-    "Manager": {"GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD"},
-    "Viewer":  {"GET", "OPTIONS", "HEAD"},
-}
+# role_name → (allowed_methods: set, expires_at: float)
+_rbac_cache: dict[str, tuple[set[str], float]] = {}
+_RBAC_CACHE_TTL = 30.0  # seconds
 
 
-def check_rbac(roles: List[str], method: str) -> bool:
-    """Return True when at least one role permits *method*."""
+def _invalidate_rbac_cache() -> None:
+    """Clear the RBAC method cache (call after roles are modified)."""
+    _rbac_cache.clear()
+
+
+def _get_role_methods(engine, role_name: str) -> set[str]:
+    """Return the set of allowed HTTP methods for *role_name* (cached 30 s)."""
+    now = time.monotonic()
+    cached = _rbac_cache.get(role_name)
+    if cached and now < cached[1]:
+        return cached[0]
+
+    from sqlmodel import Session, select
+    from safemantiq_framework.auth.models import Role
+
+    with Session(engine) as session:
+        role = session.exec(select(Role).where(Role.name == role_name)).first()
+        if role is None:
+            methods: set[str] = set()
+        else:
+            try:
+                methods = set(json.loads(role.allowed_methods or "[]"))
+            except Exception:
+                methods = set()
+
+    _rbac_cache[role_name] = (methods, now + _RBAC_CACHE_TTL)
+    return methods
+
+
+def check_rbac(roles: List[str], method: str, engine=None) -> bool:
+    """Return True when at least one role permits *method*.
+
+    Reads permissions from the DB (with a 30 s in-process cache).
+    Falls back to a hard-coded legacy table when the DB is unavailable.
+    """
     method = method.upper()
-    return any(method in _ROLE_METHODS.get(r, set()) for r in roles)
+    _engine = engine
+    if _engine is None:
+        try:
+            from safemantiq_framework.db import get_engine
+            _engine = get_engine()
+        except Exception:
+            pass
+
+    if _engine is not None:
+        return any(method in _get_role_methods(_engine, r) for r in roles)
+
+    # Fallback — should only happen before the engine is initialised.
+    _legacy: dict[str, set[str]] = {
+        "Admin":   {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
+        "Manager": {"GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD"},
+        "Viewer":  {"GET", "OPTIONS", "HEAD"},
+    }
+    return any(method in _legacy.get(r, set()) for r in roles)
 
 
 # ---------------------------------------------------------------------------
 # Startup seeding
 # ---------------------------------------------------------------------------
 
-_DEFAULT_ROLES = [
-    ("Admin",   "Full administrative access"),
-    ("Manager", "Create, edit and view — no delete"),
-    ("Viewer",  "Read-only access"),
-]
+def _ensure_role_columns(engine) -> None:
+    """Add allowed_methods / is_preset columns to safem_role if missing.
+
+    Enables zero-downtime upgrades from the old schema: the columns are added
+    transparently on first startup after the framework update.
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(engine)
+    if "safem_role" not in inspector.get_table_names():
+        return  # Table will be created with the full schema by create_all().
+
+    existing = {c["name"] for c in inspector.get_columns("safem_role")}
+    with engine.connect() as conn:
+        if "allowed_methods" not in existing:
+            try:
+                conn.execute(text("ALTER TABLE safem_role ADD COLUMN allowed_methods TEXT DEFAULT '[]'"))
+                conn.commit()
+            except Exception:
+                pass
+        if "is_preset" not in existing:
+            try:
+                conn.execute(text("ALTER TABLE safem_role ADD COLUMN is_preset BOOLEAN DEFAULT FALSE"))
+                conn.commit()
+            except Exception:
+                pass
 
 
-def seed_default_roles(engine) -> None:
-    """Ensure Admin, Manager, and Viewer roles exist in the database."""
+def seed_roles(engine, roles: list) -> None:
+    """Upsert developer-defined role presets into the database.
+
+    Creates each role that doesn't exist yet; updates ``allowed_methods``,
+    ``description``, and ``is_preset`` for roles that already exist.
+    Never deletes roles — roles created via the admin UI are preserved.
+    """
     from sqlmodel import Session, select
     from safemantiq_framework.auth.models import Role
 
+    _ensure_role_columns(engine)
+
     with Session(engine) as session:
-        for name, description in _DEFAULT_ROLES:
-            if not session.exec(select(Role).where(Role.name == name)).first():
-                session.add(Role(name=name, description=description))
+        for role_def in roles:
+            methods_json = json.dumps(sorted(role_def.methods))
+            existing = session.exec(select(Role).where(Role.name == role_def.name)).first()
+            if existing is None:
+                session.add(Role(
+                    name=role_def.name,
+                    description=role_def.description,
+                    allowed_methods=methods_json,
+                    is_preset=role_def.is_preset,
+                ))
+            else:
+                if role_def.description:
+                    existing.description = role_def.description
+                existing.allowed_methods = methods_json
+                existing.is_preset = role_def.is_preset
+                session.add(existing)
         session.commit()
+
+    _invalidate_rbac_cache()
+
+
+def seed_default_roles(engine) -> None:
+    """Backward-compatible alias — seeds the three built-in preset roles."""
+    from safemantiq_framework.auth.permissions import DEFAULT_ROLES
+    seed_roles(engine, DEFAULT_ROLES)
 
 
 def seed_admin_user_if_needed(engine, username: str = "admin", password: str = "admin") -> None:

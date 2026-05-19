@@ -257,6 +257,22 @@ Use these prompt patterns any time you need to change a running app:
 > `backend/app/modules/tasks/admin/admin_views.py` with `TaskAdmin` showing
 > `title` and `status` columns, `title` as searchable.
 
+**Add model-level access control**
+> In `backend/app/modules/tasks/models.py` apply `@model_access` to `Task` so
+> that the `Viewer` role can only `list` and `show` tasks (no create/edit/delete).
+> Import `model_access` from `safemantiq_framework`. Run `safem generate`.
+
+**Add field-level access control**
+> In `backend/app/modules/tasks/models.py` change `planned_work_hours` and
+> `actual_work_hours` to use `safem_field(default=None, write_roles=["Admin", "Manager"])`.
+> Import `safem_field` from `safemantiq_framework`. Run `safem generate`.
+
+**Add row-level access control (ReBAC)**
+> In `backend/app/modules/tasks/models.py` apply `@rebac(owner_field="assignee_id")`
+> to `Task` so users only see tasks assigned to them. Import `rebac` from
+> `safemantiq_framework`. Remind me that `assignee_id` is a foreign key to
+> `team_member.id` and that `@rebac` applies to all roles including Admin.
+
 ---
 
 When you are done with the AI tool, continue from **Step 9** below to start the
@@ -542,7 +558,7 @@ the first resource list and will see the sidebar with:
 - **Tasks**, **Projects**, **Team** — your application modules
 - **Access Control** group — **Users**, **Roles**, **Tenants** — built-in auth management
 
-### Role permissions
+### Role permissions (Layer 1 — global)
 
 | Role    | GET | POST | PUT / PATCH | DELETE |
 |---------|-----|------|-------------|--------|
@@ -552,6 +568,10 @@ the first resource list and will see the sidebar with:
 
 When a Viewer logs in, Create / Edit / Delete buttons are hidden in the UI and
 the backend returns `403` for any mutating requests.
+
+Roles are seeded from the `roles=[...]` list in `main.py` and can be edited
+at runtime through **Access Control → Roles** in the sidebar.  Roles created
+in the UI persist in the database and are never deleted by the seed.
 
 ### Add more users
 
@@ -574,6 +594,167 @@ request without validating tokens.  **Never use this in production.**
    ```
 2. Change the default `admin` password.
 3. Remove or rename the `SAFEM_AUTH_DISABLED` variable.
+
+---
+
+## Step 12 — Access control
+
+The framework provides three more layers of precision access control on top of
+the global role permissions from Step 11.  All layers are purely restrictive —
+they can narrow access but never grant more than the role's global permissions
+allow.
+
+### Layer 1 recap — Configurable roles
+
+Roles are defined in `backend/app/main.py`.  To add a custom role, extend the
+`roles` list and restart the app:
+
+```python
+# backend/app/main.py
+from safemantiq_framework import (
+    create_safem_app, SafemConfig,
+    RoleDef, ALL_METHODS, WRITE_METHODS, READ_METHODS,
+)
+
+app = create_safem_app(SafemConfig(
+    roles=[
+        RoleDef("Admin",   ALL_METHODS,   "Full administrative access",        is_preset=True),
+        RoleDef("Manager", WRITE_METHODS, "Create, edit and view — no delete", is_preset=True),
+        RoleDef("Viewer",  READ_METHODS,  "Read-only access",                  is_preset=True),
+        RoleDef("Auditor", READ_METHODS,  "External auditor — read only",      is_preset=True),
+    ],
+))
+```
+
+The new `Auditor` role is upserted to the database on the next startup and
+immediately appears in **Access Control → Roles**.
+
+---
+
+### Layer 2 — Model-level exceptions (`@model_access`)
+
+Restrict which actions a role may perform on one specific model, without
+changing that role's permissions on every other resource.
+
+Open `backend/app/modules/tasks/models.py` and add:
+
+```python
+from safemantiq_framework import TimestampedModel, jm_relationship, model_access
+
+@model_access(Viewer=["list", "show"])
+class Task(TimestampedModel, table=True):
+    ...
+```
+
+With this in place, a Viewer can list and view tasks as usual but can never
+create, edit, or delete a task even if their global role permissions are
+expanded later.  Roles **not** listed in `@model_access` are unaffected —
+their global permissions apply unchanged.
+
+> **When to use:** protecting sensitive resources (invoices, HR records, salary
+> data) from roles that have broader global write access.
+
+---
+
+### Layer 3 — Field-level exceptions (`safem_field`)
+
+Control which roles can read or write individual fields.
+
+```python
+from safemantiq_framework import TimestampedModel, jm_relationship, safem_field
+
+class Task(TimestampedModel, table=True):
+    __tablename__ = "task"
+
+    title: str
+    description: Optional[str] = None
+    status: str = "todo"
+    priority: str = "medium"
+    due_date: Optional[datetime.date] = None
+
+    # Only managers and admins can set work-hour estimates
+    planned_work_hours: Optional[float] = safem_field(
+        default=None, write_roles=["Admin", "Manager"]
+    )
+    # Actual hours logged — Admin-only write, everyone can read
+    actual_work_hours: Optional[float] = safem_field(
+        default=None, write_roles=["Admin", "Manager"]
+    )
+    ...
+```
+
+- `write_roles` — roles that may set this field in a create or update request.
+  Other roles can still read it; their write payload is silently filtered.
+- `read_roles` — roles that may see this field in a response.
+  Other roles receive the record without that field.
+
+After changing model fields, re-run `python api_schema_gen.py` — the generator
+emits the `readRoles` / `writeRoles` metadata into the TypeScript schema so the
+frontend can also hide or disable restricted fields.
+
+---
+
+### ReBAC — Row-level access control (`@rebac`)
+
+Use `@rebac` when access depends on the data itself — for example, a team
+member should only see tasks that are assigned to them.
+
+#### Owner-based access
+
+```python
+from safemantiq_framework import TimestampedModel, jm_relationship, rebac
+
+@rebac(owner_field="assignee_id")
+class Task(TimestampedModel, table=True):
+    __tablename__ = "task"
+
+    assignee_id: Optional[int] = Field(default=None, foreign_key="team_member.id")
+    ...
+```
+
+With this decorator, every list/get/update/delete endpoint filters rows so a
+user only sees tasks where `assignee_id` matches their user ID.
+
+#### Relationship traversal
+
+Use `rebac_subquery` when access follows a relationship chain.  For example,
+to restrict tasks to those belonging to projects the user owns:
+
+```python
+from safemantiq_framework import rebac, rebac_subquery
+
+@rebac(filter=lambda user, cls, session:
+           cls.project_id.in_(rebac_subquery(Project, user, session)))
+class Task(TimestampedModel, table=True):
+    ...
+
+@rebac(owner_field="owner_id")
+class Project(TimestampedModel, table=True):
+    owner_id: Optional[int] = Field(default=None, foreign_key="team_member.id")
+    ...
+```
+
+A task is accessible when its project is accessible.  `rebac_subquery` builds
+the subquery for you and handles circular-dependency detection automatically.
+
+#### Key points
+
+- **No automatic Admin bypass** — `@rebac` applies to all roles including Admin.
+  This is intentional: if you want Admins to bypass row filtering, return `True`
+  from your filter for Admin users.
+- **404 not 403** — accessing an existing but inaccessible row returns 404 to
+  prevent leaking which record IDs exist.
+- Omitting `@rebac` from a model means no row-level filtering — the existing
+  RBAC layers (1–3) still apply.
+
+---
+
+After making any model changes, regenerate the schema:
+
+```bash
+cd backend
+python api_schema_gen.py
+```
 
 ---
 
@@ -698,6 +879,8 @@ framework.
 
 ## Next steps
 
+- Add model-level and field-level access control, or restrict rows with ReBAC
+  → [Step 12 — Access control](#step-12--access-control) in this tutorial
 - Add an `admin/admin_views.py` to customise how tasks appear in the back-office
   → [Module Authoring](./module-authoring.md#adminadmin_viewspy)
 - Override a generated TypeScript schema to add a custom field label or relation

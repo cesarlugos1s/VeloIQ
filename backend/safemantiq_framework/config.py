@@ -4,6 +4,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from safemantiq_framework.auth.permissions import RoleDef
 
 
 @dataclass
@@ -92,6 +96,16 @@ class SafemConfig:
 
     # ── Static files ──────────────────────────────────────────────────────────
     static_dir: Path | None = None        # None = no static mount
+
+    # ── Role presets ──────────────────────────────────────────────────────────
+    # Developer-defined roles seeded to the DB on startup.  Defaults to the
+    # three built-in presets (Admin / Manager / Viewer).  Add or replace entries
+    # to introduce app-specific roles.
+    roles: list = field(
+        default_factory=lambda: list(__import__(
+            "safemantiq_framework.auth.permissions", fromlist=["DEFAULT_ROLES"]
+        ).DEFAULT_ROLES)
+    )
 
     # ── ReBAC (row-level filtering) ───────────────────────────────────────────
     rebac_enabled: bool = field(

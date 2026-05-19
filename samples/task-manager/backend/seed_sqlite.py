@@ -23,7 +23,7 @@ os.environ.setdefault("AUTH_SECRET", "task-manager-dev-secret-change-this")
 sys.path.insert(0, ".")
 
 from sqlalchemy import create_engine
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session, SQLModel, select
 
 from app.modules.projects.models import Project  # noqa: F401 — registers table
 from app.modules.tasks.models import Task  # noqa: F401 — registers table
@@ -35,13 +35,18 @@ from safemantiq_framework.auth.models import (  # noqa: F401
     user_has_role_link,
     user_has_tenant_link,
 )
-from safemantiq_framework.auth.utils import hash_password
+from safemantiq_framework.auth.permissions import DEFAULT_ROLES
+from safemantiq_framework.auth.utils import hash_password, seed_roles
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SQLModel.metadata.drop_all(engine)
 SQLModel.metadata.create_all(engine)
+
+# Seed the three default roles with their allowed HTTP methods.
+# seed_roles() upserts — safe to run after create_all on a fresh DB.
+seed_roles(engine, DEFAULT_ROLES)
 
 today = datetime.date.today()
 
@@ -265,12 +270,10 @@ with Session(engine) as session:
     session.add_all([logo, style_guide])
     session.flush()
 
-    # ── Auth: roles ───────────────────────────────────────────────────────────
-    admin_role   = Role(name="Admin",   description="Full administrative access")
-    manager_role = Role(name="Manager", description="Create, edit and view — no delete")
-    viewer_role  = Role(name="Viewer",  description="Read-only access")
-    session.add_all([admin_role, manager_role, viewer_role])
-    session.flush()
+    # ── Auth: roles — fetched from DB (created by seed_roles() above) ─────────
+    admin_role   = session.exec(select(Role).where(Role.name == "Admin")).first()
+    manager_role = session.exec(select(Role).where(Role.name == "Manager")).first()
+    viewer_role  = session.exec(select(Role).where(Role.name == "Viewer")).first()
 
     # ── Auth: users ───────────────────────────────────────────────────────────
     admin_user = User(

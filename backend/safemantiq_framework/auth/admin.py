@@ -30,11 +30,11 @@ class RoleAdmin(ModelView, model=Role):
     category = "Access Control"
     icon = "fa-solid fa-shield-halved"
 
-    column_list = [Role.id, Role.name, Role.description]
+    column_list = [Role.id, Role.name, Role.description, Role.allowed_methods, Role.is_preset]
     column_searchable_list = [Role.name, Role.description]
-    column_sortable_list = [Role.id, Role.name]
+    column_sortable_list = [Role.id, Role.name, Role.is_preset]
 
-    form_columns = [Role.name, Role.description]
+    form_columns = [Role.name, Role.description, Role.allowed_methods, Role.is_preset]
 
 
 class TenantAdmin(ModelView, model=Tenant):

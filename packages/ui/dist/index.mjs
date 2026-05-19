@@ -4049,6 +4049,7 @@ var getSortPriority = (columnSort, fieldKey) => {
 };
 var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 var isImageRecord = (record) => {
+  if (record?.avatar_url || record?.image_url || record?.photo_url) return true;
   const format = String(record?.data_format || "").toLowerCase();
   if (format.startsWith("image/")) return true;
   const name = String(record?.data_name || "");
@@ -4067,9 +4068,11 @@ var recordHasData = (record) => {
 var getGalleryItemId = (record, fallbackId) => record?.eid ?? record?.id ?? fallbackId;
 var getGalleryItemLabel = (record, fallbackId) => {
   const fileId = fallbackId ?? "";
-  return record?.title || record?.data_name || record?._label || `File ${fileId}`;
+  return record?.title || record?.name || record?.data_name || record?._label || `File ${fileId}`;
 };
 var getGalleryItemContentUrl = (apiUrl, record, id) => {
+  const directUrl = record?.avatar_url || record?.image_url || record?.photo_url;
+  if (directUrl && typeof directUrl === "string") return directUrl;
   const hasData = recordHasData(record);
   const isImage = isImageRecord(record) && hasData;
   if (!isImage || !id) return "";
@@ -6933,8 +6936,33 @@ var shouldHandleLinkClick = (event) => {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
   return true;
 };
+var USER_KEY = "jm_user";
+function getCurrentUserRoles() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw)?.roles ?? [];
+  } catch {
+    return [];
+  }
+}
+function filterFieldsByRole(fields, userRoles) {
+  return fields.filter((f) => {
+    if (!f.readRoles || f.readRoles.length === 0) return true;
+    return f.readRoles.some((r) => userRoles.includes(r));
+  });
+}
+function useRoleFilteredModel(model) {
+  const userRoles = useMemo(() => getCurrentUserRoles(), []);
+  return useMemo(() => {
+    const filtered = filterFieldsByRole(model.fields, userRoles);
+    if (filtered.length === model.fields.length) return model;
+    return { ...model, fields: filtered };
+  }, [model, userRoles]);
+}
 var _17 = window._ || ((text) => text);
-var DynamicShow = ({ model, allModels, idOverride, embedded }) => {
+var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
+  const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -7295,7 +7323,8 @@ var renderFieldValue = (field, record, allModels) => {
 };
 var _23 = window._ || ((text) => text);
 var { Title: Title2 } = Typography;
-var DynamicCreate = ({ model, allModels, journeyCallbacks, injectedValues }) => {
+var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
+  const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const navigate = useNavigate();
@@ -7880,7 +7909,8 @@ var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
 };
 var _24 = window._ || ((text) => text);
 var { Title: Title3 } = Typography;
-var DynamicEdit = ({ model, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+  const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const go = useGo();
@@ -13714,7 +13744,8 @@ var renderRelationBlock = ({
 };
 var _32 = window._ || ((text) => text);
 var { Title: Title7 } = Typography;
-var DynamicList = ({ model, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+  const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const navigate = useNavigate();
@@ -13761,7 +13792,8 @@ var DynamicList = ({ model, allModels, filter, relationConfig, isEmbedded = fals
   };
   const searchField = model.fields.find((f) => f.type === "string" && !f.key.includes("_id") && !f.key.includes("eid")) || model.fields.find((f) => f.type === "string") || model.fields[0];
   const isFileModel3 = (model.resource || model.name).toLowerCase() === "file";
-  const defaultListViewType = String(viewSettings?.listViewType || "table").toLowerCase();
+  const modelDefaultListViewType = String(model.listViewType || "").toLowerCase();
+  const defaultListViewType = String(modelDefaultListViewType || viewSettings?.listViewType || "table").toLowerCase();
   const fileListViewType = String(viewSettings?.fileListViewType || "").toLowerCase();
   const resolvedListViewType = String(
     listViewType || (isFileModel3 && fileListViewType ? fileListViewType : defaultListViewType) || "table"
@@ -17743,7 +17775,9 @@ var InlinePlotlyHtml = ({ html, style }) => {
 // src/providers/authProvider.ts
 var AUTH_BASE = "/auth";
 var TOKEN_KEY2 = "jm_access_token";
-var USER_KEY = "jm_user";
+var USER_KEY2 = "jm_user";
+var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
+var RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
 var _35 = window._ || ((text) => text);
 var authProvider = {
   /**
@@ -17769,7 +17803,27 @@ var authProvider = {
       }
       const data = await response.json();
       localStorage.setItem(TOKEN_KEY2, data.access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      localStorage.setItem(USER_KEY2, JSON.stringify(data.user));
+      const token = data.access_token;
+      try {
+        const [rolesRes, resourceRes] = await Promise.all([
+          fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${AUTH_BASE}/resource-permissions`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        if (rolesRes.ok) {
+          const roles = await rolesRes.json();
+          const permsMap = {};
+          for (const role of roles) {
+            permsMap[role.name] = role.allowed_actions;
+          }
+          localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
+        }
+        if (resourceRes.ok) {
+          const resourcePerms = await resourceRes.json();
+          localStorage.setItem(RESOURCE_PERMISSIONS_KEY, JSON.stringify(resourcePerms));
+        }
+      } catch {
+      }
       return { success: true, redirectTo: "/" };
     } catch (err) {
       return {
@@ -17786,7 +17840,9 @@ var authProvider = {
    */
   logout: async () => {
     localStorage.removeItem(TOKEN_KEY2);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(USER_KEY2);
+    localStorage.removeItem(ROLE_PERMISSIONS_KEY);
+    localStorage.removeItem(RESOURCE_PERMISSIONS_KEY);
     return { success: true, redirectTo: "/login" };
   },
   /**
@@ -17805,7 +17861,7 @@ var authProvider = {
    * from the backend ``/auth/me`` endpoint.
    */
   getIdentity: async () => {
-    const cached = localStorage.getItem(USER_KEY);
+    const cached = localStorage.getItem(USER_KEY2);
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -17820,7 +17876,7 @@ var authProvider = {
       });
       if (!response.ok) return null;
       const user = await response.json();
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      localStorage.setItem(USER_KEY2, JSON.stringify(user));
       return user;
     } catch {
       return null;
@@ -17830,7 +17886,7 @@ var authProvider = {
    * Return the user's roles for role-based UI rendering.
    */
   getPermissions: async () => {
-    const cached = localStorage.getItem(USER_KEY);
+    const cached = localStorage.getItem(USER_KEY2);
     if (cached) {
       try {
         return JSON.parse(cached)?.roles ?? [];
@@ -17852,16 +17908,40 @@ var authProvider = {
 };
 
 // src/providers/accessControlProvider.ts
-var USER_KEY2 = "jm_user";
+var USER_KEY3 = "jm_user";
+var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
+var RESOURCE_PERMISSIONS_KEY2 = "jm_resource_permissions";
 var _36 = window._ || ((text) => text);
-var ROLE_ACTIONS = {
-  Admin: /* @__PURE__ */ new Set(["list", "show", "create", "edit", "delete", "clone", "field"]),
-  Manager: /* @__PURE__ */ new Set(["list", "show", "create", "edit", "clone", "field"]),
-  Viewer: /* @__PURE__ */ new Set(["list", "show", "field"])
+var FALLBACK_ROLE_ACTIONS = {
+  Admin: ["list", "show", "create", "edit", "delete", "clone", "field"],
+  Manager: ["list", "show", "create", "edit", "clone", "field"],
+  Viewer: ["list", "show", "field"]
 };
+function getRoleActions() {
+  const cached = localStorage.getItem(ROLE_PERMISSIONS_KEY2);
+  const source = cached ? (() => {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return FALLBACK_ROLE_ACTIONS;
+    }
+  })() : FALLBACK_ROLE_ACTIONS;
+  return Object.fromEntries(
+    Object.entries(source).map(([k, v]) => [k, new Set(v)])
+  );
+}
+function getResourcePermissions() {
+  const cached = localStorage.getItem(RESOURCE_PERMISSIONS_KEY2);
+  if (!cached) return {};
+  try {
+    return JSON.parse(cached);
+  } catch {
+    return {};
+  }
+}
 var accessControlProvider = {
-  can: async ({ action }) => {
-    const cached = localStorage.getItem(USER_KEY2);
+  can: async ({ action, resource }) => {
+    const cached = localStorage.getItem(USER_KEY3);
     if (!cached) {
       return { can: false, reason: _36("Not authenticated") };
     }
@@ -17875,17 +17955,28 @@ var accessControlProvider = {
     if (roles.some((r) => r.toLowerCase() === "admin")) {
       return { can: true };
     }
-    const allowed = roles.some((role) => {
-      const key = Object.keys(ROLE_ACTIONS).find((k) => k.toLowerCase() === role.toLowerCase());
-      return key ? ROLE_ACTIONS[key].has(action) : false;
-    });
-    if (!allowed) {
-      return {
-        can: false,
-        reason: _36("Access denied \u2014 insufficient role for this action")
-      };
+    const roleActions = getRoleActions();
+    const resourcePerms = getResourcePermissions();
+    for (const role of roles) {
+      const roleKey = Object.keys(roleActions).find(
+        (k) => k.toLowerCase() === role.toLowerCase()
+      ) ?? role;
+      if (resource && resourcePerms[resource]?.[roleKey] !== void 0) {
+        const allowedByException = resourcePerms[resource][roleKey];
+        if (allowedByException.includes(action)) {
+          return { can: true };
+        }
+        continue;
+      }
+      const globalActions = roleActions[roleKey];
+      if (globalActions?.has(action)) {
+        return { can: true };
+      }
     }
-    return { can: true };
+    return {
+      can: false,
+      reason: _36("Access denied \u2014 insufficient role for this action")
+    };
   },
   options: {
     buttons: {
@@ -18169,7 +18260,9 @@ var authSystemModels = [
     fields: [
       { key: "id", label: "ID", type: "number", isPk: true },
       { key: "name", label: "Name", type: "string", required: true, unique: true },
-      { key: "description", label: "Description", type: "string" }
+      { key: "description", label: "Description", type: "string" },
+      { key: "allowed_methods", label: "Allowed Methods", type: "string", readRoles: ["Admin"], writeRoles: ["Admin"], description: 'JSON array of permitted HTTP methods, e.g. ["GET","POST","PUT","PATCH","DELETE"]' },
+      { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." }
     ],
     relations: [
       {

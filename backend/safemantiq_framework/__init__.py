@@ -14,6 +14,17 @@ from safemantiq_framework.models import (
 from safemantiq_framework.db import get_session
 from safemantiq_framework.crud import create_crud_router
 from safemantiq_framework.auth.utils import get_current_user, require_role
+from safemantiq_framework.auth.permissions import (
+    RoleDef,
+    model_access,
+    safem_field,
+    rebac,
+    rebac_subquery,
+    ALL_METHODS,
+    WRITE_METHODS,
+    READ_METHODS,
+    DEFAULT_ROLES,
+)
 
 __all__ = [
     "__version__",
@@ -29,4 +40,15 @@ __all__ = [
     "create_crud_router",
     "get_current_user",
     "require_role",
+    # Permission primitives — RBAC
+    "RoleDef",
+    "model_access",
+    "safem_field",
+    "ALL_METHODS",
+    "WRITE_METHODS",
+    "READ_METHODS",
+    "DEFAULT_ROLES",
+    # Permission primitives — ReBAC
+    "rebac",
+    "rebac_subquery",
 ]

@@ -87,8 +87,8 @@ def create_safem_app(
             from safemantiq_framework.auth import models as _auth_models  # noqa: F401
             SQLModel.metadata.create_all(engine)
         if cfg.auth_enabled:
-            from safemantiq_framework.auth.utils import seed_admin_user_if_needed, seed_default_roles
-            seed_default_roles(engine)
+            from safemantiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
+            seed_roles(engine, cfg.roles)
             seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
         yield
 
@@ -174,6 +174,7 @@ def _add_auth_middleware(app: FastAPI, cfg: SafemConfig) -> None:
         try:
             from safemantiq_framework.auth.utils import decode_access_token
             payload = decode_access_token(token, cfg.auth_secret)
+            payload["eid"] = int(payload.get("sub", 0) or 0)
             request.state.user = payload
         except Exception:
             return JSONResponse(

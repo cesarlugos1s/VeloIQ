@@ -90,6 +90,119 @@ class Order(TimestampedModel, table=True):
     customer: Optional["Customer"] = jm_relationship(back_populates="orders")
 ```
 
+## Access control
+
+SafeMantIQ provides four layers of access control.  All are opt-in per model
+and can be combined freely.
+
+### Layer 1 — Configurable roles (global)
+
+Roles and their HTTP-method permissions are defined in `main.py` and seeded to
+the database on startup.  They are also editable at runtime through the admin UI.
+
+```python
+# main.py
+from safemantiq_framework import (
+    create_safem_app, SafemConfig,
+    RoleDef, ALL_METHODS, WRITE_METHODS, READ_METHODS,
+)
+
+app = create_safem_app(SafemConfig(
+    roles=[
+        RoleDef("Admin",   ALL_METHODS,   "Full access",               is_preset=True),
+        RoleDef("Manager", WRITE_METHODS, "Create/edit, no delete",    is_preset=True),
+        RoleDef("Viewer",  READ_METHODS,  "Read-only",                 is_preset=True),
+        # Add as many custom roles as needed:
+        RoleDef("Auditor", READ_METHODS,  "External auditor",          is_preset=True),
+    ],
+))
+```
+
+### Layer 2 — Model-level exceptions (`@model_access`)
+
+Override which actions a role may perform on a specific model.  Roles not listed
+in `@model_access` inherit their global permissions unchanged.
+
+```python
+from safemantiq_framework import model_access, TimestampedModel
+
+@model_access(Viewer=["list", "show"])   # Viewer is read-only on Invoice
+class Invoice(TimestampedModel, table=True):
+    __tablename__ = "invoice"
+    amount: float
+    status: str = "draft"
+```
+
+Exceptions are **restrictive only** — they can narrow access, never grant
+beyond the role's global permissions.
+
+### Layer 3 — Field-level exceptions (`safem_field`)
+
+Control read and write access per field.
+
+```python
+from safemantiq_framework import safem_field, TimestampedModel
+
+class Employee(TimestampedModel, table=True):
+    __tablename__ = "employee"
+    name: str
+    department: str
+    # Only Admins can see or change salary
+    salary: float = safem_field(
+        default=0.0,
+        read_roles=["Admin"],
+        write_roles=["Admin"],
+    )
+    # Viewers can read notes, but only Managers and Admins can write them
+    notes: str = safem_field(
+        default="",
+        write_roles=["Admin", "Manager"],
+    )
+```
+
+`safem_field` uses `pydantic.Field` under the hood and is fully compatible with
+`TimestampedModel` and `FrameworkModel`.  After adding or changing `safem_field`
+annotations, run `python api_schema_gen.py` — the generator emits `readRoles`
+and `writeRoles` into the TypeScript schema so the frontend can hide or disable
+restricted inputs automatically.
+
+### ReBAC — Row-level access control (`@rebac`)
+
+Filter which rows a user can see, edit, or delete based on the data itself.
+
+```python
+from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+
+# Shorthand: user sees only rows they own
+@rebac(owner_field="created_by")
+class Note(TimestampedModel, table=True):
+    created_by: int = Field(foreign_key="safem_user.id")
+
+# Tenant isolation: user sees rows whose tenant they belong to
+@rebac(tenant_field="tenant_id")
+class Contract(TimestampedModel, table=True):
+    tenant_id: int = Field(foreign_key="safem_tenant.id")
+
+# Relationship traversal: inherit access from a parent model
+@rebac(filter=lambda user, cls, session:
+           cls.folder_id.in_(rebac_subquery(Folder, user, session)))
+class Document(TimestampedModel, table=True):
+    folder_id: int
+```
+
+**`rebac_subquery(ModelClass, user, session)`** returns a subquery of accessible
+primary keys from *ModelClass* — the target model must itself carry `@rebac`.
+Circular dependencies raise a `ValueError` at runtime.
+
+Key characteristics:
+- `@rebac` applies to **all roles**, including Admin.  To exempt Admins, return
+  `True` from the filter for admin users.
+- Inaccessible rows return **404**, not 403, to avoid leaking which IDs exist.
+- Multiple patterns (`filter`, `owner_field`, `tenant_field`) on one decorator
+  are **OR-combined**: a row is visible if any pattern allows it.
+
+---
+
 ## api.py — the generated CRUD layer
 
 After running `safem generate`, each module has an `api.py` that looks like:

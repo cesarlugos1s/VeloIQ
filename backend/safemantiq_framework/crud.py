@@ -41,6 +41,129 @@ from safemantiq_framework.models import get_pk_field_name
 T = TypeVar("T", bound=SQLModel)
 
 
+# ---------------------------------------------------------------------------
+# Permission helpers
+# ---------------------------------------------------------------------------
+
+def _get_user_roles(request: Request) -> list[str]:
+    """Safely extract user roles from request state (set by auth middleware)."""
+    user = getattr(request.state, "user", None)
+    if user is None:
+        return []
+    return user.get("roles", [])
+
+
+def _check_model_permissions(request: Request, model_class: type, method: str) -> None:
+    """Raise 403 if no role in the user's token permits *method* on *model_class*.
+
+    Only applies when the model has ``__safem_permissions__`` set via
+    ``@model_access()``.  Roles not listed there are unrestricted on this model.
+    Access is granted when ANY role either (a) is unlisted (no exception) or
+    (b) is listed and its allowed actions include the requested action.
+    """
+    model_perms: dict | None = getattr(model_class, "__safem_permissions__", None)
+    if not model_perms:
+        return
+
+    user_roles = _get_user_roles(request)
+    if not user_roles:
+        return  # Auth middleware handles unauthenticated requests.
+
+    from safemantiq_framework.auth.permissions import HTTP_TO_REFINE
+    actions = HTTP_TO_REFINE.get(method.upper(), set())
+
+    for role in user_roles:
+        if role not in model_perms:
+            return  # This role has no model-level exception — Layer 1 applies.
+        if actions & set(model_perms[role]):
+            return  # This role's exception explicitly permits the action.
+
+    raise HTTPException(status_code=403, detail="Access denied for this resource")
+
+
+def _get_field_permissions(model_class: type) -> dict[str, dict]:
+    """Return field-level permission metadata for *model_class*.
+
+    Reads from two sources (merged, with class-level taking precedence):
+    - ``safem_field(read_roles=…, write_roles=…)`` — stored in Pydantic FieldInfo.json_schema_extra
+    - ``__safem_field_permissions__`` class variable — for fields that use sa_column and
+      cannot use pydantic.Field with json_schema_extra (e.g. framework auth models)
+    """
+    perms: dict[str, dict] = {}
+    model_fields = getattr(model_class, "model_fields", {})
+    for field_name, field_info in model_fields.items():
+        extra = getattr(field_info, "json_schema_extra", None)
+        if not isinstance(extra, dict):
+            continue
+        entry: dict = {}
+        if "safem_read_roles" in extra:
+            entry["read_roles"] = extra["safem_read_roles"]
+        if "safem_write_roles" in extra:
+            entry["write_roles"] = extra["safem_write_roles"]
+        if entry:
+            perms[field_name] = entry
+
+    # Merge class-level declarations (used by framework models with sa_column fields).
+    class_perms: dict = getattr(model_class, "__safem_field_permissions__", {})
+    for field_name, entry in class_perms.items():
+        perms[field_name] = {**perms.get(field_name, {}), **entry}
+
+    return perms
+
+
+def _filter_read_fields(data: dict, model_class: type, user_roles: list[str]) -> dict:
+    """Remove fields that *user_roles* cannot read per ``safem_field(read_roles=…)``."""
+    field_perms = _get_field_permissions(model_class)
+    if not field_perms:
+        return data
+    result = {}
+    for key, value in data.items():
+        fp = field_perms.get(key)
+        if fp is None or "read_roles" not in fp:
+            result[key] = value
+        elif any(r in fp["read_roles"] for r in user_roles):
+            result[key] = value
+        # else: field is silently omitted for this user.
+    return result
+
+
+def _filter_write_payload(payload: dict, model_class: type, user_roles: list[str]) -> dict:
+    """Drop write-restricted fields from *payload* (silently, to avoid UX breakage)."""
+    field_perms = _get_field_permissions(model_class)
+    if not field_perms:
+        return payload
+    result = {}
+    for key, value in payload.items():
+        fp = field_perms.get(key)
+        if fp is None or "write_roles" not in fp:
+            result[key] = value
+        elif any(r in fp["write_roles"] for r in user_roles):
+            result[key] = value
+        # else: field is silently dropped.
+    return result
+
+
+def _build_rebac_clause(model_class: type, user: dict | None, session):
+    """Return a SQLAlchemy WHERE clause for the model's ReBAC filter, or None.
+
+    Returns None when the model has no ``@rebac`` decorator or when auth is
+    disabled (user is None/empty).  Returns a falsy ``false()`` clause when the
+    filter explicitly denies all rows.
+    """
+    if not user:
+        return None
+    filter_fn = getattr(model_class, "__rebac_filter__", None)
+    if filter_fn is None:
+        return None
+    clause = filter_fn(user, model_class, session)
+    if clause is None or clause is True:
+        return None
+    if clause is False:
+        from sqlalchemy import false
+        return false()
+    return clause
+
+
 def _coerce_filter_value(value: str, col_type: Any) -> Any:
     """Cast a query-string value to the Python type expected by the column."""
     from sqlalchemy import types
@@ -142,6 +265,29 @@ def create_crud_router(
 
     router = APIRouter(prefix=_prefix, tags=_tags)
 
+    # ── ReBAC helper (closure over model_class and pk_field) ──────────────────
+
+    def _get_rebac_record(record_id, session, user: dict | None):
+        """Fetch a record by PK while enforcing the model's ReBAC filter.
+
+        Returns None both when the record does not exist AND when it exists but
+        is inaccessible to *user* — callers raise 404 in both cases to avoid
+        leaking record existence.
+        """
+        if not user:
+            return session.get(model_class, record_id)
+        filter_fn = getattr(model_class, "__rebac_filter__", None)
+        if filter_fn is None:
+            return session.get(model_class, record_id)
+        clause = filter_fn(user, model_class, session)
+        if clause is None or clause is True:
+            return session.get(model_class, record_id)
+        if clause is False:
+            return None
+        pk_col = getattr(model_class, pk_field)
+        stmt = select(model_class).where(pk_col == record_id).where(clause)
+        return session.exec(stmt).first()
+
     # ── List ─────────────────────────────────────────────────────────────────
 
     @router.get("", summary=f"List {tablename}")
@@ -151,16 +297,24 @@ def create_crud_router(
         _end: int = Query(25, alias="_end"),
         session: Session = Depends(get_session),
     ):
+        _check_model_permissions(request, model_class, "GET")
+        user = getattr(request.state, "user", None) or {}
         where_clauses = _build_where_clauses(model_class, request.query_params)
+        rebac_clause = _build_rebac_clause(model_class, user, session)
         count_stmt = select(func.count()).select_from(model_class)
         list_stmt = select(model_class)
         for clause in where_clauses:
             count_stmt = count_stmt.where(clause)
             list_stmt = list_stmt.where(clause)
+        if rebac_clause is not None:
+            count_stmt = count_stmt.where(rebac_clause)
+            list_stmt = list_stmt.where(rebac_clause)
         total = session.exec(count_stmt).one()
         rows = session.exec(list_stmt.offset(_start).limit(max(0, _end - _start))).all()
+        user_roles = user.get("roles", [])
+        content = [_filter_read_fields(_to_dict(r), model_class, user_roles) for r in rows]
         return JSONResponse(
-            content=jsonable_encoder([_to_dict(r) for r in rows]),
+            content=jsonable_encoder(content),
             headers={
                 "x-total-count": str(total),
                 "content-range": f"items {_start}-{min(_end, total)}/{total}",
@@ -170,23 +324,29 @@ def create_crud_router(
     # ── Get one ───────────────────────────────────────────────────────────────
 
     @router.get("/{record_id}", summary=f"Get {tablename}")
-    def get_item(record_id: pk_type, session: Session = Depends(get_session)):  # type: ignore[valid-type]
-        row = session.get(model_class, record_id)
+    def get_item(record_id: pk_type, request: Request, session: Session = Depends(get_session)):  # type: ignore[valid-type]
+        _check_model_permissions(request, model_class, "GET")
+        user = getattr(request.state, "user", None) or {}
+        row = _get_rebac_record(record_id, session, user)
         if row is None:
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
-        return _to_dict(row)
+        return _filter_read_fields(_to_dict(row), model_class, user.get("roles", []))
 
     # ── Create ────────────────────────────────────────────────────────────────
 
     @router.post("", status_code=201, summary=f"Create {tablename}")
-    def create_item(payload: dict, session: Session = Depends(get_session)):
+    def create_item(payload: dict, request: Request, session: Session = Depends(get_session)):
+        _check_model_permissions(request, model_class, "POST")
+        user = getattr(request.state, "user", None) or {}
+        user_roles = user.get("roles", [])
         payload.pop(pk_field, None)
-        coerced = {k: _coerce_value(k, v) for k, v in payload.items()}
+        filtered = _filter_write_payload(payload, model_class, user_roles)
+        coerced = {k: _coerce_value(k, v) for k, v in filtered.items()}
         row = model_class.model_validate(coerced)
         session.add(row)
         session.commit()
         session.refresh(row)
-        return _to_dict(row)
+        return _filter_read_fields(_to_dict(row), model_class, user_roles)
 
     # ── Update ────────────────────────────────────────────────────────────────
 
@@ -213,12 +373,14 @@ def create_crud_router(
     # Fields that must never be overwritten by a client update.
     _READONLY_FIELDS = {"created_at", "creation_date"}
 
-    def _apply_update(record_id, payload, session):
-        row = session.get(model_class, record_id)
+    def _apply_update(record_id, payload, session, user: dict):
+        user_roles = user.get("roles", []) if user else []
+        row = _get_rebac_record(record_id, session, user)
         if row is None:
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
         payload.pop(pk_field, None)
-        for key, value in payload.items():
+        filtered = _filter_write_payload(payload, model_class, user_roles)
+        for key, value in filtered.items():
             if key in _READONLY_FIELDS:
                 continue
             if hasattr(row, key):
@@ -226,29 +388,35 @@ def create_crud_router(
         session.add(row)
         session.commit()
         session.refresh(row)
-        return _to_dict(row)
+        return _filter_read_fields(_to_dict(row), model_class, user_roles)
 
     @router.put("/{record_id}", summary=f"Update {tablename}")
     def update_item(
         record_id: pk_type,  # type: ignore[valid-type]
         payload: dict,
+        request: Request,
         session: Session = Depends(get_session),
     ):
-        return _apply_update(record_id, payload, session)
+        _check_model_permissions(request, model_class, "PUT")
+        return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
 
     @router.patch("/{record_id}", summary=f"Partial update {tablename}")
     def partial_update_item(
         record_id: pk_type,  # type: ignore[valid-type]
         payload: dict,
+        request: Request,
         session: Session = Depends(get_session),
     ):
-        return _apply_update(record_id, payload, session)
+        _check_model_permissions(request, model_class, "PATCH")
+        return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
 
     # ── Delete ────────────────────────────────────────────────────────────────
 
     @router.delete("/{record_id}", status_code=204, summary=f"Delete {tablename}")
-    def delete_item(record_id: pk_type, session: Session = Depends(get_session)):  # type: ignore[valid-type]
-        row = session.get(model_class, record_id)
+    def delete_item(record_id: pk_type, request: Request, session: Session = Depends(get_session)):  # type: ignore[valid-type]
+        _check_model_permissions(request, model_class, "DELETE")
+        user = getattr(request.state, "user", None) or {}
+        row = _get_rebac_record(record_id, session, user)
         if row is None:
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
         session.delete(row)

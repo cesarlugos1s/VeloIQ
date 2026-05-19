@@ -229,6 +229,7 @@ import {
 import { extractButtonLabel, renderIconOnlyButtons } from "./utils/buttons";
 
 import { getShowHref, shouldHandleLinkClick } from "./utils/navigation";
+import { useRoleFilteredModel } from "./utils/roleAccess";
 
 
 
@@ -246,7 +247,8 @@ export const DynamicList: React.FC<{
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
-}> = ({ model, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+}> = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+    const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const navigate = useNavigate();

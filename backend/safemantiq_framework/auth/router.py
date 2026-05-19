@@ -89,9 +89,16 @@ def _user_to_dict(user: User) -> dict:
 
 
 def _role_to_dict(role: Role) -> dict:
+    import json as _json
+    from safemantiq_framework.auth.permissions import methods_to_actions
     data = role.model_dump()
     data["_label"] = str(role)
     data["eid"] = role.id
+    try:
+        methods = set(_json.loads(role.allowed_methods or "[]"))
+    except Exception:
+        methods = set()
+    data["allowed_actions"] = methods_to_actions(methods)
     return _sanitize(data)
 
 
@@ -114,6 +121,13 @@ def make_auth_router(cfg) -> APIRouter:
     accessible inside endpoint handlers.
     """
     from safemantiq_framework.db import get_engine
+    from safemantiq_framework.auth.permissions import _MODEL_PERMISSIONS
+
+    # Restrict User/Role/Tenant management to Admin only via the standard
+    # Layer 2 mechanism so accessControlProvider hides the create/edit/delete
+    # buttons for any non-Admin role without hard-coding resource names in the UI.
+    for _res in ("user", "role", "tenant"):
+        _MODEL_PERMISSIONS[_res] = {"Manager": [], "Viewer": []}
 
     router = APIRouter(tags=["auth"])
 
@@ -231,15 +245,40 @@ def make_auth_router(cfg) -> APIRouter:
             session.commit()
         return {"message": "Password set successfully"}
 
-    # ── List roles ────────────────────────────────────────────────────────────
+    # ── List roles (with allowed_actions for frontend) ────────────────────────
 
     @router.get("/auth/roles")
     def list_roles(request: Request):
+        import json as _json
+        from safemantiq_framework.auth.permissions import methods_to_actions
         engine = get_engine()
         get_current_user(request, engine, cfg.auth_secret)
         with Session(engine) as session:
             roles = session.exec(select(Role)).all()
-            return [{"id": r.id, "name": r.name, "description": r.description} for r in roles]
+            result = []
+            for r in roles:
+                try:
+                    methods = set(_json.loads(r.allowed_methods or "[]"))
+                except Exception:
+                    methods = set()
+                result.append({
+                    "id": r.id,
+                    "name": r.name,
+                    "description": r.description,
+                    "allowed_methods": sorted(methods),
+                    "allowed_actions": methods_to_actions(methods),
+                    "is_preset": r.is_preset,
+                })
+            return result
+
+    # ── Resource-level permissions (model_access exceptions) ─────────────────
+
+    @router.get("/auth/resource-permissions")
+    def get_resource_permissions(request: Request):
+        engine = get_engine()
+        get_current_user(request, engine, cfg.auth_secret)
+        from safemantiq_framework.auth.permissions import _MODEL_PERMISSIONS
+        return _MODEL_PERMISSIONS
 
     # ── Assign / remove role ──────────────────────────────────────────────────
 
@@ -323,6 +362,13 @@ def make_auth_router(cfg) -> APIRouter:
                 headers={"x-total-count": str(total)},
             )
 
+    # ── Admin-only guard ──────────────────────────────────────────────────────
+
+    def _require_admin(request: Request) -> None:
+        user = getattr(request.state, "user", None)
+        if user is None or "Admin" not in user.get("roles", []):
+            raise HTTPException(status_code=403, detail="Admin role required")
+
     # ── User CRUD (with password_hash excluded) ───────────────────────────────
     # We build a custom list/get so password_hash is never serialized.
 
@@ -368,7 +414,8 @@ def make_auth_router(cfg) -> APIRouter:
             return _user_to_dict(user)
 
     @router.post("/user", status_code=201, summary="Create user")
-    def create_user(payload: dict):
+    def create_user(request: Request, payload: dict):
+        _require_admin(request)
         engine = get_engine()
         payload.pop("id", None)
         payload.pop("password_hash", None)
@@ -384,7 +431,8 @@ def make_auth_router(cfg) -> APIRouter:
 
     @router.put("/user/{user_id}", summary="Update user")
     @router.patch("/user/{user_id}", summary="Partial update user")
-    def update_user(user_id: int, payload: dict):
+    def update_user(user_id: int, request: Request, payload: dict):
+        _require_admin(request)
         engine = get_engine()
         payload.pop("id", None)
         payload.pop("password_hash", None)
@@ -407,7 +455,8 @@ def make_auth_router(cfg) -> APIRouter:
             return _user_to_dict(user)
 
     @router.delete("/user/{user_id}", status_code=204, summary="Delete user")
-    def delete_user(user_id: int):
+    def delete_user(user_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             user = session.get(User, user_id)
@@ -444,7 +493,9 @@ def make_auth_router(cfg) -> APIRouter:
             return _role_to_dict(role)
 
     @router.post("/role", status_code=201, summary="Create role")
-    def create_role(payload: dict):
+    def create_role(request: Request, payload: dict):
+        _require_admin(request)
+        from safemantiq_framework.auth.utils import _invalidate_rbac_cache
         engine = get_engine()
         payload.pop("id", None)
         with Session(engine) as session:
@@ -452,11 +503,14 @@ def make_auth_router(cfg) -> APIRouter:
             session.add(role)
             session.commit()
             session.refresh(role)
-            return _role_to_dict(role)
+        _invalidate_rbac_cache()
+        return _role_to_dict(role)
 
     @router.put("/role/{role_id}", summary="Update role")
     @router.patch("/role/{role_id}", summary="Partial update role")
-    def update_role(role_id: int, payload: dict):
+    def update_role(role_id: int, request: Request, payload: dict):
+        _require_admin(request)
+        from safemantiq_framework.auth.utils import _invalidate_rbac_cache
         engine = get_engine()
         payload.pop("id", None)
         with Session(engine) as session:
@@ -469,10 +523,12 @@ def make_auth_router(cfg) -> APIRouter:
             session.add(role)
             session.commit()
             session.refresh(role)
-            return _role_to_dict(role)
+        _invalidate_rbac_cache()
+        return _role_to_dict(role)
 
     @router.delete("/role/{role_id}", status_code=204, summary="Delete role")
-    def delete_role(role_id: int):
+    def delete_role(role_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             role = session.get(Role, role_id)
@@ -509,7 +565,8 @@ def make_auth_router(cfg) -> APIRouter:
             return _tenant_to_dict(tenant)
 
     @router.post("/tenant", status_code=201, summary="Create tenant")
-    def create_tenant(payload: dict):
+    def create_tenant(request: Request, payload: dict):
+        _require_admin(request)
         engine = get_engine()
         payload.pop("id", None)
         with Session(engine) as session:
@@ -521,7 +578,8 @@ def make_auth_router(cfg) -> APIRouter:
 
     @router.put("/tenant/{tenant_id}", summary="Update tenant")
     @router.patch("/tenant/{tenant_id}", summary="Partial update tenant")
-    def update_tenant(tenant_id: int, payload: dict):
+    def update_tenant(tenant_id: int, request: Request, payload: dict):
+        _require_admin(request)
         engine = get_engine()
         payload.pop("id", None)
         with Session(engine) as session:
@@ -537,7 +595,8 @@ def make_auth_router(cfg) -> APIRouter:
             return _tenant_to_dict(tenant)
 
     @router.delete("/tenant/{tenant_id}", status_code=204, summary="Delete tenant")
-    def delete_tenant(tenant_id: int):
+    def delete_tenant(tenant_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             tenant = session.get(Tenant, tenant_id)

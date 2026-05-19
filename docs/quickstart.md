@@ -192,6 +192,76 @@ bash samples/task-manager/quickstart.sh
 
 ---
 
+## Access control
+
+The sample app ships with three roles already configured: **Admin**, **Manager**,
+and **Viewer**.  Log in with different users to see how the UI adapts:
+
+| User | Credentials | Role | Can do |
+|---|---|---|---|
+| System Admin | `admin` / `admin` | Admin | Everything |
+| Alice Chen | `alice` / `alice123` | Manager | Create, edit — no delete |
+| Bob Martin | `bob` / `bob123` | Manager | Create, edit — no delete |
+| Carol Davies | `carol` / `carol123` | Viewer | Read-only |
+
+### RBAC — three layers of control
+
+The framework ships with a three-layer role-based access control system that
+goes from coarse to fine:
+
+**Layer 1 — Role permissions (global, admin-UI editable)**
+Each role carries a set of HTTP methods it may use.  The defaults are set in
+`backend/app/main.py` via `SafemConfig(roles=[...])` and are editable at
+runtime through **Access Control → Roles**.
+
+**Layer 2 — Model-level exceptions (`@model_access`)**
+Restrict which Refine actions a specific role may perform on one model,
+independently of its global permissions.  Useful when a role should have
+read-only access to a particular resource but full write access everywhere else.
+
+```python
+from safemantiq_framework import model_access, TimestampedModel
+
+@model_access(Viewer=["list", "show"])
+class Invoice(TimestampedModel, table=True):
+    ...
+```
+
+**Layer 3 — Field-level exceptions (`safem_field`)**
+Control which roles can read or write a specific field.
+
+```python
+from safemantiq_framework import safem_field, TimestampedModel
+
+class Employee(TimestampedModel, table=True):
+    name: str
+    salary: float = safem_field(default=0.0, read_roles=["Admin"], write_roles=["Admin"])
+```
+
+### ReBAC — row-level access control
+
+For row-level filtering (e.g. "a user can only see tasks they created"),
+apply `@rebac` to any model:
+
+```python
+from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+
+@rebac(owner_field="created_by")   # shorthand: user sees only their own rows
+class Task(TimestampedModel, table=True):
+    created_by: int = Field(foreign_key="safem_user.id")
+
+# Relationship traversal: documents inherit access from their folder
+@rebac(filter=lambda user, cls, session:
+           cls.folder_id.in_(rebac_subquery(Folder, user, session)))
+class Document(TimestampedModel, table=True):
+    folder_id: int
+```
+
+For a step-by-step walkthrough of all three RBAC layers and ReBAC,
+see the [full tutorial](./tutorial-task-manager.md#step-12--access-control).
+
+---
+
 ## What's inside the sample app
 
 The sample app is a small but complete project used throughout the

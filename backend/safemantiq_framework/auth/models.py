@@ -7,7 +7,7 @@ without any dependency on CubicWeb-style conventions.
 ReBAC hierarchy permission links (bohierarchy, itemhierarchy, custhierarchy) are
 intentionally omitted — they depend on JuiceMantics-specific models.
 """
-from typing import List, Literal, Optional
+from typing import ClassVar, Dict, List, Literal, Optional
 
 from sqlalchemy import Column, ForeignKey, String, Text
 from sqlmodel import Field, Relationship, SQLModel
@@ -42,12 +42,21 @@ class user_has_tenant_link(SQLModel, table=True):
 # ---------------------------------------------------------------------------
 
 class Role(SQLModel, table=True):
-    """Standard RBAC role (Admin, Manager, Viewer)."""
+    """Standard RBAC role with configurable HTTP-method permissions."""
     __tablename__ = "safem_role"
+
+    # allowed_methods and is_preset are Admin-only — other roles must not read or write them.
+    __safem_field_permissions__: ClassVar[Dict[str, Dict]] = {
+        "allowed_methods": {"read_roles": ["Admin"], "write_roles": ["Admin"]},
+        "is_preset":       {"read_roles": ["Admin"], "write_roles": ["Admin"]},
+    }
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(sa_column=Column(String(50), unique=True, nullable=False))
     description: str = Field(default="", sa_column=Column(Text))
+    # JSON list of allowed HTTP methods, e.g. '["GET","POST","PUT","PATCH","DELETE"]'
+    allowed_methods: str = Field(default="[]", sa_column=Column(Text))
+    is_preset: bool = Field(default=False)
 
     users: List["User"] = Relationship(
         back_populates="roles",
