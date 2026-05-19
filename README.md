@@ -9,6 +9,12 @@ Built on **FastAPI** and **SQLModel** on the backend, and **React**, **Refine**,
 and **Ant Design** on the frontend — battle-tested, well-documented libraries
 trusted by thousands of production teams worldwide.
 
+SafeMantIQ is a **pro-code framework**, not a no-code tool.  The generated code
+is yours: every FastAPI endpoint, every React component, every SQLModel field is
+plain Python and TypeScript that you can read, extend, and override.  The
+framework handles the repetitive scaffolding so you spend your time on the logic
+that makes your application unique — not on boilerplate.
+
 ```python
 # This is your entire backend entry point.
 from safemantiq_framework import create_safem_app
