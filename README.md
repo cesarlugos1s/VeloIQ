@@ -57,8 +57,14 @@ class Project(TimestampedModel, table=True):
 **Frontend** — React · Refine · Ant Design
 - `@safemantiq/ui` React component library — schema-driven CRUD pages with no boilerplate
 - Powered by **Refine** for data fetching and state management, and **Ant Design** for the component system
-- Miller columns tree view for hierarchical data, auto-detected from self-referential models
-- Analysis charts, column configuration, sorting, filtering, dark mode — all out of the box
+- **Side panels** — click any list row to open a detail panel beside the list; drag the divider to resize; minimize, maximize, or pop out to a full page
+- **Miller columns tree view** — hierarchical parent/child data renders as an interactive multi-column browser, auto-detected from self-referential model relationships
+- **Relations explorer** — an interactive graph on any record's Show page that visualises all connected records; click any node to navigate directly to it
+- **Analysis charts** — distribution and summary charts appear automatically on relation tables with more than one row; toggle per view, preference saved
+- **Column configuration** — show, hide, and reorder columns in any list or relation table; preferences saved per user
+- **Bulk actions** — select multiple rows for bulk edit, bulk delete, or CSV export
+- Inline sorting, filtering, and global search — all configurable, no code required
+- Light and dark mode, keyboard shortcuts, and responsive layout out of the box
 
 **CLI**
 - `safem new <app>` — scaffold a new project in seconds
