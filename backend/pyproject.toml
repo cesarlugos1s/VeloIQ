@@ -10,6 +10,12 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [{ name = "JuiceMantics", email = "cesar.lugo.marcos@juicemantics.com" }]
+
+[project.urls]
+Homepage = "https://github.com/cesarlugos1s/VeloIQ"
+Repository = "https://github.com/cesarlugos1s/VeloIQ"
+Documentation = "https://github.com/cesarlugos1s/VeloIQ#readme"
+"Bug Tracker" = "https://github.com/cesarlugos1s/VeloIQ/issues"
 keywords = ["fastapi", "sqlmodel", "admin", "framework", "AI", "ERP"]
 classifiers = [
     "Development Status :: 3 - Alpha",

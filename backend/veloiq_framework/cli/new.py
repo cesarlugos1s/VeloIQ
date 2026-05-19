@@ -81,6 +81,8 @@ def new(app_name: str, title: str | None, port: int, output_dir: str | None):
     click.echo(f"  cd {dest}/frontend")
     click.echo("  npm install")
     click.echo("  npm run dev")
+    click.echo("\n⭐ If VeloIQ saves you time, a star helps others find it:")
+    click.echo("   https://github.com/cesarlugos1s/VeloIQ")
 
 
 # ---------------------------------------------------------------------------
