@@ -108,7 +108,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, and frontend schema customisation |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `SafemConfig` field and environment variable |
-| [docs/open-core.md](docs/open-core.md) | What is included in the free MIT tier and what is available in Pro |
+| [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — WYSIWYG page builder, User Journeys, Safe AI engine, Advanced ReBAC, SSO, compliance audit logs, and Goal-Seeking Scenarios |
 
 **Recommended reading order for new developers:**
 
