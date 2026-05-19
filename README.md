@@ -1,0 +1,141 @@
+# SafeMantIQ Framework
+
+SafeMantIQ is an open-core full-stack framework for building data-driven admin
+and ERP applications.  You define your database models in Python SQLModel; the framework
+generates the REST API, the SQLAdmin back-office, and the React CRUD frontend
+automatically.
+
+Built on **FastAPI** and **SQLModel** on the backend, and **React**, **Refine**,
+and **Ant Design** on the frontend — battle-tested, well-documented libraries
+trusted by thousands of production teams worldwide.
+
+```python
+# This is your entire backend entry point.
+from safemantiq_framework import create_safem_app
+app = create_safem_app()
+```
+
+```python
+# Two related modules — full CRUD and a React UI for both, including the relation.
+from typing import List, Optional
+from sqlmodel import Field
+from safemantiq_framework import TimestampedModel, jm_relationship
+
+class TeamMember(TimestampedModel, table=True):
+    __tablename__ = "team_member"
+    name: str
+    email: str
+    role: str = "member"
+    projects: List["Project"] = jm_relationship(back_populates="owner")
+
+class Project(TimestampedModel, table=True):
+    __tablename__ = "project"
+    name: str
+    status: str = "active"
+    owner_id: Optional[int] = Field(default=None, foreign_key="team_member.id")
+    owner: Optional["TeamMember"] = jm_relationship(back_populates="projects")
+```
+
+---
+
+## What the framework provides
+
+**Backend** — FastAPI · SQLModel · SQLAdmin · Alembic
+- FastAPI application factory with CORS, JWT auth middleware, and RBAC built in
+- Automatic CRUD router generation (`create_crud_router`) — list, get, create, update, delete
+- Module auto-loader — drop a `models.py` in `app/modules/<name>/` and it's live
+- SQLAdmin back-office at `/admin/` with zero configuration
+- Alembic migrations pre-wired and managed by `safem db upgrade`
+- Runs on **Linux**, **macOS**, and **Windows** (native or WSL)
+- Supports **PostgreSQL**, **MySQL**, **SQLite**, and any other SQLAlchemy-compatible database
+
+**Access control**
+- Three-layer RBAC: global role permissions → per-model exceptions → per-field exceptions
+- ReBAC (row-level access): filter which rows a user can see based on ownership, tenant, or any relationship
+- Built-in User / Role / Tenant management with a React UI
+
+**Frontend** — React · Refine · Ant Design
+- `@safemantiq/ui` React component library — schema-driven CRUD pages with no boilerplate
+- Powered by **Refine** for data fetching and state management, and **Ant Design** for the component system
+- Miller columns tree view for hierarchical data, auto-detected from self-referential models
+- Analysis charts, column configuration, sorting, filtering, dark mode — all out of the box
+
+**CLI**
+- `safem new <app>` — scaffold a new project in seconds
+- `safem add-module <name>` — add a module to an existing project
+- `safem generate` — regenerate `api.py` and TypeScript schemas from your models
+- `safem run` — start the development server
+- `safem db upgrade` — apply Alembic migrations
+
+---
+
+## Five-minute demo
+
+See the framework in action without writing any code:
+
+```bash
+git clone https://github.com/cesarlugos1s/SafeMantIQ.git
+cd SafeMantIQ
+bash samples/task-manager/quickstart.sh
+```
+
+The script sets up the environment, starts both servers, and opens
+`http://localhost:5173` in your browser — a working task-manager app with
+authentication, RBAC, and a full CRUD UI.
+
+See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is running.
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| [docs/quickstart.md](docs/quickstart.md) | Run the sample app in five minutes and explore RBAC, ReBAC, Miller columns, and the analysis UI |
+| [docs/getting-started.md](docs/getting-started.md) | Install the CLI, scaffold your first project, and understand the key concepts |
+| [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
+| [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, and frontend schema customisation |
+| [docs/configuration-reference.md](docs/configuration-reference.md) | Every `SafemConfig` field and environment variable |
+| [docs/open-core.md](docs/open-core.md) | What is included in the free MIT tier and what is available in Pro |
+
+**Recommended reading order for new developers:**
+
+1. Run `quickstart.sh` and browse the demo app
+2. Read `getting-started.md` to understand the project structure
+3. Work through Section 1 of the tutorial to build your own app
+4. Come back to `module-authoring.md` as a reference when you need details
+
+---
+
+## Repository layout
+
+```
+backend/
+  safemantiq_framework/     # Framework Python package (pip-installable)
+    auth/                   # Built-in auth: User, Role, Tenant, JWT, RBAC
+    cli/                    # safem CLI commands
+    scaffold/               # Templates used by `safem new`
+  pyproject.toml
+  setup.py
+
+packages/
+  ui/                       # @safemantiq/ui — React component library
+    src/                    # TypeScript source
+    dist/                   # Built output (committed; consumers install from this)
+
+docs/                       # Framework documentation
+
+samples/
+  task-manager/             # Complete reference application
+    backend/                # FastAPI backend
+    frontend/               # React frontend
+    quickstart.sh           # One-command setup and launch
+    start.sh                # Re-launch after first run
+```
+
+---
+
+## License
+
+The framework core is released under the **MIT License**.
+See [docs/open-core.md](docs/open-core.md) for the full open-core model.
