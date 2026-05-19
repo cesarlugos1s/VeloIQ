@@ -6,13 +6,13 @@ import { LockOutlined, UserOutlined } from "@ant-design/icons";
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 export interface LoginPageProps {
-    /** App title shown on the login card. Defaults to "SafeMantIQ". */
+    /** App title shown on the login card. Defaults to "VeloIQ". */
     appTitle?: string;
     /** Logo element or image URL shown above the title. */
     logo?: React.ReactNode | string;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ appTitle = "SafeMantIQ", logo }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ appTitle = "VeloIQ", logo }) => {
     const { mutate: login, isLoading, error } = useLogin();
     const [form] = Form.useForm();
 

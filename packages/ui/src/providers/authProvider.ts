@@ -1,5 +1,5 @@
 /**
- * Refine AuthProvider implementation for SafeMantIQ.
+ * Refine AuthProvider implementation for VeloIQ.
  *
  * Uses JWT Bearer tokens stored in localStorage.  The backend issues
  * tokens via ``POST /auth/login`` and validates them on every

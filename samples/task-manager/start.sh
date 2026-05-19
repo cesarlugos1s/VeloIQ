@@ -17,7 +17,7 @@ if [ ! -d "$VENV_DIR" ]; then
   exit 1
 fi
 
-echo "Starting SafeMantIQ Task Manager…"
+echo "Starting VeloIQ Task Manager…"
 echo ""
 
 set -a

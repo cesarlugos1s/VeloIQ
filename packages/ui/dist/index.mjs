@@ -18067,7 +18067,7 @@ var ResourceContext = createContext({
   allSystemModels: []
 });
 var _37 = window._ || ((text) => text);
-var LoginPage = ({ appTitle = "SafeMantIQ", logo }) => {
+var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
   const { mutate: login, isLoading, error } = useLogin();
   const [form] = Form.useForm();
   const onFinish = (values) => {

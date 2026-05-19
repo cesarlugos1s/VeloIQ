@@ -1,6 +1,6 @@
-# Task Manager — SafeMantIQ Sample App
+# Task Manager — VeloIQ Sample App
 
-A minimal but complete project management app built with the SafeMantIQ framework.
+A minimal but complete project management app built with the VeloIQ framework.
 Three modules, three models, zero boilerplate.
 
 ## Quickest start — one command
@@ -67,18 +67,18 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install framework from the local repo source
-pip install -e ../../../backend            # safemantiq-framework
+pip install -e ../../../backend            # veloiq-framework
 # (for PostgreSQL also: pip install psycopg2-binary)
 
 cp .env.example .env      # defaults to the bundled SQLite taskmanager.db
-safem run                 # starts at http://localhost:8000
+veloiq run                 # starts at http://localhost:8000
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
-# In a second terminal, build @safemantiq/ui from the local packages/ui first:
+# In a second terminal, build @veloiq/ui from the local packages/ui first:
 cd ../../../packages/ui && npm install && npm run build
 
 cd samples/task-manager/frontend
-npm install               # resolves @safemantiq/ui from packages/ui (file: ref)
+npm install               # resolves @veloiq/ui from packages/ui (file: ref)
 npm run dev               # starts at http://localhost:5173
 ```
 

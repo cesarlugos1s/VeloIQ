@@ -11,8 +11,8 @@ Navigate to the directory where you want the project to live, then clone:
 
 ```bash
 cd ~/projects          # or wherever you keep your code
-git clone https://github.com/cesarlugos1s/SafeMantIQ.git
-cd SafeMantIQ
+git clone https://github.com/cesarlugos1s/VeloIQ.git
+cd VeloIQ
 ```
 
 ---
@@ -60,9 +60,9 @@ The script will:
 
 1. Verify Python and Node.js versions
 2. Create a virtual environment at `samples/task-manager/backend/.venv`
-3. Install `safemantiq-framework` (editable, from this repo)
+3. Install `veloiq-framework` (editable, from this repo)
 4. Copy `.env.example → .env` pointing at the bundled `taskmanager.db`
-5. Build `@safemantiq/ui` from `packages/ui/` (one-time, ~15 s)
+5. Build `@veloiq/ui` from `packages/ui/` (one-time, ~15 s)
 6. Run `npm install` in the frontend (one-time, ~30 s)
 7. Start the FastAPI backend on port 8000
 8. Start the Vite dev server on port 5173
@@ -143,14 +143,14 @@ PostgreSQL instance:
    ```
 2. Update `samples/task-manager/backend/requirements.txt`:
    ```
-   safemantiq-framework[postgres]
+   veloiq-framework[postgres]
    ```
 3. Re-install dependencies and run migrations:
    ```bash
    source samples/task-manager/backend/.venv/bin/activate
    pip install -r samples/task-manager/backend/requirements.txt
    cd samples/task-manager/backend
-   safem db upgrade
+   veloiq db upgrade
    ```
 4. Re-seed (optional):
    ```bash
@@ -211,7 +211,7 @@ goes from coarse to fine:
 
 **Layer 1 — Role permissions (global, admin-UI editable)**
 Each role carries a set of HTTP methods it may use.  The defaults are set in
-`backend/app/main.py` via `SafemConfig(roles=[...])` and are editable at
+`backend/app/main.py` via `VeloIQConfig(roles=[...])` and are editable at
 runtime through **Access Control → Roles**.
 
 **Layer 2 — Model-level exceptions (`@model_access`)**
@@ -220,22 +220,22 @@ independently of its global permissions.  Useful when a role should have
 read-only access to a particular resource but full write access everywhere else.
 
 ```python
-from safemantiq_framework import model_access, TimestampedModel
+from veloiq_framework import model_access, TimestampedModel
 
 @model_access(Viewer=["list", "show"])
 class Invoice(TimestampedModel, table=True):
     ...
 ```
 
-**Layer 3 — Field-level exceptions (`safem_field`)**
+**Layer 3 — Field-level exceptions (`veloiq_field`)**
 Control which roles can read or write a specific field.
 
 ```python
-from safemantiq_framework import safem_field, TimestampedModel
+from veloiq_framework import veloiq_field, TimestampedModel
 
 class Employee(TimestampedModel, table=True):
     name: str
-    salary: float = safem_field(default=0.0, read_roles=["Admin"], write_roles=["Admin"])
+    salary: float = veloiq_field(default=0.0, read_roles=["Admin"], write_roles=["Admin"])
 ```
 
 ### ReBAC — row-level access control
@@ -244,11 +244,11 @@ For row-level filtering (e.g. "a user can only see tasks they created"),
 apply `@rebac` to any model:
 
 ```python
-from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+from veloiq_framework import rebac, rebac_subquery, TimestampedModel
 
 @rebac(owner_field="created_by")   # shorthand: user sees only their own rows
 class Task(TimestampedModel, table=True):
-    created_by: int = Field(foreign_key="safem_user.id")
+    created_by: int = Field(foreign_key="veloiq_user.id")
 
 # Relationship traversal: documents inherit access from their folder
 @rebac(filter=lambda user, cls, session:
@@ -271,7 +271,7 @@ The sample app is a small but complete project used throughout the
 samples/task-manager/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # one line: create_safem_app()
+│   │   ├── main.py            # one line: create_veloiq_app()
 │   │   └── modules/
 │   │       ├── team/          # TeamMember model, API, admin view
 │   │       ├── projects/      # Project model, API, admin view

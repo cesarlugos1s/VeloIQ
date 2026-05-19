@@ -1,0 +1,29 @@
+---
+description: Rules for editing VeloIQ model files
+globs: "**/modules/*/models.py"
+alwaysApply: false
+---
+
+# VeloIQ model authoring
+
+## Required pattern
+
+```python
+from typing import Optional
+from veloiq_framework import TimestampedModel
+
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"
+
+    name: str
+    description: Optional[str] = None
+```
+
+## Rules
+
+- Always extend `TimestampedModel` — never `SQLModel` directly
+- `__tablename__` must be snake_case; never use the `safem_` prefix
+- After any change here, run `veloiq generate` then `veloiq db upgrade`
+- Do not add endpoints here — use `custom_api.py` for custom logic
+- Field types must be valid SQLModel/SQLAlchemy types; use `Optional[T]` for nullable columns

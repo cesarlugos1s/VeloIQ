@@ -1,8 +1,8 @@
 # For SQLite (default, no extra driver needed):
-safemantiq-framework
+veloiq-framework
 
 # For PostgreSQL, use this instead:
-# safemantiq-framework[postgres]
+# veloiq-framework[postgres]
 
 # Auth dependencies (JWT + bcrypt password hashing)
 python-jose[cryptography]>=3.3

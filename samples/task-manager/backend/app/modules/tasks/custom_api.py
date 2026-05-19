@@ -7,7 +7,7 @@ api.py and custom_api.py automatically.
 from fastapi import Depends, HTTPException
 from sqlmodel import Session, select
 
-from safemantiq_framework import get_session
+from veloiq_framework import get_session
 
 from .api import router
 from .models import Task

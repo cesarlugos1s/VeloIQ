@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# quickstart.sh — SafeMantIQ Task Manager: one-command setup and launch.
+# quickstart.sh — VeloIQ Task Manager: one-command setup and launch.
 #
 # Run from anywhere:
 #   bash /path/to/samples/task-manager/quickstart.sh
@@ -7,9 +7,9 @@
 # What it does:
 #   1. Checks Python 3.10+ and Node 18+ are available
 #   2. Creates a Python virtual environment in backend/.venv
-#   3. Installs safemantiq-framework (editable, from this repo)
+#   3. Installs veloiq-framework (editable, from this repo)
 #   4. Copies .env.example → .env  (SQLite pre-filled database, zero config)
-#   5. Builds @safemantiq/ui from the repo's packages/ui if the dist is stale
+#   5. Builds @veloiq/ui from the repo's packages/ui if the dist is stale
 #   6. Installs frontend npm dependencies
 #   7. Starts the FastAPI backend and Vite frontend dev server
 #   8. Opens http://localhost:5173 in the default browser
@@ -33,11 +33,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
-FRAMEWORK_SRC="$REPO_ROOT/backend"          # local safemantiq-framework source
-UI_PKG_DIR="$REPO_ROOT/packages/ui"         # local @safemantiq/ui source
+FRAMEWORK_SRC="$REPO_ROOT/backend"          # local veloiq-framework source
+UI_PKG_DIR="$REPO_ROOT/packages/ui"         # local @veloiq/ui source
 VENV_DIR="$BACKEND_DIR/.venv"
 
-banner "SafeMantIQ — Task Manager Quick Start"
+banner "VeloIQ — Task Manager Quick Start"
 echo    "────────────────────────────────────────"
 
 # ── 1. Prerequisites ──────────────────────────────────────────────────────────
@@ -89,12 +89,12 @@ PIP="$VENV_DIR/bin/pip"
 "$PIP" install -q --upgrade pip
 
 # Install the framework from local source (editable)
-if ! "$PY" -c "import safemantiq_framework" 2>/dev/null; then
-  info "Installing safemantiq-framework…"
+if ! "$PY" -c "import veloiq_framework" 2>/dev/null; then
+  info "Installing veloiq-framework…"
   "$PIP" install -q -e "$FRAMEWORK_SRC"
-  ok "safemantiq-framework installed"
+  ok "veloiq-framework installed"
 else
-  ok "safemantiq-framework already installed"
+  ok "veloiq-framework already installed"
 fi
 
 # ── 3. Backend environment file ───────────────────────────────────────────────
@@ -107,17 +107,17 @@ else
   ok ".env already exists"
 fi
 
-# ── 4. Build @safemantiq/ui (only if the dist is missing) ────────────────────
+# ── 4. Build @veloiq/ui (only if the dist is missing) ────────────────────
 banner "Preparing frontend UI library…"
 
 if [ ! -f "$UI_PKG_DIR/dist/index.mjs" ]; then
-  info "Building @safemantiq/ui (one-time step)…"
+  info "Building @veloiq/ui (one-time step)…"
   cd "$UI_PKG_DIR"
   npm install --silent
   npm run build --silent
-  ok "@safemantiq/ui built"
+  ok "@veloiq/ui built"
 else
-  ok "@safemantiq/ui dist is current"
+  ok "@veloiq/ui dist is current"
 fi
 
 # ── 5. Install frontend npm dependencies ─────────────────────────────────────

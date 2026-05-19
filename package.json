@@ -1,5 +1,5 @@
 {
-  "name": "safemantiq-framework",
+  "name": "veloiq-framework",
   "private": true,
   "workspaces": [
     "packages/*"

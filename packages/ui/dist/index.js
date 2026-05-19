@@ -18075,7 +18075,7 @@ var ResourceContext = React6.createContext({
   allSystemModels: []
 });
 var _37 = window._ || ((text) => text);
-var LoginPage = ({ appTitle = "SafeMantIQ", logo }) => {
+var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
   const { mutate: login, isLoading, error } = core.useLogin();
   const [form] = antd.Form.useForm();
   const onFinish = (values) => {

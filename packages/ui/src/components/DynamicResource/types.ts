@@ -27,9 +27,9 @@ export interface FieldDef {
     readOnly?: boolean;
     unique?: boolean;
     nullable?: boolean;
-    /** Roles allowed to read this field (absent = all roles). Emitted by safem_field(read_roles=…). */
+    /** Roles allowed to read this field (absent = all roles). Emitted by veloiq_field(read_roles=…). */
     readRoles?: string[];
-    /** Roles allowed to write this field (absent = all roles). Emitted by safem_field(write_roles=…). */
+    /** Roles allowed to write this field (absent = all roles). Emitted by veloiq_field(write_roles=…). */
     writeRoles?: string[];
 }
 

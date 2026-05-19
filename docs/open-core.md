@@ -1,6 +1,6 @@
 # Open-Core Model
 
-SafeMantIQ is distributed as an open-core product.
+VeloIQ is distributed as an open-core product.
 
 ## Free tier (MIT License)
 
@@ -10,13 +10,13 @@ ship a complete, production-ready application using only the free tier.
 
 **Included:**
 
-- `safemantiq-framework` Python package — `create_safem_app()`, module
+- `veloiq-framework` Python package — `create_veloiq_app()`, module
   auto-loading, `FrameworkModel` / `TimestampedModel` / `StandardModel`,
   `create_crud_router()`, JWT auth middleware, SQLAdmin integration
-- `safem` CLI — `new`, `generate`, `run`, `db`
+- `veloiq` CLI — `new`, `generate`, `run`, `db`
 - `api_schema_gen` — generates `api.py` CRUD endpoints and TypeScript schemas
   from SQLModel definitions
-- `@safemantiq/ui` npm package — `DynamicResource` (full CRUD rendering
+- `@veloiq/ui` npm package — `DynamicResource` (full CRUD rendering
   engine), `LayoutWrapper`, `GlobalSearch`, `HierarchyView`, `MultiPane`,
   auth providers, all standard UI components
 

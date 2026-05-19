@@ -54,12 +54,12 @@ By the end of Section 1 you will have:
 
 ```bash
 cd ~/projects          # or wherever you keep your code
-git clone https://github.com/cesarlugos1s/SafeMantIQ.git
-cd SafeMantIQ
+git clone https://github.com/cesarlugos1s/VeloIQ.git
+cd VeloIQ
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e backend/
-safem new task-manager
+veloiq new task-manager
 cd task-manager
 ```
 
@@ -84,8 +84,8 @@ task-manager/
 `backend/app/main.py` is already complete — one line that creates the whole app:
 
 ```python
-from safemantiq_framework import create_safem_app
-app = create_safem_app()
+from veloiq_framework import create_veloiq_app
+app = create_veloiq_app()
 ```
 
 ---
@@ -118,7 +118,7 @@ DATABASE_URL=postgresql://user:pass@localhost/task_manager
 Also update `requirements.txt` to pull in the PostgreSQL driver:
 
 ```
-safemantiq-framework[postgres]
+veloiq-framework[postgres]
 ```
 
 ---
@@ -127,9 +127,9 @@ safemantiq-framework[postgres]
 
 ```bash
 cd ..                  # back to task-manager/
-safem add-module team
-safem add-module projects
-safem add-module tasks
+veloiq add-module team
+veloiq add-module projects
+veloiq add-module tasks
 ```
 
 Each command creates the module skeleton under `backend/app/modules/`:
@@ -156,12 +156,12 @@ backend/app/modules/
 
 Once the project skeleton exists you can hand the remaining model-writing to an
 AI coding tool instead of typing models by hand.  Every project created with
-`safem new` ships with context files that tell the tool the framework conventions:
+`veloiq new` ships with context files that tell the tool the framework conventions:
 
 | Tool | Context file loaded automatically |
 |---|---|
 | Claude Code | `CLAUDE.md` |
-| Cursor | `.cursor/rules/safemantiq.mdc` + `models.mdc` |
+| Cursor | `.cursor/rules/veloiq.mdc` + `models.mdc` |
 | Windsurf | `.windsurfrules` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
 | OpenAI Codex CLI | `AGENTS.md` |
@@ -170,7 +170,7 @@ AI coding tool instead of typing models by hand.  Every project created with
 Open the project root in your tool and paste this prompt to complete Steps 4–6
 in a single interaction:
 
-> Build the task-manager app using the SafeMantIQ framework.
+> Build the task-manager app using the VeloIQ framework.
 >
 > Create three modules:
 >
@@ -186,7 +186,7 @@ in a single interaction:
 >   FK `assignee_id → team_member.id`, self-referential FK
 >   `parent_task_id → task.id` with `subtasks` and `parent_task` relationships.
 >
-> After writing the models run `safem generate` then `safem db upgrade`.
+> After writing the models run `veloiq generate` then `veloiq db upgrade`.
 
 When the AI is done, skip ahead to **Step 7**.
 
@@ -198,7 +198,7 @@ Replace `backend/app/modules/team/models.py` with:
 
 ```python
 from typing import List
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 
 class TeamMember(TimestampedModel, table=True):
@@ -225,7 +225,7 @@ Replace `backend/app/modules/projects/models.py` with:
 ```python
 from typing import List, Optional
 from sqlmodel import Field
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 
 class Project(TimestampedModel, table=True):
@@ -250,7 +250,7 @@ Replace `backend/app/modules/tasks/models.py` with:
 import datetime
 from typing import List, Optional
 from sqlmodel import Field
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 
 class Task(TimestampedModel, table=True):
@@ -311,13 +311,13 @@ This writes two files per module:
 
 ```bash
 pip install -r requirements.txt
-safem run               # http://localhost:8000
+veloiq run               # http://localhost:8000
 ```
 
 The framework creates all database tables automatically on first start — no
 migration step needed for a fresh project.
 
-> **After changing your models:** run `safem db upgrade` to apply schema changes
+> **After changing your models:** run `veloiq db upgrade` to apply schema changes
 > via Alembic without restarting the app.
 
 Open `http://localhost:8000/docs` — you have a fully documented REST API for all
@@ -336,12 +336,12 @@ npm install
 npm run dev     # http://localhost:5173
 ```
 
-The first line builds `@safemantiq/ui` from the local repo — needed once until
+The first line builds `@veloiq/ui` from the local repo — needed once until
 the package is published to npm.
 
 Open `http://localhost:5173`.  You will be redirected to `/login`.
 
-Every SafeMantIQ application ships with authentication enabled.  The first
+Every VeloIQ application ships with authentication enabled.  The first
 startup seeds a default admin user:
 
 | Username | Password | Role | Access |
@@ -354,7 +354,7 @@ and **Tenants**.
 
 > **Before going to production:** replace `AUTH_SECRET` in `.env` with a long
 > random string (`python -c "import secrets; print(secrets.token_hex(32))"`),
-> change the default `admin` password, and remove `SAFEM_AUTH_DISABLED`.
+> change the default `admin` password, and remove `VELOIQ_AUTH_DISABLED`.
 
 ---
 
@@ -390,7 +390,7 @@ Create `backend/app/modules/tasks/custom_api.py`:
 from fastapi import Depends, HTTPException
 from sqlmodel import Session
 
-from safemantiq_framework import get_session
+from veloiq_framework import get_session
 from .api import router        # the auto-generated router
 from .models import Task
 
@@ -433,9 +433,9 @@ you to tell the framework which models and fields to match:
 
 ```bash
 # from task-manager/backend/
-safem search add-model TeamMember --fields name,email
-safem search add-model Project    --fields name,description
-safem search add-model Task       --fields title,description
+veloiq search add-model TeamMember --fields name,email
+veloiq search add-model Project    --fields name,description
+veloiq search add-model Task       --fields title,description
 ```
 
 This creates `config/search.json`:
@@ -457,9 +457,9 @@ matches `title`) are searched.
 To review or change the config later:
 
 ```bash
-safem search list               # show current config
-safem search add-field role     # add another field
-safem search remove-model Project
+veloiq search list               # show current config
+veloiq search add-field role     # add another field
+veloiq search remove-model Project
 ```
 
 ---
@@ -485,12 +485,12 @@ and editable at runtime through **Access Control → Roles** in the sidebar.
 
 ```python
 # backend/app/main.py
-from safemantiq_framework import (
-    create_safem_app, SafemConfig,
+from veloiq_framework import (
+    create_veloiq_app, VeloIQConfig,
     RoleDef, ALL_METHODS, WRITE_METHODS, READ_METHODS,
 )
 
-app = create_safem_app(SafemConfig(
+app = create_veloiq_app(VeloIQConfig(
     roles=[
         RoleDef("Admin",   ALL_METHODS,   "Full administrative access",        is_preset=True),
         RoleDef("Manager", WRITE_METHODS, "Create, edit and view — no delete", is_preset=True),
@@ -519,7 +519,7 @@ that role's permissions on every other resource.
 Open `backend/app/modules/tasks/models.py` and add:
 
 ```python
-from safemantiq_framework import TimestampedModel, jm_relationship, model_access
+from veloiq_framework import TimestampedModel, jm_relationship, model_access
 
 @model_access(Viewer=["list", "show"])
 class Task(TimestampedModel, table=True):
@@ -533,12 +533,12 @@ even if their global permissions are expanded later.  Roles **not** listed in
 > **When to use:** protecting sensitive resources (invoices, HR records) from
 > roles that have broader global write access.
 
-## Layer 3 — Field-level exceptions (`safem_field`)
+## Layer 3 — Field-level exceptions (`veloiq_field`)
 
 Control which roles can read or write individual fields:
 
 ```python
-from safemantiq_framework import TimestampedModel, jm_relationship, safem_field
+from veloiq_framework import TimestampedModel, jm_relationship, veloiq_field
 
 class Task(TimestampedModel, table=True):
     __tablename__ = "task"
@@ -547,11 +547,11 @@ class Task(TimestampedModel, table=True):
     status: str = "todo"
 
     # Only managers and admins can set work-hour estimates
-    planned_work_hours: Optional[float] = safem_field(
+    planned_work_hours: Optional[float] = veloiq_field(
         default=None, write_roles=["Admin", "Manager"]
     )
     # Actual hours logged — Admin-only write, everyone can read
-    actual_work_hours: Optional[float] = safem_field(
+    actual_work_hours: Optional[float] = veloiq_field(
         default=None, write_roles=["Admin", "Manager"]
     )
 ```
@@ -572,11 +572,11 @@ frontend also hides or disables restricted inputs.
 
 > In `backend/app/modules/tasks/models.py` apply `@model_access` to `Task` so
 > that the `Viewer` role can only `list` and `show` tasks.  Import `model_access`
-> from `safemantiq_framework`.  Run `safem generate`.
+> from `veloiq_framework`.  Run `veloiq generate`.
 
 > In `backend/app/modules/tasks/models.py` change `planned_work_hours` and
-> `actual_work_hours` to use `safem_field(default=None, write_roles=["Admin", "Manager"])`.
-> Import `safem_field` from `safemantiq_framework`.  Run `safem generate`.
+> `actual_work_hours` to use `veloiq_field(default=None, write_roles=["Admin", "Manager"])`.
+> Import `veloiq_field` from `veloiq_framework`.  Run `veloiq generate`.
 
 ---
 
@@ -594,7 +594,7 @@ Use `@rebac` when access depends on the data itself rather than a role.
 ## Owner-based access
 
 ```python
-from safemantiq_framework import TimestampedModel, jm_relationship, rebac
+from veloiq_framework import TimestampedModel, jm_relationship, rebac
 
 @rebac(owner_field="assignee_id")
 class Task(TimestampedModel, table=True):
@@ -612,7 +612,7 @@ user only sees tasks where `assignee_id` matches their user ID.
 ```python
 @rebac(tenant_field="tenant_id")
 class Contract(TimestampedModel, table=True):
-    tenant_id: int = Field(foreign_key="safem_tenant.id")
+    tenant_id: int = Field(foreign_key="veloiq_tenant.id")
 ```
 
 ## Relationship traversal
@@ -621,7 +621,7 @@ Use `rebac_subquery` when access follows a chain — for example, tasks are
 accessible when their project is accessible:
 
 ```python
-from safemantiq_framework import rebac, rebac_subquery
+from veloiq_framework import rebac, rebac_subquery
 
 @rebac(owner_field="owner_id")
 class Project(TimestampedModel, table=True):
@@ -650,7 +650,7 @@ detection automatically.
 
 > In `backend/app/modules/tasks/models.py` apply `@rebac(owner_field="assignee_id")`
 > to `Task` so users only see tasks assigned to them.  Import `rebac` from
-> `safemantiq_framework`.  Note that `@rebac` applies to all roles including Admin —
+> `veloiq_framework`.  Note that `@rebac` applies to all roles including Admin —
 > remind me if I need an Admin bypass.
 
 ---

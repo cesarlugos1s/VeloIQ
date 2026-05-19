@@ -1,9 +1,9 @@
-from safemantiq_framework import (
-    create_safem_app, SafemConfig,
+from veloiq_framework import (
+    create_veloiq_app, VeloIQConfig,
     RoleDef, ALL_METHODS, WRITE_METHODS, READ_METHODS,
 )
 
-app = create_safem_app(SafemConfig(
+app = create_veloiq_app(VeloIQConfig(
     roles=[
         RoleDef("Admin",   ALL_METHODS,   "Full administrative access",        is_preset=True),
         RoleDef("Manager", WRITE_METHODS, "Create, edit and view — no delete", is_preset=True),

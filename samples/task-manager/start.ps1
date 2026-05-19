@@ -18,7 +18,7 @@ if (-not (Test-Path $VenvDir)) {
 }
 
 Write-Host ""
-Write-Host "Starting SafeMantIQ Task Manager..." -ForegroundColor Cyan
+Write-Host "Starting VeloIQ Task Manager..." -ForegroundColor Cyan
 Write-Host ""
 
 $BackendCmd = (

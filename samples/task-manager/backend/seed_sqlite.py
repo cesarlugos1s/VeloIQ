@@ -30,13 +30,13 @@ from app.modules.tasks.models import Task  # noqa: F401 — registers table
 from app.modules.team.models import TeamMember  # noqa: F401 — registers table
 
 # Auth models must be imported so their tables are included in metadata
-from safemantiq_framework.auth.models import (  # noqa: F401
+from veloiq_framework.auth.models import (  # noqa: F401
     Role, Tenant, User,
     user_has_role_link,
     user_has_tenant_link,
 )
-from safemantiq_framework.auth.permissions import DEFAULT_ROLES
-from safemantiq_framework.auth.utils import hash_password, seed_roles
+from veloiq_framework.auth.permissions import DEFAULT_ROLES
+from veloiq_framework.auth.utils import hash_password, seed_roles
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})

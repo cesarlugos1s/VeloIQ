@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Field
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 if TYPE_CHECKING:
     from app.modules.team.models import TeamMember

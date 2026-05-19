@@ -1,4 +1,4 @@
-# quickstart.ps1 — SafeMantIQ Task Manager: one-command setup and launch.
+# quickstart.ps1 — VeloIQ Task Manager: one-command setup and launch.
 #
 # Run from a PowerShell terminal (from the repo root or this directory):
 #
@@ -7,9 +7,9 @@
 # What it does:
 #   1. Verifies Python 3.10+ and Node.js 18+ are on your PATH
 #   2. Creates a virtual environment in backend\.venv
-#   3. Installs safemantiq-framework (editable, from this repo)
+#   3. Installs veloiq-framework (editable, from this repo)
 #   4. Copies .env.example -> .env  (SQLite pre-filled database, zero config)
-#   5. Builds @safemantiq/ui from packages\ui if the dist is stale
+#   5. Builds @veloiq/ui from packages\ui if the dist is stale
 #   6. Runs npm install for the frontend
 #   7. Opens the backend and frontend each in their own console window
 #   8. Opens http://localhost:5173 in your default browser
@@ -40,7 +40,7 @@ $VenvPip      = Join-Path $VenvDir    "Scripts\pip.exe"
 $VenvUvicorn  = Join-Path $VenvDir    "Scripts\uvicorn.exe"
 
 Write-Host ""
-Write-Host "SafeMantIQ - Task Manager Quick Start" -ForegroundColor Cyan
+Write-Host "VeloIQ - Task Manager Quick Start" -ForegroundColor Cyan
 Write-Host "--------------------------------------" -ForegroundColor Cyan
 
 # ── 1. Prerequisites ──────────────────────────────────────────────────────────
@@ -99,14 +99,14 @@ if (-not (Test-Path $VenvDir)) {
 & $VenvPip install -q --upgrade pip 2>&1 | Out-Null
 
 # Install the framework from local source if not already present
-$importCheck = & $VenvPython -c "import safemantiq_framework; print('ok')" 2>&1
+$importCheck = & $VenvPython -c "import veloiq_framework; print('ok')" 2>&1
 if ($importCheck -notmatch 'ok') {
-    Info "Installing safemantiq-framework from repo source..."
+    Info "Installing veloiq-framework from repo source..."
     & $VenvPip install -q -e $FrameworkSrc
     if ($LASTEXITCODE -ne 0) { Bail "pip install failed. See the error above." }
-    Ok "safemantiq-framework installed"
+    Ok "veloiq-framework installed"
 } else {
-    Ok "safemantiq-framework already installed"
+    Ok "veloiq-framework already installed"
 }
 
 # ── 3. Backend .env ───────────────────────────────────────────────────────────
@@ -121,12 +121,12 @@ if (-not (Test-Path $EnvFile)) {
     Ok ".env already exists"
 }
 
-# ── 4. Build @safemantiq/ui if the dist is missing ───────────────────────────
+# ── 4. Build @veloiq/ui if the dist is missing ───────────────────────────
 Section "Preparing frontend UI library..."
 
 $UiDist = Join-Path $UiPkgDir "dist\index.mjs"
 if (-not (Test-Path $UiDist)) {
-    Info "Building @safemantiq/ui (one-time step, ~15 s)..."
+    Info "Building @veloiq/ui (one-time step, ~15 s)..."
     Push-Location $UiPkgDir
     npm install --silent 2>&1 | Out-Null
     npm run build --silent 2>&1 | Out-Null
@@ -134,9 +134,9 @@ if (-not (Test-Path $UiDist)) {
     if (-not (Test-Path $UiDist)) {
         Bail "UI build failed. Run 'npm run build' inside packages\ui to see the error."
     }
-    Ok "@safemantiq/ui built"
+    Ok "@veloiq/ui built"
 } else {
-    Ok "@safemantiq/ui dist is current"
+    Ok "@veloiq/ui dist is current"
 }
 
 # ── 5. Install frontend npm dependencies ─────────────────────────────────────

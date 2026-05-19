@@ -1,5 +1,5 @@
 /**
- * Refine AccessControlProvider for SafeMantIQ.
+ * Refine AccessControlProvider for VeloIQ.
  *
  * Three-layer permission model (mirrors the backend):
  *   Layer 1 — Role global permissions (fetched from /auth/roles on login,

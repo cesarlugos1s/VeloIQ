@@ -3,11 +3,11 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "safemantiq-framework"
+name = "veloiq-framework"
 version = "0.1.0"
-description = "SafeMantIQ — AI-native FastAPI + React admin framework. The speed of No-Code. The power of Pro-Code."
+description = "VeloIQ™ — AI-native FastAPI + React admin framework. The speed of No-Code. The power of Pro-Code."
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [{ name = "JuiceMantics", email = "cesar.lugo.marcos@juicemantics.com" }]
 keywords = ["fastapi", "sqlmodel", "admin", "framework", "AI", "ERP"]
@@ -15,7 +15,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: FastAPI",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -54,7 +54,7 @@ analytics = [
     "plotly>=5.0",
     "statsmodels>=0.14",
 ]
-all = ["safemantiq-framework[postgres,ai,analytics]"]
+all = ["veloiq-framework[postgres,ai,analytics]"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23",
@@ -65,16 +65,16 @@ dev = [
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
 [project.scripts]
-safem = "safemantiq_framework.cli.main:cli"
+veloiq = "veloiq_framework.cli.main:cli"
 
 # ── Package discovery ─────────────────────────────────────────────────────────
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["safemantiq_framework*"]
+include = ["veloiq_framework*"]
 
 # Include scaffold templates and static assets in the distribution.
 [tool.setuptools.package-data]
-"safemantiq_framework" = [
+"veloiq_framework" = [
     "scaffold/**/*",
     "scaffold/**/.*",
 ]

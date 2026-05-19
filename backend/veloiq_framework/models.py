@@ -1,0 +1,181 @@
+"""Framework base model classes.
+
+Import these in your module models::
+
+    from veloiq_framework import FrameworkModel, TimestampedModel
+
+    class Product(TimestampedModel, table=True):
+        name: str
+        price: float
+
+Use ``FrameworkModel`` when you don't need timestamps.
+Use ``TimestampedModel`` when you want automatic ``created_at`` / ``updated_at``.
+
+For applications that need CubicWeb database compatibility (``eid`` primary key,
+``cw_`` column prefixes), use ``StandardModel``::
+
+    from veloiq_framework import StandardModel
+
+    class Item(StandardModel, table=True):
+        cw_name: str = Field(sa_column=Column("cw_name", String))
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Callable, ClassVar, Optional
+
+from pydantic import ConfigDict
+from sqlalchemy import Column, Integer, String, func
+from sqlalchemy.inspection import inspect
+from sqlmodel import Field, Relationship, SQLModel
+
+
+# ---------------------------------------------------------------------------
+# Relationship wrapper with cardinality metadata
+# ---------------------------------------------------------------------------
+
+@dataclass
+class RelationCardinality:
+    min_items: int = 0
+    max_items: int | None = None
+    required: bool = False
+
+
+def jm_relationship(
+    *,
+    min_items: int = 0,
+    max_items: int | None = None,
+    required: bool = False,
+    **kwargs: Any,
+) -> Any:
+    """SQLModel Relationship wrapper that attaches cardinality metadata.
+
+    The DynamicResource UI component reads this metadata to render
+    required/optional indicators and pagination hints.
+
+    Usage::
+
+        tags: list["Tag"] = jm_relationship(
+            min_items=0, max_items=None,
+            back_populates="products",
+            link_model=ProductTagLink,
+        )
+    """
+    info = {"cardinality": RelationCardinality(min_items=min_items, max_items=max_items, required=required)}
+    sa_kwargs = kwargs.pop("sa_relationship_kwargs", {})
+    sa_kwargs["info"] = info
+    return Relationship(sa_relationship_kwargs=sa_kwargs, **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# PK introspection helper
+# ---------------------------------------------------------------------------
+
+def get_pk_field_name(model_cls: type) -> str:
+    """Return the Python attribute name for the primary key of a mapped model."""
+    try:
+        mapper = inspect(model_cls)
+        for col_prop in mapper.column_attrs:
+            if any(col.primary_key for col in col_prop.columns):
+                return col_prop.key
+    except Exception:
+        pass
+    return "id"
+
+
+# ---------------------------------------------------------------------------
+# Base model classes
+# ---------------------------------------------------------------------------
+
+class FrameworkModel(SQLModel):
+    """Minimal base model for VeloIQ™ framework apps.
+
+    Provides a standard auto-increment integer PK named ``id``.
+    No audit columns, no JuiceMantics EID allocation, no cwuri.
+
+    Use ``TimestampedModel`` if you want automatic ``created_at`` /
+    ``updated_at`` columns.
+    """
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    _pk_allocator: ClassVar[Optional[Callable]] = None
+
+    def build_model_str_label(self) -> str:
+        """Human-readable label for this record (used in relation selectors)."""
+        pk_name = get_pk_field_name(type(self))
+        for attr in type(self).model_fields:
+            if attr == pk_name:
+                continue
+            val = getattr(self, attr, None)
+            if isinstance(val, str) and val:
+                return val
+        return f"{type(self).__name__} #{getattr(self, pk_name, '?')}"
+
+    def __str__(self) -> str:
+        return self.build_model_str_label()
+
+
+class StandardModel(SQLModel):
+    """CubicWeb-compatible base model for applications that require ``eid`` as
+    the primary key and ``cw_`` column naming conventions.
+
+    Use this when migrating from CubicWeb or when maintaining compatibility
+    with an existing CubicWeb database schema.  New greenfield applications
+    should use ``FrameworkModel`` or ``TimestampedModel`` instead.
+
+    The ``eid`` attribute maps to the ``cw_eid`` physical column so that
+    SQLAlchemy and the VeloIQ™ framework both use the Python name ``eid``
+    while the database column stays ``cw_eid``.
+    """
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    eid: Optional[int] = Field(
+        default=None,
+        sa_column=Column("cw_eid", Integer, primary_key=True, autoincrement=True),
+    )
+
+    creation_date: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": func.now()},
+    )
+    modification_date: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
+
+    def build_model_str_label(self) -> str:
+        for attr in type(self).model_fields:
+            if attr in ("eid", "creation_date", "modification_date"):
+                continue
+            val = getattr(self, attr, None)
+            if isinstance(val, str) and val:
+                return val
+        return f"{type(self).__name__} #{self.eid or '?'}"
+
+    def __str__(self) -> str:
+        return self.build_model_str_label()
+
+
+class TimestampedModel(FrameworkModel):
+    """``FrameworkModel`` with automatic ``created_at`` / ``updated_at`` columns.
+
+    Usage::
+
+        class Order(TimestampedModel, table=True):
+            customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
+            total: float
+    """
+
+    created_at: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": func.now()},
+    )
+    updated_at: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )

@@ -1,6 +1,6 @@
-# Getting Started with SafeMantIQ
+1,0# Getting Started with VeloIQ
 
-SafeMantIQ is an open-core full-stack framework for building data-driven admin
+VeloIQ is an open-core full-stack framework for building data-driven admin
 and ERP applications.  You define your database models in Python; the framework
 generates the REST API, the SQLAdmin back-office, and the React CRUD frontend
 automatically.
@@ -14,8 +14,8 @@ automatically.
 ## Install the CLI
 
 ```bash
-pip install safemantiq-framework
-safem --version
+pip install veloiq-framework
+veloiq --version
 ```
 
 > **Before PyPI release:** install directly from the source repository using
@@ -24,13 +24,13 @@ safem --version
 >
 > ```bash
 > pip install -e /path/to/fastapi_sqladmin_prototype/backend
-> safem --version
+> veloiq --version
 > ```
 
 ## Create your first project
 
 ```bash
-safem new my-app
+veloiq new my-app
 cd my-app
 ```
 
@@ -40,7 +40,7 @@ This scaffolds the full project structure:
 my-app/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py          # one line: app = create_safem_app()
+│   │   ├── main.py          # one line: app = create_veloiq_app()
 │   │   └── modules/         # your domain modules go here
 │   ├── .env.example
 │   ├── requirements.txt
@@ -67,7 +67,7 @@ Create `backend/app/modules/products/models.py`:
 
 ```python
 from typing import Optional
-from safemantiq_framework import TimestampedModel
+from veloiq_framework import TimestampedModel
 
 class Product(TimestampedModel, table=True):
     __tablename__ = "product"
@@ -86,7 +86,7 @@ class Product(TimestampedModel, table=True):
 
 ```bash
 cd backend
-safem generate
+veloiq generate
 ```
 
 This writes two files automatically:
@@ -94,14 +94,14 @@ This writes two files automatically:
 - `backend/app/modules/products/api.py` — standard CRUD REST endpoints
 - `frontend/src/pages/products/productsSchema.gen.ts` — TypeScript field definitions
 
-You never edit these files.  Re-run `safem generate` whenever you change a model.
+You never edit these files.  Re-run `veloiq generate` whenever you change a model.
 
 ## Start the backend
 
 ```bash
 pip install -r requirements.txt
-safem db upgrade          # creates tables
-safem run                 # starts at http://localhost:8000
+veloiq db upgrade          # creates tables
+veloiq run                 # starts at http://localhost:8000
 ```
 
 - API docs: http://localhost:8000/docs
@@ -115,7 +115,7 @@ npm install
 npm run dev               # starts at http://localhost:5173
 ```
 
-> **Before npm registry release:** build and install `@safemantiq/ui` locally
+> **Before npm registry release:** build and install `@veloiq/ui` locally
 > before `npm install`:
 >
 > ```bash
@@ -131,25 +131,25 @@ model with zero additional code.
 
 ## Access control
 
-SafeMantIQ ships with a layered access control system that goes from coarse to
+VeloIQ ships with a layered access control system that goes from coarse to
 fine.  All layers are opt-in and can be combined freely.
 
 **RBAC — three layers of role-based control**
 
 | Layer | Mechanism | Scope |
 |---|---|---|
-| 1 — Global role permissions | `SafemConfig(roles=[RoleDef(...)])` in `main.py` | All resources |
+| 1 — Global role permissions | `VeloIQConfig(roles=[RoleDef(...)])` in `main.py` | All resources |
 | 2 — Model-level exceptions | `@model_access(Viewer=["list", "show"])` on a model class | One resource |
-| 3 — Field-level exceptions | `safem_field(read_roles=[...], write_roles=[...])` on a field | One field |
+| 3 — Field-level exceptions | `veloiq_field(read_roles=[...], write_roles=[...])` on a field | One field |
 
 ```python
-from safemantiq_framework import model_access, safem_field, TimestampedModel
+from veloiq_framework import model_access, veloiq_field, TimestampedModel
 
 @model_access(Viewer=["list", "show"])   # Viewer cannot create/edit/delete
 class Invoice(TimestampedModel, table=True):
     amount: float
     # Only Admin can see or change this field
-    internal_notes: str = safem_field(default="", read_roles=["Admin"], write_roles=["Admin"])
+    internal_notes: str = veloiq_field(default="", read_roles=["Admin"], write_roles=["Admin"])
 ```
 
 **ReBAC — row-level access control**
@@ -158,11 +158,11 @@ Use `@rebac` when access depends on the data itself (ownership, tenant membershi
 or any relationship):
 
 ```python
-from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+from veloiq_framework import rebac, rebac_subquery, TimestampedModel
 
 @rebac(owner_field="created_by")          # user sees only their own rows
 class Note(TimestampedModel, table=True):
-    created_by: int = Field(foreign_key="safem_user.id")
+    created_by: int = Field(foreign_key="veloiq_user.id")
 
 @rebac(filter=lambda user, cls, session:  # inherit access from parent model
            cls.folder_id.in_(rebac_subquery(Folder, user, session)))
@@ -178,5 +178,5 @@ For a full walkthrough see [Section 4 (RBAC)](./tutorial-task-manager.md#section
 
 - [Tutorial: Build a Task Manager](./tutorial-task-manager.md) — step-by-step guide covering relations, custom endpoints, and the full dev loop in ~15 minutes
 - [Module Authoring](./module-authoring.md) — add relations, custom endpoints, custom schemas
-- [Configuration Reference](./configuration-reference.md) — all `SafemConfig` options
+- [Configuration Reference](./configuration-reference.md) — all `VeloIQConfig` options
 - [Open-Core Model](./open-core.md) — free vs Pro features

@@ -1,15 +1,15 @@
 # Configuration Reference
 
-All SafeMantIQ configuration is handled through `SafemConfig`.  Every field
+All VeloIQ configuration is handled through `VeloIQConfig`.  Every field
 reads from an environment variable if not set explicitly, so you can configure
 the app entirely through a `.env` file.
 
 ## Quick example
 
 ```python
-from safemantiq_framework import create_safem_app, SafemConfig
+from veloiq_framework import create_veloiq_app, VeloIQConfig
 
-app = create_safem_app(SafemConfig(
+app = create_veloiq_app(VeloIQConfig(
     title="Acme Admin",
     database_url="postgresql://user:pass@localhost/acme",
     cors_origins=["http://localhost:5173"],
@@ -22,18 +22,18 @@ Or rely entirely on environment variables in your `.env`:
 ```
 DATABASE_URL=postgresql://user:pass@localhost/acme
 CORS_ORIGINS=http://localhost:5173,https://app.acme.com
-SAFEM_MODULES_DIR=app/modules
+VELOIQ_MODULES_DIR=app/modules
 AUTH_SECRET=your-secret-key
 ```
 
 And keep `main.py` to one line:
 
 ```python
-from safemantiq_framework import create_safem_app
-app = create_safem_app()
+from veloiq_framework import create_veloiq_app
+app = create_veloiq_app()
 ```
 
-## SafemConfig fields
+## VeloIQConfig fields
 
 ### Database
 
@@ -47,8 +47,8 @@ app = create_safem_app()
 
 | Field | Env var | Default | Description |
 |---|---|---|---|
-| `title` | — | `"SafeMantIQ App"` | FastAPI app title, shown in `/docs`. |
-| `modules_dir` | `SAFEM_MODULES_DIR` | `"app/modules"` | Path to the modules directory, relative to the working directory. |
+| `title` | — | `"VeloIQ App"` | FastAPI app title, shown in `/docs`. |
+| `modules_dir` | `VELOIQ_MODULES_DIR` | `"app/modules"` | Path to the modules directory, relative to the working directory. |
 | `static_dir` | — | `None` | Directory to mount at `/static`. |
 
 ### CORS
@@ -80,16 +80,16 @@ For production use, disable table auto-creation and manage schema changes
 with Alembic:
 
 ```python
-app = create_safem_app(SafemConfig(
+app = create_veloiq_app(VeloIQConfig(
     create_tables_on_startup=False,
 ))
 ```
 
 ```bash
-safem db migrate -m "add product table"   # create a new revision
-safem db upgrade                           # apply pending migrations
-safem db history                           # show revision history
-safem db current                           # show current revision
+veloiq db migrate -m "add product table"   # create a new revision
+veloiq db upgrade                           # apply pending migrations
+veloiq db history                           # show revision history
+veloiq db current                           # show current revision
 ```
 
 ## Environment variable reference
@@ -99,7 +99,7 @@ safem db current                           # show current revision
 DATABASE_URL=postgresql://user:password@localhost/dbname
 
 # Optional
-SAFEM_MODULES_DIR=app/modules
+VELOIQ_MODULES_DIR=app/modules
 CORS_ORIGINS=http://localhost:5173,https://yourdomain.com
 AUTH_ENABLED=true
 AUTH_SECRET=your-secret-key-here

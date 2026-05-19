@@ -1,6 +1,6 @@
 # Module Authoring
 
-A SafeMantIQ module is a Python package under `backend/app/modules/`.  The
+A VeloIQ module is a Python package under `backend/app/modules/`.  The
 framework discovers and registers modules automatically on startup — no
 registration in `main.py` required.
 
@@ -25,7 +25,7 @@ Define your entities by inheriting from one of the framework base classes.
 Minimal base — standard auto-increment `id` primary key, no timestamps.
 
 ```python
-from safemantiq_framework import FrameworkModel
+from veloiq_framework import FrameworkModel
 
 class Category(FrameworkModel, table=True):
     __tablename__ = "category"
@@ -40,7 +40,7 @@ appends these two fields **after** all fields you declare, so they appear last
 in every list, form, and detail view.
 
 ```python
-from safemantiq_framework import TimestampedModel
+from veloiq_framework import TimestampedModel
 
 class Order(TimestampedModel, table=True):
     __tablename__ = "order"
@@ -59,7 +59,7 @@ For CubicWeb database compatibility: uses `eid` as the primary key
 (mapped to the `cw_eid` column) and preserves `cw_` column conventions.
 
 ```python
-from safemantiq_framework import StandardModel
+from veloiq_framework import StandardModel
 from sqlmodel import Field
 from sqlalchemy import Column, String
 
@@ -76,7 +76,7 @@ cardinality metadata that the frontend UI reads for validation hints.
 ```python
 from typing import List, Optional
 from sqlmodel import Field
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 class Customer(TimestampedModel, table=True):
     __tablename__ = "customer"
@@ -92,7 +92,7 @@ class Order(TimestampedModel, table=True):
 
 ## Access control
 
-SafeMantIQ provides four layers of access control.  All are opt-in per model
+VeloIQ provides four layers of access control.  All are opt-in per model
 and can be combined freely.
 
 ### Layer 1 — Configurable roles (global)
@@ -102,12 +102,12 @@ the database on startup.  They are also editable at runtime through the admin UI
 
 ```python
 # main.py
-from safemantiq_framework import (
-    create_safem_app, SafemConfig,
+from veloiq_framework import (
+    create_veloiq_app, VeloIQConfig,
     RoleDef, ALL_METHODS, WRITE_METHODS, READ_METHODS,
 )
 
-app = create_safem_app(SafemConfig(
+app = create_veloiq_app(VeloIQConfig(
     roles=[
         RoleDef("Admin",   ALL_METHODS,   "Full access",               is_preset=True),
         RoleDef("Manager", WRITE_METHODS, "Create/edit, no delete",    is_preset=True),
@@ -124,7 +124,7 @@ Override which actions a role may perform on a specific model.  Roles not listed
 in `@model_access` inherit their global permissions unchanged.
 
 ```python
-from safemantiq_framework import model_access, TimestampedModel
+from veloiq_framework import model_access, TimestampedModel
 
 @model_access(Viewer=["list", "show"])   # Viewer is read-only on Invoice
 class Invoice(TimestampedModel, table=True):
@@ -136,32 +136,32 @@ class Invoice(TimestampedModel, table=True):
 Exceptions are **restrictive only** — they can narrow access, never grant
 beyond the role's global permissions.
 
-### Layer 3 — Field-level exceptions (`safem_field`)
+### Layer 3 — Field-level exceptions (`veloiq_field`)
 
 Control read and write access per field.
 
 ```python
-from safemantiq_framework import safem_field, TimestampedModel
+from veloiq_framework import veloiq_field, TimestampedModel
 
 class Employee(TimestampedModel, table=True):
     __tablename__ = "employee"
     name: str
     department: str
     # Only Admins can see or change salary
-    salary: float = safem_field(
+    salary: float = veloiq_field(
         default=0.0,
         read_roles=["Admin"],
         write_roles=["Admin"],
     )
     # Viewers can read notes, but only Managers and Admins can write them
-    notes: str = safem_field(
+    notes: str = veloiq_field(
         default="",
         write_roles=["Admin", "Manager"],
     )
 ```
 
-`safem_field` uses `pydantic.Field` under the hood and is fully compatible with
-`TimestampedModel` and `FrameworkModel`.  After adding or changing `safem_field`
+`veloiq_field` uses `pydantic.Field` under the hood and is fully compatible with
+`TimestampedModel` and `FrameworkModel`.  After adding or changing `veloiq_field`
 annotations, run `python api_schema_gen.py` — the generator emits `readRoles`
 and `writeRoles` into the TypeScript schema so the frontend can hide or disable
 restricted inputs automatically.
@@ -171,17 +171,17 @@ restricted inputs automatically.
 Filter which rows a user can see, edit, or delete based on the data itself.
 
 ```python
-from safemantiq_framework import rebac, rebac_subquery, TimestampedModel
+from veloiq_framework import rebac, rebac_subquery, TimestampedModel
 
 # Shorthand: user sees only rows they own
 @rebac(owner_field="created_by")
 class Note(TimestampedModel, table=True):
-    created_by: int = Field(foreign_key="safem_user.id")
+    created_by: int = Field(foreign_key="veloiq_user.id")
 
 # Tenant isolation: user sees rows whose tenant they belong to
 @rebac(tenant_field="tenant_id")
 class Contract(TimestampedModel, table=True):
-    tenant_id: int = Field(foreign_key="safem_tenant.id")
+    tenant_id: int = Field(foreign_key="veloiq_tenant.id")
 
 # Relationship traversal: inherit access from a parent model
 @rebac(filter=lambda user, cls, session:
@@ -205,11 +205,11 @@ Key characteristics:
 
 ## api.py — the generated CRUD layer
 
-After running `safem generate`, each module has an `api.py` that looks like:
+After running `veloiq generate`, each module has an `api.py` that looks like:
 
 ```python
-# AUTO-GENERATED — do not edit. Run `safem generate` to update.
-from safemantiq_framework.crud import create_crud_router
+# AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
+from veloiq_framework.crud import create_crud_router
 from .models import Order
 
 router = create_crud_router(Order)
@@ -228,7 +228,7 @@ router = create_crud_router(Order)
 Response headers `x-total-count` and `content-range` are set on list responses
 to support the Refine data provider pagination convention.
 
-**Do not edit `api.py`.**  It is overwritten by `safem generate`.
+**Do not edit `api.py`.**  It is overwritten by `veloiq generate`.
 
 ## custom_api.py — custom endpoints
 
@@ -239,7 +239,7 @@ directory.  Import `router` from the generated `api.py` and add routes to it:
 from fastapi import Depends, HTTPException
 from sqlmodel import Session, select
 
-from safemantiq_framework import get_session
+from veloiq_framework import get_session
 from .api import router
 from .models import Order
 
@@ -283,9 +283,9 @@ class OrderAdmin(ModelView, model=Order):
 
 The generated `{module}Schema.gen.ts` defines field labels, types, and
 relations for the DynamicResource UI component.  The file is regenerated
-by `safem generate` and must not be edited directly.
+by `veloiq generate` and must not be edited directly.
 
 To override or extend the generated schema, create a
 `{module}Schema.manual.ts` in the same directory and merge it in
-`{module}Schema.ts`.  See the `@safemantiq/ui` documentation for the
+`{module}Schema.ts`.  See the `@veloiq/ui` documentation for the
 `ModelDef` and `FieldDef` type reference.

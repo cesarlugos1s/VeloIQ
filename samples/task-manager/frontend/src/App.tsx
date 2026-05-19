@@ -23,8 +23,8 @@ import {
     PrimaryShowContext,
     ColorModeContextProvider,
     authSystemModels,
-} from "@safemantiq/ui";
-import type { PrimaryShowRendererProps } from "@safemantiq/ui";
+} from "@veloiq/ui";
+import type { PrimaryShowRendererProps } from "@veloiq/ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.

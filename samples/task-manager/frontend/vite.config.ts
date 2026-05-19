@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@safemantiq/ui": path.resolve(__dirname, "../../../packages/ui/src/index.ts"),
+      "@veloiq/ui": path.resolve(__dirname, "../../../packages/ui/src/index.ts"),
     },
     dedupe: ["react", "react-dom", "antd", "@ant-design/icons", "@refinedev/antd", "@refinedev/core", "@tanstack/react-query", "axios", "dayjs", "react-resizable-panels", "react-router-dom"],
   },

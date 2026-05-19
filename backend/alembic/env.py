@@ -14,7 +14,7 @@ except ImportError:
     pass
 
 # Import framework auth models so their tables are always included
-import safemantiq_framework.auth.models  # noqa: F401
+import veloiq_framework.auth.models  # noqa: F401
 
 # Import your app's models here so autogenerate can detect changes.
 # Uncomment and extend as you add modules:

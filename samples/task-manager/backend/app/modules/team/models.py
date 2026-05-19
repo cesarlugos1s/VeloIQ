@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional
-from safemantiq_framework import TimestampedModel, jm_relationship
+from veloiq_framework import TimestampedModel, jm_relationship
 
 if TYPE_CHECKING:
     from app.modules.projects.models import Project

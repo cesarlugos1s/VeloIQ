@@ -1,5 +1,5 @@
-// AUTO-GENERATED — do not edit. Run `safem generate` to update.
-import type { ModelDef } from '@safemantiq/ui';
+// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
+import type { ModelDef } from '@veloiq/ui';
 
 export const projectsModels: ModelDef[] = [
   {
