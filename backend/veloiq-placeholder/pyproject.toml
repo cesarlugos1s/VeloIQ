@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veloiq"
+version = "0.1.0"
+description = "VeloIQ™ — see veloiq-framework for the full package"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "JuiceMantics", email = "cesar.lugo.marcos@juicemantics.com" }]
+keywords = ["fastapi", "sqlmodel", "admin", "framework", "ERP"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+    "veloiq-framework",
+]
+
+[project.urls]
+Homepage = "https://veloiq.dev"
+Repository = "https://github.com/juicemantics/veloiq-framework"
+
+[tool.setuptools.packages.find]
+where = ["src"]

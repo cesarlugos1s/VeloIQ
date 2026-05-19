@@ -8,6 +8,9 @@ venv/
 *.db
 *.db-shm
 *.db-wal
+dist/
+build/
+backend/README.md
 # Keep the pre-seeded quickstart database in the repo
 !samples/task-manager/backend/taskmanager.db
 
