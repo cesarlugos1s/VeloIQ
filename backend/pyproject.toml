@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "veloiq-framework"
-version = "0.1.1"
+version = "0.1.2"
 description = "VeloIQ™ — AI-native FastAPI + React admin framework. The speed of No-Code. The power of Pro-Code."
 readme = "README.md"
 license = { text = "MIT" }
@@ -83,7 +83,10 @@ include = ["veloiq_framework*"]
 [tool.setuptools.package-data]
 "veloiq_framework" = [
     "scaffold/**/*",
-    "scaffold/**/.*",
+    "scaffold/.windsurfrules",
+    "scaffold/.cursor/rules/*",
+    "scaffold/.github/*",
+    "scaffold/.continue/*",
 ]
 
 # ── Ruff (linting) ────────────────────────────────────────────────────────────
