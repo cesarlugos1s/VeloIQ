@@ -9,7 +9,7 @@ cp -r website /tmp/veloiq-website-deploy
 
 # Switch to gh-pages, always return to main on exit
 git checkout gh-pages
-trap "git checkout main" EXIT
+trap "git checkout -f main" EXIT
 
 # Sync with remote before making changes
 git pull origin gh-pages --no-rebase --quiet
