@@ -36,9 +36,9 @@ def init(project_root: str | None):
       veloiq db init
       veloiq db upgrade
     """
-    package_root = Path(__file__).resolve().parents[2]  # backend/ in the framework
-    alembic_src = package_root / "alembic"
-    alembic_ini_src = package_root / "alembic.ini"
+    pkg_root = Path(__file__).resolve().parents[1]  # veloiq_framework/
+    alembic_src = pkg_root / "alembic_scaffold"
+    alembic_ini_src = pkg_root / "alembic_scaffold.ini"
 
     if not alembic_src.exists():
         click.echo("❌ Alembic scaffold not found in the installed framework package.", err=True)

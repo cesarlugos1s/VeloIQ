@@ -124,16 +124,14 @@ def _copy_scaffold(src_dir: Path, dest_dir: Path, tokens: dict[str, str]) -> Non
 
 def _copy_alembic(dest_dir: Path, tokens: dict[str, str]) -> None:
     """Copy the framework's Alembic scaffold into backend/alembic/."""
-    # The alembic scaffold lives in the installed package at
-    # veloiq_framework/../alembic/ (backend/alembic/ in the repo).
-    package_root = Path(__file__).resolve().parents[2]  # backend/
-    alembic_src = package_root / "alembic"
+    pkg_root = Path(__file__).resolve().parents[1]  # veloiq_framework/
+    alembic_src = pkg_root / "alembic_scaffold"
     if not alembic_src.exists():
         click.echo("  ⚠️  Alembic scaffold not found — skipping.")
         return
 
     alembic_dest = dest_dir / "backend" / "alembic"
-    alembic_ini_src = package_root / "alembic.ini"
+    alembic_ini_src = pkg_root / "alembic_scaffold.ini"
     alembic_ini_dest = dest_dir / "backend" / "alembic.ini"
 
     for src_path in alembic_src.rglob("*"):
