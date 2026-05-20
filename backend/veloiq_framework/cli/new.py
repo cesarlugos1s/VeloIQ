@@ -51,8 +51,16 @@ def new(app_name: str, title: str | None, port: int, output_dir: str | None):
     # Resolve the local @veloiq/ui package path so the scaffold
     # package.json can reference it with a file: specifier instead of the
     # npm registry (the package is not published yet).
-    package_root = Path(__file__).resolve().parents[2]  # backend/
-    ui_pkg_path = (package_root.parent / "packages" / "ui").resolve()
+    ui_pkg_path = _find_ui_package()
+    if ui_pkg_path is None:
+        click.echo(
+            "  ⚠️  Could not locate @veloiq/ui.\n"
+            "     After scaffolding, edit frontend/package.json and set:\n"
+            "       \"@veloiq/ui\": \"file:/path/to/VeloIQ/packages/ui\"\n"
+            "     Then run: cd frontend && npm install",
+        )
+        ui_pkg_path = Path("/path/to/VeloIQ/packages/ui")
+
     ui_src_path = ui_pkg_path / "src" / "index.ts"
 
     tokens = {
@@ -154,6 +162,25 @@ def _copy_alembic(dest_dir: Path, tokens: dict[str, str]) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _find_ui_package() -> Path | None:
+    """Locate the packages/ui directory.
+
+    Works for editable installs (repo clone) and falls back to searching
+    relative to CWD for users who cloned the repo elsewhere.
+    """
+    candidates = [
+        # Editable install: __file__ is inside backend/veloiq_framework/cli/
+        Path(__file__).resolve().parents[3] / "packages" / "ui",
+        # Repo sibling of CWD (e.g. user runs veloiq new from inside the clone)
+        Path.cwd() / "packages" / "ui",
+        Path.cwd().parent / "packages" / "ui",
+    ]
+    for path in candidates:
+        if (path / "package.json").exists():
+            return path.resolve()
+    return None
+
 
 def _slugify(name: str) -> str:
     """Convert any string to a safe directory/package name."""

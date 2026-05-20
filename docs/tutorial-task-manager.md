@@ -187,8 +187,10 @@ in a single interaction:
 >   `parent_task_id → task.id` with `subtasks` and `parent_task` relationships.
 >
 > Use `jm_relationship` from `veloiq_framework` for all relationships (never
-> `relationship()` from SQLAlchemy). Guard cross-module imports with
-> `if TYPE_CHECKING`.
+> `relationship()` from SQLAlchemy or `Relationship` from SQLModel). Guard
+> cross-module imports with `if TYPE_CHECKING`. Do NOT add
+> `from __future__ import annotations` to any models.py — it breaks SQLModel
+> relationship resolution.
 >
 > After writing the models run `veloiq generate` then `veloiq db init` (if
 > alembic.ini is missing) then `veloiq db upgrade`.

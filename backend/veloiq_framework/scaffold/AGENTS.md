@@ -88,3 +88,4 @@ class MyModel(TimestampedModel, table=True):
 - FK column (`other_id`) and relationship attribute (`other`) are always separate fields
 - Cross-module imports must be inside `if TYPE_CHECKING` to avoid circular imports
 - Self-referential or multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
+- **Never add `from __future__ import annotations`** to models.py — it breaks SQLModel relationship resolution

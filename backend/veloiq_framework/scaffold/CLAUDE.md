@@ -109,6 +109,7 @@ Rules:
 - The FK column (`other_id`) and the relationship attribute (`other`) are **separate** fields
 - Cross-module model references must be inside `if TYPE_CHECKING` to avoid import cycles
 - Self-referential and multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
+- **Never add `from __future__ import annotations` to models.py** — it makes all annotations lazy strings, which breaks SQLModel's relationship resolution
 
 ## Access control
 

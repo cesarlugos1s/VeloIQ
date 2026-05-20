@@ -70,3 +70,4 @@ class MyModel(TimestampedModel, table=True):
 
 - Always guard cross-module imports with `if TYPE_CHECKING`
 - Self-referential relationships require `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
+- **Never add `from __future__ import annotations`** — it breaks SQLModel relationship resolution
