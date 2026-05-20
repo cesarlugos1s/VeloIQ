@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloIQ™ — Full-Stack Framework for Data-Driven Apps</title>
+  <meta name="description" content="Define your data models once. VeloIQ generates the REST API, React frontend, and admin back-office automatically. Open-source, MIT license.">
+  <meta property="og:title" content="VeloIQ™ — Full-Stack Framework for Data-Driven Apps">
+  <meta property="og:description" content="Define your data models once. VeloIQ generates the REST API, React frontend, and admin back-office automatically.">
+  <meta property="og:url" content="https://veloiq.dev">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+      <a href="contact.html" class="nav-cta">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Open-Core Framework &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; FastAPI + React
+    </div>
+    <h1>Build Data-Driven Apps in a<br><span class="highlight">Fraction of the Time</span></h1>
+    <p class="sub">
+      Define your data models once in Python. VeloIQ generates the REST API,
+      the SQLAdmin back-office, and the full React CRUD frontend automatically.
+    </p>
+    <div class="hero-actions">
+      <a href="https://pypi.org/project/veloiq-framework/" class="btn-primary" target="_blank">
+        Get Started Free →
+      </a>
+      <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/quickstart.md" class="btn-secondary" target="_blank">
+        See It in 5 Minutes
+      </a>
+    </div>
+
+    <div class="hero-code">
+      <div class="code-titlebar">
+        <span class="code-dot red"></span>
+        <span class="code-dot yellow"></span>
+        <span class="code-dot green"></span>
+        <span class="code-filename">app/main.py</span>
+      </div>
+      <div class="code-body">
+        <pre><span class="c-comment"># Your entire backend entry point.</span>
+<span class="c-kw">from</span> veloiq_framework <span class="c-kw">import</span> <span class="c-fn">create_veloiq_app</span>
+<span class="c-var">app</span> <span class="c-paren">=</span> <span class="c-fn">create_veloiq_app</span><span class="c-paren">()</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tech bar -->
+<div class="tech-bar">
+  <div class="container">
+    <div class="tech-bar-inner">
+      <span class="tech-bar-label">Built on trusted open-source foundations</span>
+      <div class="tech-list">
+        <span class="tech-item">FastAPI</span>
+        <span class="tech-sep">·</span>
+        <span class="tech-item">SQLModel</span>
+        <span class="tech-sep">·</span>
+        <span class="tech-item">React</span>
+        <span class="tech-sep">·</span>
+        <span class="tech-item">Refine</span>
+        <span class="tech-sep">·</span>
+        <span class="tech-item">Ant Design</span>
+        <span class="tech-sep">·</span>
+        <span class="tech-item">Alembic</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Three feature cards -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">What you get</span>
+      <h2>Everything you need, nothing you don't</h2>
+      <p>VeloIQ handles the scaffolding so you spend your time on the logic that makes your application unique.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Backend, Done</h3>
+        <p>
+          FastAPI application factory with CORS, JWT auth middleware, and RBAC built in.
+          Automatic CRUD routers, module auto-loading, SQLAdmin back-office at
+          <code style="color:#a5b4fc;font-size:0.8rem">/admin/</code>,
+          and Alembic migrations — all wired up from one function call.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Frontend, Included</h3>
+        <p>
+          <code style="color:#a5b4fc;font-size:0.8rem">@veloiq/ui</code> renders
+          schema-driven CRUD pages with side panels, Miller columns tree view,
+          a relations explorer graph, auto-generated analysis charts, bulk actions,
+          dark mode, and global search — with zero boilerplate.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔓</div>
+        <h3>Your Code, Always</h3>
+        <p>
+          VeloIQ is a <strong style="color:#fafafa">pro-code framework</strong>, not a black box.
+          Every FastAPI endpoint and React component is plain Python and TypeScript
+          you own, read, and extend. The generated code stays yours.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Code example section -->
+<section style="padding: 0 0 96px">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center">
+      <div>
+        <span class="section-tag">Two models. Full stack.</span>
+        <h2 style="font-size:clamp(1.5rem,2.5vw,2rem);font-weight:700;letter-spacing:-0.02em;margin-bottom:16px;line-height:1.2">
+          Define your models.<br>Everything else is generated.
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.95rem;line-height:1.75;margin-bottom:24px">
+          Drop a <code style="color:#a5b4fc;font-size:0.85rem">models.py</code> in any module folder.
+          VeloIQ auto-generates the REST API, the admin views, and the TypeScript schema
+          for the React frontend — including the relationship between your models.
+        </p>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--text-muted)">
+            <span style="color:var(--accent)">✓</span> CRUD endpoints for both models
+          </li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--text-muted)">
+            <span style="color:var(--accent)">✓</span> React pages with side panels and relation explorer
+          </li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--text-muted)">
+            <span style="color:var(--accent)">✓</span> SQLAdmin back-office with the relation wired up
+          </li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--text-muted)">
+            <span style="color:var(--accent)">✓</span> TypeScript types auto-generated from Python models
+          </li>
+        </ul>
+      </div>
+      <div class="hero-code" style="max-width:100%;margin:0">
+        <div class="code-titlebar">
+          <span class="code-dot red"></span>
+          <span class="code-dot yellow"></span>
+          <span class="code-dot green"></span>
+          <span class="code-filename">app/modules/projects/models.py</span>
+        </div>
+        <div class="code-body">
+          <pre><span class="c-kw">from</span> typing <span class="c-kw">import</span> List, Optional
+<span class="c-kw">from</span> sqlmodel <span class="c-kw">import</span> Field
+<span class="c-kw">from</span> veloiq_framework <span class="c-kw">import</span> TimestampedModel, jm_relationship
+
+<span class="c-kw">class</span> <span class="c-fn">TeamMember</span>(TimestampedModel, table=<span class="c-str">True</span>):
+    __tablename__ = <span class="c-str">"team_member"</span>
+    name: str
+    email: str
+    role: str = <span class="c-str">"member"</span>
+    projects: List[<span class="c-str">"Project"</span>] = <span class="c-fn">jm_relationship</span>(
+        back_populates=<span class="c-str">"owner"</span>
+    )
+
+<span class="c-kw">class</span> <span class="c-fn">Project</span>(TimestampedModel, table=<span class="c-str">True</span>):
+    __tablename__ = <span class="c-str">"project"</span>
+    name: str
+    status: str = <span class="c-str">"active"</span>
+    owner_id: Optional[int] = <span class="c-fn">Field</span>(
+        default=<span class="c-str">None</span>, foreign_key=<span class="c-str">"team_member.id"</span>
+    )
+    owner: Optional[<span class="c-str">"TeamMember"</span>] = <span class="c-fn">jm_relationship</span>(
+        back_populates=<span class="c-str">"projects"</span>
+    )</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Capabilities two-column -->
+<section class="section" style="background:var(--bg-card);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle)">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Capabilities</span>
+      <h2>Access control and UI that think ahead</h2>
+      <p>Production-grade features included in the free tier — not gated behind a paid plan.</p>
+    </div>
+    <div class="capabilities">
+      <div class="cap-group">
+        <h3>🔐 Access Control</h3>
+        <ul class="cap-list">
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Three-layer RBAC</div>
+              <div class="cap-desc">Global role permissions → per-model exceptions → per-field exceptions. Configurable at runtime through the admin UI.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">ReBAC row-level filtering</div>
+              <div class="cap-desc">Users see only the rows they own or belong to. Relationship traversal via <code style="color:#a5b4fc;font-size:0.8rem">rebac_subquery()</code> with cycle detection.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">JWT authentication</div>
+              <div class="cap-desc">Built-in login endpoint, token refresh, and middleware. No third-party auth service required.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">User / Role / Tenant management</div>
+              <div class="cap-desc">Full React UI for managing users, roles, and tenants. Comes pre-wired with the framework.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Multi-database support</div>
+              <div class="cap-desc">PostgreSQL, MySQL, SQLite, or any SQLAlchemy-compatible database. Switch with one environment variable.</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="cap-group">
+        <h3>🖥️ Intelligent UI</h3>
+        <ul class="cap-list">
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Side panels</div>
+              <div class="cap-desc">Click any list row to open a detail panel alongside the list. Drag to resize, minimize, maximize, or pop out to full page.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Miller columns tree view</div>
+              <div class="cap-desc">Hierarchical parent/child data renders as an interactive multi-column browser. Auto-detected from self-referential model relationships.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Relations explorer</div>
+              <div class="cap-desc">Visual graph of all records connected to any entity. Click any node to navigate directly to it.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Analysis charts</div>
+              <div class="cap-desc">Distribution and summary charts appear automatically on relation tables. Toggle per view, preference saved per user.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">Bulk actions, column config, dark mode</div>
+              <div class="cap-desc">Select rows for bulk edit, delete, or CSV export. Show/hide/reorder columns. Light and dark mode with keyboard shortcuts.</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo CTA -->
+<section class="section">
+  <div class="container">
+    <div class="demo-wrap">
+      <span class="section-tag">Five-minute demo</span>
+      <h2>See a working app before writing a line of code</h2>
+      <p class="sub">
+        Clone the repo and run one script. A full task-manager app — with authentication,
+        RBAC, and a React UI — starts in your browser in under five minutes.
+      </p>
+      <div class="demo-code">
+        <pre><span class="c-prompt">$</span> <span class="c-cmd">git clone https://github.com/cesarlugos1s/veloiq.git</span>
+<span class="c-prompt">$</span> <span class="c-cmd">cd veloiq</span>
+<span class="c-prompt">$</span> <span class="c-cmd">bash samples/task-manager/quickstart.sh</span></pre>
+      </div>
+      <p class="demo-note">Works on Linux, macOS, and Windows (PowerShell or WSL). No PostgreSQL needed — uses bundled SQLite.</p>
+      <br>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+        <a href="https://github.com/cesarlugos1s/veloiq" class="btn-primary" target="_blank">View on GitHub →</a>
+        <a href="https://pypi.org/project/veloiq-framework/" class="btn-secondary" target="_blank">Install from PyPI</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing teaser -->
+<section style="padding:0 0 96px">
+  <div class="container" style="text-align:center">
+    <span class="section-tag">Open-Core</span>
+    <h2 style="font-size:clamp(1.75rem,3vw,2.5rem);font-weight:700;letter-spacing:-0.02em;margin-bottom:14px">Free forever. Pro when you need it.</h2>
+    <p style="color:var(--text-muted);max-width:500px;margin:0 auto 36px">
+      The full framework core is MIT licensed. Build and ship production-ready applications at no cost.
+      Pro adds AI, WYSIWYG editing, SSO, and enterprise governance.
+    </p>
+    <a href="pricing.html" class="btn-primary">See Pricing →</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">Velo<span class="accent">IQ</span>™</span>
+      <div class="footer-links">
+        <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+        <a href="https://pypi.org/project/veloiq-framework/" target="_blank">PyPI</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/quickstart.md" target="_blank">Quick Start</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/tutorial-task-manager.md" target="_blank">Tutorial</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <span class="footer-copy">© 2026 JuiceMantics · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

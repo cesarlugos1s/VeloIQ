@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — VeloIQ™</title>
+  <meta name="description" content="VeloIQ™ is free and MIT licensed for the full framework core. Pro and Enterprise add AI, WYSIWYG editing, SSO, and enterprise governance.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
+    <div class="nav-links">
+      <a href="index.html#features">Features</a>
+      <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+      <a href="contact.html" class="nav-cta">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Pricing Hero -->
+<div class="pricing-hero">
+  <div class="container">
+    <span class="section-tag">Open-Core Model</span>
+    <h1>Free forever.<br>Pro when you need it.</h1>
+    <p>
+      The full framework core is MIT licensed — not crippled, not time-limited.
+      Build and ship production-ready applications at no cost. Pro is for teams
+      that need AI, governance, and strategic tooling.
+    </p>
+  </div>
+</div>
+
+<!-- Pricing cards -->
+<div style="padding:0 0 64px">
+  <div class="container">
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="plan-tier">Free</div>
+        <div class="plan-price">$0 <span>/ forever</span></div>
+        <div class="plan-desc">
+          The full framework core under the MIT License. Use freely in commercial
+          and open-source projects with no restrictions.
+        </div>
+        <ul class="plan-features">
+          <li><span class="chk">✓</span> <code style="font-size:0.85rem;color:#a5b4fc">create_veloiq_app()</code> — full FastAPI factory</li>
+          <li><span class="chk">✓</span> Automatic CRUD router generation</li>
+          <li><span class="chk">✓</span> Module auto-loader</li>
+          <li><span class="chk">✓</span> SQLAdmin back-office at <code style="font-size:0.85rem;color:#a5b4fc">/admin/</code></li>
+          <li><span class="chk">✓</span> Alembic migrations via <code style="font-size:0.85rem;color:#a5b4fc">veloiq db upgrade</code></li>
+          <li><span class="chk">✓</span> JWT authentication + RBAC middleware</li>
+          <li><span class="chk">✓</span> Three-layer RBAC (role → model → field)</li>
+          <li><span class="chk">✓</span> ReBAC row-level filtering</li>
+          <li><span class="chk">✓</span> User / Role / Tenant management + React UI</li>
+          <li><span class="chk">✓</span> <code style="font-size:0.85rem;color:#a5b4fc">@veloiq/ui</code> — full CRUD rendering engine</li>
+          <li><span class="chk">✓</span> Side panels, Miller columns, relations explorer</li>
+          <li><span class="chk">✓</span> Analysis charts, bulk actions, column config</li>
+          <li><span class="chk">✓</span> Dark mode, keyboard shortcuts, responsive</li>
+          <li><span class="chk">✓</span> PostgreSQL, MySQL, SQLite support</li>
+          <li><span class="chk">✓</span> <code style="font-size:0.85rem;color:#a5b4fc">veloiq</code> CLI — new, generate, run, db</li>
+        </ul>
+        <a href="https://pypi.org/project/veloiq-framework/" class="plan-cta-btn secondary" target="_blank">
+          Install Free →
+        </a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Pro / Enterprise</div>
+        <div class="plan-tier">Pro / Enterprise</div>
+        <div class="plan-price">Custom <span>/ contact us</span></div>
+        <div class="plan-desc">
+          For CTOs and CFOs who need to move faster, govern more safely, and deploy AI
+          without the risks of unconstrained generative tools. Pro modules install on
+          top of the free core.
+        </div>
+        <ul class="plan-features">
+          <li><span class="chk">✓</span> Everything in Free</li>
+          <li><span class="chk">✓</span> Drag-and-drop WYSIWYG page builder</li>
+          <li><span class="chk">✓</span> Business Orchestration — User Journeys</li>
+          <li><span class="chk">✓</span> Natural language NLP queries (→ SQL)</li>
+          <li><span class="chk">✓</span> Safe AI deterministic agent engine</li>
+          <li><span class="chk">✓</span> Advanced ReBAC — graph-based permission models</li>
+          <li><span class="chk">✓</span> SSO — SAML 2.0, Okta, Azure Active Directory</li>
+          <li><span class="chk">✓</span> Hardened multi-tenancy (schema-level isolation)</li>
+          <li><span class="chk">✓</span> Compliance audit logs (SOC 2 / ISO 27001)</li>
+          <li><span class="chk">✓</span> Benefit Realization Management</li>
+          <li><span class="chk">✓</span> Goal-Seeking Scenarios with AI forecasting</li>
+          <li><span class="chk">✓</span> Dedicated support + SLA</li>
+        </ul>
+        <a href="contact.html" class="plan-cta-btn primary">
+          Contact Sales →
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Pro detail breakdown -->
+    <div class="pro-detail">
+      <h2>What's in Pro / Enterprise</h2>
+      <p class="sub" style="color:var(--text-muted);font-size:0.95rem;max-width:600px">
+        The boundary between free and Pro is defined by business capability, not UI sophistication.
+        Standard CRUD, hierarchy views, RBAC, and the full React component library are free
+        because every serious application needs them.
+      </p>
+      <div class="pro-categories">
+        <div class="pro-cat">
+          <h4>Superpowers</h4>
+          <ul>
+            <li><span class="chk">✓</span> Drag-and-drop WYSIWYG page builder — non-technical stakeholders compose pages at runtime without touching code</li>
+            <li><span class="chk">✓</span> Business Orchestration Engine — guide users through multi-step processes with conditional branching and full execution traceability</li>
+            <li><span class="chk">✓</span> Benefit Realization Management — track planned vs. actual business outcomes for every initiative</li>
+          </ul>
+        </div>
+        <div class="pro-cat">
+          <h4>Intelligence (IQ Suite)</h4>
+          <ul>
+            <li><span class="chk">✓</span> Natural Language NLP Module — users query any entity in plain language; translates intent to SQL and renders results as tables or charts</li>
+            <li><span class="chk">✓</span> Safe AI Agent Engine — deterministic, observable, reversible automation; AI benefits without hallucination risk</li>
+            <li><span class="chk">✓</span> Goal-Seeking Scenarios — propose, evaluate, and select strategies; AI forecasts outcomes and generates action plans</li>
+            <li><span class="chk">✓</span> Configurable LLM backends — OpenAI, Watsonx.ai, Ollama, Mistral</li>
+          </ul>
+        </div>
+        <div class="pro-cat">
+          <h4>Enterprise Governance</h4>
+          <ul>
+            <li><span class="chk">✓</span> Advanced ReBAC — graph-based access control for complex orgs ("user may access a record only if they are a member of the project that owns it")</li>
+            <li><span class="chk">✓</span> SSO &amp; IAM — SAML 2.0, Okta, Azure AD; users log in through your existing identity provider</li>
+            <li><span class="chk">✓</span> Hardened Multi-Tenancy — schema-level isolation per tenant; eliminates cross-tenant data leakage risk (HIPAA, finance, government)</li>
+            <li><span class="chk">✓</span> Compliance Audit Logs — automated Who/What/When tracking for every write; SOC 2 and ISO 27001 ready</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section style="padding:64px 0 96px;text-align:center">
+  <div class="container">
+    <h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:700;letter-spacing:-0.02em;margin-bottom:14px">Ready to start building?</h2>
+    <p style="color:var(--text-muted);max-width:460px;margin:0 auto 36px">
+      Install the free tier in seconds and have a working app running in under five minutes.
+    </p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a href="https://pypi.org/project/veloiq-framework/" class="btn-primary" target="_blank">Install Free →</a>
+      <a href="contact.html" class="btn-secondary">Talk to Sales</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">Velo<span class="accent">IQ</span>™</span>
+      <div class="footer-links">
+        <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+        <a href="https://pypi.org/project/veloiq-framework/" target="_blank">PyPI</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/quickstart.md" target="_blank">Quick Start</a>
+        <a href="index.html">Home</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <span class="footer-copy">© 2026 JuiceMantics · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
