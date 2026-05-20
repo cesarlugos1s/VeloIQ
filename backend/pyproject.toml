@@ -42,9 +42,9 @@ dependencies = [
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
 [project.urls]
-Homepage = "https://github.com/cesarlugos1s/VeloIQ"
+Homepage = "https://veloiq.dev"
 Repository = "https://github.com/cesarlugos1s/VeloIQ"
-Documentation = "https://github.com/cesarlugos1s/VeloIQ#readme"
+Documentation = "https://github.com/cesarlugos1s/VeloIQ/tree/main/docs"
 "Bug Tracker" = "https://github.com/cesarlugos1s/VeloIQ/issues"
 
 # ── Optional extras ───────────────────────────────────────────────────────────
