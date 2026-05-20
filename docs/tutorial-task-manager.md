@@ -192,8 +192,8 @@ in a single interaction:
 > `from __future__ import annotations` to any models.py — it breaks SQLModel
 > relationship resolution.
 >
-> After writing the models run `veloiq generate` then `veloiq db init` (if
-> alembic.ini is missing) then `veloiq db upgrade`.
+> After writing the models run `veloiq generate`. The backend creates all
+> tables automatically when you start it with `veloiq run`.
 
 When the AI is done, skip ahead to **Step 7**.
 
@@ -328,8 +328,11 @@ veloiq run               # http://localhost:8000
 The framework creates all database tables automatically on first start — no
 migration step needed for a fresh project.
 
-> **After changing your models:** run `veloiq db upgrade` to apply schema changes
-> via Alembic without restarting the app.
+> **After changing your models:** generate a migration then apply it:
+> ```bash
+> veloiq db migrate -m "describe your change"
+> veloiq db upgrade
+> ```
 
 Open `http://localhost:8000/docs` — you have a fully documented REST API for all
 three entities.  Open `http://localhost:8000/admin/` for the SQLAdmin back-office.

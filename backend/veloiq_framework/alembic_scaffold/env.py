@@ -1,4 +1,6 @@
+import importlib
 import os
+import sys
 from logging.config import fileConfig
 from pathlib import Path
 
@@ -16,12 +18,22 @@ except ImportError:
 # Import framework auth models so their tables are always included
 import veloiq_framework.auth.models  # noqa: F401
 
-# Import your app's models here so autogenerate can detect changes.
-# Uncomment and extend as you add modules:
-#
-# from app.modules.team.models import TeamMember       # noqa: F401
-# from app.modules.projects.models import Project      # noqa: F401
-# from app.modules.tasks.models import Task            # noqa: F401
+# Auto-discover and import all app module models so autogenerate can detect them.
+_modules_dir = Path(__file__).parent.parent / "app" / "modules"
+if _modules_dir.exists():
+    _backend_dir = str(_modules_dir.parent.parent)
+    if _backend_dir not in sys.path:
+        sys.path.insert(0, _backend_dir)
+    for _mod_dir in sorted(_modules_dir.iterdir()):
+        if (
+            _mod_dir.is_dir()
+            and not _mod_dir.name.startswith("__")
+            and (_mod_dir / "models.py").exists()
+        ):
+            try:
+                importlib.import_module(f"app.modules.{_mod_dir.name}.models")
+            except Exception as _e:
+                print(f"  ⚠️  alembic env: could not import app.modules.{_mod_dir.name}.models: {_e}")
 
 config = context.config
 
