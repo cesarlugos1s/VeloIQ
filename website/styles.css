@@ -60,24 +60,24 @@ nav {
 .nav-cta:hover { background: var(--accent-hover) !important; }
 
 /* ── Hero ── */
-.hero { padding: 112px 0 72px; text-align: center; }
+.hero { padding: 16px 0 16px; text-align: center; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--accent-dim); border: 1px solid var(--accent-border);
   color: #a5b4fc; padding: 5px 14px; border-radius: 999px;
   font-size: 0.78rem; font-weight: 500; letter-spacing: 0.02em;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .hero h1 {
   font-size: clamp(2.4rem, 5vw, 3.75rem);
   font-weight: 700; line-height: 1.1; letter-spacing: -0.03em;
-  max-width: 820px; margin: 0 auto 24px;
+  max-width: 820px; margin: 0 auto 16px;
 }
 .hero h1 .highlight { color: var(--accent); }
 .hero .sub {
-  font-size: 1.15rem; color: var(--text-muted);
-  max-width: 580px; margin: 0 auto 44px; line-height: 1.7;
+  font-size: 1rem; color: var(--text-muted);
+  max-width: 580px; margin: 0 auto 24px; line-height: 1.6;
 }
 .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .btn-primary {
@@ -100,7 +100,7 @@ nav {
 
 /* Hero code block */
 .hero-code {
-  margin: 52px auto 0; max-width: 540px;
+  margin: 16px auto 0; max-width: 540px;
   background: var(--bg-code); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden;
   text-align: left;
