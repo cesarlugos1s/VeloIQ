@@ -37,6 +37,9 @@ veloiq add-module <name> --with-custom-api --with-admin
 veloiq generate            # regenerates api.py + frontend TypeScript schemas
 veloiq db upgrade          # applies Alembic migration
 
+# If alembic.ini is missing (project built without `veloiq new`)
+veloiq db init             # copies Alembic scaffold into backend/; run once
+
 # Run the app
 veloiq run                 # backend at http://localhost:{{backend_port}}
 cd frontend && npm run dev  # frontend at http://localhost:5173
@@ -60,6 +63,52 @@ cd frontend && npm run dev  # frontend at http://localhost:5173
 - `eid` field in API responses equals `id` — used by the frontend for Refine compatibility
 - `AUTH_SECRET` env var is required for JWT signing; set `VELOIQ_AUTH_DISABLED=1` to skip auth in development
 - `DATABASE_URL` env var controls the database (defaults to SQLite)
+
+## Relationships
+
+Always use `jm_relationship` from `veloiq_framework` — **never** `relationship()` from SQLAlchemy or `Relationship` from SQLModel directly.
+
+```python
+from typing import TYPE_CHECKING, List, Optional
+from sqlmodel import Field
+from veloiq_framework import TimestampedModel, jm_relationship
+
+if TYPE_CHECKING:                                       # avoids circular imports
+    from app.modules.other.models import OtherModel
+    from app.modules.items.models import Item
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"
+
+    # FK column — always a plain Optional[int] field
+    other_id: Optional[int] = Field(default=None, foreign_key="other.id")
+
+    # Many-to-one (nullable)
+    other: Optional["OtherModel"] = jm_relationship(back_populates="my_models")
+
+    # One-to-many
+    items: List["Item"] = jm_relationship(back_populates="my_model")
+
+    # Self-referential
+    parent_id: Optional[int] = Field(default=None, foreign_key="my_model.id")
+    children: List["MyModel"] = jm_relationship(
+        back_populates="parent",
+        sa_relationship_kwargs={"foreign_keys": "[MyModel.parent_id]"},
+    )
+    parent: Optional["MyModel"] = jm_relationship(
+        back_populates="children",
+        sa_relationship_kwargs={
+            "foreign_keys": "[MyModel.parent_id]",
+            "remote_side": "[MyModel.id]",
+        },
+    )
+```
+
+Rules:
+- `jm_relationship` accepts `back_populates`, `link_model`, and `sa_relationship_kwargs` — nothing else
+- The FK column (`other_id`) and the relationship attribute (`other`) are **separate** fields
+- Cross-module model references must be inside `if TYPE_CHECKING` to avoid import cycles
+- Self-referential and multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
 
 ## Access control
 

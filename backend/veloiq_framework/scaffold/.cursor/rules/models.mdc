@@ -27,3 +27,46 @@ class MyModel(TimestampedModel, table=True):
 - After any change here, run `veloiq generate` then `veloiq db upgrade`
 - Do not add endpoints here — use `custom_api.py` for custom logic
 - Field types must be valid SQLModel/SQLAlchemy types; use `Optional[T]` for nullable columns
+
+## Relationships
+
+Use `jm_relationship` from `veloiq_framework` — **never** `relationship()` from SQLAlchemy or `Relationship` from SQLModel.
+
+```python
+from typing import TYPE_CHECKING, List, Optional
+from sqlmodel import Field
+from veloiq_framework import TimestampedModel, jm_relationship
+
+if TYPE_CHECKING:
+    from app.modules.other.models import OtherModel
+    from app.modules.items.models import Item
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"
+
+    # FK column (separate from the relationship)
+    other_id: Optional[int] = Field(default=None, foreign_key="other.id")
+
+    # Many-to-one
+    other: Optional["OtherModel"] = jm_relationship(back_populates="my_models")
+
+    # One-to-many
+    items: List["Item"] = jm_relationship(back_populates="my_model")
+
+    # Self-referential
+    parent_id: Optional[int] = Field(default=None, foreign_key="my_model.id")
+    children: List["MyModel"] = jm_relationship(
+        back_populates="parent",
+        sa_relationship_kwargs={"foreign_keys": "[MyModel.parent_id]"},
+    )
+    parent: Optional["MyModel"] = jm_relationship(
+        back_populates="children",
+        sa_relationship_kwargs={
+            "foreign_keys": "[MyModel.parent_id]",
+            "remote_side": "[MyModel.id]",
+        },
+    )
+```
+
+- Always guard cross-module imports with `if TYPE_CHECKING`
+- Self-referential relationships require `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides

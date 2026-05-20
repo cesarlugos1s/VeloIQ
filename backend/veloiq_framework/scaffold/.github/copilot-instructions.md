@@ -19,6 +19,45 @@ This is a VeloIQ™ framework project. Follow these rules exactly.
 - Use snake_case table names matching the module name
 - Never use the `safem_` table prefix — it is reserved for built-in auth tables
 
+## Relationships
+
+Use `jm_relationship` from `veloiq_framework`. Never use `relationship()` from SQLAlchemy or `Relationship` from SQLModel.
+
+```python
+from typing import TYPE_CHECKING, List, Optional
+from sqlmodel import Field
+from veloiq_framework import TimestampedModel, jm_relationship
+
+if TYPE_CHECKING:
+    from app.modules.other.models import OtherModel
+    from app.modules.items.models import Item
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"
+
+    other_id: Optional[int] = Field(default=None, foreign_key="other.id")
+    other: Optional["OtherModel"] = jm_relationship(back_populates="my_models")
+
+    items: List["Item"] = jm_relationship(back_populates="my_model")
+
+    parent_id: Optional[int] = Field(default=None, foreign_key="my_model.id")
+    children: List["MyModel"] = jm_relationship(
+        back_populates="parent",
+        sa_relationship_kwargs={"foreign_keys": "[MyModel.parent_id]"},
+    )
+    parent: Optional["MyModel"] = jm_relationship(
+        back_populates="children",
+        sa_relationship_kwargs={
+            "foreign_keys": "[MyModel.parent_id]",
+            "remote_side": "[MyModel.id]",
+        },
+    )
+```
+
+- FK column (`other_id`) and relationship attribute (`other`) are always separate fields
+- Cross-module imports must be inside `if TYPE_CHECKING` to avoid circular imports
+- Self-referential or multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
+
 ## Custom endpoints
 
 Add them in `custom_api.py`, not in `api.py`. Import the auto-generated router:

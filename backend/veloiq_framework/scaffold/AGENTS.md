@@ -29,6 +29,7 @@ frontend/
 veloiq add-module <name>                              # scaffold a new module
 veloiq add-module <name> --with-custom-api --with-admin
 veloiq generate       # regenerate api.py + frontend schemas after model changes
+veloiq db init        # set up Alembic (run once if alembic.ini is missing)
 veloiq db upgrade     # apply Alembic migration after model changes
 veloiq run            # start backend at http://localhost:{{backend_port}}
 ```
@@ -48,3 +49,42 @@ veloiq run            # start backend at http://localhost:{{backend_port}}
 - Table names are snake_case matching the module name; never use the `safem_` prefix (reserved for auth tables)
 - `eid` in API responses equals `id` — required by the frontend
 - Required env vars: `AUTH_SECRET` (JWT signing), `DATABASE_URL`; set `VELOIQ_AUTH_DISABLED=1` to skip auth in dev
+
+## Relationships
+
+Always use `jm_relationship` from `veloiq_framework`. Never use `relationship()` from SQLAlchemy or `Relationship` from SQLModel directly.
+
+```python
+from typing import TYPE_CHECKING, List, Optional
+from sqlmodel import Field
+from veloiq_framework import TimestampedModel, jm_relationship
+
+if TYPE_CHECKING:
+    from app.modules.other.models import OtherModel
+    from app.modules.items.models import Item
+
+class MyModel(TimestampedModel, table=True):
+    __tablename__ = "my_model"
+
+    other_id: Optional[int] = Field(default=None, foreign_key="other.id")
+    other: Optional["OtherModel"] = jm_relationship(back_populates="my_models")
+
+    items: List["Item"] = jm_relationship(back_populates="my_model")
+
+    parent_id: Optional[int] = Field(default=None, foreign_key="my_model.id")
+    children: List["MyModel"] = jm_relationship(
+        back_populates="parent",
+        sa_relationship_kwargs={"foreign_keys": "[MyModel.parent_id]"},
+    )
+    parent: Optional["MyModel"] = jm_relationship(
+        back_populates="children",
+        sa_relationship_kwargs={
+            "foreign_keys": "[MyModel.parent_id]",
+            "remote_side": "[MyModel.id]",
+        },
+    )
+```
+
+- FK column (`other_id`) and relationship attribute (`other`) are always separate fields
+- Cross-module imports must be inside `if TYPE_CHECKING` to avoid circular imports
+- Self-referential or multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides

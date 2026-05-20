@@ -186,7 +186,12 @@ in a single interaction:
 >   FK `assignee_id → team_member.id`, self-referential FK
 >   `parent_task_id → task.id` with `subtasks` and `parent_task` relationships.
 >
-> After writing the models run `veloiq generate` then `veloiq db upgrade`.
+> Use `jm_relationship` from `veloiq_framework` for all relationships (never
+> `relationship()` from SQLAlchemy). Guard cross-module imports with
+> `if TYPE_CHECKING`.
+>
+> After writing the models run `veloiq generate` then `veloiq db init` (if
+> alembic.ini is missing) then `veloiq db upgrade`.
 
 When the AI is done, skip ahead to **Step 7**.
 
