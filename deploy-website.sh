@@ -14,6 +14,9 @@ trap "git checkout main" EXIT
 # Copy updated files
 cp /tmp/veloiq-website-deploy/* .
 
+# Sync with remote before making changes
+git pull origin gh-pages --no-rebase --quiet
+
 # Stage files
 git add index.html pricing.html contact.html styles.css
 
