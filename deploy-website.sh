@@ -17,8 +17,9 @@ cp /tmp/veloiq-website-deploy/* .
 # Sync with remote before making changes
 git pull origin gh-pages --no-rebase --quiet
 
-# Stage files
-git add index.html pricing.html contact.html styles.css
+# Stage all website files including images
+git add index.html pricing.html contact.html styles.css CNAME .nojekyll
+git add *.png *.jpg *.jpeg *.gif *.webp *.svg 2>/dev/null || true
 
 # Commit only if there are changes
 if git diff --cached --quiet; then
