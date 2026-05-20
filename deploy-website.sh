@@ -11,14 +11,20 @@ cp -r website /tmp/veloiq-website-deploy
 git checkout gh-pages
 trap "git checkout main" EXIT
 
-# Copy updated files
-cp /tmp/veloiq-website-deploy/* .
-
 # Sync with remote before making changes
 git pull origin gh-pages --no-rebase --quiet
 
-# Stage all website files including images
-git add index.html pricing.html contact.html styles.css CNAME .nojekyll
+# Copy only website files (never the whole working tree)
+cp /tmp/veloiq-website-deploy/index.html .
+cp /tmp/veloiq-website-deploy/pricing.html .
+cp /tmp/veloiq-website-deploy/contact.html .
+cp /tmp/veloiq-website-deploy/styles.css .
+find /tmp/veloiq-website-deploy -maxdepth 1 \
+  \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) \
+  -exec cp {} . \;
+
+# Stage only website files
+git add index.html pricing.html contact.html styles.css
 git add *.png *.jpg *.jpeg *.gif *.webp *.svg 2>/dev/null || true
 
 # Commit only if there are changes
