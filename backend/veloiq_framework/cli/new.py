@@ -54,9 +54,10 @@ def new(app_name: str, title: str | None, port: int, output_dir: str | None):
     ui_pkg_path = _find_ui_package()
     if ui_pkg_path is None:
         click.echo(
-            "  ⚠️  Could not locate @veloiq/ui.\n"
-            "     After scaffolding, edit frontend/package.json and set:\n"
-            "       \"@veloiq/ui\": \"file:/path/to/VeloIQ/packages/ui\"\n"
+            "  ⚠️  Could not locate @veloiq/ui (normal when installed from PyPI).\n"
+            "     After scaffolding, set the correct path in TWO files:\n"
+            "       frontend/package.json  →  \"@veloiq/ui\": \"file:/path/to/VeloIQ/packages/ui\"\n"
+            "       frontend/vite.config.ts →  \"@veloiq/ui\": \"/path/to/VeloIQ/packages/ui/src/index.ts\"\n"
             "     Then run: cd frontend && npm install",
         )
         ui_pkg_path = Path("/path/to/VeloIQ/packages/ui")

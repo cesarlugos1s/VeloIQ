@@ -260,7 +260,20 @@ def _build_ts_schema(module_name: str, models: list) -> str:
                 else:
                     fields.append(field_str)
             fields.extend(timestamp_fields)
-        except Exception:
+            if not fields:
+                print(
+                    f"  ⚠️  {model.__name__}: no fields found — schema will be empty.\n"
+                    f"     Check models.py: use jm_relationship (not Relationship/relationship),\n"
+                    f"     do not add 'from __future__ import annotations'."
+                )
+        except Exception as exc:
+            print(
+                f"  ❌ {model.__name__}: field introspection failed — {exc}\n"
+                f"     Schema will be empty. Check models.py:\n"
+                f"     - Use jm_relationship from veloiq_framework (not Relationship/relationship)\n"
+                f"     - Do not add 'from __future__ import annotations'\n"
+                f"     - Guard cross-module imports with 'if TYPE_CHECKING'"
+            )
             pk_field = "id"
             fields = []
 

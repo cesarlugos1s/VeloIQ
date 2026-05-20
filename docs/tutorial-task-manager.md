@@ -303,14 +303,18 @@ columns** tree browser instead of a flat table.
 ## Step 7 — Generate API and frontend schemas (1 min)
 
 ```bash
-cd backend
-python api_schema_gen.py
+veloiq generate
 ```
 
 This writes two files per module:
 
 - `backend/app/modules/{module}/api.py` — standard CRUD endpoints
 - `frontend/src/pages/{module}/{module}Schema.gen.ts` — TypeScript field definitions
+
+> **If the generator warns about empty fields or failed introspection**, your models
+> have an issue. Common causes: using `Relationship` from sqlmodel instead of
+> `jm_relationship`, or having `from __future__ import annotations` at the top of
+> `models.py`. Fix the models and re-run `veloiq generate`.
 
 ---
 
