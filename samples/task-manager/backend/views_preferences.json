@@ -3,6 +3,125 @@
     "colorMode": "dark"
   },
   "user:all": {
+    "dashboard:project": {
+      "current_view_name": "default view",
+      "current_view_names": [
+        "default view"
+      ],
+      "views": {
+        "default view": {
+          "Analyze": {
+            "categoryField1": "name",
+            "categoryField2": "description",
+            "chartType": "bar",
+            "custom_view_name": "default view",
+            "rankingFieldKey": null,
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "__count__"
+            ],
+            "summaryFn": "sum"
+          }
+        }
+      }
+    },
+    "dashboard:task": {
+      "current_view_name": "default view",
+      "current_view_names": [
+        "default view"
+      ],
+      "views": {
+        "default view": {
+          "Analyze": {
+            "categoryField1": "title",
+            "categoryField2": "description",
+            "chartType": "combo",
+            "custom_view_name": "default view",
+            "rankingFieldKey": "planned_work_hours",
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "planned_work_hours",
+              "actual_work_hours"
+            ],
+            "summaryFn": "sum"
+          }
+        }
+      }
+    },
+    "dashboard:team_member": {
+      "current_view_name": "default view",
+      "current_view_names": [
+        "default view"
+      ],
+      "views": {
+        "default view": {
+          "EditLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "default view",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": true,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "name",
+                "email",
+                "role",
+                "avatar_url",
+                "created_at",
+                "updated_at"
+              ],
+              "selectedKeys": [
+                "name",
+                "email",
+                "role",
+                "avatar_url",
+                "created_at",
+                "updated_at"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          },
+          "ShowLayout": {
+            "analyzeOpen": true,
+            "columnFilters": {},
+            "columnSort": null,
+            "custom_view_name": "default view",
+            "filters": [],
+            "filtersCollapsed": true,
+            "isAnalyzeFirst": false,
+            "isAnalyzeVertical": true,
+            "listVisible": true,
+            "rowsPerPage": 10,
+            "tableColumns": {
+              "order": [
+                "name",
+                "email",
+                "role",
+                "avatar_url",
+                "created_at",
+                "updated_at"
+              ],
+              "selectedKeys": [
+                "name",
+                "email",
+                "role",
+                "avatar_url",
+                "created_at",
+                "updated_at"
+              ]
+            },
+            "totalsSummaryFunctions": {}
+          }
+        }
+      }
+    },
     "task": {
       "current_view_name": "Progress Tracking",
       "current_view_names": [

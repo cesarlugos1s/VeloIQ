@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "user:all": {
+    "__dashboard__": {
+      "tabs": [
+        {
+          "id": "c24141ef-6364-4bbb-a54a-27143a4915a5",
+          "module": "projects",
+          "name": "Projects",
+          "cells": [
+            {
+              "id": "f540ba83-bed2-45e4-8464-a4416dc1ea15",
+              "model": "project",
+              "source_type": "model",
+              "row": 0,
+              "col": 0,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            },
+            {
+              "id": "a025cdb4-25b2-46ac-b7d2-05c1b5fc8550",
+              "model": "task",
+              "source_type": "model",
+              "row": 0,
+              "col": 1,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            }
+          ]
+        },
+        {
+          "id": "d384f159-7b66-476b-89f9-747dffdd9d85",
+          "module": "team",
+          "name": "Team",
+          "cells": [
+            {
+              "id": "b72209fc-3016-4f4d-a732-6bc681a42907",
+              "model": "team_member",
+              "source_type": "model",
+              "row": 0,
+              "col": 0,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            }
+          ]
+        },
+        {
+          "id": "d03e674e-2bf3-456e-a0c6-ba8928477899",
+          "module": "access_control",
+          "name": "Access Control",
+          "cells": [
+            {
+              "id": "1f282652-bdc5-47f2-a41f-fe7a3b9ca87a",
+              "model": "user",
+              "source_type": "model",
+              "row": 0,
+              "col": 0,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            },
+            {
+              "id": "407e6535-8e55-4e32-947a-e196bb575715",
+              "model": "role",
+              "source_type": "model",
+              "row": 0,
+              "col": 1,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -407,6 +407,130 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         """Return view layout configuration rows for a model. Empty list → schema-driven defaults."""
         return []
 
+    # --- Dashboard configuration (config/views_configuration.json) ---
+    _VIEWS_CONFIG_FILE = _Path("config") / "views_configuration.json"
+    _DASHBOARD_KEY = "__dashboard__"
+
+    def _load_views_config() -> dict:
+        if not _VIEWS_CONFIG_FILE.exists():
+            return {"schema_version": "1.0", "user:all": {}}
+        try:
+            return _json.loads(_VIEWS_CONFIG_FILE.read_text(encoding="utf-8")) or {}
+        except Exception:
+            return {"schema_version": "1.0", "user:all": {}}
+
+    def _save_views_config(data: dict) -> None:
+        _VIEWS_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = _VIEWS_CONFIG_FILE.with_suffix(".json.tmp")
+        tmp.write_text(_json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        tmp.replace(_VIEWS_CONFIG_FILE)
+
+    @app.get("/dashboard/config")
+    async def get_dashboard_config():
+        """Return the __dashboard__ section of views_configuration.json."""
+        data = _load_views_config()
+        dashboard = data.get("user:all", {}).get(_DASHBOARD_KEY)
+        if dashboard is None:
+            return {"enabled": False}
+        return {"enabled": True, "dashboard": dashboard}
+
+    @app.put("/dashboard/config")
+    async def save_dashboard_config(request: Request):
+        """Persist the __dashboard__ section back to views_configuration.json."""
+        from fastapi import HTTPException as _HTTPException
+        body = await request.json()
+        dashboard = body.get("dashboard")
+        if not isinstance(dashboard, dict):
+            raise _HTTPException(status_code=400, detail="Invalid dashboard config")
+        data = _load_views_config()
+        data.setdefault("user:all", {})[_DASHBOARD_KEY] = dashboard
+        _save_views_config(data)
+        return {"status": "ok"}
+
+    @app.get("/dashboard/recent-activity")
+    async def get_dashboard_recent_activity(days: int | None = None):
+        """Return records modified within the last N days, grouped by model."""
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy.orm import Session as _SASession
+        from sqlalchemy import select as _sa_select, or_ as _sa_or, func as _sa_func, inspect as _sa_inspect
+
+        _SKIP_PREFIXES = ("veloiq_", "alembic_")
+
+        effective_days = days if days is not None else cfg.dashboard_recent_activity_days
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=effective_days)
+
+        def _to_str(v: object) -> str:
+            if isinstance(v, datetime):
+                return v.isoformat()
+            return str(v) if v is not None else ""
+
+        def _display_label(rec: dict) -> str:
+            """Pick the best human-readable field from a raw record dict."""
+            for key in ("name", "title", "label", "email", "username", "description", "subject"):
+                if key in rec and rec[key]:
+                    return str(rec[key])
+            # Fallback: first non-id non-timestamp non-FK string value
+            for k, v in rec.items():
+                if k in ("id", "eid", "created_at", "updated_at") or k.endswith("_id"):
+                    continue
+                if isinstance(v, str) and v:
+                    return v
+            return str(rec.get("id", ""))
+
+        def _table_display_name(table_name: str) -> str:
+            return table_name.replace("_", " ").title()
+
+        groups = []
+
+        with _SASession(engine) as session:
+            for table_name, table in SQLModel.metadata.tables.items():
+                if any(table_name.startswith(p) for p in _SKIP_PREFIXES):
+                    continue
+                if "created_at" not in table.c or "updated_at" not in table.c:
+                    continue
+
+                try:
+                    stmt = (
+                        _sa_select(table)
+                        .where(
+                            _sa_or(
+                                table.c.updated_at >= cutoff,
+                                table.c.created_at >= cutoff,
+                            )
+                        )
+                        .order_by(
+                            _sa_func.coalesce(table.c.updated_at, table.c.created_at).desc()
+                        )
+                        .limit(20)
+                    )
+                    rows = session.execute(stmt).mappings().all()
+                except Exception:
+                    continue
+
+                if not rows:
+                    continue
+
+                records = []
+                for row in rows:
+                    rec = {k: _to_str(v) for k, v in dict(row).items()}
+                    rec["_label"] = _display_label({k: v for k, v in dict(row).items()})
+                    records.append(rec)
+
+                groups.append({
+                    "model_name": _table_display_name(table_name),
+                    "resource": table_name,
+                    "records": records,
+                })
+
+        # Sort groups by most-recent record first
+        def _group_sort_key(g: dict) -> str:
+            recs = g["records"]
+            return recs[0].get("updated_at") or recs[0].get("created_at") or "" if recs else ""
+
+        groups.sort(key=_group_sort_key, reverse=True)
+
+        return {"groups": groups, "days": effective_days}
+
     @app.post("/views/model_graph")
     async def model_graph(request: Request):
         """Return an SVG knowledge-graph diagram for a model and its relations."""

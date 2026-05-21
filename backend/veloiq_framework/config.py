@@ -107,6 +107,11 @@ class VeloIQConfig:
         ).DEFAULT_ROLES)
     )
 
+    # ── Dashboard ─────────────────────────────────────────────────────────────
+    dashboard_recent_activity_days: int = field(
+        default_factory=lambda: int(os.environ.get("VELOIQ_DASHBOARD_RECENT_DAYS", "30"))
+    )
+
     # ── ReBAC (row-level filtering) ───────────────────────────────────────────
     rebac_enabled: bool = field(
         default_factory=lambda: os.environ.get("VELOIQ_REBAC_ENABLED", "").lower()

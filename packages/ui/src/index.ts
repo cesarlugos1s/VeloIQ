@@ -55,6 +55,11 @@ export { ResourceContext } from "./contexts/ResourceContext";
 // ── Pages ──────────────────────────────────────────────────────────────────
 export { LoginPage } from "./pages/auth/LoginPage";
 export type { LoginPageProps } from "./pages/auth/LoginPage";
+export { DashboardPage } from "./pages/dashboard/DashboardPage";
+export { ViewsGrid } from "./pages/dashboard/ViewsGrid";
+export { RecentActivityPanel } from "./pages/dashboard/RecentActivityPanel";
+export type { DashboardConfig, DashboardTab, DashboardCell } from "./pages/dashboard/hooks/useDashboardConfig";
+export type { RecentActivityData, RecentActivityGroup, RecentRecord } from "./pages/dashboard/hooks/useRecentActivity";
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 export { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";

@@ -866,7 +866,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_38, value) {
+                validator(_39, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -2606,19 +2606,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _38 }) => _38).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_38) => {
-        if (_38.collapsible) {
+      const ut = R.panels.map(({ id: _39 }) => _39).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_39) => {
+        if (_39.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _38.collapsedSize,
-              ce[_38.panelId]
+              _39.collapsedSize,
+              ce[_39.panelId]
             ), dt = I(
-              _38.collapsedSize,
-              ge[_38.panelId]
+              _39.collapsedSize,
+              ge[_39.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_38.panelId] = ge[_38.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_39.panelId] = ge[_39.panelId]);
           }
         }
       });
@@ -3997,7 +3997,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_38, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_39, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -7665,7 +7665,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _23(section) }),
-      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_38, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_39, colIdx) => {
+      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_39, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_40, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -8285,7 +8285,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                       },
                       children: [
                         /* @__PURE__ */ jsxRuntime.jsx(Title3, { level: 5, style: { margin: 0, color: "#1677ff" }, children: _24(section) }),
-                        /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_38, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_39, colIndex) => {
+                        /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_39, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_40, colIndex) => {
                           const cellItems = normalized.filter(
                             (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
                           );
@@ -8498,7 +8498,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         const maxCol = Math.max(1, ...normalized.map((r) => r.column));
         return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0, border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "2px 6px" }, children: [
           /* @__PURE__ */ jsxRuntime.jsx(Title3, { level: 5, style: { margin: 0, color: "#1677ff" }, children: _24(section) }),
-          /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_38, ri) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_39, ci) => {
+          /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_39, ri) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_40, ci) => {
             const cellItems = normalized.filter((item) => item.row === ri + 1 && item.column === ci + 1);
             return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map((item, idx) => {
               if (item.attribute_or_relation_type === "nlsentence") {
@@ -8819,7 +8819,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                     },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsx(Title4, { level: 5, style: { margin: 0, color: "#1677ff" }, children: _25(section) }),
-                      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_38, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_39, colIndex) => {
+                      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_39, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_40, colIndex) => {
                         const cellItems = normalized.filter(
                           (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
                         );
@@ -9012,7 +9012,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         const maxCol = Math.max(1, ...normalized.map((r) => r.column));
         return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0, border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px" }, children: [
           /* @__PURE__ */ jsxRuntime.jsx(Title4, { level: 5, style: { margin: 0, color: "#1677ff" }, children: _25(section) }),
-          /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_38, ri) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_39, ci) => {
+          /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_39, ri) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_40, ci) => {
             const cellItems = normalized.filter((item) => item.row === ri + 1 && item.column === ci + 1);
             return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map((item) => {
               if (item.attribute_or_relation_type === "nlsentence") {
@@ -9917,7 +9917,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_38, newPageSize) => {
+            onShowSizeChange: (_39, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -12377,7 +12377,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_38, newPageSize) => {
+                    onShowSizeChange: (_39, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -12387,7 +12387,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   size: "small",
                   rowKey: (row) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _30("No related records") }) } : void 0,
-                  onChange: (_38, filters, sorter, extra) => {
+                  onChange: (_39, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -13748,7 +13748,7 @@ var renderRelationBlock = ({
 };
 var _32 = window._ || ((text) => text);
 var { Title: Title7 } = antd.Typography;
-var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -13759,6 +13759,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const invalidate = core.useInvalidate();
   const apiUrl = core.useApiUrl();
   const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
+  const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
   const { data: canDeleteData } = core.useCan({ resource: resourceIdentifier, action: "delete" });
   const { data: canEditData } = core.useCan({ resource: resourceIdentifier, action: "edit" });
   const canBulkDelete = canDeleteData?.can !== false;
@@ -13809,7 +13810,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
   const calendarDateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
   const [localSearch, setLocalSearch] = React6.useState("");
-  const [listVisible, setListVisible] = React6.useState(true);
+  const [listVisible, setListVisible] = React6.useState(defaultListVisible ?? true);
   const [isTdFlipped, setIsTdFlipped] = React6.useState(false);
   const [pageSize, setPageSize] = React6.useState(10);
   const [galleryPage, setGalleryPage] = React6.useState(1);
@@ -14418,7 +14419,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
   const resetLayoutDefaults = React6.useCallback(() => {
-    setListVisible(true);
+    setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(false);
     setIsAnalyzeVertical(false);
     setIsAnalyzeFirst(false);
@@ -14427,7 +14428,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setSelectedColumnKeys(null);
     setColumnOrder(null);
     setTotalsSummaryFunctions({});
-  }, [isEmbedded]);
+  }, [isEmbedded, defaultListVisible]);
   const resetAnalyzeDefaults = React6.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
@@ -14440,7 +14441,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [categoricalFields, numericFields]);
   const persistCurrentViewNames = React6.useCallback(async (nextSelected, nextCurrent) => {
     try {
-      const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+      const resourceKey = prefsKey;
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -14453,9 +14454,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       });
     } catch {
     }
-  }, [apiUrl, model.name, model.resource, allModels]);
+  }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
   const loadViewNames = React6.useCallback(async () => {
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+    const resourceKey = prefsKey;
     setIsLoadingViewNames(true);
     try {
       const response = await authenticatedFetch(`${apiUrl}/views/preferences?resource=${encodeURIComponent(resourceKey)}&preference_type=__all__`);
@@ -14498,7 +14499,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setViewNamesLoaded(true);
       setIsLoadingViewNames(false);
     }
-  }, [apiUrl, model.name, model.resource, allModels]);
+  }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
   const openSaveViewModalFor = React6.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
@@ -14547,7 +14548,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return;
     }
     try {
-      const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+      const resourceKey = prefsKey;
       const response = await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -14571,7 +14572,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+          const resourceKey = prefsKey;
           const response = await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -14590,7 +14591,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, loadViewNames]);
   const persistLayoutPreferences = React6.useCallback(async (viewName) => {
     if (!resolvedLayoutPreferenceType) return;
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+    const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
       listVisible,
@@ -14631,9 +14632,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     } finally {
       setIsSavingLayoutPrefs(false);
     }
-  }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels]);
+  }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
   const persistAnalyzePreferences = React6.useCallback(async (viewName) => {
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+    const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
       categoryField1,
@@ -14662,7 +14663,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
-  }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels]);
+  }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels, preferencesResourceOverride]);
   const handleConfirmSaveView = React6.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
@@ -14706,7 +14707,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     resetAnalyzeDefaults();
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
   React6.useEffect(() => {
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+    const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
       analyzePrefsLoadedRef.current = false;
@@ -14754,10 +14755,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return () => {
       cancelled = true;
     };
-  }, [apiUrl, currentViewName, model.name, model.resource, allModels]);
+  }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
   React6.useEffect(() => {
     if (!resolvedLayoutPreferenceType) return;
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+    const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${resolvedLayoutPreferenceType}::${currentViewName}`;
     if (layoutPrefsResourceRef.current !== viewKey) {
       layoutPrefsLoadedRef.current = false;
@@ -14771,7 +14772,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     let cancelled = false;
     const applyPrefs = (prefs) => {
       if (!prefs || typeof prefs !== "object") return false;
-      if ("listVisible" in prefs) setListVisible(Boolean(prefs.listVisible));
+      if ("listVisible" in prefs && defaultListVisible !== false) setListVisible(Boolean(prefs.listVisible));
       if ("analyzeOpen" in prefs) setAnalyzeOpen(Boolean(prefs.analyzeOpen));
       if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
       if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
@@ -14839,7 +14840,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return () => {
       cancelled = true;
     };
-  }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels]);
+  }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels, preferencesResourceOverride]);
   const fetchAllRows = React6.useCallback(async () => {
     setIsAllRowsLoading(true);
     setAllRowsError(null);
@@ -17588,7 +17589,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailPaneContexts = React6.useMemo(
-    () => panes.map((_38, idx) => ({
+    () => panes.map((_39, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -18170,6 +18171,624 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
     }
   );
 };
+function useDashboardConfig() {
+  const apiUrl = core.useApiUrl();
+  const [config, setConfig] = React6.useState(null);
+  const [enabled, setEnabled] = React6.useState(false);
+  const [loading, setLoading] = React6.useState(true);
+  const load = React6.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${apiUrl}/dashboard/config`);
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setEnabled(Boolean(data.enabled));
+      if (data.enabled && data.dashboard) {
+        setConfig(data.dashboard);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+  React6.useEffect(() => {
+    load();
+  }, [load]);
+  const save = React6.useCallback(async (next) => {
+    setConfig(next);
+    try {
+      await authenticatedFetch(`${apiUrl}/dashboard/config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dashboard: next })
+      });
+    } catch {
+    }
+  }, [apiUrl]);
+  return { config, enabled, loading, save, reload: load };
+}
+var { Text } = antd.Typography;
+var VIEW_TYPE_OPTIONS = [
+  { label: "Default (from model schema)", value: "" },
+  { label: "Table", value: "table" },
+  { label: "Gallery", value: "gallery" },
+  { label: "Calendar", value: "calendar" },
+  { label: "Totals / Details", value: "totals-details" }
+];
+var nextGridPosition = (cells) => {
+  if (!cells.length) return { row: 0, col: 0 };
+  const maxRow = Math.max(...cells.map((c) => c.row));
+  const lastRowCells = cells.filter((c) => c.row === maxRow);
+  if (lastRowCells.length < 2) return { row: maxRow, col: lastRowCells.length };
+  return { row: maxRow + 1, col: 0 };
+};
+var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
+  const [form] = antd.Form.useForm();
+  React6.useEffect(() => {
+    if (!cell || !tabId) return;
+    const tab = config.tabs.find((t) => t.id === tabId);
+    form.setFieldsValue({
+      tabName: tab?.name ?? "",
+      row: cell.row + 1,
+      col: cell.col + 1,
+      view_type: cell.view_type ?? "",
+      html_style: cell.html_style ?? "",
+      min_width: cell.min_width ?? "",
+      max_width: cell.max_width ?? "",
+      min_height: cell.min_height ?? "",
+      max_height: cell.max_height ?? ""
+    });
+  }, [cell, tabId, config, form]);
+  const handleSave = () => {
+    if (!cell || !tabId) return;
+    const values = form.getFieldsValue();
+    const newTabName = (values.tabName || "").trim() || config.tabs.find((t) => t.id === tabId)?.name || "";
+    const updatedCell = {
+      ...cell,
+      row: Math.max(0, (values.row ?? 1) - 1),
+      col: Math.max(0, (values.col ?? 1) - 1),
+      view_type: values.view_type || null,
+      html_style: values.html_style ?? "",
+      min_width: values.min_width || null,
+      max_width: values.max_width || null,
+      min_height: values.min_height || null,
+      max_height: values.max_height || null
+    };
+    const currentTab = config.tabs.find((t) => t.id === tabId);
+    const nameUnchanged = currentTab?.name.trim().toLowerCase() === newTabName.toLowerCase();
+    const targetTab = !nameUnchanged ? config.tabs.find((t) => t.id !== tabId && t.name.trim().toLowerCase() === newTabName.toLowerCase()) : void 0;
+    let nextTabs;
+    if (nameUnchanged) {
+      nextTabs = config.tabs.map((tab) => {
+        if (tab.id !== tabId) return tab;
+        return { ...tab, cells: tab.cells.map((c) => c.id === cell.id ? updatedCell : c) };
+      });
+    } else if (targetTab) {
+      const { row, col } = nextGridPosition(targetTab.cells);
+      const repositionedCell = { ...updatedCell, row, col };
+      nextTabs = config.tabs.map((tab) => {
+        if (tab.id === tabId) {
+          return { ...tab, cells: tab.cells.filter((c) => c.id !== cell.id) };
+        }
+        if (tab.id === targetTab.id) {
+          return { ...tab, cells: [...tab.cells, repositionedCell] };
+        }
+        return tab;
+      }).filter((tab) => tab.cells.length > 0);
+    } else {
+      const { row, col } = nextGridPosition([]);
+      const repositionedCell = { ...updatedCell, row, col };
+      const newTab = {
+        id: crypto.randomUUID(),
+        name: newTabName,
+        module: currentTab?.module ?? "dashboard",
+        cells: [repositionedCell]
+      };
+      nextTabs = [
+        ...config.tabs.map((tab) => {
+          if (tab.id !== tabId) return tab;
+          return { ...tab, cells: tab.cells.filter((c) => c.id !== cell.id) };
+        }).filter((tab) => tab.cells.length > 0),
+        newTab
+      ];
+    }
+    onSave({ ...config, tabs: nextTabs });
+    onClose();
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Drawer,
+    {
+      title: `Configure cell: ${cell?.model ?? ""}`,
+      placement: "right",
+      width: 380,
+      open,
+      onClose,
+      footer: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { style: { justifyContent: "flex-end", width: "100%", display: "flex" }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: onClose, children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: handleSave, children: "Save" })
+      ] }),
+      children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Form, { form, layout: "vertical", size: "small", children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Tab" }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "tabName", label: "Tab name", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, {}) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Position" }),
+        /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "row", label: "Row", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { min: 1, style: { width: 80 } }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "col", label: "Column", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { min: 1, style: { width: 80 } }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "View" }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "view_type", label: "View type", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: VIEW_TYPE_OPTIONS }) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Size" }),
+        /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "min_width", label: "Min width", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "max_width", label: "Max width", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, style: { marginTop: 8 }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "min_height", label: "Min height", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "max_height", label: "Max height", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Style" }),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Form.Item,
+          {
+            name: "html_style",
+            label: /* @__PURE__ */ jsxRuntime.jsxs(Text, { children: [
+              "HTML style ",
+              /* @__PURE__ */ jsxRuntime.jsx(Text, { type: "secondary", children: "(inline CSS)" })
+            ] }),
+            children: /* @__PURE__ */ jsxRuntime.jsx(
+              antd.Input.TextArea,
+              {
+                rows: 4,
+                placeholder: "e.g. background-color: #f0f4ff; border-radius: 8px;",
+                style: { fontFamily: "monospace", fontSize: 12 }
+              }
+            )
+          }
+        )
+      ] })
+    }
+  );
+};
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize }) => {
+  const { token } = antd.theme.useToken();
+  const model = findModelByName(allModels, cell.model);
+  const cellStyle = {
+    border: `1px solid ${token.colorBorderSecondary}`,
+    borderRadius: token.borderRadiusLG,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    background: token.colorBgContainer,
+    ...cell.min_width ? { minWidth: cell.min_width } : {},
+    ...cell.max_width ? { maxWidth: cell.max_width } : {},
+    ...cell.min_height ? { minHeight: cell.min_height } : {},
+    ...cell.max_height ? { maxHeight: cell.max_height } : {},
+    ...cell.html_style ? parseInlineStyle3(cell.html_style) : {},
+    ...isMaximized ? { gridColumn: "1 / -1" } : {},
+    ...isMinimized ? { minHeight: 0 } : {}
+  };
+  const toolbarStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "2px 8px",
+    gap: 2,
+    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    flexShrink: 0,
+    minHeight: 32,
+    position: "relative"
+  };
+  const resource = model?.resource || cell.model;
+  const cellTitle = model?.label || cell.model;
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: cellStyle, className: "jm-dashboard-cell", children: [
+    /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
+                .jm-dashboard-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }
+                .jm-dashboard-cell:hover .jm-cell-actions { opacity: 1; }
+            ` }),
+    /* @__PURE__ */ jsxRuntime.jsxs("div", { style: toolbarStyle, children: [
+      /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
+        fontSize: token.fontSizeSM,
+        fontWeight: token.fontWeightStrong,
+        color: token.colorText,
+        paddingLeft: 4,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }, children: cellTitle }),
+      /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Configure cell", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            type: "text",
+            size: "small",
+            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, { style: { fontSize: 11 } }),
+            onClick: onConfigure,
+            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open full page", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsxRuntime.jsx(icons.LinkOutlined, { style: { fontSize: 11 } }) }) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMaximized ? "Restore" : "Maximize", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            type: "text",
+            size: "small",
+            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FullscreenOutlined, { style: { fontSize: 11 } }),
+            onClick: onMaximize,
+            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMinimized ? "Restore" : "Minimize", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            type: "text",
+            size: "small",
+            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MinusSquareOutlined, { style: { fontSize: 11 } }),
+            onClick: onMinimize,
+            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+          }
+        ) })
+      ] })
+    ] }),
+    !isMinimized && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: model ? /* @__PURE__ */ jsxRuntime.jsx(
+      DynamicList,
+      {
+        model,
+        allModels,
+        isEmbedded: true,
+        preferencesResourceOverride: `dashboard:${resource}`,
+        defaultListVisible: false,
+        listViewType: cell.view_type ? cell.view_type : model.listViewType
+      }
+    ) : /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Empty,
+      {
+        description: `Model "${cell.model}" not found`,
+        style: { padding: 24 },
+        image: antd.Empty.PRESENTED_IMAGE_SIMPLE
+      }
+    ) })
+  ] });
+};
+var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure }) => {
+  const cells = tab.cells;
+  const numCols = React6.useMemo(() => {
+    if (!cells.length) return 2;
+    return Math.max(...cells.map((c) => c.col)) + 1;
+  }, [cells]);
+  const numRows = React6.useMemo(() => {
+    if (!cells.length) return 1;
+    return Math.max(...cells.map((c) => c.row)) + 1;
+  }, [cells]);
+  const visibleCells = maximizedCellId ? cells.filter((c) => c.id === maximizedCellId) : cells;
+  const gridStyle = {
+    display: "grid",
+    gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
+    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, minmax(320px, auto))`,
+    gap: 12,
+    padding: 12,
+    height: "100%",
+    boxSizing: "border-box"
+  };
+  if (!cells.length) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No models in this tab", style: { padding: 48 } });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx("div", { style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx(
+    "div",
+    {
+      style: {
+        gridColumn: maximizedCellId ? "1 / -1" : `${cell.col + 1}`,
+        gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`
+      },
+      children: /* @__PURE__ */ jsxRuntime.jsx(
+        DashboardGridCell,
+        {
+          cell,
+          allModels,
+          isMaximized: maximizedCellId === cell.id,
+          isMinimized: minimizedCellIds.has(cell.id),
+          onConfigure: () => onConfigure(cell),
+          onMaximize: () => onMaximize(cell.id),
+          onMinimize: () => onMinimize(cell.id)
+        }
+      )
+    },
+    cell.id
+  )) });
+};
+var ViewsGrid = ({ config, allModels, onConfigChange }) => {
+  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+  const [drawerSelection, setDrawerSelection] = React6.useState(null);
+  const handleMaximize = React6.useCallback((cellId) => {
+    setMaximizedCellId((prev) => prev === cellId ? null : cellId);
+  }, []);
+  const handleMinimize = React6.useCallback((cellId) => {
+    setMinimizedCellIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cellId)) {
+        next.delete(cellId);
+      } else {
+        next.add(cellId);
+      }
+      return next;
+    });
+  }, []);
+  const handleOpenDrawer = React6.useCallback((tabId, cell) => {
+    setDrawerSelection({ tabId, cell });
+  }, []);
+  const handleSaveConfig = React6.useCallback((nextConfig) => {
+    onConfigChange(nextConfig);
+    setDrawerSelection(null);
+  }, [onConfigChange]);
+  const tabItems = React6.useMemo(
+    () => config.tabs.map((tab) => ({
+      key: tab.id,
+      label: tab.name,
+      children: /* @__PURE__ */ jsxRuntime.jsx(
+        DashboardTabContent,
+        {
+          tab,
+          allModels,
+          maximizedCellId,
+          minimizedCellIds,
+          onMaximize: handleMaximize,
+          onMinimize: handleMinimize,
+          onConfigure: (cell) => handleOpenDrawer(tab.id, cell)
+        }
+      )
+    })),
+    [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer]
+  );
+  if (!config.tabs.length) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No tabs configured. Run veloiq add-dashboard to add models.", style: { padding: 48 } });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Tabs,
+      {
+        items: tabItems,
+        onChange: () => {
+          setMaximizedCellId(null);
+          setMinimizedCellIds(/* @__PURE__ */ new Set());
+        },
+        style: { height: "100%" },
+        tabBarStyle: { paddingLeft: 12, marginBottom: 0 }
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      CellConfigDrawer,
+      {
+        open: Boolean(drawerSelection),
+        cell: drawerSelection?.cell ?? null,
+        tabId: drawerSelection?.tabId ?? null,
+        config,
+        onClose: () => setDrawerSelection(null),
+        onSave: handleSaveConfig
+      }
+    )
+  ] });
+};
+function parseInlineStyle3(cssText) {
+  const result = {};
+  cssText.split(";").forEach((declaration) => {
+    const idx = declaration.indexOf(":");
+    if (idx < 0) return;
+    const prop = declaration.slice(0, idx).trim();
+    const value = declaration.slice(idx + 1).trim();
+    if (!prop || !value) return;
+    const camel = prop.replace(/-([a-z])/g, (_39, c) => c.toUpperCase());
+    result[camel] = value;
+  });
+  return result;
+}
+function useRecentActivity(days) {
+  const [data, setData] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(true);
+  const load = React6.useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = days !== void 0 ? `?days=${days}` : "";
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
+      if (res.ok) setData(await res.json());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [days]);
+  React6.useEffect(() => {
+    load();
+  }, [load]);
+  return { data, loading, reload: load };
+}
+var { Text: Text2, Title: Title9 } = antd.Typography;
+function relativeTime(iso) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 6e4);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+var RecentActivityPanel = () => {
+  const { token } = antd.theme.useToken();
+  const allModels = useAllModels();
+  const [days, setDays] = React6.useState(30);
+  const { data, loading, reload } = useRecentActivity(days);
+  const groups = data?.groups ?? [];
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
+    /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
+      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", children: "Show activity from the last" }),
+      /* @__PURE__ */ jsxRuntime.jsx(
+        antd.InputNumber,
+        {
+          min: 1,
+          max: 365,
+          value: days,
+          onChange: (v) => v && setDays(v),
+          style: { width: 72 },
+          size: "small"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", children: "days" }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Refresh", children: /* @__PURE__ */ jsxRuntime.jsx(
+        icons.ReloadOutlined,
+        {
+          style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
+          onClick: reload
+        }
+      ) }),
+      data && /* @__PURE__ */ jsxRuntime.jsxs(Text2, { type: "secondary", style: { fontSize: 12 }, children: [
+        groups.reduce((n, g) => n + g.records.length, 0),
+        " records across ",
+        groups.length,
+        " models"
+      ] })
+    ] }),
+    loading ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) }) : groups.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Empty,
+      {
+        description: `No activity in the last ${days} days`,
+        image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
+        style: { padding: 48 }
+      }
+    ) : /* @__PURE__ */ jsxRuntime.jsx(antd.Space, { direction: "vertical", size: 24, style: { width: "100%" }, children: groups.map((group) => {
+      const model = findModelByName(allModels, group.resource);
+      const tone = getModelTone(model?.name ?? group.resource);
+      const label = model?.label ?? group.model_name;
+      return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntime.jsxs("div", { style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 6,
+          paddingBottom: 6,
+          borderBottom: `2px solid ${tone.solid}40`
+        }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: tone.solid,
+            flexShrink: 0
+          } }),
+          /* @__PURE__ */ jsxRuntime.jsx(Title9, { level: 5, style: { margin: 0, color: tone.text }, children: label }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: tone.solid, style: { marginLeft: "auto", fontSize: 11 }, children: group.records.length })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          antd.List,
+          {
+            size: "small",
+            dataSource: group.records,
+            renderItem: (rec) => {
+              const timestamp = rec.updated_at || rec.created_at;
+              const isNew = rec.created_at === rec.updated_at;
+              return /* @__PURE__ */ jsxRuntime.jsxs(
+                antd.List.Item,
+                {
+                  style: {
+                    padding: "4px 8px",
+                    borderRadius: token.borderRadius,
+                    transition: "background 0.15s"
+                  },
+                  className: "jm-activity-row",
+                  children: [
+                    /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
+                                                    .jm-activity-row:hover { background: ${token.colorFillAlter}; }
+                                                ` }),
+                    /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
+                      /* @__PURE__ */ jsxRuntime.jsx(icons.ClockCircleOutlined, { style: { color: token.colorTextTertiary, fontSize: 11, flexShrink: 0 } }),
+                      /* @__PURE__ */ jsxRuntime.jsx(
+                        reactRouterDom.Link,
+                        {
+                          to: `/${group.resource}/show/${rec.id}`,
+                          style: { flex: 1, color: token.colorText, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                          children: rec._label || `#${rec.id}`
+                        }
+                      ),
+                      isNew && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: "new" }),
+                      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime(timestamp) })
+                    ] })
+                  ]
+                }
+              );
+            }
+          }
+        )
+      ] }, group.resource);
+    }) })
+  ] });
+};
+var { Text: Text3 } = antd.Typography;
+var _38 = window._ || ((text) => text);
+var ComingSoon = ({ label }) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsxs(Text3, { type: "secondary", children: [
+  label,
+  " \u2014 coming soon."
+] }) });
+var DashboardPage = () => {
+  const { token } = antd.theme.useToken();
+  const allModels = useAllModels();
+  const { config, enabled, loading, save } = useDashboardConfig();
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "center", padding: 64 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) });
+  }
+  if (!enabled || !config) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 48 }, children: /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Empty,
+      {
+        image: /* @__PURE__ */ jsxRuntime.jsx(icons.DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
+        imageStyle: { height: 60 },
+        description: /* @__PURE__ */ jsxRuntime.jsxs("span", { children: [
+          "No dashboard configured.",
+          /* @__PURE__ */ jsxRuntime.jsx("br", {}),
+          /* @__PURE__ */ jsxRuntime.jsxs(Text3, { type: "secondary", children: [
+            "Run ",
+            /* @__PURE__ */ jsxRuntime.jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
+            " to get started."
+          ] })
+        ] })
+      }
+    ) });
+  }
+  const tabs = [
+    {
+      key: "models_grid",
+      label: _38("Models Grid"),
+      children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
+        ViewsGrid,
+        {
+          config,
+          allModels,
+          onConfigChange: save
+        }
+      ) })
+    },
+    {
+      key: "recent_activity",
+      label: _38("Recent Activity"),
+      children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsxRuntime.jsx(RecentActivityPanel, {}) })
+    },
+    {
+      key: "pinned_records",
+      label: _38("Pinned Records"),
+      children: /* @__PURE__ */ jsxRuntime.jsx(ComingSoon, { label: "Pinned Records" })
+    }
+  ];
+  return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "0 16px", height: "100%" }, children: /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Tabs,
+    {
+      items: tabs,
+      tabBarStyle: { marginBottom: 0 }
+    }
+  ) });
+};
 
 // src/utils/generateResources.ts
 function generateResources(models, moduleName, options = {}) {
@@ -18318,6 +18937,7 @@ exports.AllModelsProvider = AllModelsProvider;
 exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;
 exports.CustomSider = CustomSider;
+exports.DashboardPage = DashboardPage;
 exports.DynamicCreate = DynamicCreate;
 exports.DynamicEdit = DynamicEdit;
 exports.DynamicList = DynamicList;
@@ -18333,11 +18953,13 @@ exports.ModelHeading = ModelHeading;
 exports.MultiPaneLayout = MultiPaneLayout;
 exports.PaneNavigationContext = PaneNavigationContext;
 exports.PrimaryShowContext = PrimaryShowContext;
+exports.RecentActivityPanel = RecentActivityPanel;
 exports.ReferenceField = ReferenceField;
 exports.ResourceContext = ResourceContext;
 exports.ShowFooterButtons = ShowFooterButtons;
 exports.StandardList = StandardList;
 exports.StandardShow = StandardShow;
+exports.ViewsGrid = ViewsGrid;
 exports.accessControlProvider = accessControlProvider;
 exports.authProvider = authProvider;
 exports.authSystemModels = authSystemModels;

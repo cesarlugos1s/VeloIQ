@@ -247,7 +247,9 @@ export const DynamicList: React.FC<{
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
-}> = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions }) => {
+    preferencesResourceOverride?: string;
+    defaultListVisible?: boolean;
+}> = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
@@ -259,6 +261,9 @@ export const DynamicList: React.FC<{
     const apiUrl = useApiUrl();
     // Stable resource identifier used by useTable, useCan, etc.
     const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
+    // Separate key used exclusively for preferences load/save, allowing dashboard cells
+    // to maintain independent preferences from the standalone list page.
+    const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
     const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
     const { data: canEditData } = useCan({ resource: resourceIdentifier, action: "edit" });
     const canBulkDelete = canDeleteData?.can !== false;
@@ -318,7 +323,7 @@ export const DynamicList: React.FC<{
     const calendarDateFieldOptions = useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
 
     const [localSearch, setLocalSearch] = useState("");
-    const [listVisible, setListVisible] = useState(true);
+    const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
     const [isTdFlipped, setIsTdFlipped] = useState(false);
     const [pageSize, setPageSize] = useState(10);
     const [galleryPage, setGalleryPage] = useState(1);
@@ -1012,7 +1017,7 @@ export const DynamicList: React.FC<{
     }, [numericFields, rankingFieldKey, rankingMode]);
 
     const resetLayoutDefaults = useCallback(() => {
-        setListVisible(true);
+        setListVisible(defaultListVisible ?? true);
         setAnalyzeOpen(false);
         setIsAnalyzeVertical(false);
         setIsAnalyzeFirst(false);
@@ -1021,7 +1026,7 @@ export const DynamicList: React.FC<{
         setSelectedColumnKeys(null);
         setColumnOrder(null);
         setTotalsSummaryFunctions({});
-    }, [isEmbedded]);
+    }, [isEmbedded, defaultListVisible]);
 
     const resetAnalyzeDefaults = useCallback(() => {
         setCategoryField1(categoricalFields[0]?.key ?? null);
@@ -1036,7 +1041,7 @@ export const DynamicList: React.FC<{
 
     const persistCurrentViewNames = useCallback(async (nextSelected: string[], nextCurrent: string) => {
         try {
-            const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+            const resourceKey = prefsKey;
             await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1050,10 +1055,10 @@ export const DynamicList: React.FC<{
         } catch {
             // Ignore failures for non-critical updates.
         }
-    }, [apiUrl, model.name, model.resource, allModels]);
+    }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     const loadViewNames = useCallback(async () => {
-        const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+        const resourceKey = prefsKey;
         setIsLoadingViewNames(true);
         try {
             const response = await authenticatedFetch(`${apiUrl}/views/preferences?resource=${encodeURIComponent(resourceKey)}&preference_type=__all__`);
@@ -1098,7 +1103,7 @@ export const DynamicList: React.FC<{
             setViewNamesLoaded(true);
             setIsLoadingViewNames(false);
         }
-    }, [apiUrl, model.name, model.resource, allModels]);
+    }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     const openSaveViewModalFor = useCallback((target: "layout" | "analyze") => {
         setSaveViewName(currentViewName || getDefaultViewName());
@@ -1152,7 +1157,7 @@ export const DynamicList: React.FC<{
             return;
         }
         try {
-            const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+            const resourceKey = prefsKey;
             const response = await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1177,7 +1182,7 @@ export const DynamicList: React.FC<{
             okButtonProps: { danger: true },
             onOk: async () => {
                 try {
-                    const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+                    const resourceKey = prefsKey;
                     const response = await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1197,7 +1202,7 @@ export const DynamicList: React.FC<{
 
     const persistLayoutPreferences = useCallback(async (viewName: string) => {
         if (!resolvedLayoutPreferenceType) return;
-        const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+        const resourceKey = prefsKey;
         const resolvedViewName = normalizeViewName(viewName);
         const preferences = {
             listVisible,
@@ -1244,10 +1249,10 @@ export const DynamicList: React.FC<{
         } finally {
             setIsSavingLayoutPrefs(false);
         }
-    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels]);
+    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     const persistAnalyzePreferences = useCallback(async (viewName: string) => {
-        const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+        const resourceKey = prefsKey;
         const resolvedViewName = normalizeViewName(viewName);
         const preferences = {
             categoryField1,
@@ -1276,7 +1281,7 @@ export const DynamicList: React.FC<{
         } finally {
             setIsSavingAnalyzePrefs(false);
         }
-    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels]);
+    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     const handleConfirmSaveView = useCallback(async () => {
         if (!pendingSaveTarget) return;
@@ -1324,7 +1329,7 @@ export const DynamicList: React.FC<{
     }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
 
     useEffect(() => {
-        const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+        const resourceKey = prefsKey;
         const viewKey = `${resourceKey}::${currentViewName}`;
         if (analyzePrefsResourceRef.current !== viewKey) {
             analyzePrefsLoadedRef.current = false;
@@ -1373,11 +1378,11 @@ export const DynamicList: React.FC<{
         return () => {
             cancelled = true;
         };
-    }, [apiUrl, currentViewName, model.name, model.resource, allModels]);
+    }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     useEffect(() => {
         if (!resolvedLayoutPreferenceType) return;
-        const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
+        const resourceKey = prefsKey;
         const viewKey = `${resourceKey}::${resolvedLayoutPreferenceType}::${currentViewName}`;
         if (layoutPrefsResourceRef.current !== viewKey) {
             layoutPrefsLoadedRef.current = false;
@@ -1388,7 +1393,7 @@ export const DynamicList: React.FC<{
         let cancelled = false;
         const applyPrefs = (prefs: any) => {
             if (!prefs || typeof prefs !== "object") return false;
-            if ("listVisible" in prefs) setListVisible(Boolean(prefs.listVisible));
+            if ("listVisible" in prefs && defaultListVisible !== false) setListVisible(Boolean(prefs.listVisible));
             if ("analyzeOpen" in prefs) setAnalyzeOpen(Boolean(prefs.analyzeOpen));
             if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
             if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
@@ -1465,7 +1470,7 @@ export const DynamicList: React.FC<{
         return () => {
             cancelled = true;
         };
-    }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels]);
+    }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels, preferencesResourceOverride]);
     const fetchAllRows = useCallback(async () => {
         setIsAllRowsLoading(true);
         setAllRowsError(null);

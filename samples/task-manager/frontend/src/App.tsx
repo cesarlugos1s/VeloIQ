@@ -23,6 +23,7 @@ import {
     PrimaryShowContext,
     ColorModeContextProvider,
     authSystemModels,
+    DashboardPage,
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
@@ -38,6 +39,7 @@ export default function App() {
     const allModels = [...allSystemModels, ...authSystemModels];
 
     const resources = [
+        { name: "dashboard", list: "/dashboard", meta: { label: "Dashboard", canDelete: false } },
         ...allModuleRegistrations.flatMap(({ moduleName, models }) =>
             generateResources(models, moduleName)
         ),
@@ -60,7 +62,7 @@ export default function App() {
                         <ColorModeContextProvider>
                             <PrimaryShowContext.Provider value={PrimaryShowRenderer}>
                                 <Routes>
-                                    <Route path="/" element={<Navigate to={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "login"}`} replace />} />
+                                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                                     <Route path="/login" element={<LoginPage appTitle="Task Manager" />} />
                                     <Route
                                         element={
@@ -71,6 +73,7 @@ export default function App() {
                                             </Authenticated>
                                         }
                                     >
+                                        <Route path="/dashboard" element={<DashboardPage />} />
                                         {allSystemModels.map((model) => (
                                             <Route key={model.name} path={`/${(model as any).resource || model.name}`}>
                                                 <Route index element={
