@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Tabs, Tooltip, Button, theme, Empty } from "antd";
 import {
     SettingOutlined,
@@ -37,11 +37,14 @@ const DashboardGridCell: React.FC<{
     onConfigure: () => void;
     onMaximize: () => void;
     onMinimize: () => void;
-}> = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize }) => {
+    onResize: (minWidth: string | null, minHeight: string | null) => void;
+}> = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
+    const cellRef = useRef<HTMLDivElement>(null);
 
     const cellStyle: React.CSSProperties = {
+        position: "relative",
         border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: token.borderRadiusLG,
         overflow: "hidden",
@@ -74,12 +77,64 @@ const DashboardGridCell: React.FC<{
     const cellTitle = model?.label || cell.model;
     const tone = model ? getModelTone(model) : null;
 
+    // Resize via pointer drag on bottom / right / corner handles.
+    const startResize = useCallback((
+        e: React.PointerEvent,
+        dir: "s" | "e" | "se",
+    ) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const el = cellRef.current;
+        if (!el) return;
+        const { width: startW, height: startH } = el.getBoundingClientRect();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const handle = e.currentTarget as HTMLElement;
+        handle.setPointerCapture(e.pointerId);
+        const prevCursor = document.body.style.cursor;
+        document.body.style.cursor = dir === "s" ? "ns-resize" : dir === "e" ? "ew-resize" : "nwse-resize";
+
+        const onMove = (ev: PointerEvent) => {
+            if (dir !== "e") el.style.minHeight = `${Math.max(200, Math.round(startH + ev.clientY - startY))}px`;
+            if (dir !== "s") el.style.minWidth  = `${Math.max(200, Math.round(startW + ev.clientX - startX))}px`;
+        };
+        const onUp = (ev: PointerEvent) => {
+            handle.removeEventListener("pointermove", onMove);
+            handle.removeEventListener("pointerup", onUp);
+            document.body.style.cursor = prevCursor;
+            const newH = dir !== "e" ? `${Math.max(200, Math.round(startH + ev.clientY - startY))}px` : null;
+            const newW = dir !== "s" ? `${Math.max(200, Math.round(startW + ev.clientX - startX))}px` : null;
+            onResize(newW, newH);
+        };
+        handle.addEventListener("pointermove", onMove);
+        handle.addEventListener("pointerup", onUp);
+    }, [onResize]);
+
+    const handleBase: React.CSSProperties = {
+        position: "absolute", zIndex: 10,
+    };
+
     return (
-        <div style={cellStyle} className="jm-dashboard-cell">
+        <div ref={cellRef} style={cellStyle} className="jm-dashboard-cell">
             <style>{`
-                .jm-dashboard-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }
-                .jm-dashboard-cell:hover .jm-cell-actions { opacity: 1; }
+                .jm-dashboard-cell .jm-cell-actions  { opacity: 0; transition: opacity 0.15s; }
+                .jm-dashboard-cell:hover .jm-cell-actions  { opacity: 1; }
+                .jm-dashboard-cell .jm-resize-handle { opacity: 0; transition: opacity 0.15s; background: transparent; }
+                .jm-dashboard-cell:hover .jm-resize-handle { opacity: 1; }
+                .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
+                .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
             `}</style>
+
+            {/* Bottom edge */}
+            <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" }}
+                onPointerDown={(e) => startResize(e, "s")} />
+            {/* Right edge */}
+            <div className="jm-resize-handle" style={{ ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" }}
+                onPointerDown={(e) => startResize(e, "e")} />
+            {/* Corner */}
+            <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` }}
+                onPointerDown={(e) => startResize(e, "se")} />
+
             <div style={toolbarStyle}>
                 <span style={{
                     fontSize: 14,
@@ -129,11 +184,12 @@ const DashboardGridCell: React.FC<{
                 <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
                     {model ? (
                         <DynamicList
+                            key={`${resource}-${cell.view_type ?? ''}`}
                             model={model}
                             allModels={allModels}
                             isEmbedded
                             preferencesResourceOverride={`dashboard:${resource}`}
-                            defaultListVisible={false}
+                            defaultListVisible={Boolean(cell.view_type)}
                             listViewType={
                                 cell.view_type
                                     ? (cell.view_type as any)
@@ -165,7 +221,8 @@ const DashboardTabContent: React.FC<{
     onMaximize: (cellId: string) => void;
     onMinimize: (cellId: string) => void;
     onConfigure: (cell: DashboardCell) => void;
-}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure }) => {
+    onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
+}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize }) => {
     const cells = tab.cells;
 
     const numCols = useMemo(() => {
@@ -219,6 +276,7 @@ const DashboardTabContent: React.FC<{
                         onConfigure={() => onConfigure(cell)}
                         onMaximize={() => onMaximize(cell.id)}
                         onMinimize={() => onMinimize(cell.id)}
+                        onResize={(w, h) => onResize(cell.id, w, h)}
                     />
                 </div>
             ))}
@@ -256,6 +314,24 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
         setDrawerSelection(null);
     }, [onConfigChange]);
 
+    const handleResizeCell = useCallback((tabId: string, cellId: string, minWidth: string | null, minHeight: string | null) => {
+        const nextTabs = config.tabs.map((tab) => {
+            if (tab.id !== tabId) return tab;
+            return {
+                ...tab,
+                cells: tab.cells.map((c) => {
+                    if (c.id !== cellId) return c;
+                    return {
+                        ...c,
+                        ...(minWidth  !== null ? { min_width:  minWidth  } : {}),
+                        ...(minHeight !== null ? { min_height: minHeight } : {}),
+                    };
+                }),
+            };
+        });
+        onConfigChange({ ...config, tabs: nextTabs });
+    }, [config, onConfigChange]);
+
     const tabItems = useMemo(() =>
         config.tabs.map((tab) => ({
             key: tab.id,
@@ -269,10 +345,11 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
                     onMaximize={handleMaximize}
                     onMinimize={handleMinimize}
                     onConfigure={(cell) => handleOpenDrawer(tab.id, cell)}
+                    onResize={(cellId, w, h) => handleResizeCell(tab.id, cellId, w, h)}
                 />
             ),
         })),
-        [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer]
+        [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell]
     );
 
     if (!config.tabs.length) {

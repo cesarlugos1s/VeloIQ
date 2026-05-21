@@ -18444,10 +18444,12 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     }
   );
 };
-var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize }) => {
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize }) => {
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
+  const cellRef = React6.useRef(null);
   const cellStyle = {
+    position: "relative",
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
     overflow: "hidden",
@@ -18477,11 +18479,70 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
   const resource = model?.resource || cell.model;
   const cellTitle = model?.label || cell.model;
   const tone = model ? getModelTone(model) : null;
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: cellStyle, className: "jm-dashboard-cell", children: [
+  const startResize = React6.useCallback((e, dir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = cellRef.current;
+    if (!el) return;
+    const { width: startW, height: startH } = el.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const prevCursor = document.body.style.cursor;
+    document.body.style.cursor = dir === "s" ? "ns-resize" : dir === "e" ? "ew-resize" : "nwse-resize";
+    const onMove = (ev) => {
+      if (dir !== "e") el.style.minHeight = `${Math.max(200, Math.round(startH + ev.clientY - startY))}px`;
+      if (dir !== "s") el.style.minWidth = `${Math.max(200, Math.round(startW + ev.clientX - startX))}px`;
+    };
+    const onUp = (ev) => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = prevCursor;
+      const newH = dir !== "e" ? `${Math.max(200, Math.round(startH + ev.clientY - startY))}px` : null;
+      const newW = dir !== "s" ? `${Math.max(200, Math.round(startW + ev.clientX - startX))}px` : null;
+      onResize(newW, newH);
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  }, [onResize]);
+  const handleBase = {
+    position: "absolute",
+    zIndex: 10
+  };
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { ref: cellRef, style: cellStyle, className: "jm-dashboard-cell", children: [
     /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
-                .jm-dashboard-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }
-                .jm-dashboard-cell:hover .jm-cell-actions { opacity: 1; }
+                .jm-dashboard-cell .jm-cell-actions  { opacity: 0; transition: opacity 0.15s; }
+                .jm-dashboard-cell:hover .jm-cell-actions  { opacity: 1; }
+                .jm-dashboard-cell .jm-resize-handle { opacity: 0; transition: opacity 0.15s; background: transparent; }
+                .jm-dashboard-cell:hover .jm-resize-handle { opacity: 1; }
+                .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
+                .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
             ` }),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        className: "jm-resize-handle",
+        style: { ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" },
+        onPointerDown: (e) => startResize(e, "s")
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        className: "jm-resize-handle",
+        style: { ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" },
+        onPointerDown: (e) => startResize(e, "e")
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        className: "jm-resize-handle",
+        style: { ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` },
+        onPointerDown: (e) => startResize(e, "se")
+      }
+    ),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: toolbarStyle, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
         fontSize: 14,
@@ -18534,9 +18595,10 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
         allModels,
         isEmbedded: true,
         preferencesResourceOverride: `dashboard:${resource}`,
-        defaultListVisible: false,
+        defaultListVisible: Boolean(cell.view_type),
         listViewType: cell.view_type ? cell.view_type : model.listViewType
-      }
+      },
+      `${resource}-${cell.view_type ?? ""}`
     ) : /* @__PURE__ */ jsxRuntime.jsx(
       antd.Empty,
       {
@@ -18547,7 +18609,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
     ) })
   ] });
 };
-var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure }) => {
+var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize }) => {
   const cells = tab.cells;
   const numCols = React6.useMemo(() => {
     if (!cells.length) return 2;
@@ -18586,7 +18648,8 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
           isMinimized: minimizedCellIds.has(cell.id),
           onConfigure: () => onConfigure(cell),
           onMaximize: () => onMaximize(cell.id),
-          onMinimize: () => onMinimize(cell.id)
+          onMinimize: () => onMinimize(cell.id),
+          onResize: (w, h) => onResize(cell.id, w, h)
         }
       )
     },
@@ -18618,6 +18681,23 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
     onConfigChange(nextConfig);
     setDrawerSelection(null);
   }, [onConfigChange]);
+  const handleResizeCell = React6.useCallback((tabId, cellId, minWidth, minHeight) => {
+    const nextTabs = config.tabs.map((tab) => {
+      if (tab.id !== tabId) return tab;
+      return {
+        ...tab,
+        cells: tab.cells.map((c) => {
+          if (c.id !== cellId) return c;
+          return {
+            ...c,
+            ...minWidth !== null ? { min_width: minWidth } : {},
+            ...minHeight !== null ? { min_height: minHeight } : {}
+          };
+        })
+      };
+    });
+    onConfigChange({ ...config, tabs: nextTabs });
+  }, [config, onConfigChange]);
   const tabItems = React6.useMemo(
     () => config.tabs.map((tab) => ({
       key: tab.id,
@@ -18631,11 +18711,12 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
           minimizedCellIds,
           onMaximize: handleMaximize,
           onMinimize: handleMinimize,
-          onConfigure: (cell) => handleOpenDrawer(tab.id, cell)
+          onConfigure: (cell) => handleOpenDrawer(tab.id, cell),
+          onResize: (cellId, w, h) => handleResizeCell(tab.id, cellId, w, h)
         }
       )
     })),
-    [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer]
+    [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell]
   );
   if (!config.tabs.length) {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No tabs configured. Run veloiq add-dashboard to add models.", style: { padding: 48 } });
