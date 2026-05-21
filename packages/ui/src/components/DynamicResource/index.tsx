@@ -2207,6 +2207,17 @@ export const DynamicList: React.FC<{
                             body: JSON.stringify(clonePayload),
                         });
                         if (!resp.ok) throw new Error(`${_("Clone failed for record")} ${id}`);
+                    } else if (actionKey === "__pin__") {
+                        await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ resource, record_id: String(id) }),
+                        });
+                    } else if (actionKey === "__unpin__") {
+                        await authenticatedFetch(
+                            `${apiUrl}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+                            { method: "DELETE" }
+                        );
                     } else {
                         const customAction = bulkActions?.find((a) => a.key === actionKey);
                         if (customAction) await customAction.onExecuteOne(record);
@@ -2319,6 +2330,9 @@ export const DynamicList: React.FC<{
         if (bulkActions && bulkActions.length > 0) {
             bulkActions.forEach((a) => opts.push({ label: _(a.label), value: a.key }));
         }
+        // Pin / Unpin — always available (dashboard feature, no CRUD permission needed)
+        opts.push({ label: _("Pin selected"), value: "__pin__" });
+        opts.push({ label: _("Unpin selected"), value: "__unpin__" });
         // "Delete selected" requires delete permission
         if (canBulkDelete) {
             opts.push({ label: _("Delete selected"), value: "__delete__" });

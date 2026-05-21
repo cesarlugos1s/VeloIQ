@@ -2,7 +2,7 @@ import React6, { createContext, useContext, useMemo, useState, useRef, useEffect
 import { ThemedLayoutV2, Show, List, useForm, DeleteButton, useTable, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useInvalidate, useCan, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, Grid, Form, Drawer, Modal, Button, Tooltip, Skeleton, message, Switch, Divider, Tabs, Alert, Card, Table, Select, DatePicker, InputNumber, Checkbox, Pagination, Collapse, Breadcrumb, Tree, ConfigProvider, Empty, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload } from 'antd';
-import { SearchOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, ClockCircleOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, AppstoreOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CloseOutlined, DatabaseOutlined, ShopOutlined, BookOutlined, UploadOutlined, FolderOutlined, FileOutlined, RightOutlined } from '@ant-design/icons';
+import { SearchOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, ClockCircleOutlined, PushpinFilled, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, AppstoreOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CloseOutlined, DatabaseOutlined, ShopOutlined, BookOutlined, UploadOutlined, FolderOutlined, FileOutlined, RightOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useParams, useSearchParams, useLocation, Link, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -6595,6 +6595,68 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
     ] })
   ] });
 };
+
+// src/providers/constants.ts
+var API_URL3 = "/api";
+
+// src/pages/dashboard/hooks/usePinRecord.ts
+function usePinRecord(resource, recordId) {
+  const [pinned, setPinned] = useState(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
+    let cancelled = false;
+    authenticatedFetch(
+      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+    ).then((r) => r.json()).then((d) => {
+      if (!cancelled) setPinned(Boolean(d.pinned));
+    }).catch(() => {
+      if (!cancelled) setPinned(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resource, recordId]);
+  const pin = useCallback(async () => {
+    if (!resource || recordId === void 0) return;
+    setLoading(true);
+    try {
+      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resource, record_id: String(recordId) })
+      });
+      setPinned(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [resource, recordId]);
+  const unpin = useCallback(async () => {
+    if (!resource || recordId === void 0) return;
+    setLoading(true);
+    try {
+      await authenticatedFetch(
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        { method: "DELETE" }
+      );
+      setPinned(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [resource, recordId]);
+  const toggle = useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
+  return { pinned, loading, pin, unpin, toggle };
+}
+async function unpinRecords(resource, recordIds) {
+  await Promise.all(
+    recordIds.map(
+      (id) => authenticatedFetch(
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        { method: "DELETE" }
+      )
+    )
+  );
+}
 var _15 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   const apiUrl = useApiUrl();
@@ -6704,6 +6766,9 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   ] });
   const { id: urlId } = useParams();
   const effectiveRecord = record ?? (urlId ? { eid: Number(urlId) } : void 0);
+  const recordId = effectiveRecord?.eid ?? effectiveRecord?.id ?? urlId;
+  const resource = model.resource || model.name;
+  const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
   const [exploreOpen, setExploreOpen] = useState(false);
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -6711,6 +6776,15 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
     metadataModal,
     /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _15("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsx("span", { style: { marginInlineStart: 10 } }),
+    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _15("Unpin") : _15("Pin to dashboard"), children: /* @__PURE__ */ jsx(
+      Button,
+      {
+        size: "small",
+        icon: pinned ? /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14" } }) : /* @__PURE__ */ jsx(PushpinOutlined, {}),
+        onClick: togglePin,
+        loading: pinLoading
+      }
+    ) }),
     /* @__PURE__ */ jsx(Tooltip, { title: _15("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsx(
       Modal,
@@ -15518,6 +15592,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               body: JSON.stringify(clonePayload)
             });
             if (!resp.ok) throw new Error(`${_32("Clone failed for record")} ${id}`);
+          } else if (actionKey === "__pin__") {
+            await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resource, record_id: String(id) })
+            });
+          } else if (actionKey === "__unpin__") {
+            await authenticatedFetch(
+              `${apiUrl}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+              { method: "DELETE" }
+            );
           } else {
             const customAction = bulkActions?.find((a) => a.key === actionKey);
             if (customAction) await customAction.onExecuteOne(record);
@@ -15605,6 +15690,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (bulkActions && bulkActions.length > 0) {
       bulkActions.forEach((a) => opts.push({ label: _32(a.label), value: a.key }));
     }
+    opts.push({ label: _32("Pin selected"), value: "__pin__" });
+    opts.push({ label: _32("Unpin selected"), value: "__unpin__" });
     if (canBulkDelete) {
       opts.push({ label: _32("Delete selected"), value: "__delete__" });
     }
@@ -17991,9 +18078,6 @@ httpClient.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// src/providers/constants.ts
-var API_URL3 = "/api";
 var API_BASE_URL = "/api";
 var ColorModeContextProvider = ({
   children
@@ -18718,12 +18802,161 @@ var RecentActivityPanel = () => {
     }) })
   ] });
 };
+var { Text: AntText, Title: AntTitle } = Typography;
+function usePinnedRecords() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
+      if (res.ok) {
+        const data = await res.json();
+        setGroups(data.groups ?? []);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  React6.useEffect(() => {
+    load();
+  }, [load]);
+  return { groups, loading, reload: load };
+}
+var PinnedRecordsPanel = () => {
+  const { token } = theme.useToken();
+  const allModels = useAllModels();
+  const { groups, loading, reload } = usePinnedRecords();
+  const [unpinning, setUnpinning] = useState(/* @__PURE__ */ new Set());
+  const visibleGroups = groups.filter((g) => findModelByName(allModels, g.resource));
+  const handleUnpin = useCallback(async (resource, recordId) => {
+    const key = `${resource}:${recordId}`;
+    setUnpinning((prev) => new Set(prev).add(key));
+    try {
+      await unpinRecords(resource, [recordId]);
+      await reload();
+    } finally {
+      setUnpinning((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [reload]);
+  return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
+    /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
+      /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
+      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: "Records you've pinned across the app" }),
+      /* @__PURE__ */ jsx(Tooltip, { title: "Refresh", children: /* @__PURE__ */ jsx(
+        ReloadOutlined,
+        {
+          style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
+          onClick: reload
+        }
+      ) }),
+      !loading && /* @__PURE__ */ jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
+        visibleGroups.reduce((n, g) => n + g.records.length, 0),
+        " pins across ",
+        visibleGroups.length,
+        " models"
+      ] })
+    ] }),
+    loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : visibleGroups.length === 0 ? /* @__PURE__ */ jsx(
+      Empty,
+      {
+        description: /* @__PURE__ */ jsxs("span", { children: [
+          "No pinned records yet.",
+          /* @__PURE__ */ jsx("br", {}),
+          /* @__PURE__ */ jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
+            "Open any record and click the ",
+            /* @__PURE__ */ jsx(PushpinOutlined, {}),
+            " pin button to pin it here."
+          ] })
+        ] }),
+        image: Empty.PRESENTED_IMAGE_SIMPLE,
+        style: { padding: 48 }
+      }
+    ) : /* @__PURE__ */ jsx(Space, { direction: "vertical", size: 24, style: { width: "100%" }, children: visibleGroups.map((group) => {
+      const model = findModelByName(allModels, group.resource);
+      const tone = getModelTone(model?.name ?? group.resource);
+      const label = model?.label ?? group.model_name;
+      return /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsxs("div", { style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 6,
+          paddingBottom: 6,
+          borderBottom: `2px solid ${tone.solid}40`
+        }, children: [
+          /* @__PURE__ */ jsx("div", { style: {
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: tone.solid,
+            flexShrink: 0
+          } }),
+          /* @__PURE__ */ jsx(AntTitle, { level: 5, style: { margin: 0, color: tone.text }, children: label }),
+          /* @__PURE__ */ jsx(Tag, { color: tone.solid, style: { marginLeft: "auto", fontSize: 11 }, children: group.records.length })
+        ] }),
+        /* @__PURE__ */ jsx(
+          List$1,
+          {
+            size: "small",
+            dataSource: group.records,
+            renderItem: (rec) => {
+              const key = `${group.resource}:${rec.id}`;
+              return /* @__PURE__ */ jsxs(
+                List$1.Item,
+                {
+                  style: {
+                    padding: "4px 8px",
+                    borderRadius: token.borderRadius,
+                    transition: "background 0.15s"
+                  },
+                  className: "jm-pin-row",
+                  children: [
+                    /* @__PURE__ */ jsx("style", { children: `
+                                                    .jm-pin-row:hover { background: ${token.colorFillAlter}; }
+                                                    .jm-pin-row .jm-unpin-btn { opacity: 0; transition: opacity 0.15s; }
+                                                    .jm-pin-row:hover .jm-unpin-btn { opacity: 1; }
+                                                ` }),
+                    /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
+                      /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 11, flexShrink: 0 } }),
+                      /* @__PURE__ */ jsx(
+                        Link,
+                        {
+                          to: `/${group.resource}/show/${rec.id}`,
+                          style: { flex: 1, color: token.colorText, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                          children: rec._label || `#${rec.id}`
+                        }
+                      ),
+                      /* @__PURE__ */ jsx(Tooltip, { title: "Unpin", children: /* @__PURE__ */ jsx(
+                        Button,
+                        {
+                          className: "jm-unpin-btn",
+                          type: "text",
+                          size: "small",
+                          icon: /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14" } }),
+                          loading: unpinning.has(key),
+                          onClick: () => handleUnpin(group.resource, rec.id),
+                          style: { color: token.colorTextTertiary, height: 20, minWidth: 20, padding: "0 4px" }
+                        }
+                      ) })
+                    ] })
+                  ]
+                }
+              );
+            }
+          }
+        )
+      ] }, group.resource);
+    }) })
+  ] });
+};
 var { Text: Text3 } = Typography;
 var _38 = window._ || ((text) => text);
-var ComingSoon = ({ label }) => /* @__PURE__ */ jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsxs(Text3, { type: "secondary", children: [
-  label,
-  " \u2014 coming soon."
-] }) });
 var DashboardPage = () => {
   const { token } = theme.useToken();
   const allModels = useAllModels();
@@ -18770,7 +19003,7 @@ var DashboardPage = () => {
     {
       key: "pinned_records",
       label: _38("Pinned Records"),
-      children: /* @__PURE__ */ jsx(ComingSoon, { label: "Pinned Records" })
+      children: /* @__PURE__ */ jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
     }
   ];
   return /* @__PURE__ */ jsx("div", { style: { padding: "0 16px", height: "100%" }, children: /* @__PURE__ */ jsx(
@@ -18924,6 +19157,6 @@ var authSystemModels = [
   }
 ];
 
-export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, httpClient, normalizeToneKey, renderRelationBlock, setColorSchemas, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, httpClient, normalizeToneKey, renderRelationBlock, setColorSchemas, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

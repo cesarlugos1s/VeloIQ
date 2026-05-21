@@ -5,6 +5,7 @@ import { useAllModels } from "../../contexts/AllModelsContext";
 import { useDashboardConfig } from "./hooks/useDashboardConfig";
 import { ViewsGrid } from "./ViewsGrid";
 import { RecentActivityPanel } from "./RecentActivityPanel";
+import { PinnedRecordsPanel } from "./PinnedRecordsPanel";
 
 const { Text } = Typography;
 
@@ -72,7 +73,11 @@ export const DashboardPage: React.FC = () => {
         {
             key: "pinned_records",
             label: _("Pinned Records"),
-            children: <ComingSoon label="Pinned Records" />,
+            children: (
+                <div style={{ height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }}>
+                    <PinnedRecordsPanel />
+                </div>
+            ),
         },
     ];
 

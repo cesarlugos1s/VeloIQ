@@ -447,6 +447,150 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         _save_views_config(data)
         return {"status": "ok"}
 
+    # --- Pinned records ---
+
+    def _get_user_id(request: Request) -> int:
+        """Return the authenticated user's id, or 0 when auth is disabled."""
+        user = getattr(request.state, "user", None)
+        if user and isinstance(user, dict):
+            return int(user.get("id", 0) or user.get("sub", 0) or 0)
+        return 0
+
+    def _resolve_record_label(table, row: dict) -> str:
+        for key in ("name", "title", "label", "email", "username", "description", "subject"):
+            if key in row and row[key]:
+                return str(row[key])
+        for k, v in row.items():
+            if k in ("id", "eid", "created_at", "updated_at") or k.endswith("_id"):
+                continue
+            if isinstance(v, str) and v:
+                return v
+        return str(row.get("id", ""))
+
+    @app.get("/dashboard/pinned-records/check")
+    async def check_pinned_record(request: Request, resource: str, record_id: str):
+        from sqlmodel import Session as _SMSession, select as _sm_select
+        from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
+        user_id = _get_user_id(request)
+        with _SMSession(engine) as session:
+            pin = session.exec(
+                _sm_select(_Pin).where(
+                    _Pin.user_id == user_id,
+                    _Pin.resource == resource,
+                    _Pin.record_id == record_id,
+                )
+            ).first()
+        return {"pinned": pin is not None, "pin_id": pin.id if pin else None}
+
+    @app.post("/dashboard/pinned-records")
+    async def pin_record(request: Request):
+        from sqlmodel import Session as _SMSession, select as _sm_select
+        from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
+        body = await request.json()
+        resource = body.get("resource", "")
+        record_id = str(body.get("record_id", ""))
+        if not resource or not record_id:
+            from fastapi import HTTPException as _HTTPEx
+            raise _HTTPEx(status_code=400, detail="resource and record_id are required")
+        user_id = _get_user_id(request)
+        with _SMSession(engine) as session:
+            existing = session.exec(
+                _sm_select(_Pin).where(
+                    _Pin.user_id == user_id,
+                    _Pin.resource == resource,
+                    _Pin.record_id == record_id,
+                )
+            ).first()
+            if existing:
+                return {"pinned": True, "pin_id": existing.id}
+            pin = _Pin(user_id=user_id, resource=resource, record_id=record_id)
+            session.add(pin)
+            session.commit()
+            session.refresh(pin)
+        return {"pinned": True, "pin_id": pin.id}
+
+    @app.delete("/dashboard/pinned-records/{resource}/{record_id}")
+    async def unpin_record(request: Request, resource: str, record_id: str):
+        from sqlmodel import Session as _SMSession, select as _sm_select
+        from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
+        user_id = _get_user_id(request)
+        with _SMSession(engine) as session:
+            pin = session.exec(
+                _sm_select(_Pin).where(
+                    _Pin.user_id == user_id,
+                    _Pin.resource == resource,
+                    _Pin.record_id == record_id,
+                )
+            ).first()
+            if pin:
+                session.delete(pin)
+                session.commit()
+        return {"pinned": False}
+
+    @app.get("/dashboard/pinned-records")
+    async def get_pinned_records(request: Request):
+        from datetime import datetime as _dt
+        from sqlmodel import Session as _SMSession, select as _sm_select
+        from sqlalchemy import select as _sa_select, text as _sa_text
+        from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
+        user_id = _get_user_id(request)
+
+        with _SMSession(engine) as session:
+            pins = session.exec(
+                _sm_select(_Pin).where(_Pin.user_id == user_id).order_by(_Pin.created_at.desc())
+            ).all()
+
+        if not pins:
+            return {"groups": []}
+
+        # Group pins by resource and resolve labels from the DB.
+        from collections import defaultdict as _dd
+        by_resource: dict = _dd(list)
+        for pin in pins:
+            by_resource[pin.resource].append(pin)
+
+        groups = []
+        with _SMSession(engine) as session:
+            for resource, resource_pins in by_resource.items():
+                table = SQLModel.metadata.tables.get(resource)
+                if table is None:
+                    continue
+                record_ids = [p.record_id for p in resource_pins]
+                try:
+                    rows = session.execute(
+                        _sa_select(table).where(
+                            table.c.id.in_([_try_int(rid) for rid in record_ids])
+                        )
+                    ).mappings().all()
+                except Exception:
+                    continue
+
+                row_map = {str(r["id"]): dict(r) for r in rows}
+                records = []
+                for pin in resource_pins:
+                    row = row_map.get(pin.record_id)
+                    if row is None:
+                        continue  # deleted record — silently skip
+                    rec = {
+                        k: (v.isoformat() if isinstance(v, _dt) else str(v) if v is not None else "")
+                        for k, v in row.items()
+                    }
+                    rec["_label"] = _resolve_record_label(table, row)
+                    rec["_pin_id"] = pin.id
+                    records.append(rec)
+
+                if records:
+                    display_name = resource.replace("_", " ").title()
+                    groups.append({"model_name": display_name, "resource": resource, "records": records})
+
+        return {"groups": groups}
+
+    def _try_int(val: str):
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return val
+
     @app.get("/dashboard/recent-activity")
     async def get_dashboard_recent_activity(days: int | None = None):
         """Return records modified within the last N days, grouped by model."""

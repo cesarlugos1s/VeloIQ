@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Divider, Modal, Popover, Switch, Tooltip, message } from "antd";
-import { ApartmentOutlined, SaveFilled, SaveOutlined, SettingOutlined } from "@ant-design/icons";
+import { ApartmentOutlined, PushpinFilled, PushpinOutlined, SaveFilled, SaveOutlined, SettingOutlined } from "@ant-design/icons";
 import { useApiUrl } from "@refinedev/core";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 import type { ModelDef } from "../types";
@@ -10,6 +10,7 @@ import { renderIconOnlyButtons } from "../utils/buttons";
 import { DEFAULT_SHOW_RELATION_ROW_ACTIONS, DEFAULT_RELATION_CREATE_ACTIONS } from "../relations/helpers";
 import { useMetadataModal } from "./useMetadataModal";
 import { RelationsExplorer } from "../relations/RelationsExplorer";
+import { usePinRecord } from "../../../pages/dashboard/hooks/usePinRecord";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -126,6 +127,10 @@ export const useShowActionsPreferences = (
 
     const { id: urlId } = useParams();
     const effectiveRecord = record ?? (urlId ? { eid: Number(urlId) } : undefined);
+    const recordId = effectiveRecord?.eid ?? effectiveRecord?.id ?? urlId;
+    const resource = model.resource || model.name;
+
+    const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
 
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
     const [exploreOpen, setExploreOpen] = useState(false);
@@ -138,6 +143,16 @@ export const useShowActionsPreferences = (
                 <Button size="small" icon={<SettingOutlined />} />
             </Popover>
             <span style={{ marginInlineStart: 10 }} />
+            {pinned !== null && (
+                <Tooltip title={pinned ? _("Unpin") : _("Pin to dashboard")}>
+                    <Button
+                        size="small"
+                        icon={pinned ? <PushpinFilled style={{ color: "#faad14" }} /> : <PushpinOutlined />}
+                        onClick={togglePin}
+                        loading={pinLoading}
+                    />
+                </Tooltip>
+            )}
             <Tooltip title={_("Explore")}>
                 <Button size="small" icon={<ApartmentOutlined />} onClick={() => setExploreOpen(true)} />
             </Tooltip>

@@ -1,4 +1,4 @@
-"""Auth models: User, Role, Tenant.
+"""Auth models: User, Role, Tenant, VeloIQPinnedRecord.
 
 Adapted from the JuiceMantics ``authobjs`` module but using plain ``id`` primary
 keys and ``veloiq_`` table prefixes so they work on both SQLite and PostgreSQL
@@ -7,9 +7,10 @@ without any dependency on CubicWeb-style conventions.
 ReBAC hierarchy permission links (bohierarchy, itemhierarchy, custhierarchy) are
 intentionally omitted — they depend on JuiceMantics-specific models.
 """
+from datetime import datetime, timezone
 from typing import ClassVar, Dict, List, Literal, Optional
 
-from sqlalchemy import Column, ForeignKey, String, Text
+from sqlalchemy import Column, ForeignKey, String, Text, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -116,3 +117,19 @@ class User(SQLModel, table=True):
 
     def __str__(self) -> str:
         return self.username
+
+
+class VeloIQPinnedRecord(SQLModel, table=True):
+    """Per-user pinned records for the dashboard Pinned Records tab."""
+    __tablename__ = "veloiq_pinned_record"
+    __table_args__ = (
+        UniqueConstraint("user_id", "resource", "record_id", name="uq_veloiq_pin"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True)
+    resource: str = Field(sa_column=Column(String(100), nullable=False))
+    record_id: str = Field(sa_column=Column(String(100), nullable=False))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
