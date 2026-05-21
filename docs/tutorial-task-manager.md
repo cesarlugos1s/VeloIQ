@@ -54,11 +54,9 @@ By the end of Section 1 you will have:
 
 ```bash
 cd ~/projects          # or wherever you keep your code
-git clone https://github.com/cesarlugos1s/VeloIQ.git
-cd VeloIQ
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e backend/
+pip install veloiq-framework
 veloiq new task-manager
 cd task-manager
 ```
@@ -320,9 +318,12 @@ This writes two files per module:
 
 ## Step 8 — Start the backend (1 min)
 
+Make sure you are inside the `backend/` directory, then:
+
 ```bash
+cd backend                       # must run from here
 pip install -r requirements.txt
-veloiq run               # http://localhost:8000
+veloiq run                       # http://localhost:8000
 ```
 
 The framework creates all database tables automatically on first start — no
