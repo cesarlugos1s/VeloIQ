@@ -81,7 +81,13 @@ re-launching is fast.
 | `http://localhost:8000/docs` | Interactive REST API docs (Swagger UI) |
 | `http://localhost:8000/admin/` | SQLAdmin back-office |
 
-The app comes pre-loaded with:
+The app lands on a pre-configured **Dashboard** with three tabs:
+
+- **Models Grid** — embedded lists for Projects, Tasks, Team, and Access Control, each in its own cell. Hover a cell to reveal controls (configure, open full page, maximize, minimize). Cells default to showing only the Analyse charts; click **View list** to expand the table.
+- **Recent Activity** — records modified in the last 30 days, grouped by model with relative timestamps. The lookback period is adjustable.
+- **Pinned Records** — records you've bookmarked from anywhere in the app. Pin from a record's Show page (📌 button in the header) or in bulk from any list's bulk-action toolbar.
+
+The app also comes pre-loaded with:
 
 - **3 team members** (Alice, Bob, Carol)
 - **3 projects** (Website Relaunch, API v2, Brand Refresh)

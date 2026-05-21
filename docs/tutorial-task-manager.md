@@ -18,6 +18,7 @@ The finished app lives in `samples/task-manager/` if you want to compare at any 
 | [Section 5 — ReBAC](#section-5--row-level-access-control-rebac) | Filter which rows each user can see | ~10 min | Optional |
 | [Section 6 — Tree views](#section-6--tree-views-and-miller-columns) | Navigate task hierarchies with Miller columns | ~5 min | Optional |
 | [Section 7 — Built-in UI features](#section-7--built-in-ui-features) | Explore the analysis charts, column config, dark mode | ~5 min | Optional |
+| [Section 8 — Dashboard](#section-8--dashboard) | Add a dashboard with Models Grid, Recent Activity, and Pinned Records | ~10 min | Optional |
 
 **Complete Section 1 first.** All optional sections depend only on Section 1, not on each other, so you can read their goal and skip or do them in any order.
 
@@ -740,6 +741,178 @@ any node to navigate directly to that record.
 **Bulk actions** — tick the checkboxes on one or more rows in any list.  A
 bulk-action toolbar appears at the bottom with bulk edit, bulk delete, and CSV
 export.
+
+---
+
+---
+
+# Section 8 — Dashboard
+
+**Goal:** Add a dashboard to the task manager so the team gets an at-a-glance view of all models, recent changes, and bookmarked records.
+
+**Depends on:** Section 1 · **Time:** ~10 min
+
+---
+
+## Step 1 — Register models with the dashboard (30 sec)
+
+Run this command from the project root (the directory that contains `backend/` and `frontend/`):
+
+```bash
+veloiq add-dashboard project task team_member user role
+```
+
+The CLI scans the `backend/app/modules/` directory, groups each model into its
+module tab, and writes the configuration to
+`backend/config/views_configuration.json`:
+
+```
+📊  Dashboard updated
+
+  ✅  Added   : project, task, team_member, user, role
+
+  Current dashboard models: project, task, team_member, user, role
+  Config: backend/config/views_configuration.json
+```
+
+> **Model names vs. module names:** pass the model's `__tablename__` (e.g.
+> `team_member`) rather than the module folder name (`team`).  If you pass the
+> module name the CLI resolves it automatically by reading the module's
+> `models.py`.
+
+To add or remove models later:
+
+```bash
+veloiq add-dashboard project task          # add two more
+veloiq add-dashboard --remove role         # remove one
+```
+
+---
+
+## Step 2 — Open the dashboard
+
+Restart the backend (so the new table `veloiq_pinned_record` is created) and
+reload the frontend.  The app now lands on `/dashboard` instead of the first
+model list.
+
+The dashboard has three tabs.
+
+---
+
+## Models Grid
+
+A configurable grid of embedded model lists.  Each model registered with
+`veloiq add-dashboard` appears as a cell in its module's tab.
+
+**Default behaviour**
+
+- Each cell shows the **Analyse** section only (charts and summaries).  Click
+  **View list** inside a cell to expand the table.
+- The `team_member` cell defaults to the **gallery** view type because
+  `TeamMember` declares `__safem_ui__ = {"listViewType": "gallery"}`.
+
+**Cell controls (visible on hover)**
+
+| Icon | Action |
+|---|---|
+| ⚙ | Open the cell configuration drawer |
+| ↗ | Open the model's full list page in the same view |
+| ⛶ | Maximize this cell to fill the tab |
+| − | Minimize (collapse) this cell |
+
+**Cell configuration drawer**
+
+Click the ⚙ gear icon on any cell to open the drawer.  You can:
+
+- **Rename the tab** — if the new name matches an existing tab the cell is
+  moved into that tab; otherwise a new tab is created for just this cell.  Other
+  cells in the original tab are unaffected.
+- **Row / Column** (1-based) — reposition the cell in the CSS grid.
+- **View type** — override the default (table, gallery, calendar, totals/details).
+- **Size** — set `min-width`, `max-width`, `min-height`, `max-height`.
+- **HTML style** — arbitrary inline CSS applied to the cell wrapper.
+
+Changes are saved immediately to `backend/config/views_configuration.json`.
+
+---
+
+## Recent Activity
+
+The **Recent Activity** tab lists records modified within the last N days, grouped
+by model.
+
+- The default lookback is **30 days**, set via `VeloIQConfig.dashboard_recent_activity_days` in `backend/app/main.py`:
+
+  ```python
+  app = create_veloiq_app(VeloIQConfig(
+      dashboard_recent_activity_days=14,   # show last two weeks
+  ))
+  ```
+
+- The lookback period is also adjustable directly on the dashboard — change the
+  number in the "Show activity from the last ___ days" control and the list
+  refreshes immediately.
+- Only models that extend `TimestampedModel` (i.e. have `created_at` /
+  `updated_at` columns) appear.  Framework tables (`veloiq_*`) are excluded.
+- Records are sorted by most-recently-modified first.  Each entry links directly
+  to the record's Show page.
+
+---
+
+## Pinned Records
+
+The **Pinned Records** tab collects bookmarks the user has saved from anywhere
+in the app.  Pins are stored per user in the framework-managed
+`veloiq_pinned_record` table — no model changes are required.
+
+**Pinning a record**
+
+- **Show page** — open any record and click the 📌 **pin** icon in the page
+  header.  The icon turns gold when the record is pinned.  Click again to unpin.
+- **List bulk actions** — select one or more rows in any list.  The bulk-action
+  toolbar that appears at the bottom includes **Pin selected** and
+  **Unpin selected**.
+
+**Viewing and managing pins**
+
+Open **Dashboard → Pinned Records**.  Records are grouped by model, colour-coded
+with the model's tone.  Hover any row and click the 📌 unpin button to remove it.
+
+**RBAC behaviour**
+
+Pins respect access control silently: if the user's roles do not include a model,
+its pinned-records group is hidden from the panel.  Pins for deleted records are
+automatically cleaned up.
+
+---
+
+## Vibe coding prompt
+
+> In the task-manager backend open `backend/app/main.py` and set
+> `dashboard_recent_activity_days=14` in `VeloIQConfig` so the Recent Activity
+> tab shows the last two weeks by default.
+
+---
+
+## Coming next — Named Queries
+
+A future version of the dashboard will add **Named Queries** as a cell source
+type alongside the current model-grid cells.  A named query is a saved filter
+and sort configuration (or a custom SQL/ORM expression) stored in
+`views_configuration.json`.  You will be able to configure cells like:
+
+```json
+{
+  "source_type": "named_query",
+  "query_name": "overdue_tasks",
+  "view_type": "table"
+}
+```
+
+This will let you build cells such as "Overdue Tasks", "Open Critical Issues", or
+"Projects I Own" alongside the regular model grids — all without writing custom
+API endpoints.  The `source_type` field is already reserved in the cell schema for
+forward compatibility.
 
 ---
 
