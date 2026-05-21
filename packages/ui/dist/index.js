@@ -18382,6 +18382,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     onSave({ ...config, tabs: nextTabs });
     onClose();
   };
+  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: t.name }));
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Drawer,
     {
@@ -18396,7 +18397,14 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
       ] }),
       children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Form, { form, layout: "vertical", size: "small", children: [
         /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Tab" }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "tabName", label: "Tab name", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, {}) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "tabName", label: "Tab name", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.AutoComplete,
+          {
+            options: tabOptions,
+            filterOption: false,
+            placeholder: "Select existing or type a new name"
+          }
+        ) }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Position" }),
         /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "row", label: "Row", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { min: 1, style: { width: 80 } }) }),
@@ -18468,6 +18476,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
   };
   const resource = model?.resource || cell.model;
   const cellTitle = model?.label || cell.model;
+  const tone = model ? getModelTone(model) : null;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: cellStyle, className: "jm-dashboard-cell", children: [
     /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
                 .jm-dashboard-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }
@@ -18475,13 +18484,14 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
             ` }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: toolbarStyle, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
-        fontSize: token.fontSizeSM,
-        fontWeight: token.fontWeightStrong,
-        color: token.colorText,
+        fontSize: 14,
+        fontWeight: 700,
+        color: tone ? tone.solid : token.colorText,
         paddingLeft: 4,
         overflow: "hidden",
         textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
+        whiteSpace: "nowrap",
+        letterSpacing: "-0.01em"
       }, children: cellTitle }),
       /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Configure cell", children: /* @__PURE__ */ jsxRuntime.jsx(

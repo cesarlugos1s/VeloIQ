@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import type { ModelDef } from "../../components/DynamicResource/types";
 import { DynamicList } from "../../components/DynamicResource";
 import { findModelByName } from "../../components/DynamicResource/utils/model";
+import { getModelTone } from "../../utils/modelTone";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 import { CellConfigDrawer } from "./CellConfigDrawer";
 
@@ -71,6 +72,7 @@ const DashboardGridCell: React.FC<{
 
     const resource = model?.resource || cell.model;
     const cellTitle = model?.label || cell.model;
+    const tone = model ? getModelTone(model) : null;
 
     return (
         <div style={cellStyle} className="jm-dashboard-cell">
@@ -80,13 +82,14 @@ const DashboardGridCell: React.FC<{
             `}</style>
             <div style={toolbarStyle}>
                 <span style={{
-                    fontSize: token.fontSizeSM,
-                    fontWeight: token.fontWeightStrong,
-                    color: token.colorText,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: tone ? tone.solid : token.colorText,
                     paddingLeft: 4,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    letterSpacing: "-0.01em",
                 }}>
                     {cellTitle}
                 </span>

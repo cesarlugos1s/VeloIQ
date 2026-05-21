@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Drawer, Form, Input, InputNumber, Select, Button, Space, Divider, Typography } from "antd";
+import { Drawer, Form, Input, InputNumber, Select, Button, Space, Divider, Typography, AutoComplete } from "antd";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 
 const { Text } = Typography;
@@ -120,6 +120,8 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
         onClose();
     };
 
+    const tabOptions = config.tabs.map((t) => ({ value: t.name, label: t.name }));
+
     return (
         <Drawer
             title={`Configure cell: ${cell?.model ?? ""}`}
@@ -137,7 +139,11 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
             <Form form={form} layout="vertical" size="small">
                 <Divider orientation="left">Tab</Divider>
                 <Form.Item name="tabName" label="Tab name">
-                    <Input />
+                    <AutoComplete
+                        options={tabOptions}
+                        filterOption={false}
+                        placeholder="Select existing or type a new name"
+                    />
                 </Form.Item>
 
                 <Divider orientation="left">Position</Divider>
