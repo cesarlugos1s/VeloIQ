@@ -341,40 +341,9 @@ three entities.  Open `http://localhost:8000/admin/` for the SQLAdmin back-offic
 
 ## Step 9 — Start the frontend and log in (2 min)
 
-### 9a — Point the frontend at `@veloiq/ui`
-
-`@veloiq/ui` is not yet published to npm.  Before installing packages you must
-tell the frontend where your local copy of the framework lives.
-
-Open **`frontend/package.json`** and set the `@veloiq/ui` dependency:
-
-```json
-"@veloiq/ui": "file:/ABSOLUTE/PATH/TO/SafeMantIQ_framework/packages/ui"
-```
-
-Open **`frontend/vite.config.ts`** and set the alias:
-
-```ts
-"@veloiq/ui": "/ABSOLUTE/PATH/TO/SafeMantIQ_framework/packages/ui/src/index.ts"
-```
-
-Replace `/ABSOLUTE/PATH/TO/SafeMantIQ_framework` with the actual path on your
-machine (e.g. `/home/you/projects/SafeMantIQ_framework`).
-
-> `veloiq new` fills these in automatically when it can detect the framework
-> source directory.  If you see `/path/to/VeloIQ/…` in these files it means
-> the path could not be detected and you must set it manually.
-
-### 9b — Build `@veloiq/ui` and start the dev server
-
 In a second terminal:
 
 ```bash
-# Build the UI library once (skip if already built)
-cd /ABSOLUTE/PATH/TO/SafeMantIQ_framework/packages/ui
-npm install && npm run build
-
-# Start the frontend
 cd /YOUR/PROJECT/task-manager/frontend
 npm install
 npm run dev     # http://localhost:5173

@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@veloiq/ui": "file:../../../packages/ui",
+    "@juicemantics/veloiq-ui": "file:../../../packages/ui",
     "@refinedev/antd": "^5.40.0",
     "@refinedev/core": "^4.54.0",
     "@refinedev/react-router-v6": "^4.6.0",

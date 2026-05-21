@@ -287,5 +287,5 @@ by `veloiq generate` and must not be edited directly.
 
 To override or extend the generated schema, create a
 `{module}Schema.manual.ts` in the same directory and merge it in
-`{module}Schema.ts`.  See the `@veloiq/ui` documentation for the
+`{module}Schema.ts`.  See the `@juicemantics/veloiq-ui` documentation for the
 `ModelDef` and `FieldDef` type reference.

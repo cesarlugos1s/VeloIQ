@@ -63,7 +63,7 @@ class Project(TimestampedModel, table=True):
 - Built-in User / Role / Tenant management with a React UI
 
 **Frontend** — React · Refine · Ant Design
-- `@veloiq/ui` React component library — schema-driven CRUD pages with no boilerplate
+- `@juicemantics/veloiq-ui` React component library — schema-driven CRUD pages with no boilerplate
 - Powered by **Refine** for data fetching and state management, and **Ant Design** for the component system
 - **Side panels** — click any list row to open a detail panel beside the list; drag the divider to resize; minimize, maximize, or pop out to a full page
 - **Miller columns tree view** — hierarchical parent/child data renders as an interactive multi-column browser, auto-detected from self-referential model relationships
@@ -133,7 +133,7 @@ backend/
   setup.py
 
 packages/
-  ui/                       # @veloiq/ui — React component library
+  ui/                       # @juicemantics/veloiq-ui — React component library
     src/                    # TypeScript source
     dist/                   # Built output (committed; consumers install from this)
 

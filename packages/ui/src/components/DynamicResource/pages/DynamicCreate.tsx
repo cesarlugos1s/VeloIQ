@@ -649,7 +649,6 @@ export const DynamicCreate: React.FC<{
             <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
                 <ToneSharedStyles />
                 <StandardCreate
-                    redirect={false}
                     saveButtonProps={{ ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" }}
                     headerButtons={renderHeaderButtons}
                     title={renderWrappedPageTitle(`${_("Create")} ${modelDisplayLabel}`)}
@@ -717,7 +716,6 @@ export const DynamicCreate: React.FC<{
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardCreate
-                redirect={false}
                 saveButtonProps={isPostCreate
                     ? { ...saveButtonProps, style: { display: "none" }, hideText: true }
                     : { ...saveButtonProps, hideText: true }

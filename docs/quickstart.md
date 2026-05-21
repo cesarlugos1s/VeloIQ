@@ -62,7 +62,7 @@ The script will:
 2. Create a virtual environment at `samples/task-manager/backend/.venv`
 3. Install `veloiq-framework` (editable, from this repo)
 4. Copy `.env.example → .env` pointing at the bundled `taskmanager.db`
-5. Build `@veloiq/ui` from `packages/ui/` (one-time, ~15 s)
+5. Build `@juicemantics/veloiq-ui` from `packages/ui/` (one-time, ~15 s)
 6. Run `npm install` in the frontend (one-time, ~30 s)
 7. Start the FastAPI backend on port 8000
 8. Start the Vite dev server on port 5173

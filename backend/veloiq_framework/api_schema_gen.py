@@ -210,7 +210,7 @@ def _build_ts_schema(module_name: str, models: list) -> str:
 
     lines = [
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
-        "import type { ModelDef } from '@veloiq/ui';",
+        "import type { ModelDef } from '@juicemantics/veloiq-ui';",
         "",
         f"export const {module_name}Models: ModelDef[] = [",
     ]
@@ -380,7 +380,7 @@ def _write_all_models(modules: list[str], frontend_src: Path) -> None:
     valid = [m for m in modules if (pages_dir / m / f"{m}Schema.gen.ts").exists()]
     lines = [
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
-        "import type { ModelDef } from '@veloiq/ui';",
+        "import type { ModelDef } from '@juicemantics/veloiq-ui';",
         "",
     ]
     for mod in valid:

@@ -74,7 +74,7 @@ export const HierarchyView: React.FC<HierarchyViewProps> = ({ resource, recordId
     const handleSelect = (selectedKeys: React.Key[]) => {
         if (selectedKeys.length > 0) {
             const id = selectedKeys[0];
-            go({ to: { resource, action: "show", id } });
+            go({ to: { resource, action: "show", id: id as string | number } });
         }
     };
 

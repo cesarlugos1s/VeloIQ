@@ -115,16 +115,6 @@ npm install
 npm run dev               # starts at http://localhost:5173
 ```
 
-> **Before npm registry release:** build and install `@veloiq/ui` locally
-> before `npm install`:
->
-> ```bash
-> cd /path/to/fastapi_sqladmin_prototype/packages/ui
-> npm install && npm run build
-> cd /path/to/your-project/frontend
-> npm install /path/to/fastapi_sqladmin_prototype/packages/ui
-> npm install
-> ```
 
 Open http://localhost:5173 — you have a working CRUD interface for your Product
 model with zero additional code.

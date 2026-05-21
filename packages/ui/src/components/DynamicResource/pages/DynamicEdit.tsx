@@ -883,7 +883,7 @@ export const DynamicEdit: React.FC<{
                 </Tooltip>
             )}
             <Tooltip title={_("Save")}>
-                <Button {...saveButtonProps} type="primary" icon={<SaveFilled />} hideText />
+                <Button {...(saveButtonProps as any)} type="primary" icon={<SaveFilled />} />
             </Tooltip>
         </>
     );
@@ -891,7 +891,6 @@ export const DynamicEdit: React.FC<{
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardEdit
-                redirect={returnTo ? false : redirectTarget}
                 saveButtonProps={{ ...saveButtonProps, hideText: true }}
                 footerButtons={({ defaultButtons }) => renderIconOnlyButtons(defaultButtons)}
                 title={renderWrappedPageTitle(renderModelHeading({

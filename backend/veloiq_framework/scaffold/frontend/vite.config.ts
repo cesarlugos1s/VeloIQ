@@ -4,9 +4,6 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      "@veloiq/ui": "{{ui_src_path}}",
-    },
     dedupe: ["react", "react-dom", "antd", "@ant-design/icons", "@refinedev/antd", "@refinedev/core", "@tanstack/react-query", "axios", "dayjs", "react-resizable-panels", "react-router-dom"],
   },
   optimizeDeps: {

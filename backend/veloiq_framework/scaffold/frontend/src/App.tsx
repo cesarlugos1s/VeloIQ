@@ -23,8 +23,8 @@ import {
     PrimaryShowContext,
     ColorModeContextProvider,
     authSystemModels,
-} from "@veloiq/ui";
-import type { PrimaryShowRendererProps } from "@veloiq/ui";
+} from "@juicemantics/veloiq-ui";
+import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.

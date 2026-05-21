@@ -1,5 +1,5 @@
 // AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
-import type { ModelDef } from '@veloiq/ui';
+import type { ModelDef } from '@juicemantics/veloiq-ui';
 
 export const teamModels: ModelDef[] = [
   {

@@ -15,7 +15,7 @@ backend/
   setup.py                  # Setuptools compatibility shim
 
 packages/
-  ui/                       # @veloiq/ui — React component library
+  ui/                       # @juicemantics/veloiq-ui — React component library
     src/                    # TypeScript source
     dist/                   # Built output (committed — consumers install from this)
 
@@ -24,7 +24,7 @@ docs/                       # Framework documentation
 samples/
   task-manager/             # Complete reference application built with the framework
     backend/                # FastAPI backend using veloiq-framework
-    frontend/               # React frontend using @veloiq/ui
+    frontend/               # React frontend using @juicemantics/veloiq-ui
 ```
 
 ## Commands
@@ -67,7 +67,7 @@ pip install -e backend/
 - Module auto-loader: scans `app/modules/*/` for `models.py`, `api.py`, `custom_api.py`, `admin/admin_views.py`
 - Built-in auth: `veloiq_framework.auth` — User/Role/Tenant models, JWT login, RBAC middleware, DB seeding
 
-### UI package (`@veloiq/ui`)
+### UI package (`@juicemantics/veloiq-ui`)
 - `DynamicList`, `DynamicShow`, `DynamicCreate`, `DynamicEdit` — schema-driven CRUD pages
 - `generateResources(models, moduleName)` — builds Refine resource definitions from ModelDef arrays
 - `authSystemModels` — static ModelDef definitions for User, Role, Tenant CRUD pages

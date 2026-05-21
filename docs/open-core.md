@@ -16,7 +16,7 @@ ship a complete, production-ready application using only the free tier.
 - `veloiq` CLI — `new`, `generate`, `run`, `db`
 - `api_schema_gen` — generates `api.py` CRUD endpoints and TypeScript schemas
   from SQLModel definitions
-- `@veloiq/ui` npm package — `DynamicResource` (full CRUD rendering
+- `@juicemantics/veloiq-ui` npm package — `DynamicResource` (full CRUD rendering
   engine), `LayoutWrapper`, `GlobalSearch`, `HierarchyView`, `MultiPane`,
   auth providers, all standard UI components
 

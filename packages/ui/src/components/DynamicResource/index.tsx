@@ -464,7 +464,7 @@ export const DynamicList: React.FC<{
     const { tableProps, searchFormProps, filters: activeFilters, setFilters } = useTable({
         resource: resourceIdentifier,
         syncWithLocation: !isEmbedded,
-        pagination: { pageSize, hideOnSinglePage: true, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] },
+        pagination: { pageSize, hideOnSinglePage: true, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } as any,
         filters: { initial: tableFilters, permanent: tableFilters },
         onSearch: (values: any) => {
             if (!searchField) return [];
@@ -625,7 +625,7 @@ export const DynamicList: React.FC<{
                 case "on": {
                     const range = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
                     const time = recordDate.valueOf();
-                    return time >= range.start.valueOf() && time <= range.end.valueOf();
+                    return time >= range.start!.valueOf() && time <= range.end!.valueOf();
                 }
                 case "after": {
                     const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
@@ -930,7 +930,7 @@ export const DynamicList: React.FC<{
         }
         const pagination = tableProps.pagination;
         if (typeof pagination === "object" && typeof pagination.onChange === "function") {
-            pagination.onChange(page, newPageSize);
+            pagination.onChange(page, newPageSize ?? pageSize);
         }
     }, [pageSize, tableProps.pagination]);
 
@@ -1586,7 +1586,7 @@ export const DynamicList: React.FC<{
                     const dateVal = resolveServerDate(rule.value, false).date;
                     return [{
                         field: fieldKey,
-                        operator: operatorMap[op] || "eq",
+                        operator: (op && operatorMap[op]) || "eq",
                         value: dateVal,
                     }];
                 }
@@ -2777,12 +2777,12 @@ export const DynamicList: React.FC<{
         }
         if (!isClientFiltering) {
             if (typeof tableProps.onChange === "function") {
-                tableProps.onChange({ current: page, pageSize: nextPageSize ?? pageSize }, {}, {} as any);
+                tableProps.onChange({ current: page, pageSize: nextPageSize ?? pageSize }, {}, {} as any, {} as any);
                 return;
             }
             const pagination = tableProps.pagination;
             if (typeof pagination === "object" && typeof pagination.onChange === "function") {
-                pagination.onChange(page, nextPageSize);
+                pagination.onChange(page, nextPageSize ?? pageSize);
             }
         }
     }, [isClientFiltering, pageSize, tableProps]);

@@ -74,11 +74,11 @@ cp .env.example .env      # defaults to the bundled SQLite taskmanager.db
 veloiq run                 # starts at http://localhost:8000
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
-# In a second terminal, build @veloiq/ui from the local packages/ui first:
+# In a second terminal, build @juicemantics/veloiq-ui from the local packages/ui first:
 cd ../../../packages/ui && npm install && npm run build
 
 cd samples/task-manager/frontend
-npm install               # resolves @veloiq/ui from packages/ui (file: ref)
+npm install               # resolves @juicemantics/veloiq-ui from packages/ui (file: ref)
 npm run dev               # starts at http://localhost:5173
 ```
 

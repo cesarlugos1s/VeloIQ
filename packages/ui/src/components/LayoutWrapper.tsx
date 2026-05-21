@@ -211,7 +211,6 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                 Title={({ collapsed }) => <DefaultLogo logo={logo} appTitle={appTitle} collapsed={collapsed} />}
                 Sider={SiderToRender}
                 Header={CustomHeader}
-                SiderProps={{ width: 280 }}
             >
                 {children}
             </ThemedLayoutV2>
