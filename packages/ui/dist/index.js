@@ -829,7 +829,6 @@ var LayoutWrapper = ({
         Title: ({ collapsed }) => /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, collapsed }),
         Sider: SiderToRender,
         Header: CustomHeader,
-        SiderProps: { width: 280 },
         children
       },
       layoutMode
@@ -7783,7 +7782,6 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       /* @__PURE__ */ jsxRuntime.jsx(
         StandardCreate,
         {
-          redirect: false,
           saveButtonProps: { ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" },
           headerButtons: renderHeaderButtons,
           title: renderWrappedPageTitle(`${_23("Create")} ${modelDisplayLabel}`),
@@ -7835,7 +7833,6 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     /* @__PURE__ */ jsxRuntime.jsxs(
       StandardCreate,
       {
-        redirect: false,
         saveButtonProps: isPostCreate ? { ...saveButtonProps, style: { display: "none" }, hideText: true } : { ...saveButtonProps, hideText: true },
         headerButtons: isPostCreate ? renderPostCreateHeaderButtons : renderHeaderButtons,
         title: renderWrappedPageTitle(
@@ -8619,14 +8616,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveFilled, {}), hideText: true }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveFilled, {}) }) })
   ] });
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxRuntime.jsxs(
       StandardEdit,
       {
-        redirect: returnTo ? false : redirectTarget,
         saveButtonProps: { ...saveButtonProps, hideText: true },
         footerButtons: ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons),
         title: renderWrappedPageTitle(renderModelHeading({
@@ -14355,7 +14351,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     const pagination = tableProps.pagination;
     if (typeof pagination === "object" && typeof pagination.onChange === "function") {
-      pagination.onChange(page, newPageSize);
+      pagination.onChange(page, newPageSize ?? pageSize);
     }
   }, [pageSize, tableProps.pagination]);
   const tablePagination = React6.useMemo(() => {
@@ -14959,7 +14955,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         const dateVal = resolveServerDate(rule.value, false).date;
         return [{
           field: fieldKey,
-          operator: operatorMap[op] || "eq",
+          operator: op && operatorMap[op] || "eq",
           value: dateVal
         }];
       }
@@ -16039,12 +16035,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     if (!isClientFiltering) {
       if (typeof tableProps.onChange === "function") {
-        tableProps.onChange({ current: page, pageSize: nextPageSize ?? pageSize }, {}, {});
+        tableProps.onChange({ current: page, pageSize: nextPageSize ?? pageSize }, {}, {}, {});
         return;
       }
       const pagination = tableProps.pagination;
       if (typeof pagination === "object" && typeof pagination.onChange === "function") {
-        pagination.onChange(page, nextPageSize);
+        pagination.onChange(page, nextPageSize ?? pageSize);
       }
     }
   }, [isClientFiltering, pageSize, tableProps]);
