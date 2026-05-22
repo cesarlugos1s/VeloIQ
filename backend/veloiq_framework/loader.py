@@ -179,6 +179,26 @@ def load_modules(
     count = _inject_model_classes(module_prefix)
     print(f"  ✅ Injected {count} model classes into module namespaces")
 
+    # ── Pass 1.5: Named query endpoints ──────────────────────────────────────
+    from veloiq_framework.queries import NamedQuery
+    from veloiq_framework.query_crud import create_query_router
+
+    for folder_name in module_folders:
+        dotted = f"{module_prefix}.{folder_name}.queries"
+        try:
+            queries_mod = importlib.import_module(dotted)
+            for attr_name in dir(queries_mod):
+                obj = getattr(queries_mod, attr_name)
+                if isinstance(obj, NamedQuery):
+                    router = create_query_router(obj)
+                    app.include_router(router, tags=[folder_name.upper()])
+                    print(f"  ✅ Query: {obj.name}")
+        except ModuleNotFoundError as exc:
+            if dotted not in str(exc):
+                print(f"  ❌ {folder_name}/queries FAILED: {exc}")
+        except Exception as exc:
+            print(f"  ❌ {folder_name}/queries CRASHED: {exc}")
+
     # ── Pass 2: Admin views ───────────────────────────────────────────────────
     from sqlalchemy.orm import configure_mappers
     from sqladmin import ModelView

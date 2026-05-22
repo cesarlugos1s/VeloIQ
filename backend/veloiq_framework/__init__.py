@@ -14,6 +14,7 @@ from veloiq_framework.models import (
 from veloiq_framework.db import get_session
 from veloiq_framework.crud import create_crud_router
 from veloiq_framework.auth.utils import get_current_user, require_role
+from veloiq_framework.queries import NamedQuery, NamedQueryField
 from veloiq_framework.auth.permissions import (
     RoleDef,
     model_access,
@@ -38,6 +39,9 @@ __all__ = [
     "RelationCardinality",
     "get_session",
     "create_crud_router",
+    # Named queries
+    "NamedQuery",
+    "NamedQueryField",
     "get_current_user",
     "require_role",
     # Permission primitives — RBAC

@@ -572,5 +572,57 @@ export const useStandardShowTabs = (
     items.push(...customConfigTabs);
     items.push(...relationTabs);
 
+    // ── Named-query relation tabs ─────────────────────────────────────────────
+    // Two eligibility patterns:
+    //   A) primaryResource === currentResource — the query's primary model IS the
+    //      current show model.  Filter key = query pkField (e.g. ?id=1).
+    //   B) A field in the query has reference === currentResource — a FK in the
+    //      query points back to the current model.  Filter key = that field's key.
+    const currentResource = model.resource || model.name.toLowerCase();
+    const namedQueryTabs = (allModels || [])
+        .filter((m) => m.isNamedQuery)
+        .flatMap((queryModel) => {
+            if (!record) return [];
+            const currentId = getRecordId(record, model.fields);
+            let filterKey: string | undefined;
+            if (queryModel.primaryResource === currentResource) {
+                // Pattern A
+                filterKey = queryModel.pkField || "id";
+            } else {
+                // Pattern B
+                const fkField = queryModel.fields.find((f) => f.reference === currentResource);
+                filterKey = fkField?.key;
+            }
+            if (!filterKey) return [];
+            const syntheticRel = {
+                resource: queryModel.resource || queryModel.name,
+                targetKey: filterKey,
+                label: queryModel.label,
+                showViewType: (queryModel.listViewType as any) || "table",
+            };
+            const relationModel = queryModel;
+            const tone = getModelTone(queryModel.resource || queryModel.name);
+            return [{
+                key: `named-query::${queryModel.name || queryModel.resource}`,
+                label: renderToneTabLabel(queryModel.label, tone),
+                children: (
+                    <div>
+                        {renderRelationBlock({
+                            rel: syntheticRel,
+                            relationModel,
+                            record,
+                            mode: "show",
+                            parentResource: model.name,
+                            allModels,
+                            showActions: false,
+                            showCreate: false,
+                            relationViewTypeDefaults,
+                        })}
+                    </div>
+                ),
+            }];
+        });
+    items.push(...namedQueryTabs);
+
     return items;
 };

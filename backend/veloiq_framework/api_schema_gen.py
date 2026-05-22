@@ -157,8 +157,12 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         # ── Generate frontend TypeScript schema ───────────────────────────
         out_dir = pages_dir / module_name
         out_dir.mkdir(parents=True, exist_ok=True)
-        schema = _build_ts_schema(module_name, module_models)
-        (out_dir / f"{module_name}Schema.gen.ts").write_text(schema)
+        schema_lines = _build_ts_schema_lines(module_name, module_models)
+        # Append any named queries defined in this module's queries.py.
+        named_query_lines = _collect_named_query_ts_lines(mod_dir, module_name)
+        schema_lines += named_query_lines
+        schema_lines += ["];", "", f"export default {module_name}Models;", ""]
+        (out_dir / f"{module_name}Schema.gen.ts").write_text("\n".join(schema_lines))
         print(f"  ✅ {module_name}Schema.gen.ts")
 
         generated.append(module_name)
@@ -206,6 +210,13 @@ def _build_api_py(module_name: str, models: list) -> str:
 # ---------------------------------------------------------------------------
 
 def _build_ts_schema(module_name: str, models: list) -> str:
+    """Compatibility wrapper — returns the complete TypeScript schema file content."""
+    lines = _build_ts_schema_lines(module_name, models)
+    lines += ["];", "", f"export default {module_name}Models;", ""]
+    return "\n".join(lines)
+
+
+def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
     from sqlalchemy.inspection import inspect as sa_inspect
 
     lines = [
@@ -341,8 +352,7 @@ def _build_ts_schema(module_name: str, models: list) -> str:
             "  },",
         ]
 
-    lines += ["];", "", f"export default {module_name}Models;", ""]
-    return "\n".join(lines)
+    return lines
 
 
 def _to_ts_array(values: list[str]) -> str:
@@ -426,6 +436,80 @@ def _is_link_model(cls: type) -> bool:
         return len(fk_cols) >= 2 and len(all_cols) <= len(pk_cols) + 2
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# Named query TypeScript helpers
+# ---------------------------------------------------------------------------
+
+def _collect_named_query_ts_lines(mod_dir: Path, module_name: str) -> list[str]:
+    """Import *module_name*/queries.py and return TypeScript lines for each NamedQuery."""
+    import importlib
+
+    queries_file = mod_dir / "queries.py"
+    if not queries_file.exists():
+        return []
+
+    try:
+        from veloiq_framework.queries import NamedQuery
+        qs_mod = importlib.import_module(f"app.modules.{module_name}.queries")
+    except Exception as exc:
+        print(f"  ⚠️  {module_name}/queries: could not import ({exc})")
+        return []
+
+    lines: list[str] = []
+    for attr_name in dir(qs_mod):
+        obj = getattr(qs_mod, attr_name)
+        if isinstance(obj, NamedQuery):
+            lines += _build_ts_named_query(obj)
+            print(f"  ✅ {module_name}/{obj.name} (named query)")
+    return lines
+
+
+def _build_ts_named_query(q: "object") -> list[str]:
+    """Return TypeScript lines for a single NamedQuery to insert into the ModelDef array."""
+    from veloiq_framework.queries import NamedQuery, NamedQueryField
+    from veloiq_framework.models import get_pk_field_name
+
+    assert isinstance(q, NamedQuery)
+
+    pk_field = get_pk_field_name(q.primary_model)
+    primary_tablename = getattr(q.primary_model, "__tablename__", q.primary_model.__name__.lower())
+    name_pascal = "".join(part.title() for part in q.name.split("_"))
+    model_label = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', name_pascal)
+
+    # Build field entries.
+    field_lines: list[str] = []
+    for f in q.fields:
+        parts = [f'key: "{f.key}"', f'label: "{f.label}"', f'type: "{f.type}"']
+        if f.reference:
+            parts.append(f'reference: "{f.reference}"')
+        if f.read_only:
+            parts.append("readOnly: true")
+        field_lines.append("{ " + ", ".join(parts) + " }")
+
+    # defaultSort
+    sort_str = ""
+    if q.default_sort:
+        sort_str = f'    defaultSort: {{ field: "{q.default_sort[0]}", order: "{q.default_sort[1]}" }},'
+
+    lines = ["  {"]
+    lines.append(f'    name: "{name_pascal}",')
+    lines.append(f'    label: "{q.label}",')
+    lines.append(f'    resource: "{q.name}",')
+    lines.append(f'    pkField: "{pk_field}",')
+    lines.append("    isNamedQuery: true,")
+    lines.append(f'    primaryResource: "{primary_tablename}",')
+    lines.append(f'    listViewType: "{q.list_view_type}",')
+    if sort_str:
+        lines.append(sort_str)
+    lines.append("    fields: [")
+    for fl in field_lines:
+        lines.append(f"      {fl},")
+    lines.append("    ],")
+    lines.append("    relations: [],")
+    lines.append("  },")
+    return lines
 
 
 def _guess_modules_dir(cwd: Path) -> Path:

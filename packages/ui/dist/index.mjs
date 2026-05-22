@@ -9142,6 +9142,43 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const items = [detailsTab];
   items.push(...customConfigTabs);
   items.push(...relationTabs);
+  const currentResource = model.resource || model.name.toLowerCase();
+  const namedQueryTabs = (allModels || []).filter((m) => m.isNamedQuery).flatMap((queryModel) => {
+    if (!record) return [];
+    getRecordId(record, model.fields);
+    let filterKey;
+    if (queryModel.primaryResource === currentResource) {
+      filterKey = queryModel.pkField || "id";
+    } else {
+      const fkField = queryModel.fields.find((f) => f.reference === currentResource);
+      filterKey = fkField?.key;
+    }
+    if (!filterKey) return [];
+    const syntheticRel = {
+      resource: queryModel.resource || queryModel.name,
+      targetKey: filterKey,
+      label: queryModel.label,
+      showViewType: queryModel.listViewType || "table"
+    };
+    const relationModel = queryModel;
+    const tone = getModelTone(queryModel.resource || queryModel.name);
+    return [{
+      key: `named-query::${queryModel.name || queryModel.resource}`,
+      label: renderToneTabLabel(queryModel.label, tone),
+      children: /* @__PURE__ */ jsx("div", { children: renderRelationBlock({
+        rel: syntheticRel,
+        relationModel,
+        record,
+        mode: "show",
+        parentResource: model.name,
+        allModels,
+        showActions: false,
+        showCreate: false,
+        relationViewTypeDefaults
+      }) })
+    }];
+  });
+  items.push(...namedQueryTabs);
   return items;
 };
 var INLINE_DEFAULT_PAGE_SIZE = 10;
@@ -13892,7 +13929,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const [selectedColumnKeys, setSelectedColumnKeys] = useState(null);
   const [columnOrder, setColumnOrder] = useState(null);
   const [columnFiltersSelected, setColumnFiltersSelected] = useState({});
-  const [columnSort, setColumnSort] = useState([]);
+  const [columnSort, setColumnSort] = useState(
+    model.defaultSort ? [{ fieldKey: model.defaultSort.field, order: model.defaultSort.order === "desc" ? "descend" : "ascend" }] : []
+  );
   const [totalsSummaryFunctions, setTotalsSummaryFunctions] = useState({});
   const [currentViewName, setCurrentViewName] = useState(getDefaultViewName());
   const [selectedViewNames, setSelectedViewNames] = useState([]);
@@ -15486,7 +15525,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const exportStatsPdf = () => {
     openPdfWindow(`${model.name}-stats`, buildStatsHtml(statsSummary));
   };
-  const getRowKey = (record) => {
+  const getRowKey = (record, index) => {
+    if (model.isNamedQuery && index !== void 0) return String(index);
     if (record?.eid !== void 0 && record?.eid !== null) return record.eid;
     if (record?.id !== void 0 && record?.id !== null) return record.id;
     if (relationConfig?.targetKey || relationConfig?.otherKey) {
@@ -15503,7 +15543,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (relationConfig?.otherResource && relationConfig?.otherKey && record[relationConfig.otherKey]) {
       return { resource: relationConfig.otherResource, id: record[relationConfig.otherKey], isLinkRow: true };
     }
-    const resourceName = model.resource || model.name;
+    const resourceName = model.isNamedQuery && model.primaryResource ? model.primaryResource : model.resource || model.name;
     const explicitPk = model.pkField ? record[model.pkField] : void 0;
     const isPkField = model.fields?.find((f) => f.isPk)?.key;
     const pkValue = explicitPk ?? (isPkField ? record[isPkField] : void 0) ?? record.eid ?? record.id ?? null;
@@ -17389,7 +17429,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     columnsToggleButton,
     listToggleButton,
     exportButton,
-    renderIconOnlyButtons(defaultButtons)
+    !model.isNamedQuery && renderIconOnlyButtons(defaultButtons)
   ] });
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),

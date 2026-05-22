@@ -19,6 +19,27 @@ export const projectsModels: ModelDef[] = [
       { resource: "task", targetKey: "project_id", label: "Tasks" },
     ],
   },
+  {
+    name: "ProjectsWithTasksAndMembers",
+    label: "Projects with Tasks and Members",
+    resource: "projects_with_tasks_and_members",
+    pkField: "id",
+    isNamedQuery: true,
+    primaryResource: "project",
+    listViewType: "table",
+    defaultSort: { field: "due_date", order: "asc" },
+    fields: [
+      { key: "project_name", label: "Project", type: "string" },
+      { key: "project_status", label: "Project Status", type: "string" },
+      { key: "task_title", label: "Task", type: "string", readOnly: true },
+      { key: "task_status", label: "Task Status", type: "string", readOnly: true },
+      { key: "due_date", label: "Due Date", type: "date", readOnly: true },
+      { key: "planned_work_hours", label: "Planned Hours", type: "number", readOnly: true },
+      { key: "actual_work_hours", label: "Actual Hours", type: "number", readOnly: true },
+      { key: "assignee_name", label: "Assignee", type: "string", readOnly: true },
+    ],
+    relations: [],
+  },
 ];
 
 export default projectsModels;

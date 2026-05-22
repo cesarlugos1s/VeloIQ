@@ -84,6 +84,12 @@ export interface ModelDef {
     description?: string;
     pkField?: string;
     listViewType?: "table" | "gallery" | "calendar" | "totals-details";
+    /** True when this ModelDef represents a NamedQuery rather than a plain model table. */
+    isNamedQuery?: boolean;
+    /** Resource name of the primary model (for show/edit navigation and write routing). */
+    primaryResource?: string;
+    /** Default sort applied on first load when no saved preference exists. */
+    defaultSort?: { field: string; order: "asc" | "desc" };
 }
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };

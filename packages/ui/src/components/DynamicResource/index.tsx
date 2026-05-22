@@ -345,7 +345,11 @@ export const DynamicList: React.FC<{
     const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[] | null>(null);
     const [columnOrder, setColumnOrder] = useState<string[] | null>(null);
     const [columnFiltersSelected, setColumnFiltersSelected] = useState<Record<string, string[]>>({});
-    const [columnSort, setColumnSort] = useState<ColumnSortState[]>([]);
+    const [columnSort, setColumnSort] = useState<ColumnSortState[]>(
+        model.defaultSort
+            ? [{ fieldKey: model.defaultSort.field, order: (model.defaultSort.order === "desc" ? "descend" : "ascend") as ColumnSortOrder }]
+            : []
+    );
     const [totalsSummaryFunctions, setTotalsSummaryFunctions] = useState<Record<string, TotalsSummaryFn>>({});
     const [currentViewName, setCurrentViewName] = useState<string>(getDefaultViewName());
     const [selectedViewNames, setSelectedViewNames] = useState<string[]>([]);
@@ -2082,7 +2086,10 @@ export const DynamicList: React.FC<{
         openPdfWindow(`${model.name}-stats`, buildStatsHtml(statsSummary));
     };
 
-    const getRowKey = (record: any) => {
+    const getRowKey = (record: any, index?: number) => {
+        // Named queries may have duplicate eids (e.g. one row per Project×Task);
+        // use the row index as the React key to avoid duplicate-key warnings.
+        if (model.isNamedQuery && index !== undefined) return String(index);
         if (record?.eid !== undefined && record?.eid !== null) return record.eid;
         if (record?.id !== undefined && record?.id !== null) return record.id;
         if (relationConfig?.targetKey || relationConfig?.otherKey) {
@@ -2103,7 +2110,10 @@ export const DynamicList: React.FC<{
         if (relationConfig?.otherResource && relationConfig?.otherKey && record[relationConfig.otherKey]) {
             return { resource: relationConfig.otherResource, id: record[relationConfig.otherKey], isLinkRow: true };
         }
-        const resourceName = model.resource || model.name;
+        // For named queries navigate to the primary model's show page.
+        const resourceName = (model.isNamedQuery && model.primaryResource)
+            ? model.primaryResource
+            : (model.resource || model.name);
         // Resolution order: explicit pkField → isPk field → eid (CubicWeb) → id (standard)
         const explicitPk = model.pkField ? record[model.pkField] : undefined;
         const isPkField = model.fields?.find((f) => f.isPk)?.key;
@@ -4094,7 +4104,8 @@ export const DynamicList: React.FC<{
             {columnsToggleButton}
             {listToggleButton}
             {exportButton}
-            {renderIconOnlyButtons(defaultButtons)}
+            {/* Named queries have no create endpoint — suppress the Create button. */}
+            {!model.isNamedQuery && renderIconOnlyButtons(defaultButtons)}
         </>
     );
 
