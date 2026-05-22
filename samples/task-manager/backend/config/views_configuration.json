@@ -100,7 +100,7 @@
               "source_type": "model",
               "row": 0,
               "col": 0,
-              "view_type": "gallery",
+              "view_type": null,
               "html_style": "",
               "min_width": null,
               "max_width": null,

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 class TeamMember(TimestampedModel, table=True):
     __tablename__ = "team_member"
-    __safem_ui__: ClassVar[Dict] = {"listViewType": "gallery"}
+    __veloiq_ui__: ClassVar[Dict] = {"listViewType": "gallery"}
 
     name: str
     email: str

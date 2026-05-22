@@ -7,6 +7,7 @@ export const teamModels: ModelDef[] = [
     label: "Team Member",
     resource: "team_member",
     pkField: "id",
+    listViewType: "gallery",
     fields: [
       { key: "name", label: "Name", type: "string" },
       { key: "email", label: "Email", type: "string" },
