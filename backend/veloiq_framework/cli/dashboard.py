@@ -1,4 +1,4 @@
-"""veloiq add-dashboard — add/remove models from the dashboard configuration."""
+"""veloiq add-dashboard — add/remove models and named queries from the dashboard configuration."""
 from __future__ import annotations
 
 import json
@@ -23,7 +23,7 @@ _CONFIG_RELATIVE = Path("config") / "views_configuration.json"
 @click.argument("models", nargs=-1)
 @click.option(
     "--remove", "remove_models", multiple=True, metavar="MODEL",
-    help="Models to remove from the dashboard.",
+    help="Models or named queries to remove from the dashboard.",
 )
 @click.option(
     "--project-root", default=None,
@@ -34,13 +34,15 @@ def add_dashboard(
     remove_models: tuple[str, ...],
     project_root: Optional[str],
 ) -> None:
-    """Add or remove models from the app dashboard.
+    """Add or remove models and named queries from the app dashboard.
 
-    Positional models are added; --remove models are removed.
+    Positional arguments are added; --remove arguments are removed.
+    Both regular models and named queries (defined in queries.py) are supported.
 
     \b
     Examples:
       veloiq add-dashboard project task team user role
+      veloiq add-dashboard project projects_with_tasks_and_members task user role
       veloiq add-dashboard --remove user role
       veloiq add-dashboard tenant --remove user role
     """
@@ -91,6 +93,16 @@ def add_dashboard(
         if m in existing_models:
             skipped_present.append(m)
             continue
+
+        # Check if this is a named query defined in any queries.py file.
+        nq_module = _detect_named_query_module(m, modules_dir)
+        if nq_module is not None:
+            _add_model_to_dashboard(dashboard, m, nq_module, source_type="named_query")
+            existing_models.add(m)
+            added.append(m)
+            continue
+
+        # Regular model flow.
         module = _detect_module(m, modules_dir)
         resolved = _resolve_model_name(m, modules_dir)
         if resolved in existing_models:
@@ -126,8 +138,13 @@ def add_dashboard(
 # Dashboard manipulation helpers
 # ---------------------------------------------------------------------------
 
-def _add_model_to_dashboard(dashboard: dict, model: str, module: str) -> None:
-    """Insert model into the correct tab (by module), creating the tab if needed."""
+def _add_model_to_dashboard(
+    dashboard: dict,
+    model: str,
+    module: str,
+    source_type: str = "model",
+) -> None:
+    """Insert model or named query into the correct tab (by module), creating the tab if needed."""
     tabs: list[dict] = dashboard.setdefault("tabs", [])
     # Find existing tab for this module — match by stored module key or display name.
     display = _module_display_name(module)
@@ -157,7 +174,7 @@ def _add_model_to_dashboard(dashboard: dict, model: str, module: str) -> None:
     cells.append({
         "id": str(uuid.uuid4()),
         "model": model,
-        "source_type": "model",
+        "source_type": source_type,
         "row": row,
         "col": col,
         "view_type": None,
@@ -179,7 +196,37 @@ def _remove_model_from_dashboard(dashboard: dict, model: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Module detection
+# Named query detection
+# ---------------------------------------------------------------------------
+
+def _detect_named_query_module(model: str, modules_dir: Path) -> Optional[str]:
+    """Return the module name if *model* is a NamedQuery defined in any queries.py, else None.
+
+    Uses text-only scanning so no import of the app's code is required.
+    """
+    if not modules_dir.exists():
+        return None
+    for folder in sorted(modules_dir.iterdir()):
+        if not folder.is_dir() or folder.name.startswith("__"):
+            continue
+        queries_file = folder / "queries.py"
+        if not queries_file.exists():
+            continue
+        text = queries_file.read_text(encoding="utf-8")
+        # Check that this file contains a NamedQuery with the requested name.
+        if f'name="{model}"' not in text and f"name='{model}'" not in text:
+            continue
+        # Extract the module= field from the same file.
+        m = re.search(r'\bmodule\s*=\s*["\']([^"\']+)["\']', text)
+        if m:
+            return m.group(1)
+        # Fall back to the folder name if module= is not written explicitly.
+        return folder.name
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Module detection (regular models)
 # ---------------------------------------------------------------------------
 
 def _detect_module(model: str, modules_dir: Path) -> str:

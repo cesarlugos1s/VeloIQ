@@ -16,15 +16,15 @@
               "col": 0,
               "view_type": null,
               "html_style": "",
-              "min_width": null,
+              "min_width": "464px",
               "max_width": null,
               "min_height": null,
               "max_height": null
             },
             {
-              "id": "a025cdb4-25b2-46ac-b7d2-05c1b5fc8550",
-              "model": "task",
-              "source_type": "model",
+              "id": "e7b3c912-4f1a-4d8e-b6a0-2c8f5d3e1a9b",
+              "model": "projects_with_tasks_and_members",
+              "source_type": "named_query",
               "row": 0,
               "col": 1,
               "view_type": null,
@@ -47,7 +47,7 @@
               "source_type": "model",
               "row": 0,
               "col": 0,
-              "view_type": null,
+              "view_type": "gallery",
               "html_style": "",
               "min_width": null,
               "max_width": null,
@@ -81,6 +81,26 @@
               "row": 0,
               "col": 1,
               "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            }
+          ]
+        },
+        {
+          "id": "26f3f374-0fb6-4ff0-9ec6-1b0415589435",
+          "name": "Tasks",
+          "module": "projects",
+          "cells": [
+            {
+              "id": "a025cdb4-25b2-46ac-b7d2-05c1b5fc8550",
+              "model": "task",
+              "source_type": "model",
+              "row": 0,
+              "col": 0,
+              "view_type": "gallery",
               "html_style": "",
               "min_width": null,
               "max_width": null,

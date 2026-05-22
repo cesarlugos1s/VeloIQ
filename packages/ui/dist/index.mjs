@@ -3279,7 +3279,7 @@ var getRelationLabel = (rel) => {
     const translatedBaseKey = translateRelationKey(baseKey);
     if (translatedBaseKey && translatedBaseKey !== baseKey) return translatedBaseKey;
   }
-  return asDisplayText(relationKey, asDisplayText(rel.label, relationKey));
+  return asDisplayText(rel.label, asDisplayText(relationKey, "")) || relationKey;
 };
 var getModelLabel = (model) => {
   const primary = asDisplayText(model.label, "");

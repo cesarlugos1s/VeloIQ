@@ -125,7 +125,9 @@ export const getRelationLabel = (rel: RelationDef) => {
         if (translatedBaseKey && translatedBaseKey !== baseKey) return translatedBaseKey;
     }
 
-    return asDisplayText(relationKey, asDisplayText(rel.label, relationKey));
+    // Prefer an explicit label (e.g. from a named query's ModelDef) over the raw
+    // resource/relation key, which may be a technical slug like "projects_with_tasks_and_members".
+    return asDisplayText(rel.label, asDisplayText(relationKey, "")) || relationKey;
 };
 
 export const getModelLabel = (model: Pick<ModelDef, "name" | "label">) => {
