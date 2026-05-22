@@ -19,6 +19,7 @@ The finished app lives in `samples/task-manager/` if you want to compare at any 
 | [Section 6 — Tree views](#section-6--tree-views-and-miller-columns) | Navigate task hierarchies with Miller columns | ~5 min | Optional |
 | [Section 7 — Built-in UI features](#section-7--built-in-ui-features) | Explore the analysis charts, column config, dark mode | ~5 min | Optional |
 | [Section 8 — Dashboard](#section-8--dashboard) | Add a dashboard with Models Grid, Recent Activity, and Pinned Records | ~10 min | Optional |
+| [Section 9 — Named Queries](#section-9--named-queries) | Define a cross-model join query and surface it in the sidebar, the Project Show page, and the dashboard | ~10 min | Optional |
 
 **Complete Section 1 first.** All optional sections depend only on Section 1, not on each other, so you can read their goal and skip or do them in any order.
 
@@ -809,7 +810,7 @@ A configurable grid of embedded model lists.  Each model registered with
 - Each cell shows the **Analyse** section only (charts and summaries).  Click
   **View list** inside a cell to expand the table.
 - The `team_member` cell defaults to the **gallery** view type because
-  `TeamMember` declares `__safem_ui__ = {"listViewType": "gallery"}`.
+  `TeamMember` declares `__veloiq_ui__ = {"listViewType": "gallery"}`.
 
 **Cell controls (visible on hover)**
 
@@ -894,28 +895,6 @@ automatically cleaned up.
 
 ---
 
-## Coming next — Named Queries
-
-A future version of the dashboard will add **Named Queries** as a cell source
-type alongside the current model-grid cells.  A named query is a saved filter
-and sort configuration (or a custom SQL/ORM expression) stored in
-`views_configuration.json`.  You will be able to configure cells like:
-
-```json
-{
-  "source_type": "named_query",
-  "query_name": "overdue_tasks",
-  "view_type": "table"
-}
-```
-
-This will let you build cells such as "Overdue Tasks", "Open Critical Issues", or
-"Projects I Own" alongside the regular model grids — all without writing custom
-API endpoints.  The `source_type` field is already reserved in the cell schema for
-forward compatibility.
-
----
-
 ## Next steps
 
 - Add a custom admin back-office view
@@ -926,3 +905,197 @@ forward compatibility.
   → [Configuration Reference](./configuration-reference.md)
 - See the full list of free and Pro features
   → [Open-Core Model](./open-core.md)
+
+---
+
+# Section 9 — Named Queries
+
+**Goal:** Define a cross-model ORM join in a `queries.py` file, let the
+framework auto-discover it, and surface it in three places without writing any
+custom API or frontend code: the sidebar, the Project Show page, and the
+dashboard.
+
+**Depends on:** Section 1 · **Time:** ~10 min
+
+---
+
+A **Named Query** is a typed ORM join defined once in Python.  The framework
+auto-discovers it, registers a backend endpoint, generates a TypeScript schema,
+and injects it as a sidebar entry and as a relation tab on the primary model's
+Show page.
+
+## Step 1 — Create the query file (2 min)
+
+Create `backend/app/modules/projects/queries.py`:
+
+```python
+"""Named queries for the projects module."""
+from sqlmodel import select
+
+from veloiq_framework import NamedQuery, NamedQueryField
+
+from .models import Project
+from app.modules.tasks.models import Task
+from app.modules.team.models import TeamMember
+
+projects_with_tasks_and_members = NamedQuery(
+    name="projects_with_tasks_and_members",
+    label="Projects with Tasks and Members",
+    module="projects",
+    primary_model=Project,
+    participating_models=[Project, Task, TeamMember],
+    list_view_type="table",
+    default_sort=("due_date", "asc"),
+    fields=[
+        NamedQueryField(key="project_name",       label="Project",        type="string",  source_model=Project,    source_attr="name"),
+        NamedQueryField(key="project_status",     label="Project Status", type="string",  source_model=Project,    source_attr="status"),
+        NamedQueryField(key="task_title",         label="Task",           type="string",  source_model=Task,       source_attr="title",  read_only=True),
+        NamedQueryField(key="task_status",        label="Task Status",    type="string",  source_model=Task,       source_attr="status", read_only=True),
+        NamedQueryField(key="due_date",           label="Due Date",       type="date",    source_model=Task,                             read_only=True),
+        NamedQueryField(key="planned_work_hours", label="Planned Hours",  type="number",  source_model=Task,                             read_only=True),
+        NamedQueryField(key="actual_work_hours",  label="Actual Hours",   type="number",  source_model=Task,                             read_only=True),
+        NamedQueryField(key="assignee_name",      label="Assignee",       type="string",  source_model=TeamMember, source_attr="name",   read_only=True),
+    ],
+    query_factory=lambda session, user: (
+        select(
+            Project.id,
+            Project.name.label("project_name"),
+            Project.status.label("project_status"),
+            Task.title.label("task_title"),
+            Task.status.label("task_status"),
+            Task.due_date,
+            Task.planned_work_hours,
+            Task.actual_work_hours,
+            TeamMember.name.label("assignee_name"),
+        )
+        .select_from(Project)
+        .join(Project.tasks)                   # Project → Task  (one-to-many)
+        .join(Task.assignee, isouter=True)     # Task   → TeamMember (left outer)
+    ),
+)
+```
+
+**Key fields:**
+
+| Field | Purpose |
+|---|---|
+| `name` | URL slug — the endpoint is registered at `GET /projects_with_tasks_and_members` |
+| `label` | Display name used in the sidebar and relation tabs |
+| `module` | Groups the entry under the existing **Projects** sidebar section |
+| `primary_model` | The model whose PK appears in each row and whose fields can be edited |
+| `participating_models` | All models touched by the query — used for RBAC enforcement |
+| `default_sort` | Column and direction applied when no explicit sort is requested |
+| `query_factory` | A function `(session, user) → SQLAlchemy Select` — use ORM relationship attributes for joins |
+
+Fields whose `source_model` is not the `primary_model` should be marked
+`read_only=True`.  The backend silently drops them from write payloads; the
+frontend renders them as disabled inputs in the edit form.
+
+---
+
+## Step 2 — Regenerate the schema (30 sec)
+
+```bash
+cd backend
+veloiq generate
+```
+
+The generator picks up `queries.py` automatically and appends a
+`ProjectsWithTasksAndMembers` entry to `frontend/src/pages/projects/projectsSchema.gen.ts`.
+You will see the line:
+
+```
+  ✅ projects/projects_with_tasks_and_members (named query)
+```
+
+---
+
+## Step 3 — Restart the backend (30 sec)
+
+```bash
+veloiq run
+```
+
+On startup you will see:
+
+```
+  ✅ Query: projects_with_tasks_and_members
+```
+
+The framework has registered the endpoint, no `main.py` changes required.
+
+---
+
+## Step 4 — Explore the named query in the UI
+
+Reload the frontend (`http://localhost:5173`).
+
+**Sidebar** — The **Projects** group now contains a
+**"Projects with Tasks and Members"** entry below the individual model items.
+Click it to open the full list view.  Each row represents one Project × Task pair
+(a project with several tasks produces several rows, one per task).  Clicking a
+row navigates to the primary model's Show page — the Project record — not a
+separate named-query show page.
+
+**Project Show page** — Open any project's detail page.  A
+**"Projects with Tasks and Members"** tab appears alongside the regular
+**Tasks** relation tab.  The rows in that tab are automatically scoped to the
+current project, so you see only the tasks that belong to it.
+
+**Edit behaviour** — click the edit icon on any row in the named query list.
+The `project_name` and `project_status` fields are editable (they come from the
+`primary_model = Project`); `task_title`, `due_date`, and `assignee_name` are
+greyed out because they are marked `read_only=True`.
+
+---
+
+## Step 5 — Add the named query to the dashboard (30 sec)
+
+Named queries are supported by `veloiq add-dashboard` alongside regular models:
+
+```bash
+veloiq add-dashboard projects_with_tasks_and_members
+```
+
+Output:
+
+```
+📊  Dashboard updated
+
+  ✅  Added   : projects_with_tasks_and_members
+
+  Current dashboard models: project, task, team_member, user, role, projects_with_tasks_and_members
+  Config: backend/config/views_configuration.json
+```
+
+The CLI detects the name in `projects/queries.py`, reads its `module = "projects"`
+field, and places the new cell in the existing **Projects** dashboard tab.
+
+Reload the frontend and open **Dashboard → Models Grid → Projects** tab.  A new
+cell labelled **"Projects with Tasks and Members"** appears, showing the
+cross-model list embedded in the grid alongside the regular Project and Task cells.
+
+---
+
+## How it works
+
+```
+queries.py  →  (auto-discovered by loader.py)
+            →  FastAPI endpoint GET /projects_with_tasks_and_members
+            →  veloiq generate  →  projectsSchema.gen.ts (isNamedQuery: true)
+            →  Sidebar entry under Projects
+            →  Relation tab on Project Show page  (filter: ?id={projectId})
+            →  Dashboard cell via veloiq add-dashboard
+```
+
+RBAC is enforced at the endpoint: the backend calls the permission check for every
+model in `participating_models`.  If the user's role lacks access to any of them,
+the request returns 403 and the frontend hides the entry automatically.
+
+**Vibe coding prompt:**
+
+> In `backend/app/modules/projects/queries.py` add a second named query called
+> `overdue_tasks` that selects tasks whose `due_date` is in the past and
+> `status != "done"`, joined to their project name and assignee name.  Use
+> `Task` as `primary_model`.  Register it under `module = "projects"` and add it
+> to the dashboard with `veloiq add-dashboard overdue_tasks`.

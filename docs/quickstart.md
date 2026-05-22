@@ -119,6 +119,20 @@ The app also comes pre-loaded with:
 
 Toggle **☀ / 🌙** in the top-right corner of the application header.
 
+### Named query — Projects with Tasks and Members
+
+The sample app ships with a cross-model named query that joins Projects, Tasks,
+and Team Members into a single denormalised view.  You can find it in two places:
+
+- **Sidebar** — open the **Projects** group in the left navigation menu.
+  "Projects with Tasks and Members" appears as its own entry below the
+  individual Project and Task items.  Click it to open the full list view,
+  where each row represents one Project × Task pair.
+- **Project Show page** — open any project's detail page
+  (e.g. click a project name, then the eye/show icon).  A
+  **"Projects with Tasks and Members"** tab appears alongside the regular
+  **Tasks** relation tab, already filtered to that project's rows.
+
 ### Relations explorer
 
 On any **Show** page, click **⬡ Explore** to open a visual graph of all
