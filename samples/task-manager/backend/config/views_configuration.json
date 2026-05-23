@@ -16,7 +16,7 @@
               "col": 0,
               "view_type": null,
               "html_style": "",
-              "min_width": "464px",
+              "min_width": "842px",
               "max_width": null,
               "min_height": null,
               "max_height": null
@@ -49,7 +49,7 @@
               "col": 0,
               "view_type": "gallery",
               "html_style": "",
-              "min_width": null,
+              "min_width": "1923px",
               "max_width": null,
               "min_height": null,
               "max_height": null

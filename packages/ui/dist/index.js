@@ -3379,8 +3379,8 @@ var useViewSettings = () => {
         }
         const data = await response.json();
         if (cancelled) return;
-        const modulesColorSchema = String(data?.modulesColorSchema || "color-coded");
-        const modelsColorSchema = String(data?.modelsColorSchema || "color-coded");
+        const modulesColorSchema = String(data?.modulesColorSchema || "plain-color");
+        const modelsColorSchema = String(data?.modelsColorSchema || "plain-color");
         const plainColorBaseHex = String(data?.plainColorBaseHex || "");
         setColorSchemas({ modulesColorSchema, modelsColorSchema, plainColorBaseHex });
         setSettings({
@@ -13994,6 +13994,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const layoutPrefsLoadedRef = React6.useRef(false);
   const layoutPrefsResourceRef = React6.useRef(null);
   const sortIntentRef = React6.useRef(null);
+  const prevViewNameForResetRef = React6.useRef(null);
   const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React6.useState([]);
   const bulkSelectedRowsMapRef = React6.useRef(/* @__PURE__ */ new Map());
   const [selectModeAssociating, setSelectModeAssociating] = React6.useState(false);
@@ -14533,7 +14534,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [numericFields, rankingFieldKey, rankingMode]);
   const resetLayoutDefaults = React6.useCallback(() => {
     setListVisible(defaultListVisible ?? true);
-    setAnalyzeOpen(false);
+    setAnalyzeOpen(isEmbedded);
     setIsAnalyzeVertical(false);
     setIsAnalyzeFirst(false);
     setFiltersCollapsed(isEmbedded);
@@ -14809,6 +14810,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [loadViewNames]);
   React6.useEffect(() => {
     if (!viewNamesLoaded) return;
+    const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
+    prevViewNameForResetRef.current = currentViewName;
     analyzePrefsTouchedRef.current = false;
     layoutPrefsTouchedRef.current = false;
     analyzePrefsLoadedRef.current = false;
@@ -14816,8 +14819,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setColumnsSelectorOpen(false);
     setSaveViewName(currentViewName);
     setSaveViewAsNew(false);
-    resetLayoutDefaults();
-    resetAnalyzeDefaults();
+    if (viewChanged) {
+      analyzeTouchedRef.current = false;
+      resetLayoutDefaults();
+      resetAnalyzeDefaults();
+    }
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
   React6.useEffect(() => {
     const resourceKey = prefsKey;

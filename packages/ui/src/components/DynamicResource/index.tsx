@@ -407,6 +407,11 @@ export const DynamicList: React.FC<{
     const layoutPrefsLoadedRef = useRef(false);
     const layoutPrefsResourceRef = useRef<string | null>(null);
     const sortIntentRef = useRef<ColumnSortIntent>(null);
+    // Tracks the view name from the last time the reset+reload effect ran.
+    // Null on the very first mount (before viewNamesLoaded is true), so we can
+    // distinguish "initial load" (no reset needed — prefs are still in-flight)
+    // from "user switched views" (reset needed before loading new view's prefs).
+    const prevViewNameForResetRef = useRef<string | null>(null);
 
     // --- Bulk selection state ---
     const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = useState<React.Key[]>([]);
@@ -1022,7 +1027,7 @@ export const DynamicList: React.FC<{
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
-        setAnalyzeOpen(false);
+        setAnalyzeOpen(isEmbedded);
         setIsAnalyzeVertical(false);
         setIsAnalyzeFirst(false);
         setFiltersCollapsed(isEmbedded);
@@ -1321,6 +1326,12 @@ export const DynamicList: React.FC<{
 
     useEffect(() => {
         if (!viewNamesLoaded) return;
+        // Only reset to defaults when the user actually switches to a different view.
+        // On the initial load (prevViewNameForResetRef is null), the prefs fetch
+        // (effect below) is already in-flight; resetting here would create a race
+        // where the reset fires after the fetch and wipes the loaded values.
+        const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
+        prevViewNameForResetRef.current = currentViewName;
         analyzePrefsTouchedRef.current = false;
         layoutPrefsTouchedRef.current = false;
         analyzePrefsLoadedRef.current = false;
@@ -1328,8 +1339,11 @@ export const DynamicList: React.FC<{
         setColumnsSelectorOpen(false);
         setSaveViewName(currentViewName);
         setSaveViewAsNew(false);
-        resetLayoutDefaults();
-        resetAnalyzeDefaults();
+        if (viewChanged) {
+            analyzeTouchedRef.current = false;
+            resetLayoutDefaults();
+            resetAnalyzeDefaults();
+        }
     }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
 
     useEffect(() => {

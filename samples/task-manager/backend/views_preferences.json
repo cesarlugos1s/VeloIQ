@@ -1,19 +1,51 @@
 {
   "__color_mode__": {
-    "colorMode": "dark"
+    "colorMode": "light"
   },
   "user:all": {
     "dashboard:project": {
       "current_view_name": "default view",
       "current_view_names": [
-        "default view"
+        "default view",
+        "By Project",
+        "By Status"
       ],
       "views": {
-        "default view": {
+        "By Project": {
           "Analyze": {
             "categoryField1": "name",
-            "categoryField2": "description",
-            "chartType": "bar",
+            "categoryField2": null,
+            "chartType": "bar-horizontal",
+            "custom_view_name": "By Project",
+            "rankingFieldKey": null,
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "__count__"
+            ],
+            "summaryFn": "sum"
+          }
+        },
+        "By Status": {
+          "Analyze": {
+            "categoryField1": "status",
+            "categoryField2": "created_at",
+            "chartType": "pie",
+            "custom_view_name": "By Status",
+            "rankingFieldKey": null,
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "__count__"
+            ],
+            "summaryFn": "sum"
+          }
+        },
+        "default view": {
+          "Analyze": {
+            "categoryField1": "status",
+            "categoryField2": "created_at",
+            "chartType": "pie",
             "custom_view_name": "default view",
             "rankingFieldKey": null,
             "rankingMode": "none",
@@ -178,6 +210,20 @@
       ],
       "views": {
         "Progress Tracking": {
+          "Analyze": {
+            "categoryField1": "title",
+            "categoryField2": "description",
+            "chartType": "pie",
+            "custom_view_name": "Progress Tracking",
+            "rankingFieldKey": "planned_work_hours",
+            "rankingMode": "none",
+            "rankingN": 10,
+            "selectedSeriesKeys": [
+              "planned_work_hours",
+              "actual_work_hours"
+            ],
+            "summaryFn": "sum"
+          },
           "EditLayout": {
             "analyzeOpen": true,
             "columnFilters": {},

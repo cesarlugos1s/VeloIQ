@@ -97,8 +97,8 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                 const data = await response.json();
                 if (cancelled) return;
 
-                const modulesColorSchema = String(data?.modulesColorSchema || "color-coded");
-                const modelsColorSchema = String(data?.modelsColorSchema || "color-coded");
+                const modulesColorSchema = String(data?.modulesColorSchema || "plain-color");
+                const modelsColorSchema = String(data?.modelsColorSchema || "plain-color");
                 const plainColorBaseHex = String(data?.plainColorBaseHex || "");
 
                 setColorSchemas({ modulesColorSchema, modelsColorSchema, plainColorBaseHex });
