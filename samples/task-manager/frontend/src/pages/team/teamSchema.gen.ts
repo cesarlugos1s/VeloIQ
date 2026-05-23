@@ -10,8 +10,9 @@ export const teamModels: ModelDef[] = [
     listViewType: "gallery",
     fields: [
       { key: "name", label: "Name", type: "string" },
-      { key: "email", label: "Email", type: "string" },
+      { key: "email", label: "Email", type: "string", showViewType: "read-only-email", editViewType: "editable-email" },
       { key: "role", label: "Role", type: "string" },
+      { key: "phone", label: "Phone", type: "string", showViewType: "read-only-phone", editViewType: "editable-phone" },
       { key: "avatar_url", label: "Avatar Url", type: "image_url" },
       { key: "created_at", label: "Created At", type: "datetime" },
       { key: "updated_at", label: "Updated At", type: "datetime" },

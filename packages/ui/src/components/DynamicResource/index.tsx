@@ -172,6 +172,7 @@ import {
     isAttributeValueEditable,
     normalizeRelationViewType,
     applyRelationViewOverride,
+    normalizeFieldViewType,
 } from "./utils/viewConfig";
 import type { ViewSettings, NormalizedViewConfigRow } from "./utils/viewConfig";
 import { ActionsButtonStack, VerticalActionsLayout } from "./utils/verticalActionsBar";
@@ -3643,7 +3644,7 @@ export const DynamicList: React.FC<{
                                     dataIndex={field.key}
                                     title={field.label}
                                     sorter={{ compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) }}
-                                    align={(field.type === "number" && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
+                                    align={(field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
                                     filters={columnFilters.get(field.key)}
                                     filteredValue={columnFiltersSelected[field.key] || null}
                                     sortOrder={columnSort.find((item) => item.fieldKey === field.key)?.order ?? null}
@@ -3703,6 +3704,10 @@ export const DynamicList: React.FC<{
                                     render={(value, record: any) => {
                                         const { resource, id } = getTargetInfo(record);
                                         const renderValue = () => {
+                                            const showToken = normalizeFieldViewType(field.showViewType || "");
+                                            if (showToken && !(showToken === "read-only-field" && field.reference)) {
+                                                return renderFieldValue(field, record, allModels, true);
+                                            }
                                             if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
                                                 return (
                                                     <ReferenceField

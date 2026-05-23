@@ -82,8 +82,9 @@ import {
     renderToneTabLabel,
     toneScopeStyle,
 } from "../utils/colors";
-import { getDefaultViewName, normalizeViewName, useViewSettings } from "../utils/viewConfig";
+import { getDefaultViewName, normalizeViewName, normalizeFieldViewType, useViewSettings } from "../utils/viewConfig";
 import { renderInput } from "../fields/renderInput";
+import { renderFieldValue } from "../fields/renderFieldValue";
 import { AnalysisChart } from "../analysis/AnalysisChart";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
@@ -2752,7 +2753,7 @@ export const RelatedObjectsTable: React.FC<{
                                         const recordValue = recordRow?.[field.key];
                                         return String(recordValue) === String(value);
                                     }}
-                                    align={(field.type === "number" && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
+                                    align={(field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
                                     render={(value, row: any) => {
                                         if (allowInlineEdit && field.key !== "eid") {
                                             const rowId = row?.eid ?? row?.id ?? row?.__relationKey;
@@ -2768,6 +2769,11 @@ export const RelatedObjectsTable: React.FC<{
                                             );
                                         }
                                         const renderValue = () => {
+                                            // Delegate to renderFieldValue when a showViewType is configured
+                                            const showToken = normalizeFieldViewType(field.showViewType || "");
+                                            if (showToken && !(showToken === "read-only-field" && field.reference)) {
+                                                return renderFieldValue(field, row, allModels, true);
+                                            }
                                             if (field.reference && value) {
                                                 const cacheKey = `${field.reference}:${value}`;
                                                 return labelCache[cacheKey] || value;

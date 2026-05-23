@@ -318,6 +318,27 @@ case-insensitive and tolerate spaces or underscores in place of hyphens.
 | `editable-url` | Plain text input |
 | `read-only-email` | `<a href="mailto:">` link |
 | `editable-email` | Text input with email validation |
+| `read-only-currency` | Locale-formatted currency: `$ 1,234.56` (USD) |
+| `editable-currency` | `InputNumber` with `$` prefix, 2 decimal precision |
+| `read-only-percentage` | Value with `%` suffix: `87.5 %` |
+| `editable-percentage` | `InputNumber` with `%` suffix |
+| `read-only-progress` | Ant Design `Progress` bar, range 0–100 |
+| `editable-progress` | `InputNumber` with `%` suffix, clamped 0–100 |
+| `read-only-rating` | Ant Design `Rate` stars (read-only) |
+| `editable-rating` | Ant Design `Rate` interactive |
+| `read-only-duration` | Seconds formatted as `2h 15m 30s` |
+| `editable-duration` | `InputNumber` (raw seconds) with `s` suffix |
+| `read-only-phone` | `<a href="tel:">` clickable link |
+| `editable-phone` | `<input type="tel">` |
+| `read-only-color` | ■ colour swatch + hex string |
+| `editable-color` | Native `<input type="color">` + hex text input |
+| `read-only-code` | Monospace `<pre>` block (no parse/format — contrast with `json`) |
+| `editable-code` | Monospace `Input.TextArea` |
+| `read-only-image-url` | `<img>` thumbnail from a string field holding a single image URL (contrast: `gallery` is a relation view type over many linked image records) |
+| `editable-image-url` | URL text input with inline image preview below |
+| `read-only-qrcode` | QR code rendered from the field value (requires `qrcode.react`) |
+| `read-only-relative` | Relative time: "3 days ago" / "in 2 hours" via dayjs — non-date fields fall back to the default renderer |
+| `read-only-truncated-text` | Truncated text with full value on hover tooltip |
 
 Example — store a field as plain text but render it as Markdown in the show
 view while keeping a textarea in the edit form:

@@ -13,6 +13,7 @@ class TeamMember(TimestampedModel, table=True):
     name: str
     email: str
     role: str = "member"  # admin | member | viewer
+    phone: Optional[str] = None
     avatar_url: Optional[str] = None
 
     owned_projects: List["Project"] = jm_relationship(back_populates="owner")

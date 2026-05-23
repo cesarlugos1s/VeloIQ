@@ -18,6 +18,10 @@ class Task(TimestampedModel, table=True):
     due_date: Optional[datetime.date] = None
     planned_work_hours: Optional[float] = None
     actual_work_hours: Optional[float] = None
+    planned_cost: Optional[float] = None
+    actual_cost: Optional[float] = None
+    actual_progress: Optional[int] = None   # 0–100
+    rating: Optional[int] = None            # 1–5
 
     project_id: Optional[int] = Field(default=None, foreign_key="project.id")
     project: Optional["Project"] = jm_relationship(back_populates="tasks")

@@ -54,6 +54,7 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
+    "qrcode.react": "^4.2.0",
     "react-markdown": "^10.1.0"
   }
 }

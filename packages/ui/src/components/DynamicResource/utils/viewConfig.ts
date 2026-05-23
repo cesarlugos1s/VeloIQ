@@ -380,6 +380,18 @@ const FIELD_VIEW_TYPE_TOKENS = new Set([
     "read-only-json", "editable-json",
     "read-only-url", "editable-url",
     "read-only-email", "editable-email",
+    "read-only-currency", "editable-currency",
+    "read-only-percentage", "editable-percentage",
+    "read-only-progress", "editable-progress",
+    "read-only-rating", "editable-rating",
+    "read-only-duration", "editable-duration",
+    "read-only-phone", "editable-phone",
+    "read-only-color", "editable-color",
+    "read-only-code", "editable-code",
+    "read-only-image-url", "editable-image-url",
+    "read-only-qrcode",
+    "read-only-relative",
+    "read-only-truncated-text",
 ]);
 
 export const normalizeFieldViewType = (raw: string): string => {

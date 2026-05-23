@@ -8,13 +8,15 @@ var icons = require('@ant-design/icons');
 var jsxRuntime = require('react/jsx-runtime');
 var reactRouterDom = require('react-router-dom');
 var reactDom = require('react-dom');
-var dayjs7 = require('dayjs');
+var dayjs8 = require('dayjs');
+var relativeTime = require('dayjs/plugin/relativeTime');
 var axios = require('axios');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
 var React6__default = /*#__PURE__*/_interopDefault(React6);
-var dayjs7__default = /*#__PURE__*/_interopDefault(dayjs7);
+var dayjs8__default = /*#__PURE__*/_interopDefault(dayjs8);
+var relativeTime__default = /*#__PURE__*/_interopDefault(relativeTime);
 var axios__default = /*#__PURE__*/_interopDefault(axios);
 
 var __typeError = (msg) => {
@@ -3621,7 +3623,28 @@ var FIELD_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
   "read-only-url",
   "editable-url",
   "read-only-email",
-  "editable-email"
+  "editable-email",
+  "read-only-currency",
+  "editable-currency",
+  "read-only-percentage",
+  "editable-percentage",
+  "read-only-progress",
+  "editable-progress",
+  "read-only-rating",
+  "editable-rating",
+  "read-only-duration",
+  "editable-duration",
+  "read-only-phone",
+  "editable-phone",
+  "read-only-color",
+  "editable-color",
+  "read-only-code",
+  "editable-code",
+  "read-only-image-url",
+  "editable-image-url",
+  "read-only-qrcode",
+  "read-only-relative",
+  "read-only-truncated-text"
 ]);
 var normalizeFieldViewType = (raw) => {
   const normalized = String(raw || "").trim().toLowerCase().replace(/[\s_]/g, "-").replace(/-+/g, "-");
@@ -7030,8 +7053,150 @@ var renderOptionTag = (field, rawValue) => {
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
   return /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
 };
+dayjs8__default.default.extend(relativeTime__default.default);
 var _16 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_16("Sun"), _16("Mon"), _16("Tue"), _16("Wed"), _16("Thu"), _16("Fri"), _16("Sat")];
+var ReactMarkdown = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
+function formatDuration(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor(totalSeconds % 3600 / 60);
+  const s = totalSeconds % 60;
+  const parts = [];
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}m`);
+  if (s || !parts.length) parts.push(`${s}s`);
+  return parts.join(" ");
+}
+var TALL_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
+  "read-only-markdown",
+  "read-only-json",
+  "read-only-code",
+  "read-only-textarea",
+  "read-only-image-url"
+]);
+var renderFieldViewTypeReadOnly = (token, value, inTable) => {
+  const str = value === null || value === void 0 ? "" : String(value);
+  const isEmpty = str === "" || str === "null" || str === "undefined";
+  if (isEmpty && token !== "read-only-password" && token !== "read-only-progress" && token !== "read-only-rating") return "-";
+  switch (token) {
+    case "read-only-password":
+      return /* @__PURE__ */ jsxRuntime.jsx("span", { style: { letterSpacing: 2 }, children: str ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "-" });
+    case "read-only-textarea":
+      return /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Input.TextArea,
+        {
+          value: str,
+          autoSize: { minRows: 2, maxRows: 12 },
+          readOnly: true,
+          style: { resize: "vertical", background: "transparent", border: "none", padding: 0, boxShadow: "none" }
+        }
+      );
+    case "read-only-markdown":
+      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
+    case "read-only-json": {
+      let formatted = str;
+      try {
+        formatted = JSON.stringify(JSON.parse(str), null, 2);
+      } catch {
+      }
+      return /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { margin: 0, fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: formatted });
+    }
+    case "read-only-url":
+      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: str });
+    case "read-only-email":
+      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: `mailto:${str}`, children: str });
+    case "read-only-currency": {
+      const num = parseFloat(str);
+      if (isNaN(num)) return str || "-";
+      return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num) });
+    }
+    case "read-only-percentage": {
+      const num = parseFloat(str);
+      if (isNaN(num)) return str || "-";
+      return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: `${num} %` });
+    }
+    case "read-only-progress": {
+      const num = Math.max(0, Math.min(100, parseFloat(str) || 0));
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Progress, { percent: num, size: "small", style: { marginBottom: 0 } });
+    }
+    case "read-only-rating": {
+      const num = parseFloat(str) || 0;
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Rate, { disabled: true, value: num });
+    }
+    case "read-only-duration": {
+      const secs = parseInt(str) || 0;
+      return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: formatDuration(secs) });
+    }
+    case "read-only-phone":
+      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: `tel:${str}`, children: str });
+    case "read-only-color":
+      return /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", width: 16, height: 16, background: str, border: "1px solid #d9d9d9", borderRadius: 2, flexShrink: 0 } }),
+        str
+      ] });
+    case "read-only-code":
+      return /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
+    case "read-only-image-url":
+      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
+    case "read-only-qrcode":
+      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
+    case "read-only-relative": {
+      const parsed = dayjs8__default.default(str);
+      if (!parsed.isValid()) return str || "-";
+      return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: parsed.fromNow() });
+    }
+    case "read-only-truncated-text":
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: str, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "default" }, children: str }) });
+    default:
+      return str || "-";
+  }
+};
+var wrapForTable = (node) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 120, overflowY: "auto", overflowX: "hidden" }, children: node });
+var renderFieldValue = (field, record, allModels, inTable) => {
+  const value = record?.[field.key];
+  const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
+  if (isNlSentenceField) {
+    return /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Input.TextArea,
+      {
+        value: value === null || value === void 0 ? "" : String(value),
+        autoSize: { minRows: 3, maxRows: 18 },
+        style: { resize: "vertical", background: "#f3f6f9" },
+        placeholder: _16(field.key),
+        readOnly: true
+      }
+    );
+  }
+  const showToken = normalizeFieldViewType(field.showViewType || "");
+  if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
+    const node = renderFieldViewTypeReadOnly(showToken, value);
+    return inTable && TALL_VIEW_TYPE_TOKENS.has(showToken) ? wrapForTable(node) : node;
+  }
+  if (field.type === "boolean") {
+    return value ? /* @__PURE__ */ jsxRuntime.jsx(icons.CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsxRuntime.jsx(icons.CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
+  }
+  if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+    return /* @__PURE__ */ jsxRuntime.jsx(ReferenceField, { id: value, resource: resolveResourcePath(field.referencePath || field.reference, allModels) });
+  }
+  if (field.type === "number") {
+    return formatNumberValue(value) ?? "-";
+  }
+  if (field.type === "date") {
+    return formatDateValue(value) ?? "-";
+  }
+  if (field.type === "datetime") {
+    return formatDateTimeValue(value) ?? "-";
+  }
+  if (field.type === "time") {
+    return formatTimeValue(value);
+  }
+  if (field.options && value !== void 0 && value !== null) {
+    return renderOptionTag(field, value);
+  }
+  return value ?? "-";
+};
+var _17 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_17("Sun"), _17("Mon"), _17("Tue"), _17("Wed"), _17("Thu"), _17("Fri"), _17("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
 var isCalendarDateField = (field) => {
   const rawType = String(field?.type || "").trim().toLowerCase();
@@ -7059,7 +7224,7 @@ var getCalendarDateFieldOptions = (fields) => {
 var getCalendarRecordDate = (record, fieldKey) => {
   const rawValue = record?.[fieldKey];
   if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs7__default.default(rawValue);
+  const parsed = dayjs8__default.default(rawValue);
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
@@ -7087,7 +7252,7 @@ function useRoleFilteredModel(model) {
     return { ...model, fields: filtered };
   }, [model, userRoles]);
 }
-var _17 = window._ || ((text) => text);
+var _18 = window._ || ((text) => text);
 var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -7099,7 +7264,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const id = idOverride ?? routeId;
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_17("Show")} ${modelDisplayLabel}`) : `${_17("Show")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_18("Show")} ${modelDisplayLabel}`) : `${_18("Show")} ${modelDisplayLabel}`;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, saveButtonProps);
   const [activeTabKey, setActiveTabKey] = React6.useState("details");
   const items = useStandardShowTabs(
@@ -7147,7 +7312,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _17("Show"),
+          actionLabel: _18("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons,
@@ -7167,7 +7332,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     )
   ] });
 };
-var _18 = window._ || ((text) => text);
+var _19 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
   const optionLabel = "_label";
@@ -7222,7 +7387,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
       }
     ),
     isCapped && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _18("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _19("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
@@ -7231,13 +7396,13 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
           style: { fontSize: 11, padding: 0 },
           loading: queryResult?.isLoading || queryResult?.isFetching,
           onClick: () => setLoadAll(true),
-          children: _18("Load all")
+          children: _19("Load all")
         }
       )
     ] })
   ] });
 };
-var _19 = window._ || ((text) => text);
+var _20 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = antd.Form.useFormInstance();
   const [uploading, setUploading] = React6.useState(false);
@@ -7246,7 +7411,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
     if (!recordId) {
-      antd.message.error(_19("Save the record first before uploading a file."));
+      antd.message.error(_20("Save the record first before uploading a file."));
       return false;
     }
     setUploading(true);
@@ -7270,9 +7435,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
         data_hash: result.data_hash
       });
       setFileName(result.data_name || file.name);
-      antd.message.success(_19("File uploaded successfully."));
+      antd.message.success(_20("File uploaded successfully."));
     } catch (err) {
-      antd.message.error(err?.message || _19("File upload failed."));
+      antd.message.error(err?.message || _20("File upload failed."));
     } finally {
       setUploading(false);
     }
@@ -7289,9 +7454,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       style: { padding: "8px 16px" },
       children: [
         /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(icons.UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _19("Uploading...") : _19("Click or drag a file here to upload") }),
+        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _20("Uploading...") : _20("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxRuntime.jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
-          _19("Current"),
+          _20("Current"),
           ": ",
           displayName
         ] })
@@ -7299,7 +7464,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
     }
   ) });
 };
-var _20 = window._ || ((text) => text);
+var _21 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
@@ -7359,14 +7524,14 @@ var AsyncSelectInput = ({
       options,
       value,
       onChange,
-      placeholder: placeholder || _20("Select..."),
+      placeholder: placeholder || _21("Select..."),
       style: { width: "100%" },
       filterOption: (input, option) => String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
     }
   );
 };
-var _21 = window._ || ((text) => text);
-var ReactMarkdown = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var _22 = window._ || ((text) => text);
+var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
   const [activeTab, setActiveTab] = React6.useState("edit");
   return /* @__PURE__ */ jsxRuntime.jsx(
@@ -7379,7 +7544,7 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       items: [
         {
           key: "edit",
-          label: _21("Edit"),
+          label: _22("Edit"),
           children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Input.TextArea,
             {
@@ -7392,8 +7557,8 @@ var MarkdownEditor = ({ value = "", onChange }) => {
         },
         {
           key: "preview",
-          label: _21("Preview"),
-          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: value }) }) })
+          label: _22("Preview"),
+          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
         }
       ]
     }
@@ -7446,6 +7611,61 @@ var renderEditableFieldViewType = (token, value, onChange) => {
       ] });
     case "editable-email":
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { type: "email", value: str, onChange: (e) => onChange?.(e.target.value), placeholder: "user@example.com" });
+    case "editable-currency": {
+      const num = value === null || value === void 0 ? void 0 : Number(value);
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { style: { width: "100%" }, value: isNaN(num) ? void 0 : num, onChange, addonBefore: "$", precision: 2, step: 0.01 });
+    }
+    case "editable-percentage": {
+      const num = value === null || value === void 0 ? void 0 : Number(value);
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { style: { width: "100%" }, value: isNaN(num) ? void 0 : num, onChange, addonAfter: "%", step: 0.1 });
+    }
+    case "editable-progress": {
+      const num = value === null || value === void 0 ? void 0 : Number(value);
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { style: { width: "100%" }, value: isNaN(num) ? void 0 : num, onChange, min: 0, max: 100, addonAfter: "%", precision: 0 });
+    }
+    case "editable-rating":
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Rate, { value: Number(value) || 0, onChange });
+    case "editable-duration": {
+      const num = value === null || value === void 0 ? void 0 : Number(value);
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { style: { width: "100%" }, value: isNaN(num) ? void 0 : num, onChange, min: 0, precision: 0, addonAfter: "s" });
+    }
+    case "editable-phone":
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { type: "tel", value: str, onChange: (e) => onChange?.(e.target.value), placeholder: "+1 555 000 0000" });
+    case "editable-color":
+      return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx(
+          "input",
+          {
+            type: "color",
+            value: str || "#000000",
+            onChange: (e) => onChange?.(e.target.value),
+            style: { width: 36, height: 28, border: "1px solid #d9d9d9", borderRadius: 4, padding: 2, cursor: "pointer", flexShrink: 0 }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: str, onChange: (e) => onChange?.(e.target.value), placeholder: "#000000", style: { flex: 1 } })
+      ] });
+    case "editable-code":
+      return /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Input.TextArea,
+        {
+          value: str,
+          onChange: (e) => onChange?.(e.target.value),
+          autoSize: { minRows: 3, maxRows: 18 },
+          style: { resize: "vertical", fontFamily: "monospace", fontSize: 12 }
+        }
+      );
+    case "editable-image-url":
+      return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: str, onChange: (e) => onChange?.(e.target.value), placeholder: "https://..." }),
+        str && /* @__PURE__ */ jsxRuntime.jsx(
+          "img",
+          {
+            src: str,
+            alt: "",
+            style: { marginTop: 4, maxWidth: "100%", maxHeight: 120, objectFit: "contain", borderRadius: 4, display: "block" }
+          }
+        )
+      ] });
     default:
       return null;
   }
@@ -7456,7 +7676,7 @@ var renderInput = (field, allModels, model, currentId) => {
     return /* @__PURE__ */ jsxRuntime.jsx(FileUploadInput, {});
   }
   const isNlSentenceField = resolvedField.key === "nl_sentence" || resolvedField.key === "nl_asks_sentence";
-  const sentenceFieldHelper = _21(resolvedField.key);
+  const sentenceFieldHelper = _22(resolvedField.key);
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsxRuntime.jsx(
       antd.Input.TextArea,
@@ -7481,15 +7701,15 @@ var renderInput = (field, allModels, model, currentId) => {
     const isSelfRef = refResource && modelResource && refResource === modelResource;
     return /* @__PURE__ */ jsxRuntime.jsx(RelationSelect, { field: resolvedField, allModels, excludeId: isSelfRef ? currentId : void 0 });
   }
-  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_21("Select")} ${_21(resolvedField.label)}...` });
+  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_22("Select")} ${_22(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
     case "boolean":
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, {});
     case "date":
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { style: { width: "100%" }, placeholder: _21("Select date") });
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { style: { width: "100%" }, placeholder: _22("Select date") });
     case "datetime":
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _21("Select date and time") });
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _22("Select date and time") });
     case "time":
       return /* @__PURE__ */ jsxRuntime.jsx(antd.TimePicker, { style: { width: "100%" } });
     case "number":
@@ -7497,84 +7717,6 @@ var renderInput = (field, allModels, model, currentId) => {
     default:
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Input, {});
   }
-};
-var _22 = window._ || ((text) => text);
-var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var renderFieldViewTypeReadOnly = (token, value) => {
-  const str = value === null || value === void 0 ? "" : String(value);
-  if (!str && token !== "read-only-password") return "-";
-  switch (token) {
-    case "read-only-password":
-      return /* @__PURE__ */ jsxRuntime.jsx("span", { style: { letterSpacing: 2 }, children: str ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "-" });
-    case "read-only-textarea":
-      return /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Input.TextArea,
-        {
-          value: str,
-          autoSize: { minRows: 2, maxRows: 12 },
-          readOnly: true,
-          style: { resize: "vertical", background: "transparent", border: "none", padding: 0, boxShadow: "none" }
-        }
-      );
-    case "read-only-markdown":
-      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: str }) });
-    case "read-only-json": {
-      let formatted = str;
-      try {
-        formatted = JSON.stringify(JSON.parse(str), null, 2);
-      } catch {
-      }
-      return /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { margin: 0, fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: formatted });
-    }
-    case "read-only-url":
-      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: str });
-    case "read-only-email":
-      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: `mailto:${str}`, children: str });
-    default:
-      return str || "-";
-  }
-};
-var renderFieldValue = (field, record, allModels) => {
-  const value = record?.[field.key];
-  const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
-  if (isNlSentenceField) {
-    return /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Input.TextArea,
-      {
-        value: value === null || value === void 0 ? "" : String(value),
-        autoSize: { minRows: 3, maxRows: 18 },
-        style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _22(field.key),
-        readOnly: true
-      }
-    );
-  }
-  const showToken = normalizeFieldViewType(field.showViewType || "");
-  if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
-    return renderFieldViewTypeReadOnly(showToken, value);
-  }
-  if (field.type === "boolean") {
-    return value ? /* @__PURE__ */ jsxRuntime.jsx(icons.CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsxRuntime.jsx(icons.CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
-  }
-  if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
-    return /* @__PURE__ */ jsxRuntime.jsx(ReferenceField, { id: value, resource: resolveResourcePath(field.referencePath || field.reference, allModels) });
-  }
-  if (field.type === "number") {
-    return formatNumberValue(value) ?? "-";
-  }
-  if (field.type === "date") {
-    return formatDateValue(value) ?? "-";
-  }
-  if (field.type === "datetime") {
-    return formatDateTimeValue(value) ?? "-";
-  }
-  if (field.type === "time") {
-    return formatTimeValue(value);
-  }
-  if (field.options && value !== void 0 && value !== null) {
-    return renderOptionTag(field, value);
-  }
-  return value ?? "-";
 };
 var _23 = window._ || ((text) => text);
 var { Title: Title2 } = antd.Typography;
@@ -7840,7 +7982,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
           name: field.key,
           rules: field.required ? [{ required: true }] : [],
           valuePropName: field.type === "boolean" ? "checked" : void 0,
-          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
           style: { margin: 0 },
           children: renderInput(field, allModels, model)
         }
@@ -7932,7 +8074,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         }
         return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }, children: [
           /* @__PURE__ */ jsxRuntime.jsx("span", { style: labelStyle, children: field.label }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
     ] }),
@@ -8491,7 +8633,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                   name: field.key,
                   rules: field.required && !field.formula ? [{ required: true }] : [],
                   valuePropName: field.type === "boolean" ? "checked" : void 0,
-                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
                   style: { margin: 0 },
                   children: field.formula ? /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true }) : renderInput(field, allModels, model, recordId)
                 }
@@ -8682,7 +8824,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                                           name: field.key,
                                           rules: field.required && !field.formula ? [{ required: true }] : [],
                                           valuePropName: field.type === "boolean" ? "checked" : void 0,
-                                          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+                                          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
                                           style: { margin: 0 },
                                           children: field.formula ? /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true }) : renderInput(field, allModels, model, recordId)
                                         }
@@ -8796,7 +8938,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                     name: field.key,
                     rules: field.required && !field.formula ? [{ required: true }] : [],
                     valuePropName: field.type === "boolean" ? "checked" : void 0,
-                    getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+                    getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
                     style: { margin: 0 },
                     children: field.formula ? /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true }) : renderInput(field, allModels, model, recordId)
                   }
@@ -9060,7 +9202,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0)
@@ -9759,7 +9901,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const dateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs7__default.default().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs8__default.default().startOf("month"));
   const dateFieldKeySet = React6.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   React6.useEffect(() => {
     if (calendarDateField && dateFieldKeySet.has(calendarDateField)) return;
@@ -9797,10 +9939,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
     if (earliestDateTs === null) {
-      setCalendarAnchorDate(dayjs7__default.default().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs7__default.default(earliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs8__default.default(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
   const entriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -9881,7 +10023,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             size: "small",
             icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CalendarOutlined, {}),
             "aria-label": _27("Today"),
-            onClick: () => setCalendarAnchorDate(dayjs7__default.default().startOf(calendarMode))
+            onClick: () => setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode))
           }
         ) }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _27("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -9930,7 +10072,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const dayKey = day.format("YYYY-MM-DD");
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-            const isToday = day.isSame(dayjs7__default.default(), "day");
+            const isToday = day.isSame(dayjs8__default.default(), "day");
             return /* @__PURE__ */ jsxRuntime.jsxs(
               "div",
               {
@@ -11128,7 +11270,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs7__default.default();
+    const base = dayjs8__default.default();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -11201,7 +11343,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return true;
     }
     if (field.type === "date") {
-      const recordDate = dayjs7__default.default(rawValue);
+      const recordDate = dayjs8__default.default(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -11209,7 +11351,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs7__default.default(val?.date || val);
+        const date = dayjs8__default.default(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -11220,13 +11362,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs7__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs7__default.default(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs8__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs8__default.default(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs7__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs7__default.default(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs8__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs8__default.default(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -12481,7 +12623,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   return /* @__PURE__ */ jsxRuntime.jsx(
                     antd.DatePicker,
                     {
-                      value: value?.date ? dayjs7__default.default(value.date) : void 0,
+                      value: value?.date ? dayjs8__default.default(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -12909,7 +13051,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const recordValue = recordRow?.[field.key];
                           return String(recordValue) === String(value);
                         },
-                        align: field.type === "number" && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
+                        align: field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
                         render: (value, row) => {
                           if (allowInlineEdit && field.key !== "eid") {
                             const rowId = row?.eid ?? row?.id ?? row?.__relationKey;
@@ -12919,12 +13061,16 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 name: [rowId, field.key],
                                 style: { margin: 0 },
                                 valuePropName: field.type === "boolean" ? "checked" : "value",
-                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs7__default.default(val) } : field.type === "time" && val ? { value: dayjs7__default.default("1970-01-01T" + val) } : { value: val },
+                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val },
                                 children: renderEditableInput(field, rowId)
                               }
                             );
                           }
                           const renderValue = () => {
+                            const showToken = normalizeFieldViewType(field.showViewType || "");
+                            if (showToken && !(showToken === "read-only-field" && field.reference)) {
+                              return renderFieldValue(field, row, allModels, true);
+                            }
                             if (field.reference && value) {
                               const cacheKey = `${field.reference}:${value}`;
                               return labelCache[cacheKey] || value;
@@ -14288,7 +14434,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const [galleryPage, setGalleryPage] = React6.useState(1);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs7__default.default().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs8__default.default().startOf("month"));
   const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
   const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
   const [filterRules, setFilterRules] = React6.useState([]);
@@ -14487,7 +14633,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs7__default.default();
+    const base = dayjs8__default.default();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -14548,7 +14694,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return true;
     }
     if (field.type === "date" || field.type === "datetime") {
-      const recordDate = dayjs7__default.default(rawValue);
+      const recordDate = dayjs8__default.default(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -14556,7 +14702,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs7__default.default(val?.date || val);
+        const date = dayjs8__default.default(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -14567,13 +14713,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs7__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs7__default.default(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs8__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs8__default.default(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs7__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs7__default.default(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs8__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs8__default.default(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -15390,7 +15536,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
         return { date: resolved.date?.toISOString() };
       }
-      const date = dayjs7__default.default(val?.date || val);
+      const date = dayjs8__default.default(val?.date || val);
       if (!date.isValid()) return {};
       if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
       return { date: date.startOf("day").toISOString() };
@@ -16225,7 +16371,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.DatePicker,
         {
           size: "small",
-          value: bulkChangeFieldValue ? dayjs7__default.default(bulkChangeFieldValue) : null,
+          value: bulkChangeFieldValue ? dayjs8__default.default(bulkChangeFieldValue) : null,
           onChange: (v) => setBulkChangeFieldValue(v ? v.toISOString() : null)
         }
       ) : bulkChangeField.type === "number" ? /* @__PURE__ */ jsxRuntime.jsx(
@@ -16622,10 +16768,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (calendarInitSignatureRef.current === signature) return;
     calendarInitSignatureRef.current = signature;
     if (calendarEarliestDateTs === null) {
-      setCalendarAnchorDate(dayjs7__default.default().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs7__default.default(calendarEarliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs8__default.default(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
   const calendarEntriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -16721,7 +16867,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CalendarOutlined, {}),
               "aria-label": _34("Today"),
-              onClick: () => setCalendarAnchorDate(dayjs7__default.default().startOf(calendarMode))
+              onClick: () => setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode))
             }
           ) }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -16770,7 +16916,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               const dayKey = day.format("YYYY-MM-DD");
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-              const isToday = day.isSame(dayjs7__default.default(), "day");
+              const isToday = day.isSame(dayjs8__default.default(), "day");
               return /* @__PURE__ */ jsxRuntime.jsxs(
                 "div",
                 {
@@ -16937,7 +17083,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   return /* @__PURE__ */ jsxRuntime.jsx(
                     antd.DatePicker,
                     {
-                      value: value?.date ? dayjs7__default.default(value.date) : void 0,
+                      value: value?.date ? dayjs8__default.default(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -17318,7 +17464,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   dataIndex: field.key,
                   title: field.label,
                   sorter: { compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) },
-                  align: field.type === "number" && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
+                  align: field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
                   filters: columnFilters.get(field.key),
                   filteredValue: columnFiltersSelected[field.key] || null,
                   sortOrder: columnSort.find((item) => item.fieldKey === field.key)?.order ?? null,
@@ -17378,6 +17524,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   render: (value, record) => {
                     const { resource, id } = getTargetInfo(record);
                     const renderValue = () => {
+                      const showToken = normalizeFieldViewType(field.showViewType || "");
+                      if (showToken && !(showToken === "read-only-field" && field.reference)) {
+                        return renderFieldValue(field, record, allModels, true);
+                      }
                       if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
                         return /* @__PURE__ */ jsxRuntime.jsx(
                           ReferenceField,
@@ -19187,7 +19337,7 @@ function useRecentActivity(days) {
   return { data, loading, reload: load };
 }
 var { Text: Text2, Title: Title9 } = antd.Typography;
-function relativeTime(iso) {
+function relativeTime2(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
@@ -19296,7 +19446,7 @@ var RecentActivityPanel = () => {
                         }
                       ),
                       isNew && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: "new" }),
-                      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime(timestamp) })
+                      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime2(timestamp) })
                     ] })
                   ]
                 }

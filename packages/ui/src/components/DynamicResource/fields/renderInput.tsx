@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from "react";
-import { Input, Select, Checkbox, DatePicker, InputNumber, TimePicker, Skeleton, Tabs, Alert } from "antd";
+import { Input, Select, Checkbox, DatePicker, InputNumber, TimePicker, Skeleton, Tabs, Alert, Rate } from "antd";
 import type { FieldDef, ModelDef } from "../types";
 import { hasReferenceModel, isFileModel, resolveResourcePath } from "../utils/model";
 import { applyRelationFieldOverrides, normalizeFieldViewType } from "../utils/viewConfig";
@@ -89,6 +89,60 @@ const renderEditableFieldViewType = (token: string, value: any, onChange: ((v: a
             );
         case "editable-email":
             return <Input type="email" value={str} onChange={(e) => onChange?.(e.target.value)} placeholder="user@example.com" />;
+        case "editable-currency": {
+            const num = value === null || value === undefined ? undefined : Number(value);
+            return <InputNumber style={{ width: "100%" }} value={isNaN(num as number) ? undefined : num} onChange={onChange} addonBefore="$" precision={2} step={0.01} />;
+        }
+        case "editable-percentage": {
+            const num = value === null || value === undefined ? undefined : Number(value);
+            return <InputNumber style={{ width: "100%" }} value={isNaN(num as number) ? undefined : num} onChange={onChange} addonAfter="%" step={0.1} />;
+        }
+        case "editable-progress": {
+            const num = value === null || value === undefined ? undefined : Number(value);
+            return <InputNumber style={{ width: "100%" }} value={isNaN(num as number) ? undefined : num} onChange={onChange} min={0} max={100} addonAfter="%" precision={0} />;
+        }
+        case "editable-rating":
+            return <Rate value={Number(value) || 0} onChange={onChange} />;
+        case "editable-duration": {
+            const num = value === null || value === undefined ? undefined : Number(value);
+            return <InputNumber style={{ width: "100%" }} value={isNaN(num as number) ? undefined : num} onChange={onChange} min={0} precision={0} addonAfter="s" />;
+        }
+        case "editable-phone":
+            return <Input type="tel" value={str} onChange={(e) => onChange?.(e.target.value)} placeholder="+1 555 000 0000" />;
+        case "editable-color":
+            return (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                        type="color"
+                        value={str || "#000000"}
+                        onChange={(e) => onChange?.(e.target.value)}
+                        style={{ width: 36, height: 28, border: "1px solid #d9d9d9", borderRadius: 4, padding: 2, cursor: "pointer", flexShrink: 0 }}
+                    />
+                    <Input value={str} onChange={(e) => onChange?.(e.target.value)} placeholder="#000000" style={{ flex: 1 }} />
+                </div>
+            );
+        case "editable-code":
+            return (
+                <Input.TextArea
+                    value={str}
+                    onChange={(e) => onChange?.(e.target.value)}
+                    autoSize={{ minRows: 3, maxRows: 18 }}
+                    style={{ resize: "vertical", fontFamily: "monospace", fontSize: 12 }}
+                />
+            );
+        case "editable-image-url":
+            return (
+                <div>
+                    <Input value={str} onChange={(e) => onChange?.(e.target.value)} placeholder="https://..." />
+                    {str && (
+                        <img
+                            src={str}
+                            alt=""
+                            style={{ marginTop: 4, maxWidth: "100%", maxHeight: 120, objectFit: "contain", borderRadius: 4, display: "block" }}
+                        />
+                    )}
+                </div>
+            );
         default:
             return null;
     }

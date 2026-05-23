@@ -4,7 +4,7 @@
   },
   "user:all": {
     "dashboard:project": {
-      "current_view_name": "By Project",
+      "current_view_name": "By Status",
       "current_view_names": [
         "default view",
         "By Project",
