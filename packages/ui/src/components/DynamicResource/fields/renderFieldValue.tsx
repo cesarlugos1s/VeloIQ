@@ -61,9 +61,10 @@ export const renderFieldValue = (field: FieldDef, record: any, allModels?: Model
             />
         );
     }
-    // Scalar field view_type override
+    // Scalar field view_type override (skip for FK fields — "read-only-field" on a reference
+    // field means "just the link, no edit icon", handled by the reference branch below)
     const showToken = normalizeFieldViewType(field.showViewType || "");
-    if (showToken && showToken.startsWith("read-only-")) {
+    if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
         return renderFieldViewTypeReadOnly(showToken, value);
     }
     if (field.type === "boolean") {

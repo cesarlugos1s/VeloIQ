@@ -7550,7 +7550,7 @@ var renderFieldValue = (field, record, allModels) => {
     );
   }
   const showToken = normalizeFieldViewType(field.showViewType || "");
-  if (showToken && showToken.startsWith("read-only-")) {
+  if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
     return renderFieldViewTypeReadOnly(showToken, value);
   }
   if (field.type === "boolean") {
@@ -9032,22 +9032,27 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const renderShowEditableInput = (field, forceReadOnly) => {
     const refResource = field.reference ? resolveResourcePath(field.reference, allModels) : void 0;
     const isSelfRef = refResource && modelResource && refResource === modelResource;
-    const fkViewType = field.reference ? normalizeRelationViewType(field.showViewType || "") || "read-and-edit-list" : null;
-    const scalarReadOnlyToken = field.showViewType ? normalizeFieldViewType(field.showViewType) : "";
-    const isForceReadOnlyToken = scalarReadOnlyToken.startsWith("read-only-");
-    if (field.formula || forceReadOnly || isForceReadOnlyToken) {
+    const scalarToken = field.showViewType ? normalizeFieldViewType(field.showViewType) : "";
+    const isReadOnlyToken = scalarToken.startsWith("read-only-");
+    const isEditableToken = scalarToken === "editable-field";
+    if (field.formula || forceReadOnly || isReadOnlyToken) {
       return renderFieldValue(field, record, allModels);
     }
-    if (field.reference && fkViewType === "read-and-edit-list") {
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, style: { margin: 0 }, noStyle: false, children: /* @__PURE__ */ jsxRuntime.jsx(
-        ReadAndEditReference,
-        {
-          field,
-          allModels,
-          model,
-          currentId: isSelfRef ? currentId : void 0
+    if (field.reference) {
+      if (!isEditableToken) {
+        const fkRelViewType = normalizeRelationViewType(field.showViewType || "") || "read-and-edit-list";
+        if (fkRelViewType === "read-and-edit-list") {
+          return /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, style: { margin: 0 }, noStyle: false, children: /* @__PURE__ */ jsxRuntime.jsx(
+            ReadAndEditReference,
+            {
+              field,
+              allModels,
+              model,
+              currentId: isSelfRef ? currentId : void 0
+            }
+          ) });
         }
-      ) });
+      }
     }
     return /* @__PURE__ */ jsxRuntime.jsx(
       antd.Form.Item,
@@ -9093,8 +9098,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                       flex: "1 0 200px",
                       padding: "2px 4px",
                       lineHeight: 1.15,
-                      textAlign: field.type === "number" ? "right" : "left",
-                      fontVariantNumeric: field.type === "number" ? "tabular-nums" : void 0,
+                      textAlign: field.type === "number" && !field.reference ? "right" : "left",
+                      fontVariantNumeric: field.type === "number" && !field.reference ? "tabular-nums" : void 0,
                       overflowWrap: "anywhere",
                       background: valueBackground,
                       borderRadius: 6
@@ -9210,8 +9215,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                             borderRadius: 6,
                             maxWidth: "100%",
                             overflowWrap: "anywhere",
-                            textAlign: field.type === "number" ? "right" : "left",
-                            fontVariantNumeric: field.type === "number" ? "tabular-nums" : void 0,
+                            textAlign: field.type === "number" && !field.reference ? "right" : "left",
+                            fontVariantNumeric: field.type === "number" && !field.reference ? "tabular-nums" : void 0,
                             ...parseInlineStyle(item.html_format)
                           };
                           return /* @__PURE__ */ jsxRuntime.jsx(VisibilityGate, { condition: item.visibility_condition, children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsxs(

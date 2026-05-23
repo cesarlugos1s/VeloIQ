@@ -148,30 +148,32 @@ export const useStandardShowTabs = (
         const refResource = field.reference ? resolveResourcePath(field.reference, allModels) : undefined;
         const isSelfRef = refResource && modelResource && refResource === modelResource;
 
-        // Determine effective view type for FK fields
-        const fkViewType = field.reference
-            ? normalizeRelationViewType(field.showViewType || "") || "read-and-edit-list"
-            : null;
+        // Resolve scalar and relation view type tokens from showViewType
+        const scalarToken = field.showViewType ? normalizeFieldViewType(field.showViewType) : "";
+        const isReadOnlyToken = scalarToken.startsWith("read-only-");
+        const isEditableToken = scalarToken === "editable-field";
 
-        // Determine effective scalar view type
-        const scalarReadOnlyToken = field.showViewType ? normalizeFieldViewType(field.showViewType) : "";
-        const isForceReadOnlyToken = scalarReadOnlyToken.startsWith("read-only-");
-
-        if (field.formula || forceReadOnly || isForceReadOnlyToken) {
+        if (field.formula || forceReadOnly || isReadOnlyToken) {
             return renderFieldValue(field, record, allModels);
         }
 
-        if (field.reference && fkViewType === "read-and-edit-list") {
-            return (
-                <Form.Item name={field.key} style={{ margin: 0 }} noStyle={false}>
-                    <ReadAndEditReference
-                        field={field}
-                        allModels={allModels}
-                        model={model}
-                        currentId={isSelfRef ? currentId : undefined}
-                    />
-                </Form.Item>
-            );
+        if (field.reference) {
+            // "editable-field" on a FK → plain RelationSelect dropdown (falls through to renderInput below)
+            if (!isEditableToken) {
+                const fkRelViewType = normalizeRelationViewType(field.showViewType || "") || "read-and-edit-list";
+                if (fkRelViewType === "read-and-edit-list") {
+                    return (
+                        <Form.Item name={field.key} style={{ margin: 0 }} noStyle={false}>
+                            <ReadAndEditReference
+                                field={field}
+                                allModels={allModels}
+                                model={model}
+                                currentId={isSelfRef ? currentId : undefined}
+                            />
+                        </Form.Item>
+                    );
+                }
+            }
         }
 
         return (
@@ -220,8 +222,8 @@ export const useStandardShowTabs = (
                                         flex: "1 0 200px",
                                         padding: "2px 4px",
                                         lineHeight: 1.15,
-                                        textAlign: field.type === "number" ? "right" : "left",
-                                        fontVariantNumeric: field.type === "number" ? "tabular-nums" : undefined,
+                                        textAlign: field.type === "number" && !field.reference ? "right" : "left",
+                                        fontVariantNumeric: field.type === "number" && !field.reference ? "tabular-nums" : undefined,
                                         overflowWrap: "anywhere",
                                         background: valueBackground,
                                         borderRadius: 6,
@@ -355,8 +357,8 @@ export const useStandardShowTabs = (
                                                                         borderRadius: 6,
                                                                         maxWidth: "100%",
                                                                         overflowWrap: "anywhere",
-                                                                        textAlign: field.type === "number" ? "right" : "left",
-                                                                        fontVariantNumeric: field.type === "number" ? "tabular-nums" : undefined,
+                                                                        textAlign: field.type === "number" && !field.reference ? "right" : "left",
+                                                                        fontVariantNumeric: field.type === "number" && !field.reference ? "tabular-nums" : undefined,
                                                                         ...parseInlineStyle(item.html_format)
                                                                     };
                                                                     return (
