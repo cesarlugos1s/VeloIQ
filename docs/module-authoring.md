@@ -289,3 +289,82 @@ To override or extend the generated schema, create a
 `{module}Schema.manual.ts` in the same directory and merge it in
 `{module}Schema.ts`.  See the `@juicemantics/veloiq-ui` documentation for the
 `ModelDef` and `FieldDef` type reference.
+
+## View types
+
+`showViewType` and `editViewType` control how a field or relation is rendered
+in show and edit contexts respectively.  They can be set directly on the
+TypeScript schema definition or overridden at runtime via `vid` / `show_vid` /
+`edit_vid` on a `ViewConfigRow` (fetched from `/views/configurations/{model}`).
+
+### Scalar field view types
+
+Set on `FieldDef.showViewType` / `FieldDef.editViewType`.  Tokens are
+case-insensitive and tolerate spaces or underscores in place of hyphens.
+
+| Token | Rendering |
+|---|---|
+| `read-only-field` | Force read-only using the field's default type renderer |
+| `editable-field` | Force editable using the field's default type renderer |
+| `read-only-password` | Masked ●●●●●● — no reveal |
+| `editable-password` | Masked input with reveal toggle (`Input.Password`) |
+| `read-only-textarea` | Multi-line read-only text area |
+| `editable-textarea` | Multi-line `Input.TextArea` |
+| `read-only-markdown` | Rendered Markdown (via `react-markdown`) |
+| `editable-markdown` | `Input.TextArea` with a live preview toggle |
+| `read-only-json` | Formatted JSON in a `<pre>` block |
+| `editable-json` | `Input.TextArea` with JSON parse validation |
+| `read-only-url` | Clickable `<a href>` link |
+| `editable-url` | Plain text input |
+| `read-only-email` | `<a href="mailto:">` link |
+| `editable-email` | Text input with email validation |
+
+Example — store a field as plain text but render it as Markdown in the show
+view while keeping a textarea in the edit form:
+
+```ts
+{ key: "notes", label: "Notes", type: "string",
+  showViewType: "read-only-markdown", editViewType: "editable-textarea" }
+```
+
+### Relation view types
+
+Set on `RelationDef.showViewType` / `RelationDef.editViewType` for to-many
+relations, or on `FieldDef.showViewType` / `FieldDef.editViewType` for FK
+(many-to-one) fields.  The same token vocabulary applies to both.
+
+| Token | Rendering |
+|---|---|
+| `read-and-edit-list` | **Default for FK fields.** Clickable label link + pencil icon that swaps to an inline selector with confirm/cancel |
+| `read-and-edit-csv` | Comma-separated clickable labels with × unlink per item and a + add control |
+| `editable-csv` | Multi-select tag input (Ant Design `Select` in tags mode) |
+| `csv` | Read-only comma-separated labels |
+| `list` | Read-only bullet list |
+| `editable-list` | Bullet list with add / remove controls |
+| `table` | Read-only data table |
+| `editable-table` | **Default for to-many in edit mode.** Table with inline editing |
+| `gallery` | Image / card grid |
+| `calendar` | Calendar view (requires a `date` or `datetime` field in the related model) |
+| `primary` | Embedded show view of the related record |
+| `totals-details` | **Default for to-many in show mode.** Summary totals + expandable details |
+| `tree` | Hierarchical tree (recursive self-relations) |
+| `tree-details` | Hierarchical Miller-columns tree with leaf details |
+
+Example — render the `project_id` FK as a read-only link and `assignee_id` as
+the default inline edit widget:
+
+```ts
+// tasksSchema.manual.ts
+{ key: "project_id", label: "Project", type: "number",
+  reference: "project", showViewType: "read-only-field" },
+{ key: "assignee_id", label: "Assignee", type: "number",
+  reference: "team_member" },  // defaults to read-and-edit-list
+```
+
+Example — render a to-many relation as a comma-separated list of links in the
+show view and a multi-select tag input in the edit view:
+
+```ts
+{ resource: "tag", targetKey: "task_id", label: "Tags",
+  showViewType: "read-and-edit-csv", editViewType: "editable-csv" }
+```
