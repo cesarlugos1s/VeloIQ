@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Button, Form, Space } from "antd";
+import { Button, Form, Tooltip } from "antd";
 import { EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import type { FieldDef, ModelDef } from "../types";
 import { resolveResourcePath } from "../utils/model";
 import { ReferenceField } from "./ReferenceField";
 import { RelationSelect } from "./RelationSelect";
+
+const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 export const ReadAndEditReference: React.FC<{
     value?: any;
@@ -43,9 +45,11 @@ export const ReadAndEditReference: React.FC<{
         setEditing(false);
     };
 
+    const row: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 4 };
+
     if (editing) {
         return (
-            <Space size={4} style={{ width: "100%" }}>
+            <div style={row}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <RelationSelect
                         field={field}
@@ -55,25 +59,33 @@ export const ReadAndEditReference: React.FC<{
                         excludeId={isSelfRef ? currentId : undefined}
                     />
                 </div>
-                <Button size="small" type="primary" icon={<CheckOutlined />} onClick={handleConfirm} />
-                <Button size="small" icon={<CloseOutlined />} onClick={handleCancel} />
-            </Space>
+                <Tooltip title={_("Confirm")}>
+                    <Button size="small" type="primary" icon={<CheckOutlined />} onClick={handleConfirm} />
+                </Tooltip>
+                <Tooltip title={_("Cancel")}>
+                    <Button size="small" icon={<CloseOutlined />} onClick={handleCancel} />
+                </Tooltip>
+            </div>
         );
     }
 
     if (!value) {
         return (
-            <Space size={4}>
-                <span style={{ color: "inherit" }}>-</span>
-                <Button size="small" type="text" icon={<EditOutlined />} onClick={handleEdit} style={{ padding: "0 2px", height: "auto" }} />
-            </Space>
+            <div style={row}>
+                <span>-</span>
+                <Tooltip title={_("Edit")}>
+                    <Button size="small" type="text" icon={<EditOutlined />} onClick={handleEdit} style={{ padding: "0 2px", height: "auto" }} />
+                </Tooltip>
+            </div>
         );
     }
 
     return (
-        <Space size={4}>
+        <div style={row}>
             <ReferenceField id={value} resource={resource} />
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={handleEdit} style={{ padding: "0 2px", height: "auto" }} />
-        </Space>
+            <Tooltip title={_("Edit")}>
+                <Button size="small" type="text" icon={<EditOutlined />} onClick={handleEdit} style={{ padding: "0 2px", height: "auto" }} />
+            </Tooltip>
+        </div>
     );
 };
