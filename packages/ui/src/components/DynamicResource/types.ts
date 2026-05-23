@@ -27,11 +27,15 @@ export interface FieldDef {
     readOnly?: boolean;
     unique?: boolean;
     nullable?: boolean;
+    showViewType?: string;
+    editViewType?: string;
     /** Roles allowed to read this field (absent = all roles). Emitted by veloiq_field(read_roles=…). */
     readRoles?: string[];
     /** Roles allowed to write this field (absent = all roles). Emitted by veloiq_field(write_roles=…). */
     writeRoles?: string[];
 }
+
+export type RelationViewType = "table" | "editable-table" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
 
 export interface MillerLeafConfig {
     relationPath: string;
@@ -54,8 +58,8 @@ export interface RelationDef {
     isRecursive?: boolean;
     minItems?: number;
     maxItems?: number;
-    showViewType?: "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
-    editViewType?: "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+    showViewType?: RelationViewType;
+    editViewType?: RelationViewType;
     showViewTypeFromCsv?: boolean;
     editViewTypeFromCsv?: boolean;
     showCustomPageName?: string;
@@ -94,8 +98,6 @@ export interface ModelDef {
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };
 export const PrimaryShowContext = React.createContext<React.ComponentType<PrimaryShowRendererProps> | null>(null);
-
-export type RelationViewType = "table" | "editable-table" | "editable-list" | "list" | "csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
 
 export interface BulkActionDef {
     key: string;

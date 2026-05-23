@@ -23,10 +23,12 @@ import {
     isRelationConfiguredForDetails,
     isAttributeValueEditable,
     normalizeRelationViewType,
+    normalizeFieldViewType,
     applyRelationViewOverride,
 } from "../utils/viewConfig";
 import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
+import { ReadAndEditReference } from "../fields/ReadAndEditReference";
 import {
     DEFAULT_SHOW_RELATION_ROW_ACTIONS,
     DEFAULT_RELATION_CREATE_ACTIONS,
@@ -145,16 +147,43 @@ export const useStandardShowTabs = (
     const renderShowEditableInput = (field: FieldDef, forceReadOnly?: boolean) => {
         const refResource = field.reference ? resolveResourcePath(field.reference, allModels) : undefined;
         const isSelfRef = refResource && modelResource && refResource === modelResource;
+
+        // Determine effective view type for FK fields
+        const fkViewType = field.reference
+            ? normalizeRelationViewType(field.showViewType || "") || "read-and-edit-list"
+            : null;
+
+        // Determine effective scalar view type
+        const scalarReadOnlyToken = field.showViewType ? normalizeFieldViewType(field.showViewType) : "";
+        const isForceReadOnlyToken = scalarReadOnlyToken.startsWith("read-only-");
+
+        if (field.formula || forceReadOnly || isForceReadOnlyToken) {
+            return renderFieldValue(field, record, allModels);
+        }
+
+        if (field.reference && fkViewType === "read-and-edit-list") {
+            return (
+                <Form.Item name={field.key} style={{ margin: 0 }} noStyle={false}>
+                    <ReadAndEditReference
+                        field={field}
+                        allModels={allModels}
+                        model={model}
+                        currentId={isSelfRef ? currentId : undefined}
+                    />
+                </Form.Item>
+            );
+        }
+
         return (
             <Form.Item
                 name={field.key}
-                rules={field.required && !field.formula && !forceReadOnly ? [{ required: true }] : []}
+                rules={field.required && !field.formula ? [{ required: true }] : []}
                 valuePropName={field.type === 'boolean' ? 'checked' : undefined}
                 getValueProps={(val) => (field.type === 'date' || field.type === 'datetime') && val ? { value: dayjs(val) } : field.type === 'time' && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }}
                 style={{ margin: 0 }}
                 noStyle={false}
             >
-                {(field.formula || forceReadOnly) ? <Input disabled /> : renderInput(field, allModels, model, isSelfRef ? currentId : undefined)}
+                {renderInput(field, allModels, model, isSelfRef ? currentId : undefined)}
             </Form.Item>
         );
     };

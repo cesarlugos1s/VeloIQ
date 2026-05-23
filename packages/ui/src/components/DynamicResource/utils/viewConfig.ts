@@ -341,7 +341,10 @@ export const getConfigVid = (item: ViewConfigRow, mode: "show" | "edit") => {
 
 export const isAttributeValueEditable = (item: ViewConfigRow | undefined, mode: "show" | "edit"): boolean => {
     if (!item) return true;
-    const vid = String(getConfigVid(item, mode) || "").trim().toLowerCase().replace(/[\s_-]/g, "");
+    const raw = String(getConfigVid(item, mode) || "").trim();
+    const fieldToken = normalizeFieldViewType(raw);
+    if (fieldToken) return fieldToken.startsWith("editable-");
+    const vid = raw.toLowerCase().replace(/[\s_-]/g, "");
     if (vid === "readonly") return false;
     return true;
 };
@@ -357,6 +360,9 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
     if (normalized === "editablelist") return "editable-list";
     if (normalized === "list") return "list";
     if (normalized === "csv") return "csv";
+    if (normalized === "readandeditlist") return "read-and-edit-list";
+    if (normalized === "readandeditcsv") return "read-and-edit-csv";
+    if (normalized === "editablecsv") return "editable-csv";
     if (normalized === "gallery" || normalized === "image") return "gallery";
     if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
     if (normalized === "primary") return "primary";
@@ -364,6 +370,25 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
     if (normalized === "tree") return "tree";
     if (normalized === "treedetails") return "tree-details";
     return "";
+};
+
+const FIELD_VIEW_TYPE_TOKENS = new Set([
+    "read-only-field", "editable-field",
+    "read-only-password", "editable-password",
+    "read-only-textarea", "editable-textarea",
+    "read-only-markdown", "editable-markdown",
+    "read-only-json", "editable-json",
+    "read-only-url", "editable-url",
+    "read-only-email", "editable-email",
+]);
+
+export const normalizeFieldViewType = (raw: string): string => {
+    const normalized = String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_]/g, "-")
+        .replace(/-+/g, "-");
+    return FIELD_VIEW_TYPE_TOKENS.has(normalized) ? normalized : "";
 };
 
 export const applyRelationViewOverride = (rel: RelationDef, item: ViewConfigRow, mode: "show" | "edit") => {

@@ -1,10 +1,10 @@
 {
   "__color_mode__": {
-    "colorMode": "light"
+    "colorMode": "dark"
   },
   "user:all": {
     "dashboard:project": {
-      "current_view_name": "By Status",
+      "current_view_name": "default view",
       "current_view_names": [
         "default view",
         "By Project",

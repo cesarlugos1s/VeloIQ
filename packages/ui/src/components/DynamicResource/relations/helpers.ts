@@ -3,7 +3,7 @@ import { getRelationLabel, translateRelationKey } from "../utils/i18n";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-const INLINE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["list", "csv"]);
+const INLINE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
 const TABLE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["table", "totals-details"]);
 
 export const isInlineRelationViewType = (viewType: RelationViewType) => INLINE_RELATION_VIEW_TYPES.has(viewType);

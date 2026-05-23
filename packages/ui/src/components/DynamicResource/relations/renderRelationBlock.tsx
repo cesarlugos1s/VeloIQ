@@ -18,6 +18,7 @@ import { RelatedObjectsCalendar } from "./RelatedObjectsCalendar";
 import { RelatedObjectsPrimaryView } from "./RelatedObjectsPrimaryView";
 import { RelatedObjectsGallery } from "./RelatedObjectsGallery";
 import { RelatedObjectsEditableList } from "./RelatedObjectsEditableList";
+import { RelatedObjectsEditableCsv } from "./RelatedObjectsEditableCsv";
 import { PolymorphicRelatedObjectsTable, RelatedObjectsTable } from "./RelatedObjectsTable";
 import { RelatedObjectSingleSelect } from "./RelatedObjectSingleSelect";
 import { MillerBrowserLayout } from "./MillerBrowserLayout";
@@ -126,6 +127,41 @@ export const renderRelationBlock = ({
                     {singleLabel}
                     <div style={resolvedValueStyle}>
                         <RelatedObjectsInlineValues rel={rel} record={record} viewType="csv" allModels={allModels} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (viewType === "editable-csv" || viewType === "read-and-edit-csv") {
+        return (
+            <div style={{ marginBottom: 0 }}>
+                <div style={resolvedLayoutStyle}>
+                    {showLabel && <div style={resolvedLabelStyle}>{relationLabel}</div>}
+                    <div style={resolvedValueStyle}>
+                        <RelatedObjectsEditableCsv rel={rel} record={record} allModels={allModels} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (viewType === "read-and-edit-list") {
+        if (rel.otherResource && rel.otherKey) {
+            return (
+                <div style={{ marginBottom: 16, boxShadow: `0 8px 20px -16px ${relationTone.shadow}` }}>
+                    <div style={{ ...resolvedLabelStyle, marginBottom: 4 }}>{showLabel ? relationLabel : null}</div>
+                    <RelatedObjectsEditableList rel={rel} record={record} allModels={allModels} />
+                </div>
+            );
+        }
+        // Non-M2M: fall through to inline list view
+        return (
+            <div style={{ marginBottom: 0 }}>
+                <div style={resolvedLayoutStyle}>
+                    {showLabel && <div style={resolvedLabelStyle}>{relationLabel}</div>}
+                    <div style={resolvedValueStyle}>
+                        <RelatedObjectsInlineValues rel={rel} record={record} viewType="list" allModels={allModels} />
                     </div>
                 </div>
             </div>
