@@ -26,10 +26,10 @@ export const getRelationViewType = (
     const showFallback = defaults?.show || "totals-details";
     const editFallback = defaults?.edit || "editable-table";
     if (mode === "show") {
-        if (rel.showViewTypeFromCsv && rel.showViewType) return rel.showViewType;
+        if (rel.showViewType) return rel.showViewType;
         return showFallback;
     }
-    if (rel.editViewTypeFromCsv && rel.editViewType) return rel.editViewType;
+    if (rel.editViewType) return rel.editViewType;
     return editFallback;
 };
 
