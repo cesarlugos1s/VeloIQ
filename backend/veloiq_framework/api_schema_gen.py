@@ -107,6 +107,15 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
 
     generated: list[str] = []
 
+    # Pre-load auth models so veloiq_user / veloiq_role / veloiq_tenant tables
+    # are registered in SQLAlchemy's MetaData before any app module is imported.
+    # Without this, FK columns that reference veloiq_user.id cause mapper errors
+    # during configure_mappers() even though the FK is column-only (no ORM rel).
+    try:
+        import veloiq_framework.auth.models  # noqa: F401
+    except Exception:
+        pass
+
     # First pass: import every models.py silently so that cross-module forward
     # references (e.g. Optional["TeamMember"] in tasks when team hasn't loaded
     # yet) are resolved before the second pass processes each module.
@@ -119,6 +128,17 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
             importlib.import_module(f"app.modules.{mod_dir.name}.models")
         except Exception:
             pass  # A later module may satisfy the missing forward ref; retry below.
+
+    # Force SQLAlchemy to resolve all forward-reference relationships now that
+    # every module has been imported.  Cross-module back_populates (e.g. Horse →
+    # Stall across modules) fail mid-import because the target class doesn't
+    # exist yet; calling configure_mappers() here, after all modules are loaded,
+    # gives SQLAlchemy the complete picture it needs before introspection begins.
+    try:
+        from sqlalchemy.orm import configure_mappers
+        configure_mappers()
+    except Exception:
+        pass
 
     for mod_dir in mod_dirs:
         module_name = mod_dir.name
