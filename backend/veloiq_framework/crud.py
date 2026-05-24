@@ -342,7 +342,10 @@ def create_crud_router(
         payload.pop(pk_field, None)
         filtered = _filter_write_payload(payload, model_class, user_roles)
         coerced = {k: _coerce_value(k, v) for k, v in filtered.items()}
-        row = model_class.model_validate(coerced)
+        try:
+            row = model_class.model_validate(coerced)
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
         session.add(row)
         session.commit()
         session.refresh(row)
