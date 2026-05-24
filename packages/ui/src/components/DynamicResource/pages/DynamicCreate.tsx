@@ -49,6 +49,8 @@ import { renderRelationBlock } from "../../DynamicResource";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
+const requiredMark = (field: FieldDef) =>
+    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 export interface JourneyCallbacks {
     onSave: (record: any) => void;
@@ -366,7 +368,7 @@ export const DynamicCreate: React.FC<{
                 <div style={{ display: "grid", gridTemplateColumns: showLabel ? "200px 1fr" : "1fr", alignItems: "start", columnGap: 6 }}>
                     {showLabel && (
                         <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
-                            {field.label}
+                            {field.label}{requiredMark(field)}
                         </div>
                     )}
                     <div style={{ padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, border: `1px solid ${token.colorBorder}`, maxWidth: "100%", overflowWrap: "anywhere", ...parseInlineStyle(item.html_format) }}>
@@ -439,7 +441,7 @@ export const DynamicCreate: React.FC<{
                 <div style={{ display: "grid", gridTemplateColumns: showLabel ? "200px 1fr" : "1fr", alignItems: "start", columnGap: 6 }}>
                     {showLabel && (
                         <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
-                            {field.label}
+                            {field.label}{requiredMark(field)}
                         </div>
                     )}
                     <div style={readonlyValueStyle}>
@@ -502,7 +504,7 @@ export const DynamicCreate: React.FC<{
                                 }
                                 return (
                                     <div key={field.key} style={{ display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }}>
-                                        <span style={labelStyle}>{field.label}</span>
+                                        <span style={labelStyle}>{field.label}{requiredMark(field)}</span>
                                         <div style={{ padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }}>
                                             <Form.Item name={field.key} rules={field.required ? [{ required: true }] : []} valuePropName={field.type === "boolean" ? "checked" : undefined} getValueProps={(val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs(val) } : field.type === "time" && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }} style={{ margin: 0 }}>
                                                 {renderInput(field, allModels, model)}
@@ -693,7 +695,7 @@ export const DynamicCreate: React.FC<{
                                 }
                                 return (
                                     <div key={field.key} style={{ display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }}>
-                                        <span style={labelStyle}>{field.label}</span>
+                                        <span style={labelStyle}>{field.label}{requiredMark(field)}</span>
                                         <div style={{ padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }}>
                                             <Form.Item name={field.key} rules={field.required ? [{ required: true }] : []} style={{ margin: 0 }}>
                                                 {isOtherKey && field.reference && hasReferenceModel(field.reference, allModels)

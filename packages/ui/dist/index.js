@@ -7720,6 +7720,7 @@ var renderInput = (field, allModels, model, currentId) => {
 };
 var _23 = window._ || ((text) => text);
 var { Title: Title2 } = antd.Typography;
+var requiredMark = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -7975,7 +7976,10 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, hidden: true, rules: field.required ? [{ required: true }] : [], children: renderInput(field, allModels, model) }, `${field.key}-${index}`);
     }
     return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gridTemplateColumns: showLabel ? "200px 1fr" : "1fr", alignItems: "start", columnGap: 6 }, children: [
-      showLabel && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: field.label }),
+      showLabel && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: [
+        field.label,
+        requiredMark(field)
+      ] }),
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, border: `1px solid ${token.colorBorder}`, maxWidth: "100%", overflowWrap: "anywhere", ...parseInlineStyle(item.html_format) }, children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Form.Item,
         {
@@ -8044,7 +8048,10 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       ...parseInlineStyle(item.html_format)
     };
     return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gridTemplateColumns: showLabel ? "200px 1fr" : "1fr", alignItems: "start", columnGap: 6 }, children: [
-      showLabel && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: field.label }),
+      showLabel && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: [
+        field.label,
+        requiredMark(field)
+      ] }),
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: readonlyValueStyle, children: renderFieldValue(field, createdRecord, allModels) })
     ] }) }, `${field.key}-${index}`);
   };
@@ -8073,7 +8080,10 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
           return /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, hidden: true, rules: field.required ? [{ required: true }] : [], children: renderInput(field, allModels, model) }, field.key);
         }
         return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx("span", { style: labelStyle, children: field.label }),
+          /* @__PURE__ */ jsxRuntime.jsxs("span", { style: labelStyle, children: [
+            field.label,
+            requiredMark(field)
+          ] }),
           /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs8__default.default(val) } : field.type === "time" && val ? { value: dayjs8__default.default("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
@@ -8208,7 +8218,10 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
                   return /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, hidden: true, rules: field.required ? [{ required: true }] : [], children: isOtherKey && field.reference && hasReferenceModel(field.reference, allModels) ? /* @__PURE__ */ jsxRuntime.jsx(RelationSelect, { field, allModels, multiple: true }) : renderInput(field, allModels, model) }, field.key);
                 }
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }, children: [
-                  /* @__PURE__ */ jsxRuntime.jsx("span", { style: labelStyle, children: field.label }),
+                  /* @__PURE__ */ jsxRuntime.jsxs("span", { style: labelStyle, children: [
+                    field.label,
+                    requiredMark(field)
+                  ] }),
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], style: { margin: 0 }, children: isOtherKey && field.reference && hasReferenceModel(field.reference, allModels) ? /* @__PURE__ */ jsxRuntime.jsx(RelationSelect, { field, allModels, multiple: true }) : renderInput(field, allModels, model) }) })
                 ] }, field.key);
               }) })
@@ -8304,6 +8317,7 @@ var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
 };
 var _24 = window._ || ((text) => text);
 var { Title: Title3 } = antd.Typography;
+var requiredMark2 = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -8626,7 +8640,10 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
               gap: "4px 6px"
             },
             children: [
-              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: field.label }),
+              /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: [
+                field.label,
+                requiredMark2(field)
+              ] }),
               /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: "1 0 200px", padding: "2px 4px", lineHeight: 1.15, overflowWrap: "anywhere", background: valueBackground, borderRadius: 6 }, children: /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Form.Item,
                 {
@@ -8771,7 +8788,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                                         gap: 2
                                       },
                                       children: [
-                                        showLabel && /* @__PURE__ */ jsxRuntime.jsx(
+                                        showLabel && /* @__PURE__ */ jsxRuntime.jsxs(
                                           "div",
                                           {
                                             style: {
@@ -8780,7 +8797,10 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                                               padding: "2px 4px",
                                               borderRadius: 4
                                             },
-                                            children: field.label
+                                            children: [
+                                              field.label,
+                                              requiredMark2(field)
+                                            ]
                                           }
                                         ),
                                         /* @__PURE__ */ jsxRuntime.jsx("div", { style: readonlyValueStyle, children: renderFieldValue(field, record, allModels) })
@@ -8797,7 +8817,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                                       gap: 2
                                     },
                                     children: [
-                                      showLabel && /* @__PURE__ */ jsxRuntime.jsx(
+                                      showLabel && /* @__PURE__ */ jsxRuntime.jsxs(
                                         "div",
                                         {
                                           style: {
@@ -8806,7 +8826,10 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                                             padding: "2px 4px",
                                             borderRadius: 4
                                           },
-                                          children: field.label
+                                          children: [
+                                            field.label,
+                                            requiredMark2(field)
+                                          ]
                                         }
                                       ),
                                       /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
@@ -8931,7 +8954,10 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
               const showLabel = item.show_label !== false;
               const editable = isAttributeValueEditable(item, "edit");
               return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: [
-                showLabel && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: field.label }),
+                showLabel && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: [
+                  field.label,
+                  requiredMark2(field)
+                ] }),
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, border: `1px solid ${token.colorBorder}`, maxWidth: "100%", overflowWrap: "anywhere", ...parseInlineStyle(item.html_format) }, children: editable ? /* @__PURE__ */ jsxRuntime.jsx(
                   antd.Form.Item,
                   {
@@ -9081,6 +9107,7 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
 };
 var _26 = window._ || ((text) => text);
 var { Title: Title4 } = antd.Typography;
+var requiredMark3 = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 function coerce(v) {
   if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
   return v;
@@ -9232,7 +9259,10 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                 gap: "4px 6px"
               },
               children: [
-                /* @__PURE__ */ jsxRuntime.jsx("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: field.label }),
+                /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: [
+                  field.label,
+                  requiredMark3(field)
+                ] }),
                 /* @__PURE__ */ jsxRuntime.jsx(
                   "div",
                   {
@@ -9370,7 +9400,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                                 gap: 2
                               },
                               children: [
-                                showLabel && /* @__PURE__ */ jsxRuntime.jsx(
+                                showLabel && /* @__PURE__ */ jsxRuntime.jsxs(
                                   "div",
                                   {
                                     style: {
@@ -9379,7 +9409,10 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                                       padding: "2px 4px",
                                       borderRadius: 4
                                     },
-                                    children: field.label
+                                    children: [
+                                      field.label,
+                                      requiredMark3(field)
+                                    ]
                                   }
                                 ),
                                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...valueStyle, border: `1px solid ${token.colorBorder}` }, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })

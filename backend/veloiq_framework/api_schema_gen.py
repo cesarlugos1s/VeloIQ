@@ -276,6 +276,15 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                     fk = next(iter(col.foreign_keys))
                     ref_table = fk.column.table.name
                     reference_extra = f', reference: "{ref_table}"'
+                # Emit required: true for non-nullable columns with no default.
+                required_extra = ""
+                if (
+                    not col.nullable
+                    and col.default is None
+                    and col.server_default is None
+                    and p.key not in _TIMESTAMP_KEYS
+                ):
+                    required_extra = ", required: true"
                 # Emit veloiq_field read/write role restrictions if present.
                 role_extra = ""
                 try:
@@ -291,7 +300,7 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                                 role_extra += f', writeRoles: {_to_ts_array(wr)}'
                 except Exception:
                     pass
-                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{role_extra} }}'
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{role_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:

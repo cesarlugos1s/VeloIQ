@@ -42,6 +42,8 @@ import { NLSentenceBlock } from "../blocks/NLSentenceBlock";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
+const requiredMark = (field: FieldDef) =>
+    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 function coerce(v: any): any {
     if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
@@ -216,7 +218,7 @@ export const useStandardShowTabs = (
                                     gap: "4px 6px",
                                 }}
                             >
-                                <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}</span>
+                                <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}{requiredMark(field)}</span>
                                 <div
                                     style={{
                                         flex: "1 0 200px",
@@ -380,7 +382,7 @@ export const useStandardShowTabs = (
                                                                                                 borderRadius: 4,
                                                                                             }}
                                                                                         >
-                                                                                            {field.label}
+                                                                                            {field.label}{requiredMark(field)}
                                                                                         </div>
                                                                                     )}
                                                                                     <div style={{ ...valueStyle, border: `1px solid ${token.colorBorder}` }}>

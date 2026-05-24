@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 import { useKeyboardShortcuts } from "../../../hooks/useKeyboardShortcuts";
 import { useModelTone, getModelTone, type ModelTone } from "../../../utils/modelTone";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
-import type { ModelDef, ViewConfigRow } from "../types";
+import type { FieldDef, ModelDef, ViewConfigRow } from "../types";
 import { asDisplayText, applyI18nLabelsToModel, applyI18nLabelsToModels, getModuleLabel } from "../utils/i18n";
 import { useRoleFilteredModel } from "../utils/roleAccess";
 import { renderWrappedPageTitle, parseInlineStyle } from "../utils/formatting";
@@ -52,6 +52,8 @@ import { NLSentenceBlock } from "../blocks/NLSentenceBlock";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
+const requiredMark = (field: FieldDef) =>
+    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 export interface JourneyCallbacks {
     onSave: (record: any) => void;
@@ -426,7 +428,7 @@ export const DynamicEdit: React.FC<{
                                         gap: "4px 6px",
                                     }}
                                 >
-                                    <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}</span>
+                                    <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}{requiredMark(field)}</span>
                                     <div style={{ flex: "1 0 200px", padding: "2px 4px", lineHeight: 1.15, overflowWrap: "anywhere", background: valueBackground, borderRadius: 6 }}>
                                         <Form.Item
                                             name={field.key}
@@ -594,7 +596,7 @@ export const DynamicEdit: React.FC<{
                                                                                                         borderRadius: 4,
                                                                                                     }}
                                                                                                 >
-                                                                                                    {field.label}
+                                                                                                    {field.label}{requiredMark(field)}
                                                                                                 </div>
                                                                                             )}
                                                                                             <div style={readonlyValueStyle}>
@@ -622,7 +624,7 @@ export const DynamicEdit: React.FC<{
                                                                                                     borderRadius: 4,
                                                                                                 }}
                                                                                             >
-                                                                                                {field.label}
+                                                                                                {field.label}{requiredMark(field)}
                                                                                             </div>
                                                                                         )}
                                                                                         <div style={{
@@ -778,7 +780,7 @@ export const DynamicEdit: React.FC<{
                                                                                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                                                                     {showLabel && (
                                                                                         <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
-                                                                                            {field.label}
+                                                                                            {field.label}{requiredMark(field)}
                                                                                         </div>
                                                                                     )}
                                                                                     <div style={{ padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, border: `1px solid ${token.colorBorder}`, maxWidth: "100%", overflowWrap: "anywhere", ...parseInlineStyle(item.html_format) }}>
