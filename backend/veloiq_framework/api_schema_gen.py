@@ -28,6 +28,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 
@@ -124,10 +125,15 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         if d.is_dir() and not d.name.startswith("__") and (d / "models.py").exists()
     )
     for mod_dir in mod_dirs:
-        try:
-            importlib.import_module(f"app.modules.{mod_dir.name}.models")
-        except Exception:
-            pass  # A later module may satisfy the missing forward ref; retry below.
+        # Suppress the "already contains a class" SAWarning that SQLAlchemy emits
+        # when a module fails mid-import (partially registering some classes) and
+        # is then re-imported in the second pass — expected artifact of two-pass loading.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*already contains a class.*")
+            try:
+                importlib.import_module(f"app.modules.{mod_dir.name}.models")
+            except Exception:
+                pass  # A later module may satisfy the missing forward ref; retry below.
 
     # Force SQLAlchemy to resolve all forward-reference relationships now that
     # every module has been imported.  Cross-module back_populates (e.g. Horse →
