@@ -365,10 +365,15 @@ def create_crud_router(
             col = mapper.columns.get(key)
             if col is None:
                 return value
+            # Empty string → None for nullable columns (e.g. unselected FK dropdown).
+            if value == "" and col.nullable:
+                return None
             if isinstance(col.type, _DateTime):
-                return _dt.datetime.fromisoformat(value)
+                # Strip trailing Z for Python 3.10 compatibility.
+                return _dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
             if isinstance(col.type, _Date):
-                return _dt.date.fromisoformat(value)
+                # Slice to YYYY-MM-DD in case a datetime string is sent.
+                return _dt.date.fromisoformat(value[:10])
         except Exception:
             pass
         return value
