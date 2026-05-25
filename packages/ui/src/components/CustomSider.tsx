@@ -1,36 +1,35 @@
 import React, { useContext, useMemo } from "react";
 import { useMenu, useGo } from "@refinedev/core";
 import { Layout, Menu, theme, Typography } from "antd";
-import {
-    DatabaseOutlined,
-    BarChartOutlined,
-    BookOutlined,
-    ShopOutlined,
-    DashboardOutlined
-} from "@ant-design/icons";
+import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import { ColorModeContext } from "../contexts/ColorModeContext";
+import type { NavConfig } from "../utils/navConfig";
+import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
 
 const API_URL = "/api";
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export const CustomSider: React.FC<{ collapsed?: boolean; logo?: React.ReactNode | string; appTitle?: string }> = ({ collapsed, logo, appTitle }) => {
+export const CustomSider: React.FC<{
+    collapsed?: boolean;
+    logo?: React.ReactNode | string;
+    appTitle?: string;
+    navConfig?: NavConfig;
+}> = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const { token } = theme.useToken();
     const { mode } = useContext(ColorModeContext);
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
 
-    // 1. Icon Helper
-    const getIcon = (item: any) => {
-        const key = String(item?.key || "").toLowerCase();
-        switch (key) {
-            case "dashboard": return <DashboardOutlined />;
-            case "module:pim": return <DatabaseOutlined />;
-            case "module:alloplan": return <BarChartOutlined />;
-            case "module:catim": return <BookOutlined />;
-            case "module:bsim": return <ShopOutlined />;
-            default: return <DatabaseOutlined />;
-        }
+    const getIcon = (item: any): React.ReactNode => {
+        const key = String(item?.key || "");
+        const label = String(item?.label || item?.name || "");
+        const isModule = key.startsWith("module:") || key === "dashboard";
+        const entry = getNavEntry(navConfig, key);
+        const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+        const Icon = (AntDIcons as any)[iconName] as React.ComponentType | undefined;
+        const Fallback = (AntDIcons as any)["DatabaseOutlined"] as React.ComponentType;
+        return Icon ? <Icon /> : <Fallback />;
     };
 
     // 2. Transform Items
@@ -75,14 +74,19 @@ export const CustomSider: React.FC<{ collapsed?: boolean; logo?: React.ReactNode
             return {
                 key: item.key,
                 label: renderLabel(item, depth, hasChildren),
-                icon: item.icon || getIcon(item),
+                icon: getIcon(item),
                 onClick: hasChildren ? undefined : () => go({ to: item.route }),
                 children: hasChildren ? transformItems(item.children, depth + 1) : undefined,
             };
         });
     };
 
-    const items = useMemo(() => transformItems(menuItems), [menuItems, mode]);
+    const sortedMenuItems = useMemo(
+        () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
+        [menuItems, navConfig],
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const items = useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
     return (
         <Layout.Sider
             width={280} // Slightly wider to fit the name nicely

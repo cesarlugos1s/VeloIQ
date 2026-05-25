@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { ThemedLayoutV2 } from "@refinedev/antd";
 import { useGetIdentity, useLogout, useGo, useMenu } from "@refinedev/core";
 import {
@@ -8,13 +8,15 @@ import {
 import {
     LogoutOutlined, UserOutlined, DownOutlined, LockOutlined,
     MenuOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
-    LayoutOutlined, AppstoreOutlined,
+    LayoutOutlined, AppstoreOutlined, BorderInnerOutlined,
 } from "@ant-design/icons";
 import { HorizontalMenu } from "./HorizontalMenu";
 import { CustomSider } from "./CustomSider";
 import { GlobalSearch } from "./GlobalSearch";
+import { CommandCenterPortal } from "./CommandCenterPortal";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
+import type { NavConfig } from "../utils/navConfig";
 
 const API_URL = "/api";
 
@@ -31,6 +33,8 @@ export interface LayoutWrapperProps {
         icon?: React.ReactNode;
         onClick?: () => void;
     }>;
+    /** Navigation config loaded from navigation.config.json — drives icons and sort order. */
+    navConfig?: NavConfig;
 }
 
 const DefaultLogo: React.FC<{
@@ -82,7 +86,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
-    children, logo, appTitle, extraUserMenuItems = [],
+    children, logo, appTitle, extraUserMenuItems = [], navConfig = [],
 }) => {
     const [layoutMode, setLayoutMode] = useState<"vertical" | "horizontal">(() =>
         (localStorage.getItem("layoutMode") as "vertical" | "horizontal") || "vertical"
@@ -105,6 +109,18 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     const [pwdLoading, setPwdLoading] = useState(false);
     const [pwdForm] = Form.useForm();
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [portalOpen, setPortalOpen] = useState(false);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+                e.preventDefault();
+                setPortalOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, []);
 
     const toggleSider = () => {
         const next = !siderCollapsed;
@@ -166,7 +182,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                         <div style={{ marginRight: isMobile ? 4 : 10, flexShrink: 0 }}>
                             <DefaultLogo logo={logo} appTitle={appTitle} isHeader hideTitle={isMobile} />
                         </div>
-                        {!isMobile && <div style={{ flex: 1, minWidth: 0 }}><HorizontalMenu /></div>}
+                        {!isMobile && <div style={{ flex: 1, minWidth: 0 }}><HorizontalMenu navConfig={navConfig} /></div>}
                     </>
                 )}
             </div>
@@ -176,15 +192,24 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             </div>
 
             <Space size={isMobile ? "small" : "middle"} style={{ flexShrink: 0, marginLeft: 6 }}>
-                <Tooltip title={layoutMode === "vertical" ? "Top Menu" : "Sidebar"}>
-                    <Button icon={layoutMode === "vertical" ? <LayoutOutlined /> : <AppstoreOutlined />}
-                        onClick={() => {
-                            const next = layoutMode === "vertical" ? "horizontal" : "vertical";
-                            setLayoutMode(next);
-                            localStorage.setItem("layoutMode", next);
-                        }}
-                        type="text" />
-                </Tooltip>
+                <Space.Compact>
+                    <Tooltip title={layoutMode === "vertical" ? "Top Menu" : "Sidebar"}>
+                        <Button icon={layoutMode === "vertical" ? <LayoutOutlined /> : <AppstoreOutlined />}
+                            onClick={() => {
+                                const next = layoutMode === "vertical" ? "horizontal" : "vertical";
+                                setLayoutMode(next);
+                                localStorage.setItem("layoutMode", next);
+                            }}
+                            type="text" />
+                    </Tooltip>
+                    <Tooltip title="Command Center (Ctrl+G)">
+                        <Button
+                            icon={<BorderInnerOutlined />}
+                            onClick={() => setPortalOpen(true)}
+                            type="text"
+                        />
+                    </Tooltip>
+                </Space.Compact>
                 <Tooltip title={mode === "dark" ? "Light mode" : "Dark mode"}>
                     <Switch checkedChildren="🌜" unCheckedChildren="🌞" checked={mode === "dark"}
                         onChange={() => setMode(mode === "light" ? "dark" : "light")} />
@@ -201,7 +226,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     );
 
     const SiderToRender = (layoutMode === "vertical" && !isMobile)
-        ? () => <CustomSider collapsed={siderCollapsed} logo={logo} appTitle={appTitle} />
+        ? () => <CustomSider collapsed={siderCollapsed} logo={logo} appTitle={appTitle} navConfig={navConfig} />
         : () => null;
 
     return (
@@ -214,6 +239,12 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             >
                 {children}
             </ThemedLayoutV2>
+
+            <CommandCenterPortal
+                open={portalOpen}
+                onClose={() => setPortalOpen(false)}
+                navConfig={navConfig}
+            />
 
             <Drawer title={<DefaultLogo logo={logo} appTitle={appTitle} isHeader />}
                 placement="left" open={drawerOpen} onClose={() => setDrawerOpen(false)} width={280}

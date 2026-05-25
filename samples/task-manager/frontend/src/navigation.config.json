@@ -1,0 +1,79 @@
+[
+  {
+    "key": "dashboard",
+    "label": "Dashboard",
+    "icon": "DashboardOutlined",
+    "sequence": 0,
+    "type": "module"
+  },
+  {
+    "key": "module:projects",
+    "label": "Projects",
+    "icon": "FolderOpenOutlined",
+    "sequence": 10,
+    "type": "module"
+  },
+  {
+    "key": "project",
+    "label": "Project",
+    "icon": "FolderOpenOutlined",
+    "sequence": 11,
+    "type": "model"
+  },
+  {
+    "key": "module:tasks",
+    "label": "Tasks",
+    "icon": "CheckSquareOutlined",
+    "sequence": 20,
+    "type": "module"
+  },
+  {
+    "key": "task",
+    "label": "Task",
+    "icon": "CheckSquareOutlined",
+    "sequence": 21,
+    "type": "model"
+  },
+  {
+    "key": "module:team",
+    "label": "Team",
+    "icon": "TeamOutlined",
+    "sequence": 30,
+    "type": "module"
+  },
+  {
+    "key": "team_member",
+    "label": "Team Member",
+    "icon": "UserOutlined",
+    "sequence": 31,
+    "type": "model"
+  },
+  {
+    "key": "module:access_control",
+    "label": "Access Control",
+    "icon": "LockOutlined",
+    "sequence": 900,
+    "type": "module"
+  },
+  {
+    "key": "user",
+    "label": "User",
+    "icon": "UserOutlined",
+    "sequence": 901,
+    "type": "model"
+  },
+  {
+    "key": "role",
+    "label": "Role",
+    "icon": "LockOutlined",
+    "sequence": 902,
+    "type": "model"
+  },
+  {
+    "key": "tenant",
+    "label": "Tenant",
+    "icon": "BankOutlined",
+    "sequence": 903,
+    "type": "model"
+  }
+]

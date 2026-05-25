@@ -1,10 +1,10 @@
 'use strict';
 
-var React6 = require('react');
+var React8 = require('react');
 var antd$1 = require('@refinedev/antd');
 var core = require('@refinedev/core');
 var antd = require('antd');
-var icons = require('@ant-design/icons');
+var AntDIcons2 = require('@ant-design/icons');
 var jsxRuntime = require('react/jsx-runtime');
 var reactRouterDom = require('react-router-dom');
 var reactDom = require('react-dom');
@@ -14,7 +14,26 @@ var axios = require('axios');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
-var React6__default = /*#__PURE__*/_interopDefault(React6);
+function _interopNamespace(e) {
+  if (e && e.__esModule) return e;
+  var n = Object.create(null);
+  if (e) {
+    Object.keys(e).forEach(function (k) {
+      if (k !== 'default') {
+        var d = Object.getOwnPropertyDescriptor(e, k);
+        Object.defineProperty(n, k, d.get ? d : {
+          enumerable: true,
+          get: function () { return e[k]; }
+        });
+      }
+    });
+  }
+  n.default = e;
+  return Object.freeze(n);
+}
+
+var React8__default = /*#__PURE__*/_interopDefault(React8);
+var AntDIcons2__namespace = /*#__PURE__*/_interopNamespace(AntDIcons2);
 var dayjs8__default = /*#__PURE__*/_interopDefault(dayjs8);
 var relativeTime__default = /*#__PURE__*/_interopDefault(relativeTime);
 var axios__default = /*#__PURE__*/_interopDefault(axios);
@@ -26,7 +45,7 @@ var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot
 var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
-var ColorModeContext = React6.createContext({ mode: "light", setMode: () => {
+var ColorModeContext = React8.createContext({ mode: "light", setMode: () => {
 } });
 
 // src/utils/modelTone.ts
@@ -229,7 +248,7 @@ var getModelTone = (modelLike, darkMode) => {
   return tones[hashString(seed) % tones.length];
 };
 var useModelTone = (modelLike) => {
-  const { mode } = React6.useContext(ColorModeContext);
+  const { mode } = React8.useContext(ColorModeContext);
   return getModelTone(modelLike, mode === "dark");
 };
 if (typeof localStorage !== "undefined") {
@@ -242,9 +261,66 @@ if (typeof localStorage !== "undefined") {
     });
   }
 }
-var HorizontalMenu = () => {
+var KEYWORD_ICON_MAP = [
+  [/dashboard|overview|home/i, "DashboardOutlined"],
+  [/user|person|people|member|staff|employee|contact|customer|client/i, "UserOutlined"],
+  [/team|group|department|division|unit|crew/i, "TeamOutlined"],
+  [/role|permission|access|security|privilege|policy/i, "LockOutlined"],
+  [/tenant|organization|company|account|workspace|business/i, "BankOutlined"],
+  [/task|todo|checklist|backlog|ticket/i, "CheckSquareOutlined"],
+  [/project|initiative|program|campaign|sprint|epic/i, "FolderOpenOutlined"],
+  [/invoice|bill|payment|financ|transaction|ledger|accounting|receipt/i, "FileTextOutlined"],
+  [/product|catalog|inventory|stock|sku|variant/i, "ShoppingOutlined"],
+  [/order|purchase|sale|cart|checkout|shipment/i, "ShoppingCartOutlined"],
+  [/setting|config|preference|option|setup/i, "SettingOutlined"],
+  [/report|analytic|metric|stat|chart|analysis|insight/i, "BarChartOutlined"],
+  [/document|file|attachment|note|memo|contract|paper/i, "FileOutlined"],
+  [/calendar|event|schedule|appointment|booking|slot/i, "CalendarOutlined"],
+  [/message|email|notification|comment|chat|inbox|mail/i, "MailOutlined"],
+  [/categor|tag|label|class/i, "TagOutlined"],
+  [/location|address|region|area|country|city|place|site/i, "EnvironmentOutlined"],
+  [/equipment|asset|machine|hardware/i, "ToolOutlined"],
+  [/log|audit|histor|trail|activity/i, "HistoryOutlined"],
+  [/animal|pet|livestock|breed|horse/i, "DatabaseOutlined"],
+  [/building|room|floor|facility|barn|stable|stall/i, "HomeOutlined"],
+  [/vehicle|car|truck|fleet|transport|bike/i, "CarOutlined"],
+  [/health|medical|clinical|treatment|drug|patient/i, "MedicineBoxOutlined"]
+];
+function guessIcon(text, isModule = false) {
+  const normalized = text.toLowerCase().replace(/[_:-]/g, " ");
+  for (const [pattern, icon] of KEYWORD_ICON_MAP) {
+    if (pattern.test(normalized)) return icon;
+  }
+  return isModule ? "FolderOutlined" : "TableOutlined";
+}
+function resolveIcon(iconName) {
+  const registry = AntDIcons2__namespace;
+  const IconCls = registry[iconName];
+  return IconCls ? React8__default.default.createElement(IconCls) : React8__default.default.createElement(registry["TableOutlined"]);
+}
+function getNavEntry(navConfig, key) {
+  return navConfig.find((e) => e.key === key);
+}
+function sortItemsByNavConfig(items, navConfig) {
+  return [...items].sort((a, b) => {
+    const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
+    const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
+    return aSeq - bSeq;
+  });
+}
+var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
+  const getIcon = (item) => {
+    const key = String(item?.key || "");
+    const label = String(item?.label || item?.name || "");
+    const isModule = key.startsWith("module:") || key === "dashboard";
+    const entry = getNavEntry(navConfig, key);
+    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const Icon = AntDIcons2__namespace[iconName];
+    const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
+    return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
+  };
   const resolveModelSeed = (item) => {
     const route = String(item?.route || "");
     const routeParts = route.split("/").filter(Boolean);
@@ -280,7 +356,7 @@ var HorizontalMenu = () => {
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
-        icon: item.icon,
+        icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
         children: hasChildren ? transformItems(item.children, depth + 1) : void 0
       };
@@ -301,27 +377,20 @@ var HorizontalMenu = () => {
     }
   );
 };
-var CustomSider = ({ collapsed, logo, appTitle }) => {
+var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = antd.theme.useToken();
-  const { mode } = React6.useContext(ColorModeContext);
+  const { mode } = React8.useContext(ColorModeContext);
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
   const getIcon = (item) => {
-    const key = String(item?.key || "").toLowerCase();
-    switch (key) {
-      case "dashboard":
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.DashboardOutlined, {});
-      case "module:pim":
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.DatabaseOutlined, {});
-      case "module:alloplan":
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {});
-      case "module:catim":
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.BookOutlined, {});
-      case "module:bsim":
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.ShopOutlined, {});
-      default:
-        return /* @__PURE__ */ jsxRuntime.jsx(icons.DatabaseOutlined, {});
-    }
+    const key = String(item?.key || "");
+    const label = String(item?.label || item?.name || "");
+    const isModule = key.startsWith("module:") || key === "dashboard";
+    const entry = getNavEntry(navConfig, key);
+    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const Icon = AntDIcons2__namespace[iconName];
+    const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
+    return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
   };
   const resolveModelSeed = (item) => {
     const route = String(item?.route || "");
@@ -358,13 +427,17 @@ var CustomSider = ({ collapsed, logo, appTitle }) => {
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
-        icon: item.icon || getIcon(item),
+        icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
         children: hasChildren ? transformItems(item.children, depth + 1) : void 0
       };
     });
   };
-  const items = React6.useMemo(() => transformItems(menuItems), [menuItems, mode]);
+  const sortedMenuItems = React8.useMemo(
+    () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
+    [menuItems, navConfig]
+  );
+  const items = React8.useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Layout.Sider,
     {
@@ -441,12 +514,12 @@ var CustomSider = ({ collapsed, logo, appTitle }) => {
     }
   );
 };
-var AllModelsContext = React6.createContext([]);
+var AllModelsContext = React8.createContext([]);
 var AllModelsProvider = ({
   models,
   children
 }) => /* @__PURE__ */ jsxRuntime.jsx(AllModelsContext.Provider, { value: models, children });
-var useAllModels = () => React6.useContext(AllModelsContext);
+var useAllModels = () => React8.useContext(AllModelsContext);
 
 // src/utils/authenticatedFetch.ts
 var TOKEN_KEY = "jm_access_token";
@@ -482,21 +555,21 @@ var GlobalSearch = () => {
   const { menuItems } = core.useMenu();
   const allSystemModels = useAllModels();
   const navigate = reactRouterDom.useNavigate();
-  const [searchText, setSearchText] = React6.useState("");
-  const [backendResults, setBackendResults] = React6.useState([]);
-  const [searching, setSearching] = React6.useState(false);
-  const debounceRef = React6.useRef(null);
-  const abortRef = React6.useRef(null);
-  const [searchConfig, setSearchConfig] = React6.useState(null);
-  React6.useEffect(() => {
+  const [searchText, setSearchText] = React8.useState("");
+  const [backendResults, setBackendResults] = React8.useState([]);
+  const [searching, setSearching] = React8.useState(false);
+  const debounceRef = React8.useRef(null);
+  const abortRef = React8.useRef(null);
+  const [searchConfig, setSearchConfig] = React8.useState(null);
+  React8.useEffect(() => {
     authenticatedFetch(`${API_URL}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((data) => setSearchConfig(data)).catch(() => {
     });
   }, []);
-  const searchableResources = React6.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
-  const searchableModels = React6.useMemo(() => {
+  const searchableResources = React8.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
+  const searchableModels = React8.useMemo(() => {
     if (!searchConfig) return [];
     const entityTypesLower = searchConfig.entity_types.map((e) => e.toLowerCase());
     const preferredFields = searchConfig.attribute_types;
@@ -529,7 +602,7 @@ var GlobalSearch = () => {
       };
     }).filter((m) => m.searchFields.length > 0);
   }, [allSystemModels, searchConfig]);
-  const resourceResults = React6.useMemo(() => {
+  const resourceResults = React8.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
     const matches = searchableResources.filter(
@@ -550,7 +623,7 @@ var GlobalSearch = () => {
       }
     ];
   }, [searchText, searchableResources]);
-  const doBackendSearch = React6.useCallback(
+  const doBackendSearch = React8.useCallback(
     (query) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortRef.current) abortRef.current.abort();
@@ -616,14 +689,14 @@ var GlobalSearch = () => {
     },
     [searchableModels]
   );
-  const onSearch = React6.useCallback(
+  const onSearch = React8.useCallback(
     (value) => {
       setSearchText(value);
       doBackendSearch(value);
     },
     [doBackendSearch]
   );
-  const onSelect = React6.useCallback(
+  const onSelect = React8.useCallback(
     (value) => {
       const path = value.replace(/^(nav:|record:)/, "");
       navigate(path);
@@ -632,13 +705,13 @@ var GlobalSearch = () => {
     },
     [navigate]
   );
-  const options = React6.useMemo(() => {
+  const options = React8.useMemo(() => {
     const groups = [...resourceResults, ...backendResults];
     return groups;
   }, [resourceResults, backendResults]);
-  const [focused, setFocused] = React6.useState(false);
-  const inputRef = React6.useRef(null);
-  React6.useEffect(() => {
+  const [focused, setFocused] = React8.useState(false);
+  const inputRef = React8.useRef(null);
+  React8.useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -668,13 +741,262 @@ var GlobalSearch = () => {
         {
           ref: inputRef,
           placeholder: focused ? `${_2("Search")}...` : "",
-          prefix: searching ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(icons.SearchOutlined, {}),
+          prefix: searching ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}),
           suffix: !focused ? /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 9 }, children: "\u2303K" }) : void 0,
           allowClear: true,
           size: "small",
           style: !focused ? { paddingInline: 2 } : void 0
         }
       )
+    }
+  ) });
+};
+function resolveAntIcon(iconName) {
+  const Icon = AntDIcons2__namespace[iconName];
+  const Fallback = AntDIcons2__namespace["TableOutlined"];
+  return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
+}
+var CommandCenterPortal = ({
+  open,
+  onClose,
+  navConfig = []
+}) => {
+  const { menuItems } = core.useMenu();
+  const go = core.useGo();
+  const searchRef = React8.useRef(null);
+  const [query, setQuery] = React8.useState("");
+  React8.useEffect(() => {
+    if (open) {
+      setQuery("");
+      const t = setTimeout(() => searchRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+  React8.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+  const modules = React8.useMemo(() => {
+    const q2 = query.toLowerCase().trim();
+    const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
+    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
+    if (!q2) return sorted;
+    return sorted.map((module) => {
+      const moduleMatch = (module.label || "").toLowerCase().includes(q2);
+      const filteredChildren = (module.children || []).filter(
+        (child) => (child.label || "").toLowerCase().includes(q2)
+      );
+      if (!moduleMatch && filteredChildren.length === 0) return null;
+      return moduleMatch ? module : { ...module, children: filteredChildren };
+    }).filter((m) => m !== null);
+  }, [menuItems, query, navConfig]);
+  if (!open) return null;
+  const getItemIcon = (key, label, isModule) => {
+    const entry = getNavEntry(navConfig, key);
+    return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { theme: { algorithm: antd.theme.darkAlgorithm }, children: /* @__PURE__ */ jsxRuntime.jsxs(
+    "div",
+    {
+      onClick: (e) => {
+        if (e.target === e.currentTarget) onClose();
+      },
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 2e3,
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        backgroundColor: "rgba(5, 5, 18, 0.78)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        paddingTop: 52,
+        paddingBottom: 48,
+        paddingLeft: 24,
+        paddingRight: 24,
+        overflowY: "auto"
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntime.jsx(
+          "button",
+          {
+            onClick: onClose,
+            style: {
+              position: "fixed",
+              top: 14,
+              right: 18,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "50%",
+              cursor: "pointer",
+              color: "rgba(255,255,255,0.65)",
+              width: 34,
+              height: 34,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+              zIndex: 2001,
+              outline: "none",
+              padding: 0
+            },
+            title: "Close (Esc)",
+            children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {})
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Typography.Title,
+          {
+            level: 3,
+            style: {
+              color: "#ffffff",
+              marginTop: 0,
+              marginBottom: 28,
+              letterSpacing: "0.06em",
+              fontWeight: 200,
+              textTransform: "uppercase",
+              fontSize: 18
+            },
+            children: "Command Center"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 600, marginBottom: 36 }, children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Input,
+          {
+            ref: searchRef,
+            size: "large",
+            placeholder: "Search modules and models\u2026",
+            prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
+            value: query,
+            onChange: (e) => setQuery(e.target.value),
+            allowClear: true,
+            style: { fontSize: 15, height: 52, borderRadius: 10 }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: modules.length === 0 && query ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
+          "No results for \u201C",
+          query,
+          "\u201D"
+        ] }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Row, { gutter: [20, 20], children: modules.map((module) => {
+          const moduleKey = String(module.key || module.name || "");
+          const moduleLabel = String(module.label || module.name || "");
+          const tone = getModelTone(moduleKey);
+          const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
+          const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
+          return /* @__PURE__ */ jsxRuntime.jsx(antd.Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxRuntime.jsxs(
+            antd.Card,
+            {
+              style: {
+                background: "rgba(18, 18, 32, 0.95)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderTop: `3px solid ${tone.solid}`,
+                borderRadius: 14,
+                height: "100%",
+                boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)`
+              },
+              styles: {
+                header: {
+                  background: `linear-gradient(90deg, ${tone.solid}1a 0%, rgba(18,18,32,0.95) 70%)`,
+                  borderBottom: "1px solid rgba(255,255,255,0.07)",
+                  padding: "10px 16px",
+                  minHeight: 52
+                },
+                body: { padding: "12px 16px 14px", background: "rgba(18,18,32,0.95)" }
+              },
+              title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 10, children: [
+                /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
+                  background: `${tone.solid}28`,
+                  border: `1px solid ${tone.solid}50`,
+                  borderRadius: 8,
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: tone.text, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Typography.Text,
+                  {
+                    style: { color: "#ffffff", fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
+                    children: moduleLabel
+                  }
+                )
+              ] }),
+              children: [
+                children.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
+                  const childKey = String(child.key || child.name || "");
+                  const childLabel = String(child.label || child.name || "");
+                  const childTone = getModelTone(childKey);
+                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+                    idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+                    /* @__PURE__ */ jsxRuntime.jsxs(
+                      "div",
+                      {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: () => {
+                          go({ to: child.route || `/${childKey}` });
+                          onClose();
+                        },
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            go({ to: child.route || `/${childKey}` });
+                            onClose();
+                          }
+                        },
+                        style: {
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          transition: "background 0.13s, border-color 0.13s",
+                          border: "1px solid transparent",
+                          outline: "none"
+                        },
+                        onMouseEnter: (e) => {
+                          const el = e.currentTarget;
+                          el.style.background = `${childTone.solid}1a`;
+                          el.style.borderColor = `${childTone.solid}40`;
+                        },
+                        onMouseLeave: (e) => {
+                          const el = e.currentTarget;
+                          el.style.background = "transparent";
+                          el.style.borderColor = "transparent";
+                        },
+                        children: [
+                          /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
+                            color: childTone.text,
+                            fontSize: 13,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            opacity: 0.85
+                          }, children: childIcon }),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: {
+                            color: "rgba(220, 220, 240, 0.88)",
+                            fontSize: 13,
+                            fontWeight: 400
+                          }, children: childLabel })
+                        ]
+                      }
+                    )
+                  ] }, childKey);
+                }) }),
+                children.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
+              ]
+            }
+          ) }, moduleKey);
+        }) }) })
+      ]
     }
   ) });
 };
@@ -713,24 +1035,36 @@ var LayoutWrapper = ({
   children,
   logo,
   appTitle,
-  extraUserMenuItems = []
+  extraUserMenuItems = [],
+  navConfig = []
 }) => {
-  const [layoutMode, setLayoutMode] = React6.useState(
+  const [layoutMode, setLayoutMode] = React8.useState(
     () => localStorage.getItem("layoutMode") || "vertical"
   );
   const screens = antd.Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const { mode, setMode } = React6.useContext(ColorModeContext);
+  const { mode, setMode } = React8.useContext(ColorModeContext);
   const { token } = antd.theme.useToken();
   const { data: identity } = core.useGetIdentity();
   const { mutate: logout } = core.useLogout();
   core.useGo();
   const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
-  const [siderCollapsed, setSiderCollapsed] = React6.useState(() => localStorage.getItem("siderCollapsed") === "true");
-  const [pwdModalOpen, setPwdModalOpen] = React6.useState(false);
-  const [pwdLoading, setPwdLoading] = React6.useState(false);
+  const [siderCollapsed, setSiderCollapsed] = React8.useState(() => localStorage.getItem("siderCollapsed") === "true");
+  const [pwdModalOpen, setPwdModalOpen] = React8.useState(false);
+  const [pwdLoading, setPwdLoading] = React8.useState(false);
   const [pwdForm] = antd.Form.useForm();
-  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const [drawerOpen, setDrawerOpen] = React8.useState(false);
+  const [portalOpen, setPortalOpen] = React8.useState(false);
+  React8.useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setPortalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const toggleSider = () => {
     const next = !siderCollapsed;
     setSiderCollapsed(next);
@@ -759,10 +1093,10 @@ var LayoutWrapper = ({
     }
   };
   const userItems = [
-    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
+    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
     ...extraUserMenuItems,
     { type: "divider" },
-    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.LogoutOutlined, {}), danger: true, onClick: () => logout() }
+    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LogoutOutlined, {}), danger: true, onClick: () => logout() }
   ];
   const CustomHeader = () => /* @__PURE__ */ jsxRuntime.jsxs(antd.Layout.Header, { style: {
     display: "flex",
@@ -782,31 +1116,41 @@ var LayoutWrapper = ({
         antd.Button,
         {
           type: "text",
-          icon: isMobile ? /* @__PURE__ */ jsxRuntime.jsx(icons.MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsxRuntime.jsx(icons.MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(icons.MenuFoldOutlined, {}),
+          icon: isMobile ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuFoldOutlined, {}),
           onClick: isMobile ? () => setDrawerOpen(true) : toggleSider,
           style: { marginRight: 6, flexShrink: 0 }
         }
       ) }),
       layoutMode === "horizontal" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-        isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
+        isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
         /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
-        !isMobile && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(HorizontalMenu, {}) })
+        !isMobile && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(HorizontalMenu, { navConfig }) })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(GlobalSearch, {}) }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Button,
-        {
-          icon: layoutMode === "vertical" ? /* @__PURE__ */ jsxRuntime.jsx(icons.LayoutOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(icons.AppstoreOutlined, {}),
-          onClick: () => {
-            const next = layoutMode === "vertical" ? "horizontal" : "vertical";
-            setLayoutMode(next);
-            localStorage.setItem("layoutMode", next);
-          },
-          type: "text"
-        }
-      ) }),
+      /* @__PURE__ */ jsxRuntime.jsxs(antd.Space.Compact, { children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LayoutOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.AppstoreOutlined, {}),
+            onClick: () => {
+              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
+              setLayoutMode(next);
+              localStorage.setItem("layoutMode", next);
+            },
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BorderInnerOutlined, {}),
+            onClick: () => setPortalOpen(true),
+            type: "text"
+          }
+        ) })
+      ] }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Switch,
         {
@@ -817,13 +1161,13 @@ var LayoutWrapper = ({
         }
       ) }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Dropdown, { menu: { items: userItems }, trigger: ["click"], children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { style: { cursor: "pointer" }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsxRuntime.jsx(icons.UserOutlined, {}) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UserOutlined, {}) }),
         !isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { strong: true, children: displayName }),
-        /* @__PURE__ */ jsxRuntime.jsx(icons.DownOutlined, { style: { fontSize: 10 } })
+        /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, { style: { fontSize: 10 } })
       ] }) })
     ] })
   ] });
-  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsxRuntime.jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle }) : () => null;
+  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsxRuntime.jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
   return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.ThemedLayoutV2,
@@ -834,6 +1178,14 @@ var LayoutWrapper = ({
         children
       },
       layoutMode
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      CommandCenterPortal,
+      {
+        open: portalOpen,
+        onClose: () => setPortalOpen(false),
+        navConfig
+      }
     ),
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Drawer,
@@ -859,8 +1211,8 @@ var LayoutWrapper = ({
         footer: null,
         destroyOnHidden: true,
         children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Form, { form: pwdForm, layout: "vertical", onFinish: handleChangePassword, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.LockOutlined, {}) }) }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
           /* @__PURE__ */ jsxRuntime.jsx(
             antd.Form.Item,
             {
@@ -873,7 +1225,7 @@ var LayoutWrapper = ({
                   return Promise.reject(new Error("Passwords do not match"));
                 }
               })],
-              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.LockOutlined, {}) })
+              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) })
             }
           ),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { style: { marginBottom: 0, textAlign: "right" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
@@ -889,8 +1241,8 @@ var LayoutWrapper = ({
   ] });
 };
 var PANE_TOOLBAR_HEIGHT = 28;
-var PaneNavigationContext = React6.createContext(null);
-var usePaneNavigation = () => React6.useContext(PaneNavigationContext);
+var PaneNavigationContext = React8.createContext(null);
+var usePaneNavigation = () => React8.useContext(PaneNavigationContext);
 function gt(e, t) {
   const n = getComputedStyle(e), o = parseFloat(n.fontSize);
   return t * o;
@@ -2406,19 +2758,19 @@ function Vt(e) {
   };
 }
 function Bt() {
-  const [e, t] = React6.useState({}), n = React6.useCallback(() => t({}), []);
+  const [e, t] = React8.useState({}), n = React8.useCallback(() => t({}), []);
   return [e, n];
 }
 function Le(e) {
-  const t = React6.useId();
+  const t = React8.useId();
   return `${e ?? t}`;
 }
-var q = typeof window < "u" ? React6.useLayoutEffect : React6.useEffect;
+var q = typeof window < "u" ? React8.useLayoutEffect : React8.useEffect;
 function se(e) {
-  const t = React6.useRef(e);
+  const t = React8.useRef(e);
   return q(() => {
     t.current = e;
-  }, [e]), React6.useCallback(
+  }, [e]), React8.useCallback(
     (...n) => t.current?.(...n),
     [t]
   );
@@ -2441,19 +2793,19 @@ function Ce(...e) {
   });
 }
 function Re(e) {
-  const t = React6.useRef({ ...e });
+  const t = React8.useRef({ ...e });
   return q(() => {
     for (const n in e)
       t.current[n] = e[n];
   }, [e]), t.current;
 }
-var lt = React6.createContext(null);
+var lt = React8.createContext(null);
 function Wt(e, t) {
-  const n = React6.useRef({
+  const n = React8.useRef({
     getLayout: () => ({}),
     setLayout: Ft
   });
-  React6.useImperativeHandle(t, () => n.current, []), q(() => {
+  React8.useImperativeHandle(t, () => n.current, []), q(() => {
     Object.assign(
       n.current,
       nt({ groupId: e })
@@ -2479,14 +2831,14 @@ function Ut({
   style: d,
   ...S
 }) {
-  const z = React6.useRef({
+  const z = React8.useRef({
     onLayoutChange: {},
     onLayoutChanged: {}
   }), c = se((x) => {
     W(z.current.onLayoutChange, x) || (z.current.onLayoutChange = x, s?.(x));
   }), p = se((x) => {
     W(z.current.onLayoutChanged, x) || (z.current.onLayoutChanged = x, l?.(x));
-  }), m = Le(a), v = React6.useRef(null), [b, y] = Bt(), g = React6.useRef({
+  }), m = Le(a), v = React8.useRef(null), [b, y] = Bt(), g = React8.useRef({
     lastExpandedPanelSizes: {},
     layouts: {},
     panels: [],
@@ -2520,7 +2872,7 @@ function Ut({
   ), w = Re({
     defaultLayout: n,
     disableCursor: o
-  }), G = React6.useMemo(
+  }), G = React8.useMemo(
     () => ({
       get disableCursor() {
         return !!w.disableCursor;
@@ -2572,7 +2924,7 @@ function Ut({
       }
     }),
     [M, m, y, u, w]
-  ), N = React6.useRef(null);
+  ), N = React8.useRef(null);
   return q(() => {
     const x = v.current;
     if (x === null)
@@ -2638,7 +2990,7 @@ function Ut({
     u,
     b,
     w
-  ]), React6.useEffect(() => {
+  ]), React8.useEffect(() => {
     const x = N.current;
     x && (x.mutableState.defaultLayout = n, x.mutableState.disableCursor = !!o);
   }), /* @__PURE__ */ jsxRuntime.jsx(lt.Provider, { value: G, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -2670,14 +3022,14 @@ function Ut({
 }
 Ut.displayName = "Group";
 function Me() {
-  const e = React6.useContext(lt);
+  const e = React8.useContext(lt);
   return C(
     e,
     "Group Context not found; did you render a Panel or Separator outside of a Group?"
   ), e;
 }
 function qt(e, t) {
-  const { id: n } = Me(), o = React6.useRef({
+  const { id: n } = Me(), o = React8.useRef({
     collapse: ye,
     expand: ye,
     getSize: () => ({
@@ -2687,7 +3039,7 @@ function qt(e, t) {
     isCollapsed: () => false,
     resize: ye
   });
-  React6.useImperativeHandle(t, () => o.current, []), q(() => {
+  React8.useImperativeHandle(t, () => o.current, []), q(() => {
     Object.assign(
       o.current,
       tt({ groupId: n, panelId: e })
@@ -2713,7 +3065,7 @@ function Yt({
 }) {
   const c = !!s, p = Le(s), m = Re({
     disabled: r
-  }), v = React6.useRef(null), b = Ce(v, f), {
+  }), v = React8.useRef(null), b = Ce(v, f), {
     getPanelStyles: y,
     id: g,
     orientation: P,
@@ -2761,14 +3113,14 @@ function Yt({
     N,
     M,
     m
-  ]), React6.useEffect(() => {
+  ]), React8.useEffect(() => {
     w(p, { disabled: r });
   }, [r, p, w]), qt(p, d);
   const x = () => {
     const R = y(g, p);
     if (R)
       return JSON.stringify(R);
-  }, L = React6.useSyncExternalStore(
+  }, L = React8.useSyncExternalStore(
     (R) => ze(g, R),
     x,
     x
@@ -2882,7 +3234,7 @@ function Qt({
   const s = Le(r), l = Re({
     disabled: n,
     disableDoubleClick: o
-  }), [u, h] = React6.useState({}), [d, S] = React6.useState("inactive"), [z, c] = React6.useState(false), p = React6.useRef(null), m = Ce(p, i), {
+  }), [u, h] = React8.useState({}), [d, S] = React8.useState("inactive"), [z, c] = React8.useState(false), p = React8.useRef(null), m = Ce(p, i), {
     disableCursor: v,
     id: b,
     orientation: y,
@@ -2926,7 +3278,7 @@ function Qt({
         k(), R(), L();
       };
     }
-  }, [b, s, g, l]), React6.useEffect(() => {
+  }, [b, s, g, l]), React8.useEffect(() => {
     P(s, { disabled: n, disableDoubleClick: o });
   }, [n, o, s, P]);
   let w;
@@ -2980,10 +3332,10 @@ Qt.displayName = "Separator";
 var _3 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
-  const [narrow, setNarrow] = React6.useState(
+  const [narrow, setNarrow] = React8.useState(
     () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const handler = () => setNarrow(window.innerWidth < breakpoint);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
@@ -3006,8 +3358,8 @@ var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsxRuntime
 var VerticalActionsLayout = ({ position, onBarMount, children }) => {
   const { token } = antd.theme.useToken();
   const narrow = useIsNarrow();
-  const [drawerOpen, setDrawerOpen] = React6.useState(false);
-  const mountRef = React6.useCallback(
+  const [drawerOpen, setDrawerOpen] = React8.useState(false);
+  const mountRef = React8.useCallback(
     (el) => onBarMount(el),
     [onBarMount]
   );
@@ -3052,7 +3404,7 @@ var VerticalActionsLayout = ({ position, onBarMount, children }) => {
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MenuOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}),
             onClick: () => setDrawerOpen(true)
           }
         ) })
@@ -3330,9 +3682,9 @@ var splitRelations = (relations = []) => {
 };
 var useViewConfigurations = (modelName, viewType) => {
   const apiUrl = core.useApiUrl();
-  const [rows, setRows] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(!!modelName);
-  React6.useEffect(() => {
+  const [rows, setRows] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(!!modelName);
+  React8.useEffect(() => {
     if (!modelName) {
       setLoading(false);
       return;
@@ -3368,9 +3720,9 @@ var normalizeActionsPosition = (raw) => {
 };
 var useViewSettings = () => {
   const apiUrl = core.useApiUrl();
-  const [settings, setSettings] = React6.useState(null);
-  const [loading, setLoading] = React6.useState(true);
-  React6.useEffect(() => {
+  const [settings, setSettings] = React8.useState(null);
+  const [loading, setLoading] = React8.useState(true);
+  React8.useEffect(() => {
     let cancelled = false;
     const fetchSettings = async () => {
       try {
@@ -3671,7 +4023,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React6__default.default.isValidElement(node)) {
+  if (React8__default.default.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -3688,14 +4040,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React6__default.default.isValidElement(node)) return node;
+    if (!React8__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React6__default.default.cloneElement(node, {
+      const element = React8__default.default.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -3706,7 +4058,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React6__default.default.cloneElement(node, {
+        const element = React8__default.default.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -3714,15 +4066,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React6__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React6__default.default.cloneElement(node, {
+      const mappedChildren = React8__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React8__default.default.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React6__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React8__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = antd.Grid.useBreakpoint();
@@ -3744,7 +4096,7 @@ var ResponsiveHeaderButtons = ({ children }) => {
         borderRadius: token.borderRadiusLG,
         boxShadow: token.boxShadowSecondary
       }, children }),
-      children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MenuOutlined, {}) })
+      children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}) })
     }
   );
 };
@@ -3773,7 +4125,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React6__default.default.isValidElement(node)) {
+  if (React8__default.default.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -3791,12 +4143,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React6__default.default.isValidElement(node)) return node;
+    if (!React8__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React6__default.default.cloneElement(node, {
+      const element = React8__default.default.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -3807,7 +4159,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React6__default.default.cloneElement(node, {
+        const element = React8__default.default.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -3815,15 +4167,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React6__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React6__default.default.cloneElement(node, {
+      const mappedChildren = React8__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React8__default.default.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React6__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React8__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -3844,8 +4196,8 @@ var useActionsWrapping = (headerButtons) => {
   const isInMultiPane = Boolean(paneNav);
   const isDetailPane = Boolean(paneNav && paneNav.paneIndex > 0);
   const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
-  const [verticalBarEl, setVerticalBarEl] = React6.useState(null);
-  const [topRightEl, setTopRightEl] = React6.useState(null);
+  const [verticalBarEl, setVerticalBarEl] = React8.useState(null);
+  const [topRightEl, setTopRightEl] = React8.useState(null);
   const wrappedHeaderButtons = (ctx) => {
     const raw = typeof headerButtons === "function" ? headerButtons(ctx) : headerButtons;
     if (actionsPosition === "top-right") {
@@ -3951,7 +4303,7 @@ var StandardCreate = ({ headerButtons, ...props }) => {
   ] });
 };
 function useKeyboardShortcuts(shortcuts) {
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const handler = (e) => {
       for (const shortcut of shortcuts) {
         const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -3987,7 +4339,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React6__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React8__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -4160,7 +4512,7 @@ var renderSharedGalleryCard = ({
       style: { width: imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        contentUrl ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsxRuntime.jsx(icons.FileTextOutlined, { style: { fontSize: 24 } }) }),
+        contentUrl ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 24 } }) }),
         /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: label })
       ]
     },
@@ -5653,25 +6005,25 @@ var ExecutableHtml = ({
   inheritTabRowBackground = false,
   fontSizeOverride
 }) => {
-  const htmlRef = React6.useRef(null);
-  const iframeRef = React6.useRef(null);
-  const observerRef = React6.useRef(null);
-  const appendedChunksRef = React6.useRef(0);
-  const scriptIdRef = React6.useRef(0);
-  const syncHeightTimerRef = React6.useRef(null);
-  const lastSetHeightRef = React6.useRef(0);
-  const [fontFamily, setFontFamily] = React6.useState("Arial, sans-serif");
-  const [fontSize, setFontSize] = React6.useState("14px");
-  const [lineHeight, setLineHeight] = React6.useState("1.5715");
-  const [tabRowBackground, setTabRowBackground] = React6.useState("#fafafa");
-  const { mode: colorMode } = React6.useContext(ColorModeContext);
+  const htmlRef = React8.useRef(null);
+  const iframeRef = React8.useRef(null);
+  const observerRef = React8.useRef(null);
+  const appendedChunksRef = React8.useRef(0);
+  const scriptIdRef = React8.useRef(0);
+  const syncHeightTimerRef = React8.useRef(null);
+  const lastSetHeightRef = React8.useRef(0);
+  const [fontFamily, setFontFamily] = React8.useState("Arial, sans-serif");
+  const [fontSize, setFontSize] = React8.useState("14px");
+  const [lineHeight, setLineHeight] = React8.useState("1.5715");
+  const [tabRowBackground, setTabRowBackground] = React8.useState("#fafafa");
+  const { mode: colorMode } = React8.useContext(ColorModeContext);
   const isDark = colorMode === "dark";
-  React6.useRef(performance.now());
-  const instanceId = React6.useRef(Math.random().toString(36).slice(2, 6));
-  const htmlRefForEffect = React6.useRef(html);
+  React8.useRef(performance.now());
+  const instanceId = React8.useRef(Math.random().toString(36).slice(2, 6));
+  const htmlRefForEffect = React8.useRef(html);
   htmlRefForEffect.current = html;
   traceLog("ExecutableHtml", `[${instanceId.current}] mount mode=${mode} title=${title} htmlLen=${(html || "").length}`);
-  const executeScriptNodesSequentially = React6.useCallback(async (doc, scriptNodes, isCancelled) => {
+  const executeScriptNodesSequentially = React8.useCallback(async (doc, scriptNodes, isCancelled) => {
     for (const oldScript of scriptNodes) {
       if (isCancelled?.()) return;
       const newScript = doc.createElement("script");
@@ -5693,7 +6045,7 @@ var ExecutableHtml = ({
       });
     }
   }, []);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (mode !== "inline") return;
     const container = htmlRef.current;
     if (!container || !html) return;
@@ -5704,7 +6056,7 @@ var ExecutableHtml = ({
       cancelled = true;
     };
   }, [html, mode, executeScriptNodesSequentially]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (mode !== "iframe") return;
     if (!inheritTypography && !inheritTabRowBackground) return;
     if (typeof window === "undefined") return;
@@ -5730,7 +6082,7 @@ var ExecutableHtml = ({
       if (resolvedBg) setTabRowBackground(resolvedBg);
     }
   }, [inheritTabRowBackground, inheritTypography, mode]);
-  const htmlShell = React6.useMemo(() => `<!doctype html>
+  const htmlShell = React8.useMemo(() => `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -5761,7 +6113,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 </head>
 <body></body>
 </html>`, [fontFamily, fontSize, lineHeight, tabRowBackground, isDark]);
-  const syncHeight = React6.useCallback(() => {
+  const syncHeight = React8.useCallback(() => {
     if (syncHeightTimerRef.current) clearTimeout(syncHeightTimerRef.current);
     syncHeightTimerRef.current = setTimeout(() => {
       syncHeightTimerRef.current = null;
@@ -5779,7 +6131,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.style.height = `${nextHeight}px`;
     }, 100);
   }, [minHeight]);
-  const appendHtmlChunk = React6.useCallback(async (chunk) => {
+  const appendHtmlChunk = React8.useCallback(async (chunk) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc || !doc.body || !chunk) return false;
     const host = doc.createElement("div");
@@ -5800,7 +6152,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
     syncHeight();
     return true;
   }, [syncHeight, executeScriptNodesSequentially]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (mode !== "iframe") return;
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -5843,7 +6195,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.removeEventListener("load", onLoad);
     };
   }, [htmlShell, resetToken, appendHtmlChunk, syncHeight, mode]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (mode !== "iframe") return;
     if (!htmlChunks || htmlChunks.length <= appendedChunksRef.current) return;
     const nextChunks = htmlChunks.slice(appendedChunksRef.current);
@@ -5855,7 +6207,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       appendedChunksRef.current += appendedCount;
     })();
   }, [htmlChunks, appendHtmlChunk, mode]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
       observerRef.current = null;
@@ -5937,23 +6289,23 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   const apiUrl = core.useApiUrl();
   const tone = useModelTone(model);
   const modelLabel = getModelLabel(model);
-  const [nestedModel, setNestedModel] = React6.useState(null);
-  const [activeTab, setActiveTab] = React6.useState("fields");
-  const [graphHtml, setGraphHtml] = React6.useState(null);
-  const [graphLoading, setGraphLoading] = React6.useState(false);
-  const [graphError, setGraphError] = React6.useState(null);
-  React6.useEffect(() => {
+  const [nestedModel, setNestedModel] = React8.useState(null);
+  const [activeTab, setActiveTab] = React8.useState("fields");
+  const [graphHtml, setGraphHtml] = React8.useState(null);
+  const [graphLoading, setGraphLoading] = React8.useState(false);
+  const [graphError, setGraphError] = React8.useState(null);
+  React8.useEffect(() => {
     setGraphHtml(null);
     setGraphError(null);
   }, [model.name]);
-  const findRelatedModel = React6.useCallback((name) => {
+  const findRelatedModel = React8.useCallback((name) => {
     if (!name || !allModels) return void 0;
     const lower = name.toLowerCase();
     return allModels.find(
       (m) => (m.name || "").toLowerCase() === lower || (m.resource || "").toLowerCase() === lower
     );
   }, [allModels]);
-  const loadGraph = React6.useCallback(async () => {
+  const loadGraph = React8.useCallback(async () => {
     if (graphHtml !== null || graphLoading) return;
     setGraphLoading(true);
     setGraphError(null);
@@ -5989,13 +6341,13 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       setGraphLoading(false);
     }
   }, [apiUrl, model, modelLabel, graphHtml, graphLoading, findRelatedModel]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (activeTab === "knowledge_graph") {
       loadGraph();
     }
   }, [activeTab, loadGraph]);
   const navigate = reactRouterDom.useNavigate();
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const handler = (e) => {
       if (e.data?.action === "metadata_graph_navigate" && e.data?.url) {
         onClose();
@@ -6025,7 +6377,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       dataIndex: "required",
       key: "required",
       width: 80,
-      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx(icons.CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
+      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
     },
     {
       title: _10("Description"),
@@ -6196,7 +6548,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       antd.Modal,
       {
         title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: tone.solid }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(icons.InfoCircleOutlined, { style: { marginRight: 8 } }),
+          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, { style: { marginRight: 8 } }),
           _10("Metadata"),
           " \u2014 ",
           moduleLabel ? `${moduleLabel} \u203A ` : "",
@@ -6235,8 +6587,8 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
 };
 var _11 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels) => {
-  const [metadataOpen, setMetadataOpen] = React6.useState(false);
-  const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _11("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
+  const [metadataOpen, setMetadataOpen] = React8.useState(false);
+  const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _11("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
@@ -6255,7 +6607,7 @@ var useShowEditableForm = (resource, id) => {
   });
   const record = queryResult?.data?.data;
   const recordId = record?.eid ?? record?.id ?? id;
-  useKeyboardShortcuts(React6.useMemo(() => [
+  useKeyboardShortcuts(React8.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => navigate(-1) }
   ], [formProps?.form, navigate]));
@@ -6299,7 +6651,7 @@ var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
         onSuccess: () => navigate(`/${resolveResourcePath(model.resource || model.name, allModelsList)}`)
       }
     ) }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _13("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}) }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _13("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}) }) })
   ] });
 };
 var renderModelHeading = ({
@@ -6457,7 +6809,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (onLabel && !isLoading && label !== void 0 && label !== null) {
       onLabel(String(label));
     }
@@ -6508,14 +6860,14 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = core.useApiUrl();
   const go = core.useGo();
   const paneNav = usePaneNavigation();
-  const [reverseTreeData, setReverseTreeData] = React6.useState([]);
-  const [forwardTreeData, setForwardTreeData] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(true);
+  const [reverseTreeData, setReverseTreeData] = React8.useState([]);
+  const [forwardTreeData, setForwardTreeData] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(true);
   const isReverse = (rel) => {
     if (rel.relationName && rel.relationName.endsWith("_reverse")) return true;
     return !rel.otherResource;
   };
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!isActive) {
       setLoading(false);
       return;
@@ -6676,11 +7028,11 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, alignItems: "flex-start" }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _14("Forward Relations") }),
-      forwardTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _14("None") })
+      forwardTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _14("None") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _14("Reverse Relations") }),
-      reverseTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _14("None") })
+      reverseTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _14("None") })
     ] })
   ] });
 };
@@ -6690,9 +7042,9 @@ var API_URL3 = "/api";
 
 // src/pages/dashboard/hooks/usePinRecord.ts
 function usePinRecord(resource, recordId) {
-  const [pinned, setPinned] = React6.useState(null);
-  const [loading, setLoading] = React6.useState(false);
-  React6.useEffect(() => {
+  const [pinned, setPinned] = React8.useState(null);
+  const [loading, setLoading] = React8.useState(false);
+  React8.useEffect(() => {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
@@ -6706,7 +7058,7 @@ function usePinRecord(resource, recordId) {
       cancelled = true;
     };
   }, [resource, recordId]);
-  const pin = React6.useCallback(async () => {
+  const pin = React8.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
@@ -6720,7 +7072,7 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const unpin = React6.useCallback(async () => {
+  const unpin = React8.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
@@ -6733,7 +7085,7 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const toggle = React6.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
+  const toggle = React8.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
   return { pinned, loading, pin, unpin, toggle };
 }
 async function unpinRecords(resource, recordIds) {
@@ -6749,17 +7101,17 @@ async function unpinRecords(resource, recordIds) {
 var _15 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   const apiUrl = core.useApiUrl();
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
-  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React6.useState(false);
-  const actionsPrefsTouchedRef = React6.useRef(false);
-  const actionsPrefsLoadedRef = React6.useRef(false);
-  const actionsPrefsResourceRef = React6.useRef(null);
-  const markActionsPrefsTouched = React6.useCallback(() => {
+  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
+  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React8.useState(false);
+  const actionsPrefsTouchedRef = React8.useRef(false);
+  const actionsPrefsLoadedRef = React8.useRef(false);
+  const actionsPrefsResourceRef = React8.useRef(null);
+  const markActionsPrefsTouched = React8.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React6.useCallback(async () => {
+  const saveActionsPreferences = React8.useCallback(async () => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -6782,7 +7134,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey) {
       actionsPrefsLoadedRef.current = false;
@@ -6845,7 +7197,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
         onClick: saveActionsPreferences,
         loading: isSavingActionsPrefs,
         block: true,
@@ -6859,22 +7211,22 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   const resource = model.resource || model.name;
   const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const [exploreOpen, setExploreOpen] = React6.useState(false);
+  const [exploreOpen, setExploreOpen] = React8.useState(false);
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     metadataButton,
     metadataModal,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _15("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _15("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginInlineStart: 10 } }),
     pinned !== null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: pinned ? _15("Unpin") : _15("Pin to dashboard"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
-        icon: pinned ? /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinFilled, { style: { color: "#faad14" } }) : /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinOutlined, {}),
+        icon: pinned ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14" } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinOutlined, {}),
         onClick: togglePin,
         loading: pinLoading
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _15("Explore"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _15("Explore"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Modal,
       {
@@ -6889,14 +7241,14 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    saveButtonProps && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _15("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveFilled, {}), hideText: true }) })
+    saveButtonProps && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _15("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveFilled, {}), hideText: true }) })
   ] });
   return {
     actionsState: { showActions: showRelationActions, showCreate: showRelationCreate },
     headerButtons
   };
 };
-var PrimaryShowContext = React6__default.default.createContext(null);
+var PrimaryShowContext = React8__default.default.createContext(null);
 var ToneSharedStyles = () => /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7055,8 +7407,8 @@ var renderOptionTag = (field, rawValue) => {
 };
 dayjs8__default.default.extend(relativeTime__default.default);
 var _16 = window._ || ((text) => text);
-var ReactMarkdown = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
+var ReactMarkdown = React8.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var QRCodeSVG = React8.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor(totalSeconds % 3600 / 60);
@@ -7092,7 +7444,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
         }
       );
     case "read-only-markdown":
-      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
     case "read-only-json": {
       let formatted = str;
       try {
@@ -7139,7 +7491,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-image-url":
       return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
     case "read-only-qrcode":
-      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
       const parsed = dayjs8__default.default(str);
       if (!parsed.isValid()) return str || "-";
@@ -7173,7 +7525,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
     return inTable && TALL_VIEW_TYPE_TOKENS.has(showToken) ? wrapForTable(node) : node;
   }
   if (field.type === "boolean") {
-    return value ? /* @__PURE__ */ jsxRuntime.jsx(icons.CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsxRuntime.jsx(icons.CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
+    return value ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
   }
   if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
     return /* @__PURE__ */ jsxRuntime.jsx(ReferenceField, { id: value, resource: resolveResourcePath(field.referencePath || field.reference, allModels) });
@@ -7245,8 +7597,8 @@ function filterFieldsByRole(fields, userRoles) {
   });
 }
 function useRoleFilteredModel(model) {
-  const userRoles = React6.useMemo(() => getCurrentUserRoles(), []);
-  return React6.useMemo(() => {
+  const userRoles = React8.useMemo(() => getCurrentUserRoles(), []);
+  return React8.useMemo(() => {
     const filtered = filterFieldsByRole(model.fields, userRoles);
     if (filtered.length === model.fields.length) return model;
     return { ...model, fields: filtered };
@@ -7257,7 +7609,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
   const modelTone = useModelTone(model);
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
   const { id: routeId } = reactRouterDom.useParams();
@@ -7266,7 +7618,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
   const pageTitle = record?._label ? asDisplayText(record._label, `${_18("Show")} ${modelDisplayLabel}`) : `${_18("Show")} ${modelDisplayLabel}`;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, saveButtonProps);
-  const [activeTabKey, setActiveTabKey] = React6.useState("details");
+  const [activeTabKey, setActiveTabKey] = React8.useState("details");
   const items = useStandardShowTabs(
     model,
     record,
@@ -7274,12 +7626,12 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     actionsState,
     { formProps: showFormProps, effectiveFields }
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "details");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React6.useMemo(
+  const lazyItems = React8.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -7340,7 +7692,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React6__default.default.useState(false);
+  const [loadAll, setLoadAll] = React8__default.default.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = antd$1.useSelect({
     resource: resolvedResource,
@@ -7357,8 +7709,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React6__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React6__default.default.useState("");
+  const selectedSet = React8__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React8__default.default.useState("");
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Select,
@@ -7405,8 +7757,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
 var _20 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = antd.Form.useFormInstance();
-  const [uploading, setUploading] = React6.useState(false);
-  const [fileName, setFileName] = React6.useState(null);
+  const [uploading, setUploading] = React8.useState(false);
+  const [fileName, setFileName] = React8.useState(null);
   const currentDataName = antd.Form.useWatch("data_name", form);
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
@@ -7453,7 +7805,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       disabled: uploading,
       style: { padding: "8px 16px" },
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(icons.UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
+        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
         /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _20("Uploading...") : _20("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxRuntime.jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
           _20("Current"),
@@ -7472,9 +7824,9 @@ var AsyncSelectInput = ({
   onChange
 }) => {
   const apiUrl = core.useApiUrl();
-  const [options, setOptions] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(false);
-  React6.useEffect(() => {
+  const [options, setOptions] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(false);
+  React8.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const fetchOptions = async () => {
@@ -7531,9 +7883,9 @@ var AsyncSelectInput = ({
   );
 };
 var _22 = window._ || ((text) => text);
-var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var ReactMarkdown2 = React8.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
-  const [activeTab, setActiveTab] = React6.useState("edit");
+  const [activeTab, setActiveTab] = React8.useState("edit");
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Tabs,
     {
@@ -7558,14 +7910,14 @@ var MarkdownEditor = ({ value = "", onChange }) => {
         {
           key: "preview",
           label: _22("Preview"),
-          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
+          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
         }
       ]
     }
   );
 };
 var JsonEditor = ({ value = "", onChange }) => {
-  const [error, setError] = React6.useState(null);
+  const [error, setError] = React8.useState(null);
   const handleChange = (e) => {
     const raw = e.target.value;
     onChange?.(raw);
@@ -7732,7 +8084,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -7746,12 +8098,12 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const relateOtherKey = searchParams.get("relate_other_key");
   const relateTargetId = searchParams.get("relate_target_id");
   const canAutoRelate = Boolean(relateResource && relateTargetKey && relateOtherKey && relateTargetId);
-  const [createdRecord, setCreatedRecord] = React6.useState(null);
-  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [activeTabKey, setActiveTabKey] = React6.useState("main_data");
+  const [createdRecord, setCreatedRecord] = React8.useState(null);
+  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [activeTabKey, setActiveTabKey] = React8.useState("main_data");
   const isPostCreate = createdRecord !== null;
-  const relationViewTypeDefaults = React6.useMemo(
+  const relationViewTypeDefaults = React8.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -7759,11 +8111,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
-  const isLinkModel = React6.useMemo(() => {
+  const isLinkModel = React8.useMemo(() => {
     const fieldKeys = model.fields.map((f) => f.key);
     return fieldKeys.includes("eid_from") && fieldKeys.includes("eid_to") && searchParams.has("eid_from");
   }, [model.fields, searchParams]);
-  const [serverDefaults, setServerDefaults] = React6.useState({});
+  const [serverDefaults, setServerDefaults] = React8.useState({});
   const { formProps, saveButtonProps } = antd$1.useForm({
     resource: formResource,
     redirect: false,
@@ -7812,14 +8164,14 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       type: "success"
     })
   });
-  useKeyboardShortcuts(React6.useMemo(() => [
+  useKeyboardShortcuts(React8.useMemo(() => [
     { key: "s", ctrl: true, handler: () => {
       if (!isPostCreate) formProps?.form?.submit();
     } },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, isPostCreate, journeyCallbacks]));
-  const effectiveFields = React6.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
-  const fieldByKey = React6.useMemo(
+  const effectiveFields = React8.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const fieldByKey = React8.useMemo(
     () => new Map(effectiveFields.map((field) => [field.key, field])),
     [effectiveFields]
   );
@@ -7831,7 +8183,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
     return value;
   };
-  const normalizeFieldValue = React6.useCallback((field, rawValue) => {
+  const normalizeFieldValue = React8.useCallback((field, rawValue) => {
     if (rawValue === void 0 || rawValue === null || rawValue === "") return rawValue;
     if (field.type === "number") {
       const parsed = Number(rawValue);
@@ -7840,7 +8192,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (field.type === "boolean") return parseBooleanValue(rawValue);
     return rawValue;
   }, []);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     let cancelled = false;
     const loadDefaults = async () => {
       try {
@@ -7863,7 +8215,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       cancelled = true;
     };
   }, [apiUrl, effectiveFields, formResource, normalizeFieldValue]);
-  const { initialValues, hiddenFields } = React6.useMemo(() => {
+  const { initialValues, hiddenFields } = React8.useMemo(() => {
     const defaults = {};
     const fromQuery = {};
     const hidden = [];
@@ -7904,13 +8256,13 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
   const hasConfig = configRows.length > 0;
   const configSections = groupConfigRowsBySection(configRows);
-  const { embedded, tabbed } = React6.useMemo(() => splitRelations(model.relations), [model.relations]);
-  const allRelations = React6.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
-  const configuredRelationKeys = React6.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
-  const configuredResolvedRelationKeys = React6.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
-  const configuredRelationDisplayKeys = React6.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
+  const { embedded, tabbed } = React8.useMemo(() => splitRelations(model.relations), [model.relations]);
+  const allRelations = React8.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
+  const configuredRelationKeys = React8.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
+  const configuredResolvedRelationKeys = React8.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
+  const configuredRelationDisplayKeys = React8.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
   const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const formInstance = formProps?.form;
     if (!formInstance) return;
     const untouchedDefaults = Object.fromEntries(
@@ -7919,7 +8271,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (Object.keys(untouchedDefaults).length === 0) return;
     formInstance.setFieldsValue(untouchedDefaults);
   }, [formProps, initialValues]);
-  const handleDone = React6.useCallback(() => {
+  const handleDone = React8.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (returnTo) {
       navigate(returnTo);
@@ -7929,7 +8281,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       navigate(-1);
     }
   }, [createdRecord, returnTo, navigate, formResource]);
-  const handleGoToEdit = React6.useCallback(() => {
+  const handleGoToEdit = React8.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (createdId != null) {
       go({ to: { resource: model.resource || model.name, action: "edit", id: createdId } });
@@ -7937,11 +8289,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   }, [createdRecord, model.name, model.resource, go]);
   const renderHeaderButtons = ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons);
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Edit record"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: handleGoToEdit }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CheckCircleOutlined, {}), onClick: handleDone, children: _23("Done") })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Edit record"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleGoToEdit }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _23("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
-  const relationTabEntries = React6.useMemo(() => {
+  const relationTabEntries = React8.useMemo(() => {
     if (!allModels) return [];
     const groups = /* @__PURE__ */ new Map();
     allRelations.forEach((rel) => {
@@ -8268,11 +8620,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
 var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
   const { token } = antd.theme.useToken();
   const apiUrl = core.useApiUrl();
-  const [html, setHtml] = React6.useState(null);
-  const [loading, setLoading] = React6.useState(true);
-  const [error, setError] = React6.useState(null);
-  const [fetchedTitle, setFetchedTitle] = React6.useState(null);
-  React6.useEffect(() => {
+  const [html, setHtml] = React8.useState(null);
+  const [loading, setLoading] = React8.useState(true);
+  const [error, setError] = React8.useState(null);
+  const [fetchedTitle, setFetchedTitle] = React8.useState(null);
+  React8.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setHtml(null);
@@ -8305,11 +8657,11 @@ var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
       borderRadius: 6,
       borderLeft: `3px solid ${token.colorPrimary}`
     }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(icons.CommentOutlined, { style: { color: token.colorPrimary, marginTop: 2, flexShrink: 0 } }),
+      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CommentOutlined, { style: { color: token.colorPrimary, marginTop: 2, flexShrink: 0 } }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { flex: 1, whiteSpace: "pre-wrap", fontSize: token.fontSize, lineHeight: 1.4 }, children: displayTitle }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "View NLSentence", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/nlsentence/show/${eid}`, onClick: (e) => e.stopPropagation(), children: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, { style: { color: token.colorPrimary, fontSize: 12 } }) }) })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "View NLSentence", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/nlsentence/show/${eid}`, onClick: (e) => e.stopPropagation(), children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, { style: { color: token.colorPrimary, fontSize: 12 } }) }) })
     ] }),
-    showLabel !== false && !displayTitle && !loading && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "View NLSentence", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/nlsentence/show/${eid}`, onClick: (e) => e.stopPropagation(), children: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, { style: { color: token.colorTextTertiary, fontSize: 12 } }) }) }) }),
+    showLabel !== false && !displayTitle && !loading && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "View NLSentence", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/nlsentence/show/${eid}`, onClick: (e) => e.stopPropagation(), children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, { style: { color: token.colorTextTertiary, fontSize: 12 } }) }) }) }),
     loading && /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true, paragraph: { rows: 3 } }),
     !loading && error && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorError, fontSize: 12, padding: "4px 6px" }, children: error }),
     !loading && html !== null && /* @__PURE__ */ jsxRuntime.jsx(ExecutableHtml, { html })
@@ -8330,7 +8682,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const relationViewTypeDefaults = React6.useMemo(
+  const relationViewTypeDefaults = React8.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -8338,7 +8690,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const apiUrl = core.useApiUrl();
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -8369,7 +8721,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     })
   });
   const record = queryResult?.data?.data;
-  const editFormProps = React6.useMemo(() => {
+  const editFormProps = React8.useMemo(() => {
     if (!isFileModel(model)) return formProps;
     const originalOnFinish = formProps.onFinish;
     return {
@@ -8380,24 +8732,24 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       }
     };
   }, [formProps, model]);
-  useKeyboardShortcuts(React6.useMemo(() => [
+  useKeyboardShortcuts(React8.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
   const pageTitle = record?._label ? asDisplayText(record._label, `${_24("Edit")} ${modelDisplayLabel}`) : `${_24("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
-  const effectiveFields = React6.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const effectiveFields = React8.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
-  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React6.useState(false);
-  const actionsPrefsTouchedRef = React6.useRef(false);
-  const actionsPrefsLoadedRef = React6.useRef(false);
-  const actionsPrefsResourceRef = React6.useRef(null);
-  const markActionsPrefsTouched = React6.useCallback(() => {
+  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React8.useState(false);
+  const actionsPrefsTouchedRef = React8.useRef(false);
+  const actionsPrefsLoadedRef = React8.useRef(false);
+  const actionsPrefsResourceRef = React8.useRef(null);
+  const markActionsPrefsTouched = React8.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React6.useCallback(async () => {
+  const saveActionsPreferences = React8.useCallback(async () => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -8421,8 +8773,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  const [isDuplicating, setIsDuplicating] = React6.useState(false);
-  const duplicateRecord = React6.useCallback(async (withRelations) => {
+  const [isDuplicating, setIsDuplicating] = React8.useState(false);
+  const duplicateRecord = React8.useCallback(async (withRelations) => {
     if (!record) return;
     setIsDuplicating(true);
     try {
@@ -8490,7 +8842,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsDuplicating(false);
     }
   }, [record, model, allModelsList, apiUrl, go]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey) {
       actionsPrefsLoadedRef.current = false;
@@ -8579,7 +8931,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
         onClick: saveActionsPreferences,
         loading: isSavingActionsPrefs,
         block: true,
@@ -8983,13 +9335,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   });
   items.push(...customConfigTabs);
   items.push(...relationTabs);
-  const [activeTabKey, setActiveTabKey] = React6.useState("main_data");
-  React6.useEffect(() => {
+  const [activeTabKey, setActiveTabKey] = React8.useState("main_data");
+  React8.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "main_data");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React6.useMemo(
+  const lazyItems = React8.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -9000,13 +9352,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
-    recordId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Show"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
+    recordId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Show"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
     record && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Duplicate"), children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           size: "small",
-          icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CopyOutlined, {}),
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CopyOutlined, {}),
           onClick: () => duplicateRecord(false),
           loading: isDuplicating
         }
@@ -9015,13 +9367,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         antd.Button,
         {
           size: "small",
-          icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ApartmentOutlined, {}),
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApartmentOutlined, {}),
           onClick: () => duplicateRecord(true),
           loading: isDuplicating
         }
       ) })
     ] }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _24("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _24("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
     recordId != null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.DeleteButton,
@@ -9032,7 +9384,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveFilled, {}) }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveFilled, {}) }) })
   ] });
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
@@ -9058,8 +9410,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
 };
 var _25 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
-  const [editing, setEditing] = React6.useState(false);
-  const [draft, setDraft] = React6.useState(void 0);
+  const [editing, setEditing] = React8.useState(false);
+  const [draft, setDraft] = React8.useState(void 0);
   const form = antd.Form.useFormInstance();
   const resource = field.referencePath ? field.referencePath : field.reference ? resolveResourcePath(field.reference, allModels) : "";
   const modelResource = model ? resolveResourcePath(model.resource || model.name, allModels) : void 0;
@@ -9090,19 +9442,19 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
           excludeId: isSelfRef ? currentId : void 0
         }
       ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Confirm"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CheckOutlined, {}), onClick: handleConfirm }) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Cancel"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CloseOutlined, {}), onClick: handleCancel }) })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Confirm"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, {}), onClick: handleConfirm }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Cancel"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}), onClick: handleCancel }) })
     ] });
   }
   if (!value) {
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: row, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { children: "-" }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
     ] });
   }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: row, children: [
     /* @__PURE__ */ jsxRuntime.jsx(ReferenceField, { id: value, resource }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _25("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
 var _26 = window._ || ((text) => text);
@@ -9156,7 +9508,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const { token } = antd.theme.useToken();
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
   const modelTone = useModelTone(model);
-  const relationViewTypeDefaults = React6.useMemo(
+  const relationViewTypeDefaults = React8.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -9620,11 +9972,11 @@ var useRelatedInlineItems = ({
   pageSize = INLINE_DEFAULT_PAGE_SIZE
 }) => {
   const apiUrl = core.useApiUrl();
-  const [items, setItems] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(false);
-  const [error, setError] = React6.useState(null);
-  const [total, setTotal] = React6.useState(0);
-  React6.useEffect(() => {
+  const [items, setItems] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(false);
+  const [error, setError] = React8.useState(null);
+  const [total, setTotal] = React8.useState(0);
+  React8.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setItems([]);
@@ -9765,10 +10117,10 @@ var useRelatedGalleryRecords = ({
   allModels
 }) => {
   const apiUrl = core.useApiUrl();
-  const [records, setRecords] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(false);
-  const [error, setError] = React6.useState(null);
-  React6.useEffect(() => {
+  const [records, setRecords] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(false);
+  const [error, setError] = React8.useState(null);
+  React8.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setRecords([]);
@@ -9866,10 +10218,10 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React6.useState(1);
-  const [pageSize, setPageSize] = React6.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React8.useState(1);
+  const [pageSize, setPageSize] = React8.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items, loading, error, total } = useRelatedInlineItems({ rel, record, allowedRelatedIds, allModels, page, pageSize });
-  const handlePageChange = React6.useCallback((newPage, newPageSize) => {
+  const handlePageChange = React8.useCallback((newPage, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setPage(1);
@@ -9931,17 +10283,17 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const { token } = antd.theme.useToken();
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   const resource = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
-  const dateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
-  const [calendarMode, setCalendarMode] = React6.useState("month");
-  const [calendarDateField, setCalendarDateField] = React6.useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs8__default.default().startOf("month"));
-  const dateFieldKeySet = React6.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
-  React6.useEffect(() => {
+  const dateFieldOptions = React8.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
+  const [calendarMode, setCalendarMode] = React8.useState("month");
+  const [calendarDateField, setCalendarDateField] = React8.useState(() => dateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React8.useState(() => dayjs8__default.default().startOf("month"));
+  const dateFieldKeySet = React8.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
+  React8.useEffect(() => {
     if (calendarDateField && dateFieldKeySet.has(calendarDateField)) return;
     const fallback = dateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, dateFieldKeySet, dateFieldOptions]);
-  const calendarEntries = React6.useMemo(() => {
+  const calendarEntries = React8.useMemo(() => {
     if (!calendarDateField) return [];
     const entries = [];
     records.forEach((item) => {
@@ -9957,7 +10309,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return entries;
   }, [calendarDateField, records]);
-  const earliestDateTs = React6.useMemo(() => {
+  const earliestDateTs = React8.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -9966,8 +10318,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     return earliest;
   }, [calendarEntries]);
-  const initSignatureRef = React6.useRef("");
-  React6.useEffect(() => {
+  const initSignatureRef = React8.useRef("");
+  React8.useEffect(() => {
     const signature = `${calendarDateField}|${calendarMode}|${earliestDateTs ?? "none"}`;
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
@@ -9977,7 +10329,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     setCalendarAnchorDate(dayjs8__default.default(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
-  const entriesByDate = React6.useMemo(() => {
+  const entriesByDate = React8.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -9987,7 +10339,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return grouped;
   }, [calendarEntries]);
-  const rangeDays = React6.useMemo(() => {
+  const rangeDays = React8.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -9998,7 +10350,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const periodLabel = React6.useMemo(() => {
+  const periodLabel = React8.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -10045,7 +10397,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowLeftOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
             "aria-label": _27("Previous"),
             onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
           }
@@ -10054,7 +10406,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CalendarOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
             "aria-label": _27("Today"),
             onClick: () => setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode))
           }
@@ -10063,7 +10415,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowRightOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
             "aria-label": _27("Next"),
             onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
           }
@@ -10158,9 +10510,9 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   ] });
 };
 var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) => {
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
   const tone = useModelTone(model);
-  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React8.useContext(PrimaryShowContext);
   const label = getRecordDisplayLabel(record);
   const id = record?.eid ?? record?.id;
   const resource = resolveResourcePath(model.resource || model.name, allModelsList);
@@ -10174,7 +10526,7 @@ var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) =>
       size: "small",
       title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
         /* @__PURE__ */ jsxRuntime.jsx("span", { children: label }),
-        showHref && /* @__PURE__ */ jsxRuntime.jsx("a", { href: showHref, style: { fontSize: 12, color: tone.solid }, children: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, {}) })
+        showHref && /* @__PURE__ */ jsxRuntime.jsx("a", { href: showHref, style: { fontSize: 12, color: tone.solid }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) })
       ] }),
       variant: "borderless",
       style: { marginBottom: 12, boxShadow: `0 8px 20px -16px ${tone.shadow}` },
@@ -10217,7 +10569,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (!records.length) return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(icons.FileTextOutlined, { style: { fontSize: 16 } }),
+    /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
     _29("No images available")
   ] });
   return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
@@ -10250,22 +10602,22 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const location = reactRouterDom.useLocation();
   const apiUrl = core.useApiUrl();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React6.useState(1);
-  const [pageSize, setPageSize] = React6.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React8.useState(1);
+  const [pageSize, setPageSize] = React8.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items: fetchedItems, loading, error, total } = useRelatedInlineItems({ rel, record, allModels, page, pageSize });
-  const [localItems, setLocalItems] = React6.useState(null);
-  React6.useEffect(() => {
+  const [localItems, setLocalItems] = React8.useState(null);
+  React8.useEffect(() => {
     setLocalItems(null);
   }, [fetchedItems]);
   const items = localItems ?? fetchedItems;
-  const [editing, setEditing] = React6.useState(false);
-  const [saving, setSaving] = React6.useState(false);
-  const [allOptions, setAllOptions] = React6.useState([]);
-  const [optionsLoading, setOptionsLoading] = React6.useState(false);
-  const [selectedIds, setSelectedIds] = React6.useState(/* @__PURE__ */ new Set());
-  const [baselineIds, setBaselineIds] = React6.useState(/* @__PURE__ */ new Set());
-  const [searchText, setSearchText] = React6.useState("");
-  React6.useEffect(() => {
+  const [editing, setEditing] = React8.useState(false);
+  const [saving, setSaving] = React8.useState(false);
+  const [allOptions, setAllOptions] = React8.useState([]);
+  const [optionsLoading, setOptionsLoading] = React8.useState(false);
+  const [selectedIds, setSelectedIds] = React8.useState(/* @__PURE__ */ new Set());
+  const [baselineIds, setBaselineIds] = React8.useState(/* @__PURE__ */ new Set());
+  const [searchText, setSearchText] = React8.useState("");
+  React8.useEffect(() => {
     if (!editing) return;
     const snapshot = new Set(items.map((item) => Number(item.id)));
     setBaselineIds(snapshot);
@@ -10299,7 +10651,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [editing]);
-  const handleSave = React6.useCallback(async () => {
+  const handleSave = React8.useCallback(async () => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -10375,12 +10727,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSaving(false);
     }
   }, [apiUrl, allModels, allOptions, rel, record, selectedIds, baselineIds]);
-  const handleCancel = React6.useCallback(() => {
+  const handleCancel = React8.useCallback(() => {
     setEditing(false);
     setSelectedIds(new Set(baselineIds));
     setSearchText("");
   }, [baselineIds]);
-  const handleCreateNewAndRelate = React6.useCallback(() => {
+  const handleCreateNewAndRelate = React8.useCallback(() => {
     const otherKey = rel.otherKey;
     if (!otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
@@ -10409,7 +10761,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (!editing) {
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minHeight: 22 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
       items.length === 0 && total === 0 ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontStyle: "italic" }, children: "\u2014" }) : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         /* @__PURE__ */ jsxRuntime.jsx("ul", { style: { margin: 0, paddingLeft: 16 }, children: items.map((item, index) => /* @__PURE__ */ jsxRuntime.jsx("li", { children: /* @__PURE__ */ jsxRuntime.jsx(
           "a",
@@ -10479,7 +10831,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Input,
         {
-          prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.SearchOutlined, { style: { color: token.colorTextSecondary } }),
+          prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: token.colorTextSecondary } }),
           placeholder: _30("Search..."),
           value: searchText,
           onChange: (e) => setSearchText(e.target.value),
@@ -10488,7 +10840,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
           style: { flex: 1 }
         }
       ),
-      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
+      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { image: antd.Empty.PRESENTED_IMAGE_SIMPLE, description: _30("No options") }) : sortedOptions.map((opt) => {
       const checked = selectedIds.has(opt.id);
@@ -10528,7 +10880,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
     }) }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: handleCancel, children: _30("Cancel") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _30("Save") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _30("Save") })
     ] })
   ] });
 };
@@ -10536,17 +10888,17 @@ var _31 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = core.useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
-  const [saving, setSaving] = React6.useState(false);
-  const [allOptions, setAllOptions] = React6.useState([]);
-  const [optionsLoading, setOptionsLoading] = React6.useState(false);
-  const [selectedIds, setSelectedIds] = React6.useState([]);
-  const [baselineIds, setBaselineIds] = React6.useState(/* @__PURE__ */ new Set());
-  React6.useEffect(() => {
+  const [saving, setSaving] = React8.useState(false);
+  const [allOptions, setAllOptions] = React8.useState([]);
+  const [optionsLoading, setOptionsLoading] = React8.useState(false);
+  const [selectedIds, setSelectedIds] = React8.useState([]);
+  const [baselineIds, setBaselineIds] = React8.useState(/* @__PURE__ */ new Set());
+  React8.useEffect(() => {
     const ids = fetchedItems.map((item) => Number(item.id));
     setSelectedIds(ids);
     setBaselineIds(new Set(ids));
   }, [fetchedItems]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!rel.otherResource) return;
     let cancelled = false;
     const fetchOptions = async () => {
@@ -10573,7 +10925,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [apiUrl, rel.otherResource]);
-  const handleChange = React6.useCallback(async (newIds) => {
+  const handleChange = React8.useCallback(async (newIds) => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -10635,15 +10987,15 @@ var { Title: Title5 } = antd.Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
   const apiUrl = core.useApiUrl();
-  const [loading, setLoading] = React6.useState(false);
-  const [error, setError] = React6.useState(null);
-  const [groupedIds, setGroupedIds] = React6.useState(/* @__PURE__ */ new Map());
-  const [unresolvedIds, setUnresolvedIds] = React6.useState([]);
-  const polyInfo = React6.useMemo(
+  const [loading, setLoading] = React8.useState(false);
+  const [error, setError] = React8.useState(null);
+  const [groupedIds, setGroupedIds] = React8.useState(/* @__PURE__ */ new Map());
+  const [unresolvedIds, setUnresolvedIds] = React8.useState([]);
+  const polyInfo = React8.useMemo(
     () => getPolymorphicReferenceInfo(rel, relationModel, allModels),
     [rel.otherKey, rel.otherResource, relationModel, allModels]
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!recordId || !rel.otherKey || !polyInfo) {
       setGroupedIds(/* @__PURE__ */ new Map());
       setUnresolvedIds([]);
@@ -10759,94 +11111,94 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     color: relatedModelTone.solid,
     margin: 0
   };
-  const chartSvgRef = React6.useRef(null);
-  const skipNextAnimationRef = React6.useRef(false);
-  const [rows, setRows] = React6.useState([]);
-  const [localSearch, setLocalSearch] = React6.useState("");
-  const [filterRules, setFilterRules] = React6.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React6.useState(true);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React6.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React6.useState(null);
-  const [columnOrder, setColumnOrder] = React6.useState(null);
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React6.useState({});
-  const [columnFiltersSelected, setColumnFiltersSelected] = React6.useState({});
-  const [columnSort, setColumnSort] = React6.useState([]);
-  const [currentViewName, setCurrentViewName] = React6.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React6.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React6.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React6.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React6.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React6.useState(false);
-  const [saveViewName, setSaveViewName] = React6.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React6.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React6.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React6.useState(false);
-  const [renameViewName, setRenameViewName] = React6.useState("");
-  const [pageSize, setPageSize] = React6.useState(10);
-  const [currentPage, setCurrentPage] = React6.useState(1);
-  const [serverTotalRows, setServerTotalRows] = React6.useState(0);
-  const [fullDataLoaded, setFullDataLoaded] = React6.useState(false);
-  const [relationRowsCapped, setRelationRowsCapped] = React6.useState(false);
-  const [loadedRowsCount, setLoadedRowsCount] = React6.useState(0);
-  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React6.useState(false);
-  const [loading, setLoading] = React6.useState(false);
-  const [error, setError] = React6.useState(null);
-  const [listVisible, setListVisible] = React6.useState(true);
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
-  const [labelCache, setLabelCache] = React6.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React6.useState(false);
-  const analyzeTouchedRef = React6.useRef(false);
-  const analyzePrefsTouchedRef = React6.useRef(false);
-  const analyzePrefsLoadedRef = React6.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React6.useState(false);
-  const analyzePrefsResourceRef = React6.useRef(null);
-  const [categoryField1, setCategoryField1] = React6.useState(null);
-  const [categoryField2, setCategoryField2] = React6.useState(void 0);
-  const [chartType, setChartType] = React6.useState("area");
-  const [summaryFn, setSummaryFn] = React6.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React6.useState(null);
-  const [rankingMode, setRankingMode] = React6.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React6.useState(null);
-  const [rankingN, setRankingN] = React6.useState(10);
-  const [exportRequested, setExportRequested] = React6.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React6.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React6.useState(false);
-  const [chartAnimationKey, setChartAnimationKey] = React6.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React6.useState("enter");
-  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React6.useState(false);
-  const defaultDisplayFields = React6.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
-  const orderedColumnKeys = React6.useMemo(() => {
+  const chartSvgRef = React8.useRef(null);
+  const skipNextAnimationRef = React8.useRef(false);
+  const [rows, setRows] = React8.useState([]);
+  const [localSearch, setLocalSearch] = React8.useState("");
+  const [filterRules, setFilterRules] = React8.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React8.useState(true);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React8.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React8.useState(null);
+  const [columnOrder, setColumnOrder] = React8.useState(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React8.useState({});
+  const [columnFiltersSelected, setColumnFiltersSelected] = React8.useState({});
+  const [columnSort, setColumnSort] = React8.useState([]);
+  const [currentViewName, setCurrentViewName] = React8.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React8.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React8.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React8.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React8.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React8.useState(false);
+  const [saveViewName, setSaveViewName] = React8.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React8.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React8.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React8.useState(false);
+  const [renameViewName, setRenameViewName] = React8.useState("");
+  const [pageSize, setPageSize] = React8.useState(10);
+  const [currentPage, setCurrentPage] = React8.useState(1);
+  const [serverTotalRows, setServerTotalRows] = React8.useState(0);
+  const [fullDataLoaded, setFullDataLoaded] = React8.useState(false);
+  const [relationRowsCapped, setRelationRowsCapped] = React8.useState(false);
+  const [loadedRowsCount, setLoadedRowsCount] = React8.useState(0);
+  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React8.useState(false);
+  const [loading, setLoading] = React8.useState(false);
+  const [error, setError] = React8.useState(null);
+  const [listVisible, setListVisible] = React8.useState(true);
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React8.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React8.useState(false);
+  const [labelCache, setLabelCache] = React8.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React8.useState(false);
+  const analyzeTouchedRef = React8.useRef(false);
+  const analyzePrefsTouchedRef = React8.useRef(false);
+  const analyzePrefsLoadedRef = React8.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React8.useState(false);
+  const analyzePrefsResourceRef = React8.useRef(null);
+  const [categoryField1, setCategoryField1] = React8.useState(null);
+  const [categoryField2, setCategoryField2] = React8.useState(void 0);
+  const [chartType, setChartType] = React8.useState("area");
+  const [summaryFn, setSummaryFn] = React8.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React8.useState(null);
+  const [rankingMode, setRankingMode] = React8.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React8.useState(null);
+  const [rankingN, setRankingN] = React8.useState(10);
+  const [exportRequested, setExportRequested] = React8.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React8.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React8.useState(false);
+  const [chartAnimationKey, setChartAnimationKey] = React8.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React8.useState("enter");
+  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React8.useState(false);
+  const defaultDisplayFields = React8.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
+  const orderedColumnKeys = React8.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(relatedModel.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, relatedModel.fields, selectedColumnKeys]);
-  const displayFields = React6.useMemo(() => {
+  const displayFields = React8.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(relatedModel.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, orderedColumnKeys, relatedModel.fields]);
   const numericBarColor = relatedModelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
   const [form] = antd.Form.useForm();
-  const [savingAll, setSavingAll] = React6.useState(false);
-  const [hasPendingEdits, setHasPendingEdits] = React6.useState(false);
+  const [savingAll, setSavingAll] = React8.useState(false);
+  const [hasPendingEdits, setHasPendingEdits] = React8.useState(false);
   const { setWarnWhen } = core.useWarnAboutChange();
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React6.useState(false);
-  const layoutPrefsTouchedRef = React6.useRef(false);
-  const layoutPrefsLoadedRef = React6.useRef(false);
-  const layoutPrefsResourceRef = React6.useRef(null);
-  const sortIntentRef = React6.useRef(null);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React8.useState(false);
+  const layoutPrefsTouchedRef = React8.useRef(false);
+  const layoutPrefsLoadedRef = React8.useRef(false);
+  const layoutPrefsResourceRef = React8.useRef(null);
+  const sortIntentRef = React8.useRef(null);
   const { settings: viewSettings } = useViewSettings();
   const relationsMaxRowsToLoad = Math.max(0, Number(viewSettings?.relationsMaxRowsToLoad ?? 1e3));
-  const markAnalyzePrefsTouched = React6.useCallback(() => {
+  const markAnalyzePrefsTouched = React8.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React6.useCallback(() => {
+  const markLayoutPrefsTouched = React8.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const persistLayoutPreferences = React6.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React8.useCallback(async (viewName) => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
@@ -10890,7 +11242,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, layoutPreferenceType, listVisible, pageSize, selectedColumnKeys, relatedModel.name, relatedModel.resource, totalsSummaryFunctions, allModels]);
-  const persistAnalyzePreferences = React6.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React8.useCallback(async (viewName) => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -10921,13 +11273,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, relatedModel.name, relatedModel.resource, allModels]);
-  const categoricalFields = React6.useMemo(() => {
+  const categoricalFields = React8.useMemo(() => {
     return relatedModel.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
   }, [relatedModel.fields]);
-  const numericFields = React6.useMemo(() => {
+  const numericFields = React8.useMemo(() => {
     return relatedModel.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
   }, [relatedModel.fields]);
-  const resetLayoutDefaults = React6.useCallback(() => {
+  const resetLayoutDefaults = React8.useCallback(() => {
     setListVisible(true);
     setAnalyzeOpen(false);
     setIsAnalyzeVertical(false);
@@ -10937,7 +11289,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setSelectedColumnKeys(null);
     setColumnOrder(null);
   }, []);
-  const resetAnalyzeDefaults = React6.useCallback(() => {
+  const resetAnalyzeDefaults = React8.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -10947,7 +11299,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setRankingFieldKey(numericFields[0]?.key ?? null);
     setRankingN(10);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React6.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React8.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -10963,7 +11315,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     } catch {
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const loadViewNames = React6.useCallback(async () => {
+  const loadViewNames = React8.useCallback(async () => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     setIsLoadingViewNames(true);
     try {
@@ -11008,13 +11360,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const openSaveViewModalFor = React6.useCallback((target) => {
+  const openSaveViewModalFor = React8.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleConfirmSaveView = React6.useCallback(async () => {
+  const handleConfirmSaveView = React8.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -11041,14 +11393,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  const handleChangeViewName = React6.useCallback(async (nextView) => {
+  const handleChangeViewName = React8.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React6.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React8.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -11060,7 +11412,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React6.useCallback((name, direction) => {
+  const moveSelectedView = React8.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -11072,7 +11424,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React6.useCallback(async () => {
+  const handleRenameView = React8.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -11099,7 +11451,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.message.error(error2 instanceof Error ? error2.message : _32("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React6.useCallback(() => {
+  const confirmDeleteView = React8.useCallback(() => {
     antd.Modal.confirm({
       title: _32(_32("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -11144,10 +11496,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, relatedModelTone) }))
     }
   ) : null;
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!viewNamesLoaded) return;
     analyzePrefsTouchedRef.current = false;
     layoutPrefsTouchedRef.current = false;
@@ -11159,7 +11511,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     resetLayoutDefaults();
     resetAnalyzeDefaults();
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -11209,7 +11561,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, relatedModel.name, relatedModel.resource, allModels]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${layoutPreferenceType}::${currentViewName}`;
@@ -11288,17 +11640,17 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, layoutPreferenceType, relatedModel.name, relatedModel.resource, allModels, viewNamesLoaded]);
-  const normalizeFieldValue = React6.useCallback((field, value) => {
+  const normalizeFieldValue = React8.useCallback((field, value) => {
     if (field.type === "date" && value) {
       if (typeof value?.toISOString === "function") return value.toISOString();
       if (typeof value?.format === "function") return value.format("YYYY-MM-DD");
     }
     return value;
   }, []);
-  const hasActiveFilterRules = React6.useMemo(() => {
+  const hasActiveFilterRules = React8.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const resolveRelativeDate = React6.useCallback((value, asRange) => {
+  const resolveRelativeDate = React8.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -11324,7 +11676,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return { date: target.startOf(unit) };
   }, []);
-  const getFieldValueForFilter = React6.useCallback((field, recordRow) => {
+  const getFieldValueForFilter = React8.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -11336,7 +11688,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return raw;
   }, [labelCache]);
-  const matchesRule = React6.useCallback((recordRow, rule) => {
+  const matchesRule = React8.useCallback((recordRow, rule) => {
     const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, recordRow);
@@ -11416,7 +11768,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return true;
   }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React6.useCallback((data) => {
+  const applyGlobalSearch = React8.useCallback((data) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
     return data.filter((recordRow) => {
@@ -11435,14 +11787,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, relatedModel.fields]);
-  const applyFilterRules = React6.useCallback((data) => {
+  const applyFilterRules = React8.useCallback((data) => {
     if (!hasActiveFilterRules) return data;
     return data.filter((recordRow) => filterRules.every((rule) => matchesRule(recordRow, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const filteredRows = React6.useMemo(() => {
+  const filteredRows = React8.useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
-  const columnFilteredRows = React6.useMemo(() => {
+  const columnFilteredRows = React8.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredRows;
     return filteredRows.filter(
@@ -11456,10 +11808,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       )
     );
   }, [filteredRows, columnFiltersSelected]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!allowInlineEdit) return;
     if (form.isFieldsTouched()) return;
     const initialValues = {};
@@ -11473,7 +11825,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     form.setFieldsValue(initialValues);
   }, [allowInlineEdit, form, relatedModel.fields, filteredRows]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!allowInlineEdit) {
       setWarnWhen(false);
       return;
@@ -11481,7 +11833,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setWarnWhen(hasPendingEdits);
     return () => setWarnWhen(false);
   }, [allowInlineEdit, hasPendingEdits, setWarnWhen]);
-  const saveAllEdits = React6.useCallback(async () => {
+  const saveAllEdits = React8.useCallback(async () => {
     if (!allowInlineEdit) return;
     setSavingAll(true);
     try {
@@ -11534,7 +11886,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSavingAll(false);
     }
   }, [allowInlineEdit, apiUrl, form, normalizeFieldValue, relatedModel.fields, relatedModel.name, relatedModel.resource, allModels, rows]);
-  const handleDeleteRelationRow = React6.useCallback((row) => {
+  const handleDeleteRelationRow = React8.useCallback((row) => {
     const relationRow = row?.__relationRow;
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
@@ -11591,7 +11943,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     overflow: "visible",
     order: isAnalyzeFirst ? 1 : 2
   };
-  const getSortValue = React6.useCallback((field, recordRow) => {
+  const getSortValue = React8.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (field.key === "eid" && recordRow?._label) return recordRow._label;
@@ -11610,7 +11962,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React6.useCallback((field, a, b) => {
+  const compareSortValues = React8.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -11619,11 +11971,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const shouldUseFullDataMode = React6.useMemo(() => {
+  const shouldUseFullDataMode = React8.useMemo(() => {
     if (loadAllRelatedRequested) return true;
     return false;
   }, [loadAllRelatedRequested]);
-  const fetchRelatedDetailsByIds = React6.useCallback(async (ids, signal) => {
+  const fetchRelatedDetailsByIds = React8.useCallback(async (ids, signal) => {
     const uniqueIds = Array.from(new Set(ids.filter((value) => value !== void 0 && value !== null)));
     if (!rel.otherResource || uniqueIds.length === 0) return [];
     const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource, allModels);
@@ -11674,7 +12026,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const now = performance.now();
     console.log(`[JM_TRACE ${now.toFixed(1)}ms] ${label}${detail ? " | " + detail : ""}`);
   };
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!recordId || !rel.otherResource || !rel.otherKey) {
       setRows([]);
       setServerTotalRows(0);
@@ -11821,26 +12173,26 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       controller.abort();
     };
   }, [apiUrl, currentPage, pageSize, recordId, rel.label, rel.otherKey, rel.otherResource, rel.resource, rel.targetKey, allowedRelatedIds, allModels, rel.resourcePath, rel.otherResourcePath, shouldUseFullDataMode, fetchRelatedDetailsByIds, fullDataLoaded, relationsMaxRowsToLoad, rows.length]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!shouldUseFullDataMode && fullDataLoaded) {
       setFullDataLoaded(false);
     }
   }, [fullDataLoaded, shouldUseFullDataMode]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length <= 1 && analyzeOpen) {
       setAnalyzeOpen(false);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length > 1 && !analyzeOpen) {
       setAnalyzeOpen(true);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -11848,7 +12200,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -11856,7 +12208,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -11866,7 +12218,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const formatCategoryValue = React6.useCallback((field, recordRow) => {
+  const formatCategoryValue = React8.useCallback((field, recordRow) => {
     if (!field) return _32("All");
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -11882,14 +12234,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartTitle = React6.useMemo(() => {
+  const chartTitle = React8.useMemo(() => {
     const cat1Label = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2)?.label : null;
     const parts = [relatedModel.label || relatedModel.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
-  const chartData = React6.useMemo(() => {
+  const chartData = React8.useMemo(() => {
     const data = columnFilteredRows || [];
     const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : void 0;
@@ -11996,7 +12348,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       filteredRawRows
     };
   }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
-  const numericColumnMaxes = React6.useMemo(() => {
+  const numericColumnMaxes = React8.useMemo(() => {
     const maxes = {};
     const data = filteredRows || [];
     displayFields.forEach((field) => {
@@ -12010,7 +12362,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     return maxes;
   }, [filteredRows, displayFields]);
-  const chartSignature = React6.useMemo(() => {
+  const chartSignature = React8.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -12023,13 +12375,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -12038,7 +12390,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const formatValueForExport = React6.useCallback((field, recordRow) => {
+  const formatValueForExport = React8.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -12052,7 +12404,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!exportRequested) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -12138,7 +12490,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const exportStatsPdf = () => {
     openPdfWindow(`${relatedModel.name}-stats`, buildStatsHtml(statsSummary));
   };
-  const columnFilters = React6.useMemo(() => {
+  const columnFilters = React8.useMemo(() => {
     const data = filteredRows || [];
     const limit = 50;
     const filtersMap = /* @__PURE__ */ new Map();
@@ -12163,27 +12515,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return filtersMap;
   }, [displayFields, filteredRows]);
-  const allFieldOptions = React6.useMemo(() => {
+  const allFieldOptions = React8.useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
-  const orderedSelectedColumns = React6.useMemo(() => {
+  const orderedSelectedColumns = React8.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React6.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React8.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(columnOrder && columnOrder.length > 0 ? columnOrder : keys);
   }, [columnOrder, displayFields]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const handleColumnSelectionChange = React6.useCallback((values) => {
+  const handleColumnSelectionChange = React8.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -12197,7 +12549,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React6.useCallback((key, direction) => {
+  const moveColumnOrder = React8.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -12208,18 +12560,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return base;
     });
   }, [selectedColumnKeys]);
-  const statsSummary = React6.useMemo(() => {
+  const statsSummary = React8.useMemo(() => {
     return buildStatsSummary(columnFilteredRows, displayFields, labelCache);
   }, [columnFilteredRows, displayFields, labelCache]);
   const isTotalsDetailsVariant = viewVariant === "totals-details";
-  const getDefaultTotalsSummaryFn = React6.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React8.useCallback((field) => {
     if (field.key === "eid") return "count";
     return "sum";
   }, []);
-  const resolveTotalsSummaryFn = React6.useCallback((field) => {
+  const resolveTotalsSummaryFn = React8.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React6.useCallback((field) => {
+  const computeTotalsSummaryValue = React8.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     const rawValues = filteredRows.map((row) => row?.[field.key]);
     if (field.type === "number" && !field.reference) {
@@ -12242,7 +12594,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return rawValues.length;
   }, [filteredRows, resolveTotalsSummaryFn]);
-  const formatCategoricalBoxValue = React6.useCallback((field, raw) => {
+  const formatCategoricalBoxValue = React8.useCallback((field, raw) => {
     if (raw === void 0 || raw === null) return "-";
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
@@ -12255,7 +12607,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const totalsDetailsCategoricalBoxes = React6.useMemo(() => {
+  const totalsDetailsCategoricalBoxes = React8.useMemo(() => {
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
       filteredRows.forEach((row) => {
@@ -12273,7 +12625,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [displayFields, filteredRows, formatCategoricalBoxValue]);
-  const totalsDetailsNumericBoxes = React6.useMemo(() => {
+  const totalsDetailsNumericBoxes = React8.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       return {
         key: field.key,
@@ -12283,10 +12635,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [computeTotalsSummaryValue, displayFields, resolveTotalsSummaryFn]);
-  const totalsSummaryConfigFields = React6.useMemo(() => {
+  const totalsSummaryConfigFields = React8.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setTotalsSummaryFunctions((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -12299,7 +12651,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return changed ? next : prev;
     });
   }, [getDefaultTotalsSummaryFn, totalsSummaryConfigFields]);
-  const statsNumericMaxes = React6.useMemo(() => {
+  const statsNumericMaxes = React8.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -12313,7 +12665,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (isTotalsDetailsVariant) {
       setIsTotalsDetailsFlipped(false);
     }
@@ -12409,7 +12761,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
             "aria-label": isTotalsDetailsFlipped ? _32("Show totals") : _32("Show details"),
             onClick: () => setIsTotalsDetailsFlipped((prev) => !prev),
             style: {
@@ -12448,7 +12800,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}),
             onClick: () => {
               setColumnsSelectorOpen((prev) => {
                 const next = !prev;
@@ -12464,7 +12816,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             antd.Button,
             {
               size: "small",
-              icon: /* @__PURE__ */ jsxRuntime.jsx(icons.PlusOutlined, {}),
+              icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PlusOutlined, {}),
               onClick: (e) => {
                 e.preventDefault();
                 if (rel.otherResource && rel.otherKey && rel.targetKey) {
@@ -12497,7 +12849,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             antd.Button,
             {
               size: "small",
-              icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ShareAltOutlined, {}),
+              icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ShareAltOutlined, {}),
               onClick: (e) => {
                 e.preventDefault();
                 const otherKey = rel.otherKey;
@@ -12531,7 +12883,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           {
             size: "small",
             type: "primary",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
             onClick: saveAllEdits,
             loading: savingAll,
             "aria-label": _32("Save")
@@ -12541,7 +12893,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           antd.Button,
           {
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownloadOutlined, {}),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}),
             onClick: () => setExportRequested(true),
             loading: exportRequested
           }
@@ -12591,7 +12943,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             antd.Input,
             {
               placeholder: _32("Search all fields..."),
-              prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.SearchOutlined, {}),
+              prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}),
               allowClear: true,
               value: localSearch,
               onChange: (event) => setLocalSearch(event.target.value),
@@ -12790,7 +13142,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   antd.Button,
                   {
                     size: "small",
-                    icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilterOutlined, {}),
+                    icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
                     children: _32("Add Filter")
                   }
@@ -12820,8 +13172,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
@@ -12845,7 +13197,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 {
                   size: "small",
                   danger: true,
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DeleteOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
                   children: _32("Delete view")
@@ -12855,7 +13207,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
                   children: _32("Save layout")
@@ -12865,7 +13217,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilterOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
@@ -12877,7 +13229,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.UnorderedListOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UnorderedListOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setListVisible((prev) => !prev);
@@ -12889,7 +13241,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     analyzeTouchedRef.current = true;
@@ -12903,7 +13255,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ColumnHeightOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ColumnHeightOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
@@ -12915,7 +13267,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SwapOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
@@ -12952,8 +13304,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 if (!field) return null;
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
@@ -13167,14 +13519,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
                           return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
                             id && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => {
                                 if (paneNav?.isInMultiPane) {
                                   paneNav.openDetail(relatedModel.name, id);
                                 } else {
                                   go({ to: { resource: relatedModel.name, action: "show", id } });
                                 }
                               } }) }),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => {
                                 if (allowInlineEdit) {
                                   const params = new URLSearchParams();
                                   params.append("inline", "1");
@@ -13191,7 +13543,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                               {
                                 size: "small",
                                 danger: true,
-                                icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DeleteOutlined, {}),
+                                icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
                                 onClick: () => handleDeleteRelationRow(row)
                               }
                             ) })
@@ -13255,10 +13607,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _32("Export chart") }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _32("Export chart") }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         AnalysisChart,
@@ -13443,7 +13795,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                       antd.Button,
                                       {
                                         size: "small",
-                                        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CloseCircleOutlined, {}),
+                                        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseCircleOutlined, {}),
                                         onClick: () => {
                                           markAnalyzePrefsTouched();
                                           setSelectedSeriesKeys([]);
@@ -13484,8 +13836,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                         statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _32("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
@@ -13570,15 +13922,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
 };
 var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
   const apiUrl = core.useApiUrl();
-  const [currentLinkRow, setCurrentLinkRow] = React6.useState(null);
-  const [currentValue, setCurrentValue] = React6.useState(null);
-  const [loadingCurrent, setLoadingCurrent] = React6.useState(true);
-  const [saving, setSaving] = React6.useState(false);
+  const [currentLinkRow, setCurrentLinkRow] = React8.useState(null);
+  const [currentValue, setCurrentValue] = React8.useState(null);
+  const [loadingCurrent, setLoadingCurrent] = React8.useState(true);
+  const [saving, setSaving] = React8.useState(false);
   const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource || "", allModels);
   const linkResource = rel.resourcePath || resolveResourcePath(rel.resource, allModels);
   const relatedModel = allModels?.find((m) => m.name === rel.otherResource);
   const relatedPkField = relatedModel?.fields.find((f) => f.isPk)?.key ?? "id";
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.targetKey || !rel.otherKey) {
       setLoadingCurrent(false);
@@ -13620,7 +13972,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     filters: [],
     pagination: { current: 1, pageSize: 2e3, mode: "server" }
   });
-  const handleChange = React6.useCallback(async (newValue) => {
+  const handleChange = React8.useCallback(async (newValue) => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.otherKey) return;
     setSaving(true);
@@ -13676,11 +14028,11 @@ function useMillerColumnItems({
   allModels,
   apiUrl
 }) {
-  const [branches, setBranches] = React6.useState([]);
-  const [leaves, setLeaves] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(false);
-  const [error, setError] = React6.useState(null);
-  React6.useEffect(() => {
+  const [branches, setBranches] = React8.useState([]);
+  const [leaves, setLeaves] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(false);
+  const [error, setError] = React8.useState(null);
+  React8.useEffect(() => {
     if (!parentId || !rel.resourcePath || !rel.targetKey || !rel.otherKey || !rel.otherResource) {
       setBranches([]);
       setLeaves([]);
@@ -13878,14 +14230,14 @@ var MillerColumn = ({
               if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
             },
             children: [
-              item.isBranch ? /* @__PURE__ */ jsxRuntime.jsx(icons.FolderOutlined, { style: { color: token.colorWarning, flexShrink: 0, fontSize: 13 } }) : /* @__PURE__ */ jsxRuntime.jsx(icons.FileOutlined, { style: { color: token.colorTextTertiary, flexShrink: 0, fontSize: 13 } }),
+              item.isBranch ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FolderOutlined, { style: { color: token.colorWarning, flexShrink: 0, fontSize: 13 } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileOutlined, { style: { color: token.colorTextTertiary, flexShrink: 0, fontSize: 13 } }),
               /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
                 flex: 1,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap"
               }, children: item.label }),
-              item.isBranch && /* @__PURE__ */ jsxRuntime.jsx(icons.RightOutlined, { style: { fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 } })
+              item.isBranch && /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.RightOutlined, { style: { fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 } })
             ]
           },
           `${item.isBranch ? "b" : "l"}-${item.id}`
@@ -13925,7 +14277,7 @@ var DetailPaneContent = ({ node, allModels }) => {
         antd.Button,
         {
           size: "small",
-          icon: /* @__PURE__ */ jsxRuntime.jsx(icons.LinkOutlined, {}),
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}),
           href: showHref,
           target: "_blank",
           rel: "noopener noreferrer"
@@ -13945,16 +14297,16 @@ var MillerBrowserLayout = ({
   const screens = antd.Grid.useBreakpoint();
   const { token } = antd.theme.useToken();
   const isDesktop = !!screens.md;
-  const columnsRef = React6.useRef(null);
+  const columnsRef = React8.useRef(null);
   const rootId = record?.eid ?? record?.id;
-  const [columns, setColumns] = React6.useState([{ parentId: rootId }]);
-  const [selectedIds, setSelectedIds] = React6.useState([null]);
-  const [detailNode, setDetailNode] = React6.useState(null);
-  const [drawerOpen, setDrawerOpen] = React6.useState(false);
-  const [containerHeight, setContainerHeight] = React6.useState(INITIAL_HEIGHT);
-  const [columnsWidth, setColumnsWidth] = React6.useState(null);
-  const [columnWidths, setColumnWidths] = React6.useState([]);
-  const [draggingDir, setDraggingDir] = React6.useState(null);
+  const [columns, setColumns] = React8.useState([{ parentId: rootId }]);
+  const [selectedIds, setSelectedIds] = React8.useState([null]);
+  const [detailNode, setDetailNode] = React8.useState(null);
+  const [drawerOpen, setDrawerOpen] = React8.useState(false);
+  const [containerHeight, setContainerHeight] = React8.useState(INITIAL_HEIGHT);
+  const [columnsWidth, setColumnsWidth] = React8.useState(null);
+  const [columnWidths, setColumnWidths] = React8.useState([]);
+  const [draggingDir, setDraggingDir] = React8.useState(null);
   const DEFAULT_COL_WIDTH = 240;
   const getColWidth = (i) => columnWidths[i] ?? DEFAULT_COL_WIDTH;
   const handleResizeV = (e) => {
@@ -14431,7 +14783,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const canBulkEdit = canEditData?.can !== false;
   const { settings: viewSettings } = useViewSettings();
   viewSettings?.generalActionsButtonPosition || "top-right";
-  const [actionsBarEl, setActionsBarEl] = React6.useState(null);
+  const [actionsBarEl, setActionsBarEl] = React8.useState(null);
   const resolvedLayoutPreferenceType = layoutPreferenceType ?? "ShowLayout";
   const [searchParams] = reactRouterDom.useSearchParams();
   const selectMode = searchParams.get("select_mode") === "1";
@@ -14441,7 +14793,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const selectModeRelateOtherKey = searchParams.get("relate_other_key");
   const selectModeRelateTargetId = searchParams.get("relate_target_id");
   const selectModeReturnTo = searchParams.get("returnTo");
-  useKeyboardShortcuts(React6.useMemo(() => isEmbedded ? [] : [
+  useKeyboardShortcuts(React8.useMemo(() => isEmbedded ? [] : [
     { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) }
   ], [model.name, model.resource, go, isEmbedded]));
   const { token } = antd.theme.useToken();
@@ -14473,86 +14825,86 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
-  const calendarDateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
-  const [localSearch, setLocalSearch] = React6.useState("");
-  const [listVisible, setListVisible] = React6.useState(defaultListVisible ?? true);
-  const [isTdFlipped, setIsTdFlipped] = React6.useState(false);
-  const [pageSize, setPageSize] = React6.useState(10);
-  const [galleryPage, setGalleryPage] = React6.useState(1);
-  const [calendarMode, setCalendarMode] = React6.useState("month");
-  const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs8__default.default().startOf("month"));
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
-  const [filterRules, setFilterRules] = React6.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React6.useState(isEmbedded);
-  const [layoutPrefsReady, setLayoutPrefsReady] = React6.useState(false);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React6.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React6.useState(null);
-  const [columnOrder, setColumnOrder] = React6.useState(null);
-  const [columnFiltersSelected, setColumnFiltersSelected] = React6.useState({});
-  const [columnSort, setColumnSort] = React6.useState(
+  const calendarDateFieldOptions = React8.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
+  const [localSearch, setLocalSearch] = React8.useState("");
+  const [listVisible, setListVisible] = React8.useState(defaultListVisible ?? true);
+  const [isTdFlipped, setIsTdFlipped] = React8.useState(false);
+  const [pageSize, setPageSize] = React8.useState(10);
+  const [galleryPage, setGalleryPage] = React8.useState(1);
+  const [calendarMode, setCalendarMode] = React8.useState("month");
+  const [calendarDateField, setCalendarDateField] = React8.useState(() => calendarDateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React8.useState(() => dayjs8__default.default().startOf("month"));
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React8.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React8.useState(false);
+  const [filterRules, setFilterRules] = React8.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React8.useState(isEmbedded);
+  const [layoutPrefsReady, setLayoutPrefsReady] = React8.useState(false);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React8.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React8.useState(null);
+  const [columnOrder, setColumnOrder] = React8.useState(null);
+  const [columnFiltersSelected, setColumnFiltersSelected] = React8.useState({});
+  const [columnSort, setColumnSort] = React8.useState(
     model.defaultSort ? [{ fieldKey: model.defaultSort.field, order: model.defaultSort.order === "desc" ? "descend" : "ascend" }] : []
   );
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React6.useState({});
-  const [currentViewName, setCurrentViewName] = React6.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React6.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React6.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React6.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React6.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React6.useState(false);
-  const [saveViewName, setSaveViewName] = React6.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React6.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React6.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React6.useState(false);
-  const [renameViewName, setRenameViewName] = React6.useState("");
-  const [labelCache, setLabelCache] = React6.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React6.useState(isEmbedded);
-  const analyzeTouchedRef = React6.useRef(false);
-  const analyzePrefsTouchedRef = React6.useRef(false);
-  const analyzePrefsLoadedRef = React6.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React6.useState(false);
-  const analyzePrefsResourceRef = React6.useRef(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React8.useState({});
+  const [currentViewName, setCurrentViewName] = React8.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React8.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React8.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React8.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React8.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React8.useState(false);
+  const [saveViewName, setSaveViewName] = React8.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React8.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React8.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React8.useState(false);
+  const [renameViewName, setRenameViewName] = React8.useState("");
+  const [labelCache, setLabelCache] = React8.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React8.useState(isEmbedded);
+  const analyzeTouchedRef = React8.useRef(false);
+  const analyzePrefsTouchedRef = React8.useRef(false);
+  const analyzePrefsLoadedRef = React8.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React8.useState(false);
+  const analyzePrefsResourceRef = React8.useRef(null);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const defaultDisplayFields = React6.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
-  const orderedColumnKeys = React6.useMemo(() => {
+  const defaultDisplayFields = React8.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
+  const orderedColumnKeys = React8.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(model.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, model.fields, selectedColumnKeys]);
-  const displayFields = React6.useMemo(() => {
+  const displayFields = React8.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(model.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, model.fields, orderedColumnKeys]);
   const useLocalSearch = true;
-  const [categoryField1, setCategoryField1] = React6.useState(null);
-  const [categoryField2, setCategoryField2] = React6.useState(void 0);
-  const [chartType, setChartType] = React6.useState("area");
-  const [summaryFn, setSummaryFn] = React6.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React6.useState(null);
-  const [rankingMode, setRankingMode] = React6.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React6.useState(null);
-  const [rankingN, setRankingN] = React6.useState(10);
-  const [exportRequested, setExportRequested] = React6.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React6.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React6.useState(false);
-  const chartSvgRef = React6.useRef(null);
-  const [chartAnimationKey, setChartAnimationKey] = React6.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React6.useState("enter");
-  const skipNextAnimationRef = React6.useRef(false);
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React6.useState(false);
-  const layoutPrefsTouchedRef = React6.useRef(false);
-  const layoutPrefsLoadedRef = React6.useRef(false);
-  const layoutPrefsResourceRef = React6.useRef(null);
-  const sortIntentRef = React6.useRef(null);
-  const prevViewNameForResetRef = React6.useRef(null);
-  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React6.useState([]);
-  const bulkSelectedRowsMapRef = React6.useRef(/* @__PURE__ */ new Map());
-  const [selectModeAssociating, setSelectModeAssociating] = React6.useState(false);
-  const handleAssociateSelected = React6.useCallback(async () => {
+  const [categoryField1, setCategoryField1] = React8.useState(null);
+  const [categoryField2, setCategoryField2] = React8.useState(void 0);
+  const [chartType, setChartType] = React8.useState("area");
+  const [summaryFn, setSummaryFn] = React8.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React8.useState(null);
+  const [rankingMode, setRankingMode] = React8.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React8.useState(null);
+  const [rankingN, setRankingN] = React8.useState(10);
+  const [exportRequested, setExportRequested] = React8.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React8.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React8.useState(false);
+  const chartSvgRef = React8.useRef(null);
+  const [chartAnimationKey, setChartAnimationKey] = React8.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React8.useState("enter");
+  const skipNextAnimationRef = React8.useRef(false);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React8.useState(false);
+  const layoutPrefsTouchedRef = React8.useRef(false);
+  const layoutPrefsLoadedRef = React8.useRef(false);
+  const layoutPrefsResourceRef = React8.useRef(null);
+  const sortIntentRef = React8.useRef(null);
+  const prevViewNameForResetRef = React8.useRef(null);
+  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React8.useState([]);
+  const bulkSelectedRowsMapRef = React8.useRef(/* @__PURE__ */ new Map());
+  const [selectModeAssociating, setSelectModeAssociating] = React8.useState(false);
+  const handleAssociateSelected = React8.useCallback(async () => {
     if (!selectModeRelateResource || !selectModeRelateTargetKey || !selectModeRelateTargetId) return;
     if (!selectModeFk && !selectModeRelateOtherKey) return;
     setSelectModeAssociating(true);
@@ -14587,18 +14939,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectModeAssociating(false);
     }
   }, [apiUrl, bulkSelectedRowKeys, selectModeFk, selectModeRelateResource, selectModeRelateTargetKey, selectModeRelateOtherKey, selectModeRelateTargetId, selectModeReturnTo, navigate]);
-  const [bulkActionModalOpen, setBulkActionModalOpen] = React6.useState(false);
-  const [bulkActionsToApply, setBulkActionsToApply] = React6.useState([]);
-  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React6.useState(null);
-  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React6.useState(null);
-  const [isBulkExecuting, setIsBulkExecuting] = React6.useState(false);
-  const [selectAllFilteredPending, setSelectAllFilteredPending] = React6.useState(false);
-  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React6.useState(false);
-  const handleReferenceLabel = React6.useCallback((resource, id, label) => {
+  const [bulkActionModalOpen, setBulkActionModalOpen] = React8.useState(false);
+  const [bulkActionsToApply, setBulkActionsToApply] = React8.useState([]);
+  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React8.useState(null);
+  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React8.useState(null);
+  const [isBulkExecuting, setIsBulkExecuting] = React8.useState(false);
+  const [selectAllFilteredPending, setSelectAllFilteredPending] = React8.useState(false);
+  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React8.useState(false);
+  const handleReferenceLabel = React8.useCallback((resource, id, label) => {
     const key = `${resource}:${id}`;
     setLabelCache((prev) => prev[key] === label ? prev : { ...prev, [key]: label });
   }, []);
-  const tableFilters = React6.useMemo(() => {
+  const tableFilters = React8.useMemo(() => {
     if (!filter) return [];
     if (filter.value === void 0 || filter.value === null) return [];
     return [filter];
@@ -14623,16 +14975,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [{ field: searchField.key, operator: "eq", value }];
     }
   });
-  const [allRowsData, setAllRowsData] = React6.useState([]);
-  const [isAllRowsLoading, setIsAllRowsLoading] = React6.useState(false);
-  const [allRowsError, setAllRowsError] = React6.useState(null);
-  const lastAllRowsSignature = React6.useRef("");
-  const [allRowsLoaded, setAllRowsLoaded] = React6.useState(false);
+  const [allRowsData, setAllRowsData] = React8.useState([]);
+  const [isAllRowsLoading, setIsAllRowsLoading] = React8.useState(false);
+  const [allRowsError, setAllRowsError] = React8.useState(null);
+  const lastAllRowsSignature = React8.useRef("");
+  const [allRowsLoaded, setAllRowsLoaded] = React8.useState(false);
   const isRelationView = !!filter;
-  const hasActiveFilterRules = React6.useMemo(() => {
+  const hasActiveFilterRules = React8.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const getFieldValueForFilter = React6.useCallback((field, record) => {
+  const getFieldValueForFilter = React8.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -14644,7 +14996,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return raw;
   }, [labelCache]);
-  const getSortValue = React6.useCallback((field, record) => {
+  const getSortValue = React8.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (field.key === "eid" && record?._label) return record._label;
@@ -14666,7 +15018,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React6.useCallback((field, a, b) => {
+  const compareSortValues = React8.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -14675,7 +15027,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const resolveRelativeDate = React6.useCallback((value, asRange) => {
+  const resolveRelativeDate = React8.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -14701,7 +15053,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { date: target.startOf(unit) };
   }, []);
-  const matchesRule = React6.useCallback((record, rule) => {
+  const matchesRule = React8.useCallback((record, rule) => {
     const field = model.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, record);
@@ -14781,7 +15133,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return true;
   }, [getFieldValueForFilter, model.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React6.useCallback((rows) => {
+  const applyGlobalSearch = React8.useCallback((rows) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((record) => {
@@ -14800,11 +15152,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, model.fields, useLocalSearch]);
-  const applyFilterRules = React6.useCallback((rows) => {
+  const applyFilterRules = React8.useCallback((rows) => {
     if (!hasActiveFilterRules) return rows;
     return rows.filter((record) => filterRules.every((rule) => matchesRule(record, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const allRows = React6.useMemo(() => {
+  const allRows = React8.useMemo(() => {
     const data = allRowsData || [];
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
@@ -14825,12 +15177,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
-  const filteredDataSource = React6.useMemo(() => {
+  const filteredDataSource = React8.useMemo(() => {
     if (!isClientFiltering) return tableProps.dataSource || [];
     const baseRows = allRows || [];
     return applyFilterRules(applyGlobalSearch(baseRows));
   }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
-  const columnFilteredDataSource = React6.useMemo(() => {
+  const columnFilteredDataSource = React8.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredDataSource;
     return filteredDataSource.filter(
@@ -14879,10 +15231,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       })
     );
   }, [filteredDataSource, columnFiltersSelected, model.fields]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
-  const columnFilters = React6.useMemo(() => {
+  const columnFilters = React8.useMemo(() => {
     const data = allRowsData.length > 0 ? allRowsData : tableProps.dataSource || [];
     const distinctLimit = 50;
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
@@ -15011,33 +15363,33 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return filtersMap;
   }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
-  const allFieldOptions = React6.useMemo(() => {
+  const allFieldOptions = React8.useMemo(() => {
     return model.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [model.fields]);
-  const orderedSelectedColumns = React6.useMemo(() => {
+  const orderedSelectedColumns = React8.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React6.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React8.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : keys);
   }, [displayFields, orderedColumnKeys]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const markAnalyzePrefsTouched = React6.useCallback(() => {
+  const markAnalyzePrefsTouched = React8.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React6.useCallback(() => {
+  const markLayoutPrefsTouched = React8.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const handleColumnSelectionChange = React6.useCallback((values) => {
+  const handleColumnSelectionChange = React8.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -15051,7 +15403,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React6.useCallback((key, direction) => {
+  const moveColumnOrder = React8.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -15062,7 +15414,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return base;
     });
   }, [selectedColumnKeys]);
-  const handleTablePageChange = React6.useCallback((page, newPageSize) => {
+  const handleTablePageChange = React8.useCallback((page, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setGalleryPage(1);
@@ -15072,7 +15424,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       pagination.onChange(page, newPageSize ?? pageSize);
     }
   }, [pageSize, tableProps.pagination]);
-  const tablePagination = React6.useMemo(() => {
+  const tablePagination = React8.useMemo(() => {
     if (!isClientFiltering) {
       if (!tableProps.pagination || typeof tableProps.pagination !== "object") return tableProps.pagination;
       return {
@@ -15093,23 +15445,23 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleTablePageChange
     };
   }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
-  const categoricalFields = React6.useMemo(() => {
+  const categoricalFields = React8.useMemo(() => {
     return model.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
   }, [model.fields]);
-  const numericFields = React6.useMemo(() => {
+  const numericFields = React8.useMemo(() => {
     return model.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
   }, [model.fields]);
-  const hasActiveRangeColumnFilter = React6.useMemo(() => {
+  const hasActiveRangeColumnFilter = React8.useMemo(() => {
     return Object.values(columnFiltersSelected).some(
       (vals) => vals.some((v) => v.startsWith("__range__:"))
     );
   }, [columnFiltersSelected]);
-  const shouldLoadAllRows = React6.useMemo(() => {
+  const shouldLoadAllRows = React8.useMemo(() => {
     return Boolean(
       localSearch.trim().length > 0 || hasActiveFilterRules || analyzeOpen || exportRequested || isTotalsDetailsView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
     );
   }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, localSearch]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -15117,7 +15469,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -15125,7 +15477,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -15135,7 +15487,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const resetLayoutDefaults = React6.useCallback(() => {
+  const resetLayoutDefaults = React8.useCallback(() => {
     setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(isEmbedded);
     setIsAnalyzeVertical(false);
@@ -15146,7 +15498,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setColumnOrder(null);
     setTotalsSummaryFunctions({});
   }, [isEmbedded, defaultListVisible]);
-  const resetAnalyzeDefaults = React6.useCallback(() => {
+  const resetAnalyzeDefaults = React8.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -15156,7 +15508,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setRankingFieldKey(numericFields[0]?.key ?? null);
     setRankingN(10);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React6.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React8.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = prefsKey;
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -15172,7 +15524,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     } catch {
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const loadViewNames = React6.useCallback(async () => {
+  const loadViewNames = React8.useCallback(async () => {
     const resourceKey = prefsKey;
     setIsLoadingViewNames(true);
     try {
@@ -15217,20 +15569,20 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const openSaveViewModalFor = React6.useCallback((target) => {
+  const openSaveViewModalFor = React8.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleChangeViewName = React6.useCallback(async (nextView) => {
+  const handleChangeViewName = React8.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React6.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React8.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -15242,7 +15594,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React6.useCallback((name, direction) => {
+  const moveSelectedView = React8.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -15254,7 +15606,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React6.useCallback(async () => {
+  const handleRenameView = React8.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -15281,7 +15633,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.message.error(error instanceof Error ? error.message : _34("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React6.useCallback(() => {
+  const confirmDeleteView = React8.useCallback(() => {
     antd.Modal.confirm({
       title: _34(_34("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -15306,7 +15658,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     });
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, loadViewNames]);
-  const persistLayoutPreferences = React6.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React8.useCallback(async (viewName) => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
@@ -15350,7 +15702,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const persistAnalyzePreferences = React6.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React8.useCallback(async (viewName) => {
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -15381,7 +15733,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const handleConfirmSaveView = React6.useCallback(async () => {
+  const handleConfirmSaveView = React8.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -15408,10 +15760,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!viewNamesLoaded) return;
     const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
     prevViewNameForResetRef.current = currentViewName;
@@ -15428,7 +15780,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       resetAnalyzeDefaults();
     }
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -15478,7 +15830,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${resolvedLayoutPreferenceType}::${currentViewName}`;
@@ -15563,7 +15915,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const fetchAllRows = React6.useCallback(async () => {
+  const fetchAllRows = React8.useCallback(async () => {
     setIsAllRowsLoading(true);
     setAllRowsError(null);
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
@@ -15599,7 +15951,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAllRowsLoaded(true);
     }
   }, [activeFilters, apiUrl, model.name, model.resource, tableFilters, allModels]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!shouldLoadAllRows) return;
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
     const signature = JSON.stringify({
@@ -15614,7 +15966,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     lastAllRowsSignature.current = signature;
     fetchAllRows();
   }, [activeFilters, analyzeOpen, exportRequested, fetchAllRows, model.name, shouldLoadAllRows, tableFilters]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!allRowsLoaded) return;
     if (analyzeTouchedRef.current) return;
     if (isTotalsDetailsView) return;
@@ -15624,7 +15976,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAnalyzeOpen(true);
     }
   }, [allRows?.length, allRowsLoaded, isTotalsDetailsView]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!hasActiveFilterRules || isClientFiltering) return;
     const resolveServerDate = (val, forRange) => {
       if (val?.mode === "relative") {
@@ -15687,7 +16039,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const combined = [...tableFilters, ...serverFilters];
     setFilters(combined, "replace");
   }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
-  const formatCategoryValue = React6.useCallback((field, record) => {
+  const formatCategoryValue = React8.useCallback((field, record) => {
     if (!field) return _34("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -15705,7 +16057,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartData = React6.useMemo(() => {
+  const chartData = React8.useMemo(() => {
     const data = columnFilteredDataSource || [];
     const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : void 0;
@@ -15811,7 +16163,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       filteredRawRows
     };
   }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
-  const chartSignature = React6.useMemo(() => {
+  const chartSignature = React8.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -15824,10 +16176,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  const statsSummary = React6.useMemo(() => {
+  const statsSummary = React8.useMemo(() => {
     return buildStatsSummary(columnFilteredDataSource, displayFields, labelCache);
   }, [columnFilteredDataSource, displayFields, labelCache]);
-  const tdCategoricalBoxes = React6.useMemo(() => {
+  const tdCategoricalBoxes = React8.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
@@ -15864,14 +16216,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       };
     });
   }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
-  const getDefaultTotalsSummaryFn = React6.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React8.useCallback((field) => {
     if (["eid", "eid_from", "eid_to"].includes(field.key)) return "count";
     return "sum";
   }, []);
-  const resolveTotalsSummaryFn = React6.useCallback((field) => {
+  const resolveTotalsSummaryFn = React8.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React6.useCallback((field) => {
+  const computeTotalsSummaryValue = React8.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     if (field.type === "number" && !field.reference) {
       const values = (allRows || []).map((row) => Number(row?.[field.key])).filter((v) => !Number.isNaN(v) && Number.isFinite(v));
@@ -15900,7 +16252,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (fn === "distinct") return new Set(rawValues.map((v) => String(v ?? "-"))).size;
     return rawValues.length;
   }, [allRows, resolveTotalsSummaryFn]);
-  const getSummaryFunctionDisplayText = React6.useCallback((fn) => {
+  const getSummaryFunctionDisplayText = React8.useCallback((fn) => {
     if (!fn) return "";
     const labels = {
       sum: _34("Sum"),
@@ -15913,7 +16265,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     };
     return labels[fn] || fn;
   }, []);
-  const tdNumericBoxes = React6.useMemo(() => {
+  const tdNumericBoxes = React8.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       const summaryFnVal = resolveTotalsSummaryFn(field);
@@ -15922,7 +16274,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return { key: field.key, label, value, summaryFn: summaryFnVal };
     });
   }, [isTotalsDetailsView, displayFields, resolveTotalsSummaryFn, computeTotalsSummaryValue]);
-  const totalsSummaryConfigFields = React6.useMemo(() => {
+  const totalsSummaryConfigFields = React8.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
   const renderDynamicListTotalsBoxes = () => {
@@ -15974,7 +16326,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Button,
         {
           size: "small",
-          icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
           "aria-label": isTdFlipped ? _34("Show totals") : _34("Show details"),
           onClick: () => setIsTdFlipped((prev) => !prev),
           style: {
@@ -15987,7 +16339,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       ) })
     ] }) });
   };
-  const numericColumnMaxes = React6.useMemo(() => {
+  const numericColumnMaxes = React8.useMemo(() => {
     const maxes = {};
     const rows = allRows || [];
     displayFields.forEach((field) => {
@@ -16001,7 +16353,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return maxes;
   }, [allRows, displayFields]);
-  const statsNumericMaxes = React6.useMemo(() => {
+  const statsNumericMaxes = React8.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -16015,13 +16367,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -16030,17 +16382,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const fieldByKey = React6.useMemo(() => {
+  const fieldByKey = React8.useMemo(() => {
     return new Map(model.fields.map((field) => [field.key, field]));
   }, [model.fields]);
-  const chartTitle = React6.useMemo(() => {
+  const chartTitle = React8.useMemo(() => {
     const cat1Label = categoryField1 ? fieldByKey.get(categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? fieldByKey.get(categoryField2)?.label : null;
     const parts = [model.label || model.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, fieldByKey, model.label, model.name]);
-  const formatValueForExport = React6.useCallback((field, record) => {
+  const formatValueForExport = React8.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -16056,7 +16408,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!exportRequested || isAllRowsLoading) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -16169,11 +16521,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { resource: null, id: null, isLinkRow: false };
   };
-  const clearBulkSelection = React6.useCallback(() => {
+  const clearBulkSelection = React8.useCallback(() => {
     setBulkSelectedRowKeys([]);
     bulkSelectedRowsMapRef.current.clear();
   }, []);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!selectAllFilteredPending || !allRowsLoaded) return;
     setSelectAllFilteredPending(false);
     const keys = filteredDataSource.map((r) => getRowKey(r));
@@ -16181,7 +16533,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     filteredDataSource.forEach((r) => bulkSelectedRowsMapRef.current.set(getRowKey(r), r));
     setBulkSelectedRowKeys(keys);
   }, [selectAllFilteredPending, allRowsLoaded, filteredDataSource]);
-  const handleSelectAllFiltered = React6.useCallback(() => {
+  const handleSelectAllFiltered = React8.useCallback(() => {
     if (!allRowsLoaded) {
       setSelectAllFilteredPending(true);
       fetchAllRows();
@@ -16192,7 +16544,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setBulkSelectedRowKeys(keys);
     }
   }, [allRowsLoaded, fetchAllRows, filteredDataSource]);
-  const executeBulkActions = React6.useCallback(async () => {
+  const executeBulkActions = React8.useCallback(async () => {
     const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
     if (records.length === 0) return;
     const resource = resolveResourcePath(model.resource || model.name, allModels);
@@ -16304,9 +16656,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
   };
   const isEmptyTable = (filteredDataSource?.length ?? 0) === 0;
-  const getRowKeyRef = React6.useRef(getRowKey);
+  const getRowKeyRef = React8.useRef(getRowKey);
   getRowKeyRef.current = getRowKey;
-  const handleBulkRowSelectionChange = React6.useCallback(
+  const handleBulkRowSelectionChange = React8.useCallback(
     (newKeys, newRowsOnPage) => {
       const currentPageData = isClientFiltering ? filteredDataSource : tableProps.dataSource || [];
       const currentPageKeys = new Set(currentPageData.map((r) => String(getRowKeyRef.current(r))));
@@ -16335,7 +16687,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     ]
   };
   const filteredTotalCount = isClientFiltering ? filteredDataSource.length : typeof tableProps.pagination === "object" ? tableProps.pagination?.total ?? filteredDataSource.length : filteredDataSource.length;
-  const bulkActionsAvailable = React6.useMemo(() => {
+  const bulkActionsAvailable = React8.useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
       opts.push({ label: _34("Change field value"), value: "__change_field__" });
@@ -16558,7 +16910,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.UnorderedListOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UnorderedListOutlined, {}),
       onClick: () => {
         markLayoutPrefsTouched();
         setListVisible((prev) => !prev);
@@ -16569,7 +16921,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownloadOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}),
       onClick: () => setExportRequested(true),
       loading: exportRequested && isAllRowsLoading
     }
@@ -16578,7 +16930,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}),
       onClick: () => {
         setColumnsSelectorOpen((prev) => {
           const next = !prev;
@@ -16593,7 +16945,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.PlusOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PlusOutlined, {}),
       onClick: (e) => {
         e.preventDefault();
         const params = new URLSearchParams();
@@ -16609,7 +16961,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.LinkOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}),
       onClick: (e) => {
         e.preventDefault();
         const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
@@ -16629,7 +16981,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Button,
     {
       size: "small",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ShareAltOutlined, {}),
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ShareAltOutlined, {}),
       onClick: (e) => {
         e.preventDefault();
         const otherKey = relationConfig?.otherKey;
@@ -16665,7 +17017,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}),
         onClick: () => {
           markLayoutPrefsTouched();
           analyzeTouchedRef.current = true;
@@ -16678,7 +17030,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ColumnHeightOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ColumnHeightOutlined, {}),
         onClick: () => {
           markLayoutPrefsTouched();
           setIsAnalyzeVertical((prev) => !prev);
@@ -16689,7 +17041,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SwapOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, {}),
         onClick: () => {
           markLayoutPrefsTouched();
           setIsAnalyzeFirst((prev) => !prev);
@@ -16700,7 +17052,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
         onClick: () => openSaveViewModalFor("layout"),
         loading: isSavingLayoutPrefs
       }
@@ -16712,7 +17064,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Button,
       {
         size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownloadOutlined, {}),
+        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}),
         onClick: () => setExportRequested(true),
         loading: exportRequested && isAllRowsLoading
       }
@@ -16765,7 +17117,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   };
   const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize ? tablePagination.pageSize : 10;
-  const handleGalleryPageChange = React6.useCallback((page, nextPageSize) => {
+  const handleGalleryPageChange = React8.useCallback((page, nextPageSize) => {
     setGalleryPage(page);
     if (nextPageSize && nextPageSize !== pageSize) {
       setPageSize(nextPageSize);
@@ -16783,19 +17135,19 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [isClientFiltering, pageSize, tableProps]);
   const serverCurrentPage = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.current || 1) : 1;
   const serverTotal = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.total || 0) : 0;
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (isClientFiltering) return;
     if (Number.isFinite(serverCurrentPage) && serverCurrentPage > 0 && serverCurrentPage !== galleryPage) {
       setGalleryPage(serverCurrentPage);
     }
   }, [galleryPage, isClientFiltering, serverCurrentPage]);
-  const galleryRows = React6.useMemo(() => {
+  const galleryRows = React8.useMemo(() => {
     if (!isGalleryView) return [];
     if (!isClientFiltering) return filteredDataSource;
     const start = (galleryPage - 1) * galleryPageSize;
     return filteredDataSource.slice(start, start + galleryPageSize);
   }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
-  const galleryPaginationProps = React6.useMemo(() => {
+  const galleryPaginationProps = React8.useMemo(() => {
     if (!isGalleryView) return void 0;
     if (!isClientFiltering) {
       return {
@@ -16820,17 +17172,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleGalleryPageChange
     };
   }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
-  const calendarDateFieldKeySet = React6.useMemo(
+  const calendarDateFieldKeySet = React8.useMemo(
     () => new Set(calendarDateFieldOptions.map((field) => field.key)),
     [calendarDateFieldOptions]
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!isCalendarView) return;
     if (calendarDateField && calendarDateFieldKeySet.has(calendarDateField)) return;
     const fallback = calendarDateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, calendarDateFieldKeySet, calendarDateFieldOptions, isCalendarView]);
-  const calendarEntries = React6.useMemo(() => {
+  const calendarEntries = React8.useMemo(() => {
     if (!isCalendarView || !calendarDateField) return [];
     const entries = [];
     filteredDataSource.forEach((record) => {
@@ -16848,7 +17200,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return entries;
   }, [calendarDateField, filteredDataSource, isCalendarView]);
-  const calendarEarliestDateTs = React6.useMemo(() => {
+  const calendarEarliestDateTs = React8.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -16857,8 +17209,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return earliest;
   }, [calendarEntries]);
-  const calendarInitSignatureRef = React6.useRef("");
-  React6.useEffect(() => {
+  const calendarInitSignatureRef = React8.useRef("");
+  React8.useEffect(() => {
     if (!isCalendarView) return;
     const signature = `${calendarDateField}|${calendarMode}|${calendarEarliestDateTs ?? "none"}`;
     if (calendarInitSignatureRef.current === signature) return;
@@ -16869,7 +17221,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     setCalendarAnchorDate(dayjs8__default.default(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
-  const calendarEntriesByDate = React6.useMemo(() => {
+  const calendarEntriesByDate = React8.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -16879,7 +17231,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return grouped;
   }, [calendarEntries]);
-  const calendarRangeDays = React6.useMemo(() => {
+  const calendarRangeDays = React8.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -16890,7 +17242,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const calendarPeriodLabel = React6.useMemo(() => {
+  const calendarPeriodLabel = React8.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -16952,7 +17304,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             antd.Button,
             {
               size: "small",
-              icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowLeftOutlined, {}),
+              icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
               "aria-label": _34("Previous"),
               onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
             }
@@ -16961,7 +17313,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             antd.Button,
             {
               size: "small",
-              icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CalendarOutlined, {}),
+              icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
               "aria-label": _34("Today"),
               onClick: () => setCalendarAnchorDate(dayjs8__default.default().startOf(calendarMode))
             }
@@ -16970,7 +17322,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             antd.Button,
             {
               size: "small",
-              icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowRightOutlined, {}),
+              icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
               "aria-label": _34("Next"),
               onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
             }
@@ -17104,7 +17456,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 }
                 searchFormProps.onFinish?.(values);
               },
-              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: _34("Search all fields..."), prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
+              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: _34("Search all fields..."), prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
             }
           ) })
         ] }),
@@ -17299,7 +17651,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   antd.Button,
                   {
                     size: "small",
-                    icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilterOutlined, {}),
+                    icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
                     children: _34("Add Filter")
                   }
@@ -17329,8 +17681,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
@@ -17354,7 +17706,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 {
                   size: "small",
                   danger: true,
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DeleteOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
                   children: _34("Delete view")
@@ -17364,7 +17716,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
                   children: _34("Save layout")
@@ -17374,7 +17726,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilterOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
@@ -17386,7 +17738,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     analyzeTouchedRef.current = true;
@@ -17400,7 +17752,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ColumnHeightOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ColumnHeightOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
@@ -17412,7 +17764,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 antd.Button,
                 {
                   size: "small",
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SwapOutlined, {}),
+                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, {}),
                   onClick: () => {
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
@@ -17449,8 +17801,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 if (!field) return null;
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
@@ -17490,7 +17842,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: listAnalyzeLayoutStyle, children: [
       listVisible && /* @__PURE__ */ jsxRuntime.jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isGalleryView ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         galleryRows.length === 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(icons.FileTextOutlined, { style: { fontSize: 16 } }),
+          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
           _34("No images available")
         ] }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...galleryPaginationProps }) })
@@ -17676,12 +18028,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   width: 140,
                   render: (_unused, record) => {
                     const { resource, id, isLinkRow } = getTargetInfo(record);
-                    if (!id || !resource) return /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_34("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BugOutlined, {}) }) });
+                    if (!id || !resource) return /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_34("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BugOutlined, {}) }) });
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
                       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
@@ -17725,10 +18077,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _34("Export chart") }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _34("Export chart") }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         AnalysisChart,
@@ -17913,7 +18265,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                       antd.Button,
                                       {
                                         size: "small",
-                                        icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CloseCircleOutlined, {}),
+                                        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseCircleOutlined, {}),
                                         onClick: () => {
                                           markAnalyzePrefsTouched();
                                           setSelectedSeriesKeys([]);
@@ -17956,8 +18308,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                         statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _34("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
@@ -18097,8 +18449,8 @@ var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 var COLLAPSED_SIZE = 10;
 var FakeRouteProvider = ({ model, id, children }) => {
-  const existingRouteContext = React6.useContext(reactRouterDom.UNSAFE_RouteContext);
-  const fakeRouteContext = React6.useMemo(() => ({
+  const existingRouteContext = React8.useContext(reactRouterDom.UNSAFE_RouteContext);
+  const fakeRouteContext = React8.useMemo(() => ({
     ...existingRouteContext,
     matches: [
       ...existingRouteContext.matches,
@@ -18141,7 +18493,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
             target: "_blank",
             rel: "noopener noreferrer",
             style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" },
-            children: /* @__PURE__ */ jsxRuntime.jsx(icons.LinkOutlined, { style: { fontSize: 11 } })
+            children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, { style: { fontSize: 11 } })
           }
         ) }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Minimize pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -18149,7 +18501,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MinusSquareOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MinusSquareOutlined, { style: { fontSize: 11 } }),
             onClick: onMinimize,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
@@ -18159,7 +18511,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FullscreenOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FullscreenOutlined, { style: { fontSize: 11 } }),
             onClick: onMaximize,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
@@ -18169,7 +18521,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.CloseOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, { style: { fontSize: 11 } }),
             onClick: onClose,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
@@ -18218,9 +18570,9 @@ var ResizeHandle = () => {
   );
 };
 var MultiPaneLayout = ({ children }) => {
-  const containerRef = React6.useRef(null);
-  const [panelHeight, setPanelHeight] = React6.useState("100vh");
-  React6.useLayoutEffect(() => {
+  const containerRef = React8.useRef(null);
+  const [panelHeight, setPanelHeight] = React8.useState("100vh");
+  React8.useLayoutEffect(() => {
     const measure = () => {
       if (!containerRef.current) return;
       const top = containerRef.current.getBoundingClientRect().top;
@@ -18232,13 +18584,13 @@ var MultiPaneLayout = ({ children }) => {
   }, []);
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams();
   const allModels = useAllModels();
-  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React8.useContext(PrimaryShowContext);
   const { token } = antd.theme.useToken();
-  const panes = React6.useMemo(() => parsePanes(searchParams), [searchParams]);
-  const groupRef = React6.useRef(null);
-  const pendingLayoutRef = React6.useRef(null);
-  const prevPaneCountRef = React6.useRef(0);
-  React6.useEffect(() => {
+  const panes = React8.useMemo(() => parsePanes(searchParams), [searchParams]);
+  const groupRef = React8.useRef(null);
+  const pendingLayoutRef = React8.useRef(null);
+  const prevPaneCountRef = React8.useRef(0);
+  React8.useEffect(() => {
     const newCount = panes.length;
     const prevCount = prevPaneCountRef.current;
     prevPaneCountRef.current = newCount;
@@ -18261,7 +18613,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     return () => cancelAnimationFrame(frameId);
   }, [panes.length]);
-  const openDetail = React6.useCallback(
+  const openDetail = React8.useCallback(
     (fromPaneIndex, resource, id) => {
       if (groupRef.current) {
         pendingLayoutRef.current = { ...groupRef.current.getLayout() };
@@ -18281,7 +18633,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [allModels, setSearchParams]
   );
-  const closePane = React6.useCallback(
+  const closePane = React8.useCallback(
     (fromArrayIndex) => {
       setSearchParams(
         (prev) => {
@@ -18293,7 +18645,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [setSearchParams]
   );
-  const minimizePane = React6.useCallback((panelId) => {
+  const minimizePane = React8.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const currentSize = layout[panelId] ?? COLLAPSED_SIZE;
@@ -18308,7 +18660,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const maximizePane = React6.useCallback((panelId) => {
+  const maximizePane = React8.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const panelIds = Object.keys(layout);
@@ -18320,7 +18672,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const listPaneContext = React6.useMemo(
+  const listPaneContext = React8.useMemo(
     () => ({
       isInMultiPane: true,
       paneIndex: 0,
@@ -18328,7 +18680,7 @@ var MultiPaneLayout = ({ children }) => {
     }),
     [openDetail]
   );
-  const detailPaneContexts = React6.useMemo(
+  const detailPaneContexts = React8.useMemo(
     () => panes.map((_41, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
@@ -18336,7 +18688,7 @@ var MultiPaneLayout = ({ children }) => {
     })),
     [panes, openDetail]
   );
-  const panelChildren = React6.useMemo(() => {
+  const panelChildren = React8.useMemo(() => {
     const result = [
       /* @__PURE__ */ jsxRuntime.jsx(Yt, { id: LIST_PANEL_ID, minSize: 10, style: { overflow: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(PaneNavigationContext.Provider, { value: listPaneContext, children }) }, "master-list")
     ];
@@ -18456,7 +18808,7 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
         antd.Tree,
         {
           showLine: true,
-          switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(icons.DownOutlined, {}),
+          switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}),
           defaultExpandAll: true,
           onSelect: handleSelect,
           treeData
@@ -18467,8 +18819,8 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
 };
 var instanceCounter = 0;
 var InlinePlotlyHtml = ({ html, style }) => {
-  const containerRef = React6.useRef(null);
-  const instanceIdRef = React6.useRef("");
+  const containerRef = React8.useRef(null);
+  const instanceIdRef = React8.useRef("");
   if (!instanceIdRef.current) {
     instanceCounter += 1;
     instanceIdRef.current = `iph-${instanceCounter}-${Date.now()}`;
@@ -18494,7 +18846,7 @@ var InlinePlotlyHtml = ({ html, style }) => {
     /((?:reduceCardWidth|increaseCardWidth|optimizeCardSizeInViewPort|maximizeCardSize|minimizeCardSize|flipCard)\()(\d+)\)/g,
     (match, func, suffix) => `${func}'${suffix}-${instanceId}')`
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const scripts = Array.from(container.querySelectorAll("script"));
@@ -18748,11 +19100,11 @@ var ColorModeContextProvider = ({
     "(prefers-color-scheme: dark)"
   ).matches;
   const systemPreference = isSystemPreferenceDark ? "dark" : "light";
-  const [mode, setMode] = React6.useState(
+  const [mode, setMode] = React8.useState(
     colorModeFromLocalStorage === "dark" || colorModeFromLocalStorage === "light" ? colorModeFromLocalStorage : systemPreference
   );
-  const initializedFromServer = React6.useRef(false);
-  React6.useEffect(() => {
+  const initializedFromServer = React8.useRef(false);
+  React8.useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
@@ -18773,12 +19125,12 @@ var ColorModeContextProvider = ({
       cancelled = true;
     };
   }, []);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     window.localStorage.setItem("colorMode", mode);
     document.body.classList.toggle("jm-dark", mode === "dark");
     document.body.classList.toggle("jm-light", mode === "light");
   }, [mode]);
-  const saveToServer = React6.useCallback(async (newMode) => {
+  const saveToServer = React8.useCallback(async (newMode) => {
     try {
       await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`, {
         method: "POST",
@@ -18788,7 +19140,7 @@ var ColorModeContextProvider = ({
     } catch (_e3) {
     }
   }, []);
-  const setColorMode = React6.useCallback((newMode) => {
+  const setColorMode = React8.useCallback((newMode) => {
     setMode(newMode);
     void saveToServer(newMode);
   }, [saveToServer]);
@@ -18804,7 +19156,7 @@ var ColorModeContextProvider = ({
     }
   ) });
 };
-var ResourceContext = React6.createContext({
+var ResourceContext = React8.createContext({
   allResources: [],
   allSystemModels: []
 });
@@ -18865,7 +19217,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                       children: /* @__PURE__ */ jsxRuntime.jsx(
                         antd.Input,
                         {
-                          prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.UserOutlined, {}),
+                          prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UserOutlined, {}),
                           placeholder: _39("Username"),
                           size: "large"
                         }
@@ -18881,7 +19233,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                       children: /* @__PURE__ */ jsxRuntime.jsx(
                         antd.Input.Password,
                         {
-                          prefix: /* @__PURE__ */ jsxRuntime.jsx(icons.LockOutlined, {}),
+                          prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
                           placeholder: _39("Password"),
                           size: "large"
                         }
@@ -18910,10 +19262,10 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
 };
 function useDashboardConfig() {
   const apiUrl = core.useApiUrl();
-  const [config, setConfig] = React6.useState(null);
-  const [enabled, setEnabled] = React6.useState(false);
-  const [loading, setLoading] = React6.useState(true);
-  const load = React6.useCallback(async () => {
+  const [config, setConfig] = React8.useState(null);
+  const [enabled, setEnabled] = React8.useState(false);
+  const [loading, setLoading] = React8.useState(true);
+  const load = React8.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${apiUrl}/dashboard/config`);
@@ -18931,10 +19283,10 @@ function useDashboardConfig() {
       setLoading(false);
     }
   }, [apiUrl]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     load();
   }, [load]);
-  const save = React6.useCallback(async (next) => {
+  const save = React8.useCallback(async (next) => {
     setConfig(next);
     try {
       await authenticatedFetch(`${apiUrl}/dashboard/config`, {
@@ -18964,7 +19316,7 @@ var nextGridPosition = (cells) => {
 };
 var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
   const [form] = antd.Form.useForm();
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (!cell || !tabId) return;
     const tab = config.tabs.find((t) => t.id === tabId);
     form.setFieldsValue({
@@ -19100,7 +19452,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
 var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize }) => {
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
-  const cellRef = React6.useRef(null);
+  const cellRef = React8.useRef(null);
   const cellStyle = {
     position: "relative",
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -19132,7 +19484,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
   const resource = model?.resource || cell.model;
   const cellTitle = model?.label || cell.model;
   const tone = model ? getModelTone(model) : null;
-  const startResize = React6.useCallback((e, dir) => {
+  const startResize = React8.useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
     const el = cellRef.current;
@@ -19213,18 +19565,18 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.SettingOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, { style: { fontSize: 11 } }),
             onClick: onConfigure,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open full page", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsxRuntime.jsx(icons.LinkOutlined, { style: { fontSize: 11 } }) }) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open full page", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, { style: { fontSize: 11 } }) }) }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMaximized ? "Restore" : "Maximize", children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.FullscreenOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FullscreenOutlined, { style: { fontSize: 11 } }),
             onClick: onMaximize,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
@@ -19234,7 +19586,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(icons.MinusSquareOutlined, { style: { fontSize: 11 } }),
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MinusSquareOutlined, { style: { fontSize: 11 } }),
             onClick: onMinimize,
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
@@ -19264,11 +19616,11 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
 };
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize }) => {
   const cells = tab.cells;
-  const numCols = React6.useMemo(() => {
+  const numCols = React8.useMemo(() => {
     if (!cells.length) return 2;
     return Math.max(...cells.map((c) => c.col)) + 1;
   }, [cells]);
-  const numRows = React6.useMemo(() => {
+  const numRows = React8.useMemo(() => {
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
@@ -19310,13 +19662,13 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   )) });
 };
 var ViewsGrid = ({ config, allModels, onConfigChange }) => {
-  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
-  const [drawerSelection, setDrawerSelection] = React6.useState(null);
-  const handleMaximize = React6.useCallback((cellId) => {
+  const [maximizedCellId, setMaximizedCellId] = React8.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React8.useState(/* @__PURE__ */ new Set());
+  const [drawerSelection, setDrawerSelection] = React8.useState(null);
+  const handleMaximize = React8.useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
-  const handleMinimize = React6.useCallback((cellId) => {
+  const handleMinimize = React8.useCallback((cellId) => {
     setMinimizedCellIds((prev) => {
       const next = new Set(prev);
       if (next.has(cellId)) {
@@ -19327,14 +19679,14 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
       return next;
     });
   }, []);
-  const handleOpenDrawer = React6.useCallback((tabId, cell) => {
+  const handleOpenDrawer = React8.useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
-  const handleSaveConfig = React6.useCallback((nextConfig) => {
+  const handleSaveConfig = React8.useCallback((nextConfig) => {
     onConfigChange(nextConfig);
     setDrawerSelection(null);
   }, [onConfigChange]);
-  const handleResizeCell = React6.useCallback((tabId, cellId, minWidth, minHeight) => {
+  const handleResizeCell = React8.useCallback((tabId, cellId, minWidth, minHeight) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       return {
@@ -19351,7 +19703,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, onConfigChange]);
-  const tabItems = React6.useMemo(
+  const tabItems = React8.useMemo(
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: tab.name,
@@ -19414,9 +19766,9 @@ function parseInlineStyle3(cssText) {
   return result;
 }
 function useRecentActivity(days) {
-  const [data, setData] = React6.useState(null);
-  const [loading, setLoading] = React6.useState(true);
-  const load = React6.useCallback(async () => {
+  const [data, setData] = React8.useState(null);
+  const [loading, setLoading] = React8.useState(true);
+  const load = React8.useCallback(async () => {
     setLoading(true);
     try {
       const params = days !== void 0 ? `?days=${days}` : "";
@@ -19427,7 +19779,7 @@ function useRecentActivity(days) {
       setLoading(false);
     }
   }, [days]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     load();
   }, [load]);
   return { data, loading, reload: load };
@@ -19448,7 +19800,7 @@ function relativeTime2(iso) {
 var RecentActivityPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
-  const [days, setDays] = React6.useState(30);
+  const [days, setDays] = React8.useState(30);
   const { data, loading, reload } = useRecentActivity(days);
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
@@ -19467,7 +19819,7 @@ var RecentActivityPanel = () => {
       ),
       /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", children: "days" }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Refresh", children: /* @__PURE__ */ jsxRuntime.jsx(
-        icons.ReloadOutlined,
+        AntDIcons2.ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
@@ -19532,7 +19884,7 @@ var RecentActivityPanel = () => {
                                                     .jm-activity-row:hover { background: ${token.colorFillAlter}; }
                                                 ` }),
                     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(icons.ClockCircleOutlined, { style: { color: token.colorTextTertiary, fontSize: 11, flexShrink: 0 } }),
+                      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ClockCircleOutlined, { style: { color: token.colorTextTertiary, fontSize: 11, flexShrink: 0 } }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         reactRouterDom.Link,
                         {
@@ -19556,9 +19908,9 @@ var RecentActivityPanel = () => {
 };
 var { Text: AntText, Title: AntTitle } = antd.Typography;
 function usePinnedRecords() {
-  const [groups, setGroups] = React6.useState([]);
-  const [loading, setLoading] = React6.useState(true);
-  const load = React6.useCallback(async () => {
+  const [groups, setGroups] = React8.useState([]);
+  const [loading, setLoading] = React8.useState(true);
+  const load = React8.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
@@ -19571,7 +19923,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React6__default.default.useEffect(() => {
+  React8__default.default.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };
@@ -19580,9 +19932,9 @@ var PinnedRecordsPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
   const { groups, loading, reload } = usePinnedRecords();
-  const [unpinning, setUnpinning] = React6.useState(/* @__PURE__ */ new Set());
+  const [unpinning, setUnpinning] = React8.useState(/* @__PURE__ */ new Set());
   const visibleGroups = groups.filter((g) => findModelByName(allModels, g.resource));
-  const handleUnpin = React6.useCallback(async (resource, recordId) => {
+  const handleUnpin = React8.useCallback(async (resource, recordId) => {
     const key = `${resource}:${recordId}`;
     setUnpinning((prev) => new Set(prev).add(key));
     try {
@@ -19598,10 +19950,10 @@ var PinnedRecordsPanel = () => {
   }, [reload]);
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
+      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
       /* @__PURE__ */ jsxRuntime.jsx(AntText, { type: "secondary", children: "Records you've pinned across the app" }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Refresh", children: /* @__PURE__ */ jsxRuntime.jsx(
-        icons.ReloadOutlined,
+        AntDIcons2.ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
@@ -19622,7 +19974,7 @@ var PinnedRecordsPanel = () => {
           /* @__PURE__ */ jsxRuntime.jsx("br", {}),
           /* @__PURE__ */ jsxRuntime.jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
             "Open any record and click the ",
-            /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinOutlined, {}),
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinOutlined, {}),
             " pin button to pin it here."
           ] })
         ] }),
@@ -19675,7 +20027,7 @@ var PinnedRecordsPanel = () => {
                                                     .jm-pin-row:hover .jm-unpin-btn { opacity: 1; }
                                                 ` }),
                     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinFilled, { style: { color: "#faad14", fontSize: 11, flexShrink: 0 } }),
+                      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14", fontSize: 11, flexShrink: 0 } }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         reactRouterDom.Link,
                         {
@@ -19690,7 +20042,7 @@ var PinnedRecordsPanel = () => {
                           className: "jm-unpin-btn",
                           type: "text",
                           size: "small",
-                          icon: /* @__PURE__ */ jsxRuntime.jsx(icons.PushpinFilled, { style: { color: "#faad14" } }),
+                          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14" } }),
                           loading: unpinning.has(key),
                           onClick: () => handleUnpin(group.resource, rec.id),
                           style: { color: token.colorTextTertiary, height: 20, minWidth: 20, padding: "0 4px" }
@@ -19720,7 +20072,7 @@ var DashboardPage = () => {
     return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 48 }, children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Empty,
       {
-        image: /* @__PURE__ */ jsxRuntime.jsx(icons.DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
+        image: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
         imageStyle: { height: 60 },
         description: /* @__PURE__ */ jsxRuntime.jsxs("span", { children: [
           "No dashboard configured.",
@@ -19913,6 +20265,7 @@ exports.API_URL = API_URL3;
 exports.AllModelsProvider = AllModelsProvider;
 exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;
+exports.CommandCenterPortal = CommandCenterPortal;
 exports.CustomSider = CustomSider;
 exports.DashboardPage = DashboardPage;
 exports.DynamicCreate = DynamicCreate;
@@ -19945,10 +20298,14 @@ exports.authenticatedFetch = authenticatedFetch;
 exports.buildShowTabFormOptions = buildShowTabFormOptions;
 exports.generateResources = generateResources;
 exports.getModelTone = getModelTone;
+exports.getNavEntry = getNavEntry;
+exports.guessIcon = guessIcon;
 exports.httpClient = httpClient;
 exports.normalizeToneKey = normalizeToneKey;
 exports.renderRelationBlock = renderRelationBlock;
+exports.resolveIcon = resolveIcon;
 exports.setColorSchemas = setColorSchemas;
+exports.sortItemsByNavConfig = sortItemsByNavConfig;
 exports.useAllModels = useAllModels;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;
 exports.useMetadataModal = useMetadataModal;

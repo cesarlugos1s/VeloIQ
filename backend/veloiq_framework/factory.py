@@ -27,6 +27,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel
 
+# Load .env before anything else so VeloIQConfig field defaults (which read
+# os.environ at construction time) see the values from the file.  This must
+# run at import time because VeloIQConfig is often constructed as a call
+# argument — i.e. evaluated before create_veloiq_app() body executes.
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv(dotenv_path=".env")
+except ImportError:
+    pass
+
 from veloiq_framework.config import VeloIQConfig
 from veloiq_framework.loader import load_factory_events, load_modules
 
@@ -55,12 +65,6 @@ def create_veloiq_app(
     ValueError
         If no database URL can be determined.
     """
-    # Load .env from the working directory the app is run from.
-    # dotenv_path='.env' resolves relative to the process CWD (where uvicorn
-    # is launched), not relative to this file — which is the application root.
-    from dotenv import load_dotenv
-    load_dotenv(dotenv_path='.env')
-
     cfg = config if config is not None else VeloIQConfig(**kwargs)
 
     if not cfg.database_url:

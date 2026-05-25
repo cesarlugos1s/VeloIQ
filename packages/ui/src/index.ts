@@ -1,6 +1,8 @@
 // ── Core components ────────────────────────────────────────────────────────
 export { LayoutWrapper } from "./components/LayoutWrapper";
 export type { LayoutWrapperProps } from "./components/LayoutWrapper";
+export { CommandCenterPortal } from "./components/CommandCenterPortal";
+export type { CommandCenterPortalProps } from "./components/CommandCenterPortal";
 
 export { MultiPaneLayout } from "./components/MultiPane";
 export { StandardShow, StandardList } from "./components/StandardCrud";
@@ -70,6 +72,8 @@ export { generateResources } from "./utils/generateResources";
 export type { ResourceDef } from "./utils/generateResources";
 export { authenticatedFetch } from "./utils/authenticatedFetch";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
+export { guessIcon, resolveIcon, getNavEntry, sortItemsByNavConfig } from "./utils/navConfig";
+export type { NavConfigEntry, NavConfig } from "./utils/navConfig";
 
 // ── Auth models ────────────────────────────────────────────────────────────
 export { authSystemModels } from "./models/authModels";

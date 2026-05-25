@@ -1,4 +1,4 @@
-"""VeloIQ code generator — backend models → api.py + frontend TypeScript schemas.
+"""VeloIQ code generator — backend models → api.py + frontend TypeScript schemas + navigation config.
 
 Drives ``veloiq generate``.  Projects can also invoke this directly::
 
@@ -25,6 +25,7 @@ Frontend (written into the frontend source tree):
 """
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -194,6 +195,30 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         generated.append(module_name)
 
     _write_all_models(generated, frontend_src)
+
+    # Collect model names per module for navConfig (order matches generated order)
+    module_model_names: dict[str, list[str]] = {}
+    for mod_dir in mod_dirs:
+        module_name = mod_dir.name
+        if module_name not in generated:
+            continue
+        dotted = f"app.modules.{module_name}.models"
+        try:
+            import importlib as _il
+            _mod = _il.import_module(dotted)
+            from sqlmodel import SQLModel as _SM
+            names = [
+                cls.__name__
+                for cls in _iter_subclasses(_SM)
+                if getattr(cls, "__module__", "").startswith(f"app.modules.{module_name}")
+                and getattr(cls, "__tablename__", None)
+                and not _is_link_model(cls)
+            ]
+            module_model_names[module_name] = names
+        except Exception:
+            module_model_names[module_name] = []
+
+    _update_nav_config(generated, module_model_names, frontend_src)
     print(f"\n✅ Generation complete — {len(generated)} module(s).")
 
 
@@ -545,6 +570,143 @@ def _build_ts_named_query(q: "object") -> list[str]:
     lines.append("    relations: [],")
     lines.append("  },")
     return lines
+
+
+# ---------------------------------------------------------------------------
+# navigation.config.json management
+# ---------------------------------------------------------------------------
+
+_ICON_KEYWORD_MAP: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"dashboard|overview|home", re.I), "DashboardOutlined"),
+    (re.compile(r"user|person|people|member|staff|employee|contact|customer|client", re.I), "UserOutlined"),
+    (re.compile(r"team|group|department|division|unit|crew", re.I), "TeamOutlined"),
+    (re.compile(r"role|permission|access|security|privilege|policy", re.I), "LockOutlined"),
+    (re.compile(r"tenant|organization|company|account|workspace|business", re.I), "BankOutlined"),
+    (re.compile(r"task|todo|checklist|backlog|ticket", re.I), "CheckSquareOutlined"),
+    (re.compile(r"project|initiative|program|campaign|sprint|epic", re.I), "FolderOpenOutlined"),
+    (re.compile(r"invoice|bill|payment|financ|transaction|ledger|accounting|receipt", re.I), "FileTextOutlined"),
+    (re.compile(r"product|catalog|inventory|stock|sku|variant", re.I), "ShoppingOutlined"),
+    (re.compile(r"order|purchase|sale|cart|checkout|shipment", re.I), "ShoppingCartOutlined"),
+    (re.compile(r"setting|config|preference|option|setup", re.I), "SettingOutlined"),
+    (re.compile(r"report|analytic|metric|stat|chart|analysis|insight", re.I), "BarChartOutlined"),
+    (re.compile(r"document|file|attachment|note|memo|contract|paper", re.I), "FileOutlined"),
+    (re.compile(r"calendar|event|schedule|appointment|booking|slot", re.I), "CalendarOutlined"),
+    (re.compile(r"message|email|notification|comment|chat|inbox|mail", re.I), "MailOutlined"),
+    (re.compile(r"categor|tag|label|class", re.I), "TagOutlined"),
+    (re.compile(r"location|address|region|area|country|city|place|site", re.I), "EnvironmentOutlined"),
+    (re.compile(r"equipment|asset|machine|hardware", re.I), "ToolOutlined"),
+    (re.compile(r"log|audit|histor|trail|activity", re.I), "HistoryOutlined"),
+    (re.compile(r"animal|pet|livestock|breed|horse", re.I), "DatabaseOutlined"),
+    (re.compile(r"building|room|floor|facility|barn|stable|stall", re.I), "HomeOutlined"),
+    (re.compile(r"vehicle|car|truck|fleet|transport|bike", re.I), "CarOutlined"),
+    (re.compile(r"health|medical|clinical|treatment|drug|patient", re.I), "MedicineBoxOutlined"),
+]
+
+
+def _guess_icon_py(text: str, is_module: bool = False) -> str:
+    normalized = re.sub(r"[_:\-]", " ", text.lower())
+    for pattern, icon in _ICON_KEYWORD_MAP:
+        if pattern.search(normalized):
+            return icon
+    return "FolderOutlined" if is_module else "TableOutlined"
+
+
+def _update_nav_config(
+    modules: list[str],
+    module_model_names: dict[str, list[str]],
+    frontend_src: Path,
+) -> None:
+    """Upsert entries in navigation.config.json — preserves manual edits."""
+    nav_file = frontend_src / "navigation.config.json"
+
+    # Load existing config (developer may have edited icons/sequences manually)
+    existing: list[dict] = []
+    if nav_file.exists():
+        try:
+            existing = json.loads(nav_file.read_text())
+        except Exception:
+            existing = []
+
+    existing_by_key: dict[str, dict] = {e["key"]: e for e in existing if "key" in e}
+
+    new_entries: list[dict] = []
+
+    # ── Dashboard ─────────────────────────────────────────────────────────
+    if "dashboard" not in existing_by_key:
+        new_entries.append({
+            "key": "dashboard",
+            "label": "Dashboard",
+            "icon": "DashboardOutlined",
+            "sequence": 0,
+            "type": "module",
+        })
+
+    # ── App modules ───────────────────────────────────────────────────────
+    for mod_seq, module_name in enumerate(modules, start=1):
+        module_key = f"module:{module_name}"
+        module_label = module_name.replace("_", " ").title()
+        if module_key not in existing_by_key:
+            new_entries.append({
+                "key": module_key,
+                "label": module_label,
+                "icon": _guess_icon_py(module_label, is_module=True),
+                "sequence": mod_seq * 10,
+                "type": "module",
+            })
+        for model_seq, model_name in enumerate(module_model_names.get(module_name, []), start=1):
+            try:
+                import importlib as _il
+                from sqlmodel import SQLModel as _SM
+                model_cls = next(
+                    (c for c in _iter_subclasses(_SM)
+                     if c.__name__ == model_name
+                     and getattr(c, "__module__", "").startswith(f"app.modules.{module_name}")),
+                    None,
+                )
+                resource_key = getattr(model_cls, "__tablename__", model_name.lower()) if model_cls else model_name.lower()
+            except Exception:
+                resource_key = re.sub(r"(?<=[a-z])(?=[A-Z])", "_", model_name).lower()
+
+            if resource_key not in existing_by_key:
+                model_label = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", model_name)
+                new_entries.append({
+                    "key": resource_key,
+                    "label": model_label,
+                    "icon": _guess_icon_py(model_label, is_module=False),
+                    "sequence": mod_seq * 10 + model_seq,
+                    "type": "model",
+                })
+
+    # ── Access Control (auth) ─────────────────────────────────────────────
+    if "module:access_control" not in existing_by_key:
+        new_entries.append({
+            "key": "module:access_control",
+            "label": "Access Control",
+            "icon": "LockOutlined",
+            "sequence": 900,
+            "type": "module",
+        })
+    for auth_key, auth_label, auth_icon in [
+        ("user", "User", "UserOutlined"),
+        ("role", "Role", "LockOutlined"),
+        ("tenant", "Tenant", "BankOutlined"),
+    ]:
+        if auth_key not in existing_by_key:
+            new_entries.append({
+                "key": auth_key,
+                "label": auth_label,
+                "icon": auth_icon,
+                "sequence": 901 + ["user", "role", "tenant"].index(auth_key),
+                "type": "model",
+            })
+
+    if not new_entries:
+        return
+
+    # Merge: preserve existing, append new
+    merged = list(existing) + new_entries
+    nav_file.write_text(json.dumps(merged, indent=2))
+    print(f"  📐 navigation.config.json updated (+{len(new_entries)} entries)")
 
 
 def _guess_modules_dir(cwd: Path) -> Path:

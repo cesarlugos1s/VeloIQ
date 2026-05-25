@@ -8,6 +8,36 @@ import * as react_jsx_runtime from 'react/jsx-runtime';
 import * as _tanstack_query_core from '@tanstack/query-core';
 import * as antd from 'antd';
 
+/** One entry in navigation.config.json — one per module or model. */
+interface NavConfigEntry {
+    /** Refine resource key: "module:tasks", "task", "dashboard" */
+    key: string;
+    /** Human-readable display label */
+    label: string;
+    /** Ant Design icon component name, e.g. "UserOutlined" */
+    icon: string;
+    /** Display order — lower numbers appear first; ties keep original registration order */
+    sequence: number;
+    /** "module" for a top-level group, "model" for a leaf resource */
+    type: "module" | "model";
+}
+type NavConfig = NavConfigEntry[];
+/** Guess an Ant Design icon name from a resource name or label. */
+declare function guessIcon(text: string, isModule?: boolean): string;
+/** Resolve an icon name string to a React element using the AntD icon registry. */
+declare function resolveIcon(iconName: string): React__default.ReactNode;
+/** Find a NavConfigEntry by exact resource key. */
+declare function getNavEntry(navConfig: NavConfig, key: string): NavConfigEntry | undefined;
+/**
+ * Sort items by the `sequence` values in navConfig.
+ * Items without a matching entry sort to the end (sequence = 999).
+ * Original array order serves as a stable tiebreaker.
+ */
+declare function sortItemsByNavConfig<T extends {
+    key?: string;
+    name?: string;
+}>(items: T[], navConfig: NavConfig): T[];
+
 interface LayoutWrapperProps {
     children?: React__default.ReactNode;
     /** Logo element or image URL shown in header and sider. */
@@ -21,8 +51,17 @@ interface LayoutWrapperProps {
         icon?: React__default.ReactNode;
         onClick?: () => void;
     }>;
+    /** Navigation config loaded from navigation.config.json — drives icons and sort order. */
+    navConfig?: NavConfig;
 }
 declare const LayoutWrapper: React__default.FC<LayoutWrapperProps>;
+
+interface CommandCenterPortalProps {
+    open: boolean;
+    onClose: () => void;
+    navConfig?: NavConfig;
+}
+declare const CommandCenterPortal: React__default.FC<CommandCenterPortalProps>;
 
 declare const MultiPaneLayout: React__default.FC<{
     children: React__default.ReactNode;
@@ -44,9 +83,12 @@ declare const CustomSider: React__default.FC<{
     collapsed?: boolean;
     logo?: React__default.ReactNode | string;
     appTitle?: string;
+    navConfig?: NavConfig;
 }>;
 
-declare const HorizontalMenu: React__default.FC;
+declare const HorizontalMenu: React__default.FC<{
+    navConfig?: NavConfig;
+}>;
 
 type ExecutableHtmlProps = {
     html?: string;
@@ -537,4 +579,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, type BulkActionDef, ColorModeContext, ColorModeContextProvider, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, ShowFooterButtons, StandardList, StandardShow, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, httpClient, normalizeToneKey, renderRelationBlock, setColorSchemas, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, type BulkActionDef, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, ShowFooterButtons, StandardList, StandardShow, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };

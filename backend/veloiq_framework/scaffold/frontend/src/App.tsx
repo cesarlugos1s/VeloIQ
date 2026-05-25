@@ -27,6 +27,8 @@ import {
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
+import type { NavConfig } from "@juicemantics/veloiq-ui";
+import navConfigData from "./navigation.config.json";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
 const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => (
@@ -69,7 +71,7 @@ export default function App() {
                                     <Route
                                         element={
                                             <Authenticated key="auth" redirectOnFail="/login">
-                                                <LayoutWrapper>
+                                                <LayoutWrapper navConfig={navConfigData as NavConfig}>
                                                     <Outlet />
                                                 </LayoutWrapper>
                                             </Authenticated>

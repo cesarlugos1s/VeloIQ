@@ -1,0 +1,37 @@
+[
+  {
+    "key": "dashboard",
+    "label": "Dashboard",
+    "icon": "DashboardOutlined",
+    "sequence": 0,
+    "type": "module"
+  },
+  {
+    "key": "module:access_control",
+    "label": "Access Control",
+    "icon": "LockOutlined",
+    "sequence": 900,
+    "type": "module"
+  },
+  {
+    "key": "user",
+    "label": "User",
+    "icon": "UserOutlined",
+    "sequence": 901,
+    "type": "model"
+  },
+  {
+    "key": "role",
+    "label": "Role",
+    "icon": "LockOutlined",
+    "sequence": 902,
+    "type": "model"
+  },
+  {
+    "key": "tenant",
+    "label": "Tenant",
+    "icon": "BankOutlined",
+    "sequence": 903,
+    "type": "model"
+  }
+]

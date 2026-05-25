@@ -25,8 +25,9 @@ import {
     authSystemModels,
     DashboardPage,
 } from "@juicemantics/veloiq-ui";
-import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
+import type { PrimaryShowRendererProps, NavConfig } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
+import navConfigData from "./navigation.config.json";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
 const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => (
@@ -69,7 +70,7 @@ export default function App() {
                                     <Route
                                         element={
                                             <Authenticated key="auth" redirectOnFail="/login">
-                                                <LayoutWrapper appTitle="Task Manager">
+                                                <LayoutWrapper appTitle="Task Manager" navConfig={navConfigData as NavConfig}>
                                                     <Outlet />
                                                 </LayoutWrapper>
                                             </Authenticated>

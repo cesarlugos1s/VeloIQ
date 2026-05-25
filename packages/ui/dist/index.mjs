@@ -1,8 +1,9 @@
-import React6, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
+import React8, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
 import { ThemedLayoutV2, Show, List, useForm, DeleteButton, useTable, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useInvalidate, useCan, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
-import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, Grid, Form, Drawer, Modal, Button, Tooltip, Skeleton, message, Switch, Divider, Tabs, Alert, Card, Table, Select, DatePicker, InputNumber, Checkbox, Pagination, Collapse, Breadcrumb, Tree, ConfigProvider, Empty, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload, Rate, Progress } from 'antd';
-import { SearchOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, ClockCircleOutlined, PushpinFilled, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, AppstoreOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CloseOutlined, DatabaseOutlined, ShopOutlined, BookOutlined, CheckOutlined, UploadOutlined, FolderOutlined, FileOutlined, RightOutlined } from '@ant-design/icons';
+import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Row, Col, Card, Divider, Grid, Form, Drawer, Modal, Button, Tooltip, Skeleton, message, Switch, Tabs, Alert, Table, Select, DatePicker, InputNumber, Checkbox, Pagination, Collapse, Breadcrumb, Tree, Empty, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload, Rate, Progress } from 'antd';
+import * as AntDIcons2 from '@ant-design/icons';
+import { SearchOutlined, CloseOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, ClockCircleOutlined, PushpinFilled, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, AppstoreOutlined, BorderInnerOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CheckOutlined, UploadOutlined, FolderOutlined, FileOutlined, RightOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useParams, useSearchParams, useLocation, Link, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -233,9 +234,66 @@ if (typeof localStorage !== "undefined") {
     });
   }
 }
-var HorizontalMenu = () => {
+var KEYWORD_ICON_MAP = [
+  [/dashboard|overview|home/i, "DashboardOutlined"],
+  [/user|person|people|member|staff|employee|contact|customer|client/i, "UserOutlined"],
+  [/team|group|department|division|unit|crew/i, "TeamOutlined"],
+  [/role|permission|access|security|privilege|policy/i, "LockOutlined"],
+  [/tenant|organization|company|account|workspace|business/i, "BankOutlined"],
+  [/task|todo|checklist|backlog|ticket/i, "CheckSquareOutlined"],
+  [/project|initiative|program|campaign|sprint|epic/i, "FolderOpenOutlined"],
+  [/invoice|bill|payment|financ|transaction|ledger|accounting|receipt/i, "FileTextOutlined"],
+  [/product|catalog|inventory|stock|sku|variant/i, "ShoppingOutlined"],
+  [/order|purchase|sale|cart|checkout|shipment/i, "ShoppingCartOutlined"],
+  [/setting|config|preference|option|setup/i, "SettingOutlined"],
+  [/report|analytic|metric|stat|chart|analysis|insight/i, "BarChartOutlined"],
+  [/document|file|attachment|note|memo|contract|paper/i, "FileOutlined"],
+  [/calendar|event|schedule|appointment|booking|slot/i, "CalendarOutlined"],
+  [/message|email|notification|comment|chat|inbox|mail/i, "MailOutlined"],
+  [/categor|tag|label|class/i, "TagOutlined"],
+  [/location|address|region|area|country|city|place|site/i, "EnvironmentOutlined"],
+  [/equipment|asset|machine|hardware/i, "ToolOutlined"],
+  [/log|audit|histor|trail|activity/i, "HistoryOutlined"],
+  [/animal|pet|livestock|breed|horse/i, "DatabaseOutlined"],
+  [/building|room|floor|facility|barn|stable|stall/i, "HomeOutlined"],
+  [/vehicle|car|truck|fleet|transport|bike/i, "CarOutlined"],
+  [/health|medical|clinical|treatment|drug|patient/i, "MedicineBoxOutlined"]
+];
+function guessIcon(text, isModule = false) {
+  const normalized = text.toLowerCase().replace(/[_:-]/g, " ");
+  for (const [pattern, icon] of KEYWORD_ICON_MAP) {
+    if (pattern.test(normalized)) return icon;
+  }
+  return isModule ? "FolderOutlined" : "TableOutlined";
+}
+function resolveIcon(iconName) {
+  const registry = AntDIcons2;
+  const IconCls = registry[iconName];
+  return IconCls ? React8.createElement(IconCls) : React8.createElement(registry["TableOutlined"]);
+}
+function getNavEntry(navConfig, key) {
+  return navConfig.find((e) => e.key === key);
+}
+function sortItemsByNavConfig(items, navConfig) {
+  return [...items].sort((a, b) => {
+    const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
+    const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
+    return aSeq - bSeq;
+  });
+}
+var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
+  const getIcon = (item) => {
+    const key = String(item?.key || "");
+    const label = String(item?.label || item?.name || "");
+    const isModule = key.startsWith("module:") || key === "dashboard";
+    const entry = getNavEntry(navConfig, key);
+    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const Icon = AntDIcons2[iconName];
+    const Fallback = AntDIcons2["DatabaseOutlined"];
+    return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
+  };
   const resolveModelSeed = (item) => {
     const route = String(item?.route || "");
     const routeParts = route.split("/").filter(Boolean);
@@ -271,7 +329,7 @@ var HorizontalMenu = () => {
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
-        icon: item.icon,
+        icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
         children: hasChildren ? transformItems(item.children, depth + 1) : void 0
       };
@@ -292,27 +350,20 @@ var HorizontalMenu = () => {
     }
   );
 };
-var CustomSider = ({ collapsed, logo, appTitle }) => {
+var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = theme.useToken();
   const { mode } = useContext(ColorModeContext);
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
   const getIcon = (item) => {
-    const key = String(item?.key || "").toLowerCase();
-    switch (key) {
-      case "dashboard":
-        return /* @__PURE__ */ jsx(DashboardOutlined, {});
-      case "module:pim":
-        return /* @__PURE__ */ jsx(DatabaseOutlined, {});
-      case "module:alloplan":
-        return /* @__PURE__ */ jsx(BarChartOutlined, {});
-      case "module:catim":
-        return /* @__PURE__ */ jsx(BookOutlined, {});
-      case "module:bsim":
-        return /* @__PURE__ */ jsx(ShopOutlined, {});
-      default:
-        return /* @__PURE__ */ jsx(DatabaseOutlined, {});
-    }
+    const key = String(item?.key || "");
+    const label = String(item?.label || item?.name || "");
+    const isModule = key.startsWith("module:") || key === "dashboard";
+    const entry = getNavEntry(navConfig, key);
+    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const Icon = AntDIcons2[iconName];
+    const Fallback = AntDIcons2["DatabaseOutlined"];
+    return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
   };
   const resolveModelSeed = (item) => {
     const route = String(item?.route || "");
@@ -349,13 +400,17 @@ var CustomSider = ({ collapsed, logo, appTitle }) => {
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
-        icon: item.icon || getIcon(item),
+        icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
         children: hasChildren ? transformItems(item.children, depth + 1) : void 0
       };
     });
   };
-  const items = useMemo(() => transformItems(menuItems), [menuItems, mode]);
+  const sortedMenuItems = useMemo(
+    () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
+    [menuItems, navConfig]
+  );
+  const items = useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
   return /* @__PURE__ */ jsx(
     Layout.Sider,
     {
@@ -669,6 +724,255 @@ var GlobalSearch = () => {
     }
   ) });
 };
+function resolveAntIcon(iconName) {
+  const Icon = AntDIcons2[iconName];
+  const Fallback = AntDIcons2["TableOutlined"];
+  return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
+}
+var CommandCenterPortal = ({
+  open,
+  onClose,
+  navConfig = []
+}) => {
+  const { menuItems } = useMenu();
+  const go = useGo();
+  const searchRef = useRef(null);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    if (open) {
+      setQuery("");
+      const t = setTimeout(() => searchRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+  const modules = useMemo(() => {
+    const q2 = query.toLowerCase().trim();
+    const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
+    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
+    if (!q2) return sorted;
+    return sorted.map((module) => {
+      const moduleMatch = (module.label || "").toLowerCase().includes(q2);
+      const filteredChildren = (module.children || []).filter(
+        (child) => (child.label || "").toLowerCase().includes(q2)
+      );
+      if (!moduleMatch && filteredChildren.length === 0) return null;
+      return moduleMatch ? module : { ...module, children: filteredChildren };
+    }).filter((m) => m !== null);
+  }, [menuItems, query, navConfig]);
+  if (!open) return null;
+  const getItemIcon = (key, label, isModule) => {
+    const entry = getNavEntry(navConfig, key);
+    return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
+  };
+  return /* @__PURE__ */ jsx(ConfigProvider, { theme: { algorithm: theme.darkAlgorithm }, children: /* @__PURE__ */ jsxs(
+    "div",
+    {
+      onClick: (e) => {
+        if (e.target === e.currentTarget) onClose();
+      },
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 2e3,
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        backgroundColor: "rgba(5, 5, 18, 0.78)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        paddingTop: 52,
+        paddingBottom: 48,
+        paddingLeft: 24,
+        paddingRight: 24,
+        overflowY: "auto"
+      },
+      children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onClose,
+            style: {
+              position: "fixed",
+              top: 14,
+              right: 18,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "50%",
+              cursor: "pointer",
+              color: "rgba(255,255,255,0.65)",
+              width: 34,
+              height: 34,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+              zIndex: 2001,
+              outline: "none",
+              padding: 0
+            },
+            title: "Close (Esc)",
+            children: /* @__PURE__ */ jsx(CloseOutlined, {})
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          Typography.Title,
+          {
+            level: 3,
+            style: {
+              color: "#ffffff",
+              marginTop: 0,
+              marginBottom: 28,
+              letterSpacing: "0.06em",
+              fontWeight: 200,
+              textTransform: "uppercase",
+              fontSize: 18
+            },
+            children: "Command Center"
+          }
+        ),
+        /* @__PURE__ */ jsx("div", { style: { width: "100%", maxWidth: 600, marginBottom: 36 }, children: /* @__PURE__ */ jsx(
+          Input,
+          {
+            ref: searchRef,
+            size: "large",
+            placeholder: "Search modules and models\u2026",
+            prefix: /* @__PURE__ */ jsx(SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
+            value: query,
+            onChange: (e) => setQuery(e.target.value),
+            allowClear: true,
+            style: { fontSize: 15, height: 52, borderRadius: 10 }
+          }
+        ) }),
+        /* @__PURE__ */ jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: modules.length === 0 && query ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxs(Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
+          "No results for \u201C",
+          query,
+          "\u201D"
+        ] }) }) : /* @__PURE__ */ jsx(Row, { gutter: [20, 20], children: modules.map((module) => {
+          const moduleKey = String(module.key || module.name || "");
+          const moduleLabel = String(module.label || module.name || "");
+          const tone = getModelTone(moduleKey);
+          const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
+          const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
+          return /* @__PURE__ */ jsx(Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxs(
+            Card,
+            {
+              style: {
+                background: "rgba(18, 18, 32, 0.95)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderTop: `3px solid ${tone.solid}`,
+                borderRadius: 14,
+                height: "100%",
+                boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)`
+              },
+              styles: {
+                header: {
+                  background: `linear-gradient(90deg, ${tone.solid}1a 0%, rgba(18,18,32,0.95) 70%)`,
+                  borderBottom: "1px solid rgba(255,255,255,0.07)",
+                  padding: "10px 16px",
+                  minHeight: 52
+                },
+                body: { padding: "12px 16px 14px", background: "rgba(18,18,32,0.95)" }
+              },
+              title: /* @__PURE__ */ jsxs(Space, { size: 10, children: [
+                /* @__PURE__ */ jsx("div", { style: {
+                  background: `${tone.solid}28`,
+                  border: `1px solid ${tone.solid}50`,
+                  borderRadius: 8,
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }, children: /* @__PURE__ */ jsx("span", { style: { color: tone.text, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
+                /* @__PURE__ */ jsx(
+                  Typography.Text,
+                  {
+                    style: { color: "#ffffff", fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
+                    children: moduleLabel
+                  }
+                )
+              ] }),
+              children: [
+                children.length > 0 && /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
+                  const childKey = String(child.key || child.name || "");
+                  const childLabel = String(child.label || child.name || "");
+                  const childTone = getModelTone(childKey);
+                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  return /* @__PURE__ */ jsxs(React8.Fragment, { children: [
+                    idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+                    /* @__PURE__ */ jsxs(
+                      "div",
+                      {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: () => {
+                          go({ to: child.route || `/${childKey}` });
+                          onClose();
+                        },
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            go({ to: child.route || `/${childKey}` });
+                            onClose();
+                          }
+                        },
+                        style: {
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          transition: "background 0.13s, border-color 0.13s",
+                          border: "1px solid transparent",
+                          outline: "none"
+                        },
+                        onMouseEnter: (e) => {
+                          const el = e.currentTarget;
+                          el.style.background = `${childTone.solid}1a`;
+                          el.style.borderColor = `${childTone.solid}40`;
+                        },
+                        onMouseLeave: (e) => {
+                          const el = e.currentTarget;
+                          el.style.background = "transparent";
+                          el.style.borderColor = "transparent";
+                        },
+                        children: [
+                          /* @__PURE__ */ jsx("span", { style: {
+                            color: childTone.text,
+                            fontSize: 13,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            opacity: 0.85
+                          }, children: childIcon }),
+                          /* @__PURE__ */ jsx(Typography.Text, { style: {
+                            color: "rgba(220, 220, 240, 0.88)",
+                            fontSize: 13,
+                            fontWeight: 400
+                          }, children: childLabel })
+                        ]
+                      }
+                    )
+                  ] }, childKey);
+                }) }),
+                children.length === 0 && /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
+              ]
+            }
+          ) }, moduleKey);
+        }) }) })
+      ]
+    }
+  ) });
+};
 var API_URL2 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
@@ -704,7 +1008,8 @@ var LayoutWrapper = ({
   children,
   logo,
   appTitle,
-  extraUserMenuItems = []
+  extraUserMenuItems = [],
+  navConfig = []
 }) => {
   const [layoutMode, setLayoutMode] = useState(
     () => localStorage.getItem("layoutMode") || "vertical"
@@ -722,6 +1027,17 @@ var LayoutWrapper = ({
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdForm] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [portalOpen, setPortalOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setPortalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const toggleSider = () => {
     const next = !siderCollapsed;
     setSiderCollapsed(next);
@@ -781,23 +1097,33 @@ var LayoutWrapper = ({
       layoutMode === "horizontal" && /* @__PURE__ */ jsxs(Fragment, { children: [
         isMobile && /* @__PURE__ */ jsx(Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsx(Button, { type: "text", icon: /* @__PURE__ */ jsx(MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
         /* @__PURE__ */ jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
-        !isMobile && /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsx(HorizontalMenu, {}) })
+        !isMobile && /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsx(HorizontalMenu, { navConfig }) })
       ] })
     ] }),
     /* @__PURE__ */ jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsx(GlobalSearch, {}) }),
     /* @__PURE__ */ jsxs(Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsx(
-        Button,
-        {
-          icon: layoutMode === "vertical" ? /* @__PURE__ */ jsx(LayoutOutlined, {}) : /* @__PURE__ */ jsx(AppstoreOutlined, {}),
-          onClick: () => {
-            const next = layoutMode === "vertical" ? "horizontal" : "vertical";
-            setLayoutMode(next);
-            localStorage.setItem("layoutMode", next);
-          },
-          type: "text"
-        }
-      ) }),
+      /* @__PURE__ */ jsxs(Space.Compact, { children: [
+        /* @__PURE__ */ jsx(Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsx(LayoutOutlined, {}) : /* @__PURE__ */ jsx(AppstoreOutlined, {}),
+            onClick: () => {
+              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
+              setLayoutMode(next);
+              localStorage.setItem("layoutMode", next);
+            },
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            icon: /* @__PURE__ */ jsx(BorderInnerOutlined, {}),
+            onClick: () => setPortalOpen(true),
+            type: "text"
+          }
+        ) })
+      ] }),
       /* @__PURE__ */ jsx(Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsx(
         Switch,
         {
@@ -814,7 +1140,7 @@ var LayoutWrapper = ({
       ] }) })
     ] })
   ] });
-  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle }) : () => null;
+  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
       ThemedLayoutV2,
@@ -825,6 +1151,14 @@ var LayoutWrapper = ({
         children
       },
       layoutMode
+    ),
+    /* @__PURE__ */ jsx(
+      CommandCenterPortal,
+      {
+        open: portalOpen,
+        onClose: () => setPortalOpen(false),
+        navConfig
+      }
     ),
     /* @__PURE__ */ jsx(
       Drawer,
@@ -3662,7 +3996,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React6.isValidElement(node)) {
+  if (React8.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -3679,14 +4013,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React6.isValidElement(node)) return node;
+    if (!React8.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React6.cloneElement(node, {
+      const element = React8.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -3697,7 +4031,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React6.cloneElement(node, {
+        const element = React8.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -3705,15 +4039,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React6.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React6.cloneElement(node, {
+      const mappedChildren = React8.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React8.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React6.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React8.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = Grid.useBreakpoint();
@@ -3764,7 +4098,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React6.isValidElement(node)) {
+  if (React8.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -3782,12 +4116,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React6.isValidElement(node)) return node;
+    if (!React8.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React6.cloneElement(node, {
+      const element = React8.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -3798,7 +4132,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React6.cloneElement(node, {
+        const element = React8.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -3806,15 +4140,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React6.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React6.cloneElement(node, {
+      const mappedChildren = React8.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React8.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React6.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React8.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -3978,7 +4312,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React6.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React8.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -6887,7 +7221,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
     headerButtons
   };
 };
-var PrimaryShowContext = React6.createContext(null);
+var PrimaryShowContext = React8.createContext(null);
 var ToneSharedStyles = () => /* @__PURE__ */ jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7331,7 +7665,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React6.useState(false);
+  const [loadAll, setLoadAll] = React8.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = useSelect({
     resource: resolvedResource,
@@ -7348,8 +7682,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React6.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React6.useState("");
+  const selectedSet = React8.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React8.useState("");
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsx(
       Select,
@@ -19562,7 +19896,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };
@@ -19900,6 +20234,6 @@ var authSystemModels = [
   }
 ];
 
-export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, httpClient, normalizeToneKey, renderRelationBlock, setColorSchemas, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

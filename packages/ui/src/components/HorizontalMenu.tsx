@@ -1,11 +1,25 @@
 import React from "react";
 import { useMenu, useGo } from "@refinedev/core";
 import { Menu } from "antd";
+import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
+import type { NavConfig } from "../utils/navConfig";
+import { getNavEntry, guessIcon } from "../utils/navConfig";
 
-export const HorizontalMenu: React.FC = () => {
+export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig = [] }) => {
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
+
+    const getIcon = (item: any): React.ReactNode => {
+        const key = String(item?.key || "");
+        const label = String(item?.label || item?.name || "");
+        const isModule = key.startsWith("module:") || key === "dashboard";
+        const entry = getNavEntry(navConfig, key);
+        const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+        const Icon = (AntDIcons as any)[iconName] as React.ComponentType | undefined;
+        const Fallback = (AntDIcons as any)["DatabaseOutlined"] as React.ComponentType;
+        return Icon ? <Icon /> : <Fallback />;
+    };
 
     const resolveModelSeed = (item: any) => {
         const route = String(item?.route || "");
@@ -48,7 +62,7 @@ export const HorizontalMenu: React.FC = () => {
             return {
                 key: item.key,
                 label: renderLabel(item, depth, hasChildren),
-                icon: item.icon,
+                icon: getIcon(item),
                 onClick: hasChildren ? undefined : () => go({ to: item.route }),
                 children: hasChildren ? transformItems(item.children, depth + 1) : undefined,
             };

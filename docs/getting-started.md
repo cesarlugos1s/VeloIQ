@@ -89,12 +89,13 @@ cd backend
 veloiq generate
 ```
 
-This writes two files automatically:
+This writes three files automatically:
 
 - `backend/app/modules/products/api.py` — standard CRUD REST endpoints
 - `frontend/src/pages/products/productsSchema.gen.ts` — TypeScript field definitions
+- `frontend/src/navigation.config.json` — navigation icons and sort order (created on first run, updated with new entries on subsequent runs)
 
-You never edit these files.  Re-run `veloiq generate` whenever you change a model.
+You never edit `api.py` or the `*.gen.ts` files.  Re-run `veloiq generate` whenever you change a model.  `navigation.config.json` is yours to edit — the generator only adds new entries and never overwrites existing ones.
 
 ## Start the backend
 
@@ -118,6 +119,45 @@ npm run dev               # starts at http://localhost:5173
 
 Open http://localhost:5173 — you have a working CRUD interface for your Product
 model with zero additional code.
+
+## Frontend layout and navigation
+
+The generated frontend shell (`LayoutWrapper`) includes built-in navigation
+controls that require no configuration to work out of the box.
+
+### Layout modes
+
+A toggle in the header switches between two layout modes:
+
+| Mode | Description |
+|---|---|
+| **Sidebar** (default) | Collapsible left sidebar with icon + label per module |
+| **Top bar** | Horizontal menu across the top of the page |
+
+The selected mode is persisted to `localStorage` and survives page reloads.
+
+### Command Center
+
+The Command Center is a full-screen navigation overlay that lists every
+registered module and model in your application.
+
+- **Open:** press `Ctrl+G` (or `Cmd+G` on macOS), or click the bento-grid icon
+  in the header (the icon immediately to the right of the layout toggle).
+- **Search:** start typing to filter modules and models in real time.
+- **Navigate:** click any model link to go directly to its list view.
+
+The Command Center reflects the live set of Refine resources — adding a new
+module to the backend automatically makes it appear here with no frontend changes.
+
+### Navigation config
+
+`frontend/src/navigation.config.json` controls the icon and display order
+for every module and model in both the sidebar and the Command Center.  The file
+is created automatically by `veloiq generate` with keyword-guessed icons; edit
+it freely to override icons or reorder entries.
+
+See [Navigation config](./module-authoring.md#navigation-config) in the Module
+Authoring guide for the full schema reference.
 
 ## Access control
 
