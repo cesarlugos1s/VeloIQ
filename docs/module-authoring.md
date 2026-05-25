@@ -281,14 +281,52 @@ class OrderAdmin(ModelView, model=Order):
 
 ## Frontend schema customisation
 
-The generated `{module}Schema.gen.ts` defines field labels, types, and
-relations for the DynamicResource UI component.  The file is regenerated
-by `veloiq generate` and must not be edited directly.
+`veloiq generate` produces three files per module in
+`frontend/src/pages/{module}/`:
 
-To override or extend the generated schema, create a
-`{module}Schema.manual.ts` in the same directory and merge it in
-`{module}Schema.ts`.  See the `@juicemantics/veloiq-ui` documentation for the
-`ModelDef` and `FieldDef` type reference.
+| File | Managed by | Purpose |
+|---|---|---|
+| `{module}Schema.gen.ts` | Always overwritten | Raw schema derived from Python models; exports `{module}ModelsGen` |
+| `{module}Schema.manual.ts` | Created once, **never overwritten** | Developer-editable overrides; exports `{module}ManualOverrides` |
+| `{module}Schema.ts` | Always overwritten | Merges gen + manual; exports `{module}Models` — this is what the app consumes |
+
+`allModels.gen.ts` imports from `{module}Schema` (the merged file), so manual
+overrides are always included automatically.
+
+### What you can override in `{module}Schema.manual.ts`
+
+The manual file exports a `ModelOverride[]` array.  Each entry is matched to a
+generated model by `name` and deep-merged:
+
+- **Override a field property** — change `showViewType`, `editViewType`, `label`,
+  `required`, `readOnly`, or any other `FieldDef` key by providing the field's
+  `key` plus the properties to change.
+- **Add a virtual field** — include a `key` that does not exist in the generated
+  model; it is appended to the field list.
+- **Override a relation** — match by `resource` (or `label` as a fallback) and
+  spread new properties over the generated entry.
+- **Add a new model** — add an entry whose `name` is not in the generated set;
+  it is appended as a synthetic model with no backend CRUD.
+
+```ts
+// projectsSchema.manual.ts
+export const projectsManualOverrides: ModelOverride[] = [
+    {
+        name: 'Project',
+        fields: [
+            // Render description as Markdown in show view, textarea in edit
+            { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },
+        ],
+        relations: [
+            // Rename the auto-generated relation label
+            { resource: 'task', label: 'Open Tasks' },
+        ],
+    },
+];
+```
+
+Overrides survive all future `veloiq generate` runs — the manual file is never
+touched after its initial creation.
 
 ## Navigation config
 
