@@ -35,17 +35,19 @@ const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps)
 
 const queryClient = new QueryClient();
 
+// Stable references — these are derived from static imports so they never
+// need to change at runtime. Defined outside the component to guarantee they
+// are created exactly once and share a single identity across all renders.
+const allModels = [...allSystemModels, ...authSystemModels];
+const resources = [
+    { name: "dashboard", list: "/dashboard", meta: { label: "Dashboard", canDelete: false } },
+    ...allModuleRegistrations.flatMap(({ moduleName, models }) =>
+        generateResources(models, moduleName)
+    ),
+    ...generateResources(authSystemModels, "access_control", { moduleLabel: "Access Control" }),
+];
+
 export default function App() {
-    const allModels = [...allSystemModels, ...authSystemModels];
-
-    const resources = [
-        { name: "dashboard", list: "/dashboard", meta: { label: "Dashboard", canDelete: false } },
-        ...allModuleRegistrations.flatMap(({ moduleName, models }) =>
-            generateResources(models, moduleName)
-        ),
-        ...generateResources(authSystemModels, "access_control", { moduleLabel: "Access Control" }),
-    ];
-
     return (
         <QueryClientProvider client={queryClient}>
             <AllModelsProvider models={allModels}>
@@ -78,7 +80,7 @@ export default function App() {
                                             <Route key={model.name} path={`/${(model as any).resource || model.name}`}>
                                                 <Route index element={
                                                     <MultiPaneLayout>
-                                                        <DynamicList model={model} allModels={allModels} />
+                                                        <DynamicList key={(model as any).resource || model.name} model={model} allModels={allModels} />
                                                     </MultiPaneLayout>
                                                 } />
                                                 <Route path="create" element={<DynamicCreate model={model} allModels={allModels} />} />
@@ -94,7 +96,7 @@ export default function App() {
                                             <Route key={model.name} path={`/${model.resource || model.name}`}>
                                                 <Route index element={
                                                     <MultiPaneLayout>
-                                                        <DynamicList model={model} allModels={allModels} />
+                                                        <DynamicList key={model.resource || model.name} model={model} allModels={allModels} />
                                                     </MultiPaneLayout>
                                                 } />
                                                 <Route path="create" element={<DynamicCreate model={model} allModels={allModels} />} />
