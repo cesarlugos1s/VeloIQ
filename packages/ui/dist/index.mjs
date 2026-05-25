@@ -11433,6 +11433,20 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const filteredRows = useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
+  const columnFilteredRows = useMemo(() => {
+    const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
+    if (activeEntries.length === 0) return filteredRows;
+    return filteredRows.filter(
+      (row) => activeEntries.every(
+        ([fieldKey, selectedValues]) => selectedValues.some((value) => {
+          if (fieldKey === "eid" && row?._label) {
+            return String(row._label) === String(value) || String(row.eid) === String(value);
+          }
+          return String(row?.[fieldKey]) === String(value);
+        })
+      )
+    );
+  }, [filteredRows, columnFiltersSelected]);
   useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
@@ -11867,7 +11881,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
   const chartData = useMemo(() => {
-    const data = filteredRows || [];
+    const data = columnFilteredRows || [];
     const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : void 0;
     const groupMap = /* @__PURE__ */ new Map();
@@ -11972,7 +11986,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       seriesLabels,
       filteredRawRows
     };
-  }, [filteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
+  }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
   const numericColumnMaxes = useMemo(() => {
     const maxes = {};
     const data = filteredRows || [];
@@ -12186,8 +12200,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
   }, [selectedColumnKeys]);
   const statsSummary = useMemo(() => {
-    return buildStatsSummary(filteredRows, displayFields, labelCache);
-  }, [filteredRows, displayFields, labelCache]);
+    return buildStatsSummary(columnFilteredRows, displayFields, labelCache);
+  }, [columnFilteredRows, displayFields, labelCache]);
   const isTotalsDetailsVariant = viewVariant === "totals-details";
   const getDefaultTotalsSummaryFn = useCallback((field) => {
     if (field.key === "eid") return "count";
@@ -13199,7 +13213,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           ] })
         ] })
       ] }),
-      analyzeOpen && filteredRows.length > 0 && analyzePrefsReady && /* @__PURE__ */ jsx("div", { style: analyzeContainerStyle, children: /* @__PURE__ */ jsx(
+      analyzeOpen && columnFilteredRows.length > 0 && analyzePrefsReady && /* @__PURE__ */ jsx("div", { style: analyzeContainerStyle, children: /* @__PURE__ */ jsx(
         Card,
         {
           size: "small",
@@ -14807,6 +14821,55 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const baseRows = allRows || [];
     return applyFilterRules(applyGlobalSearch(baseRows));
   }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
+  const columnFilteredDataSource = useMemo(() => {
+    const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
+    if (activeEntries.length === 0) return filteredDataSource;
+    return filteredDataSource.filter(
+      (record) => activeEntries.every(([fieldKey, selectedValues]) => {
+        const field = model.fields.find((f) => f.key === fieldKey);
+        if (!field) return true;
+        return selectedValues.some((value) => {
+          const strValue = String(value);
+          if (field.type === "number" && !field.reference && strValue.startsWith("__range__:")) {
+            const parts = strValue.split(":");
+            const lo = Number(parts[1]);
+            const hi = Number(parts[2]);
+            const recordVal = Number(record?.[field.key]);
+            if (isNaN(recordVal)) return false;
+            return recordVal >= lo && recordVal <= hi;
+          }
+          if ((field.type === "date" || field.type === "datetime") && strValue.startsWith("__daterange__:")) {
+            const sub = strValue.substring("__daterange__:".length);
+            const sepIdx = sub.indexOf(":");
+            const lo = decodeURIComponent(sub.substring(0, sepIdx));
+            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
+            const recordVal = String(record?.[field.key] ?? "").substring(0, 10);
+            return recordVal >= lo && recordVal <= hi;
+          }
+          if (field.type === "string" && !field.reference && strValue.startsWith("__catrange__:")) {
+            const sub = strValue.substring("__catrange__:".length);
+            const sepIdx = sub.indexOf(":");
+            const lo = decodeURIComponent(sub.substring(0, sepIdx));
+            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
+            const recordVal = String(record?.[field.key] ?? "");
+            return recordVal.localeCompare(lo) >= 0 && recordVal.localeCompare(hi) <= 0;
+          }
+          if (field.key === "eid" && strValue.startsWith("__catrange__:")) {
+            const sub = strValue.substring("__catrange__:".length);
+            const sepIdx = sub.indexOf(":");
+            const lo = decodeURIComponent(sub.substring(0, sepIdx));
+            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
+            const recordLabel = String(record?._label ?? "");
+            return recordLabel.localeCompare(lo) >= 0 && recordLabel.localeCompare(hi) <= 0;
+          }
+          if (field.key === "eid" && record?._label) {
+            return String(record._label) === strValue || String(record.eid) === strValue;
+          }
+          return String(record?.[field.key]) === strValue;
+        });
+      })
+    );
+  }, [filteredDataSource, columnFiltersSelected, model.fields]);
   useEffect(() => {
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
@@ -15634,7 +15697,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return String(raw);
   }, [labelCache]);
   const chartData = useMemo(() => {
-    const data = allRows || [];
+    const data = columnFilteredDataSource || [];
     const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : void 0;
     const groupMap = /* @__PURE__ */ new Map();
@@ -15738,7 +15801,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       seriesLabels,
       filteredRawRows
     };
-  }, [allRows, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
+  }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
   const chartSignature = useMemo(() => {
     return JSON.stringify({
       chartType,
@@ -15753,8 +15816,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
   const statsSummary = useMemo(() => {
-    return buildStatsSummary(allRows, displayFields, labelCache);
-  }, [allRows, displayFields, labelCache]);
+    return buildStatsSummary(columnFilteredDataSource, displayFields, labelCache);
+  }, [columnFilteredDataSource, displayFields, labelCache]);
   const tdCategoricalBoxes = useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {

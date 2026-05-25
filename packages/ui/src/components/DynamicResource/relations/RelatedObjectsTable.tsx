@@ -997,6 +997,21 @@ export const RelatedObjectsTable: React.FC<{
         return applyFilterRules(applyGlobalSearch(rows || []));
     }, [applyFilterRules, applyGlobalSearch, rows]);
 
+    const columnFilteredRows = useMemo(() => {
+        const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
+        if (activeEntries.length === 0) return filteredRows;
+        return filteredRows.filter((row) =>
+            activeEntries.every(([fieldKey, selectedValues]) =>
+                selectedValues.some((value) => {
+                    if (fieldKey === "eid" && row?._label) {
+                        return String(row._label) === String(value) || String(row.eid) === String(value);
+                    }
+                    return String(row?.[fieldKey]) === String(value);
+                })
+            )
+        );
+    }, [filteredRows, columnFiltersSelected]);
+
     useEffect(() => {
         setCurrentPage(1);
     }, [localSearch, filterRules]);
@@ -1476,7 +1491,7 @@ export const RelatedObjectsTable: React.FC<{
     }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
 
     const chartData = useMemo(() => {
-        const data = filteredRows || [];
+        const data = columnFilteredRows || [];
         const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : undefined;
         const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : undefined;
         const groupMap = new Map<string, { key: string; label: string; values: Record<string, number> }>();
@@ -1583,7 +1598,7 @@ export const RelatedObjectsTable: React.FC<{
             seriesLabels,
             filteredRawRows,
         };
-    }, [filteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
+    }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
 
     const numericColumnMaxes = useMemo(() => {
         const maxes: Record<string, number> = {};
@@ -1819,8 +1834,8 @@ export const RelatedObjectsTable: React.FC<{
     }, [selectedColumnKeys]);
 
     const statsSummary = useMemo(() => {
-        return buildStatsSummary(filteredRows, displayFields, labelCache);
-    }, [filteredRows, displayFields, labelCache]);
+        return buildStatsSummary(columnFilteredRows, displayFields, labelCache);
+    }, [columnFilteredRows, displayFields, labelCache]);
     const isTotalsDetailsVariant = viewVariant === "totals-details";
     const getDefaultTotalsSummaryFn = useCallback((field: FieldDef): TotalsSummaryFn => {
         if (field.key === "eid") return "count";
@@ -2884,7 +2899,7 @@ export const RelatedObjectsTable: React.FC<{
                         )}
                     </div>
                 )}
-                {analyzeOpen && filteredRows.length > 0 && analyzePrefsReady && (
+                {analyzeOpen && columnFilteredRows.length > 0 && analyzePrefsReady && (
                     <div style={analyzeContainerStyle}>
                         <Card
                             size="small"
