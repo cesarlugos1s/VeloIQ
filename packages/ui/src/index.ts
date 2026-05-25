@@ -66,6 +66,8 @@ export type { RecentActivityData, RecentActivityGroup, RecentRecord } from "./pa
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 export { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+export { useRecordSearch } from "./hooks/useRecordSearch";
+export type { RecordResult, ModelSearchResult, UseRecordSearchReturn } from "./hooks/useRecordSearch";
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 export { generateResources } from "./utils/generateResources";
