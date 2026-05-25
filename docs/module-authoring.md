@@ -290,6 +290,64 @@ To override or extend the generated schema, create a
 `{module}Schema.ts`.  See the `@juicemantics/veloiq-ui` documentation for the
 `ModelDef` and `FieldDef` type reference.
 
+## Navigation config
+
+`frontend/src/navigation.config.json` is the single source of truth for
+navigation icons and sort order.  It drives both the collapsible sidebar and
+the Command Center overlay.
+
+### How it is generated
+
+`veloiq generate` writes the file on first run and **upserts** new entries on
+subsequent runs — it never overwrites or removes entries you have already
+edited.  This means you can freely adjust icons and sort order and re-run the
+generator safely.
+
+### Schema
+
+Each entry in the array describes one module or one model:
+
+```json
+{
+  "key":      "module:tasks",
+  "label":    "Tasks",
+  "icon":     "CheckSquareOutlined",
+  "sequence": 20,
+  "type":     "module"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `key` | `string` | Refine resource key. Modules use the `module:<name>` prefix; models use the bare resource name (e.g. `"task"`). |
+| `label` | `string` | Display name used in the sidebar and Command Center header. |
+| `icon` | `string` | Ant Design icon component name (e.g. `"CheckSquareOutlined"`). See the [Ant Design icon set](https://ant.design/components/icon) for valid values. |
+| `sequence` | `number` | Display order — lower numbers appear first.  Entries without a match sort to the end. |
+| `type` | `"module" \| "model"` | `"module"` for a top-level group; `"model"` for a leaf resource. |
+
+### Icon guessing
+
+On first generation, `veloiq generate` picks icons automatically by matching
+the resource name against a keyword table (e.g. `task` → `CheckSquareOutlined`,
+`user` → `UserOutlined`).  Resources that match no keyword receive
+`FolderOutlined` (modules) or `TableOutlined` (models).  Override any entry by
+editing `icon` in the JSON file — the generator will not touch it again.
+
+### Passing the config to the frontend
+
+Load the file as a JSON import and pass it to `LayoutWrapper`:
+
+```tsx
+import type { NavConfig } from "@juicemantics/veloiq-ui";
+import navConfigData from "./navigation.config.json";
+
+<LayoutWrapper navConfig={navConfigData as NavConfig}>
+  ...
+</LayoutWrapper>
+```
+
+The scaffold (`veloiq new`) generates this wiring automatically.
+
 ## View types
 
 `showViewType` and `editViewType` control how a field or relation is rendered
