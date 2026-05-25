@@ -461,11 +461,18 @@ This creates `config/search.json`:
 ```
 
 The backend serves this from `GET /config/search`; the frontend reads it on
-startup and queries those endpoints when a user types in the search bar.
+startup and queries those endpoints when a user types in the search bar or in
+the Command Center (`Ctrl+G`).  Both surfaces share the same configuration and
+the same search logic — a model added here is instantly searchable in both places.
 
 **How field matching works:** for each model, only fields whose key exactly
 matches one of the listed names (or ends with `_<name>`, e.g. `task_title`
 matches `title`) are searched.
+
+**Command Center commands:** the Command Center also accepts navigation commands.
+Type `list <model>`, `create <model>`, or `new <model>` to jump directly to that
+page — no `config/search.json` entry needed, commands work from the navigation
+menu alone.
 
 To review or change the config later:
 

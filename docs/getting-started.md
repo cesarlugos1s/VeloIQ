@@ -138,16 +138,29 @@ The selected mode is persisted to `localStorage` and survives page reloads.
 
 ### Command Center
 
-The Command Center is a full-screen navigation overlay that lists every
-registered module and model in your application.
+The Command Center is a full-screen overlay for navigation, search, and
+quick actions across your entire application.
 
 - **Open:** press `Ctrl+G` (or `Cmd+G` on macOS), or click the bento-grid icon
   in the header (the icon immediately to the right of the layout toggle).
-- **Search:** start typing to filter modules and models in real time.
-- **Navigate:** click any model link to go directly to its list view.
+- **Filter modules & models:** start typing to narrow the module cards in real time.
+- **Search records:** type any text to search actual data from your configured
+  searchable models (the same backend search used by the header search bar).
+  Results appear grouped by model and each result links to the record's show page.
+- **Command navigation:** prefix your query with a verb to jump directly to a page:
+  - `list <model>` — opens the model's list view
+  - `create <model>` / `new <model>` / `add <model>` — opens the create form
+  - `show <model>` / `edit <model>` — opens the model's list view
+
+  Examples: `list horse`, `create task`, `new exercise log`.
+
+The search input placeholder always shows two real model names from your
+application so users can see the syntax at a glance.
 
 The Command Center reflects the live set of Refine resources — adding a new
 module to the backend automatically makes it appear here with no frontend changes.
+Record search follows the same `config/search.json` configuration as the header
+search bar (see [Global search](./tutorial-task-manager.md#section-3--global-search)).
 
 ### Navigation config
 
