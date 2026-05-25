@@ -251,6 +251,7 @@ var useModelTone = (modelLike) => {
   const { mode } = React8.useContext(ColorModeContext);
   return getModelTone(modelLike, mode === "dark");
 };
+var getContrastingTextColor = (background) => isDarkColor(background) ? "#f8fafc" : "#0f172a";
 if (typeof localStorage !== "undefined") {
   const cachedHex = localStorage.getItem("jm_plainColorBaseHex");
   if (cachedHex) {
@@ -886,6 +887,7 @@ var CommandCenterPortal = ({
           const moduleKey = String(module.key || module.name || "");
           const moduleLabel = String(module.label || module.name || "");
           const tone = getModelTone(moduleKey);
+          const headerTextColor = getContrastingTextColor(tone.solid);
           const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
           const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
           return /* @__PURE__ */ jsxRuntime.jsx(antd.Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxRuntime.jsxs(
@@ -894,15 +896,15 @@ var CommandCenterPortal = ({
               style: {
                 background: "rgba(18, 18, 32, 0.95)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                borderTop: `3px solid ${tone.solid}`,
                 borderRadius: 14,
                 height: "100%",
                 boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)`
               },
               styles: {
                 header: {
-                  background: `linear-gradient(90deg, ${tone.solid}1a 0%, rgba(18,18,32,0.95) 70%)`,
-                  borderBottom: "1px solid rgba(255,255,255,0.07)",
+                  background: tone.solid,
+                  borderBottom: "1px solid rgba(0,0,0,0.15)",
+                  borderRadius: "12px 12px 0 0",
                   padding: "10px 16px",
                   minHeight: 52
                 },
@@ -910,8 +912,8 @@ var CommandCenterPortal = ({
               },
               title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 10, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
-                  background: `${tone.solid}28`,
-                  border: `1px solid ${tone.solid}50`,
+                  background: `${headerTextColor}33`,
+                  border: `1px solid ${headerTextColor}55`,
                   borderRadius: 8,
                   width: 32,
                   height: 32,
@@ -919,11 +921,11 @@ var CommandCenterPortal = ({
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0
-                }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: tone.text, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
+                }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: headerTextColor, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
                 /* @__PURE__ */ jsxRuntime.jsx(
                   antd.Typography.Text,
                   {
-                    style: { color: "#ffffff", fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
+                    style: { color: headerTextColor, fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
                     children: moduleLabel
                   }
                 )
@@ -5176,13 +5178,11 @@ var AnalysisChart = ({
     }
     const xField = numericFields[0];
     const yField = numericFields[1];
-    const sizeField = numericFields[2];
     const points = rawRows.map((row) => {
       const x = getNumericValue(row, xField.key);
       const y = getNumericValue(row, yField.key);
       if (x === null || y === null) return null;
-      const size = sizeField ? getNumericValue(row, sizeField.key) : 1;
-      return { x, y, size: size ?? 1, row };
+      return { x, y, size: x, row };
     }).filter((point) => !!point);
     if (points.length === 0) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No numeric data for scatter." });
     const xMin = Math.min(...points.map((p) => p.x));
@@ -5216,6 +5216,42 @@ var AnalysisChart = ({
       ),
       /* @__PURE__ */ jsxRuntime.jsx("line", { x1: paddingLeft, y1: paddingTop + chartHeight, x2: paddingLeft + chartWidth, y2: paddingTop + chartHeight, stroke: token.colorBorderSecondary }),
       /* @__PURE__ */ jsxRuntime.jsx("line", { x1: paddingLeft, y1: paddingTop, x2: paddingLeft, y2: paddingTop + chartHeight, stroke: token.colorBorderSecondary }),
+      isBubble && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntime.jsx(
+          "text",
+          {
+            x: paddingLeft + chartWidth / 2,
+            y: paddingTop + chartHeight + 20,
+            fontSize: "12",
+            textAnchor: "middle",
+            fill: token.colorTextSecondary,
+            children: xField.label
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          "text",
+          {
+            x: paddingLeft + chartWidth / 2,
+            y: paddingTop + chartHeight + 36,
+            fontSize: "12",
+            textAnchor: "middle",
+            fill: token.colorTextSecondary,
+            children: `\u25CF bubble size: ${xField.label}`
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          "text",
+          {
+            transform: `rotate(-90, 12, ${paddingTop + chartHeight / 2})`,
+            x: 12,
+            y: paddingTop + chartHeight / 2,
+            fontSize: "12",
+            textAnchor: "middle",
+            fill: token.colorTextSecondary,
+            children: yField.label
+          }
+        )
+      ] }),
       [0, 0.5, 1].map((ratio) => {
         const value = Math.round(yMin + (yMax - yMin) * ratio);
         const y = paddingTop + chartHeight - chartHeight * ratio;
@@ -5232,6 +5268,18 @@ var AnalysisChart = ({
           const label = formatCategoryValue(categoryField, point.row);
           color = colorMap.get(label) || colors[0];
         }
+        const tooltipLines = [];
+        if (isBubble) {
+          if (categoryField1) {
+            const f = modelField(categoryField1);
+            tooltipLines.push(`${f?.label || categoryField1}: ${formatCategoryValue(f, point.row)}`);
+          }
+          if (categoryField2) {
+            const f = modelField(categoryField2);
+            tooltipLines.push(`${f?.label || categoryField2}: ${formatCategoryValue(f, point.row)}`);
+          }
+          tooltipLines.push(`${xField.label}: ${point.x}`);
+        }
         return /* @__PURE__ */ jsxRuntime.jsx(
           "circle",
           {
@@ -5241,7 +5289,8 @@ var AnalysisChart = ({
             cy: y,
             r: scaleR(point.size),
             fill: color,
-            opacity: isBubble ? 0.65 : 0.9
+            opacity: isBubble ? 0.65 : 0.9,
+            children: tooltipLines.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("title", { children: tooltipLines.join("\n") })
           },
           `scatter-${index}`
         );

@@ -560,14 +560,12 @@ export const AnalysisChart: React.FC<{
         }
         const xField = numericFields[0];
         const yField = numericFields[1];
-        const sizeField = numericFields[2];
         const points = rawRows
             .map((row) => {
                 const x = getNumericValue(row, xField.key);
                 const y = getNumericValue(row, yField.key);
                 if (x === null || y === null) return null;
-                const size = sizeField ? getNumericValue(row, sizeField.key) : 1;
-                return { x, y, size: size ?? 1, row };
+                return { x, y, size: x, row };
             })
             .filter((point): point is { x: number; y: number; size: number; row: any } => !!point);
         if (points.length === 0) return <Empty description="No numeric data for scatter." />;
@@ -606,6 +604,38 @@ export const AnalysisChart: React.FC<{
                     )}
                 <line x1={paddingLeft} y1={paddingTop + chartHeight} x2={paddingLeft + chartWidth} y2={paddingTop + chartHeight} stroke={token.colorBorderSecondary} />
                 <line x1={paddingLeft} y1={paddingTop} x2={paddingLeft} y2={paddingTop + chartHeight} stroke={token.colorBorderSecondary} />
+                {isBubble && (
+                    <>
+                        <text
+                            x={paddingLeft + chartWidth / 2}
+                            y={paddingTop + chartHeight + 20}
+                            fontSize="12"
+                            textAnchor="middle"
+                            fill={token.colorTextSecondary}
+                        >
+                            {xField.label}
+                        </text>
+                        <text
+                            x={paddingLeft + chartWidth / 2}
+                            y={paddingTop + chartHeight + 36}
+                            fontSize="12"
+                            textAnchor="middle"
+                            fill={token.colorTextSecondary}
+                        >
+                            {`● bubble size: ${xField.label}`}
+                        </text>
+                        <text
+                            transform={`rotate(-90, 12, ${paddingTop + chartHeight / 2})`}
+                            x={12}
+                            y={paddingTop + chartHeight / 2}
+                            fontSize="12"
+                            textAnchor="middle"
+                            fill={token.colorTextSecondary}
+                        >
+                            {yField.label}
+                        </text>
+                    </>
+                )}
                 {[0, 0.5, 1].map((ratio) => {
                     const value = Math.round(yMin + (yMax - yMin) * ratio);
                     const y = paddingTop + chartHeight - chartHeight * ratio;
@@ -626,6 +656,18 @@ export const AnalysisChart: React.FC<{
                         const label = formatCategoryValue(categoryField, point.row);
                         color = colorMap.get(label) || colors[0];
                     }
+                    const tooltipLines: string[] = [];
+                    if (isBubble) {
+                        if (categoryField1) {
+                            const f = modelField(categoryField1);
+                            tooltipLines.push(`${f?.label || categoryField1}: ${formatCategoryValue(f, point.row)}`);
+                        }
+                        if (categoryField2) {
+                            const f = modelField(categoryField2);
+                            tooltipLines.push(`${f?.label || categoryField2}: ${formatCategoryValue(f, point.row)}`);
+                        }
+                        tooltipLines.push(`${xField.label}: ${point.x}`);
+                    }
                     return (
                         <circle
                             key={`scatter-${index}`}
@@ -636,7 +678,9 @@ export const AnalysisChart: React.FC<{
                             r={scaleR(point.size)}
                             fill={color}
                             opacity={isBubble ? 0.65 : 0.9}
-                        />
+                        >
+                            {tooltipLines.length > 0 && <title>{tooltipLines.join("\n")}</title>}
+                        </circle>
                     );
                 })}
             </svg>

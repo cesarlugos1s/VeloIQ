@@ -8,7 +8,7 @@ import { SearchOutlined, CloseOutlined } from "@ant-design/icons";
 import * as AntDIcons from "@ant-design/icons";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
-import { getModelTone } from "../utils/modelTone";
+import { getModelTone, getContrastingTextColor } from "../utils/modelTone";
 
 export interface CommandCenterPortalProps {
     open: boolean;
@@ -163,6 +163,7 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                 const moduleKey = String(module.key || module.name || "");
                                 const moduleLabel = String(module.label || module.name || "");
                                 const tone = getModelTone(moduleKey);
+                                const headerTextColor = getContrastingTextColor(tone.solid);
                                 const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
                                 const children = navConfig.length > 0
                                     ? sortItemsByNavConfig(module.children || [], navConfig)
@@ -174,15 +175,15 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                             style={{
                                                 background: "rgba(18, 18, 32, 0.95)",
                                                 border: "1px solid rgba(255,255,255,0.08)",
-                                                borderTop: `3px solid ${tone.solid}`,
                                                 borderRadius: 14,
                                                 height: "100%",
                                                 boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)`,
                                             }}
                                             styles={{
                                                 header: {
-                                                    background: `linear-gradient(90deg, ${tone.solid}1a 0%, rgba(18,18,32,0.95) 70%)`,
-                                                    borderBottom: "1px solid rgba(255,255,255,0.07)",
+                                                    background: tone.solid,
+                                                    borderBottom: "1px solid rgba(0,0,0,0.15)",
+                                                    borderRadius: "12px 12px 0 0",
                                                     padding: "10px 16px",
                                                     minHeight: 52,
                                                 },
@@ -191,8 +192,8 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                             title={
                                                 <Space size={10}>
                                                     <div style={{
-                                                        background: `${tone.solid}28`,
-                                                        border: `1px solid ${tone.solid}50`,
+                                                        background: `${headerTextColor}33`,
+                                                        border: `1px solid ${headerTextColor}55`,
                                                         borderRadius: 8,
                                                         width: 32,
                                                         height: 32,
@@ -201,12 +202,12 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                                         justifyContent: "center",
                                                         flexShrink: 0,
                                                     }}>
-                                                        <span style={{ color: tone.text, fontSize: 15, display: "flex" }}>
+                                                        <span style={{ color: headerTextColor, fontSize: 15, display: "flex" }}>
                                                             {moduleIcon}
                                                         </span>
                                                     </div>
                                                     <Typography.Text
-                                                        style={{ color: "#ffffff", fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" }}
+                                                        style={{ color: headerTextColor, fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" }}
                                                     >
                                                         {moduleLabel}
                                                     </Typography.Text>
