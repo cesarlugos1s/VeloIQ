@@ -522,6 +522,24 @@ type ShortcutDef = {
 };
 declare function useKeyboardShortcuts(shortcuts: ShortcutDef[]): void;
 
+interface RecordResult {
+    id: number | string;
+    label: string;
+}
+interface ModelSearchResult {
+    modelName: string;
+    modelLabel: string;
+    resource: string;
+    records: RecordResult[];
+}
+interface UseRecordSearchReturn {
+    results: ModelSearchResult[];
+    searching: boolean;
+    search: (query: string) => void;
+    clear: () => void;
+}
+declare function useRecordSearch(): UseRecordSearchReturn;
+
 interface ResourceDef {
     name: string;
     list: string;
@@ -579,4 +597,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, type BulkActionDef, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, ShowFooterButtons, StandardList, StandardShow, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, type BulkActionDef, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };

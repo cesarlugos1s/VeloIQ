@@ -534,42 +534,23 @@ var authenticatedFetch = (url, options = {}) => {
   }
   return fetch(url, { ...options, headers });
 };
-var _2 = window._ || ((text) => text);
+
+// src/hooks/useRecordSearch.ts
 var API_URL = "/api";
-var flattenMenuItems = (items, parentLabel = "") => {
-  const result = [];
-  for (const item of items) {
-    if (item.children?.length) {
-      result.push(...flattenMenuItems(item.children, item.label || item.name || ""));
-    } else if (item.route && !item.meta?.hide) {
-      result.push({
-        name: item.name,
-        label: item.label || item.name,
-        moduleLabel: parentLabel,
-        listPath: item.route
-      });
-    }
-  }
-  return result;
-};
-var GlobalSearch = () => {
-  const { menuItems } = core.useMenu();
+function useRecordSearch() {
   const allSystemModels = useAllModels();
-  const navigate = reactRouterDom.useNavigate();
-  const [searchText, setSearchText] = React8.useState("");
-  const [backendResults, setBackendResults] = React8.useState([]);
+  const [searchConfig, setSearchConfig] = React8.useState(null);
+  const [results, setResults] = React8.useState([]);
   const [searching, setSearching] = React8.useState(false);
   const debounceRef = React8.useRef(null);
   const abortRef = React8.useRef(null);
-  const [searchConfig, setSearchConfig] = React8.useState(null);
   React8.useEffect(() => {
     authenticatedFetch(`${API_URL}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
-    }).then((data) => setSearchConfig(data)).catch(() => {
+    }).then((d) => setSearchConfig(d)).catch(() => {
     });
   }, []);
-  const searchableResources = React8.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
   const searchableModels = React8.useMemo(() => {
     if (!searchConfig) return [];
     const entityTypesLower = searchConfig.entity_types.map((e) => e.toLowerCase());
@@ -603,6 +584,98 @@ var GlobalSearch = () => {
       };
     }).filter((m) => m.searchFields.length > 0);
   }, [allSystemModels, searchConfig]);
+  const search = React8.useCallback(
+    (query) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
+      const q2 = query.trim();
+      if (q2.length < 2) {
+        setResults([]);
+        setSearching(false);
+        return;
+      }
+      setSearching(true);
+      debounceRef.current = setTimeout(async () => {
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const newResults = [];
+        try {
+          const fetches = searchableModels.slice(0, 8).map(async (m) => {
+            try {
+              const fieldFetches = m.searchFields.map(async (field) => {
+                const url = `${API_URL}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
+                const resp = await authenticatedFetch(url, { signal: controller.signal });
+                if (!resp.ok) return [];
+                const data = await resp.json();
+                return Array.isArray(data) ? data : [];
+              });
+              const allRecords = (await Promise.all(fieldFetches)).flat();
+              const seen = /* @__PURE__ */ new Set();
+              const unique = allRecords.filter((r) => {
+                const id = r.eid ?? r.id;
+                if (seen.has(id)) return false;
+                seen.add(id);
+                return true;
+              });
+              if (unique.length === 0) return null;
+              return {
+                modelName: m.name,
+                modelLabel: m.label,
+                resource: m.resource,
+                records: unique.slice(0, 5).map((r) => ({
+                  id: r.eid ?? r.id,
+                  label: String(r._label || `#${r.eid ?? r.id}`)
+                }))
+              };
+            } catch {
+              return null;
+            }
+          });
+          const responses = await Promise.all(fetches);
+          for (const r of responses) {
+            if (r) newResults.push(r);
+          }
+        } catch {
+        }
+        if (!controller.signal.aborted) {
+          setResults(newResults);
+          setSearching(false);
+        }
+      }, 300);
+    },
+    [searchableModels]
+  );
+  const clear = React8.useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
+    setResults([]);
+    setSearching(false);
+  }, []);
+  return { results, searching, search, clear };
+}
+var _2 = window._ || ((text) => text);
+var flattenMenuItems = (items, parentLabel = "") => {
+  const result = [];
+  for (const item of items) {
+    if (item.children?.length) {
+      result.push(...flattenMenuItems(item.children, item.label || item.name || ""));
+    } else if (item.route && !item.meta?.hide) {
+      result.push({
+        name: item.name,
+        label: item.label || item.name,
+        moduleLabel: parentLabel,
+        listPath: item.route
+      });
+    }
+  }
+  return result;
+};
+var GlobalSearch = () => {
+  const { menuItems } = core.useMenu();
+  const navigate = reactRouterDom.useNavigate();
+  const [searchText, setSearchText] = React8.useState("");
+  const { results: backendResults, searching, search, clear } = useRecordSearch();
+  const searchableResources = React8.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
   const resourceResults = React8.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
@@ -624,92 +697,37 @@ var GlobalSearch = () => {
       }
     ];
   }, [searchText, searchableResources]);
-  const doBackendSearch = React8.useCallback(
-    (query) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (abortRef.current) abortRef.current.abort();
-      const q2 = query.trim();
-      if (q2.length < 2) {
-        setBackendResults([]);
-        setSearching(false);
-        return;
-      }
-      setSearching(true);
-      debounceRef.current = setTimeout(async () => {
-        const controller = new AbortController();
-        abortRef.current = controller;
-        const modelsToSearch = searchableModels.slice(0, 8);
-        const results = [];
-        try {
-          const fetches = modelsToSearch.map(async (m) => {
-            try {
-              const fieldFetches = m.searchFields.map(async (field) => {
-                const url = `${API_URL}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
-                const resp = await authenticatedFetch(url, { signal: controller.signal });
-                if (!resp.ok) return [];
-                const data = await resp.json();
-                return Array.isArray(data) ? data : [];
-              });
-              const allResults = (await Promise.all(fieldFetches)).flat();
-              const seen = /* @__PURE__ */ new Set();
-              const unique = allResults.filter((r) => {
-                const id = r.eid ?? r.id;
-                if (seen.has(id)) return false;
-                seen.add(id);
-                return true;
-              });
-              if (unique.length === 0) return null;
-              return { model: m, records: unique };
-            } catch {
-              return null;
-            }
-          });
-          const responses = await Promise.all(fetches);
-          for (const resp of responses) {
-            if (!resp) continue;
-            results.push({
-              label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: resp.model.label }),
-              options: resp.records.slice(0, 5).map((record) => {
-                const id = record.eid ?? record.id;
-                const label = record._label || `#${id}`;
-                return {
-                  value: `record:/${resp.model.resource}/show/${id}`,
-                  key: `record-${resp.model.name}-${id}`,
-                  label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { children: String(label) })
-                };
-              })
-            });
-          }
-        } catch {
-        }
-        if (!controller.signal.aborted) {
-          setBackendResults(results);
-          setSearching(false);
-        }
-      }, 300);
-    },
-    [searchableModels]
+  const backendGroups = React8.useMemo(
+    () => backendResults.map((result) => ({
+      label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: result.modelLabel }),
+      options: result.records.map((record) => ({
+        value: `record:/${result.resource}/show/${record.id}`,
+        key: `record-${result.modelName}-${record.id}`,
+        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { children: record.label })
+      }))
+    })),
+    [backendResults]
   );
   const onSearch = React8.useCallback(
     (value) => {
       setSearchText(value);
-      doBackendSearch(value);
+      search(value);
     },
-    [doBackendSearch]
+    [search]
   );
   const onSelect = React8.useCallback(
     (value) => {
       const path = value.replace(/^(nav:|record:)/, "");
       navigate(path);
       setSearchText("");
-      setBackendResults([]);
+      clear();
     },
-    [navigate]
+    [navigate, clear]
   );
-  const options = React8.useMemo(() => {
-    const groups = [...resourceResults, ...backendResults];
-    return groups;
-  }, [resourceResults, backendResults]);
+  const options = React8.useMemo(
+    () => [...resourceResults, ...backendGroups],
+    [resourceResults, backendGroups]
+  );
   const [focused, setFocused] = React8.useState(false);
   const inputRef = React8.useRef(null);
   React8.useEffect(() => {
@@ -752,11 +770,57 @@ var GlobalSearch = () => {
     }
   ) });
 };
+var COMMAND_KEYWORDS = ["list", "show", "create", "new", "add", "edit"];
+function parseCommand(q2) {
+  for (const cmd of COMMAND_KEYWORDS) {
+    if (q2.startsWith(cmd + " ")) return { command: cmd, modelQuery: q2.slice(cmd.length + 1).trim() };
+  }
+  return null;
+}
+function commandRoute(command, basePath) {
+  return command === "create" || command === "new" || command === "add" ? `${basePath}/create` : basePath;
+}
 function resolveAntIcon(iconName) {
   const Icon = AntDIcons2__namespace[iconName];
   const Fallback = AntDIcons2__namespace["TableOutlined"];
   return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
 }
+var SECTION_HEADER_STYLE = {
+  padding: "10px 16px",
+  background: "rgba(255,255,255,0.06)",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  display: "flex",
+  alignItems: "center",
+  gap: 8
+};
+var SECTION_LABEL_STYLE = {
+  color: "rgba(255,255,255,0.55)",
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em"
+};
+var SECTION_WRAPPER_STYLE = {
+  width: "100%",
+  maxWidth: 1200,
+  marginBottom: 24,
+  background: "rgba(18,18,32,0.95)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 14,
+  overflow: "hidden",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)"
+};
+var ITEM_BASE_STYLE = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "7px 10px",
+  borderRadius: 8,
+  cursor: "pointer",
+  transition: "background 0.13s, border-color 0.13s",
+  border: "1px solid transparent",
+  outline: "none"
+};
 var CommandCenterPortal = ({
   open,
   onClose,
@@ -766,13 +830,15 @@ var CommandCenterPortal = ({
   const go = core.useGo();
   const searchRef = React8.useRef(null);
   const [query, setQuery] = React8.useState("");
+  const { results: backendResults, searching, search, clear } = useRecordSearch();
   React8.useEffect(() => {
     if (open) {
       setQuery("");
+      clear();
       const t = setTimeout(() => searchRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
-  }, [open]);
+  }, [open, clear]);
   React8.useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -781,8 +847,43 @@ var CommandCenterPortal = ({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
+  const parsedCommand = React8.useMemo(
+    () => parseCommand(query.toLowerCase().trim()),
+    [query]
+  );
+  React8.useEffect(() => {
+    if (parsedCommand) {
+      clear();
+    } else {
+      search(query.toLowerCase().trim());
+    }
+  }, [query, parsedCommand, search, clear]);
+  const allModelChildren = React8.useMemo(
+    () => menuItems.flatMap(
+      (m) => (m.children || []).map((c) => ({
+        ...c,
+        moduleLabel: String(m.label || m.name || "")
+      }))
+    ),
+    [menuItems]
+  );
+  const searchPlaceholder = React8.useMemo(() => {
+    const labels = allModelChildren.slice(0, 2).map((c) => String(c.label || c.name || "").toLowerCase()).filter(Boolean);
+    if (labels.length === 0) return `Search modules, models, records\u2026`;
+    const [a, b] = labels;
+    return b && b !== a ? `Search modules, models, records\u2026 or "list ${a}", "create ${b}"` : `Search modules, models, records\u2026 or "list ${a}", "create ${a}"`;
+  }, [allModelChildren]);
+  const commandSuggestions = React8.useMemo(() => {
+    if (!parsedCommand) return [];
+    const mq = parsedCommand.modelQuery;
+    const children = mq ? allModelChildren.filter(
+      (c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)
+    ) : allModelChildren;
+    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children;
+    return sorted.slice(0, 8);
+  }, [parsedCommand, allModelChildren, navConfig]);
   const modules = React8.useMemo(() => {
-    const q2 = query.toLowerCase().trim();
+    const q2 = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
     const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
     const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
     if (!q2) return sorted;
@@ -794,12 +895,25 @@ var CommandCenterPortal = ({
       if (!moduleMatch && filteredChildren.length === 0) return null;
       return moduleMatch ? module : { ...module, children: filteredChildren };
     }).filter((m) => m !== null);
-  }, [menuItems, query, navConfig]);
+  }, [menuItems, query, parsedCommand, navConfig]);
   if (!open) return null;
   const getItemIcon = (key, label, isModule) => {
     const entry = getNavEntry(navConfig, key);
     return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
   };
+  const makeHoverHandlers = (toneColor) => ({
+    onMouseEnter: (e) => {
+      const el = e.currentTarget;
+      el.style.background = `${toneColor}1a`;
+      el.style.borderColor = `${toneColor}40`;
+    },
+    onMouseLeave: (e) => {
+      const el = e.currentTarget;
+      el.style.background = "transparent";
+      el.style.borderColor = "transparent";
+    }
+  });
+  const hasNoResults = !parsedCommand && modules.length === 0 && backendResults.length === 0 && !searching && query.trim().length > 0;
   return /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { theme: { algorithm: antd.theme.darkAlgorithm }, children: /* @__PURE__ */ jsxRuntime.jsxs(
     "div",
     {
@@ -871,15 +985,113 @@ var CommandCenterPortal = ({
           {
             ref: searchRef,
             size: "large",
-            placeholder: "Search modules and models\u2026",
-            prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
+            placeholder: searchPlaceholder,
+            prefix: searching && !parsedCommand ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { color: "rgba(255,255,255,0.4)" } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
             value: query,
             onChange: (e) => setQuery(e.target.value),
             allowClear: true,
             style: { fontSize: 15, height: 52, borderRadius: 10 }
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: modules.length === 0 && query ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
+        parsedCommand && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
+          /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ThunderboltOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Commands" })
+          ] }),
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "8px 12px" }, children: commandSuggestions.length === 0 && parsedCommand.modelQuery ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "12px 10px", textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 }, children: [
+            "No model matching \u201C",
+            parsedCommand.modelQuery,
+            "\u201D"
+          ] }) }) : commandSuggestions.map((child, idx) => {
+            const childKey = String(child.key || child.name || "");
+            const childLabel = String(child.label || child.name || "");
+            const childTone = getModelTone(childKey);
+            const childIcon = getItemIcon(childKey, childLabel, false);
+            const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
+            const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
+            const moduleLabel = child.moduleLabel || "";
+            return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+              idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+              /* @__PURE__ */ jsxRuntime.jsxs(
+                "div",
+                {
+                  role: "button",
+                  tabIndex: 0,
+                  onClick: () => {
+                    go({ to: route });
+                    onClose();
+                  },
+                  onKeyDown: (e) => {
+                    if (e.key === "Enter") {
+                      go({ to: route });
+                      onClose();
+                    }
+                  },
+                  style: ITEM_BASE_STYLE,
+                  ...makeHoverHandlers(childTone.solid),
+                  children: [
+                    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
+                    /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, flex: 1 }, children: [
+                      /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "rgba(255,255,255,0.45)", fontWeight: 600 }, children: cmdVerb }),
+                      " ",
+                      childLabel
+                    ] }),
+                    moduleLabel && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.28)", fontSize: 11, flexShrink: 0 }, children: moduleLabel }),
+                    /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.RightOutlined, { style: { color: "rgba(255,255,255,0.2)", fontSize: 10, flexShrink: 0 } })
+                  ]
+                }
+              )
+            ] }, childKey);
+          }) })
+        ] }),
+        !parsedCommand && (backendResults.length > 0 || searching) && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
+          /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DatabaseOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Records" }),
+            searching && /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { marginLeft: "auto" } })
+          ] }),
+          backendResults.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "8px 12px" }, children: backendResults.map((modelResult, modelIdx) => {
+            const tone = getModelTone(modelResult.resource);
+            return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+              modelIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "4px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: {
+                color: "rgba(255,255,255,0.35)",
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                display: "block",
+                padding: "4px 10px 2px"
+              }, children: modelResult.modelLabel }),
+              modelResult.records.map((record, recIdx) => /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+                recIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+                /* @__PURE__ */ jsxRuntime.jsxs(
+                  "div",
+                  {
+                    role: "button",
+                    tabIndex: 0,
+                    onClick: () => {
+                      go({ to: `/${modelResult.resource}/show/${record.id}` });
+                      onClose();
+                    },
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter") {
+                        go({ to: `/${modelResult.resource}/show/${record.id}` });
+                        onClose();
+                      }
+                    },
+                    style: { ...ITEM_BASE_STYLE, justifyContent: "space-between" },
+                    ...makeHoverHandlers(tone.solid),
+                    children: [
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13 }, children: record.label }),
+                      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.RightOutlined, { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, flexShrink: 0 } })
+                    ]
+                  }
+                )
+              ] }, record.id))
+            ] }, modelResult.modelName);
+          }) })
+        ] }),
+        !parsedCommand && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: hasNoResults ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
           "No results for \u201C",
           query,
           "\u201D"
@@ -953,27 +1165,8 @@ var CommandCenterPortal = ({
                             onClose();
                           }
                         },
-                        style: {
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          transition: "background 0.13s, border-color 0.13s",
-                          border: "1px solid transparent",
-                          outline: "none"
-                        },
-                        onMouseEnter: (e) => {
-                          const el = e.currentTarget;
-                          el.style.background = `${childTone.solid}1a`;
-                          el.style.borderColor = `${childTone.solid}40`;
-                        },
-                        onMouseLeave: (e) => {
-                          const el = e.currentTarget;
-                          el.style.background = "transparent";
-                          el.style.borderColor = "transparent";
-                        },
+                        style: ITEM_BASE_STYLE,
+                        ...makeHoverHandlers(childTone.solid),
                         children: [
                           /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
                             color: childTone.text,
@@ -20359,6 +20552,7 @@ exports.useAllModels = useAllModels;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;
 exports.useMetadataModal = useMetadataModal;
 exports.usePaneNavigation = usePaneNavigation;
+exports.useRecordSearch = useRecordSearch;
 exports.useShowActionsPreferences = useShowActionsPreferences;
 exports.useShowEditableForm = useShowEditableForm;
 exports.useStandardShowTabs = useStandardShowTabs;
