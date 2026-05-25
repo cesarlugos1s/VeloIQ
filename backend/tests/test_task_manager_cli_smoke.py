@@ -12,7 +12,7 @@ def _run(cmd: list[str], cwd: Path, **kwargs) -> subprocess.CompletedProcess:
 
 
 @pytest.mark.slow
-def test_veloiq_new_creates_runnable_app(tmp_path):
+def test_veloiq_new_creates_runnable_app(tmp_path, register_summary_path):
     # Create new app
     result = _run(["veloiq", "new", "smoke-app"], tmp_path)
     assert result.returncode == 0, f"veloiq new failed:\n{result.stderr}"
@@ -45,7 +45,7 @@ def test_veloiq_new_creates_runnable_app(tmp_path):
         from veloiq_framework import VeloIQConfig, create_veloiq_app
 
         cfg = VeloIQConfig(
-            database_url="sqlite://",
+            database_url=f"sqlite:///{tmp_path}/smoke.db",
             modules_dir="app/modules",
             auth_secret="smoke-secret",
             create_tables_on_startup=True,
@@ -59,8 +59,10 @@ def test_veloiq_new_creates_runnable_app(tmp_path):
             assert resp.status_code == 200
             token = resp.json()["access_token"]
 
-            resp = c.get("/item", headers={"Authorization": f"Bearer {token}"})
+            resp = c.get("/items", headers={"Authorization": f"Bearer {token}"})
             assert resp.status_code == 200
     finally:
         os.chdir(original_cwd)
         sys.path.remove(str(backend_dir))
+
+    register_summary_path("generated smoke app", str(tmp_path / "smoke-app"))

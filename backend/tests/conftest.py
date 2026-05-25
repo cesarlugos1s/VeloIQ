@@ -50,3 +50,22 @@ def admin_token(client):
 @pytest.fixture(scope="session")
 def auth(admin_token):
     return {"Authorization": f"Bearer {admin_token}"}
+
+
+# ---------------------------------------------------------------------------
+# Terminal summary — lets any test register extra paths to display at the end
+# ---------------------------------------------------------------------------
+
+_summary_paths: list[str] = []
+
+
+@pytest.fixture
+def register_summary_path():
+    def _add(label: str, path: str):
+        _summary_paths.append((label, path))
+    return _add
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    for label, path in _summary_paths:
+        terminalreporter.write_line(f"- {label}: {path} -")

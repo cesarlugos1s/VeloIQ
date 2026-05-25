@@ -105,3 +105,5 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--junit-xml=tests/results.xml --html=tests/results.html --self-contained-html"
+markers = ["slow: end-to-end CLI tests (deselected by default in run_tests.sh)"]
