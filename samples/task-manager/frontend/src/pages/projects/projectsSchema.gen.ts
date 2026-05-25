@@ -1,15 +1,15 @@
 // AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
 import type { ModelDef } from '@juicemantics/veloiq-ui';
 
-export const projectsModels: ModelDef[] = [
+export const projectsModelsGen: ModelDef[] = [
   {
     name: "Project",
     label: "Project",
     resource: "project",
     pkField: "id",
     fields: [
-      { key: "name", label: "Name", type: "string" },
-      { key: "description", label: "Description", type: "string", showViewType: "read-only-markdown", editViewType: "editable-markdown" },
+      { key: "name", label: "Name", type: "string", required: true },
+      { key: "description", label: "Description", type: "string" },
       { key: "status", label: "Status", type: "string" },
       { key: "owner_id", label: "Owner Id", type: "number", reference: "team_member" },
       { key: "created_at", label: "Created At", type: "datetime" },
@@ -42,4 +42,4 @@ export const projectsModels: ModelDef[] = [
   },
 ];
 
-export default projectsModels;
+export default projectsModelsGen;

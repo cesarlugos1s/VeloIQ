@@ -188,9 +188,11 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         # Append any named queries defined in this module's queries.py.
         named_query_lines = _collect_named_query_ts_lines(mod_dir, module_name)
         schema_lines += named_query_lines
-        schema_lines += ["];", "", f"export default {module_name}Models;", ""]
+        schema_lines += ["];", "", f"export default {module_name}ModelsGen;", ""]
         (out_dir / f"{module_name}Schema.gen.ts").write_text("\n".join(schema_lines))
         print(f"  ✅ {module_name}Schema.gen.ts")
+        _write_manual_schema_if_missing(module_name, out_dir)
+        _write_merged_schema(module_name, out_dir)
 
         generated.append(module_name)
 
@@ -274,7 +276,7 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
         "import type { ModelDef } from '@juicemantics/veloiq-ui';",
         "",
-        f"export const {module_name}Models: ModelDef[] = [",
+        f"export const {module_name}ModelsGen: ModelDef[] = [",
     ]
 
     for model in models:
@@ -442,6 +444,146 @@ def _col_to_ts_type(col, field_key: str = "") -> str:
 
 
 # ---------------------------------------------------------------------------
+# Manual schema sidecar + merged schema writers
+# ---------------------------------------------------------------------------
+
+_SCHEMA_TYPE_BLOCK = """\
+import type { ModelDef } from '@juicemantics/veloiq-ui';
+
+type FieldDef = ModelDef['fields'][number];
+type RelationDef = NonNullable<ModelDef['relations']>[number];
+type FieldOverride = Partial<FieldDef> & Pick<FieldDef, 'key'>;
+type RelationOverride = Partial<RelationDef> & ({ resource: string } | { label: string });
+type ModelOverride = Partial<Omit<ModelDef, 'fields' | 'relations'>> & {
+    name: string;
+    fields?: FieldOverride[];
+    relations?: RelationOverride[];
+};\
+"""
+
+_MERGE_FUNCTIONS_BLOCK = """\
+const defaultField = (override: FieldOverride): FieldDef => ({
+    key: override.key,
+    label: override.label ?? override.key,
+    type: override.type ?? 'string',
+    ...override,
+});
+
+const mergeFields = (base: FieldDef[], overrides?: FieldOverride[]): FieldDef[] => {
+    if (!overrides || overrides.length === 0) return base;
+    const merged = [...base];
+    for (const override of overrides) {
+        const idx = merged.findIndex((f) => f.key === override.key);
+        if (idx >= 0) {
+            merged[idx] = { ...merged[idx], ...override };
+        } else {
+            merged.push(defaultField(override));
+        }
+    }
+    return merged;
+};
+
+const relationKey = (r: RelationDef | RelationOverride): string | undefined =>
+    'resource' in r && r.resource ? r.resource : r.label;
+
+const mergeRelations = (
+    base: RelationDef[] | undefined,
+    overrides?: RelationOverride[],
+): RelationDef[] | undefined => {
+    if (!overrides || overrides.length === 0) return base;
+    const merged = base ? [...base] : [];
+    for (const override of overrides) {
+        const key = relationKey(override);
+        if (!key) { merged.push(override as RelationDef); continue; }
+        const idx = merged.findIndex((r) => relationKey(r) === key);
+        if (idx >= 0) {
+            merged[idx] = { ...merged[idx], ...override } as RelationDef;
+        } else {
+            merged.push(override as RelationDef);
+        }
+    }
+    return merged;
+};
+
+const mergeModel = (base: ModelDef, override?: ModelOverride): ModelDef => {
+    if (!override) return base;
+    return {
+        ...base,
+        ...override,
+        fields: mergeFields(base.fields, override.fields),
+        relations: mergeRelations(base.relations, override.relations),
+    };
+};\
+"""
+
+
+def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
+    manual_file = out_dir / f"{module_name}Schema.manual.ts"
+    if manual_file.exists():
+        return
+    lines = [
+        _SCHEMA_TYPE_BLOCK,
+        "",
+        f"export const {module_name}ManualOverrides: ModelOverride[] = [",
+        "    // Add field/relation/model overrides here. This file is never overwritten by veloiq generate.",
+        "    // Examples:",
+        "    // {",
+        "    //     name: 'MyModel',",
+        "    //     fields: [",
+        "    //         // Override an existing field's view type:",
+        "    //         { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },",
+        "    //         // Add a new virtual field:",
+        "    //         { key: 'custom_field', label: 'Custom', type: 'string' },",
+        "    //     ],",
+        "    //     relations: [",
+        "    //         // Override a relation's label:",
+        "    //         { resource: 'task', label: 'Project Tasks' },",
+        "    //     ],",
+        "    // },",
+        "];",
+        "",
+    ]
+    manual_file.write_text("\n".join(lines))
+    print(f"  ✅ {module_name}Schema.manual.ts (created)")
+
+
+def _write_merged_schema(module_name: str, out_dir: Path) -> None:
+    merged_file = out_dir / f"{module_name}Schema.ts"
+    lines = [
+        "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
+        f"import {{ {module_name}ModelsGen }} from './{module_name}Schema.gen';",
+        f"import {{ {module_name}ManualOverrides }} from './{module_name}Schema.manual';",
+        _SCHEMA_TYPE_BLOCK,
+        "",
+        _MERGE_FUNCTIONS_BLOCK,
+        "",
+        f"const baseNames = new Set({module_name}ModelsGen.map((m) => m.name));",
+        f"const extraModels: ModelDef[] = {module_name}ManualOverrides",
+        "    .filter((o) => !baseNames.has(o.name))",
+        "    .map((o) => ({",
+        "        name: o.name,",
+        "        label: o.label ?? o.name,",
+        "        resource: o.resource ?? o.name.toLowerCase(),",
+        "        pkField: o.pkField ?? 'id',",
+        "        fields: mergeFields([], o.fields),",
+        "        relations: mergeRelations(undefined, o.relations),",
+        "        ...o,",
+        "    }));",
+        "",
+        f"export const {module_name}Models: ModelDef[] = [",
+        f"    ...{module_name}ModelsGen.map((m) =>",
+        f"        mergeModel(m, {module_name}ManualOverrides.find((o) => o.name === m.name))",
+        "    ),",
+        "    ...extraModels,",
+        "];",
+        "",
+        f"export default {module_name}Models;",
+        "",
+    ]
+    merged_file.write_text("\n".join(lines))
+    print(f"  ✅ {module_name}Schema.ts (merged)")
+
+
 # allModels.gen.ts writer
 # ---------------------------------------------------------------------------
 
@@ -454,7 +596,7 @@ def _write_all_models(modules: list[str], frontend_src: Path) -> None:
         "",
     ]
     for mod in valid:
-        lines.append(f'import {{ {mod}Models }} from "./pages/{mod}/{mod}Schema.gen";')
+        lines.append(f'import {{ {mod}Models }} from "./pages/{mod}/{mod}Schema";')
     lines += [
         "",
         "export const allModuleRegistrations: Array<{ moduleName: string; models: ModelDef[] }> = [",

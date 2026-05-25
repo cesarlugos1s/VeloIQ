@@ -1,7 +1,7 @@
 // AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
 import type { ModelDef } from '@juicemantics/veloiq-ui';
 
-export const teamModels: ModelDef[] = [
+export const teamModelsGen: ModelDef[] = [
   {
     name: "TeamMember",
     label: "Team Member",
@@ -9,10 +9,10 @@ export const teamModels: ModelDef[] = [
     pkField: "id",
     listViewType: "gallery",
     fields: [
-      { key: "name", label: "Name", type: "string" },
-      { key: "email", label: "Email", type: "string", showViewType: "read-only-email", editViewType: "editable-email" },
+      { key: "name", label: "Name", type: "string", required: true },
+      { key: "email", label: "Email", type: "string", required: true },
       { key: "role", label: "Role", type: "string" },
-      { key: "phone", label: "Phone", type: "string", showViewType: "read-only-phone", editViewType: "editable-phone" },
+      { key: "phone", label: "Phone", type: "string" },
       { key: "avatar_url", label: "Avatar Url", type: "image_url" },
       { key: "created_at", label: "Created At", type: "datetime" },
       { key: "updated_at", label: "Updated At", type: "datetime" },
@@ -24,4 +24,4 @@ export const teamModels: ModelDef[] = [
   },
 ];
 
-export default teamModels;
+export default teamModelsGen;

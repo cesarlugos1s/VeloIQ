@@ -1,9 +1,9 @@
 // AUTO-GENERATED — do not edit. Run `veloiq generate` to update.
 import type { ModelDef } from '@juicemantics/veloiq-ui';
 
-import { projectsModels } from "./pages/projects/projectsSchema.gen";
-import { tasksModels } from "./pages/tasks/tasksSchema.gen";
-import { teamModels } from "./pages/team/teamSchema.gen";
+import { projectsModels } from "./pages/projects/projectsSchema";
+import { tasksModels } from "./pages/tasks/tasksSchema";
+import { teamModels } from "./pages/team/teamSchema";
 
 export const allModuleRegistrations: Array<{ moduleName: string; models: ModelDef[] }> = [
   { moduleName: "projects", models: projectsModels ?? [] },
