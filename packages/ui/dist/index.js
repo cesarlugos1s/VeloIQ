@@ -4261,7 +4261,7 @@ var useViewSettings = () => {
 };
 var synthesizeConfigRows = (model, mode = "show") => {
   const formType = mode === "show" ? "show" : "edit";
-  return model.fields.filter((f) => !f.isPk).map((field, idx) => ({
+  const fieldRows = model.fields.filter((f) => !f.isPk).map((field, idx) => ({
     view_type: "PrimaryView",
     subject_name: model.name,
     relation_name: "",
@@ -4278,6 +4278,33 @@ var synthesizeConfigRows = (model, mode = "show") => {
     attribute_or_relation_type: "attribute",
     name: field.key
   }));
+  const { embedded, tabbed } = splitRelations(model.relations);
+  const orderedRelations = [...embedded, ...tabbed];
+  const relationRows = orderedRelations.map((rel, idx) => {
+    const relLabel = rel.label || rel.relationName || rel.resource || "";
+    const relKey = rel.relationName || rel.resource || String(idx);
+    const relName = rel.relationName || rel.resource || "";
+    return {
+      view_type: "PrimaryView",
+      subject_name: model.name,
+      relation_name: relName,
+      object_name: rel.resource || "",
+      form_type: formType,
+      section: relLabel,
+      section_id: `rel::${relKey}`,
+      section_grid_row: idx + 2,
+      // 1-based; fields section occupies row 1
+      section_grid_col: 1,
+      tab_name: null,
+      row: 1,
+      column: 1,
+      show_label: false,
+      // section card title already shows the relation name
+      attribute_or_relation_type: "relation",
+      name: relName
+    };
+  });
+  return [...fieldRows, ...relationRows];
 };
 var filterConfigRowsForMode = (rows, mode) => {
   if (rows.length === 0) return rows;

@@ -132,11 +132,13 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
     return { settings, loading };
 };
 
-// Builds a minimal single-section "Details" layout from a model's fields.
+// Builds a default layout from a model's fields and relations.
+// Fields go in a single "Details" section; each relation gets its own section cell.
 // Used when no explicit ViewConfigRow config exists so the grid always renders.
 export const synthesizeConfigRows = (model: ModelDef, mode: "show" | "edit" = "show"): ViewConfigRow[] => {
     const formType = mode === "show" ? "show" : "edit";
-    return model.fields
+
+    const fieldRows: ViewConfigRow[] = model.fields
         .filter((f) => !f.isPk)
         .map((field, idx) => ({
             view_type: "PrimaryView",
@@ -155,6 +157,36 @@ export const synthesizeConfigRows = (model: ModelDef, mode: "show" | "edit" = "s
             attribute_or_relation_type: "attribute" as const,
             name: field.key,
         }));
+
+    // Each relation gets its own section cell, stacked below the fields.
+    // Backward (reverse) relations appear first since they were previously shown in Details;
+    // forward (tabbed) relations follow since they were previously shown in their own tabs.
+    const { embedded, tabbed } = splitRelations(model.relations);
+    const orderedRelations = [...embedded, ...tabbed];
+    const relationRows: ViewConfigRow[] = orderedRelations.map((rel, idx) => {
+        const relLabel = rel.label || rel.relationName || rel.resource || "";
+        const relKey = rel.relationName || rel.resource || String(idx);
+        const relName = rel.relationName || rel.resource || "";
+        return {
+            view_type: "PrimaryView",
+            subject_name: model.name,
+            relation_name: relName,
+            object_name: rel.resource || "",
+            form_type: formType,
+            section: relLabel,
+            section_id: `rel::${relKey}`,
+            section_grid_row: idx + 2, // 1-based; fields section occupies row 1
+            section_grid_col: 1,
+            tab_name: null,
+            row: 1,
+            column: 1,
+            show_label: false, // section card title already shows the relation name
+            attribute_or_relation_type: "relation" as const,
+            name: relName,
+        };
+    });
+
+    return [...fieldRows, ...relationRows];
 };
 
 export const filterConfigRowsForMode = (rows: ViewConfigRow[], mode: "show" | "edit") => {

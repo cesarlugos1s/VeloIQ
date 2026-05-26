@@ -32,3 +32,5 @@ Thumbs.db
 .env.local
 backend/tests/results.xml
 backend/tests/results.html
+/tests/results.html
+/tests/results.xml
