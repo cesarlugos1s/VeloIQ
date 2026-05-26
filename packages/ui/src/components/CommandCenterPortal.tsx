@@ -155,6 +155,10 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
     const searchRef = useRef<any>(null);
     const [query, setQuery] = useState("");
     const [activeIdx, setActiveIdx] = useState(-1);
+    const [colW, setColW] = useState<[number, number]>([220, 220]);
+    const colWRef = useRef<[number, number]>([220, 220]);
+    colWRef.current = colW;
+    const dragRef = useRef<{ colIdx: number; startX: number; startW: number } | null>(null);
 
     const { results: backendResults, searching, search, clear } = useRecordSearch();
     const { groups: pinnedGroups, loading: pinnedLoading, load: loadPinned } = usePinnedGroups();
@@ -284,12 +288,19 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
         } else if (!query.trim()) {
             for (const item of pinnedItems) ids.push(`pin-${item.resource}-${item.id}`);
             for (const item of recentItems) ids.push(`recent-${item.resource}-${item.id}`);
+            for (const module of modules) {
+                const children = navConfig.length > 0
+                    ? sortItemsByNavConfig(module.children || [], navConfig)
+                    : (module.children || []);
+                for (const child of children)
+                    ids.push(`mod-${String(child.key || child.name || "")}`);
+            }
         } else {
             for (const m of backendResults)
                 for (const r of m.records) ids.push(`record-${m.resource}-${r.id}`);
         }
         return ids;
-    }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults]);
+    }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults, modules, navConfig]);
 
     navItemIdsRef.current = navItemIds;
     activeIdxRef.current = activeIdx;
@@ -301,6 +312,29 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
         const id = navItemIds[activeIdx];
         if (id) document.querySelector(`[data-navid="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }, [activeIdx, navItemIds]);
+
+    const onDividerMouseDown = (colIdx: number) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        const startW = colWRef.current[colIdx];
+        dragRef.current = { colIdx, startX: e.clientX, startW };
+        const MIN = 140;
+        const onMove = (ev: MouseEvent) => {
+            if (!dragRef.current) return;
+            const dx = ev.clientX - dragRef.current.startX;
+            setColW((prev) => {
+                const next = [...prev] as [number, number];
+                next[dragRef.current!.colIdx] = Math.max(MIN, dragRef.current!.startW + dx);
+                return next;
+            });
+        };
+        const onUp = () => {
+            dragRef.current = null;
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+    };
 
     if (!open) return null;
 
@@ -327,6 +361,27 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
     });
 
     const isActive = (navId: string) => navItemIds[activeIdx] === navId;
+
+    const ColDivider = ({ colIdx }: { colIdx: number }) => (
+        <div
+            onMouseDown={onDividerMouseDown(colIdx)}
+            style={{
+                width: 10, flexShrink: 0, alignSelf: "stretch",
+                cursor: "col-resize", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                zIndex: 1,
+            }}
+        >
+            <div style={{
+                width: 2, height: 40, borderRadius: 2,
+                background: "rgba(255,255,255,0.12)",
+                transition: "background 0.15s",
+            }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.3)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.12)"; }}
+            />
+        </div>
+    );
 
     const hasNoResults =
         !parsedCommand && modules.length === 0 && backendResults.length === 0 &&
@@ -443,11 +498,11 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
 
                 {/* ── No-query state: Pinned + Recent + Modules side by side ── */}
                 {showNoQuery && (
-                    <div style={{ display: "flex", gap: 14, width: "100%", marginBottom: 16, alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", width: "100%", marginBottom: 16, alignItems: "flex-start" }}>
 
                         {/* Pinned */}
                         {(pinnedItems.length > 0 || pinnedLoading) && (
-                            <div style={{ ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }}>
+                            <div style={{ ...SECTION_CARD_STYLE, width: colW[0], flexShrink: 0 }}>
                                 <div style={SECTION_HEADER_STYLE}>
                                     <PushpinFilled style={{ color: "#faad14", fontSize: 12 }} />
                                     <Typography.Text style={SECTION_LABEL_STYLE}>Pinned</Typography.Text>
@@ -479,9 +534,14 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                             </div>
                         )}
 
+                        {/* Divider: Pinned → next column */}
+                        {(pinnedItems.length > 0 || pinnedLoading) && (recentItems.length > 0 || modules.length > 0) && (
+                            <ColDivider colIdx={0} />
+                        )}
+
                         {/* Recent */}
                         {recentItems.length > 0 && (
-                            <div style={{ ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }}>
+                            <div style={{ ...SECTION_CARD_STYLE, width: colW[1], flexShrink: 0 }}>
                                 <div style={SECTION_HEADER_STYLE}>
                                     <ClockCircleOutlined style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }} />
                                     <Typography.Text style={SECTION_LABEL_STYLE}>Recent</Typography.Text>
@@ -515,9 +575,14 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                             </div>
                         )}
 
+                        {/* Divider: Recent → Modules */}
+                        {recentItems.length > 0 && modules.length > 0 && (
+                            <ColDivider colIdx={1} />
+                        )}
+
                         {/* Modules & Models */}
                         {modules.length > 0 && (
-                            <div style={{ ...SECTION_CARD_STYLE, flex: 2, minWidth: 0 }}>
+                            <div style={{ ...SECTION_CARD_STYLE, flex: 1, minWidth: 200 }}>
                                 <div style={SECTION_HEADER_STYLE}>
                                     <AppstoreOutlined style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }} />
                                     <Typography.Text style={SECTION_LABEL_STYLE}>Modules</Typography.Text>
@@ -550,10 +615,12 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                                         <React.Fragment key={childKey}>
                                                             {idx > 0 && <Divider style={{ margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" }} />}
                                                             <div
+                                                                data-navid={`mod-${childKey}`}
+                                                                data-active={isActive(`mod-${childKey}`) ? "true" : undefined}
                                                                 role="button" tabIndex={0}
                                                                 onClick={() => { go({ to: child.route || `/${childKey}` }); onClose(); }}
                                                                 onKeyDown={(e) => { if (e.key === "Enter") { go({ to: child.route || `/${childKey}` }); onClose(); } }}
-                                                                style={{ ...ITEM_BASE_STYLE, paddingLeft: 18 }}
+                                                                style={{ ...ITEM_BASE_STYLE, paddingLeft: 18, ...(isActive(`mod-${childKey}`) ? ACTIVE_ITEM_STYLE : {}) }}
                                                                 {...makeHoverHandlers(childTone.solid)}
                                                             >
                                                                 <span style={{ color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }}>

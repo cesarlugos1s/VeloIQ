@@ -894,6 +894,10 @@ var CommandCenterPortal = ({
   const searchRef = React5.useRef(null);
   const [query, setQuery] = React5.useState("");
   const [activeIdx, setActiveIdx] = React5.useState(-1);
+  const [colW, setColW] = React5.useState([220, 220]);
+  const colWRef = React5.useRef([220, 220]);
+  colWRef.current = colW;
+  const dragRef = React5.useRef(null);
   const { results: backendResults, searching, search, clear } = useRecordSearch();
   const { groups: pinnedGroups, loading: pinnedLoading, load: loadPinned } = usePinnedGroups();
   const { data: recentData, reload: reloadRecent } = useRecentActivity(30);
@@ -1006,12 +1010,17 @@ var CommandCenterPortal = ({
     } else if (!query.trim()) {
       for (const item of pinnedItems) ids.push(`pin-${item.resource}-${item.id}`);
       for (const item of recentItems) ids.push(`recent-${item.resource}-${item.id}`);
+      for (const module of modules) {
+        const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
+        for (const child of children)
+          ids.push(`mod-${String(child.key || child.name || "")}`);
+      }
     } else {
       for (const m of backendResults)
         for (const r of m.records) ids.push(`record-${m.resource}-${r.id}`);
     }
     return ids;
-  }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults]);
+  }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults, modules, navConfig]);
   navItemIdsRef.current = navItemIds;
   activeIdxRef.current = activeIdx;
   React5.useEffect(() => {
@@ -1022,6 +1031,28 @@ var CommandCenterPortal = ({
     const id = navItemIds[activeIdx];
     if (id) document.querySelector(`[data-navid="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeIdx, navItemIds]);
+  const onDividerMouseDown = (colIdx) => (e) => {
+    e.preventDefault();
+    const startW = colWRef.current[colIdx];
+    dragRef.current = { colIdx, startX: e.clientX, startW };
+    const MIN = 140;
+    const onMove = (ev) => {
+      if (!dragRef.current) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      setColW((prev) => {
+        const next = [...prev];
+        next[dragRef.current.colIdx] = Math.max(MIN, dragRef.current.startW + dx);
+        return next;
+      });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
   if (!open) return null;
   const getItemIcon = (key, label, isModule) => {
     const entry = getNavEntry(navConfig, key);
@@ -1042,6 +1073,40 @@ var CommandCenterPortal = ({
     }
   });
   const isActive = (navId) => navItemIds[activeIdx] === navId;
+  const ColDivider = ({ colIdx }) => /* @__PURE__ */ jsxRuntime.jsx(
+    "div",
+    {
+      onMouseDown: onDividerMouseDown(colIdx),
+      style: {
+        width: 10,
+        flexShrink: 0,
+        alignSelf: "stretch",
+        cursor: "col-resize",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1
+      },
+      children: /* @__PURE__ */ jsxRuntime.jsx(
+        "div",
+        {
+          style: {
+            width: 2,
+            height: 40,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.12)",
+            transition: "background 0.15s"
+          },
+          onMouseEnter: (e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.3)";
+          },
+          onMouseLeave: (e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+          }
+        }
+      )
+    }
+  );
   const hasNoResults = !parsedCommand && modules.length === 0 && backendResults.length === 0 && !searching && query.trim().length > 0;
   const renderRow = (navId, toneColor, onClick, left, right) => {
     const active = isActive(navId);
@@ -1142,8 +1207,8 @@ var CommandCenterPortal = ({
           ),
           navItemIds.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 5, display: "block", textAlign: "center" }, children: "\u2191\u2193 navigate \xB7 Enter to open" })
         ] }),
-        showNoQuery && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 14, width: "100%", marginBottom: 16, alignItems: "flex-start" }, children: [
-          (pinnedItems.length > 0 || pinnedLoading) && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+        showNoQuery && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", width: "100%", marginBottom: 16, alignItems: "flex-start" }, children: [
+          (pinnedItems.length > 0 || pinnedLoading) && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, width: colW[0], flexShrink: 0 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
               /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14", fontSize: 12 } }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Pinned" }),
@@ -1166,7 +1231,8 @@ var CommandCenterPortal = ({
               )
             ] }, `pin-${item.resource}-${item.id}`)) })
           ] }),
-          recentItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+          (pinnedItems.length > 0 || pinnedLoading) && (recentItems.length > 0 || modules.length > 0) && /* @__PURE__ */ jsxRuntime.jsx(ColDivider, { colIdx: 0 }),
+          recentItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, width: colW[1], flexShrink: 0 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
               /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ClockCircleOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Recent" })
@@ -1189,7 +1255,8 @@ var CommandCenterPortal = ({
               )
             ] }, `recent-${item.resource}-${item.id}`)) })
           ] }),
-          modules.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 2, minWidth: 0 }, children: [
+          recentItems.length > 0 && modules.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(ColDivider, { colIdx: 1 }),
+          modules.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 200 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
               /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.AppstoreOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Modules" })
@@ -1215,6 +1282,8 @@ var CommandCenterPortal = ({
                     /* @__PURE__ */ jsxRuntime.jsxs(
                       "div",
                       {
+                        "data-navid": `mod-${childKey}`,
+                        "data-active": isActive(`mod-${childKey}`) ? "true" : void 0,
                         role: "button",
                         tabIndex: 0,
                         onClick: () => {
@@ -1227,7 +1296,7 @@ var CommandCenterPortal = ({
                             onClose();
                           }
                         },
-                        style: { ...ITEM_BASE_STYLE, paddingLeft: 18 },
+                        style: { ...ITEM_BASE_STYLE, paddingLeft: 18, ...isActive(`mod-${childKey}`) ? ACTIVE_ITEM_STYLE : {} },
                         ...makeHoverHandlers(childTone.solid),
                         children: [
                           /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
