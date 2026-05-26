@@ -301,6 +301,57 @@
         }
       }
     },
+    "project": {
+      "current_view_name": "default view",
+      "current_view_names": [
+        "default view"
+      ],
+      "views": {
+        "default view": {
+          "EditActions": {
+            "custom_view_name": "default view",
+            "showActions": true,
+            "showActionsConfigured": true,
+            "showCreate": true
+          },
+          "EditLayoutGrid": {
+            "cells": [
+              {
+                "col": 0,
+                "html_style": "",
+                "id": "details",
+                "max_height": null,
+                "max_width": "900px",
+                "min_height": null,
+                "min_width": null,
+                "row": 0
+              }
+            ],
+            "custom_view_name": "default view"
+          },
+          "ShowActions": {
+            "custom_view_name": "default view",
+            "showActions": false,
+            "showCreate": true
+          },
+          "ShowLayoutGrid": {
+            "cells": [
+              {
+                "col": 0,
+                "html_style": "",
+                "id": "details",
+                "max_height": null,
+                "max_width": "800px",
+                "min_height": null,
+                "min_width": null,
+                "row": 0
+              }
+            ],
+            "custom_view_name": "default view"
+          }
+        }
+      }
+    },
     "projects_with_tasks_and_members": {
       "current_view_name": "default view",
       "current_view_names": [
@@ -321,6 +372,27 @@
               "actual_work_hours"
             ],
             "summaryFn": "sum"
+          },
+          "EditActions": {
+            "custom_view_name": "default view",
+            "showActions": true,
+            "showActionsConfigured": true,
+            "showCreate": true
+          },
+          "EditLayoutGrid": {
+            "cells": [
+              {
+                "col": 0,
+                "html_style": "",
+                "id": "details",
+                "max_height": null,
+                "max_width": "800px",
+                "min_height": null,
+                "min_width": null,
+                "row": 0
+              }
+            ],
+            "custom_view_name": "default view"
           }
         }
       }

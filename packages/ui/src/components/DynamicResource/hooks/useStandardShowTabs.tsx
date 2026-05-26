@@ -15,6 +15,7 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
+    synthesizeConfigRows,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
     buildConfiguredRelationDisplayKeys,
@@ -44,6 +45,7 @@ const emptyLayoutConfig = {
     enterConfigMode: () => {},
     saveLayout: () => {},
     cancelLayout: () => {},
+    hasConfig: false,
 };
 
 export const useStandardShowTabs = (
@@ -93,7 +95,8 @@ export const useStandardShowTabs = (
     };
 
     const modelResource = resolveResourcePath(model.resource || model.name, allModels);
-    const configRows = filterConfigRowsForMode(showConfigRows, "show");
+    const rawConfigRows = filterConfigRowsForMode(showConfigRows, "show");
+    const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "show");
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
     const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);
@@ -344,7 +347,7 @@ export const useStandardShowTabs = (
         };
     });
 
-    const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout };
+    const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
 
     const items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> = [detailsTab];
     items.push(...customConfigTabs);

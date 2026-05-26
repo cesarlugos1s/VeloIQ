@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Divider, Modal, Popover, Switch, Tooltip, message } from "antd";
-import { ApartmentOutlined, PushpinFilled, PushpinOutlined, SaveFilled, SaveOutlined, SettingOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, ApartmentOutlined, PushpinFilled, PushpinOutlined, SaveFilled, SaveOutlined, SettingOutlined } from "@ant-design/icons";
 import { useApiUrl } from "@refinedev/core";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 import type { ModelDef } from "../types";
@@ -20,6 +20,7 @@ export const useShowActionsPreferences = (
     record?: any,
     saveButtonProps?: any,
     configureLayoutButtonRef?: { current: React.ReactNode },
+    saveLayoutRef?: { current: () => void },
 ) => {
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -89,6 +90,8 @@ export const useShowActionsPreferences = (
         };
     }, [apiUrl, allModelsList, model.name, model.resource]);
 
+    const configureLayoutRow = configureLayoutButtonRef?.current;
+
     const actionsSettingsContent = (
         <div style={{ display: "grid", gap: 8, minWidth: 200 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -113,11 +116,20 @@ export const useShowActionsPreferences = (
                     size="small"
                 />
             </div>
+            {configureLayoutRow && (
+                <>
+                    <Divider style={{ margin: "4px 0" }} />
+                    {configureLayoutRow}
+                </>
+            )}
             <Divider style={{ margin: "4px 0" }} />
             <Button
                 size="small"
                 icon={<SaveOutlined />}
-                onClick={saveActionsPreferences}
+                onClick={() => {
+                    saveLayoutRef?.current?.();
+                    saveActionsPreferences();
+                }}
                 loading={isSavingActionsPrefs}
                 block
             >
@@ -171,7 +183,6 @@ export const useShowActionsPreferences = (
                 )}
             </Modal>
             {renderIconOnlyButtons(defaultButtons)}
-            {configureLayoutButtonRef?.current}
             {saveButtonProps && (
                 <Tooltip title={_("Save")}>
                     <Button {...saveButtonProps} type="primary" icon={<SaveFilled />} hideText />

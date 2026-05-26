@@ -22,6 +22,7 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
+    synthesizeConfigRows,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
     buildConfiguredRelationDisplayKeys,
@@ -306,10 +307,11 @@ export const DynamicEdit: React.FC<{
         margin: 0,
         lineHeight: 1.0,
     };
-    const configRows = filterConfigRowsForMode(
+    const rawConfigRows = filterConfigRowsForMode(
         editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
         "edit"
     );
+    const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "edit");
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
     const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);
@@ -352,11 +354,28 @@ export const DynamicEdit: React.FC<{
                     size="small"
                 />
             </div>
+            {hasConfig && (
+                <>
+                    <Divider style={{ margin: "4px 0" }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                        <span>{_("Configure page layout")}</span>
+                        <Button
+                            size="small"
+                            icon={<AppstoreOutlined />}
+                            type={isConfiguring ? "primary" : "default"}
+                            onClick={isConfiguring ? cancelLayout : enterConfigMode}
+                        />
+                    </div>
+                </>
+            )}
             <Divider style={{ margin: "4px 0" }} />
             <Button
                 size="small"
                 icon={<SaveOutlined />}
-                onClick={saveActionsPreferences}
+                onClick={() => {
+                    saveLayout();
+                    saveActionsPreferences();
+                }}
                 loading={isSavingActionsPrefs}
                 block
             >
@@ -555,24 +574,6 @@ export const DynamicEdit: React.FC<{
         })),
         [activeTabKey, items]
     );
-    const configureLayoutButton = isConfiguring ? (
-        <Tooltip title={_("Cancel layout changes")}>
-            <Button size="small" icon={<AppstoreOutlined />} type="primary" onClick={cancelLayout} />
-        </Tooltip>
-    ) : (
-        <Tooltip title={_("Configure page layout")}>
-            <Button size="small" icon={<AppstoreOutlined />} onClick={enterConfigMode} />
-        </Tooltip>
-    );
-
-    const wrappedEditSaveButtonProps = {
-        ...(saveButtonProps as any),
-        onClick: (e: React.MouseEvent) => {
-            saveLayout();
-            (saveButtonProps as any)?.onClick?.(e);
-        },
-    };
-
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
             {extraHeaderButtons}
@@ -607,7 +608,6 @@ export const DynamicEdit: React.FC<{
                 <Button size="small" icon={<SettingOutlined />} />
             </Popover>
             {renderIconOnlyButtons(defaultButtons)}
-            {configureLayoutButton}
             {recordId != null && (
                 <Tooltip title={_("Delete")}>
                     <span>
@@ -621,7 +621,15 @@ export const DynamicEdit: React.FC<{
                 </Tooltip>
             )}
             <Tooltip title={_("Save")}>
-                <Button {...wrappedEditSaveButtonProps} type="primary" icon={<SaveFilled />} />
+                <Button
+                    {...(saveButtonProps as any)}
+                    type="primary"
+                    icon={<SaveFilled />}
+                    onClick={(e: React.MouseEvent) => {
+                        saveLayout();
+                        (saveButtonProps as any)?.onClick?.(e);
+                    }}
+                />
             </Tooltip>
         </>
     );

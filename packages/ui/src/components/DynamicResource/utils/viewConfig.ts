@@ -132,6 +132,31 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
     return { settings, loading };
 };
 
+// Builds a minimal single-section "Details" layout from a model's fields.
+// Used when no explicit ViewConfigRow config exists so the grid always renders.
+export const synthesizeConfigRows = (model: ModelDef, mode: "show" | "edit" = "show"): ViewConfigRow[] => {
+    const formType = mode === "show" ? "show" : "edit";
+    return model.fields
+        .filter((f) => !f.isPk)
+        .map((field, idx) => ({
+            view_type: "PrimaryView",
+            subject_name: model.name,
+            relation_name: "",
+            object_name: field.key,
+            form_type: formType,
+            section: DETAILS_TAB_NAME,
+            section_id: "details",
+            section_grid_row: 1,
+            section_grid_col: 1,
+            tab_name: null,
+            row: idx + 1,
+            column: 1,
+            show_label: true,
+            attribute_or_relation_type: "attribute" as const,
+            name: field.key,
+        }));
+};
+
 export const filterConfigRowsForMode = (rows: ViewConfigRow[], mode: "show" | "edit") => {
     if (rows.length === 0) return rows;
     const allowedTypes = mode === "show"

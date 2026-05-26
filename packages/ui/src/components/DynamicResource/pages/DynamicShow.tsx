@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Button, Spin, Tabs, Tooltip } from "antd";
+import { Button, Spin, Tabs } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import { StandardShow } from "../../StandardCrud";
 import { useModelTone } from "../../../utils/modelTone";
@@ -47,7 +47,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         },
     } : saveButtonProps;
 
-    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef);
+    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
     const [activeTabKey, setActiveTabKey] = useState("details");
     const { tabs: items, layoutConfig } = useStandardShowTabs(
         model,
@@ -57,17 +57,19 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         { formProps: showFormProps, effectiveFields },
     );
 
-    // Update refs during render so headerButtons always reads the latest values.
+    // Update refs during render so the Actions popover always reads the latest values.
     saveLayoutRef.current = layoutConfig.saveLayout;
-    configureLayoutButtonRef.current = layoutConfig.isConfiguring ? (
-        <Tooltip title={_("Cancel layout changes")}>
-            <Button size="small" icon={<AppstoreOutlined />} type="primary" onClick={layoutConfig.cancelLayout} />
-        </Tooltip>
-    ) : (
-        <Tooltip title={_("Configure page layout")}>
-            <Button size="small" icon={<AppstoreOutlined />} onClick={layoutConfig.enterConfigMode} />
-        </Tooltip>
-    );
+    configureLayoutButtonRef.current = layoutConfig.hasConfig ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span>{_("Configure page layout")}</span>
+            <Button
+                size="small"
+                icon={<AppstoreOutlined />}
+                type={layoutConfig.isConfiguring ? "primary" : "default"}
+                onClick={layoutConfig.isConfiguring ? layoutConfig.cancelLayout : layoutConfig.enterConfigMode}
+            />
+        </div>
+    ) : null;
 
     useEffect(() => {
         if (!items.find((item) => item.key === activeTabKey)) {
