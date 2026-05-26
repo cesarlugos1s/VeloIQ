@@ -1,6 +1,6 @@
 'use strict';
 
-var React8 = require('react');
+var React5 = require('react');
 var antd$1 = require('@refinedev/antd');
 var core = require('@refinedev/core');
 var antd = require('antd');
@@ -9,7 +9,7 @@ var jsxRuntime = require('react/jsx-runtime');
 var reactRouterDom = require('react-router-dom');
 var reactDom = require('react-dom');
 var dayjs8 = require('dayjs');
-var relativeTime = require('dayjs/plugin/relativeTime');
+var relativeTime2 = require('dayjs/plugin/relativeTime');
 var axios = require('axios');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
@@ -32,10 +32,10 @@ function _interopNamespace(e) {
   return Object.freeze(n);
 }
 
-var React8__default = /*#__PURE__*/_interopDefault(React8);
+var React5__default = /*#__PURE__*/_interopDefault(React5);
 var AntDIcons2__namespace = /*#__PURE__*/_interopNamespace(AntDIcons2);
 var dayjs8__default = /*#__PURE__*/_interopDefault(dayjs8);
-var relativeTime__default = /*#__PURE__*/_interopDefault(relativeTime);
+var relativeTime2__default = /*#__PURE__*/_interopDefault(relativeTime2);
 var axios__default = /*#__PURE__*/_interopDefault(axios);
 
 var __typeError = (msg) => {
@@ -45,7 +45,7 @@ var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot
 var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
-var ColorModeContext = React8.createContext({ mode: "light", setMode: () => {
+var ColorModeContext = React5.createContext({ mode: "light", setMode: () => {
 } });
 
 // src/utils/modelTone.ts
@@ -248,7 +248,7 @@ var getModelTone = (modelLike, darkMode) => {
   return tones[hashString(seed) % tones.length];
 };
 var useModelTone = (modelLike) => {
-  const { mode } = React8.useContext(ColorModeContext);
+  const { mode } = React5.useContext(ColorModeContext);
   return getModelTone(modelLike, mode === "dark");
 };
 var getContrastingTextColor = (background) => isDarkColor(background) ? "#f8fafc" : "#0f172a";
@@ -297,7 +297,7 @@ function guessIcon(text, isModule = false) {
 function resolveIcon(iconName) {
   const registry = AntDIcons2__namespace;
   const IconCls = registry[iconName];
-  return IconCls ? React8__default.default.createElement(IconCls) : React8__default.default.createElement(registry["TableOutlined"]);
+  return IconCls ? React5__default.default.createElement(IconCls) : React5__default.default.createElement(registry["TableOutlined"]);
 }
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
@@ -380,7 +380,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
 };
 var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = antd.theme.useToken();
-  const { mode } = React8.useContext(ColorModeContext);
+  const { mode } = React5.useContext(ColorModeContext);
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
   const getIcon = (item) => {
@@ -434,11 +434,11 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
       };
     });
   };
-  const sortedMenuItems = React8.useMemo(
+  const sortedMenuItems = React5.useMemo(
     () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
     [menuItems, navConfig]
   );
-  const items = React8.useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
+  const items = React5.useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Layout.Sider,
     {
@@ -515,12 +515,12 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     }
   );
 };
-var AllModelsContext = React8.createContext([]);
+var AllModelsContext = React5.createContext([]);
 var AllModelsProvider = ({
   models,
   children
 }) => /* @__PURE__ */ jsxRuntime.jsx(AllModelsContext.Provider, { value: models, children });
-var useAllModels = () => React8.useContext(AllModelsContext);
+var useAllModels = () => React5.useContext(AllModelsContext);
 
 // src/utils/authenticatedFetch.ts
 var TOKEN_KEY = "jm_access_token";
@@ -539,19 +539,19 @@ var authenticatedFetch = (url, options = {}) => {
 var API_URL = "/api";
 function useRecordSearch() {
   const allSystemModels = useAllModels();
-  const [searchConfig, setSearchConfig] = React8.useState(null);
-  const [results, setResults] = React8.useState([]);
-  const [searching, setSearching] = React8.useState(false);
-  const debounceRef = React8.useRef(null);
-  const abortRef = React8.useRef(null);
-  React8.useEffect(() => {
+  const [searchConfig, setSearchConfig] = React5.useState(null);
+  const [results, setResults] = React5.useState([]);
+  const [searching, setSearching] = React5.useState(false);
+  const debounceRef = React5.useRef(null);
+  const abortRef = React5.useRef(null);
+  React5.useEffect(() => {
     authenticatedFetch(`${API_URL}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((d) => setSearchConfig(d)).catch(() => {
     });
   }, []);
-  const searchableModels = React8.useMemo(() => {
+  const searchableModels = React5.useMemo(() => {
     if (!searchConfig) return [];
     const entityTypesLower = searchConfig.entity_types.map((e) => e.toLowerCase());
     const preferredFields = searchConfig.attribute_types;
@@ -584,7 +584,7 @@ function useRecordSearch() {
       };
     }).filter((m) => m.searchFields.length > 0);
   }, [allSystemModels, searchConfig]);
-  const search = React8.useCallback(
+  const search = React5.useCallback(
     (query) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortRef.current) abortRef.current.abort();
@@ -645,7 +645,7 @@ function useRecordSearch() {
     },
     [searchableModels]
   );
-  const clear = React8.useCallback(() => {
+  const clear = React5.useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (abortRef.current) abortRef.current.abort();
     setResults([]);
@@ -673,10 +673,10 @@ var flattenMenuItems = (items, parentLabel = "") => {
 var GlobalSearch = () => {
   const { menuItems } = core.useMenu();
   const navigate = reactRouterDom.useNavigate();
-  const [searchText, setSearchText] = React8.useState("");
+  const [searchText, setSearchText] = React5.useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
-  const searchableResources = React8.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
-  const resourceResults = React8.useMemo(() => {
+  const searchableResources = React5.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
+  const resourceResults = React5.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
     const matches = searchableResources.filter(
@@ -697,7 +697,7 @@ var GlobalSearch = () => {
       }
     ];
   }, [searchText, searchableResources]);
-  const backendGroups = React8.useMemo(
+  const backendGroups = React5.useMemo(
     () => backendResults.map((result) => ({
       label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: result.modelLabel }),
       options: result.records.map((record) => ({
@@ -708,14 +708,14 @@ var GlobalSearch = () => {
     })),
     [backendResults]
   );
-  const onSearch = React8.useCallback(
+  const onSearch = React5.useCallback(
     (value) => {
       setSearchText(value);
       search(value);
     },
     [search]
   );
-  const onSelect = React8.useCallback(
+  const onSelect = React5.useCallback(
     (value) => {
       const path = value.replace(/^(nav:|record:)/, "");
       navigate(path);
@@ -724,13 +724,13 @@ var GlobalSearch = () => {
     },
     [navigate, clear]
   );
-  const options = React8.useMemo(
+  const options = React5.useMemo(
     () => [...resourceResults, ...backendGroups],
     [resourceResults, backendGroups]
   );
-  const [focused, setFocused] = React8.useState(false);
-  const inputRef = React8.useRef(null);
-  React8.useEffect(() => {
+  const [focused, setFocused] = React5.useState(false);
+  const inputRef = React5.useRef(null);
+  React5.useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -770,6 +770,30 @@ var GlobalSearch = () => {
     }
   ) });
 };
+
+// src/providers/constants.ts
+var API_URL2 = "/api";
+
+// src/pages/dashboard/hooks/useRecentActivity.ts
+function useRecentActivity(days) {
+  const [data, setData] = React5.useState(null);
+  const [loading, setLoading] = React5.useState(true);
+  const load = React5.useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = days !== void 0 ? `?days=${days}` : "";
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/recent-activity${params}`);
+      if (res.ok) setData(await res.json());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [days]);
+  React5.useEffect(() => {
+    load();
+  }, [load]);
+  return { data, loading, reload: load };
+}
 var COMMAND_KEYWORDS = ["list", "show", "create", "new", "add", "edit"];
 function parseCommand(q2) {
   for (const cmd of COMMAND_KEYWORDS) {
@@ -785,13 +809,42 @@ function resolveAntIcon(iconName) {
   const Fallback = AntDIcons2__namespace["TableOutlined"];
   return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
 }
+function relativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 6e4);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString();
+}
+function usePinnedGroups() {
+  const [groups, setGroups] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(false);
+  const load = React5.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      if (res.ok) {
+        const d = await res.json();
+        setGroups(d.groups ?? []);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  return { groups, loading, load };
+}
 var SECTION_HEADER_STYLE = {
-  padding: "10px 16px",
+  padding: "8px 14px",
   background: "rgba(255,255,255,0.06)",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
   display: "flex",
   alignItems: "center",
-  gap: 8
+  gap: 8,
+  flexShrink: 0
 };
 var SECTION_LABEL_STYLE = {
   color: "rgba(255,255,255,0.55)",
@@ -800,26 +853,36 @@ var SECTION_LABEL_STYLE = {
   textTransform: "uppercase",
   letterSpacing: "0.08em"
 };
-var SECTION_WRAPPER_STYLE = {
-  width: "100%",
-  maxWidth: 1200,
-  marginBottom: 24,
+var SECTION_CARD_STYLE = {
   background: "rgba(18,18,32,0.95)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 14,
   overflow: "hidden",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)"
+  boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)",
+  display: "flex",
+  flexDirection: "column"
+};
+var SECTION_WRAPPER_STYLE = {
+  ...SECTION_CARD_STYLE,
+  width: "100%",
+  maxWidth: 1200,
+  marginBottom: 16
 };
 var ITEM_BASE_STYLE = {
   display: "flex",
   alignItems: "center",
   gap: 10,
-  padding: "7px 10px",
+  padding: "6px 10px",
   borderRadius: 8,
   cursor: "pointer",
   transition: "background 0.13s, border-color 0.13s",
   border: "1px solid transparent",
+  background: "transparent",
   outline: "none"
+};
+var ACTIVE_ITEM_STYLE = {
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.3)"
 };
 var CommandCenterPortal = ({
   open,
@@ -828,61 +891,80 @@ var CommandCenterPortal = ({
 }) => {
   const { menuItems } = core.useMenu();
   const go = core.useGo();
-  const searchRef = React8.useRef(null);
-  const [query, setQuery] = React8.useState("");
+  const searchRef = React5.useRef(null);
+  const [query, setQuery] = React5.useState("");
+  const [activeIdx, setActiveIdx] = React5.useState(-1);
   const { results: backendResults, searching, search, clear } = useRecordSearch();
-  React8.useEffect(() => {
+  const { groups: pinnedGroups, loading: pinnedLoading, load: loadPinned } = usePinnedGroups();
+  const { data: recentData, reload: reloadRecent } = useRecentActivity(30);
+  React5.useEffect(() => {
     if (open) {
       setQuery("");
+      setActiveIdx(-1);
       clear();
+      loadPinned();
+      reloadRecent();
       const t = setTimeout(() => searchRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
-  }, [open, clear]);
-  React8.useEffect(() => {
+  }, [open, clear, loadPinned, reloadRecent]);
+  const navItemIdsRef = React5.useRef([]);
+  const activeIdxRef = React5.useRef(-1);
+  React5.useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((prev) => {
+          const len = navItemIdsRef.current.length;
+          return len === 0 ? -1 : Math.min(prev + 1, len - 1);
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((prev) => Math.max(prev - 1, -1));
+      } else if (e.key === "Enter") {
+        const idx = activeIdxRef.current;
+        if (idx >= 0) {
+          e.preventDefault();
+          const id = navItemIdsRef.current[idx];
+          if (id) document.querySelector(`[data-navid="${id}"]`)?.click();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
-  const parsedCommand = React8.useMemo(
-    () => parseCommand(query.toLowerCase().trim()),
-    [query]
-  );
-  React8.useEffect(() => {
+  const parsedCommand = React5.useMemo(() => parseCommand(query.toLowerCase().trim()), [query]);
+  React5.useEffect(() => {
     if (parsedCommand) {
       clear();
     } else {
       search(query.toLowerCase().trim());
     }
   }, [query, parsedCommand, search, clear]);
-  const allModelChildren = React8.useMemo(
+  const allModelChildren = React5.useMemo(
     () => menuItems.flatMap(
-      (m) => (m.children || []).map((c) => ({
-        ...c,
-        moduleLabel: String(m.label || m.name || "")
-      }))
+      (m) => (m.children || []).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
     ),
     [menuItems]
   );
-  const searchPlaceholder = React8.useMemo(() => {
+  const commandSuggestions = React5.useMemo(() => {
+    if (!parsedCommand) return [];
+    const mq = parsedCommand.modelQuery;
+    const children = mq ? allModelChildren.filter((c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)) : allModelChildren;
+    return (navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children).slice(0, 8);
+  }, [parsedCommand, allModelChildren, navConfig]);
+  const searchPlaceholder = React5.useMemo(() => {
     const labels = allModelChildren.slice(0, 2).map((c) => String(c.label || c.name || "").toLowerCase()).filter(Boolean);
     if (labels.length === 0) return `Search modules, models, records\u2026`;
     const [a, b] = labels;
     return b && b !== a ? `Search modules, models, records\u2026 or "list ${a}", "create ${b}"` : `Search modules, models, records\u2026 or "list ${a}", "create ${a}"`;
   }, [allModelChildren]);
-  const commandSuggestions = React8.useMemo(() => {
-    if (!parsedCommand) return [];
-    const mq = parsedCommand.modelQuery;
-    const children = mq ? allModelChildren.filter(
-      (c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)
-    ) : allModelChildren;
-    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children;
-    return sorted.slice(0, 8);
-  }, [parsedCommand, allModelChildren, navConfig]);
-  const modules = React8.useMemo(() => {
+  const modules = React5.useMemo(() => {
     const q2 = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
     const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
     const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
@@ -896,6 +978,50 @@ var CommandCenterPortal = ({
       return moduleMatch ? module : { ...module, children: filteredChildren };
     }).filter((m) => m !== null);
   }, [menuItems, query, parsedCommand, navConfig]);
+  const pinnedItems = React5.useMemo(
+    () => pinnedGroups.flatMap((g) => g.records.map((r) => ({
+      resource: g.resource,
+      modelName: g.model_name,
+      id: r.id,
+      label: r._label || `#${r.id}`
+    }))),
+    [pinnedGroups]
+  );
+  const recentItems = React5.useMemo(() => {
+    if (!recentData?.groups) return [];
+    return recentData.groups.flatMap((g) => g.records.map((r) => ({
+      resource: g.resource,
+      modelName: g.model_name,
+      id: r.id,
+      label: r._label || `#${r.id}`,
+      timestamp: r.updated_at || r.created_at || "",
+      isNew: Boolean(r.created_at && (!r.updated_at || r.updated_at === r.created_at))
+    }))).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }, [recentData]);
+  const navItemIds = React5.useMemo(() => {
+    const ids = [];
+    if (parsedCommand) {
+      for (const child of commandSuggestions)
+        ids.push(`cmd-${String(child.key || child.name || "")}`);
+    } else if (!query.trim()) {
+      for (const item of pinnedItems) ids.push(`pin-${item.resource}-${item.id}`);
+      for (const item of recentItems) ids.push(`recent-${item.resource}-${item.id}`);
+    } else {
+      for (const m of backendResults)
+        for (const r of m.records) ids.push(`record-${m.resource}-${r.id}`);
+    }
+    return ids;
+  }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults]);
+  navItemIdsRef.current = navItemIds;
+  activeIdxRef.current = activeIdx;
+  React5.useEffect(() => {
+    setActiveIdx(-1);
+  }, [navItemIds]);
+  React5.useEffect(() => {
+    if (activeIdx < 0) return;
+    const id = navItemIds[activeIdx];
+    if (id) document.querySelector(`[data-navid="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIdx, navItemIds]);
   if (!open) return null;
   const getItemIcon = (key, label, isModule) => {
     const entry = getNavEntry(navConfig, key);
@@ -904,16 +1030,43 @@ var CommandCenterPortal = ({
   const makeHoverHandlers = (toneColor) => ({
     onMouseEnter: (e) => {
       const el = e.currentTarget;
+      if (el.dataset.active === "true") return;
       el.style.background = `${toneColor}1a`;
       el.style.borderColor = `${toneColor}40`;
     },
     onMouseLeave: (e) => {
       const el = e.currentTarget;
+      if (el.dataset.active === "true") return;
       el.style.background = "transparent";
       el.style.borderColor = "transparent";
     }
   });
+  const isActive = (navId) => navItemIds[activeIdx] === navId;
   const hasNoResults = !parsedCommand && modules.length === 0 && backendResults.length === 0 && !searching && query.trim().length > 0;
+  const renderRow = (navId, toneColor, onClick, left, right) => {
+    const active = isActive(navId);
+    return /* @__PURE__ */ jsxRuntime.jsxs(
+      "div",
+      {
+        "data-navid": navId,
+        "data-active": active ? "true" : void 0,
+        role: "button",
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e) => {
+          if (e.key === "Enter") onClick();
+        },
+        style: { ...ITEM_BASE_STYLE, justifyContent: "space-between", ...active ? ACTIVE_ITEM_STYLE : {} },
+        ...makeHoverHandlers(toneColor),
+        children: [
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }, children: left }),
+          right && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }, children: right })
+        ]
+      },
+      navId
+    );
+  };
+  const showNoQuery = !parsedCommand && !query.trim();
   return /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { theme: { algorithm: antd.theme.darkAlgorithm }, children: /* @__PURE__ */ jsxRuntime.jsxs(
     "div",
     {
@@ -930,10 +1083,10 @@ var CommandCenterPortal = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        paddingTop: 52,
-        paddingBottom: 48,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingLeft: 16,
+        paddingRight: 16,
         overflowY: "auto"
       },
       children: [
@@ -964,41 +1117,136 @@ var CommandCenterPortal = ({
             children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {})
           }
         ),
-        /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Typography.Title,
-          {
-            level: 3,
-            style: {
-              color: "#ffffff",
-              marginTop: 0,
-              marginBottom: 28,
-              letterSpacing: "0.06em",
-              fontWeight: 200,
-              textTransform: "uppercase",
-              fontSize: 18
-            },
-            children: "Command Center"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 600, marginBottom: 36 }, children: /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Input,
-          {
-            ref: searchRef,
-            size: "large",
-            placeholder: searchPlaceholder,
-            prefix: searching && !parsedCommand ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { color: "rgba(255,255,255,0.4)" } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
-            value: query,
-            onChange: (e) => setQuery(e.target.value),
-            allowClear: true,
-            style: { fontSize: 15, height: 52, borderRadius: 10 }
-          }
-        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 3, style: {
+          color: "#ffffff",
+          marginTop: 0,
+          marginBottom: 16,
+          letterSpacing: "0.06em",
+          fontWeight: 200,
+          textTransform: "uppercase",
+          fontSize: 17
+        }, children: "Command Center" }),
+        /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: "100%", maxWidth: 720, marginBottom: 20 }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Input,
+            {
+              ref: searchRef,
+              size: "large",
+              placeholder: searchPlaceholder,
+              prefix: searching && !parsedCommand ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { color: "rgba(255,255,255,0.4)" } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
+              value: query,
+              onChange: (e) => setQuery(e.target.value),
+              allowClear: true,
+              style: { fontSize: 15, height: 50, borderRadius: 10 }
+            }
+          ),
+          navItemIds.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 5, display: "block", textAlign: "center" }, children: "\u2191\u2193 navigate \xB7 Enter to open" })
+        ] }),
+        showNoQuery && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 14, width: "100%", marginBottom: 16, alignItems: "flex-start" }, children: [
+          (pinnedItems.length > 0 || pinnedLoading) && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14", fontSize: 12 } }),
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Pinned" }),
+              pinnedLoading && /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { marginLeft: "auto" } })
+            ] }),
+            pinnedItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+              idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+              renderRow(
+                `pin-${item.resource}-${item.id}`,
+                getModelTone(item.resource).solid,
+                () => {
+                  go({ to: `/${item.resource}/show/${item.id}` });
+                  onClose();
+                },
+                /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PushpinFilled, { style: { color: "#faad14", fontSize: 11, flexShrink: 0 } }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: item.label })
+                ] }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.28)", fontSize: 11 }, children: item.modelName })
+              )
+            ] }, `pin-${item.resource}-${item.id}`)) })
+          ] }),
+          recentItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ClockCircleOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Recent" })
+            ] }),
+            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+              idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+              renderRow(
+                `recent-${item.resource}-${item.id}`,
+                getModelTone(item.resource).solid,
+                () => {
+                  go({ to: `/${item.resource}/show/${item.id}` });
+                  onClose();
+                },
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: item.label }),
+                /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+                  item.isNew && /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 9, background: "rgba(82,196,26,0.2)", color: "#52c41a", padding: "1px 5px", borderRadius: 4, fontWeight: 600, letterSpacing: "0.04em" }, children: "new" }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.28)", fontSize: 11 }, children: item.modelName }),
+                  item.timestamp && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 10 }, children: relativeTime(item.timestamp) })
+                ] })
+              )
+            ] }, `recent-${item.resource}-${item.id}`)) })
+          ] }),
+          modules.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 2, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.AppstoreOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Modules" })
+            ] }),
+            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: modules.map((module, modIdx) => {
+              const moduleKey = String(module.key || module.name || "");
+              const moduleLabel = String(module.label || module.name || "");
+              const tone = getModelTone(moduleKey);
+              const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
+              return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                modIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "5px 0", borderColor: "rgba(255,255,255,0.06)" } }),
+                /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 8px 2px" }, children: [
+                  /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: tone.solid, fontSize: 12, display: "flex", alignItems: "center" }, children: getItemIcon(moduleKey, moduleLabel, true) }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: tone.solid, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }, children: moduleLabel })
+                ] }),
+                children.map((child, idx) => {
+                  const childKey = String(child.key || child.name || "");
+                  const childLabel = String(child.label || child.name || "");
+                  const childTone = getModelTone(childKey);
+                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                    idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+                    /* @__PURE__ */ jsxRuntime.jsxs(
+                      "div",
+                      {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: () => {
+                          go({ to: child.route || `/${childKey}` });
+                          onClose();
+                        },
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            go({ to: child.route || `/${childKey}` });
+                            onClose();
+                          }
+                        },
+                        style: { ...ITEM_BASE_STYLE, paddingLeft: 18 },
+                        ...makeHoverHandlers(childTone.solid),
+                        children: [
+                          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, fontWeight: 400 }, children: childLabel })
+                        ]
+                      }
+                    )
+                  ] }, childKey);
+                })
+              ] }, moduleKey);
+            }) })
+          ] })
+        ] }),
         parsedCommand && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
-            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ThunderboltOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ThunderboltOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
             /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Commands" })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "8px 12px" }, children: commandSuggestions.length === 0 && parsedCommand.modelQuery ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "12px 10px", textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px" }, children: commandSuggestions.length === 0 && parsedCommand.modelQuery ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "12px 10px", textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 }, children: [
             "No model matching \u201C",
             parsedCommand.modelQuery,
             "\u201D"
@@ -1010,11 +1258,15 @@ var CommandCenterPortal = ({
             const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
             const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
             const moduleLabel = child.moduleLabel || "";
-            return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+            const navId = `cmd-${childKey}`;
+            const active = isActive(navId);
+            return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsxRuntime.jsxs(
                 "div",
                 {
+                  "data-navid": navId,
+                  "data-active": active ? "true" : void 0,
                   role: "button",
                   tabIndex: 0,
                   onClick: () => {
@@ -1027,7 +1279,7 @@ var CommandCenterPortal = ({
                       onClose();
                     }
                   },
-                  style: ITEM_BASE_STYLE,
+                  style: { ...ITEM_BASE_STYLE, ...active ? ACTIVE_ITEM_STYLE : {} },
                   ...makeHoverHandlers(childTone.solid),
                   children: [
                     /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
@@ -1044,65 +1296,64 @@ var CommandCenterPortal = ({
             ] }, childKey);
           }) })
         ] }),
-        !parsedCommand && (backendResults.length > 0 || searching) && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
+        !parsedCommand && (backendResults.length > 0 || searching) && query.trim() && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: SECTION_HEADER_STYLE, children: [
-            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DatabaseOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DatabaseOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
             /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Records" }),
             searching && /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { marginLeft: "auto" } })
           ] }),
-          backendResults.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "8px 12px" }, children: backendResults.map((modelResult, modelIdx) => {
+          backendResults.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px" }, children: backendResults.map((modelResult, modelIdx) => {
             const tone = getModelTone(modelResult.resource);
-            return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
+            return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
               modelIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "4px 0", borderColor: "rgba(255,255,255,0.05)" } }),
-              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: {
-                color: "rgba(255,255,255,0.35)",
-                fontSize: 10,
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                display: "block",
-                padding: "4px 10px 2px"
-              }, children: modelResult.modelLabel }),
-              modelResult.records.map((record, recIdx) => /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
-                recIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
-                /* @__PURE__ */ jsxRuntime.jsxs(
-                  "div",
-                  {
-                    role: "button",
-                    tabIndex: 0,
-                    onClick: () => {
-                      go({ to: `/${modelResult.resource}/show/${record.id}` });
-                      onClose();
-                    },
-                    onKeyDown: (e) => {
-                      if (e.key === "Enter") {
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em", display: "block", padding: "4px 10px 2px" }, children: modelResult.modelLabel }),
+              modelResult.records.map((record, recIdx) => {
+                const navId = `record-${modelResult.resource}-${record.id}`;
+                const active = isActive(navId);
+                return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                  recIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+                  /* @__PURE__ */ jsxRuntime.jsxs(
+                    "div",
+                    {
+                      "data-navid": navId,
+                      "data-active": active ? "true" : void 0,
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: () => {
                         go({ to: `/${modelResult.resource}/show/${record.id}` });
                         onClose();
-                      }
-                    },
-                    style: { ...ITEM_BASE_STYLE, justifyContent: "space-between" },
-                    ...makeHoverHandlers(tone.solid),
-                    children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13 }, children: record.label }),
-                      /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.RightOutlined, { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, flexShrink: 0 } })
-                    ]
-                  }
-                )
-              ] }, record.id))
+                      },
+                      onKeyDown: (e) => {
+                        if (e.key === "Enter") {
+                          go({ to: `/${modelResult.resource}/show/${record.id}` });
+                          onClose();
+                        }
+                      },
+                      style: { ...ITEM_BASE_STYLE, justifyContent: "space-between", ...active ? ACTIVE_ITEM_STYLE : {} },
+                      ...makeHoverHandlers(tone.solid),
+                      children: [
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13 }, children: record.label }),
+                        /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.RightOutlined, { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, flexShrink: 0 } })
+                      ]
+                    }
+                  )
+                ] }, record.id);
+              })
             ] }, modelResult.modelName);
           }) })
         ] }),
-        !parsedCommand && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: hasNoResults ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
+        !parsedCommand && query.trim() && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: hasNoResults ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
           "No results for \u201C",
           query,
           "\u201D"
-        ] }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Row, { gutter: [20, 20], children: modules.map((module) => {
+        ] }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Row, { gutter: [16, 16], children: modules.map((module) => {
           const moduleKey = String(module.key || module.name || "");
           const moduleLabel = String(module.label || module.name || "");
           const tone = getModelTone(moduleKey);
           const headerTextColor = getContrastingTextColor(tone.solid);
           const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
           const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
-          return /* @__PURE__ */ jsxRuntime.jsx(antd.Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxRuntime.jsxs(
+          return /* @__PURE__ */ jsxRuntime.jsx(antd.Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Card,
             {
               style: {
@@ -1117,77 +1368,57 @@ var CommandCenterPortal = ({
                   background: tone.solid,
                   borderBottom: "1px solid rgba(0,0,0,0.15)",
                   borderRadius: "12px 12px 0 0",
-                  padding: "10px 16px",
-                  minHeight: 52
+                  padding: "8px 14px",
+                  minHeight: 48
                 },
-                body: { padding: "12px 16px 14px", background: "rgba(18,18,32,0.95)" }
+                body: { padding: "10px 14px 12px", background: "rgba(18,18,32,0.95)" }
               },
-              title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 10, children: [
+              title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 8, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
                   background: `${headerTextColor}33`,
                   border: `1px solid ${headerTextColor}55`,
                   borderRadius: 8,
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0
-                }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: headerTextColor, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(
-                  antd.Typography.Text,
-                  {
-                    style: { color: headerTextColor, fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
-                    children: moduleLabel
-                  }
-                )
+                }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: headerTextColor, fontSize: 14, display: "flex" }, children: moduleIcon }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: headerTextColor, fontWeight: 600, fontSize: 13, letterSpacing: "0.01em" }, children: moduleLabel })
               ] }),
-              children: [
-                children.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
-                  const childKey = String(child.key || child.name || "");
-                  const childLabel = String(child.label || child.name || "");
-                  const childTone = getModelTone(childKey);
-                  const childIcon = getItemIcon(childKey, childLabel, false);
-                  return /* @__PURE__ */ jsxRuntime.jsxs(React8__default.default.Fragment, { children: [
-                    idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
-                    /* @__PURE__ */ jsxRuntime.jsxs(
-                      "div",
-                      {
-                        role: "button",
-                        tabIndex: 0,
-                        onClick: () => {
+              children: children.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
+                const childKey = String(child.key || child.name || "");
+                const childLabel = String(child.label || child.name || "");
+                const childTone = getModelTone(childKey);
+                const childIcon = getItemIcon(childKey, childLabel, false);
+                return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                  idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+                  /* @__PURE__ */ jsxRuntime.jsxs(
+                    "div",
+                    {
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: () => {
+                        go({ to: child.route || `/${childKey}` });
+                        onClose();
+                      },
+                      onKeyDown: (e) => {
+                        if (e.key === "Enter") {
                           go({ to: child.route || `/${childKey}` });
                           onClose();
-                        },
-                        onKeyDown: (e) => {
-                          if (e.key === "Enter") {
-                            go({ to: child.route || `/${childKey}` });
-                            onClose();
-                          }
-                        },
-                        style: ITEM_BASE_STYLE,
-                        ...makeHoverHandlers(childTone.solid),
-                        children: [
-                          /* @__PURE__ */ jsxRuntime.jsx("span", { style: {
-                            color: childTone.text,
-                            fontSize: 13,
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            opacity: 0.85
-                          }, children: childIcon }),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: {
-                            color: "rgba(220, 220, 240, 0.88)",
-                            fontSize: 13,
-                            fontWeight: 400
-                          }, children: childLabel })
-                        ]
-                      }
-                    )
-                  ] }, childKey);
-                }) }),
-                children.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
-              ]
+                        }
+                      },
+                      style: ITEM_BASE_STYLE,
+                      ...makeHoverHandlers(childTone.solid),
+                      children: [
+                        /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(220, 220, 240, 0.88)", fontSize: 13, fontWeight: 400 }, children: childLabel })
+                      ]
+                    }
+                  )
+                ] }, childKey);
+              }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
             }
           ) }, moduleKey);
         }) }) })
@@ -1195,7 +1426,7 @@ var CommandCenterPortal = ({
     }
   ) });
 };
-var API_URL2 = "/api";
+var API_URL3 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
@@ -1233,24 +1464,24 @@ var LayoutWrapper = ({
   extraUserMenuItems = [],
   navConfig = []
 }) => {
-  const [layoutMode, setLayoutMode] = React8.useState(
+  const [layoutMode, setLayoutMode] = React5.useState(
     () => localStorage.getItem("layoutMode") || "vertical"
   );
   const screens = antd.Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const { mode, setMode } = React8.useContext(ColorModeContext);
+  const { mode, setMode } = React5.useContext(ColorModeContext);
   const { token } = antd.theme.useToken();
   const { data: identity } = core.useGetIdentity();
   const { mutate: logout } = core.useLogout();
   core.useGo();
   const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
-  const [siderCollapsed, setSiderCollapsed] = React8.useState(() => localStorage.getItem("siderCollapsed") === "true");
-  const [pwdModalOpen, setPwdModalOpen] = React8.useState(false);
-  const [pwdLoading, setPwdLoading] = React8.useState(false);
+  const [siderCollapsed, setSiderCollapsed] = React5.useState(() => localStorage.getItem("siderCollapsed") === "true");
+  const [pwdModalOpen, setPwdModalOpen] = React5.useState(false);
+  const [pwdLoading, setPwdLoading] = React5.useState(false);
   const [pwdForm] = antd.Form.useForm();
-  const [drawerOpen, setDrawerOpen] = React8.useState(false);
-  const [portalOpen, setPortalOpen] = React8.useState(false);
-  React8.useEffect(() => {
+  const [drawerOpen, setDrawerOpen] = React5.useState(false);
+  const [portalOpen, setPortalOpen] = React5.useState(false);
+  React5.useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
         e.preventDefault();
@@ -1268,7 +1499,7 @@ var LayoutWrapper = ({
   const handleChangePassword = async (values) => {
     setPwdLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/auth/change-password`, {
+      const res = await authenticatedFetch(`${API_URL3}/auth/change-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
@@ -1436,8 +1667,8 @@ var LayoutWrapper = ({
   ] });
 };
 var PANE_TOOLBAR_HEIGHT = 28;
-var PaneNavigationContext = React8.createContext(null);
-var usePaneNavigation = () => React8.useContext(PaneNavigationContext);
+var PaneNavigationContext = React5.createContext(null);
+var usePaneNavigation = () => React5.useContext(PaneNavigationContext);
 function gt(e, t) {
   const n = getComputedStyle(e), o = parseFloat(n.fontSize);
   return t * o;
@@ -2953,19 +3184,19 @@ function Vt(e) {
   };
 }
 function Bt() {
-  const [e, t] = React8.useState({}), n = React8.useCallback(() => t({}), []);
+  const [e, t] = React5.useState({}), n = React5.useCallback(() => t({}), []);
   return [e, n];
 }
 function Le(e) {
-  const t = React8.useId();
+  const t = React5.useId();
   return `${e ?? t}`;
 }
-var q = typeof window < "u" ? React8.useLayoutEffect : React8.useEffect;
+var q = typeof window < "u" ? React5.useLayoutEffect : React5.useEffect;
 function se(e) {
-  const t = React8.useRef(e);
+  const t = React5.useRef(e);
   return q(() => {
     t.current = e;
-  }, [e]), React8.useCallback(
+  }, [e]), React5.useCallback(
     (...n) => t.current?.(...n),
     [t]
   );
@@ -2988,19 +3219,19 @@ function Ce(...e) {
   });
 }
 function Re(e) {
-  const t = React8.useRef({ ...e });
+  const t = React5.useRef({ ...e });
   return q(() => {
     for (const n in e)
       t.current[n] = e[n];
   }, [e]), t.current;
 }
-var lt = React8.createContext(null);
+var lt = React5.createContext(null);
 function Wt(e, t) {
-  const n = React8.useRef({
+  const n = React5.useRef({
     getLayout: () => ({}),
     setLayout: Ft
   });
-  React8.useImperativeHandle(t, () => n.current, []), q(() => {
+  React5.useImperativeHandle(t, () => n.current, []), q(() => {
     Object.assign(
       n.current,
       nt({ groupId: e })
@@ -3026,14 +3257,14 @@ function Ut({
   style: d,
   ...S
 }) {
-  const z = React8.useRef({
+  const z = React5.useRef({
     onLayoutChange: {},
     onLayoutChanged: {}
   }), c = se((x) => {
     W(z.current.onLayoutChange, x) || (z.current.onLayoutChange = x, s?.(x));
   }), p = se((x) => {
     W(z.current.onLayoutChanged, x) || (z.current.onLayoutChanged = x, l?.(x));
-  }), m = Le(a), v = React8.useRef(null), [b, y] = Bt(), g = React8.useRef({
+  }), m = Le(a), v = React5.useRef(null), [b, y] = Bt(), g = React5.useRef({
     lastExpandedPanelSizes: {},
     layouts: {},
     panels: [],
@@ -3067,7 +3298,7 @@ function Ut({
   ), w = Re({
     defaultLayout: n,
     disableCursor: o
-  }), G = React8.useMemo(
+  }), G = React5.useMemo(
     () => ({
       get disableCursor() {
         return !!w.disableCursor;
@@ -3119,7 +3350,7 @@ function Ut({
       }
     }),
     [M, m, y, u, w]
-  ), N = React8.useRef(null);
+  ), N = React5.useRef(null);
   return q(() => {
     const x = v.current;
     if (x === null)
@@ -3185,7 +3416,7 @@ function Ut({
     u,
     b,
     w
-  ]), React8.useEffect(() => {
+  ]), React5.useEffect(() => {
     const x = N.current;
     x && (x.mutableState.defaultLayout = n, x.mutableState.disableCursor = !!o);
   }), /* @__PURE__ */ jsxRuntime.jsx(lt.Provider, { value: G, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -3217,14 +3448,14 @@ function Ut({
 }
 Ut.displayName = "Group";
 function Me() {
-  const e = React8.useContext(lt);
+  const e = React5.useContext(lt);
   return C(
     e,
     "Group Context not found; did you render a Panel or Separator outside of a Group?"
   ), e;
 }
 function qt(e, t) {
-  const { id: n } = Me(), o = React8.useRef({
+  const { id: n } = Me(), o = React5.useRef({
     collapse: ye,
     expand: ye,
     getSize: () => ({
@@ -3234,7 +3465,7 @@ function qt(e, t) {
     isCollapsed: () => false,
     resize: ye
   });
-  React8.useImperativeHandle(t, () => o.current, []), q(() => {
+  React5.useImperativeHandle(t, () => o.current, []), q(() => {
     Object.assign(
       o.current,
       tt({ groupId: n, panelId: e })
@@ -3260,7 +3491,7 @@ function Yt({
 }) {
   const c = !!s, p = Le(s), m = Re({
     disabled: r
-  }), v = React8.useRef(null), b = Ce(v, f), {
+  }), v = React5.useRef(null), b = Ce(v, f), {
     getPanelStyles: y,
     id: g,
     orientation: P,
@@ -3308,14 +3539,14 @@ function Yt({
     N,
     M,
     m
-  ]), React8.useEffect(() => {
+  ]), React5.useEffect(() => {
     w(p, { disabled: r });
   }, [r, p, w]), qt(p, d);
   const x = () => {
     const R = y(g, p);
     if (R)
       return JSON.stringify(R);
-  }, L = React8.useSyncExternalStore(
+  }, L = React5.useSyncExternalStore(
     (R) => ze(g, R),
     x,
     x
@@ -3429,7 +3660,7 @@ function Qt({
   const s = Le(r), l = Re({
     disabled: n,
     disableDoubleClick: o
-  }), [u, h] = React8.useState({}), [d, S] = React8.useState("inactive"), [z, c] = React8.useState(false), p = React8.useRef(null), m = Ce(p, i), {
+  }), [u, h] = React5.useState({}), [d, S] = React5.useState("inactive"), [z, c] = React5.useState(false), p = React5.useRef(null), m = Ce(p, i), {
     disableCursor: v,
     id: b,
     orientation: y,
@@ -3473,7 +3704,7 @@ function Qt({
         k(), R(), L();
       };
     }
-  }, [b, s, g, l]), React8.useEffect(() => {
+  }, [b, s, g, l]), React5.useEffect(() => {
     P(s, { disabled: n, disableDoubleClick: o });
   }, [n, o, s, P]);
   let w;
@@ -3527,10 +3758,10 @@ Qt.displayName = "Separator";
 var _3 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
-  const [narrow, setNarrow] = React8.useState(
+  const [narrow, setNarrow] = React5.useState(
     () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
   );
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const handler = () => setNarrow(window.innerWidth < breakpoint);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
@@ -3553,8 +3784,8 @@ var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsxRuntime
 var VerticalActionsLayout = ({ position, onBarMount, children }) => {
   const { token } = antd.theme.useToken();
   const narrow = useIsNarrow();
-  const [drawerOpen, setDrawerOpen] = React8.useState(false);
-  const mountRef = React8.useCallback(
+  const [drawerOpen, setDrawerOpen] = React5.useState(false);
+  const mountRef = React5.useCallback(
     (el) => onBarMount(el),
     [onBarMount]
   );
@@ -3877,9 +4108,9 @@ var splitRelations = (relations = []) => {
 };
 var useViewConfigurations = (modelName, viewType) => {
   const apiUrl = core.useApiUrl();
-  const [rows, setRows] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(!!modelName);
-  React8.useEffect(() => {
+  const [rows, setRows] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(!!modelName);
+  React5.useEffect(() => {
     if (!modelName) {
       setLoading(false);
       return;
@@ -3915,9 +4146,9 @@ var normalizeActionsPosition = (raw) => {
 };
 var useViewSettings = () => {
   const apiUrl = core.useApiUrl();
-  const [settings, setSettings] = React8.useState(null);
-  const [loading, setLoading] = React8.useState(true);
-  React8.useEffect(() => {
+  const [settings, setSettings] = React5.useState(null);
+  const [loading, setLoading] = React5.useState(true);
+  React5.useEffect(() => {
     let cancelled = false;
     const fetchSettings = async () => {
       try {
@@ -4218,7 +4449,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React8__default.default.isValidElement(node)) {
+  if (React5__default.default.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -4235,14 +4466,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React8__default.default.isValidElement(node)) return node;
+    if (!React5__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React8__default.default.cloneElement(node, {
+      const element = React5__default.default.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -4253,7 +4484,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React8__default.default.cloneElement(node, {
+        const element = React5__default.default.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -4261,15 +4492,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React8__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React8__default.default.cloneElement(node, {
+      const mappedChildren = React5__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React5__default.default.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React8__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React5__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = antd.Grid.useBreakpoint();
@@ -4320,7 +4551,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React8__default.default.isValidElement(node)) {
+  if (React5__default.default.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -4338,12 +4569,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React8__default.default.isValidElement(node)) return node;
+    if (!React5__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React8__default.default.cloneElement(node, {
+      const element = React5__default.default.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -4354,7 +4585,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React8__default.default.cloneElement(node, {
+        const element = React5__default.default.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -4362,15 +4593,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React8__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React8__default.default.cloneElement(node, {
+      const mappedChildren = React5__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React5__default.default.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React8__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React5__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -4391,8 +4622,8 @@ var useActionsWrapping = (headerButtons) => {
   const isInMultiPane = Boolean(paneNav);
   const isDetailPane = Boolean(paneNav && paneNav.paneIndex > 0);
   const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
-  const [verticalBarEl, setVerticalBarEl] = React8.useState(null);
-  const [topRightEl, setTopRightEl] = React8.useState(null);
+  const [verticalBarEl, setVerticalBarEl] = React5.useState(null);
+  const [topRightEl, setTopRightEl] = React5.useState(null);
   const wrappedHeaderButtons = (ctx) => {
     const raw = typeof headerButtons === "function" ? headerButtons(ctx) : headerButtons;
     if (actionsPosition === "top-right") {
@@ -4498,7 +4729,7 @@ var StandardCreate = ({ headerButtons, ...props }) => {
   ] });
 };
 function useKeyboardShortcuts(shortcuts) {
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const handler = (e) => {
       for (const shortcut of shortcuts) {
         const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -4534,7 +4765,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React8__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React5__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -6247,25 +6478,25 @@ var ExecutableHtml = ({
   inheritTabRowBackground = false,
   fontSizeOverride
 }) => {
-  const htmlRef = React8.useRef(null);
-  const iframeRef = React8.useRef(null);
-  const observerRef = React8.useRef(null);
-  const appendedChunksRef = React8.useRef(0);
-  const scriptIdRef = React8.useRef(0);
-  const syncHeightTimerRef = React8.useRef(null);
-  const lastSetHeightRef = React8.useRef(0);
-  const [fontFamily, setFontFamily] = React8.useState("Arial, sans-serif");
-  const [fontSize, setFontSize] = React8.useState("14px");
-  const [lineHeight, setLineHeight] = React8.useState("1.5715");
-  const [tabRowBackground, setTabRowBackground] = React8.useState("#fafafa");
-  const { mode: colorMode } = React8.useContext(ColorModeContext);
+  const htmlRef = React5.useRef(null);
+  const iframeRef = React5.useRef(null);
+  const observerRef = React5.useRef(null);
+  const appendedChunksRef = React5.useRef(0);
+  const scriptIdRef = React5.useRef(0);
+  const syncHeightTimerRef = React5.useRef(null);
+  const lastSetHeightRef = React5.useRef(0);
+  const [fontFamily, setFontFamily] = React5.useState("Arial, sans-serif");
+  const [fontSize, setFontSize] = React5.useState("14px");
+  const [lineHeight, setLineHeight] = React5.useState("1.5715");
+  const [tabRowBackground, setTabRowBackground] = React5.useState("#fafafa");
+  const { mode: colorMode } = React5.useContext(ColorModeContext);
   const isDark = colorMode === "dark";
-  React8.useRef(performance.now());
-  const instanceId = React8.useRef(Math.random().toString(36).slice(2, 6));
-  const htmlRefForEffect = React8.useRef(html);
+  React5.useRef(performance.now());
+  const instanceId = React5.useRef(Math.random().toString(36).slice(2, 6));
+  const htmlRefForEffect = React5.useRef(html);
   htmlRefForEffect.current = html;
   traceLog("ExecutableHtml", `[${instanceId.current}] mount mode=${mode} title=${title} htmlLen=${(html || "").length}`);
-  const executeScriptNodesSequentially = React8.useCallback(async (doc, scriptNodes, isCancelled) => {
+  const executeScriptNodesSequentially = React5.useCallback(async (doc, scriptNodes, isCancelled) => {
     for (const oldScript of scriptNodes) {
       if (isCancelled?.()) return;
       const newScript = doc.createElement("script");
@@ -6287,7 +6518,7 @@ var ExecutableHtml = ({
       });
     }
   }, []);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (mode !== "inline") return;
     const container = htmlRef.current;
     if (!container || !html) return;
@@ -6298,7 +6529,7 @@ var ExecutableHtml = ({
       cancelled = true;
     };
   }, [html, mode, executeScriptNodesSequentially]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (mode !== "iframe") return;
     if (!inheritTypography && !inheritTabRowBackground) return;
     if (typeof window === "undefined") return;
@@ -6324,7 +6555,7 @@ var ExecutableHtml = ({
       if (resolvedBg) setTabRowBackground(resolvedBg);
     }
   }, [inheritTabRowBackground, inheritTypography, mode]);
-  const htmlShell = React8.useMemo(() => `<!doctype html>
+  const htmlShell = React5.useMemo(() => `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -6355,7 +6586,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 </head>
 <body></body>
 </html>`, [fontFamily, fontSize, lineHeight, tabRowBackground, isDark]);
-  const syncHeight = React8.useCallback(() => {
+  const syncHeight = React5.useCallback(() => {
     if (syncHeightTimerRef.current) clearTimeout(syncHeightTimerRef.current);
     syncHeightTimerRef.current = setTimeout(() => {
       syncHeightTimerRef.current = null;
@@ -6373,7 +6604,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.style.height = `${nextHeight}px`;
     }, 100);
   }, [minHeight]);
-  const appendHtmlChunk = React8.useCallback(async (chunk) => {
+  const appendHtmlChunk = React5.useCallback(async (chunk) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc || !doc.body || !chunk) return false;
     const host = doc.createElement("div");
@@ -6394,7 +6625,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
     syncHeight();
     return true;
   }, [syncHeight, executeScriptNodesSequentially]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (mode !== "iframe") return;
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -6437,7 +6668,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.removeEventListener("load", onLoad);
     };
   }, [htmlShell, resetToken, appendHtmlChunk, syncHeight, mode]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (mode !== "iframe") return;
     if (!htmlChunks || htmlChunks.length <= appendedChunksRef.current) return;
     const nextChunks = htmlChunks.slice(appendedChunksRef.current);
@@ -6449,7 +6680,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       appendedChunksRef.current += appendedCount;
     })();
   }, [htmlChunks, appendHtmlChunk, mode]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
       observerRef.current = null;
@@ -6531,23 +6762,23 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   const apiUrl = core.useApiUrl();
   const tone = useModelTone(model);
   const modelLabel = getModelLabel(model);
-  const [nestedModel, setNestedModel] = React8.useState(null);
-  const [activeTab, setActiveTab] = React8.useState("fields");
-  const [graphHtml, setGraphHtml] = React8.useState(null);
-  const [graphLoading, setGraphLoading] = React8.useState(false);
-  const [graphError, setGraphError] = React8.useState(null);
-  React8.useEffect(() => {
+  const [nestedModel, setNestedModel] = React5.useState(null);
+  const [activeTab, setActiveTab] = React5.useState("fields");
+  const [graphHtml, setGraphHtml] = React5.useState(null);
+  const [graphLoading, setGraphLoading] = React5.useState(false);
+  const [graphError, setGraphError] = React5.useState(null);
+  React5.useEffect(() => {
     setGraphHtml(null);
     setGraphError(null);
   }, [model.name]);
-  const findRelatedModel = React8.useCallback((name) => {
+  const findRelatedModel = React5.useCallback((name) => {
     if (!name || !allModels) return void 0;
     const lower = name.toLowerCase();
     return allModels.find(
       (m) => (m.name || "").toLowerCase() === lower || (m.resource || "").toLowerCase() === lower
     );
   }, [allModels]);
-  const loadGraph = React8.useCallback(async () => {
+  const loadGraph = React5.useCallback(async () => {
     if (graphHtml !== null || graphLoading) return;
     setGraphLoading(true);
     setGraphError(null);
@@ -6583,13 +6814,13 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       setGraphLoading(false);
     }
   }, [apiUrl, model, modelLabel, graphHtml, graphLoading, findRelatedModel]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (activeTab === "knowledge_graph") {
       loadGraph();
     }
   }, [activeTab, loadGraph]);
   const navigate = reactRouterDom.useNavigate();
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const handler = (e) => {
       if (e.data?.action === "metadata_graph_navigate" && e.data?.url) {
         onClose();
@@ -6829,7 +7060,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
 };
 var _11 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels) => {
-  const [metadataOpen, setMetadataOpen] = React8.useState(false);
+  const [metadataOpen, setMetadataOpen] = React5.useState(false);
   const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _11("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
@@ -6849,7 +7080,7 @@ var useShowEditableForm = (resource, id) => {
   });
   const record = queryResult?.data?.data;
   const recordId = record?.eid ?? record?.id ?? id;
-  useKeyboardShortcuts(React8.useMemo(() => [
+  useKeyboardShortcuts(React5.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => navigate(-1) }
   ], [formProps?.form, navigate]));
@@ -7051,7 +7282,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (onLabel && !isLoading && label !== void 0 && label !== null) {
       onLabel(String(label));
     }
@@ -7102,14 +7333,14 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = core.useApiUrl();
   const go = core.useGo();
   const paneNav = usePaneNavigation();
-  const [reverseTreeData, setReverseTreeData] = React8.useState([]);
-  const [forwardTreeData, setForwardTreeData] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(true);
+  const [reverseTreeData, setReverseTreeData] = React5.useState([]);
+  const [forwardTreeData, setForwardTreeData] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(true);
   const isReverse = (rel) => {
     if (rel.relationName && rel.relationName.endsWith("_reverse")) return true;
     return !rel.otherResource;
   };
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!isActive) {
       setLoading(false);
       return;
@@ -7278,19 +7509,14 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
     ] })
   ] });
 };
-
-// src/providers/constants.ts
-var API_URL3 = "/api";
-
-// src/pages/dashboard/hooks/usePinRecord.ts
 function usePinRecord(resource, recordId) {
-  const [pinned, setPinned] = React8.useState(null);
-  const [loading, setLoading] = React8.useState(false);
-  React8.useEffect(() => {
+  const [pinned, setPinned] = React5.useState(null);
+  const [loading, setLoading] = React5.useState(false);
+  React5.useEffect(() => {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
-      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+      `${API_URL2}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
     ).then((r) => r.json()).then((d) => {
       if (!cancelled) setPinned(Boolean(d.pinned));
     }).catch(() => {
@@ -7300,11 +7526,11 @@ function usePinRecord(resource, recordId) {
       cancelled = true;
     };
   }, [resource, recordId]);
-  const pin = React8.useCallback(async () => {
+  const pin = React5.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
-      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
+      await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resource, record_id: String(recordId) })
@@ -7314,12 +7540,12 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const unpin = React8.useCallback(async () => {
+  const unpin = React5.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
       await authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
         { method: "DELETE" }
       );
       setPinned(false);
@@ -7327,14 +7553,14 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const toggle = React8.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
+  const toggle = React5.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
   return { pinned, loading, pin, unpin, toggle };
 }
 async function unpinRecords(resource, recordIds) {
   await Promise.all(
     recordIds.map(
       (id) => authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
         { method: "DELETE" }
       )
     )
@@ -7343,17 +7569,17 @@ async function unpinRecords(resource, recordIds) {
 var _15 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   const apiUrl = core.useApiUrl();
-  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
-  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React8.useState(false);
-  const actionsPrefsTouchedRef = React8.useRef(false);
-  const actionsPrefsLoadedRef = React8.useRef(false);
-  const actionsPrefsResourceRef = React8.useRef(null);
-  const markActionsPrefsTouched = React8.useCallback(() => {
+  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
+  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React5.useState(false);
+  const actionsPrefsTouchedRef = React5.useRef(false);
+  const actionsPrefsLoadedRef = React5.useRef(false);
+  const actionsPrefsResourceRef = React5.useRef(null);
+  const markActionsPrefsTouched = React5.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React8.useCallback(async () => {
+  const saveActionsPreferences = React5.useCallback(async () => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -7376,7 +7602,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey) {
       actionsPrefsLoadedRef.current = false;
@@ -7453,7 +7679,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
   const resource = model.resource || model.name;
   const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const [exploreOpen, setExploreOpen] = React8.useState(false);
+  const [exploreOpen, setExploreOpen] = React5.useState(false);
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     metadataButton,
     metadataModal,
@@ -7490,7 +7716,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
     headerButtons
   };
 };
-var PrimaryShowContext = React8__default.default.createContext(null);
+var PrimaryShowContext = React5__default.default.createContext(null);
 var ToneSharedStyles = () => /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7647,10 +7873,10 @@ var renderOptionTag = (field, rawValue) => {
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
   return /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
 };
-dayjs8__default.default.extend(relativeTime__default.default);
+dayjs8__default.default.extend(relativeTime2__default.default);
 var _16 = window._ || ((text) => text);
-var ReactMarkdown = React8.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var QRCodeSVG = React8.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
+var ReactMarkdown = React5.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var QRCodeSVG = React5.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor(totalSeconds % 3600 / 60);
@@ -7686,7 +7912,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
         }
       );
     case "read-only-markdown":
-      return /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
     case "read-only-json": {
       let formatted = str;
       try {
@@ -7733,7 +7959,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-image-url":
       return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
     case "read-only-qrcode":
-      return /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
       const parsed = dayjs8__default.default(str);
       if (!parsed.isValid()) return str || "-";
@@ -7839,8 +8065,8 @@ function filterFieldsByRole(fields, userRoles) {
   });
 }
 function useRoleFilteredModel(model) {
-  const userRoles = React8.useMemo(() => getCurrentUserRoles(), []);
-  return React8.useMemo(() => {
+  const userRoles = React5.useMemo(() => getCurrentUserRoles(), []);
+  return React5.useMemo(() => {
     const filtered = filterFieldsByRole(model.fields, userRoles);
     if (filtered.length === model.fields.length) return model;
     return { ...model, fields: filtered };
@@ -7851,7 +8077,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
-  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
   const modelTone = useModelTone(model);
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
   const { id: routeId } = reactRouterDom.useParams();
@@ -7860,7 +8086,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
   const pageTitle = record?._label ? asDisplayText(record._label, `${_18("Show")} ${modelDisplayLabel}`) : `${_18("Show")} ${modelDisplayLabel}`;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, saveButtonProps);
-  const [activeTabKey, setActiveTabKey] = React8.useState("details");
+  const [activeTabKey, setActiveTabKey] = React5.useState("details");
   const items = useStandardShowTabs(
     model,
     record,
@@ -7868,12 +8094,12 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     actionsState,
     { formProps: showFormProps, effectiveFields }
   );
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "details");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React8.useMemo(
+  const lazyItems = React5.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -7934,7 +8160,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React8__default.default.useState(false);
+  const [loadAll, setLoadAll] = React5__default.default.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = antd$1.useSelect({
     resource: resolvedResource,
@@ -7951,8 +8177,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React8__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React8__default.default.useState("");
+  const selectedSet = React5__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React5__default.default.useState("");
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Select,
@@ -7999,8 +8225,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
 var _20 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = antd.Form.useFormInstance();
-  const [uploading, setUploading] = React8.useState(false);
-  const [fileName, setFileName] = React8.useState(null);
+  const [uploading, setUploading] = React5.useState(false);
+  const [fileName, setFileName] = React5.useState(null);
   const currentDataName = antd.Form.useWatch("data_name", form);
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
@@ -8066,9 +8292,9 @@ var AsyncSelectInput = ({
   onChange
 }) => {
   const apiUrl = core.useApiUrl();
-  const [options, setOptions] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(false);
-  React8.useEffect(() => {
+  const [options, setOptions] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(false);
+  React5.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const fetchOptions = async () => {
@@ -8125,9 +8351,9 @@ var AsyncSelectInput = ({
   );
 };
 var _22 = window._ || ((text) => text);
-var ReactMarkdown2 = React8.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var ReactMarkdown2 = React5.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
-  const [activeTab, setActiveTab] = React8.useState("edit");
+  const [activeTab, setActiveTab] = React5.useState("edit");
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Tabs,
     {
@@ -8152,14 +8378,14 @@ var MarkdownEditor = ({ value = "", onChange }) => {
         {
           key: "preview",
           label: _22("Preview"),
-          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React8.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
+          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
         }
       ]
     }
   );
 };
 var JsonEditor = ({ value = "", onChange }) => {
-  const [error, setError] = React8.useState(null);
+  const [error, setError] = React5.useState(null);
   const handleChange = (e) => {
     const raw = e.target.value;
     onChange?.(raw);
@@ -8326,7 +8552,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -8340,12 +8566,12 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const relateOtherKey = searchParams.get("relate_other_key");
   const relateTargetId = searchParams.get("relate_target_id");
   const canAutoRelate = Boolean(relateResource && relateTargetKey && relateOtherKey && relateTargetId);
-  const [createdRecord, setCreatedRecord] = React8.useState(null);
-  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [activeTabKey, setActiveTabKey] = React8.useState("main_data");
+  const [createdRecord, setCreatedRecord] = React5.useState(null);
+  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [activeTabKey, setActiveTabKey] = React5.useState("main_data");
   const isPostCreate = createdRecord !== null;
-  const relationViewTypeDefaults = React8.useMemo(
+  const relationViewTypeDefaults = React5.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -8353,11 +8579,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
-  const isLinkModel = React8.useMemo(() => {
+  const isLinkModel = React5.useMemo(() => {
     const fieldKeys = model.fields.map((f) => f.key);
     return fieldKeys.includes("eid_from") && fieldKeys.includes("eid_to") && searchParams.has("eid_from");
   }, [model.fields, searchParams]);
-  const [serverDefaults, setServerDefaults] = React8.useState({});
+  const [serverDefaults, setServerDefaults] = React5.useState({});
   const { formProps, saveButtonProps } = antd$1.useForm({
     resource: formResource,
     redirect: false,
@@ -8406,14 +8632,14 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       type: "success"
     })
   });
-  useKeyboardShortcuts(React8.useMemo(() => [
+  useKeyboardShortcuts(React5.useMemo(() => [
     { key: "s", ctrl: true, handler: () => {
       if (!isPostCreate) formProps?.form?.submit();
     } },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, isPostCreate, journeyCallbacks]));
-  const effectiveFields = React8.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
-  const fieldByKey = React8.useMemo(
+  const effectiveFields = React5.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const fieldByKey = React5.useMemo(
     () => new Map(effectiveFields.map((field) => [field.key, field])),
     [effectiveFields]
   );
@@ -8425,7 +8651,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
     return value;
   };
-  const normalizeFieldValue = React8.useCallback((field, rawValue) => {
+  const normalizeFieldValue = React5.useCallback((field, rawValue) => {
     if (rawValue === void 0 || rawValue === null || rawValue === "") return rawValue;
     if (field.type === "number") {
       const parsed = Number(rawValue);
@@ -8434,7 +8660,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (field.type === "boolean") return parseBooleanValue(rawValue);
     return rawValue;
   }, []);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     let cancelled = false;
     const loadDefaults = async () => {
       try {
@@ -8457,7 +8683,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       cancelled = true;
     };
   }, [apiUrl, effectiveFields, formResource, normalizeFieldValue]);
-  const { initialValues, hiddenFields } = React8.useMemo(() => {
+  const { initialValues, hiddenFields } = React5.useMemo(() => {
     const defaults = {};
     const fromQuery = {};
     const hidden = [];
@@ -8498,13 +8724,13 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
   const hasConfig = configRows.length > 0;
   const configSections = groupConfigRowsBySection(configRows);
-  const { embedded, tabbed } = React8.useMemo(() => splitRelations(model.relations), [model.relations]);
-  const allRelations = React8.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
-  const configuredRelationKeys = React8.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
-  const configuredResolvedRelationKeys = React8.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
-  const configuredRelationDisplayKeys = React8.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
+  const { embedded, tabbed } = React5.useMemo(() => splitRelations(model.relations), [model.relations]);
+  const allRelations = React5.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
+  const configuredRelationKeys = React5.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
+  const configuredResolvedRelationKeys = React5.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
+  const configuredRelationDisplayKeys = React5.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
   const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const formInstance = formProps?.form;
     if (!formInstance) return;
     const untouchedDefaults = Object.fromEntries(
@@ -8513,7 +8739,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (Object.keys(untouchedDefaults).length === 0) return;
     formInstance.setFieldsValue(untouchedDefaults);
   }, [formProps, initialValues]);
-  const handleDone = React8.useCallback(() => {
+  const handleDone = React5.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (returnTo) {
       navigate(returnTo);
@@ -8523,7 +8749,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       navigate(-1);
     }
   }, [createdRecord, returnTo, navigate, formResource]);
-  const handleGoToEdit = React8.useCallback(() => {
+  const handleGoToEdit = React5.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (createdId != null) {
       go({ to: { resource: model.resource || model.name, action: "edit", id: createdId } });
@@ -8535,7 +8761,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _23("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
-  const relationTabEntries = React8.useMemo(() => {
+  const relationTabEntries = React5.useMemo(() => {
     if (!allModels) return [];
     const groups = /* @__PURE__ */ new Map();
     allRelations.forEach((rel) => {
@@ -8862,11 +9088,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
 var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
   const { token } = antd.theme.useToken();
   const apiUrl = core.useApiUrl();
-  const [html, setHtml] = React8.useState(null);
-  const [loading, setLoading] = React8.useState(true);
-  const [error, setError] = React8.useState(null);
-  const [fetchedTitle, setFetchedTitle] = React8.useState(null);
-  React8.useEffect(() => {
+  const [html, setHtml] = React5.useState(null);
+  const [loading, setLoading] = React5.useState(true);
+  const [error, setError] = React5.useState(null);
+  const [fetchedTitle, setFetchedTitle] = React5.useState(null);
+  React5.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setHtml(null);
@@ -8924,7 +9150,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const relationViewTypeDefaults = React8.useMemo(
+  const relationViewTypeDefaults = React5.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -8932,7 +9158,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const apiUrl = core.useApiUrl();
-  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -8963,7 +9189,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     })
   });
   const record = queryResult?.data?.data;
-  const editFormProps = React8.useMemo(() => {
+  const editFormProps = React5.useMemo(() => {
     if (!isFileModel(model)) return formProps;
     const originalOnFinish = formProps.onFinish;
     return {
@@ -8974,24 +9200,24 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       }
     };
   }, [formProps, model]);
-  useKeyboardShortcuts(React8.useMemo(() => [
+  useKeyboardShortcuts(React5.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
   const pageTitle = record?._label ? asDisplayText(record._label, `${_24("Edit")} ${modelDisplayLabel}`) : `${_24("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
-  const effectiveFields = React8.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const effectiveFields = React5.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
-  const [showRelationActions, setShowRelationActions] = React8.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React8.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React8.useState(false);
-  const actionsPrefsTouchedRef = React8.useRef(false);
-  const actionsPrefsLoadedRef = React8.useRef(false);
-  const actionsPrefsResourceRef = React8.useRef(null);
-  const markActionsPrefsTouched = React8.useCallback(() => {
+  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React5.useState(false);
+  const actionsPrefsTouchedRef = React5.useRef(false);
+  const actionsPrefsLoadedRef = React5.useRef(false);
+  const actionsPrefsResourceRef = React5.useRef(null);
+  const markActionsPrefsTouched = React5.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React8.useCallback(async () => {
+  const saveActionsPreferences = React5.useCallback(async () => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -9015,8 +9241,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  const [isDuplicating, setIsDuplicating] = React8.useState(false);
-  const duplicateRecord = React8.useCallback(async (withRelations) => {
+  const [isDuplicating, setIsDuplicating] = React5.useState(false);
+  const duplicateRecord = React5.useCallback(async (withRelations) => {
     if (!record) return;
     setIsDuplicating(true);
     try {
@@ -9084,7 +9310,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsDuplicating(false);
     }
   }, [record, model, allModelsList, apiUrl, go]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey) {
       actionsPrefsLoadedRef.current = false;
@@ -9577,13 +9803,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   });
   items.push(...customConfigTabs);
   items.push(...relationTabs);
-  const [activeTabKey, setActiveTabKey] = React8.useState("main_data");
-  React8.useEffect(() => {
+  const [activeTabKey, setActiveTabKey] = React5.useState("main_data");
+  React5.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "main_data");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React8.useMemo(
+  const lazyItems = React5.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -9652,8 +9878,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
 };
 var _25 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
-  const [editing, setEditing] = React8.useState(false);
-  const [draft, setDraft] = React8.useState(void 0);
+  const [editing, setEditing] = React5.useState(false);
+  const [draft, setDraft] = React5.useState(void 0);
   const form = antd.Form.useFormInstance();
   const resource = field.referencePath ? field.referencePath : field.reference ? resolveResourcePath(field.reference, allModels) : "";
   const modelResource = model ? resolveResourcePath(model.resource || model.name, allModels) : void 0;
@@ -9750,7 +9976,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const { token } = antd.theme.useToken();
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
   const modelTone = useModelTone(model);
-  const relationViewTypeDefaults = React8.useMemo(
+  const relationViewTypeDefaults = React5.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -10214,11 +10440,11 @@ var useRelatedInlineItems = ({
   pageSize = INLINE_DEFAULT_PAGE_SIZE
 }) => {
   const apiUrl = core.useApiUrl();
-  const [items, setItems] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(false);
-  const [error, setError] = React8.useState(null);
-  const [total, setTotal] = React8.useState(0);
-  React8.useEffect(() => {
+  const [items, setItems] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(false);
+  const [error, setError] = React5.useState(null);
+  const [total, setTotal] = React5.useState(0);
+  React5.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setItems([]);
@@ -10359,10 +10585,10 @@ var useRelatedGalleryRecords = ({
   allModels
 }) => {
   const apiUrl = core.useApiUrl();
-  const [records, setRecords] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(false);
-  const [error, setError] = React8.useState(null);
-  React8.useEffect(() => {
+  const [records, setRecords] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(false);
+  const [error, setError] = React5.useState(null);
+  React5.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setRecords([]);
@@ -10460,10 +10686,10 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React8.useState(1);
-  const [pageSize, setPageSize] = React8.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React5.useState(1);
+  const [pageSize, setPageSize] = React5.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items, loading, error, total } = useRelatedInlineItems({ rel, record, allowedRelatedIds, allModels, page, pageSize });
-  const handlePageChange = React8.useCallback((newPage, newPageSize) => {
+  const handlePageChange = React5.useCallback((newPage, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setPage(1);
@@ -10525,17 +10751,17 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const { token } = antd.theme.useToken();
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   const resource = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
-  const dateFieldOptions = React8.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
-  const [calendarMode, setCalendarMode] = React8.useState("month");
-  const [calendarDateField, setCalendarDateField] = React8.useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React8.useState(() => dayjs8__default.default().startOf("month"));
-  const dateFieldKeySet = React8.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
-  React8.useEffect(() => {
+  const dateFieldOptions = React5.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
+  const [calendarMode, setCalendarMode] = React5.useState("month");
+  const [calendarDateField, setCalendarDateField] = React5.useState(() => dateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React5.useState(() => dayjs8__default.default().startOf("month"));
+  const dateFieldKeySet = React5.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
+  React5.useEffect(() => {
     if (calendarDateField && dateFieldKeySet.has(calendarDateField)) return;
     const fallback = dateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, dateFieldKeySet, dateFieldOptions]);
-  const calendarEntries = React8.useMemo(() => {
+  const calendarEntries = React5.useMemo(() => {
     if (!calendarDateField) return [];
     const entries = [];
     records.forEach((item) => {
@@ -10551,7 +10777,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return entries;
   }, [calendarDateField, records]);
-  const earliestDateTs = React8.useMemo(() => {
+  const earliestDateTs = React5.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -10560,8 +10786,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     return earliest;
   }, [calendarEntries]);
-  const initSignatureRef = React8.useRef("");
-  React8.useEffect(() => {
+  const initSignatureRef = React5.useRef("");
+  React5.useEffect(() => {
     const signature = `${calendarDateField}|${calendarMode}|${earliestDateTs ?? "none"}`;
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
@@ -10571,7 +10797,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     setCalendarAnchorDate(dayjs8__default.default(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
-  const entriesByDate = React8.useMemo(() => {
+  const entriesByDate = React5.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -10581,7 +10807,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return grouped;
   }, [calendarEntries]);
-  const rangeDays = React8.useMemo(() => {
+  const rangeDays = React5.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -10592,7 +10818,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const periodLabel = React8.useMemo(() => {
+  const periodLabel = React5.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -10752,9 +10978,9 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   ] });
 };
 var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) => {
-  const allModelsList = React8.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
   const tone = useModelTone(model);
-  const PrimaryShowRenderer = React8.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React5.useContext(PrimaryShowContext);
   const label = getRecordDisplayLabel(record);
   const id = record?.eid ?? record?.id;
   const resource = resolveResourcePath(model.resource || model.name, allModelsList);
@@ -10844,22 +11070,22 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const location = reactRouterDom.useLocation();
   const apiUrl = core.useApiUrl();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React8.useState(1);
-  const [pageSize, setPageSize] = React8.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React5.useState(1);
+  const [pageSize, setPageSize] = React5.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items: fetchedItems, loading, error, total } = useRelatedInlineItems({ rel, record, allModels, page, pageSize });
-  const [localItems, setLocalItems] = React8.useState(null);
-  React8.useEffect(() => {
+  const [localItems, setLocalItems] = React5.useState(null);
+  React5.useEffect(() => {
     setLocalItems(null);
   }, [fetchedItems]);
   const items = localItems ?? fetchedItems;
-  const [editing, setEditing] = React8.useState(false);
-  const [saving, setSaving] = React8.useState(false);
-  const [allOptions, setAllOptions] = React8.useState([]);
-  const [optionsLoading, setOptionsLoading] = React8.useState(false);
-  const [selectedIds, setSelectedIds] = React8.useState(/* @__PURE__ */ new Set());
-  const [baselineIds, setBaselineIds] = React8.useState(/* @__PURE__ */ new Set());
-  const [searchText, setSearchText] = React8.useState("");
-  React8.useEffect(() => {
+  const [editing, setEditing] = React5.useState(false);
+  const [saving, setSaving] = React5.useState(false);
+  const [allOptions, setAllOptions] = React5.useState([]);
+  const [optionsLoading, setOptionsLoading] = React5.useState(false);
+  const [selectedIds, setSelectedIds] = React5.useState(/* @__PURE__ */ new Set());
+  const [baselineIds, setBaselineIds] = React5.useState(/* @__PURE__ */ new Set());
+  const [searchText, setSearchText] = React5.useState("");
+  React5.useEffect(() => {
     if (!editing) return;
     const snapshot = new Set(items.map((item) => Number(item.id)));
     setBaselineIds(snapshot);
@@ -10893,7 +11119,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [editing]);
-  const handleSave = React8.useCallback(async () => {
+  const handleSave = React5.useCallback(async () => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -10969,12 +11195,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSaving(false);
     }
   }, [apiUrl, allModels, allOptions, rel, record, selectedIds, baselineIds]);
-  const handleCancel = React8.useCallback(() => {
+  const handleCancel = React5.useCallback(() => {
     setEditing(false);
     setSelectedIds(new Set(baselineIds));
     setSearchText("");
   }, [baselineIds]);
-  const handleCreateNewAndRelate = React8.useCallback(() => {
+  const handleCreateNewAndRelate = React5.useCallback(() => {
     const otherKey = rel.otherKey;
     if (!otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
@@ -11130,17 +11356,17 @@ var _31 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = core.useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
-  const [saving, setSaving] = React8.useState(false);
-  const [allOptions, setAllOptions] = React8.useState([]);
-  const [optionsLoading, setOptionsLoading] = React8.useState(false);
-  const [selectedIds, setSelectedIds] = React8.useState([]);
-  const [baselineIds, setBaselineIds] = React8.useState(/* @__PURE__ */ new Set());
-  React8.useEffect(() => {
+  const [saving, setSaving] = React5.useState(false);
+  const [allOptions, setAllOptions] = React5.useState([]);
+  const [optionsLoading, setOptionsLoading] = React5.useState(false);
+  const [selectedIds, setSelectedIds] = React5.useState([]);
+  const [baselineIds, setBaselineIds] = React5.useState(/* @__PURE__ */ new Set());
+  React5.useEffect(() => {
     const ids = fetchedItems.map((item) => Number(item.id));
     setSelectedIds(ids);
     setBaselineIds(new Set(ids));
   }, [fetchedItems]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!rel.otherResource) return;
     let cancelled = false;
     const fetchOptions = async () => {
@@ -11167,7 +11393,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [apiUrl, rel.otherResource]);
-  const handleChange = React8.useCallback(async (newIds) => {
+  const handleChange = React5.useCallback(async (newIds) => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -11229,15 +11455,15 @@ var { Title: Title5 } = antd.Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
   const apiUrl = core.useApiUrl();
-  const [loading, setLoading] = React8.useState(false);
-  const [error, setError] = React8.useState(null);
-  const [groupedIds, setGroupedIds] = React8.useState(/* @__PURE__ */ new Map());
-  const [unresolvedIds, setUnresolvedIds] = React8.useState([]);
-  const polyInfo = React8.useMemo(
+  const [loading, setLoading] = React5.useState(false);
+  const [error, setError] = React5.useState(null);
+  const [groupedIds, setGroupedIds] = React5.useState(/* @__PURE__ */ new Map());
+  const [unresolvedIds, setUnresolvedIds] = React5.useState([]);
+  const polyInfo = React5.useMemo(
     () => getPolymorphicReferenceInfo(rel, relationModel, allModels),
     [rel.otherKey, rel.otherResource, relationModel, allModels]
   );
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!recordId || !rel.otherKey || !polyInfo) {
       setGroupedIds(/* @__PURE__ */ new Map());
       setUnresolvedIds([]);
@@ -11353,94 +11579,94 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     color: relatedModelTone.solid,
     margin: 0
   };
-  const chartSvgRef = React8.useRef(null);
-  const skipNextAnimationRef = React8.useRef(false);
-  const [rows, setRows] = React8.useState([]);
-  const [localSearch, setLocalSearch] = React8.useState("");
-  const [filterRules, setFilterRules] = React8.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React8.useState(true);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React8.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React8.useState(null);
-  const [columnOrder, setColumnOrder] = React8.useState(null);
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React8.useState({});
-  const [columnFiltersSelected, setColumnFiltersSelected] = React8.useState({});
-  const [columnSort, setColumnSort] = React8.useState([]);
-  const [currentViewName, setCurrentViewName] = React8.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React8.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React8.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React8.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React8.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React8.useState(false);
-  const [saveViewName, setSaveViewName] = React8.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React8.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React8.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React8.useState(false);
-  const [renameViewName, setRenameViewName] = React8.useState("");
-  const [pageSize, setPageSize] = React8.useState(10);
-  const [currentPage, setCurrentPage] = React8.useState(1);
-  const [serverTotalRows, setServerTotalRows] = React8.useState(0);
-  const [fullDataLoaded, setFullDataLoaded] = React8.useState(false);
-  const [relationRowsCapped, setRelationRowsCapped] = React8.useState(false);
-  const [loadedRowsCount, setLoadedRowsCount] = React8.useState(0);
-  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React8.useState(false);
-  const [loading, setLoading] = React8.useState(false);
-  const [error, setError] = React8.useState(null);
-  const [listVisible, setListVisible] = React8.useState(true);
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React8.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React8.useState(false);
-  const [labelCache, setLabelCache] = React8.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React8.useState(false);
-  const analyzeTouchedRef = React8.useRef(false);
-  const analyzePrefsTouchedRef = React8.useRef(false);
-  const analyzePrefsLoadedRef = React8.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React8.useState(false);
-  const analyzePrefsResourceRef = React8.useRef(null);
-  const [categoryField1, setCategoryField1] = React8.useState(null);
-  const [categoryField2, setCategoryField2] = React8.useState(void 0);
-  const [chartType, setChartType] = React8.useState("area");
-  const [summaryFn, setSummaryFn] = React8.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React8.useState(null);
-  const [rankingMode, setRankingMode] = React8.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React8.useState(null);
-  const [rankingN, setRankingN] = React8.useState(10);
-  const [exportRequested, setExportRequested] = React8.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React8.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React8.useState(false);
-  const [chartAnimationKey, setChartAnimationKey] = React8.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React8.useState("enter");
-  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React8.useState(false);
-  const defaultDisplayFields = React8.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
-  const orderedColumnKeys = React8.useMemo(() => {
+  const chartSvgRef = React5.useRef(null);
+  const skipNextAnimationRef = React5.useRef(false);
+  const [rows, setRows] = React5.useState([]);
+  const [localSearch, setLocalSearch] = React5.useState("");
+  const [filterRules, setFilterRules] = React5.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React5.useState(true);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React5.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React5.useState(null);
+  const [columnOrder, setColumnOrder] = React5.useState(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React5.useState({});
+  const [columnFiltersSelected, setColumnFiltersSelected] = React5.useState({});
+  const [columnSort, setColumnSort] = React5.useState([]);
+  const [currentViewName, setCurrentViewName] = React5.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React5.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React5.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React5.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React5.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React5.useState(false);
+  const [saveViewName, setSaveViewName] = React5.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React5.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React5.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React5.useState(false);
+  const [renameViewName, setRenameViewName] = React5.useState("");
+  const [pageSize, setPageSize] = React5.useState(10);
+  const [currentPage, setCurrentPage] = React5.useState(1);
+  const [serverTotalRows, setServerTotalRows] = React5.useState(0);
+  const [fullDataLoaded, setFullDataLoaded] = React5.useState(false);
+  const [relationRowsCapped, setRelationRowsCapped] = React5.useState(false);
+  const [loadedRowsCount, setLoadedRowsCount] = React5.useState(0);
+  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React5.useState(false);
+  const [loading, setLoading] = React5.useState(false);
+  const [error, setError] = React5.useState(null);
+  const [listVisible, setListVisible] = React5.useState(true);
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React5.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React5.useState(false);
+  const [labelCache, setLabelCache] = React5.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React5.useState(false);
+  const analyzeTouchedRef = React5.useRef(false);
+  const analyzePrefsTouchedRef = React5.useRef(false);
+  const analyzePrefsLoadedRef = React5.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React5.useState(false);
+  const analyzePrefsResourceRef = React5.useRef(null);
+  const [categoryField1, setCategoryField1] = React5.useState(null);
+  const [categoryField2, setCategoryField2] = React5.useState(void 0);
+  const [chartType, setChartType] = React5.useState("area");
+  const [summaryFn, setSummaryFn] = React5.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React5.useState(null);
+  const [rankingMode, setRankingMode] = React5.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React5.useState(null);
+  const [rankingN, setRankingN] = React5.useState(10);
+  const [exportRequested, setExportRequested] = React5.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React5.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React5.useState(false);
+  const [chartAnimationKey, setChartAnimationKey] = React5.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React5.useState("enter");
+  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React5.useState(false);
+  const defaultDisplayFields = React5.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
+  const orderedColumnKeys = React5.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(relatedModel.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, relatedModel.fields, selectedColumnKeys]);
-  const displayFields = React8.useMemo(() => {
+  const displayFields = React5.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(relatedModel.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, orderedColumnKeys, relatedModel.fields]);
   const numericBarColor = relatedModelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
   const [form] = antd.Form.useForm();
-  const [savingAll, setSavingAll] = React8.useState(false);
-  const [hasPendingEdits, setHasPendingEdits] = React8.useState(false);
+  const [savingAll, setSavingAll] = React5.useState(false);
+  const [hasPendingEdits, setHasPendingEdits] = React5.useState(false);
   const { setWarnWhen } = core.useWarnAboutChange();
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React8.useState(false);
-  const layoutPrefsTouchedRef = React8.useRef(false);
-  const layoutPrefsLoadedRef = React8.useRef(false);
-  const layoutPrefsResourceRef = React8.useRef(null);
-  const sortIntentRef = React8.useRef(null);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React5.useState(false);
+  const layoutPrefsTouchedRef = React5.useRef(false);
+  const layoutPrefsLoadedRef = React5.useRef(false);
+  const layoutPrefsResourceRef = React5.useRef(null);
+  const sortIntentRef = React5.useRef(null);
   const { settings: viewSettings } = useViewSettings();
   const relationsMaxRowsToLoad = Math.max(0, Number(viewSettings?.relationsMaxRowsToLoad ?? 1e3));
-  const markAnalyzePrefsTouched = React8.useCallback(() => {
+  const markAnalyzePrefsTouched = React5.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React8.useCallback(() => {
+  const markLayoutPrefsTouched = React5.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const persistLayoutPreferences = React8.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React5.useCallback(async (viewName) => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
@@ -11484,7 +11710,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, layoutPreferenceType, listVisible, pageSize, selectedColumnKeys, relatedModel.name, relatedModel.resource, totalsSummaryFunctions, allModels]);
-  const persistAnalyzePreferences = React8.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React5.useCallback(async (viewName) => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -11515,13 +11741,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, relatedModel.name, relatedModel.resource, allModels]);
-  const categoricalFields = React8.useMemo(() => {
+  const categoricalFields = React5.useMemo(() => {
     return relatedModel.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
   }, [relatedModel.fields]);
-  const numericFields = React8.useMemo(() => {
+  const numericFields = React5.useMemo(() => {
     return relatedModel.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
   }, [relatedModel.fields]);
-  const resetLayoutDefaults = React8.useCallback(() => {
+  const resetLayoutDefaults = React5.useCallback(() => {
     setListVisible(true);
     setAnalyzeOpen(false);
     setIsAnalyzeVertical(false);
@@ -11531,7 +11757,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setSelectedColumnKeys(null);
     setColumnOrder(null);
   }, []);
-  const resetAnalyzeDefaults = React8.useCallback(() => {
+  const resetAnalyzeDefaults = React5.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -11541,7 +11767,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setRankingFieldKey(numericFields[0]?.key ?? null);
     setRankingN(10);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React8.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React5.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -11557,7 +11783,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     } catch {
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const loadViewNames = React8.useCallback(async () => {
+  const loadViewNames = React5.useCallback(async () => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     setIsLoadingViewNames(true);
     try {
@@ -11602,13 +11828,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const openSaveViewModalFor = React8.useCallback((target) => {
+  const openSaveViewModalFor = React5.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleConfirmSaveView = React8.useCallback(async () => {
+  const handleConfirmSaveView = React5.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -11635,14 +11861,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  const handleChangeViewName = React8.useCallback(async (nextView) => {
+  const handleChangeViewName = React5.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React8.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React5.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -11654,7 +11880,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React8.useCallback((name, direction) => {
+  const moveSelectedView = React5.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -11666,7 +11892,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React8.useCallback(async () => {
+  const handleRenameView = React5.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -11693,7 +11919,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.message.error(error2 instanceof Error ? error2.message : _32("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React8.useCallback(() => {
+  const confirmDeleteView = React5.useCallback(() => {
     antd.Modal.confirm({
       title: _32(_32("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -11738,10 +11964,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, relatedModelTone) }))
     }
   ) : null;
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!viewNamesLoaded) return;
     analyzePrefsTouchedRef.current = false;
     layoutPrefsTouchedRef.current = false;
@@ -11753,7 +11979,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     resetLayoutDefaults();
     resetAnalyzeDefaults();
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -11803,7 +12029,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, relatedModel.name, relatedModel.resource, allModels]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${layoutPreferenceType}::${currentViewName}`;
@@ -11882,17 +12108,17 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, layoutPreferenceType, relatedModel.name, relatedModel.resource, allModels, viewNamesLoaded]);
-  const normalizeFieldValue = React8.useCallback((field, value) => {
+  const normalizeFieldValue = React5.useCallback((field, value) => {
     if (field.type === "date" && value) {
       if (typeof value?.toISOString === "function") return value.toISOString();
       if (typeof value?.format === "function") return value.format("YYYY-MM-DD");
     }
     return value;
   }, []);
-  const hasActiveFilterRules = React8.useMemo(() => {
+  const hasActiveFilterRules = React5.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const resolveRelativeDate = React8.useCallback((value, asRange) => {
+  const resolveRelativeDate = React5.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -11918,7 +12144,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return { date: target.startOf(unit) };
   }, []);
-  const getFieldValueForFilter = React8.useCallback((field, recordRow) => {
+  const getFieldValueForFilter = React5.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -11930,7 +12156,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return raw;
   }, [labelCache]);
-  const matchesRule = React8.useCallback((recordRow, rule) => {
+  const matchesRule = React5.useCallback((recordRow, rule) => {
     const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, recordRow);
@@ -12010,7 +12236,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return true;
   }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React8.useCallback((data) => {
+  const applyGlobalSearch = React5.useCallback((data) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
     return data.filter((recordRow) => {
@@ -12029,14 +12255,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, relatedModel.fields]);
-  const applyFilterRules = React8.useCallback((data) => {
+  const applyFilterRules = React5.useCallback((data) => {
     if (!hasActiveFilterRules) return data;
     return data.filter((recordRow) => filterRules.every((rule) => matchesRule(recordRow, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const filteredRows = React8.useMemo(() => {
+  const filteredRows = React5.useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
-  const columnFilteredRows = React8.useMemo(() => {
+  const columnFilteredRows = React5.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredRows;
     return filteredRows.filter(
@@ -12050,10 +12276,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       )
     );
   }, [filteredRows, columnFiltersSelected]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!allowInlineEdit) return;
     if (form.isFieldsTouched()) return;
     const initialValues = {};
@@ -12067,7 +12293,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     form.setFieldsValue(initialValues);
   }, [allowInlineEdit, form, relatedModel.fields, filteredRows]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!allowInlineEdit) {
       setWarnWhen(false);
       return;
@@ -12075,7 +12301,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setWarnWhen(hasPendingEdits);
     return () => setWarnWhen(false);
   }, [allowInlineEdit, hasPendingEdits, setWarnWhen]);
-  const saveAllEdits = React8.useCallback(async () => {
+  const saveAllEdits = React5.useCallback(async () => {
     if (!allowInlineEdit) return;
     setSavingAll(true);
     try {
@@ -12128,7 +12354,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSavingAll(false);
     }
   }, [allowInlineEdit, apiUrl, form, normalizeFieldValue, relatedModel.fields, relatedModel.name, relatedModel.resource, allModels, rows]);
-  const handleDeleteRelationRow = React8.useCallback((row) => {
+  const handleDeleteRelationRow = React5.useCallback((row) => {
     const relationRow = row?.__relationRow;
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
@@ -12185,7 +12411,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     overflow: "visible",
     order: isAnalyzeFirst ? 1 : 2
   };
-  const getSortValue = React8.useCallback((field, recordRow) => {
+  const getSortValue = React5.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (field.key === "eid" && recordRow?._label) return recordRow._label;
@@ -12204,7 +12430,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React8.useCallback((field, a, b) => {
+  const compareSortValues = React5.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -12213,11 +12439,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const shouldUseFullDataMode = React8.useMemo(() => {
+  const shouldUseFullDataMode = React5.useMemo(() => {
     if (loadAllRelatedRequested) return true;
     return false;
   }, [loadAllRelatedRequested]);
-  const fetchRelatedDetailsByIds = React8.useCallback(async (ids, signal) => {
+  const fetchRelatedDetailsByIds = React5.useCallback(async (ids, signal) => {
     const uniqueIds = Array.from(new Set(ids.filter((value) => value !== void 0 && value !== null)));
     if (!rel.otherResource || uniqueIds.length === 0) return [];
     const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource, allModels);
@@ -12268,7 +12494,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const now = performance.now();
     console.log(`[JM_TRACE ${now.toFixed(1)}ms] ${label}${detail ? " | " + detail : ""}`);
   };
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!recordId || !rel.otherResource || !rel.otherKey) {
       setRows([]);
       setServerTotalRows(0);
@@ -12415,26 +12641,26 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       controller.abort();
     };
   }, [apiUrl, currentPage, pageSize, recordId, rel.label, rel.otherKey, rel.otherResource, rel.resource, rel.targetKey, allowedRelatedIds, allModels, rel.resourcePath, rel.otherResourcePath, shouldUseFullDataMode, fetchRelatedDetailsByIds, fullDataLoaded, relationsMaxRowsToLoad, rows.length]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!shouldUseFullDataMode && fullDataLoaded) {
       setFullDataLoaded(false);
     }
   }, [fullDataLoaded, shouldUseFullDataMode]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length <= 1 && analyzeOpen) {
       setAnalyzeOpen(false);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length > 1 && !analyzeOpen) {
       setAnalyzeOpen(true);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -12442,7 +12668,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -12450,7 +12676,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -12460,7 +12686,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const formatCategoryValue = React8.useCallback((field, recordRow) => {
+  const formatCategoryValue = React5.useCallback((field, recordRow) => {
     if (!field) return _32("All");
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -12476,14 +12702,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartTitle = React8.useMemo(() => {
+  const chartTitle = React5.useMemo(() => {
     const cat1Label = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2)?.label : null;
     const parts = [relatedModel.label || relatedModel.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
-  const chartData = React8.useMemo(() => {
+  const chartData = React5.useMemo(() => {
     const data = columnFilteredRows || [];
     const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : void 0;
@@ -12590,7 +12816,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       filteredRawRows
     };
   }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
-  const numericColumnMaxes = React8.useMemo(() => {
+  const numericColumnMaxes = React5.useMemo(() => {
     const maxes = {};
     const data = filteredRows || [];
     displayFields.forEach((field) => {
@@ -12604,7 +12830,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     return maxes;
   }, [filteredRows, displayFields]);
-  const chartSignature = React8.useMemo(() => {
+  const chartSignature = React5.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -12617,13 +12843,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -12632,7 +12858,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const formatValueForExport = React8.useCallback((field, recordRow) => {
+  const formatValueForExport = React5.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -12646,7 +12872,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!exportRequested) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -12732,7 +12958,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const exportStatsPdf = () => {
     openPdfWindow(`${relatedModel.name}-stats`, buildStatsHtml(statsSummary));
   };
-  const columnFilters = React8.useMemo(() => {
+  const columnFilters = React5.useMemo(() => {
     const data = filteredRows || [];
     const limit = 50;
     const filtersMap = /* @__PURE__ */ new Map();
@@ -12757,27 +12983,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return filtersMap;
   }, [displayFields, filteredRows]);
-  const allFieldOptions = React8.useMemo(() => {
+  const allFieldOptions = React5.useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
-  const orderedSelectedColumns = React8.useMemo(() => {
+  const orderedSelectedColumns = React5.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React8.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React5.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(columnOrder && columnOrder.length > 0 ? columnOrder : keys);
   }, [columnOrder, displayFields]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const handleColumnSelectionChange = React8.useCallback((values) => {
+  const handleColumnSelectionChange = React5.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -12791,7 +13017,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React8.useCallback((key, direction) => {
+  const moveColumnOrder = React5.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -12802,18 +13028,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return base;
     });
   }, [selectedColumnKeys]);
-  const statsSummary = React8.useMemo(() => {
+  const statsSummary = React5.useMemo(() => {
     return buildStatsSummary(columnFilteredRows, displayFields, labelCache);
   }, [columnFilteredRows, displayFields, labelCache]);
   const isTotalsDetailsVariant = viewVariant === "totals-details";
-  const getDefaultTotalsSummaryFn = React8.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
     if (field.key === "eid") return "count";
     return "sum";
   }, []);
-  const resolveTotalsSummaryFn = React8.useCallback((field) => {
+  const resolveTotalsSummaryFn = React5.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React8.useCallback((field) => {
+  const computeTotalsSummaryValue = React5.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     const rawValues = filteredRows.map((row) => row?.[field.key]);
     if (field.type === "number" && !field.reference) {
@@ -12836,7 +13062,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return rawValues.length;
   }, [filteredRows, resolveTotalsSummaryFn]);
-  const formatCategoricalBoxValue = React8.useCallback((field, raw) => {
+  const formatCategoricalBoxValue = React5.useCallback((field, raw) => {
     if (raw === void 0 || raw === null) return "-";
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
@@ -12849,7 +13075,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const totalsDetailsCategoricalBoxes = React8.useMemo(() => {
+  const totalsDetailsCategoricalBoxes = React5.useMemo(() => {
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
       filteredRows.forEach((row) => {
@@ -12867,7 +13093,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [displayFields, filteredRows, formatCategoricalBoxValue]);
-  const totalsDetailsNumericBoxes = React8.useMemo(() => {
+  const totalsDetailsNumericBoxes = React5.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       return {
         key: field.key,
@@ -12877,10 +13103,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [computeTotalsSummaryValue, displayFields, resolveTotalsSummaryFn]);
-  const totalsSummaryConfigFields = React8.useMemo(() => {
+  const totalsSummaryConfigFields = React5.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     setTotalsSummaryFunctions((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -12893,7 +13119,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return changed ? next : prev;
     });
   }, [getDefaultTotalsSummaryFn, totalsSummaryConfigFields]);
-  const statsNumericMaxes = React8.useMemo(() => {
+  const statsNumericMaxes = React5.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -12907,7 +13133,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (isTotalsDetailsVariant) {
       setIsTotalsDetailsFlipped(false);
     }
@@ -14164,15 +14390,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
 };
 var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
   const apiUrl = core.useApiUrl();
-  const [currentLinkRow, setCurrentLinkRow] = React8.useState(null);
-  const [currentValue, setCurrentValue] = React8.useState(null);
-  const [loadingCurrent, setLoadingCurrent] = React8.useState(true);
-  const [saving, setSaving] = React8.useState(false);
+  const [currentLinkRow, setCurrentLinkRow] = React5.useState(null);
+  const [currentValue, setCurrentValue] = React5.useState(null);
+  const [loadingCurrent, setLoadingCurrent] = React5.useState(true);
+  const [saving, setSaving] = React5.useState(false);
   const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource || "", allModels);
   const linkResource = rel.resourcePath || resolveResourcePath(rel.resource, allModels);
   const relatedModel = allModels?.find((m) => m.name === rel.otherResource);
   const relatedPkField = relatedModel?.fields.find((f) => f.isPk)?.key ?? "id";
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.targetKey || !rel.otherKey) {
       setLoadingCurrent(false);
@@ -14214,7 +14440,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     filters: [],
     pagination: { current: 1, pageSize: 2e3, mode: "server" }
   });
-  const handleChange = React8.useCallback(async (newValue) => {
+  const handleChange = React5.useCallback(async (newValue) => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.otherKey) return;
     setSaving(true);
@@ -14270,11 +14496,11 @@ function useMillerColumnItems({
   allModels,
   apiUrl
 }) {
-  const [branches, setBranches] = React8.useState([]);
-  const [leaves, setLeaves] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(false);
-  const [error, setError] = React8.useState(null);
-  React8.useEffect(() => {
+  const [branches, setBranches] = React5.useState([]);
+  const [leaves, setLeaves] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(false);
+  const [error, setError] = React5.useState(null);
+  React5.useEffect(() => {
     if (!parentId || !rel.resourcePath || !rel.targetKey || !rel.otherKey || !rel.otherResource) {
       setBranches([]);
       setLeaves([]);
@@ -14539,16 +14765,16 @@ var MillerBrowserLayout = ({
   const screens = antd.Grid.useBreakpoint();
   const { token } = antd.theme.useToken();
   const isDesktop = !!screens.md;
-  const columnsRef = React8.useRef(null);
+  const columnsRef = React5.useRef(null);
   const rootId = record?.eid ?? record?.id;
-  const [columns, setColumns] = React8.useState([{ parentId: rootId }]);
-  const [selectedIds, setSelectedIds] = React8.useState([null]);
-  const [detailNode, setDetailNode] = React8.useState(null);
-  const [drawerOpen, setDrawerOpen] = React8.useState(false);
-  const [containerHeight, setContainerHeight] = React8.useState(INITIAL_HEIGHT);
-  const [columnsWidth, setColumnsWidth] = React8.useState(null);
-  const [columnWidths, setColumnWidths] = React8.useState([]);
-  const [draggingDir, setDraggingDir] = React8.useState(null);
+  const [columns, setColumns] = React5.useState([{ parentId: rootId }]);
+  const [selectedIds, setSelectedIds] = React5.useState([null]);
+  const [detailNode, setDetailNode] = React5.useState(null);
+  const [drawerOpen, setDrawerOpen] = React5.useState(false);
+  const [containerHeight, setContainerHeight] = React5.useState(INITIAL_HEIGHT);
+  const [columnsWidth, setColumnsWidth] = React5.useState(null);
+  const [columnWidths, setColumnWidths] = React5.useState([]);
+  const [draggingDir, setDraggingDir] = React5.useState(null);
   const DEFAULT_COL_WIDTH = 240;
   const getColWidth = (i) => columnWidths[i] ?? DEFAULT_COL_WIDTH;
   const handleResizeV = (e) => {
@@ -15025,7 +15251,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const canBulkEdit = canEditData?.can !== false;
   const { settings: viewSettings } = useViewSettings();
   viewSettings?.generalActionsButtonPosition || "top-right";
-  const [actionsBarEl, setActionsBarEl] = React8.useState(null);
+  const [actionsBarEl, setActionsBarEl] = React5.useState(null);
   const resolvedLayoutPreferenceType = layoutPreferenceType ?? "ShowLayout";
   const [searchParams] = reactRouterDom.useSearchParams();
   const selectMode = searchParams.get("select_mode") === "1";
@@ -15035,7 +15261,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const selectModeRelateOtherKey = searchParams.get("relate_other_key");
   const selectModeRelateTargetId = searchParams.get("relate_target_id");
   const selectModeReturnTo = searchParams.get("returnTo");
-  useKeyboardShortcuts(React8.useMemo(() => isEmbedded ? [] : [
+  useKeyboardShortcuts(React5.useMemo(() => isEmbedded ? [] : [
     { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) }
   ], [model.name, model.resource, go, isEmbedded]));
   const { token } = antd.theme.useToken();
@@ -15067,86 +15293,86 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
-  const calendarDateFieldOptions = React8.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
-  const [localSearch, setLocalSearch] = React8.useState("");
-  const [listVisible, setListVisible] = React8.useState(defaultListVisible ?? true);
-  const [isTdFlipped, setIsTdFlipped] = React8.useState(false);
-  const [pageSize, setPageSize] = React8.useState(10);
-  const [galleryPage, setGalleryPage] = React8.useState(1);
-  const [calendarMode, setCalendarMode] = React8.useState("month");
-  const [calendarDateField, setCalendarDateField] = React8.useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React8.useState(() => dayjs8__default.default().startOf("month"));
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React8.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React8.useState(false);
-  const [filterRules, setFilterRules] = React8.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React8.useState(isEmbedded);
-  const [layoutPrefsReady, setLayoutPrefsReady] = React8.useState(false);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React8.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React8.useState(null);
-  const [columnOrder, setColumnOrder] = React8.useState(null);
-  const [columnFiltersSelected, setColumnFiltersSelected] = React8.useState({});
-  const [columnSort, setColumnSort] = React8.useState(
+  const calendarDateFieldOptions = React5.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
+  const [localSearch, setLocalSearch] = React5.useState("");
+  const [listVisible, setListVisible] = React5.useState(defaultListVisible ?? true);
+  const [isTdFlipped, setIsTdFlipped] = React5.useState(false);
+  const [pageSize, setPageSize] = React5.useState(10);
+  const [galleryPage, setGalleryPage] = React5.useState(1);
+  const [calendarMode, setCalendarMode] = React5.useState("month");
+  const [calendarDateField, setCalendarDateField] = React5.useState(() => calendarDateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React5.useState(() => dayjs8__default.default().startOf("month"));
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React5.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React5.useState(false);
+  const [filterRules, setFilterRules] = React5.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React5.useState(isEmbedded);
+  const [layoutPrefsReady, setLayoutPrefsReady] = React5.useState(false);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React5.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React5.useState(null);
+  const [columnOrder, setColumnOrder] = React5.useState(null);
+  const [columnFiltersSelected, setColumnFiltersSelected] = React5.useState({});
+  const [columnSort, setColumnSort] = React5.useState(
     model.defaultSort ? [{ fieldKey: model.defaultSort.field, order: model.defaultSort.order === "desc" ? "descend" : "ascend" }] : []
   );
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React8.useState({});
-  const [currentViewName, setCurrentViewName] = React8.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React8.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React8.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React8.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React8.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React8.useState(false);
-  const [saveViewName, setSaveViewName] = React8.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React8.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React8.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React8.useState(false);
-  const [renameViewName, setRenameViewName] = React8.useState("");
-  const [labelCache, setLabelCache] = React8.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React8.useState(isEmbedded);
-  const analyzeTouchedRef = React8.useRef(false);
-  const analyzePrefsTouchedRef = React8.useRef(false);
-  const analyzePrefsLoadedRef = React8.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React8.useState(false);
-  const analyzePrefsResourceRef = React8.useRef(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React5.useState({});
+  const [currentViewName, setCurrentViewName] = React5.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React5.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React5.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React5.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React5.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React5.useState(false);
+  const [saveViewName, setSaveViewName] = React5.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React5.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React5.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React5.useState(false);
+  const [renameViewName, setRenameViewName] = React5.useState("");
+  const [labelCache, setLabelCache] = React5.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React5.useState(isEmbedded);
+  const analyzeTouchedRef = React5.useRef(false);
+  const analyzePrefsTouchedRef = React5.useRef(false);
+  const analyzePrefsLoadedRef = React5.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React5.useState(false);
+  const analyzePrefsResourceRef = React5.useRef(null);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const defaultDisplayFields = React8.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
-  const orderedColumnKeys = React8.useMemo(() => {
+  const defaultDisplayFields = React5.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
+  const orderedColumnKeys = React5.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(model.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, model.fields, selectedColumnKeys]);
-  const displayFields = React8.useMemo(() => {
+  const displayFields = React5.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(model.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, model.fields, orderedColumnKeys]);
   const useLocalSearch = true;
-  const [categoryField1, setCategoryField1] = React8.useState(null);
-  const [categoryField2, setCategoryField2] = React8.useState(void 0);
-  const [chartType, setChartType] = React8.useState("area");
-  const [summaryFn, setSummaryFn] = React8.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React8.useState(null);
-  const [rankingMode, setRankingMode] = React8.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React8.useState(null);
-  const [rankingN, setRankingN] = React8.useState(10);
-  const [exportRequested, setExportRequested] = React8.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React8.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React8.useState(false);
-  const chartSvgRef = React8.useRef(null);
-  const [chartAnimationKey, setChartAnimationKey] = React8.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React8.useState("enter");
-  const skipNextAnimationRef = React8.useRef(false);
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React8.useState(false);
-  const layoutPrefsTouchedRef = React8.useRef(false);
-  const layoutPrefsLoadedRef = React8.useRef(false);
-  const layoutPrefsResourceRef = React8.useRef(null);
-  const sortIntentRef = React8.useRef(null);
-  const prevViewNameForResetRef = React8.useRef(null);
-  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React8.useState([]);
-  const bulkSelectedRowsMapRef = React8.useRef(/* @__PURE__ */ new Map());
-  const [selectModeAssociating, setSelectModeAssociating] = React8.useState(false);
-  const handleAssociateSelected = React8.useCallback(async () => {
+  const [categoryField1, setCategoryField1] = React5.useState(null);
+  const [categoryField2, setCategoryField2] = React5.useState(void 0);
+  const [chartType, setChartType] = React5.useState("area");
+  const [summaryFn, setSummaryFn] = React5.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React5.useState(null);
+  const [rankingMode, setRankingMode] = React5.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React5.useState(null);
+  const [rankingN, setRankingN] = React5.useState(10);
+  const [exportRequested, setExportRequested] = React5.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React5.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React5.useState(false);
+  const chartSvgRef = React5.useRef(null);
+  const [chartAnimationKey, setChartAnimationKey] = React5.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React5.useState("enter");
+  const skipNextAnimationRef = React5.useRef(false);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React5.useState(false);
+  const layoutPrefsTouchedRef = React5.useRef(false);
+  const layoutPrefsLoadedRef = React5.useRef(false);
+  const layoutPrefsResourceRef = React5.useRef(null);
+  const sortIntentRef = React5.useRef(null);
+  const prevViewNameForResetRef = React5.useRef(null);
+  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React5.useState([]);
+  const bulkSelectedRowsMapRef = React5.useRef(/* @__PURE__ */ new Map());
+  const [selectModeAssociating, setSelectModeAssociating] = React5.useState(false);
+  const handleAssociateSelected = React5.useCallback(async () => {
     if (!selectModeRelateResource || !selectModeRelateTargetKey || !selectModeRelateTargetId) return;
     if (!selectModeFk && !selectModeRelateOtherKey) return;
     setSelectModeAssociating(true);
@@ -15181,18 +15407,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectModeAssociating(false);
     }
   }, [apiUrl, bulkSelectedRowKeys, selectModeFk, selectModeRelateResource, selectModeRelateTargetKey, selectModeRelateOtherKey, selectModeRelateTargetId, selectModeReturnTo, navigate]);
-  const [bulkActionModalOpen, setBulkActionModalOpen] = React8.useState(false);
-  const [bulkActionsToApply, setBulkActionsToApply] = React8.useState([]);
-  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React8.useState(null);
-  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React8.useState(null);
-  const [isBulkExecuting, setIsBulkExecuting] = React8.useState(false);
-  const [selectAllFilteredPending, setSelectAllFilteredPending] = React8.useState(false);
-  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React8.useState(false);
-  const handleReferenceLabel = React8.useCallback((resource, id, label) => {
+  const [bulkActionModalOpen, setBulkActionModalOpen] = React5.useState(false);
+  const [bulkActionsToApply, setBulkActionsToApply] = React5.useState([]);
+  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React5.useState(null);
+  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React5.useState(null);
+  const [isBulkExecuting, setIsBulkExecuting] = React5.useState(false);
+  const [selectAllFilteredPending, setSelectAllFilteredPending] = React5.useState(false);
+  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React5.useState(false);
+  const handleReferenceLabel = React5.useCallback((resource, id, label) => {
     const key = `${resource}:${id}`;
     setLabelCache((prev) => prev[key] === label ? prev : { ...prev, [key]: label });
   }, []);
-  const tableFilters = React8.useMemo(() => {
+  const tableFilters = React5.useMemo(() => {
     if (!filter) return [];
     if (filter.value === void 0 || filter.value === null) return [];
     return [filter];
@@ -15217,16 +15443,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [{ field: searchField.key, operator: "eq", value }];
     }
   });
-  const [allRowsData, setAllRowsData] = React8.useState([]);
-  const [isAllRowsLoading, setIsAllRowsLoading] = React8.useState(false);
-  const [allRowsError, setAllRowsError] = React8.useState(null);
-  const lastAllRowsSignature = React8.useRef("");
-  const [allRowsLoaded, setAllRowsLoaded] = React8.useState(false);
+  const [allRowsData, setAllRowsData] = React5.useState([]);
+  const [isAllRowsLoading, setIsAllRowsLoading] = React5.useState(false);
+  const [allRowsError, setAllRowsError] = React5.useState(null);
+  const lastAllRowsSignature = React5.useRef("");
+  const [allRowsLoaded, setAllRowsLoaded] = React5.useState(false);
   const isRelationView = !!filter;
-  const hasActiveFilterRules = React8.useMemo(() => {
+  const hasActiveFilterRules = React5.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const getFieldValueForFilter = React8.useCallback((field, record) => {
+  const getFieldValueForFilter = React5.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -15238,7 +15464,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return raw;
   }, [labelCache]);
-  const getSortValue = React8.useCallback((field, record) => {
+  const getSortValue = React5.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (field.key === "eid" && record?._label) return record._label;
@@ -15260,7 +15486,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React8.useCallback((field, a, b) => {
+  const compareSortValues = React5.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -15269,7 +15495,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const resolveRelativeDate = React8.useCallback((value, asRange) => {
+  const resolveRelativeDate = React5.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -15295,7 +15521,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { date: target.startOf(unit) };
   }, []);
-  const matchesRule = React8.useCallback((record, rule) => {
+  const matchesRule = React5.useCallback((record, rule) => {
     const field = model.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, record);
@@ -15375,7 +15601,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return true;
   }, [getFieldValueForFilter, model.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React8.useCallback((rows) => {
+  const applyGlobalSearch = React5.useCallback((rows) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((record) => {
@@ -15394,11 +15620,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, model.fields, useLocalSearch]);
-  const applyFilterRules = React8.useCallback((rows) => {
+  const applyFilterRules = React5.useCallback((rows) => {
     if (!hasActiveFilterRules) return rows;
     return rows.filter((record) => filterRules.every((rule) => matchesRule(record, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const allRows = React8.useMemo(() => {
+  const allRows = React5.useMemo(() => {
     const data = allRowsData || [];
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
@@ -15419,12 +15645,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
-  const filteredDataSource = React8.useMemo(() => {
+  const filteredDataSource = React5.useMemo(() => {
     if (!isClientFiltering) return tableProps.dataSource || [];
     const baseRows = allRows || [];
     return applyFilterRules(applyGlobalSearch(baseRows));
   }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
-  const columnFilteredDataSource = React8.useMemo(() => {
+  const columnFilteredDataSource = React5.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredDataSource;
     return filteredDataSource.filter(
@@ -15473,10 +15699,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       })
     );
   }, [filteredDataSource, columnFiltersSelected, model.fields]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
-  const columnFilters = React8.useMemo(() => {
+  const columnFilters = React5.useMemo(() => {
     const data = allRowsData.length > 0 ? allRowsData : tableProps.dataSource || [];
     const distinctLimit = 50;
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
@@ -15605,33 +15831,33 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return filtersMap;
   }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
-  const allFieldOptions = React8.useMemo(() => {
+  const allFieldOptions = React5.useMemo(() => {
     return model.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [model.fields]);
-  const orderedSelectedColumns = React8.useMemo(() => {
+  const orderedSelectedColumns = React5.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React8.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React5.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : keys);
   }, [displayFields, orderedColumnKeys]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const markAnalyzePrefsTouched = React8.useCallback(() => {
+  const markAnalyzePrefsTouched = React5.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React8.useCallback(() => {
+  const markLayoutPrefsTouched = React5.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const handleColumnSelectionChange = React8.useCallback((values) => {
+  const handleColumnSelectionChange = React5.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -15645,7 +15871,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React8.useCallback((key, direction) => {
+  const moveColumnOrder = React5.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -15656,7 +15882,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return base;
     });
   }, [selectedColumnKeys]);
-  const handleTablePageChange = React8.useCallback((page, newPageSize) => {
+  const handleTablePageChange = React5.useCallback((page, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setGalleryPage(1);
@@ -15666,7 +15892,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       pagination.onChange(page, newPageSize ?? pageSize);
     }
   }, [pageSize, tableProps.pagination]);
-  const tablePagination = React8.useMemo(() => {
+  const tablePagination = React5.useMemo(() => {
     if (!isClientFiltering) {
       if (!tableProps.pagination || typeof tableProps.pagination !== "object") return tableProps.pagination;
       return {
@@ -15687,23 +15913,23 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleTablePageChange
     };
   }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
-  const categoricalFields = React8.useMemo(() => {
+  const categoricalFields = React5.useMemo(() => {
     return model.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
   }, [model.fields]);
-  const numericFields = React8.useMemo(() => {
+  const numericFields = React5.useMemo(() => {
     return model.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
   }, [model.fields]);
-  const hasActiveRangeColumnFilter = React8.useMemo(() => {
+  const hasActiveRangeColumnFilter = React5.useMemo(() => {
     return Object.values(columnFiltersSelected).some(
       (vals) => vals.some((v) => v.startsWith("__range__:"))
     );
   }, [columnFiltersSelected]);
-  const shouldLoadAllRows = React8.useMemo(() => {
+  const shouldLoadAllRows = React5.useMemo(() => {
     return Boolean(
       localSearch.trim().length > 0 || hasActiveFilterRules || analyzeOpen || exportRequested || isTotalsDetailsView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
     );
   }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, localSearch]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -15711,7 +15937,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -15719,7 +15945,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -15729,7 +15955,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const resetLayoutDefaults = React8.useCallback(() => {
+  const resetLayoutDefaults = React5.useCallback(() => {
     setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(isEmbedded);
     setIsAnalyzeVertical(false);
@@ -15740,7 +15966,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setColumnOrder(null);
     setTotalsSummaryFunctions({});
   }, [isEmbedded, defaultListVisible]);
-  const resetAnalyzeDefaults = React8.useCallback(() => {
+  const resetAnalyzeDefaults = React5.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -15750,7 +15976,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setRankingFieldKey(numericFields[0]?.key ?? null);
     setRankingN(10);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React8.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React5.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = prefsKey;
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -15766,7 +15992,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     } catch {
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const loadViewNames = React8.useCallback(async () => {
+  const loadViewNames = React5.useCallback(async () => {
     const resourceKey = prefsKey;
     setIsLoadingViewNames(true);
     try {
@@ -15811,20 +16037,20 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const openSaveViewModalFor = React8.useCallback((target) => {
+  const openSaveViewModalFor = React5.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleChangeViewName = React8.useCallback(async (nextView) => {
+  const handleChangeViewName = React5.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React8.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React5.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -15836,7 +16062,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React8.useCallback((name, direction) => {
+  const moveSelectedView = React5.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -15848,7 +16074,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React8.useCallback(async () => {
+  const handleRenameView = React5.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -15875,7 +16101,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.message.error(error instanceof Error ? error.message : _34("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React8.useCallback(() => {
+  const confirmDeleteView = React5.useCallback(() => {
     antd.Modal.confirm({
       title: _34(_34("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -15900,7 +16126,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     });
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, loadViewNames]);
-  const persistLayoutPreferences = React8.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React5.useCallback(async (viewName) => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
@@ -15944,7 +16170,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const persistAnalyzePreferences = React8.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React5.useCallback(async (viewName) => {
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -15975,7 +16201,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const handleConfirmSaveView = React8.useCallback(async () => {
+  const handleConfirmSaveView = React5.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -16002,10 +16228,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!viewNamesLoaded) return;
     const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
     prevViewNameForResetRef.current = currentViewName;
@@ -16022,7 +16248,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       resetAnalyzeDefaults();
     }
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -16072,7 +16298,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${resolvedLayoutPreferenceType}::${currentViewName}`;
@@ -16157,7 +16383,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const fetchAllRows = React8.useCallback(async () => {
+  const fetchAllRows = React5.useCallback(async () => {
     setIsAllRowsLoading(true);
     setAllRowsError(null);
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
@@ -16193,7 +16419,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAllRowsLoaded(true);
     }
   }, [activeFilters, apiUrl, model.name, model.resource, tableFilters, allModels]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!shouldLoadAllRows) return;
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
     const signature = JSON.stringify({
@@ -16208,7 +16434,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     lastAllRowsSignature.current = signature;
     fetchAllRows();
   }, [activeFilters, analyzeOpen, exportRequested, fetchAllRows, model.name, shouldLoadAllRows, tableFilters]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!allRowsLoaded) return;
     if (analyzeTouchedRef.current) return;
     if (isTotalsDetailsView) return;
@@ -16218,7 +16444,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAnalyzeOpen(true);
     }
   }, [allRows?.length, allRowsLoaded, isTotalsDetailsView]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!hasActiveFilterRules || isClientFiltering) return;
     const resolveServerDate = (val, forRange) => {
       if (val?.mode === "relative") {
@@ -16281,7 +16507,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const combined = [...tableFilters, ...serverFilters];
     setFilters(combined, "replace");
   }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
-  const formatCategoryValue = React8.useCallback((field, record) => {
+  const formatCategoryValue = React5.useCallback((field, record) => {
     if (!field) return _34("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -16299,7 +16525,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartData = React8.useMemo(() => {
+  const chartData = React5.useMemo(() => {
     const data = columnFilteredDataSource || [];
     const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : void 0;
@@ -16405,7 +16631,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       filteredRawRows
     };
   }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
-  const chartSignature = React8.useMemo(() => {
+  const chartSignature = React5.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -16418,10 +16644,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  const statsSummary = React8.useMemo(() => {
+  const statsSummary = React5.useMemo(() => {
     return buildStatsSummary(columnFilteredDataSource, displayFields, labelCache);
   }, [columnFilteredDataSource, displayFields, labelCache]);
-  const tdCategoricalBoxes = React8.useMemo(() => {
+  const tdCategoricalBoxes = React5.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
@@ -16458,14 +16684,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       };
     });
   }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
-  const getDefaultTotalsSummaryFn = React8.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
     if (["eid", "eid_from", "eid_to"].includes(field.key)) return "count";
     return "sum";
   }, []);
-  const resolveTotalsSummaryFn = React8.useCallback((field) => {
+  const resolveTotalsSummaryFn = React5.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React8.useCallback((field) => {
+  const computeTotalsSummaryValue = React5.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     if (field.type === "number" && !field.reference) {
       const values = (allRows || []).map((row) => Number(row?.[field.key])).filter((v) => !Number.isNaN(v) && Number.isFinite(v));
@@ -16494,7 +16720,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (fn === "distinct") return new Set(rawValues.map((v) => String(v ?? "-"))).size;
     return rawValues.length;
   }, [allRows, resolveTotalsSummaryFn]);
-  const getSummaryFunctionDisplayText = React8.useCallback((fn) => {
+  const getSummaryFunctionDisplayText = React5.useCallback((fn) => {
     if (!fn) return "";
     const labels = {
       sum: _34("Sum"),
@@ -16507,7 +16733,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     };
     return labels[fn] || fn;
   }, []);
-  const tdNumericBoxes = React8.useMemo(() => {
+  const tdNumericBoxes = React5.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       const summaryFnVal = resolveTotalsSummaryFn(field);
@@ -16516,7 +16742,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return { key: field.key, label, value, summaryFn: summaryFnVal };
     });
   }, [isTotalsDetailsView, displayFields, resolveTotalsSummaryFn, computeTotalsSummaryValue]);
-  const totalsSummaryConfigFields = React8.useMemo(() => {
+  const totalsSummaryConfigFields = React5.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
   const renderDynamicListTotalsBoxes = () => {
@@ -16581,7 +16807,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       ) })
     ] }) });
   };
-  const numericColumnMaxes = React8.useMemo(() => {
+  const numericColumnMaxes = React5.useMemo(() => {
     const maxes = {};
     const rows = allRows || [];
     displayFields.forEach((field) => {
@@ -16595,7 +16821,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return maxes;
   }, [allRows, displayFields]);
-  const statsNumericMaxes = React8.useMemo(() => {
+  const statsNumericMaxes = React5.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -16609,13 +16835,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -16624,17 +16850,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const fieldByKey = React8.useMemo(() => {
+  const fieldByKey = React5.useMemo(() => {
     return new Map(model.fields.map((field) => [field.key, field]));
   }, [model.fields]);
-  const chartTitle = React8.useMemo(() => {
+  const chartTitle = React5.useMemo(() => {
     const cat1Label = categoryField1 ? fieldByKey.get(categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? fieldByKey.get(categoryField2)?.label : null;
     const parts = [model.label || model.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, fieldByKey, model.label, model.name]);
-  const formatValueForExport = React8.useCallback((field, record) => {
+  const formatValueForExport = React5.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -16650,7 +16876,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!exportRequested || isAllRowsLoading) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -16763,11 +16989,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { resource: null, id: null, isLinkRow: false };
   };
-  const clearBulkSelection = React8.useCallback(() => {
+  const clearBulkSelection = React5.useCallback(() => {
     setBulkSelectedRowKeys([]);
     bulkSelectedRowsMapRef.current.clear();
   }, []);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!selectAllFilteredPending || !allRowsLoaded) return;
     setSelectAllFilteredPending(false);
     const keys = filteredDataSource.map((r) => getRowKey(r));
@@ -16775,7 +17001,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     filteredDataSource.forEach((r) => bulkSelectedRowsMapRef.current.set(getRowKey(r), r));
     setBulkSelectedRowKeys(keys);
   }, [selectAllFilteredPending, allRowsLoaded, filteredDataSource]);
-  const handleSelectAllFiltered = React8.useCallback(() => {
+  const handleSelectAllFiltered = React5.useCallback(() => {
     if (!allRowsLoaded) {
       setSelectAllFilteredPending(true);
       fetchAllRows();
@@ -16786,7 +17012,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setBulkSelectedRowKeys(keys);
     }
   }, [allRowsLoaded, fetchAllRows, filteredDataSource]);
-  const executeBulkActions = React8.useCallback(async () => {
+  const executeBulkActions = React5.useCallback(async () => {
     const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
     if (records.length === 0) return;
     const resource = resolveResourcePath(model.resource || model.name, allModels);
@@ -16898,9 +17124,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
   };
   const isEmptyTable = (filteredDataSource?.length ?? 0) === 0;
-  const getRowKeyRef = React8.useRef(getRowKey);
+  const getRowKeyRef = React5.useRef(getRowKey);
   getRowKeyRef.current = getRowKey;
-  const handleBulkRowSelectionChange = React8.useCallback(
+  const handleBulkRowSelectionChange = React5.useCallback(
     (newKeys, newRowsOnPage) => {
       const currentPageData = isClientFiltering ? filteredDataSource : tableProps.dataSource || [];
       const currentPageKeys = new Set(currentPageData.map((r) => String(getRowKeyRef.current(r))));
@@ -16929,7 +17155,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     ]
   };
   const filteredTotalCount = isClientFiltering ? filteredDataSource.length : typeof tableProps.pagination === "object" ? tableProps.pagination?.total ?? filteredDataSource.length : filteredDataSource.length;
-  const bulkActionsAvailable = React8.useMemo(() => {
+  const bulkActionsAvailable = React5.useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
       opts.push({ label: _34("Change field value"), value: "__change_field__" });
@@ -17359,7 +17585,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   };
   const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize ? tablePagination.pageSize : 10;
-  const handleGalleryPageChange = React8.useCallback((page, nextPageSize) => {
+  const handleGalleryPageChange = React5.useCallback((page, nextPageSize) => {
     setGalleryPage(page);
     if (nextPageSize && nextPageSize !== pageSize) {
       setPageSize(nextPageSize);
@@ -17377,19 +17603,19 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [isClientFiltering, pageSize, tableProps]);
   const serverCurrentPage = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.current || 1) : 1;
   const serverTotal = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.total || 0) : 0;
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (isClientFiltering) return;
     if (Number.isFinite(serverCurrentPage) && serverCurrentPage > 0 && serverCurrentPage !== galleryPage) {
       setGalleryPage(serverCurrentPage);
     }
   }, [galleryPage, isClientFiltering, serverCurrentPage]);
-  const galleryRows = React8.useMemo(() => {
+  const galleryRows = React5.useMemo(() => {
     if (!isGalleryView) return [];
     if (!isClientFiltering) return filteredDataSource;
     const start = (galleryPage - 1) * galleryPageSize;
     return filteredDataSource.slice(start, start + galleryPageSize);
   }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
-  const galleryPaginationProps = React8.useMemo(() => {
+  const galleryPaginationProps = React5.useMemo(() => {
     if (!isGalleryView) return void 0;
     if (!isClientFiltering) {
       return {
@@ -17414,17 +17640,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleGalleryPageChange
     };
   }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
-  const calendarDateFieldKeySet = React8.useMemo(
+  const calendarDateFieldKeySet = React5.useMemo(
     () => new Set(calendarDateFieldOptions.map((field) => field.key)),
     [calendarDateFieldOptions]
   );
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!isCalendarView) return;
     if (calendarDateField && calendarDateFieldKeySet.has(calendarDateField)) return;
     const fallback = calendarDateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, calendarDateFieldKeySet, calendarDateFieldOptions, isCalendarView]);
-  const calendarEntries = React8.useMemo(() => {
+  const calendarEntries = React5.useMemo(() => {
     if (!isCalendarView || !calendarDateField) return [];
     const entries = [];
     filteredDataSource.forEach((record) => {
@@ -17442,7 +17668,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return entries;
   }, [calendarDateField, filteredDataSource, isCalendarView]);
-  const calendarEarliestDateTs = React8.useMemo(() => {
+  const calendarEarliestDateTs = React5.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -17451,8 +17677,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return earliest;
   }, [calendarEntries]);
-  const calendarInitSignatureRef = React8.useRef("");
-  React8.useEffect(() => {
+  const calendarInitSignatureRef = React5.useRef("");
+  React5.useEffect(() => {
     if (!isCalendarView) return;
     const signature = `${calendarDateField}|${calendarMode}|${calendarEarliestDateTs ?? "none"}`;
     if (calendarInitSignatureRef.current === signature) return;
@@ -17463,7 +17689,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     setCalendarAnchorDate(dayjs8__default.default(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
-  const calendarEntriesByDate = React8.useMemo(() => {
+  const calendarEntriesByDate = React5.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -17473,7 +17699,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return grouped;
   }, [calendarEntries]);
-  const calendarRangeDays = React8.useMemo(() => {
+  const calendarRangeDays = React5.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -17484,7 +17710,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const calendarPeriodLabel = React8.useMemo(() => {
+  const calendarPeriodLabel = React5.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -18691,8 +18917,8 @@ var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 var COLLAPSED_SIZE = 10;
 var FakeRouteProvider = ({ model, id, children }) => {
-  const existingRouteContext = React8.useContext(reactRouterDom.UNSAFE_RouteContext);
-  const fakeRouteContext = React8.useMemo(() => ({
+  const existingRouteContext = React5.useContext(reactRouterDom.UNSAFE_RouteContext);
+  const fakeRouteContext = React5.useMemo(() => ({
     ...existingRouteContext,
     matches: [
       ...existingRouteContext.matches,
@@ -18812,9 +19038,9 @@ var ResizeHandle = () => {
   );
 };
 var MultiPaneLayout = ({ children }) => {
-  const containerRef = React8.useRef(null);
-  const [panelHeight, setPanelHeight] = React8.useState("100vh");
-  React8.useLayoutEffect(() => {
+  const containerRef = React5.useRef(null);
+  const [panelHeight, setPanelHeight] = React5.useState("100vh");
+  React5.useLayoutEffect(() => {
     const measure = () => {
       if (!containerRef.current) return;
       const top = containerRef.current.getBoundingClientRect().top;
@@ -18826,13 +19052,13 @@ var MultiPaneLayout = ({ children }) => {
   }, []);
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams();
   const allModels = useAllModels();
-  const PrimaryShowRenderer = React8.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React5.useContext(PrimaryShowContext);
   const { token } = antd.theme.useToken();
-  const panes = React8.useMemo(() => parsePanes(searchParams), [searchParams]);
-  const groupRef = React8.useRef(null);
-  const pendingLayoutRef = React8.useRef(null);
-  const prevPaneCountRef = React8.useRef(0);
-  React8.useEffect(() => {
+  const panes = React5.useMemo(() => parsePanes(searchParams), [searchParams]);
+  const groupRef = React5.useRef(null);
+  const pendingLayoutRef = React5.useRef(null);
+  const prevPaneCountRef = React5.useRef(0);
+  React5.useEffect(() => {
     const newCount = panes.length;
     const prevCount = prevPaneCountRef.current;
     prevPaneCountRef.current = newCount;
@@ -18855,7 +19081,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     return () => cancelAnimationFrame(frameId);
   }, [panes.length]);
-  const openDetail = React8.useCallback(
+  const openDetail = React5.useCallback(
     (fromPaneIndex, resource, id) => {
       if (groupRef.current) {
         pendingLayoutRef.current = { ...groupRef.current.getLayout() };
@@ -18875,7 +19101,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [allModels, setSearchParams]
   );
-  const closePane = React8.useCallback(
+  const closePane = React5.useCallback(
     (fromArrayIndex) => {
       setSearchParams(
         (prev) => {
@@ -18887,7 +19113,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [setSearchParams]
   );
-  const minimizePane = React8.useCallback((panelId) => {
+  const minimizePane = React5.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const currentSize = layout[panelId] ?? COLLAPSED_SIZE;
@@ -18902,7 +19128,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const maximizePane = React8.useCallback((panelId) => {
+  const maximizePane = React5.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const panelIds = Object.keys(layout);
@@ -18914,7 +19140,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const listPaneContext = React8.useMemo(
+  const listPaneContext = React5.useMemo(
     () => ({
       isInMultiPane: true,
       paneIndex: 0,
@@ -18922,7 +19148,7 @@ var MultiPaneLayout = ({ children }) => {
     }),
     [openDetail]
   );
-  const detailPaneContexts = React8.useMemo(
+  const detailPaneContexts = React5.useMemo(
     () => panes.map((_41, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
@@ -18930,7 +19156,7 @@ var MultiPaneLayout = ({ children }) => {
     })),
     [panes, openDetail]
   );
-  const panelChildren = React8.useMemo(() => {
+  const panelChildren = React5.useMemo(() => {
     const result = [
       /* @__PURE__ */ jsxRuntime.jsx(Yt, { id: LIST_PANEL_ID, minSize: 10, style: { overflow: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(PaneNavigationContext.Provider, { value: listPaneContext, children }) }, "master-list")
     ];
@@ -19061,8 +19287,8 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
 };
 var instanceCounter = 0;
 var InlinePlotlyHtml = ({ html, style }) => {
-  const containerRef = React8.useRef(null);
-  const instanceIdRef = React8.useRef("");
+  const containerRef = React5.useRef(null);
+  const instanceIdRef = React5.useRef("");
   if (!instanceIdRef.current) {
     instanceCounter += 1;
     instanceIdRef.current = `iph-${instanceCounter}-${Date.now()}`;
@@ -19088,7 +19314,7 @@ var InlinePlotlyHtml = ({ html, style }) => {
     /((?:reduceCardWidth|increaseCardWidth|optimizeCardSizeInViewPort|maximizeCardSize|minimizeCardSize|flipCard)\()(\d+)\)/g,
     (match, func, suffix) => `${func}'${suffix}-${instanceId}')`
   );
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const scripts = Array.from(container.querySelectorAll("script"));
@@ -19342,11 +19568,11 @@ var ColorModeContextProvider = ({
     "(prefers-color-scheme: dark)"
   ).matches;
   const systemPreference = isSystemPreferenceDark ? "dark" : "light";
-  const [mode, setMode] = React8.useState(
+  const [mode, setMode] = React5.useState(
     colorModeFromLocalStorage === "dark" || colorModeFromLocalStorage === "light" ? colorModeFromLocalStorage : systemPreference
   );
-  const initializedFromServer = React8.useRef(false);
-  React8.useEffect(() => {
+  const initializedFromServer = React5.useRef(false);
+  React5.useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
@@ -19367,12 +19593,12 @@ var ColorModeContextProvider = ({
       cancelled = true;
     };
   }, []);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     window.localStorage.setItem("colorMode", mode);
     document.body.classList.toggle("jm-dark", mode === "dark");
     document.body.classList.toggle("jm-light", mode === "light");
   }, [mode]);
-  const saveToServer = React8.useCallback(async (newMode) => {
+  const saveToServer = React5.useCallback(async (newMode) => {
     try {
       await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`, {
         method: "POST",
@@ -19382,7 +19608,7 @@ var ColorModeContextProvider = ({
     } catch (_e3) {
     }
   }, []);
-  const setColorMode = React8.useCallback((newMode) => {
+  const setColorMode = React5.useCallback((newMode) => {
     setMode(newMode);
     void saveToServer(newMode);
   }, [saveToServer]);
@@ -19398,7 +19624,7 @@ var ColorModeContextProvider = ({
     }
   ) });
 };
-var ResourceContext = React8.createContext({
+var ResourceContext = React5.createContext({
   allResources: [],
   allSystemModels: []
 });
@@ -19504,10 +19730,10 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
 };
 function useDashboardConfig() {
   const apiUrl = core.useApiUrl();
-  const [config, setConfig] = React8.useState(null);
-  const [enabled, setEnabled] = React8.useState(false);
-  const [loading, setLoading] = React8.useState(true);
-  const load = React8.useCallback(async () => {
+  const [config, setConfig] = React5.useState(null);
+  const [enabled, setEnabled] = React5.useState(false);
+  const [loading, setLoading] = React5.useState(true);
+  const load = React5.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${apiUrl}/dashboard/config`);
@@ -19525,10 +19751,10 @@ function useDashboardConfig() {
       setLoading(false);
     }
   }, [apiUrl]);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     load();
   }, [load]);
-  const save = React8.useCallback(async (next) => {
+  const save = React5.useCallback(async (next) => {
     setConfig(next);
     try {
       await authenticatedFetch(`${apiUrl}/dashboard/config`, {
@@ -19558,7 +19784,7 @@ var nextGridPosition = (cells) => {
 };
 var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
   const [form] = antd.Form.useForm();
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     if (!cell || !tabId) return;
     const tab = config.tabs.find((t) => t.id === tabId);
     form.setFieldsValue({
@@ -19694,7 +19920,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
 var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize }) => {
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
-  const cellRef = React8.useRef(null);
+  const cellRef = React5.useRef(null);
   const cellStyle = {
     position: "relative",
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -19726,7 +19952,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
   const resource = model?.resource || cell.model;
   const cellTitle = model?.label || cell.model;
   const tone = model ? getModelTone(model) : null;
-  const startResize = React8.useCallback((e, dir) => {
+  const startResize = React5.useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
     const el = cellRef.current;
@@ -19858,11 +20084,11 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
 };
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize }) => {
   const cells = tab.cells;
-  const numCols = React8.useMemo(() => {
+  const numCols = React5.useMemo(() => {
     if (!cells.length) return 2;
     return Math.max(...cells.map((c) => c.col)) + 1;
   }, [cells]);
-  const numRows = React8.useMemo(() => {
+  const numRows = React5.useMemo(() => {
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
@@ -19904,13 +20130,13 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   )) });
 };
 var ViewsGrid = ({ config, allModels, onConfigChange }) => {
-  const [maximizedCellId, setMaximizedCellId] = React8.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React8.useState(/* @__PURE__ */ new Set());
-  const [drawerSelection, setDrawerSelection] = React8.useState(null);
-  const handleMaximize = React8.useCallback((cellId) => {
+  const [maximizedCellId, setMaximizedCellId] = React5.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React5.useState(/* @__PURE__ */ new Set());
+  const [drawerSelection, setDrawerSelection] = React5.useState(null);
+  const handleMaximize = React5.useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
-  const handleMinimize = React8.useCallback((cellId) => {
+  const handleMinimize = React5.useCallback((cellId) => {
     setMinimizedCellIds((prev) => {
       const next = new Set(prev);
       if (next.has(cellId)) {
@@ -19921,14 +20147,14 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
       return next;
     });
   }, []);
-  const handleOpenDrawer = React8.useCallback((tabId, cell) => {
+  const handleOpenDrawer = React5.useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
-  const handleSaveConfig = React8.useCallback((nextConfig) => {
+  const handleSaveConfig = React5.useCallback((nextConfig) => {
     onConfigChange(nextConfig);
     setDrawerSelection(null);
   }, [onConfigChange]);
-  const handleResizeCell = React8.useCallback((tabId, cellId, minWidth, minHeight) => {
+  const handleResizeCell = React5.useCallback((tabId, cellId, minWidth, minHeight) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       return {
@@ -19945,7 +20171,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, onConfigChange]);
-  const tabItems = React8.useMemo(
+  const tabItems = React5.useMemo(
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: tab.name,
@@ -20007,27 +20233,8 @@ function parseInlineStyle3(cssText) {
   });
   return result;
 }
-function useRecentActivity(days) {
-  const [data, setData] = React8.useState(null);
-  const [loading, setLoading] = React8.useState(true);
-  const load = React8.useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = days !== void 0 ? `?days=${days}` : "";
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
-      if (res.ok) setData(await res.json());
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  }, [days]);
-  React8.useEffect(() => {
-    load();
-  }, [load]);
-  return { data, loading, reload: load };
-}
 var { Text: Text2, Title: Title9 } = antd.Typography;
-function relativeTime2(iso) {
+function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
@@ -20042,7 +20249,7 @@ function relativeTime2(iso) {
 var RecentActivityPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
-  const [days, setDays] = React8.useState(30);
+  const [days, setDays] = React5.useState(30);
   const { data, loading, reload } = useRecentActivity(days);
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
@@ -20136,7 +20343,7 @@ var RecentActivityPanel = () => {
                         }
                       ),
                       isNew && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: "new" }),
-                      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime2(timestamp) })
+                      /* @__PURE__ */ jsxRuntime.jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
                 }
@@ -20150,12 +20357,12 @@ var RecentActivityPanel = () => {
 };
 var { Text: AntText, Title: AntTitle } = antd.Typography;
 function usePinnedRecords() {
-  const [groups, setGroups] = React8.useState([]);
-  const [loading, setLoading] = React8.useState(true);
-  const load = React8.useCallback(async () => {
+  const [groups, setGroups] = React5.useState([]);
+  const [loading, setLoading] = React5.useState(true);
+  const load = React5.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups ?? []);
@@ -20165,7 +20372,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React8__default.default.useEffect(() => {
+  React5__default.default.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };
@@ -20174,9 +20381,9 @@ var PinnedRecordsPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
   const { groups, loading, reload } = usePinnedRecords();
-  const [unpinning, setUnpinning] = React8.useState(/* @__PURE__ */ new Set());
+  const [unpinning, setUnpinning] = React5.useState(/* @__PURE__ */ new Set());
   const visibleGroups = groups.filter((g) => findModelByName(allModels, g.resource));
-  const handleUnpin = React8.useCallback(async (resource, recordId) => {
+  const handleUnpin = React5.useCallback(async (resource, recordId) => {
     const key = `${resource}:${recordId}`;
     setUnpinning((prev) => new Set(prev).add(key));
     try {
@@ -20503,7 +20710,7 @@ var authSystemModels = [
   }
 ];
 
-exports.API_URL = API_URL3;
+exports.API_URL = API_URL2;
 exports.AllModelsProvider = AllModelsProvider;
 exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;

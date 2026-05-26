@@ -1,14 +1,14 @@
-import React8, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
+import React5, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
 import { ThemedLayoutV2, Show, List, useForm, DeleteButton, useTable, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useInvalidate, useCan, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Divider, Row, Col, Card, Grid, Form, Drawer, Modal, Button, Tooltip, Skeleton, message, Switch, Tabs, Alert, Table, Select, DatePicker, InputNumber, Checkbox, Pagination, Collapse, Breadcrumb, Tree, Empty, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload, Rate, Progress } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { SearchOutlined, CloseOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, ClockCircleOutlined, PushpinFilled, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, AppstoreOutlined, BorderInnerOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CheckOutlined, UploadOutlined, FolderOutlined, FileOutlined } from '@ant-design/icons';
+import { SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, CommentOutlined, MinusSquareOutlined, FullscreenOutlined, CheckOutlined, UploadOutlined, FolderOutlined, FileOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useParams, useSearchParams, useLocation, Link, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import dayjs8 from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import relativeTime2 from 'dayjs/plugin/relativeTime';
 import axios from 'axios';
 
 var __typeError = (msg) => {
@@ -270,7 +270,7 @@ function guessIcon(text, isModule = false) {
 function resolveIcon(iconName) {
   const registry = AntDIcons2;
   const IconCls = registry[iconName];
-  return IconCls ? React8.createElement(IconCls) : React8.createElement(registry["TableOutlined"]);
+  return IconCls ? React5.createElement(IconCls) : React5.createElement(registry["TableOutlined"]);
 }
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
@@ -743,6 +743,30 @@ var GlobalSearch = () => {
     }
   ) });
 };
+
+// src/providers/constants.ts
+var API_URL2 = "/api";
+
+// src/pages/dashboard/hooks/useRecentActivity.ts
+function useRecentActivity(days) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = days !== void 0 ? `?days=${days}` : "";
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/recent-activity${params}`);
+      if (res.ok) setData(await res.json());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [days]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  return { data, loading, reload: load };
+}
 var COMMAND_KEYWORDS = ["list", "show", "create", "new", "add", "edit"];
 function parseCommand(q2) {
   for (const cmd of COMMAND_KEYWORDS) {
@@ -758,13 +782,42 @@ function resolveAntIcon(iconName) {
   const Fallback = AntDIcons2["TableOutlined"];
   return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
 }
+function relativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 6e4);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString();
+}
+function usePinnedGroups() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      if (res.ok) {
+        const d = await res.json();
+        setGroups(d.groups ?? []);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  return { groups, loading, load };
+}
 var SECTION_HEADER_STYLE = {
-  padding: "10px 16px",
+  padding: "8px 14px",
   background: "rgba(255,255,255,0.06)",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
   display: "flex",
   alignItems: "center",
-  gap: 8
+  gap: 8,
+  flexShrink: 0
 };
 var SECTION_LABEL_STYLE = {
   color: "rgba(255,255,255,0.55)",
@@ -773,26 +826,36 @@ var SECTION_LABEL_STYLE = {
   textTransform: "uppercase",
   letterSpacing: "0.08em"
 };
-var SECTION_WRAPPER_STYLE = {
-  width: "100%",
-  maxWidth: 1200,
-  marginBottom: 24,
+var SECTION_CARD_STYLE = {
   background: "rgba(18,18,32,0.95)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 14,
   overflow: "hidden",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)"
+  boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)",
+  display: "flex",
+  flexDirection: "column"
+};
+var SECTION_WRAPPER_STYLE = {
+  ...SECTION_CARD_STYLE,
+  width: "100%",
+  maxWidth: 1200,
+  marginBottom: 16
 };
 var ITEM_BASE_STYLE = {
   display: "flex",
   alignItems: "center",
   gap: 10,
-  padding: "7px 10px",
+  padding: "6px 10px",
   borderRadius: 8,
   cursor: "pointer",
   transition: "background 0.13s, border-color 0.13s",
   border: "1px solid transparent",
+  background: "transparent",
   outline: "none"
+};
+var ACTIVE_ITEM_STYLE = {
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.3)"
 };
 var CommandCenterPortal = ({
   open,
@@ -803,27 +866,52 @@ var CommandCenterPortal = ({
   const go = useGo();
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
+  const [activeIdx, setActiveIdx] = useState(-1);
   const { results: backendResults, searching, search, clear } = useRecordSearch();
+  const { groups: pinnedGroups, loading: pinnedLoading, load: loadPinned } = usePinnedGroups();
+  const { data: recentData, reload: reloadRecent } = useRecentActivity(30);
   useEffect(() => {
     if (open) {
       setQuery("");
+      setActiveIdx(-1);
       clear();
+      loadPinned();
+      reloadRecent();
       const t = setTimeout(() => searchRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
-  }, [open, clear]);
+  }, [open, clear, loadPinned, reloadRecent]);
+  const navItemIdsRef = useRef([]);
+  const activeIdxRef = useRef(-1);
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((prev) => {
+          const len = navItemIdsRef.current.length;
+          return len === 0 ? -1 : Math.min(prev + 1, len - 1);
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((prev) => Math.max(prev - 1, -1));
+      } else if (e.key === "Enter") {
+        const idx = activeIdxRef.current;
+        if (idx >= 0) {
+          e.preventDefault();
+          const id = navItemIdsRef.current[idx];
+          if (id) document.querySelector(`[data-navid="${id}"]`)?.click();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
-  const parsedCommand = useMemo(
-    () => parseCommand(query.toLowerCase().trim()),
-    [query]
-  );
+  const parsedCommand = useMemo(() => parseCommand(query.toLowerCase().trim()), [query]);
   useEffect(() => {
     if (parsedCommand) {
       clear();
@@ -833,28 +921,22 @@ var CommandCenterPortal = ({
   }, [query, parsedCommand, search, clear]);
   const allModelChildren = useMemo(
     () => menuItems.flatMap(
-      (m) => (m.children || []).map((c) => ({
-        ...c,
-        moduleLabel: String(m.label || m.name || "")
-      }))
+      (m) => (m.children || []).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
     ),
     [menuItems]
   );
+  const commandSuggestions = useMemo(() => {
+    if (!parsedCommand) return [];
+    const mq = parsedCommand.modelQuery;
+    const children = mq ? allModelChildren.filter((c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)) : allModelChildren;
+    return (navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children).slice(0, 8);
+  }, [parsedCommand, allModelChildren, navConfig]);
   const searchPlaceholder = useMemo(() => {
     const labels = allModelChildren.slice(0, 2).map((c) => String(c.label || c.name || "").toLowerCase()).filter(Boolean);
     if (labels.length === 0) return `Search modules, models, records\u2026`;
     const [a, b] = labels;
     return b && b !== a ? `Search modules, models, records\u2026 or "list ${a}", "create ${b}"` : `Search modules, models, records\u2026 or "list ${a}", "create ${a}"`;
   }, [allModelChildren]);
-  const commandSuggestions = useMemo(() => {
-    if (!parsedCommand) return [];
-    const mq = parsedCommand.modelQuery;
-    const children = mq ? allModelChildren.filter(
-      (c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)
-    ) : allModelChildren;
-    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children;
-    return sorted.slice(0, 8);
-  }, [parsedCommand, allModelChildren, navConfig]);
   const modules = useMemo(() => {
     const q2 = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
     const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
@@ -869,6 +951,50 @@ var CommandCenterPortal = ({
       return moduleMatch ? module : { ...module, children: filteredChildren };
     }).filter((m) => m !== null);
   }, [menuItems, query, parsedCommand, navConfig]);
+  const pinnedItems = useMemo(
+    () => pinnedGroups.flatMap((g) => g.records.map((r) => ({
+      resource: g.resource,
+      modelName: g.model_name,
+      id: r.id,
+      label: r._label || `#${r.id}`
+    }))),
+    [pinnedGroups]
+  );
+  const recentItems = useMemo(() => {
+    if (!recentData?.groups) return [];
+    return recentData.groups.flatMap((g) => g.records.map((r) => ({
+      resource: g.resource,
+      modelName: g.model_name,
+      id: r.id,
+      label: r._label || `#${r.id}`,
+      timestamp: r.updated_at || r.created_at || "",
+      isNew: Boolean(r.created_at && (!r.updated_at || r.updated_at === r.created_at))
+    }))).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }, [recentData]);
+  const navItemIds = useMemo(() => {
+    const ids = [];
+    if (parsedCommand) {
+      for (const child of commandSuggestions)
+        ids.push(`cmd-${String(child.key || child.name || "")}`);
+    } else if (!query.trim()) {
+      for (const item of pinnedItems) ids.push(`pin-${item.resource}-${item.id}`);
+      for (const item of recentItems) ids.push(`recent-${item.resource}-${item.id}`);
+    } else {
+      for (const m of backendResults)
+        for (const r of m.records) ids.push(`record-${m.resource}-${r.id}`);
+    }
+    return ids;
+  }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults]);
+  navItemIdsRef.current = navItemIds;
+  activeIdxRef.current = activeIdx;
+  useEffect(() => {
+    setActiveIdx(-1);
+  }, [navItemIds]);
+  useEffect(() => {
+    if (activeIdx < 0) return;
+    const id = navItemIds[activeIdx];
+    if (id) document.querySelector(`[data-navid="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIdx, navItemIds]);
   if (!open) return null;
   const getItemIcon = (key, label, isModule) => {
     const entry = getNavEntry(navConfig, key);
@@ -877,16 +1003,43 @@ var CommandCenterPortal = ({
   const makeHoverHandlers = (toneColor) => ({
     onMouseEnter: (e) => {
       const el = e.currentTarget;
+      if (el.dataset.active === "true") return;
       el.style.background = `${toneColor}1a`;
       el.style.borderColor = `${toneColor}40`;
     },
     onMouseLeave: (e) => {
       const el = e.currentTarget;
+      if (el.dataset.active === "true") return;
       el.style.background = "transparent";
       el.style.borderColor = "transparent";
     }
   });
+  const isActive = (navId) => navItemIds[activeIdx] === navId;
   const hasNoResults = !parsedCommand && modules.length === 0 && backendResults.length === 0 && !searching && query.trim().length > 0;
+  const renderRow = (navId, toneColor, onClick, left, right) => {
+    const active = isActive(navId);
+    return /* @__PURE__ */ jsxs(
+      "div",
+      {
+        "data-navid": navId,
+        "data-active": active ? "true" : void 0,
+        role: "button",
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e) => {
+          if (e.key === "Enter") onClick();
+        },
+        style: { ...ITEM_BASE_STYLE, justifyContent: "space-between", ...active ? ACTIVE_ITEM_STYLE : {} },
+        ...makeHoverHandlers(toneColor),
+        children: [
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }, children: left }),
+          right && /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }, children: right })
+        ]
+      },
+      navId
+    );
+  };
+  const showNoQuery = !parsedCommand && !query.trim();
   return /* @__PURE__ */ jsx(ConfigProvider, { theme: { algorithm: theme.darkAlgorithm }, children: /* @__PURE__ */ jsxs(
     "div",
     {
@@ -903,10 +1056,10 @@ var CommandCenterPortal = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        paddingTop: 52,
-        paddingBottom: 48,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingLeft: 16,
+        paddingRight: 16,
         overflowY: "auto"
       },
       children: [
@@ -937,41 +1090,136 @@ var CommandCenterPortal = ({
             children: /* @__PURE__ */ jsx(CloseOutlined, {})
           }
         ),
-        /* @__PURE__ */ jsx(
-          Typography.Title,
-          {
-            level: 3,
-            style: {
-              color: "#ffffff",
-              marginTop: 0,
-              marginBottom: 28,
-              letterSpacing: "0.06em",
-              fontWeight: 200,
-              textTransform: "uppercase",
-              fontSize: 18
-            },
-            children: "Command Center"
-          }
-        ),
-        /* @__PURE__ */ jsx("div", { style: { width: "100%", maxWidth: 600, marginBottom: 36 }, children: /* @__PURE__ */ jsx(
-          Input,
-          {
-            ref: searchRef,
-            size: "large",
-            placeholder: searchPlaceholder,
-            prefix: searching && !parsedCommand ? /* @__PURE__ */ jsx(Spin, { size: "small", style: { color: "rgba(255,255,255,0.4)" } }) : /* @__PURE__ */ jsx(SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
-            value: query,
-            onChange: (e) => setQuery(e.target.value),
-            allowClear: true,
-            style: { fontSize: 15, height: 52, borderRadius: 10 }
-          }
-        ) }),
+        /* @__PURE__ */ jsx(Typography.Title, { level: 3, style: {
+          color: "#ffffff",
+          marginTop: 0,
+          marginBottom: 16,
+          letterSpacing: "0.06em",
+          fontWeight: 200,
+          textTransform: "uppercase",
+          fontSize: 17
+        }, children: "Command Center" }),
+        /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: 720, marginBottom: 20 }, children: [
+          /* @__PURE__ */ jsx(
+            Input,
+            {
+              ref: searchRef,
+              size: "large",
+              placeholder: searchPlaceholder,
+              prefix: searching && !parsedCommand ? /* @__PURE__ */ jsx(Spin, { size: "small", style: { color: "rgba(255,255,255,0.4)" } }) : /* @__PURE__ */ jsx(SearchOutlined, { style: { color: "rgba(255,255,255,0.4)", fontSize: 16 } }),
+              value: query,
+              onChange: (e) => setQuery(e.target.value),
+              allowClear: true,
+              style: { fontSize: 15, height: 50, borderRadius: 10 }
+            }
+          ),
+          navItemIds.length > 0 && /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 5, display: "block", textAlign: "center" }, children: "\u2191\u2193 navigate \xB7 Enter to open" })
+        ] }),
+        showNoQuery && /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 14, width: "100%", marginBottom: 16, alignItems: "flex-start" }, children: [
+          (pinnedItems.length > 0 || pinnedLoading) && /* @__PURE__ */ jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 12 } }),
+              /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Pinned" }),
+              pinnedLoading && /* @__PURE__ */ jsx(Spin, { size: "small", style: { marginLeft: "auto" } })
+            ] }),
+            pinnedItems.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+              idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+              renderRow(
+                `pin-${item.resource}-${item.id}`,
+                getModelTone(item.resource).solid,
+                () => {
+                  go({ to: `/${item.resource}/show/${item.id}` });
+                  onClose();
+                },
+                /* @__PURE__ */ jsxs(Fragment, { children: [
+                  /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 11, flexShrink: 0 } }),
+                  /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: item.label })
+                ] }),
+                /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.28)", fontSize: 11 }, children: item.modelName })
+              )
+            ] }, `pin-${item.resource}-${item.id}`)) })
+          ] }),
+          recentItems.length > 0 && /* @__PURE__ */ jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsx(ClockCircleOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
+              /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Recent" })
+            ] }),
+            /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+              idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+              renderRow(
+                `recent-${item.resource}-${item.id}`,
+                getModelTone(item.resource).solid,
+                () => {
+                  go({ to: `/${item.resource}/show/${item.id}` });
+                  onClose();
+                },
+                /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: item.label }),
+                /* @__PURE__ */ jsxs(Fragment, { children: [
+                  item.isNew && /* @__PURE__ */ jsx("span", { style: { fontSize: 9, background: "rgba(82,196,26,0.2)", color: "#52c41a", padding: "1px 5px", borderRadius: 4, fontWeight: 600, letterSpacing: "0.04em" }, children: "new" }),
+                  /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.28)", fontSize: 11 }, children: item.modelName }),
+                  item.timestamp && /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 10 }, children: relativeTime(item.timestamp) })
+                ] })
+              )
+            ] }, `recent-${item.resource}-${item.id}`)) })
+          ] }),
+          modules.length > 0 && /* @__PURE__ */ jsxs("div", { style: { ...SECTION_CARD_STYLE, flex: 2, minWidth: 0 }, children: [
+            /* @__PURE__ */ jsxs("div", { style: SECTION_HEADER_STYLE, children: [
+              /* @__PURE__ */ jsx(AppstoreOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
+              /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Modules" })
+            ] }),
+            /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: modules.map((module, modIdx) => {
+              const moduleKey = String(module.key || module.name || "");
+              const moduleLabel = String(module.label || module.name || "");
+              const tone = getModelTone(moduleKey);
+              const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
+              return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                modIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "5px 0", borderColor: "rgba(255,255,255,0.06)" } }),
+                /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 8px 2px" }, children: [
+                  /* @__PURE__ */ jsx("span", { style: { color: tone.solid, fontSize: 12, display: "flex", alignItems: "center" }, children: getItemIcon(moduleKey, moduleLabel, true) }),
+                  /* @__PURE__ */ jsx(Typography.Text, { style: { color: tone.solid, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }, children: moduleLabel })
+                ] }),
+                children.map((child, idx) => {
+                  const childKey = String(child.key || child.name || "");
+                  const childLabel = String(child.label || child.name || "");
+                  const childTone = getModelTone(childKey);
+                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                    idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+                    /* @__PURE__ */ jsxs(
+                      "div",
+                      {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: () => {
+                          go({ to: child.route || `/${childKey}` });
+                          onClose();
+                        },
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            go({ to: child.route || `/${childKey}` });
+                            onClose();
+                          }
+                        },
+                        style: { ...ITEM_BASE_STYLE, paddingLeft: 18 },
+                        ...makeHoverHandlers(childTone.solid),
+                        children: [
+                          /* @__PURE__ */ jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
+                          /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13, fontWeight: 400 }, children: childLabel })
+                        ]
+                      }
+                    )
+                  ] }, childKey);
+                })
+              ] }, moduleKey);
+            }) })
+          ] })
+        ] }),
         parsedCommand && /* @__PURE__ */ jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
           /* @__PURE__ */ jsxs("div", { style: SECTION_HEADER_STYLE, children: [
-            /* @__PURE__ */ jsx(ThunderboltOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsx(ThunderboltOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
             /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Commands" })
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { padding: "8px 12px" }, children: commandSuggestions.length === 0 && parsedCommand.modelQuery ? /* @__PURE__ */ jsx("div", { style: { padding: "12px 10px", textAlign: "center" }, children: /* @__PURE__ */ jsxs(Typography.Text, { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 }, children: [
+          /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px" }, children: commandSuggestions.length === 0 && parsedCommand.modelQuery ? /* @__PURE__ */ jsx("div", { style: { padding: "12px 10px", textAlign: "center" }, children: /* @__PURE__ */ jsxs(Typography.Text, { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 }, children: [
             "No model matching \u201C",
             parsedCommand.modelQuery,
             "\u201D"
@@ -983,11 +1231,15 @@ var CommandCenterPortal = ({
             const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
             const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
             const moduleLabel = child.moduleLabel || "";
-            return /* @__PURE__ */ jsxs(React8.Fragment, { children: [
+            const navId = `cmd-${childKey}`;
+            const active = isActive(navId);
+            return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsxs(
                 "div",
                 {
+                  "data-navid": navId,
+                  "data-active": active ? "true" : void 0,
                   role: "button",
                   tabIndex: 0,
                   onClick: () => {
@@ -1000,7 +1252,7 @@ var CommandCenterPortal = ({
                       onClose();
                     }
                   },
-                  style: ITEM_BASE_STYLE,
+                  style: { ...ITEM_BASE_STYLE, ...active ? ACTIVE_ITEM_STYLE : {} },
                   ...makeHoverHandlers(childTone.solid),
                   children: [
                     /* @__PURE__ */ jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
@@ -1017,65 +1269,64 @@ var CommandCenterPortal = ({
             ] }, childKey);
           }) })
         ] }),
-        !parsedCommand && (backendResults.length > 0 || searching) && /* @__PURE__ */ jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
+        !parsedCommand && (backendResults.length > 0 || searching) && query.trim() && /* @__PURE__ */ jsxs("div", { style: SECTION_WRAPPER_STYLE, children: [
           /* @__PURE__ */ jsxs("div", { style: SECTION_HEADER_STYLE, children: [
-            /* @__PURE__ */ jsx(DatabaseOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 13 } }),
+            /* @__PURE__ */ jsx(DatabaseOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
             /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Records" }),
             searching && /* @__PURE__ */ jsx(Spin, { size: "small", style: { marginLeft: "auto" } })
           ] }),
-          backendResults.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "8px 12px" }, children: backendResults.map((modelResult, modelIdx) => {
+          backendResults.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px" }, children: backendResults.map((modelResult, modelIdx) => {
             const tone = getModelTone(modelResult.resource);
-            return /* @__PURE__ */ jsxs(React8.Fragment, { children: [
+            return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
               modelIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0", borderColor: "rgba(255,255,255,0.05)" } }),
-              /* @__PURE__ */ jsx(Typography.Text, { style: {
-                color: "rgba(255,255,255,0.35)",
-                fontSize: 10,
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                display: "block",
-                padding: "4px 10px 2px"
-              }, children: modelResult.modelLabel }),
-              modelResult.records.map((record, recIdx) => /* @__PURE__ */ jsxs(React8.Fragment, { children: [
-                recIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
-                /* @__PURE__ */ jsxs(
-                  "div",
-                  {
-                    role: "button",
-                    tabIndex: 0,
-                    onClick: () => {
-                      go({ to: `/${modelResult.resource}/show/${record.id}` });
-                      onClose();
-                    },
-                    onKeyDown: (e) => {
-                      if (e.key === "Enter") {
+              /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em", display: "block", padding: "4px 10px 2px" }, children: modelResult.modelLabel }),
+              modelResult.records.map((record, recIdx) => {
+                const navId = `record-${modelResult.resource}-${record.id}`;
+                const active = isActive(navId);
+                return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                  recIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
+                  /* @__PURE__ */ jsxs(
+                    "div",
+                    {
+                      "data-navid": navId,
+                      "data-active": active ? "true" : void 0,
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: () => {
                         go({ to: `/${modelResult.resource}/show/${record.id}` });
                         onClose();
-                      }
-                    },
-                    style: { ...ITEM_BASE_STYLE, justifyContent: "space-between" },
-                    ...makeHoverHandlers(tone.solid),
-                    children: [
-                      /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13 }, children: record.label }),
-                      /* @__PURE__ */ jsx(RightOutlined, { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, flexShrink: 0 } })
-                    ]
-                  }
-                )
-              ] }, record.id))
+                      },
+                      onKeyDown: (e) => {
+                        if (e.key === "Enter") {
+                          go({ to: `/${modelResult.resource}/show/${record.id}` });
+                          onClose();
+                        }
+                      },
+                      style: { ...ITEM_BASE_STYLE, justifyContent: "space-between", ...active ? ACTIVE_ITEM_STYLE : {} },
+                      ...makeHoverHandlers(tone.solid),
+                      children: [
+                        /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220,220,240,0.88)", fontSize: 13 }, children: record.label }),
+                        /* @__PURE__ */ jsx(RightOutlined, { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, flexShrink: 0 } })
+                      ]
+                    }
+                  )
+                ] }, record.id);
+              })
             ] }, modelResult.modelName);
           }) })
         ] }),
-        !parsedCommand && /* @__PURE__ */ jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: hasNoResults ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxs(Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
+        !parsedCommand && query.trim() && /* @__PURE__ */ jsx("div", { style: { width: "100%", maxWidth: 1200 }, children: hasNoResults ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", paddingTop: 56 }, children: /* @__PURE__ */ jsxs(Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 16 }, children: [
           "No results for \u201C",
           query,
           "\u201D"
-        ] }) }) : /* @__PURE__ */ jsx(Row, { gutter: [20, 20], children: modules.map((module) => {
+        ] }) }) : /* @__PURE__ */ jsx(Row, { gutter: [16, 16], children: modules.map((module) => {
           const moduleKey = String(module.key || module.name || "");
           const moduleLabel = String(module.label || module.name || "");
           const tone = getModelTone(moduleKey);
           const headerTextColor = getContrastingTextColor(tone.solid);
           const moduleIcon = getItemIcon(moduleKey, moduleLabel, true);
           const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
-          return /* @__PURE__ */ jsx(Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsxs(
+          return /* @__PURE__ */ jsx(Col, { xs: 24, sm: 12, md: 8, lg: 6, children: /* @__PURE__ */ jsx(
             Card,
             {
               style: {
@@ -1090,77 +1341,57 @@ var CommandCenterPortal = ({
                   background: tone.solid,
                   borderBottom: "1px solid rgba(0,0,0,0.15)",
                   borderRadius: "12px 12px 0 0",
-                  padding: "10px 16px",
-                  minHeight: 52
+                  padding: "8px 14px",
+                  minHeight: 48
                 },
-                body: { padding: "12px 16px 14px", background: "rgba(18,18,32,0.95)" }
+                body: { padding: "10px 14px 12px", background: "rgba(18,18,32,0.95)" }
               },
-              title: /* @__PURE__ */ jsxs(Space, { size: 10, children: [
+              title: /* @__PURE__ */ jsxs(Space, { size: 8, children: [
                 /* @__PURE__ */ jsx("div", { style: {
                   background: `${headerTextColor}33`,
                   border: `1px solid ${headerTextColor}55`,
                   borderRadius: 8,
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0
-                }, children: /* @__PURE__ */ jsx("span", { style: { color: headerTextColor, fontSize: 15, display: "flex" }, children: moduleIcon }) }),
-                /* @__PURE__ */ jsx(
-                  Typography.Text,
-                  {
-                    style: { color: headerTextColor, fontWeight: 600, fontSize: 14, letterSpacing: "0.01em" },
-                    children: moduleLabel
-                  }
-                )
+                }, children: /* @__PURE__ */ jsx("span", { style: { color: headerTextColor, fontSize: 14, display: "flex" }, children: moduleIcon }) }),
+                /* @__PURE__ */ jsx(Typography.Text, { style: { color: headerTextColor, fontWeight: 600, fontSize: 13, letterSpacing: "0.01em" }, children: moduleLabel })
               ] }),
-              children: [
-                children.length > 0 && /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
-                  const childKey = String(child.key || child.name || "");
-                  const childLabel = String(child.label || child.name || "");
-                  const childTone = getModelTone(childKey);
-                  const childIcon = getItemIcon(childKey, childLabel, false);
-                  return /* @__PURE__ */ jsxs(React8.Fragment, { children: [
-                    idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
-                    /* @__PURE__ */ jsxs(
-                      "div",
-                      {
-                        role: "button",
-                        tabIndex: 0,
-                        onClick: () => {
+              children: children.length > 0 ? /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: children.map((child, idx) => {
+                const childKey = String(child.key || child.name || "");
+                const childLabel = String(child.label || child.name || "");
+                const childTone = getModelTone(childKey);
+                const childIcon = getItemIcon(childKey, childLabel, false);
+                return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                  idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
+                  /* @__PURE__ */ jsxs(
+                    "div",
+                    {
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: () => {
+                        go({ to: child.route || `/${childKey}` });
+                        onClose();
+                      },
+                      onKeyDown: (e) => {
+                        if (e.key === "Enter") {
                           go({ to: child.route || `/${childKey}` });
                           onClose();
-                        },
-                        onKeyDown: (e) => {
-                          if (e.key === "Enter") {
-                            go({ to: child.route || `/${childKey}` });
-                            onClose();
-                          }
-                        },
-                        style: ITEM_BASE_STYLE,
-                        ...makeHoverHandlers(childTone.solid),
-                        children: [
-                          /* @__PURE__ */ jsx("span", { style: {
-                            color: childTone.text,
-                            fontSize: 13,
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            opacity: 0.85
-                          }, children: childIcon }),
-                          /* @__PURE__ */ jsx(Typography.Text, { style: {
-                            color: "rgba(220, 220, 240, 0.88)",
-                            fontSize: 13,
-                            fontWeight: 400
-                          }, children: childLabel })
-                        ]
-                      }
-                    )
-                  ] }, childKey);
-                }) }),
-                children.length === 0 && /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
-              ]
+                        }
+                      },
+                      style: ITEM_BASE_STYLE,
+                      ...makeHoverHandlers(childTone.solid),
+                      children: [
+                        /* @__PURE__ */ jsx("span", { style: { color: childTone.text, fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", opacity: 0.85 }, children: childIcon }),
+                        /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(220, 220, 240, 0.88)", fontSize: 13, fontWeight: 400 }, children: childLabel })
+                      ]
+                    }
+                  )
+                ] }, childKey);
+              }) }) : /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.2)", fontSize: 12 }, children: "No models" })
             }
           ) }, moduleKey);
         }) }) })
@@ -1168,7 +1399,7 @@ var CommandCenterPortal = ({
     }
   ) });
 };
-var API_URL2 = "/api";
+var API_URL3 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
@@ -1241,7 +1472,7 @@ var LayoutWrapper = ({
   const handleChangePassword = async (values) => {
     setPwdLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/auth/change-password`, {
+      const res = await authenticatedFetch(`${API_URL3}/auth/change-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
@@ -4191,7 +4422,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React8.isValidElement(node)) {
+  if (React5.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -4208,14 +4439,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React8.isValidElement(node)) return node;
+    if (!React5.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React8.cloneElement(node, {
+      const element = React5.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -4226,7 +4457,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React8.cloneElement(node, {
+        const element = React5.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -4234,15 +4465,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React8.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React8.cloneElement(node, {
+      const mappedChildren = React5.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React5.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React8.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React5.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = Grid.useBreakpoint();
@@ -4293,7 +4524,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React8.isValidElement(node)) {
+  if (React5.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -4311,12 +4542,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React8.isValidElement(node)) return node;
+    if (!React5.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React8.cloneElement(node, {
+      const element = React5.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -4327,7 +4558,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React8.cloneElement(node, {
+        const element = React5.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -4335,15 +4566,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React8.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React8.cloneElement(node, {
+      const mappedChildren = React5.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React5.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React8.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React5.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -4507,7 +4738,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React8.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React5.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -7251,11 +7482,6 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
     ] })
   ] });
 };
-
-// src/providers/constants.ts
-var API_URL3 = "/api";
-
-// src/pages/dashboard/hooks/usePinRecord.ts
 function usePinRecord(resource, recordId) {
   const [pinned, setPinned] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -7263,7 +7489,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
-      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+      `${API_URL2}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
     ).then((r) => r.json()).then((d) => {
       if (!cancelled) setPinned(Boolean(d.pinned));
     }).catch(() => {
@@ -7277,7 +7503,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
-      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
+      await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resource, record_id: String(recordId) })
@@ -7292,7 +7518,7 @@ function usePinRecord(resource, recordId) {
     setLoading(true);
     try {
       await authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
         { method: "DELETE" }
       );
       setPinned(false);
@@ -7307,7 +7533,7 @@ async function unpinRecords(resource, recordIds) {
   await Promise.all(
     recordIds.map(
       (id) => authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
         { method: "DELETE" }
       )
     )
@@ -7463,7 +7689,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps) => {
     headerButtons
   };
 };
-var PrimaryShowContext = React8.createContext(null);
+var PrimaryShowContext = React5.createContext(null);
 var ToneSharedStyles = () => /* @__PURE__ */ jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7620,7 +7846,7 @@ var renderOptionTag = (field, rawValue) => {
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
   return /* @__PURE__ */ jsx(Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
 };
-dayjs8.extend(relativeTime);
+dayjs8.extend(relativeTime2);
 var _16 = window._ || ((text) => text);
 var ReactMarkdown = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
@@ -7907,7 +8133,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React8.useState(false);
+  const [loadAll, setLoadAll] = React5.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = useSelect({
     resource: resolvedResource,
@@ -7924,8 +8150,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React8.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React8.useState("");
+  const selectedSet = React5.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React5.useState("");
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsx(
       Select,
@@ -19980,27 +20206,8 @@ function parseInlineStyle3(cssText) {
   });
   return result;
 }
-function useRecentActivity(days) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = days !== void 0 ? `?days=${days}` : "";
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
-      if (res.ok) setData(await res.json());
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  }, [days]);
-  useEffect(() => {
-    load();
-  }, [load]);
-  return { data, loading, reload: load };
-}
 var { Text: Text2, Title: Title9 } = Typography;
-function relativeTime2(iso) {
+function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
@@ -20109,7 +20316,7 @@ var RecentActivityPanel = () => {
                         }
                       ),
                       isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: "new" }),
-                      /* @__PURE__ */ jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime2(timestamp) })
+                      /* @__PURE__ */ jsx(Text2, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
                 }
@@ -20128,7 +20335,7 @@ function usePinnedRecords() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups ?? []);
@@ -20138,7 +20345,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React8.useEffect(() => {
+  React5.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };
@@ -20476,6 +20683,6 @@ var authSystemModels = [
   }
 ];
 
-export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL2 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map
