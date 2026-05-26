@@ -59,9 +59,10 @@ export { LoginPage } from "./pages/auth/LoginPage";
 export type { LoginPageProps } from "./pages/auth/LoginPage";
 export { DashboardPage } from "./pages/dashboard/DashboardPage";
 export { ViewsGrid } from "./pages/dashboard/ViewsGrid";
+export { SectionsGrid } from "./pages/dashboard/SectionsGrid";
 export { RecentActivityPanel } from "./pages/dashboard/RecentActivityPanel";
 export { PinnedRecordsPanel } from "./pages/dashboard/PinnedRecordsPanel";
-export type { DashboardConfig, DashboardTab, DashboardCell } from "./pages/dashboard/hooks/useDashboardConfig";
+export type { DashboardConfig, DashboardTab, DashboardCell, CellSourceType } from "./pages/dashboard/hooks/useDashboardConfig";
 export type { RecentActivityData, RecentActivityGroup, RecentRecord } from "./pages/dashboard/hooks/useRecentActivity";
 
 // ── Hooks ──────────────────────────────────────────────────────────────────

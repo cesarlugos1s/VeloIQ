@@ -1,30 +1,26 @@
 import React, { useMemo } from "react";
-import { Form, Input, Skeleton, Typography, theme } from "antd";
+import { Form, Skeleton, theme } from "antd";
 import dayjs from "dayjs";
 import { useModelTone, getModelTone, type ModelTone } from "../../../utils/modelTone";
-import type { FieldDef, ModelDef, ViewConfigRow, VisibilityCondition } from "../types";
+import type { FieldDef, ModelDef, ViewConfigRow } from "../types";
 import { applyI18nLabelsToModel, applyI18nLabelsToModels } from "../utils/i18n";
-import { parseInlineStyle } from "../utils/formatting";
 import { isDarkColor, renderToneTabLabel } from "../utils/colors";
 import { findModelByName, getRecordId, resolveResourcePath } from "../utils/model";
+import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
+import { SectionCellContent } from "../SectionCellContent";
+import { usePageSectionsConfig } from "./usePageSectionsConfig";
 import {
     DETAILS_TAB_NAME,
     splitRelations,
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
-    groupConfigRowsBySectionId,
-    normalizeSectionRows,
-    resolveFieldFromConfig,
-    resolveRelationFromConfig,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
     buildConfiguredRelationDisplayKeys,
     isRelationConfiguredForDetails,
-    isAttributeValueEditable,
     normalizeRelationViewType,
     normalizeFieldViewType,
-    applyRelationViewOverride,
 } from "../utils/viewConfig";
 import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
@@ -38,43 +34,16 @@ import {
     getTabDisplayLabel,
 } from "../relations/helpers";
 import { renderRelationBlock } from "../../DynamicResource";
-import { NLSentenceBlock } from "../blocks/NLSentenceBlock";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
-const { Title } = Typography;
 const requiredMark = (field: FieldDef) =>
     field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
-function coerce(v: any): any {
-    if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
-    return v;
-}
-
-function evaluateVisibilityCondition(cond: VisibilityCondition, value: any): boolean {
-    const lhs = coerce(value);
-    const rhs = cond.value;
-    switch (cond.operator) {
-        // eslint-disable-next-line eqeqeq
-        case "eq": return lhs == rhs;
-        // eslint-disable-next-line eqeqeq
-        case "ne": return lhs != rhs;
-        case "in": return Array.isArray(rhs) && rhs.includes(lhs);
-        case "not_in": return Array.isArray(rhs) && !rhs.includes(lhs);
-        case "truthy": return Boolean(lhs);
-        case "falsy": return !lhs;
-        case "gt": return lhs > rhs;
-        case "lt": return lhs < rhs;
-        case "gte": return lhs >= rhs;
-        case "lte": return lhs <= rhs;
-        case "ilike": return String(lhs ?? "").toLowerCase().includes(String(rhs ?? "").toLowerCase());
-        default: return true;
-    }
-}
-
-const VisibilityGate: React.FC<{ condition?: VisibilityCondition | null; children: React.ReactNode }> = ({ condition, children }) => {
-    const watched = Form.useWatch(condition?.field ?? "");
-    if (!condition) return <>{children}</>;
-    return evaluateVisibilityCondition(condition, watched) ? <>{children}</> : null;
+const emptyLayoutConfig = {
+    isConfiguring: false,
+    enterConfigMode: () => {},
+    saveLayout: () => {},
+    cancelLayout: () => {},
 };
 
 export const useStandardShowTabs = (
@@ -88,7 +57,7 @@ export const useStandardShowTabs = (
     },
     overrideConfigRows?: ViewConfigRow[],
 ) => {
-    if (!model) return [];
+    if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const { token } = theme.useToken();
@@ -123,6 +92,7 @@ export const useStandardShowTabs = (
         showCreate: DEFAULT_RELATION_CREATE_ACTIONS,
     };
 
+    const modelResource = resolveResourcePath(model.resource || model.name, allModels);
     const configRows = filterConfigRowsForMode(showConfigRows, "show");
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
@@ -130,13 +100,17 @@ export const useStandardShowTabs = (
     const configuredRelationDisplayKeys = buildConfiguredRelationDisplayKeys(model.relations, configRows);
     const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
 
-    // Split rows by tab_name: empty/null → Details tab; non-empty → custom tabs
-    const detailsConfigRows = configRows.filter(r => !r.tab_name);
+    // Custom tab names from page config
     const customTabNames = Array.from(new Set(
         configRows.filter(r => !!r.tab_name).map(r => r.tab_name as string)
     ));
 
-    const configSections = groupConfigRowsBySectionId(detailsConfigRows);
+    const { config: pageConfig, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange } = usePageSectionsConfig(
+        configRows,
+        modelResource,
+        "show",
+    );
+
     const labelBackground = isDarkColor(token.colorBgBase || token.colorBgContainer)
         ? "transparent"
         : "#ffffff";
@@ -145,7 +119,6 @@ export const useStandardShowTabs = (
     const showFormProps = editForm?.formProps;
     const showEffectiveFields = editForm?.effectiveFields || model.fields;
     const currentId = getRecordId(record, model.fields);
-    const modelResource = resolveResourcePath(model.resource || model.name, allModels);
     const renderShowEditableInput = (field: FieldDef, forceReadOnly?: boolean) => {
         const refResource = field.reference ? resolveResourcePath(field.reference, allModels) : undefined;
         const isSelfRef = refResource && modelResource && refResource === modelResource;
@@ -239,178 +212,33 @@ export const useStandardShowTabs = (
                         ))}
                     </div>
                 )}
-                {!showDetailsLoading && hasConfig && (
-                    <div style={{ marginTop: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-                        {(() => {
-                            // Group sections by page-level grid row; sort by grid col within each row
-                            const gridRowMap = new Map<number, Array<{ name: string; rows: ViewConfigRow[]; gridCol: number }>>();
-                            for (const [, { name: sectionName, rows }] of configSections.entries()) {
-                                const gridRow = rows[0]?.section_grid_row ?? 1;
-                                const gridCol = rows[0]?.section_grid_col ?? 1;
-                                const arr = gridRowMap.get(gridRow) || [];
-                                arr.push({ name: sectionName, rows, gridCol });
-                                gridRowMap.set(gridRow, arr);
-                            }
-                            return Array.from(gridRowMap.keys()).sort((a, b) => a - b).map((gridRow) => {
-                                const rowSections = (gridRowMap.get(gridRow) || []).sort((a, b) => a.gridCol - b.gridCol);
-                                return (
-                                    <div key={`gr-${gridRow}`} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                                        {rowSections.map(({ name: section, rows }) => {
-                            const normalized = normalizeSectionRows(rows);
-                            const maxRow = Math.max(1, ...normalized.map((row) => row.row));
-                            const maxCol = Math.max(1, ...normalized.map((row) => row.column));
-                            return (
-                                <div
-                                    key={section}
-                                    style={{
-                                        flex: 1,
-                                        minWidth: 0,
-                                        border: `1px solid ${token.colorBorder}`,
-                                        borderRadius: 8,
-                                        padding: "6px 6px",
-                                    }}
-                                >
-                                    <Title level={5} style={{ margin: 0, color: "#1677ff" }}>{_(section)}</Title>
-                                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                                        <tbody>
-                                            {Array.from({ length: maxRow }).map((_, rowIndex) => (
-                                                <tr key={`row-${section}-${rowIndex}`}>
-                                                    {Array.from({ length: maxCol }).map((_, colIndex) => {
-                                                        const cellItems = normalized.filter(
-                                                            (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
-                                                        );
-                                                        return (
-                                                            <td key={`cell-${section}-${rowIndex}-${colIndex}`} style={{ padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }}>
-                                                                {cellItems.map((item) => {
-                                                                    if (item.attribute_or_relation_type === "nlsentence") {
-                                                                        if (!item.nl_sentence_eid) return null;
-                                                                        return (
-                                                                            <NLSentenceBlock
-                                                                                key={`nls-${item.nl_sentence_eid}`}
-                                                                                eid={item.nl_sentence_eid}
-                                                                                title={item.nl_sentence_title ?? undefined}
-                                                                                showLabel={item.show_label !== false}
-                                                                            />
-                                                                        );
-                                                                    }
-                                                                    if (item.attribute_or_relation_type === "relation") {
-                                                                        if (!record || !allModels) return null;
-                                                                        const relation = resolveRelationFromConfig(model.relations, item);
-                                                                        if (!relation) return null;
-                                                                        const relationModel = findModelByName(allModels, relation.resource);
-                                                                        if (!relationModel) return null;
-                                                                        const relatedModel = relation.otherResource ? findModelByName(allModels, relation.otherResource) : undefined;
-                                                                        const relationTone = getModelTone(relatedModel || relationModel || relation.resource);
-                                                                        const relWithOverride = applyRelationViewOverride(relation, item, "show");
-                                                                        const showLabel = item.show_label !== false;
-                                                                        const resolvedRelViewType = getRelationViewType(relWithOverride, "show", relationViewTypeDefaults);
-                                                                        const isListView = resolvedRelViewType === "list";
-                                                                        const relationValueStyle: React.CSSProperties = {
-                                                                            padding: "2px 4px",
-                                                                            lineHeight: 1.15,
-                                                                            background: valueBackground,
-                                                                            borderRadius: 6,
-                                                                            overflowWrap: "anywhere",
-                                                                            maxWidth: "100%",
-                                                                            ...parseInlineStyle(item.html_format)
-                                                                        };
-                                                                        const relationLabelStyle: React.CSSProperties = {
-                                                                            ...labelStyle,
-                                                                            background: "transparent",
-                                                                            color: relationTone.text,
-                                                                            padding: "2px 8px",
-                                                                            borderRadius: 6,
-                                                                        };
-                                                                        const relationLayoutStyle: React.CSSProperties = {
-                                                                            display: "flex",
-                                                                            flexDirection: "column",
-                                                                            gap: 2,
-                                                                        };
-                                                                        return (
-                                                                            <div key={`${item.name}-${item.row}-${item.column}`} style={{ marginBottom: 4 }}>
-                                                                                {renderRelationBlock({
-                                                                                    rel: relWithOverride,
-                                                                                    relationModel,
-                                                                                    relatedModel,
-                                                                                    record,
-                                                                                    mode: "show",
-                                                                                    parentResource: model.name,
-                                                                                    allModels,
-                                                                                    showActions: resolvedActionsState.showActions,
-                                                                                    showCreate: resolvedActionsState.showCreate,
-                                                                                    relationViewTypeDefaults,
-                                                                                    showLabel,
-                                                                                    labelStyle: relationLabelStyle,
-                                                                                    valueStyle: { ...relationValueStyle, border: `1px solid ${token.colorBorder}` },
-                                                                                    fieldLayoutStyle: relationLayoutStyle,
-                                                                                })}
-                                                                            </div>
-                                                                        );
-                                                                    }
-
-                                                                    const field = resolveFieldFromConfig(model, item);
-                                                                    const showLabel = item.show_label !== false;
-                                                                    const editable = Boolean(showFormProps) && isAttributeValueEditable(item, "show");
-                                                                    const forceReadOnly = Boolean(showFormProps) && Boolean(item.read_only_in_edit);
-                                                                    const valueStyle: React.CSSProperties = {
-                                                                        padding: "2px 4px",
-                                                                        lineHeight: 1.15,
-                                                                        background: valueBackground,
-                                                                        borderRadius: 6,
-                                                                        maxWidth: "100%",
-                                                                        overflowWrap: "anywhere",
-                                                                        textAlign: field.type === "number" && !field.reference ? "right" : "left",
-                                                                        fontVariantNumeric: field.type === "number" && !field.reference ? "tabular-nums" : undefined,
-                                                                        ...parseInlineStyle(item.html_format)
-                                                                    };
-                                                                    return (
-                                                                        <VisibilityGate key={`${item.name}-${item.row}-${item.column}`} condition={item.visibility_condition}>
-                                                                            <div style={{ marginBottom: 4 }}>
-                                                                                <div
-                                                                                    style={{
-                                                                                        display: "flex",
-                                                                                        flexDirection: "column",
-                                                                                        gap: 2,
-                                                                                    }}
-                                                                                >
-                                                                                    {showLabel && (
-                                                                                        <div
-                                                                                            style={{
-                                                                                                ...labelStyle,
-                                                                                                backgroundColor: labelBackground,
-                                                                                                padding: "2px 4px",
-                                                                                                borderRadius: 4,
-                                                                                            }}
-                                                                                        >
-                                                                                            {field.label}{requiredMark(field)}
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div style={{ ...valueStyle, border: `1px solid ${token.colorBorder}` }}>
-                                                                                        {(editable || forceReadOnly)
-                                                                                            ? renderShowEditableInput(field, forceReadOnly)
-                                                                                            : renderFieldValue(field, record, allModels)}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </VisibilityGate>
-                                                                    );
-                                                                })}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            );
-                                        })}
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                )}
+                {!showDetailsLoading && hasConfig && (() => {
+                    const detailsTab = pageConfig.tabs.find((t) => t.id === "details");
+                    if (!detailsTab) return null;
+                    return (
+                        <SectionsGrid
+                            cells={detailsTab.cells}
+                            config={pageConfig}
+                            tabId="details"
+                            renderContent={(cell) => (
+                                <SectionCellContent
+                                    sectionName={cell.section_name ?? ""}
+                                    sectionRows={getSectionRows(cell.id)}
+                                    model={model}
+                                    record={record}
+                                    allModels={allModels}
+                                    mode="show"
+                                    formProps={showFormProps}
+                                    showRelationActions={resolvedActionsState.showActions}
+                                    showRelationCreate={resolvedActionsState.showCreate}
+                                    relationViewTypeDefaults={relationViewTypeDefaults}
+                                />
+                            )}
+                            onConfigChange={onLayoutChange}
+                            isConfiguring={isConfiguring}
+                        />
+                    );
+                })()}
                 {!showDetailsLoading && record && allModels && !hasConfiguredDetailRelations && (
                     <div style={{ marginTop: 28 }}>
                         {[...embedded, ...tabbed]
@@ -482,116 +310,31 @@ export const useStandardShowTabs = (
 
     // Build custom tab items from page config
     const customConfigTabs = customTabNames.map(tabName => {
-        const tabRows = configRows.filter(r => r.tab_name === tabName);
-        const tabSections = groupConfigRowsBySectionId(tabRows);
-        const gridRowMap = new Map<number, Array<{ name: string; rows: ViewConfigRow[]; gridCol: number }>>();
-        for (const [, { name: sectionName, rows }] of tabSections.entries()) {
-            const gridRow = rows[0]?.section_grid_row ?? 1;
-            const gridCol = rows[0]?.section_grid_col ?? 1;
-            const arr = gridRowMap.get(gridRow) || [];
-            arr.push({ name: sectionName, rows, gridCol });
-            gridRowMap.set(gridRow, arr);
-        }
+        const tabId = `tab::${tabName}`;
+        const tabCells = pageConfig.tabs.find((t) => t.id === tabId)?.cells ?? [];
         const tabChildren = (
             <Form initialValues={!showFormProps ? record : undefined} {...(showFormProps || {})} layout="horizontal" size="small" style={{ paddingBottom: 8 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {Array.from(gridRowMap.keys()).sort((a, b) => a - b).map((gridRow) => {
-                    const rowSections = (gridRowMap.get(gridRow) || []).sort((a, b) => a.gridCol - b.gridCol);
-                    return (
-                        <div key={`ct-gr-${gridRow}`} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                            {rowSections.map(({ name: section, rows }) => {
-                                const normalized = normalizeSectionRows(rows);
-                                const maxRow = Math.max(1, ...normalized.map(r => r.row));
-                                const maxCol = Math.max(1, ...normalized.map(r => r.column));
-                                return (
-                                    <div key={section} style={{ flex: 1, minWidth: 0, border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px" }}>
-                                        <Title level={5} style={{ margin: 0, color: "#1677ff" }}>{_(section)}</Title>
-                                        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                                            <tbody>
-                                                {Array.from({ length: maxRow }).map((_, ri) => (
-                                                    <tr key={`ct-row-${section}-${ri}`}>
-                                                        {Array.from({ length: maxCol }).map((_, ci) => {
-                                                            const cellItems = normalized.filter(item => item.row === ri + 1 && item.column === ci + 1);
-                                                            return (
-                                                                <td key={`ct-cell-${section}-${ri}-${ci}`} style={{ padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }}>
-                                                                    {cellItems.map(item => {
-                                                                        if (item.attribute_or_relation_type === "nlsentence") {
-                                                                            if (!item.nl_sentence_eid) return null;
-                                                                            return (
-                                                                                <NLSentenceBlock
-                                                                                    key={`nls-${item.nl_sentence_eid}`}
-                                                                                    eid={item.nl_sentence_eid}
-                                                                                    title={item.nl_sentence_title ?? undefined}
-                                                                                    showLabel={item.show_label !== false}
-                                                                                />
-                                                                            );
-                                                                        }
-                                                                        if (item.attribute_or_relation_type === "relation") {
-                                                                            if (!record || !allModels) return null;
-                                                                            const relation = resolveRelationFromConfig(model.relations, item);
-                                                                            if (!relation) return null;
-                                                                            const relationModel = findModelByName(allModels, relation.resource);
-                                                                            if (!relationModel) return null;
-                                                                            const relatedModel = relation.otherResource ? findModelByName(allModels, relation.otherResource) : undefined;
-                                                                            const relWithOverride = applyRelationViewOverride(relation, item, "show");
-                                                                            const showLabel = item.show_label !== false;
-                                                                            const relationTone = getModelTone(relatedModel || relationModel || relation.resource);
-                                                                            return (
-                                                                                <div key={`${item.name}-${item.row}-${item.column}`} style={{ marginBottom: 4 }}>
-                                                                                    {renderRelationBlock({
-                                                                                        rel: relWithOverride,
-                                                                                        relationModel,
-                                                                                        relatedModel,
-                                                                                        record,
-                                                                                        mode: "show",
-                                                                                        parentResource: model.name,
-                                                                                        allModels,
-                                                                                        showActions: resolvedActionsState.showActions,
-                                                                                        showCreate: resolvedActionsState.showCreate,
-                                                                                        relationViewTypeDefaults,
-                                                                                        showLabel,
-                                                                                        labelStyle: { ...labelStyle, color: relationTone.text, padding: "2px 8px", borderRadius: 6 },
-                                                                                        valueStyle: { padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, overflowWrap: "anywhere", maxWidth: "100%", border: `1px solid ${token.colorBorder}` },
-                                                                                        fieldLayoutStyle: { display: "flex", flexDirection: "column", gap: 2 },
-                                                                                    })}
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                        const field = resolveFieldFromConfig(model, item);
-                                                                        const showLabel = item.show_label !== false;
-                                                                        const editable = Boolean(showFormProps) && isAttributeValueEditable(item, "show");
-                                                                        const forceReadOnly = Boolean(showFormProps) && Boolean(item.read_only_in_edit);
-                                                                        return (
-                                                                            <VisibilityGate key={`${item.name}-${item.row}-${item.column}`} condition={item.visibility_condition}>
-                                                                                <div style={{ marginBottom: 4 }}>
-                                                                                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                                                                        {showLabel && (
-                                                                                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
-                                                                                                {field.label}
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div style={{ padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, maxWidth: "100%", overflowWrap: "anywhere", border: `1px solid ${token.colorBorder}`, ...parseInlineStyle(item.html_format) }}>
-                                                                                            {(editable || forceReadOnly) ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels)}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </VisibilityGate>
-                                                                        );
-                                                                    })}
-                                                                </td>
-                                                            );
-                                                        })}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })}
-                </div>
+                <SectionsGrid
+                    cells={tabCells}
+                    config={pageConfig}
+                    tabId={tabId}
+                    renderContent={(cell) => (
+                        <SectionCellContent
+                            sectionName={cell.section_name ?? ""}
+                            sectionRows={getSectionRows(cell.id)}
+                            model={model}
+                            record={record}
+                            allModels={allModels}
+                            mode="show"
+                            formProps={showFormProps}
+                            showRelationActions={resolvedActionsState.showActions}
+                            showRelationCreate={resolvedActionsState.showCreate}
+                            relationViewTypeDefaults={relationViewTypeDefaults}
+                        />
+                    )}
+                    onConfigChange={onLayoutChange}
+                    isConfiguring={isConfiguring}
+                />
             </Form>
         );
         return {
@@ -600,6 +343,8 @@ export const useStandardShowTabs = (
             children: tabChildren,
         };
     });
+
+    const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout };
 
     const items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> = [detailsTab];
     items.push(...customConfigTabs);
@@ -657,5 +402,5 @@ export const useStandardShowTabs = (
         });
     items.push(...namedQueryTabs);
 
-    return items;
+    return { tabs: items, layoutConfig };
 };

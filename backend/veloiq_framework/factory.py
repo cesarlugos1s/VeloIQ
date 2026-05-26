@@ -431,24 +431,34 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
 
     @app.get("/dashboard/config")
     async def get_dashboard_config():
-        """Return the __dashboard__ section of views_configuration.json."""
-        data = _load_views_config()
-        dashboard = data.get("user:all", {}).get(_DASHBOARD_KEY)
+        """Return the __dashboard__ section.
+
+        Checks views_preferences.json first (unified format), then falls back
+        to config/views_configuration.json (legacy separate file).
+        """
+        # Primary: views_preferences.json
+        prefs = _load_prefs()
+        dashboard = prefs.get(_USER_KEY, {}).get(_DASHBOARD_KEY)
+        if dashboard is not None:
+            return {"enabled": True, "dashboard": dashboard}
+        # Fallback: config/views_configuration.json
+        legacy = _load_views_config()
+        dashboard = legacy.get(_USER_KEY, {}).get(_DASHBOARD_KEY)
         if dashboard is None:
             return {"enabled": False}
         return {"enabled": True, "dashboard": dashboard}
 
     @app.put("/dashboard/config")
     async def save_dashboard_config(request: Request):
-        """Persist the __dashboard__ section back to views_configuration.json."""
+        """Persist the __dashboard__ section to views_preferences.json."""
         from fastapi import HTTPException as _HTTPException
         body = await request.json()
         dashboard = body.get("dashboard")
         if not isinstance(dashboard, dict):
             raise _HTTPException(status_code=400, detail="Invalid dashboard config")
-        data = _load_views_config()
-        data.setdefault("user:all", {})[_DASHBOARD_KEY] = dashboard
-        _save_views_config(data)
+        prefs = _load_prefs()
+        prefs.setdefault(_USER_KEY, {})[_DASHBOARD_KEY] = dashboard
+        _save_prefs(prefs)
         return {"status": "ok"}
 
     # --- Pinned records ---

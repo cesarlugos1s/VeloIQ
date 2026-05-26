@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useApiUrl } from "@refinedev/core";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 
+export type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom";
+
 export interface DashboardCell {
     id: string;
     model: string;
-    source_type: "model";
+    source_type: CellSourceType;
     row: number;
     col: number;
     view_type: string | null;
@@ -14,6 +16,9 @@ export interface DashboardCell {
     max_width: string | null;
     min_height: string | null;
     max_height: string | null;
+    // For source_type "field" and "relation" cells (show/edit page sections)
+    section_name?: string;
+    section_id?: string;
 }
 
 export interface DashboardTab {

@@ -4,6 +4,7 @@ import click
 from veloiq_framework.cli.new import new
 from veloiq_framework.cli.module import add_module
 from veloiq_framework.cli.generate import generate
+from veloiq_framework.cli.migrate import migrate
 from veloiq_framework.cli.run import run
 from veloiq_framework.cli.db import db
 from veloiq_framework.cli.search import search
@@ -28,6 +29,7 @@ def cli():
 cli.add_command(new)
 cli.add_command(add_module)
 cli.add_command(generate)
+cli.add_command(migrate)
 cli.add_command(run)
 cli.add_command(db)
 cli.add_command(search)

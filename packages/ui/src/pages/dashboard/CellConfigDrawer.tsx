@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Drawer, Form, Input, InputNumber, Select, Button, Space, Divider, Typography, AutoComplete } from "antd";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 
@@ -124,7 +124,9 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
 
     return (
         <Drawer
-            title={`Configure cell: ${cell?.model ?? ""}`}
+            title={cell?.source_type !== "model"
+                ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}`
+                : `Configure cell: ${cell?.model ?? ""}`}
             placement="right"
             width={380}
             open={open}
@@ -156,10 +158,14 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
                     </Form.Item>
                 </Space>
 
-                <Divider orientation="left">View</Divider>
-                <Form.Item name="view_type" label="View type">
-                    <Select options={VIEW_TYPE_OPTIONS} />
-                </Form.Item>
+                {cell?.source_type === "model" && (
+                    <>
+                        <Divider orientation="left">View</Divider>
+                        <Form.Item name="view_type" label="View type">
+                            <Select options={VIEW_TYPE_OPTIONS} />
+                        </Form.Item>
+                    </>
+                )}
 
                 <Divider orientation="left">Size</Divider>
                 <Space wrap>

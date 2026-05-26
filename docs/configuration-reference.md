@@ -74,6 +74,103 @@ app = create_veloiq_app()
 | `admin_logo_url` | — | `None` | URL of the logo image in the admin panel. |
 | `admin_templates_dir` | — | `None` | Custom Jinja2 templates directory for SQLAdmin. |
 
+## Page layout configuration
+
+VeloIQ stores all layout configuration in a single file: `views_preferences.json` in the backend root.
+
+### Dashboard layout
+
+The dashboard tab/cell grid is stored under the `user:all.__dashboard__` key:
+
+```json
+{
+  "user:all": {
+    "__dashboard__": {
+      "tabs": [
+        {
+          "id": "...",
+          "module": "projects",
+          "name": "Projects",
+          "cells": [
+            {
+              "id": "...",
+              "model": "project",
+              "source_type": "model",
+              "row": 0,
+              "col": 0,
+              "view_type": null,
+              "html_style": "",
+              "min_width": null,
+              "max_width": null,
+              "min_height": null,
+              "max_height": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+`source_type` is one of `"model"`, `"named_query"`, `"field"`, `"relation"`, or `"custom"`.
+
+Use `veloiq add-dashboard` to add or remove models from the dashboard without editing the JSON manually.
+
+### Show and edit page section layout
+
+When a model has view configuration rows (defined via the `GET /views/configurations/{model}` endpoint), the show and edit pages render fields and relations as a configurable grid of named sections. Users can reposition sections by dragging or using the arrow buttons in each section header.
+
+User position overrides are saved automatically to `views_preferences.json` under the model's resource key:
+
+```json
+{
+  "user:all": {
+    "project": {
+      "current_view_name": "default view",
+      "views": {
+        "default view": {
+          "ShowLayoutGrid": {
+            "cells": [
+              { "id": "general", "row": 0, "col": 0, "min_width": null, "min_height": null }
+            ]
+          },
+          "EditLayoutGrid": {
+            "cells": [...]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`ShowLayoutGrid` is the preference type for show pages; `EditLayoutGrid` is for edit pages.
+
+### Configuration methods
+
+Without the pro version (Vantage), layout can be configured by:
+
+- **JSON editing** — directly edit `views_preferences.json` for dashboard layout, or implement the `GET /views/configurations/{model}` endpoint to return `ViewConfigRow` arrays for show/edit section layout.
+- **Section controls** — on any show or edit page that has section layout configured, users can reposition sections using the arrow buttons in each section's header. Changes are saved automatically.
+- **Cell config drawer** — accessible from the gear icon in each dashboard cell or section header; controls min/max width, height, and inline styles.
+
+### Migrating from legacy layout files
+
+Older projects generated before the unified layout system may have a separate `config/views_configuration.json` file for dashboard configuration. Run the migration command to consolidate it:
+
+```bash
+veloiq migrate
+```
+
+This reads the dashboard layout from `config/views_configuration.json`, merges it into `views_preferences.json`, and renames the old file to `config/views_configuration.json.bak`.
+
+```bash
+veloiq migrate --dry-run   # preview changes without modifying files
+```
+
+`veloiq generate` will remind you to run this command if an unmigrated file is detected.
+
 ## Database migrations with Alembic
 
 For production use, disable table auto-creation and manage schema changes

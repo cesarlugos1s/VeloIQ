@@ -5,6 +5,10 @@ import {
     FullscreenOutlined,
     MinusSquareOutlined,
     LinkOutlined,
+    ArrowLeftOutlined,
+    ArrowRightOutlined,
+    ArrowUpOutlined,
+    ArrowDownOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import type { ModelDef } from "../../components/DynamicResource/types";
@@ -38,7 +42,8 @@ const DashboardGridCell: React.FC<{
     onMaximize: () => void;
     onMinimize: () => void;
     onResize: (minWidth: string | null, minHeight: string | null) => void;
-}> = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize }) => {
+    onMove: (direction: "left" | "right" | "up" | "down") => void;
+}> = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
@@ -74,8 +79,11 @@ const DashboardGridCell: React.FC<{
     };
 
     const resource = model?.resource || cell.model;
-    const cellTitle = model?.label || cell.model;
-    const tone = model ? getModelTone(model) : null;
+    const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
+    const cellTitle = isModelLike
+        ? (model?.label || cell.model)
+        : (cell.section_name || cell.model);
+    const tone = (isModelLike && model) ? getModelTone(model) : null;
 
     // Resize via pointer drag on bottom / right / corner handles.
     const startResize = useCallback((
@@ -149,6 +157,38 @@ const DashboardGridCell: React.FC<{
                     {cellTitle}
                 </span>
                 <div className="jm-cell-actions" style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Tooltip title="Move left">
+                    <Button
+                        type="text" size="small"
+                        icon={<ArrowLeftOutlined style={{ fontSize: 10 }} />}
+                        onClick={() => onMove("left")}
+                        style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
+                    />
+                </Tooltip>
+                <Tooltip title="Move up">
+                    <Button
+                        type="text" size="small"
+                        icon={<ArrowUpOutlined style={{ fontSize: 10 }} />}
+                        onClick={() => onMove("up")}
+                        style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
+                    />
+                </Tooltip>
+                <Tooltip title="Move down">
+                    <Button
+                        type="text" size="small"
+                        icon={<ArrowDownOutlined style={{ fontSize: 10 }} />}
+                        onClick={() => onMove("down")}
+                        style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
+                    />
+                </Tooltip>
+                <Tooltip title="Move right">
+                    <Button
+                        type="text" size="small"
+                        icon={<ArrowRightOutlined style={{ fontSize: 10 }} />}
+                        onClick={() => onMove("right")}
+                        style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
+                    />
+                </Tooltip>
                 <Tooltip title="Configure cell">
                     <Button
                         type="text" size="small"
@@ -157,11 +197,13 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title="Open full page">
-                    <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
-                        <LinkOutlined style={{ fontSize: 11 }} />
-                    </Link>
-                </Tooltip>
+                {isModelLike || cell.source_type === "relation" ? (
+                    <Tooltip title="Open full page">
+                        <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
+                            <LinkOutlined style={{ fontSize: 11 }} />
+                        </Link>
+                    </Tooltip>
+                ) : null}
                 <Tooltip title={isMaximized ? "Restore" : "Maximize"}>
                     <Button
                         type="text" size="small"
@@ -222,7 +264,8 @@ const DashboardTabContent: React.FC<{
     onMinimize: (cellId: string) => void;
     onConfigure: (cell: DashboardCell) => void;
     onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
-}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize }) => {
+    onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
+}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
     const cells = tab.cells;
 
     const numCols = useMemo(() => {
@@ -277,6 +320,7 @@ const DashboardTabContent: React.FC<{
                         onMaximize={() => onMaximize(cell.id)}
                         onMinimize={() => onMinimize(cell.id)}
                         onResize={(w, h) => onResize(cell.id, w, h)}
+                        onMove={(dir) => onMove(cell.id, dir)}
                     />
                 </div>
             ))}
@@ -314,6 +358,28 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
         setDrawerSelection(null);
     }, [onConfigChange]);
 
+    const handleMoveCell = useCallback((tabId: string, cellId: string, direction: "left" | "right" | "up" | "down") => {
+        const nextTabs = config.tabs.map((tab) => {
+            if (tab.id !== tabId) return tab;
+            const cell = tab.cells.find((c) => c.id === cellId);
+            if (!cell) return tab;
+            let newRow = cell.row;
+            let newCol = cell.col;
+            if (direction === "left")  newCol = Math.max(0, cell.col - 1);
+            if (direction === "right") newCol = cell.col + 1;
+            if (direction === "up")    newRow = Math.max(0, cell.row - 1);
+            if (direction === "down")  newRow = cell.row + 1;
+            const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
+            const updatedCells = tab.cells.map((c) => {
+                if (c.id === cellId) return { ...c, row: newRow, col: newCol };
+                if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
+                return c;
+            });
+            return { ...tab, cells: updatedCells };
+        });
+        onConfigChange({ ...config, tabs: nextTabs });
+    }, [config, onConfigChange]);
+
     const handleResizeCell = useCallback((tabId: string, cellId: string, minWidth: string | null, minHeight: string | null) => {
         const nextTabs = config.tabs.map((tab) => {
             if (tab.id !== tabId) return tab;
@@ -346,10 +412,11 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
                     onMinimize={handleMinimize}
                     onConfigure={(cell) => handleOpenDrawer(tab.id, cell)}
                     onResize={(cellId, w, h) => handleResizeCell(tab.id, cellId, w, h)}
+                    onMove={(cellId, dir) => handleMoveCell(tab.id, cellId, dir)}
                 />
             ),
         })),
-        [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell]
+        [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
     );
 
     if (!config.tabs.length) {

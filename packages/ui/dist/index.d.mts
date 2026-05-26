@@ -289,7 +289,9 @@ declare const ModelHeading: React__default.FC<{
     actionLabel?: string;
 }>;
 
-declare const useShowActionsPreferences: (model: ModelDef, allModels?: ModelDef[], record?: any, saveButtonProps?: any) => {
+declare const useShowActionsPreferences: (model: ModelDef, allModels?: ModelDef[], record?: any, saveButtonProps?: any, configureLayoutButtonRef?: {
+    current: React__default.ReactNode;
+}) => {
     actionsState: {
         showActions: boolean;
         showCreate: boolean;
@@ -343,10 +345,18 @@ declare const useStandardShowTabs: (model: ModelDef | undefined, record: any, al
     formProps?: any;
     effectiveFields?: FieldDef[];
 }, overrideConfigRows?: ViewConfigRow[]) => {
-    key: string;
-    label: React__default.ReactNode;
-    children: React__default.ReactNode;
-}[];
+    tabs: {
+        key: string;
+        label: React__default.ReactNode;
+        children: React__default.ReactNode;
+    }[];
+    layoutConfig: {
+        isConfiguring: boolean;
+        enterConfigMode: () => void;
+        saveLayout: () => void;
+        cancelLayout: () => void;
+    };
+};
 
 declare const renderRelationBlock: ({ rel, relationModel, relatedModel, record, mode, parentResource, allModels, showLabel, showActions, showCreate, relationViewTypeDefaults, labelStyle, valueStyle, fieldLayoutStyle, }: {
     rel: RelationDef;
@@ -459,10 +469,11 @@ declare const LoginPage: React__default.FC<LoginPageProps>;
 
 declare const DashboardPage: React__default.FC;
 
+type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom";
 interface DashboardCell {
     id: string;
     model: string;
-    source_type: "model";
+    source_type: CellSourceType;
     row: number;
     col: number;
     view_type: string | null;
@@ -471,6 +482,8 @@ interface DashboardCell {
     max_width: string | null;
     min_height: string | null;
     max_height: string | null;
+    section_name?: string;
+    section_id?: string;
 }
 interface DashboardTab {
     id: string;
@@ -482,12 +495,22 @@ interface DashboardConfig {
     tabs: DashboardTab[];
 }
 
-interface Props {
+interface Props$1 {
     config: DashboardConfig;
     allModels: ModelDef[];
     onConfigChange: (next: DashboardConfig) => void;
 }
-declare const ViewsGrid: React__default.FC<Props>;
+declare const ViewsGrid: React__default.FC<Props$1>;
+
+interface Props {
+    cells: DashboardCell[];
+    config: DashboardConfig;
+    tabId: string;
+    renderContent: (cell: DashboardCell) => React__default.ReactNode;
+    onConfigChange: (next: DashboardConfig) => void;
+    isConfiguring?: boolean;
+}
+declare const SectionsGrid: React__default.FC<Props>;
 
 declare const RecentActivityPanel: React__default.FC;
 
@@ -597,4 +620,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, type BulkActionDef, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };

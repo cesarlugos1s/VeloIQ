@@ -1,6 +1,39 @@
 """veloiq generate — generate frontend TypeScript schemas from backend models."""
+import json
 import click
 from pathlib import Path
+
+
+def _check_migration_needed(project_root_override=None) -> None:
+    """Print a hint when config/views_configuration.json has not been migrated yet."""
+    root = Path(project_root_override).resolve() if project_root_override else Path.cwd()
+    # When running from backend/, the project root is one level up.
+    candidates = [root, root.parent]
+    for candidate in candidates:
+        legacy = candidate / "backend" / "config" / "views_configuration.json"
+        prefs = candidate / "backend" / "views_preferences.json"
+        if not legacy.exists():
+            continue
+        try:
+            data = json.loads(legacy.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue
+        has_dashboard = bool(data.get("user:all", {}).get("__dashboard__"))
+        if not has_dashboard:
+            continue
+        already_migrated = False
+        if prefs.exists():
+            try:
+                pd = json.loads(prefs.read_text(encoding="utf-8")) or {}
+                already_migrated = "__dashboard__" in pd.get("user:all", {})
+            except Exception:
+                pass
+        if not already_migrated:
+            click.echo(
+                "\n💡  config/views_configuration.json detected.\n"
+                "    Run `veloiq migrate` to consolidate it into views_preferences.json.\n"
+            )
+        break
 
 
 @click.command()
@@ -26,3 +59,4 @@ def generate(modules_dir, frontend_src, project_root):
         frontend_src=frontend_src,
         project_root=project_root,
     )
+    _check_migration_needed(project_root)

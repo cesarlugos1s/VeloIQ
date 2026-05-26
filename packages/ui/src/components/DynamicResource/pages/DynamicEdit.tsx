@@ -3,8 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiUrl, useGo } from "@refinedev/core";
 import { useForm, DeleteButton } from "@refinedev/antd";
 import { StandardEdit } from "../../StandardCrud";
-import { Button, Divider, Form, Input, Popover, Skeleton, Switch, Tabs, Tooltip, Typography, message, theme } from "antd";
-import { CopyOutlined, EyeOutlined, SaveFilled, SaveOutlined, SettingOutlined, ApartmentOutlined } from "@ant-design/icons";
+import { Button, Divider, Form, Input, Popover, Skeleton, Switch, Tabs, Tooltip, message, theme } from "antd";
+import { AppstoreOutlined, CopyOutlined, EyeOutlined, SaveFilled, SaveOutlined, SettingOutlined, ApartmentOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useKeyboardShortcuts } from "../../../hooks/useKeyboardShortcuts";
 import { useModelTone, getModelTone, type ModelTone } from "../../../utils/modelTone";
@@ -22,15 +22,10 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
-    groupConfigRowsBySectionId,
-    normalizeSectionRows,
-    resolveFieldFromConfig,
-    resolveRelationFromConfig,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
     buildConfiguredRelationDisplayKeys,
     isRelationConfiguredForDetails,
-    isAttributeValueEditable,
     normalizeRelationViewType,
     applyRelationViewOverride,
     applyRelationFieldOverrides,
@@ -48,10 +43,11 @@ import {
 import { useMetadataModal } from "../hooks/useMetadataModal";
 import { renderModelHeading } from "../ModelHeading";
 import { renderRelationBlock } from "../../DynamicResource";
-import { NLSentenceBlock } from "../blocks/NLSentenceBlock";
+import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
+import { SectionCellContent } from "../SectionCellContent";
+import { usePageSectionsConfig } from "../hooks/usePageSectionsConfig";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
-const { Title } = Typography;
 const requiredMark = (field: FieldDef) =>
     field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
@@ -321,13 +317,17 @@ export const DynamicEdit: React.FC<{
     const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
     const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
 
-    // Split rows by tab_name: empty/null → Details tab; non-empty → custom tabs
-    const detailsConfigRows = configRows.filter(r => !r.tab_name);
+    // Custom tab names from page config
     const customTabNames = Array.from(new Set(
         configRows.filter(r => !!r.tab_name).map(r => r.tab_name as string)
     ));
 
-    const configSections = groupConfigRowsBySectionId(detailsConfigRows);
+    const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
+    const { config: pageConfig, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange } = usePageSectionsConfig(
+        configRows,
+        resourceKey,
+        "edit",
+    );
     const actionsSettingsContent = (
         <div style={{ display: "grid", gap: 8, minWidth: 200 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -445,229 +445,34 @@ export const DynamicEdit: React.FC<{
                         </div>
                     </Form>
                     )}
-                    {!configLoading && hasConfig && (
-                    <div style={{ marginTop: 0 }}>
-                        <Form
-                            {...editFormProps}
-                            size="small"
-                            style={{ position: "relative" }}
-                        >
-                                {(() => {
-                                    const gridRowMap = new Map<number, Array<{ name: string; rows: ViewConfigRow[]; gridCol: number }>>();
-                                    for (const [, { name: sectionName, rows }] of configSections.entries()) {
-                                        const gridRow = rows[0]?.section_grid_row ?? 1;
-                                        const gridCol = rows[0]?.section_grid_col ?? 1;
-                                        const arr = gridRowMap.get(gridRow) || [];
-                                        arr.push({ name: sectionName, rows, gridCol });
-                                        gridRowMap.set(gridRow, arr);
-                                    }
-                                    return Array.from(gridRowMap.keys()).sort((a, b) => a - b).map((gridRow) => {
-                                        const rowSections = (gridRowMap.get(gridRow) || []).sort((a, b) => a.gridCol - b.gridCol);
-                                        return (
-                                            <div key={`gr-${gridRow}`} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
-                                                {rowSections.map(({ name: section, rows }) => {
-                                    const normalized = normalizeSectionRows(rows);
-                                    const maxRow = Math.max(1, ...normalized.map((row) => row.row));
-                                    const maxCol = Math.max(1, ...normalized.map((row) => row.column));
-                                    return (
-                                        <div
-                                            key={section}
-                                            style={{
-                                                flex: 1,
-                                                minWidth: 0,
-                                                border: `1px solid ${token.colorBorder}`,
-                                                borderRadius: 8,
-                                                padding: "2px 6px",
-                                            }}
-                                        >
-                                            <Title level={5} style={{ margin: 0, color: "#1677ff" }}>{_(section)}</Title>
-                                            <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                                                <tbody>
-                                                    {Array.from({ length: maxRow }).map((_, rowIndex) => (
-                                                        <tr key={`edit-row-${section}-${rowIndex}`}>
-                                                            {Array.from({ length: maxCol }).map((_, colIndex) => {
-                                                                const cellItems = normalized.filter(
-                                                                    (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
-                                                                );
-                                                                return (
-                                                                    <td
-                                                                        key={`edit-cell-${section}-${rowIndex}-${colIndex}`}
-                                                                        style={{ padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }}
-                                                                    >
-                                                                        {cellItems.map((item, index) => {
-                                                                            if (item.attribute_or_relation_type === "nlsentence") {
-                                                                                if (!item.nl_sentence_eid) return null;
-                                                                                return (
-                                                                                    <NLSentenceBlock
-                                                                                        key={`nls-${item.nl_sentence_eid}`}
-                                                                                        eid={item.nl_sentence_eid}
-                                                                                        title={item.nl_sentence_title ?? undefined}
-                                                                                        showLabel={item.show_label !== false}
-                                                                                    />
-                                                                                );
-                                                                            }
-                                                                            if (item.attribute_or_relation_type === "relation") {
-                                                                                if (!record || !allModels) return null;
-                                                                                const relation = resolveRelationFromConfig(model.relations, item);
-                                                                                if (!relation) return null;
-                                                                                const relationModel = findModelByName(allModels, relation.resource);
-                                                                                if (!relationModel) return null;
-                                                                                const relatedModel = relation.otherResource ? findModelByName(allModels, relation.otherResource) : undefined;
-                                                                                const relationTone = getModelTone(relatedModel || relationModel || relation.resource);
-                                                                                const relWithOverride = applyRelationViewOverride(relation, item, "edit");
-                                                                                const showLabel = item.show_label !== false;
-                                                                                const resolvedRelViewType = getRelationViewType(relWithOverride, "edit", relationViewTypeDefaults);
-                                                                                const isListView = resolvedRelViewType === "list";
-                                                                                const relationValueStyle: React.CSSProperties = {
-                                                                                    padding: "2px 4px",
-                                                                                    lineHeight: 1.15,
-                                                                                    background: valueBackground,
-                                                                                    borderRadius: 6,
-                                                                                    overflowWrap: "anywhere",
-                                                                                    maxWidth: "100%",
-                                                                                    ...parseInlineStyle(item.html_format)
-                                                                                };
-                                                                                const relationLabelStyle: React.CSSProperties = {
-                                                                                    ...labelStyle,
-                                                                                    background: "transparent",
-                                                                                    color: relationTone.text,
-                                                                                    padding: "2px 8px",
-                                                                                    borderRadius: 6,
-                                                                                };
-                                                                                const relationLayoutStyle: React.CSSProperties = {
-                                                                                    display: "flex",
-                                                                                    flexDirection: "column",
-                                                                                    gap: 2,
-                                                                                };
-                                                                                return (
-                                                                                    <div key={`${item.name}-${item.row}-${item.column}`} style={{ marginBottom: 4 }}>
-                                                                                        {renderRelationBlock({
-                                                                                            rel: relWithOverride,
-                                                                                            relationModel,
-                                                                                            relatedModel,
-                                                                                            record,
-                                                                                            mode: "edit",
-                                                                                            parentResource: model.name,
-                                                                                            allModels,
-                                                                                            showActions: showRelationActions,
-                                                                                            showCreate: showRelationCreate,
-                                                                                            relationViewTypeDefaults,
-                                                                                            showLabel,
-                                                                                            labelStyle: relationLabelStyle,
-                                                                                            valueStyle: { ...relationValueStyle, border: `1px solid ${token.colorBorder}` },
-                                                                                            fieldLayoutStyle: relationLayoutStyle,
-                                                                                        })}
-                                                                                    </div>
-                                                                                );
-                                                                            }
-
-                                                                            const field = resolveFieldFromConfig(model, item);
-                                                                            if (field.isPk) return null;
-                                                                            const showLabel = item.show_label !== false;
-                                                                            const editable = isAttributeValueEditable(item, "edit");
-                                                                            if (!editable) {
-                                                                                const readonlyValueStyle: React.CSSProperties = {
-                                                                                    padding: "2px 4px",
-                                                                                    lineHeight: 1.15,
-                                                                                    background: valueBackground,
-                                                                                    borderRadius: 6,
-                                                                                    border: `1px solid ${token.colorBorder}`,
-                                                                                    maxWidth: "100%",
-                                                                                    overflowWrap: "anywhere",
-                                                                                    textAlign: field.type === "number" ? "right" : "left",
-                                                                                    fontVariantNumeric: field.type === "number" ? "tabular-nums" : undefined,
-                                                                                    ...parseInlineStyle(item.html_format)
-                                                                                };
-                                                                                return (
-                                                                                    <div key={`${field.key}-${index}`} style={{ marginBottom: 4 }}>
-                                                                                        <div
-                                                                                            style={{
-                                                                                                display: "flex",
-                                                                                                flexDirection: "column",
-                                                                                                gap: 2,
-                                                                                            }}
-                                                                                        >
-                                                                                            {showLabel && (
-                                                                                                <div
-                                                                                                    style={{
-                                                                                                        ...labelStyle,
-                                                                                                        backgroundColor: labelBackground,
-                                                                                                        padding: "2px 4px",
-                                                                                                        borderRadius: 4,
-                                                                                                    }}
-                                                                                                >
-                                                                                                    {field.label}{requiredMark(field)}
-                                                                                                </div>
-                                                                                            )}
-                                                                                            <div style={readonlyValueStyle}>
-                                                                                                {renderFieldValue(field, record, allModels)}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                );
-                                                                            }
-                                                                            return (
-                                                                                <div key={`${field.key}-${index}`} style={{ marginBottom: 4 }}>
-                                                                                    <div
-                                                                                        style={{
-                                                                                            display: "flex",
-                                                                                            flexDirection: "column",
-                                                                                            gap: 2,
-                                                                                        }}
-                                                                                    >
-                                                                                        {showLabel && (
-                                                                                            <div
-                                                                                                style={{
-                                                                                                    ...labelStyle,
-                                                                                                    backgroundColor: labelBackground,
-                                                                                                    padding: "2px 4px",
-                                                                                                    borderRadius: 4,
-                                                                                                }}
-                                                                                            >
-                                                                                                {field.label}{requiredMark(field)}
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div style={{
-                                                                                            padding: "2px 4px",
-                                                                                            lineHeight: 1.15,
-                                                                                            background: valueBackground,
-                                                                                            borderRadius: 6,
-                                                                                            border: `1px solid ${token.colorBorder}`,
-                                                                                            maxWidth: "100%",
-                                                                                            overflowWrap: "anywhere",
-                                                                                            ...parseInlineStyle(item.html_format)
-                                                                                        }}>
-                                                                                            <Form.Item
-                                                                                                name={field.key}
-                                                                                                rules={field.required && !field.formula ? [{ required: true }] : []}
-                                                                                                valuePropName={field.type === 'boolean' ? 'checked' : undefined}
-                                                                                                getValueProps={(val) => (field.type === 'date' || field.type === 'datetime') && val ? { value: dayjs(val) } : field.type === 'time' && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }}
-                                                                                                style={{ margin: 0 }}
-                                                                                            >
-                                                                                                {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId)}
-                                                                                            </Form.Item>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    );
-                                })}
-                                            </div>
-                                        );
-                                    });
-                                })()}
-                            </Form>
-                        </div>
-                    )}
+                    {!configLoading && hasConfig && (() => {
+                        const detailsTab = pageConfig.tabs.find((t) => t.id === "details");
+                        if (!detailsTab) return null;
+                        return (
+                        <Form {...editFormProps} size="small" style={{ position: "relative" }}>
+                            <SectionsGrid
+                                cells={detailsTab.cells}
+                                config={pageConfig}
+                                tabId="details"
+                                renderContent={(cell) => (
+                                    <SectionCellContent
+                                        sectionName={cell.section_name ?? ""}
+                                        sectionRows={getSectionRows(cell.id)}
+                                        model={model}
+                                        record={record}
+                                        allModels={allModelsList}
+                                        mode="edit"
+                                        showRelationActions={showRelationActions}
+                                        showRelationCreate={showRelationCreate}
+                                        relationViewTypeDefaults={relationViewTypeDefaults}
+                                    />
+                                )}
+                                onConfigChange={onLayoutChange}
+                                isConfiguring={isConfiguring}
+                            />
+                        </Form>
+                        );
+                    })()}
                     {!configLoading && record && allModels && !hasConfiguredDetailRelations && (
                         <div style={{ marginTop: 8 }}>
                             {[...embedded, ...tabbed]
@@ -701,118 +506,30 @@ export const DynamicEdit: React.FC<{
 
     // Custom config tabs (from page config tab_name)
     const customConfigTabs = customTabNames.map(tabName => {
-        const tabRows = configRows.filter(r => r.tab_name === tabName);
-        const tabSections = groupConfigRowsBySectionId(tabRows);
-        const gridRowMap = new Map<number, Array<{ name: string; rows: ViewConfigRow[]; gridCol: number }>>();
-        for (const [, { name: sectionName, rows }] of tabSections.entries()) {
-            const gridRow = rows[0]?.section_grid_row ?? 1;
-            const gridCol = rows[0]?.section_grid_col ?? 1;
-            const arr = gridRowMap.get(gridRow) || [];
-            arr.push({ name: sectionName, rows, gridCol });
-            gridRowMap.set(gridRow, arr);
-        }
+        const tabId = `tab::${tabName}`;
+        const tabCells = pageConfig.tabs.find((t) => t.id === tabId)?.cells ?? [];
         const tabChildren = (
             <Form {...editFormProps} size="small" style={{ position: "relative" }}>
-                {Array.from(gridRowMap.keys()).sort((a, b) => a - b).map((gridRow) => {
-                    const rowSections = (gridRowMap.get(gridRow) || []).sort((a, b) => a.gridCol - b.gridCol);
-                    return (
-                        <div key={`ct-gr-${gridRow}`} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
-                            {rowSections.map(({ name: section, rows }) => {
-                                const normalized = normalizeSectionRows(rows);
-                                const maxRow = Math.max(1, ...normalized.map(r => r.row));
-                                const maxCol = Math.max(1, ...normalized.map(r => r.column));
-                                return (
-                                    <div key={section} style={{ flex: 1, minWidth: 0, border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "2px 6px" }}>
-                                        <Title level={5} style={{ margin: 0, color: "#1677ff" }}>{_(section)}</Title>
-                                        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                                            <tbody>
-                                                {Array.from({ length: maxRow }).map((_, ri) => (
-                                                    <tr key={`ct-row-${section}-${ri}`}>
-                                                        {Array.from({ length: maxCol }).map((_, ci) => {
-                                                            const cellItems = normalized.filter(item => item.row === ri + 1 && item.column === ci + 1);
-                                                            return (
-                                                                <td key={`ct-cell-${section}-${ri}-${ci}`} style={{ padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }}>
-                                                                    {cellItems.map((item, idx) => {
-                                                                        if (item.attribute_or_relation_type === "nlsentence") {
-                                                                            if (!item.nl_sentence_eid) return null;
-                                                                            return (
-                                                                                <NLSentenceBlock
-                                                                                    key={`nls-${item.nl_sentence_eid}`}
-                                                                                    eid={item.nl_sentence_eid}
-                                                                                    title={item.nl_sentence_title ?? undefined}
-                                                                                    showLabel={item.show_label !== false}
-                                                                                />
-                                                                            );
-                                                                        }
-                                                                        if (item.attribute_or_relation_type === "relation") {
-                                                                            if (!record || !allModels) return null;
-                                                                            const relation = resolveRelationFromConfig(model.relations, item);
-                                                                            if (!relation) return null;
-                                                                            const relationModel = findModelByName(allModels, relation.resource);
-                                                                            if (!relationModel) return null;
-                                                                            const relatedModel = relation.otherResource ? findModelByName(allModels, relation.otherResource) : undefined;
-                                                                            const relWithOverride = applyRelationViewOverride(relation, item, "edit");
-                                                                            const showLabel = item.show_label !== false;
-                                                                            return (
-                                                                                <div key={`${item.name}-${item.row}-${item.column}`} style={{ marginBottom: 4 }}>
-                                                                                    {renderRelationBlock({
-                                                                                        rel: relWithOverride,
-                                                                                        relationModel,
-                                                                                        relatedModel,
-                                                                                        record,
-                                                                                        mode: "edit",
-                                                                                        parentResource: model.name,
-                                                                                        allModels,
-                                                                                        showActions: showRelationActions,
-                                                                                        showCreate: showRelationCreate,
-                                                                                        relationViewTypeDefaults,
-                                                                                        showLabel,
-                                                                                    })}
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                        const field = resolveFieldFromConfig(model, item);
-                                                                        if (field.isPk) return null;
-                                                                        const showLabel = item.show_label !== false;
-                                                                        const editable = isAttributeValueEditable(item, "edit");
-                                                                        return (
-                                                                            <div key={`${field.key}-${idx}`} style={{ marginBottom: 4 }}>
-                                                                                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                                                                    {showLabel && (
-                                                                                        <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
-                                                                                            {field.label}{requiredMark(field)}
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div style={{ padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6, border: `1px solid ${token.colorBorder}`, maxWidth: "100%", overflowWrap: "anywhere", ...parseInlineStyle(item.html_format) }}>
-                                                                                        {editable ? (
-                                                                                            <Form.Item
-                                                                                                name={field.key}
-                                                                                                rules={field.required && !field.formula ? [{ required: true }] : []}
-                                                                                                valuePropName={field.type === 'boolean' ? 'checked' : undefined}
-                                                                                                getValueProps={(val) => (field.type === 'date' || field.type === 'datetime') && val ? { value: dayjs(val) } : field.type === 'time' && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }}
-                                                                                                style={{ margin: 0 }}
-                                                                                            >
-                                                                                                {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId)}
-                                                                                            </Form.Item>
-                                                                                        ) : renderFieldValue(field, record, allModels)}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </td>
-                                                            );
-                                                        })}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })}
+                <SectionsGrid
+                    cells={tabCells}
+                    config={pageConfig}
+                    tabId={tabId}
+                    renderContent={(cell) => (
+                        <SectionCellContent
+                            sectionName={cell.section_name ?? ""}
+                            sectionRows={getSectionRows(cell.id)}
+                            model={model}
+                            record={record}
+                            allModels={allModelsList}
+                            mode="edit"
+                            showRelationActions={showRelationActions}
+                            showRelationCreate={showRelationCreate}
+                            relationViewTypeDefaults={relationViewTypeDefaults}
+                        />
+                    )}
+                    onConfigChange={onLayoutChange}
+                    isConfiguring={isConfiguring}
+                />
             </Form>
         );
         return {
@@ -838,6 +555,24 @@ export const DynamicEdit: React.FC<{
         })),
         [activeTabKey, items]
     );
+    const configureLayoutButton = isConfiguring ? (
+        <Tooltip title={_("Cancel layout changes")}>
+            <Button size="small" icon={<AppstoreOutlined />} type="primary" onClick={cancelLayout} />
+        </Tooltip>
+    ) : (
+        <Tooltip title={_("Configure page layout")}>
+            <Button size="small" icon={<AppstoreOutlined />} onClick={enterConfigMode} />
+        </Tooltip>
+    );
+
+    const wrappedEditSaveButtonProps = {
+        ...(saveButtonProps as any),
+        onClick: (e: React.MouseEvent) => {
+            saveLayout();
+            (saveButtonProps as any)?.onClick?.(e);
+        },
+    };
+
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
             {extraHeaderButtons}
@@ -872,6 +607,7 @@ export const DynamicEdit: React.FC<{
                 <Button size="small" icon={<SettingOutlined />} />
             </Popover>
             {renderIconOnlyButtons(defaultButtons)}
+            {configureLayoutButton}
             {recordId != null && (
                 <Tooltip title={_("Delete")}>
                     <span>
@@ -885,7 +621,7 @@ export const DynamicEdit: React.FC<{
                 </Tooltip>
             )}
             <Tooltip title={_("Save")}>
-                <Button {...(saveButtonProps as any)} type="primary" icon={<SaveFilled />} />
+                <Button {...wrappedEditSaveButtonProps} type="primary" icon={<SaveFilled />} />
             </Tooltip>
         </>
     );

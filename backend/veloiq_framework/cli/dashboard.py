@@ -12,7 +12,9 @@ import click
 _AUTH_MODELS = {"user", "role", "tenant", "veloiq_user", "veloiq_role", "veloiq_tenant"}
 _AUTH_MODULE = "access_control"
 _DASHBOARD_KEY = "__dashboard__"
-_CONFIG_RELATIVE = Path("config") / "views_configuration.json"
+_USER_KEY = "user:all"
+_PREFS_RELATIVE = Path("views_preferences.json")
+_LEGACY_CONFIG_RELATIVE = Path("config") / "views_configuration.json"
 
 
 # ---------------------------------------------------------------------------
@@ -59,9 +61,9 @@ def add_dashboard(
         )
         raise SystemExit(1)
 
-    config_path = root / "backend" / _CONFIG_RELATIVE
+    config_path = root / "backend" / _PREFS_RELATIVE
     data = _load_config(config_path)
-    user_all = data.setdefault("user:all", {})
+    user_all = data.setdefault(_USER_KEY, {})
     dashboard = user_all.setdefault(_DASHBOARD_KEY, {"tabs": []})
 
     modules_dir = root / "backend" / "app" / "modules"
@@ -117,6 +119,14 @@ def add_dashboard(
 
     # ── Summary ───────────────────────────────────────────────────────────
     click.echo("\n📊  Dashboard updated\n")
+    # Warn if an unconsolidated legacy file still exists alongside prefs.
+    legacy = root / "backend" / _LEGACY_CONFIG_RELATIVE
+    if legacy.exists():
+        click.echo(
+            "  ⚠️  config/views_configuration.json still exists.\n"
+            "     Run `veloiq migrate` to consolidate it into views_preferences.json.\n",
+            err=False,
+        )
     if added:
         click.echo(f"  ✅  Added   : {', '.join(added)}")
     if removed:
@@ -286,11 +296,11 @@ def _module_display_name(module: str) -> str:
 
 def _load_config(path: Path) -> dict:
     if not path.exists():
-        return {"schema_version": "1.0", "user:all": {}}
+        return {}
     try:
         return json.loads(path.read_text(encoding="utf-8")) or {}
     except Exception:
-        return {"schema_version": "1.0", "user:all": {}}
+        return {}
 
 
 def _save_config(path: Path, data: dict) -> None:

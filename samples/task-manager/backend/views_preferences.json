@@ -3,6 +3,116 @@
     "colorMode": "light"
   },
   "user:all": {
+    "__dashboard__": {
+      "tabs": [
+        {
+          "cells": [
+            {
+              "col": 1,
+              "html_style": "",
+              "id": "f540ba83-bed2-45e4-8464-a4416dc1ea15",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": "653px",
+              "model": "project",
+              "row": 0,
+              "source_type": "model",
+              "view_type": null
+            },
+            {
+              "col": 0,
+              "html_style": "",
+              "id": "e7b3c912-4f1a-4d8e-b6a0-2c8f5d3e1a9b",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "model": "projects_with_tasks_and_members",
+              "row": 0,
+              "source_type": "named_query",
+              "view_type": null
+            }
+          ],
+          "id": "c24141ef-6364-4bbb-a54a-27143a4915a5",
+          "module": "projects",
+          "name": "Projects"
+        },
+        {
+          "cells": [
+            {
+              "col": 0,
+              "html_style": "",
+              "id": "b72209fc-3016-4f4d-a732-6bc681a42907",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": "1923px",
+              "model": "team_member",
+              "row": 0,
+              "source_type": "model",
+              "view_type": "gallery"
+            }
+          ],
+          "id": "d384f159-7b66-476b-89f9-747dffdd9d85",
+          "module": "team",
+          "name": "Team"
+        },
+        {
+          "cells": [
+            {
+              "col": 0,
+              "html_style": "",
+              "id": "1f282652-bdc5-47f2-a41f-fe7a3b9ca87a",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "model": "user",
+              "row": 0,
+              "source_type": "model",
+              "view_type": null
+            },
+            {
+              "col": 1,
+              "html_style": "",
+              "id": "407e6535-8e55-4e32-947a-e196bb575715",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "model": "role",
+              "row": 0,
+              "source_type": "model",
+              "view_type": null
+            }
+          ],
+          "id": "d03e674e-2bf3-456e-a0c6-ba8928477899",
+          "module": "access_control",
+          "name": "Access Control"
+        },
+        {
+          "cells": [
+            {
+              "col": 0,
+              "html_style": "",
+              "id": "a025cdb4-25b2-46ac-b7d2-05c1b5fc8550",
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "model": "task",
+              "row": 0,
+              "source_type": "model",
+              "view_type": null
+            }
+          ],
+          "id": "26f3f374-0fb6-4ff0-9ec6-1b0415589435",
+          "module": "projects",
+          "name": "Tasks"
+        }
+      ]
+    },
     "dashboard:project": {
       "current_view_name": "default view",
       "current_view_names": [
@@ -216,7 +326,7 @@
       }
     },
     "task": {
-      "current_view_name": "Progress Tracking",
+      "current_view_name": "default view",
       "current_view_names": [
         "default view",
         "Progress Tracking"

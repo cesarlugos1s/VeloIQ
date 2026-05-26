@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Spin, Tabs } from "antd";
+import { Button, Spin, Tabs, Tooltip } from "antd";
+import { AppstoreOutlined } from "@ant-design/icons";
 import { StandardShow } from "../../StandardCrud";
 import { useModelTone } from "../../../utils/modelTone";
 import type { ModelDef } from "../types";
@@ -32,15 +33,42 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
     const pageTitle = record?._label
         ? asDisplayText(record._label, `${_("Show")} ${modelDisplayLabel}`)
         : `${_("Show")} ${modelDisplayLabel}`;
-    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, saveButtonProps);
+
+    // Refs allow layout controls (from useStandardShowTabs) to be injected into
+    // the header buttons (from useShowActionsPreferences) without circular deps.
+    const saveLayoutRef = useRef<() => void>(() => {});
+    const configureLayoutButtonRef = useRef<React.ReactNode>(null);
+
+    const wrappedSaveButtonProps = saveButtonProps ? {
+        ...saveButtonProps,
+        onClick: (e: React.MouseEvent) => {
+            saveLayoutRef.current();
+            (saveButtonProps as any)?.onClick?.(e);
+        },
+    } : saveButtonProps;
+
+    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef);
     const [activeTabKey, setActiveTabKey] = useState("details");
-    const items = useStandardShowTabs(
+    const { tabs: items, layoutConfig } = useStandardShowTabs(
         model,
         record,
         allModelsList,
         actionsState,
         { formProps: showFormProps, effectiveFields },
     );
+
+    // Update refs during render so headerButtons always reads the latest values.
+    saveLayoutRef.current = layoutConfig.saveLayout;
+    configureLayoutButtonRef.current = layoutConfig.isConfiguring ? (
+        <Tooltip title={_("Cancel layout changes")}>
+            <Button size="small" icon={<AppstoreOutlined />} type="primary" onClick={layoutConfig.cancelLayout} />
+        </Tooltip>
+    ) : (
+        <Tooltip title={_("Configure page layout")}>
+            <Button size="small" icon={<AppstoreOutlined />} onClick={layoutConfig.enterConfigMode} />
+        </Tooltip>
+    );
+
     useEffect(() => {
         if (!items.find((item) => item.key === activeTabKey)) {
             setActiveTabKey(items[0]?.key || "details");

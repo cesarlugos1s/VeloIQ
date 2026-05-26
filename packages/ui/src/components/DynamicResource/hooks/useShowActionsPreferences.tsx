@@ -19,6 +19,7 @@ export const useShowActionsPreferences = (
     allModels?: ModelDef[],
     record?: any,
     saveButtonProps?: any,
+    configureLayoutButtonRef?: { current: React.ReactNode },
 ) => {
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -170,6 +171,7 @@ export const useShowActionsPreferences = (
                 )}
             </Modal>
             {renderIconOnlyButtons(defaultButtons)}
+            {configureLayoutButtonRef?.current}
             {saveButtonProps && (
                 <Tooltip title={_("Save")}>
                     <Button {...saveButtonProps} type="primary" icon={<SaveFilled />} hideText />
