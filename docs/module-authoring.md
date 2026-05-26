@@ -73,6 +73,10 @@ class LegacyItem(StandardModel, table=True):
 Use `jm_relationship()` to declare SQLModel relationships with optional
 cardinality metadata that the frontend UI reads for validation hints.
 
+### One-to-many
+
+The "one" side holds `List["Other"]`; the "many" side carries the FK column.
+
 ```python
 from typing import List, Optional
 from sqlmodel import Field
@@ -82,12 +86,69 @@ class Customer(TimestampedModel, table=True):
     __tablename__ = "customer"
     name: str
     orders: List["Order"] = jm_relationship(back_populates="customer")
+```
 
+The frontend generates a relation tab on the Customer show/edit page that lists
+all linked Orders.
+
+### Many-to-one (FK side)
+
+The "many" side declares the integer FK column plus an `Optional["One"]`
+relationship pointing back to the parent.
+
+```python
 class Order(TimestampedModel, table=True):
     __tablename__ = "order"
     reference: str
     customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
     customer: Optional["Customer"] = jm_relationship(back_populates="orders")
+```
+
+The generator emits the FK column (`customer_id`) as a reference field in the
+TypeScript schema, so the frontend renders it as a linked selector in forms and
+a clickable link in show views.
+
+### Many-to-many
+
+Use a link table (a plain `FrameworkModel` with two FK columns) and pass
+`link_model=` to `jm_relationship` on both sides.
+
+```python
+from veloiq_framework import FrameworkModel, TimestampedModel, jm_relationship
+from sqlmodel import Field
+from typing import List, Optional
+
+class TaskTagLink(FrameworkModel, table=True):
+    __tablename__ = "task_tag_link"
+    task_id: Optional[int] = Field(default=None, foreign_key="task.id", primary_key=True)
+    tag_id: Optional[int] = Field(default=None, foreign_key="tag.id", primary_key=True)
+
+class Tag(FrameworkModel, table=True):
+    __tablename__ = "tag"
+    name: str
+    tasks: List["Task"] = jm_relationship(back_populates="tags", link_model=TaskTagLink)
+
+class Task(TimestampedModel, table=True):
+    __tablename__ = "task"
+    title: str
+    tags: List["Tag"] = jm_relationship(back_populates="tasks", link_model=TaskTagLink)
+```
+
+The frontend renders each side as a relation tab.  Use
+`showViewType: "read-and-edit-csv"` / `editViewType: "editable-csv"` on the
+relation definition to display the linked records as an inline tag list rather
+than a full table.
+
+### Cardinality constraints
+
+`jm_relationship()` accepts optional `min_items` and `max_items` arguments.
+The UI reads these to show required/optional indicators and pagination hints.
+
+```python
+# Exactly one-to-one: each order must have exactly one invoice
+invoices: List["Invoice"] = jm_relationship(
+    back_populates="order", min_items=1, max_items=1
+)
 ```
 
 ## Access control
@@ -298,9 +359,17 @@ overrides are always included automatically.
 The manual file exports a `ModelOverride[]` array.  Each entry is matched to a
 generated model by `name` and deep-merged:
 
-- **Override a field property** — change `showViewType`, `editViewType`, `label`,
-  `required`, `readOnly`, or any other `FieldDef` key by providing the field's
-  `key` plus the properties to change.
+- **Override a field property** — change any `FieldDef` key by providing the
+  field's `key` plus the properties to change.  Common overrides:
+  - `showViewType` / `editViewType` — control how the field is rendered in show
+    and edit contexts.  See [View types](#view-types) for the full token list
+    (currency, progress bar, rating, markdown, etc.).
+  - `options` — array of `{ label, value }` objects; turns the field into a
+    tag/select picker with labelled choices.
+  - `valueColors` — map of value → Ant Design tag colour (e.g. `"green"`,
+    `"blue"`, `"orange"`, `"volcano"`, `"gold"`, `"default"`); applied
+    alongside `options` to colour-code each status/priority tag.
+  - `label`, `required`, `readOnly`, `description` — display and validation tweaks.
 - **Add a virtual field** — include a `key` that does not exist in the generated
   model; it is appended to the field list.
 - **Override a relation** — match by `resource` (or `label` as a fallback) and
