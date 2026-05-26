@@ -4232,6 +4232,26 @@ var useViewSettings = () => {
   }, [apiUrl]);
   return { settings, loading };
 };
+var synthesizeConfigRows = (model, mode = "show") => {
+  const formType = mode === "show" ? "show" : "edit";
+  return model.fields.filter((f) => !f.isPk).map((field, idx) => ({
+    view_type: "PrimaryView",
+    subject_name: model.name,
+    relation_name: "",
+    object_name: field.key,
+    form_type: formType,
+    section: DETAILS_TAB_NAME,
+    section_id: "details",
+    section_grid_row: 1,
+    section_grid_col: 1,
+    tab_name: null,
+    row: idx + 1,
+    column: 1,
+    show_label: true,
+    attribute_or_relation_type: "attribute",
+    name: field.key
+  }));
+};
 var filterConfigRowsForMode = (rows, mode) => {
   if (rows.length === 0) return rows;
   const allowedTypes = mode === "show" ? /* @__PURE__ */ new Set(["attributes", "details", "show"]) : /* @__PURE__ */ new Set(["main", "edit", "attributes"]);
@@ -7609,7 +7629,7 @@ async function unpinRecords(resource, recordIds) {
   );
 }
 var _15 = window._ || ((text) => text);
-var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef) => {
+var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef) => {
   const apiUrl = useApiUrl();
   const allModelsList = useMemo(() => allModels || [], [allModels]);
   const [showRelationActions, setShowRelationActions] = useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
@@ -7673,6 +7693,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       cancelled = true;
     };
   }, [apiUrl, allModelsList, model.name, model.resource]);
+  const configureLayoutRow = configureLayoutButtonRef?.current;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
       /* @__PURE__ */ jsx("span", { children: _15("Relation's row actions buttons") }),
@@ -7702,13 +7723,20 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         }
       )
     ] }),
+    configureLayoutRow && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
+      configureLayoutRow
+    ] }),
     /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
     /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
         icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
-        onClick: saveActionsPreferences,
+        onClick: () => {
+          saveLayoutRef?.current?.();
+          saveActionsPreferences();
+        },
         loading: isSavingActionsPrefs,
         block: true,
         children: _15("Save")
@@ -7751,7 +7779,6 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    configureLayoutButtonRef?.current,
     saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _15("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
   ] });
   return {
@@ -8138,7 +8165,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
       saveButtonProps?.onClick?.(e);
     }
   } : saveButtonProps;
-  const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef);
+  const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
   const [activeTabKey, setActiveTabKey] = useState("details");
   const { tabs: items, layoutConfig } = useStandardShowTabs(
     model,
@@ -8148,7 +8175,18 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     { formProps: showFormProps, effectiveFields }
   );
   saveLayoutRef.current = layoutConfig.saveLayout;
-  configureLayoutButtonRef.current = layoutConfig.isConfiguring ? /* @__PURE__ */ jsx(Tooltip, { title: _18("Cancel layout changes"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}), type: "primary", onClick: layoutConfig.cancelLayout }) }) : /* @__PURE__ */ jsx(Tooltip, { title: _18("Configure page layout"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}), onClick: layoutConfig.enterConfigMode }) });
+  configureLayoutButtonRef.current = layoutConfig.hasConfig ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
+    /* @__PURE__ */ jsx("span", { children: _18("Configure page layout") }),
+    /* @__PURE__ */ jsx(
+      Button,
+      {
+        size: "small",
+        icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}),
+        type: layoutConfig.isConfiguring ? "primary" : "default",
+        onClick: layoutConfig.isConfiguring ? layoutConfig.cancelLayout : layoutConfig.enterConfigMode
+      }
+    )
+  ] }) : null;
   useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "details");
@@ -10198,10 +10236,11 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     margin: 0,
     lineHeight: 1
   };
-  const configRows = filterConfigRowsForMode(
+  const rawConfigRows = filterConfigRowsForMode(
     editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
     "edit"
   );
+  const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "edit");
   const hasConfig = configRows.length > 0;
   const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
   const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);
@@ -10246,13 +10285,31 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       )
     ] }),
+    hasConfig && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
+      /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
+        /* @__PURE__ */ jsx("span", { children: _26("Configure page layout") }),
+        /* @__PURE__ */ jsx(
+          Button,
+          {
+            size: "small",
+            icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}),
+            type: isConfiguring ? "primary" : "default",
+            onClick: isConfiguring ? cancelLayout : enterConfigMode
+          }
+        )
+      ] })
+    ] }),
     /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
     /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
         icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
-        onClick: saveActionsPreferences,
+        onClick: () => {
+          saveLayout();
+          saveActionsPreferences();
+        },
         loading: isSavingActionsPrefs,
         block: true,
         children: _26("Save")
@@ -10430,14 +10487,6 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     })),
     [activeTabKey, items]
   );
-  const configureLayoutButton = isConfiguring ? /* @__PURE__ */ jsx(Tooltip, { title: _26("Cancel layout changes"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}), type: "primary", onClick: cancelLayout }) }) : /* @__PURE__ */ jsx(Tooltip, { title: _26("Configure page layout"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(AppstoreOutlined, {}), onClick: enterConfigMode }) });
-  const wrappedEditSaveButtonProps = {
-    ...saveButtonProps,
-    onClick: (e) => {
-      saveLayout();
-      saveButtonProps?.onClick?.(e);
-    }
-  };
   const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
     extraHeaderButtons,
     editMetadataButton,
@@ -10465,7 +10514,6 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     ] }),
     /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _26("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
-    configureLayoutButton,
     recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _26("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
@@ -10475,7 +10523,18 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _26("Save"), children: /* @__PURE__ */ jsx(Button, { ...wrappedEditSaveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}) }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _26("Save"), children: /* @__PURE__ */ jsx(
+      Button,
+      {
+        ...saveButtonProps,
+        type: "primary",
+        icon: /* @__PURE__ */ jsx(SaveFilled, {}),
+        onClick: (e) => {
+          saveLayout();
+          saveButtonProps?.onClick?.(e);
+        }
+      }
+    ) })
   ] });
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
@@ -10508,7 +10567,8 @@ var emptyLayoutConfig = {
   saveLayout: () => {
   },
   cancelLayout: () => {
-  }
+  },
+  hasConfig: false
 };
 var useStandardShowTabs = (model, record, allModels, actionsState, editForm, overrideConfigRows) => {
   if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
@@ -10543,7 +10603,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     showCreate: DEFAULT_RELATION_CREATE_ACTIONS
   };
   const modelResource = resolveResourcePath(model.resource || model.name, allModels);
-  const configRows = filterConfigRowsForMode(showConfigRows, "show");
+  const rawConfigRows = filterConfigRowsForMode(showConfigRows, "show");
+  const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "show");
   const hasConfig = configRows.length > 0;
   const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
   const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);
@@ -10769,7 +10830,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
       children: tabChildren
     };
   });
-  const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout };
+  const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   const items = [detailsTab];
   items.push(...customConfigTabs);
   items.push(...relationTabs);

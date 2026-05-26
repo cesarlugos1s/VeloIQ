@@ -291,6 +291,8 @@ declare const ModelHeading: React__default.FC<{
 
 declare const useShowActionsPreferences: (model: ModelDef, allModels?: ModelDef[], record?: any, saveButtonProps?: any, configureLayoutButtonRef?: {
     current: React__default.ReactNode;
+}, saveLayoutRef?: {
+    current: () => void;
 }) => {
     actionsState: {
         showActions: boolean;
@@ -355,6 +357,7 @@ declare const useStandardShowTabs: (model: ModelDef | undefined, record: any, al
         enterConfigMode: () => void;
         saveLayout: () => void;
         cancelLayout: () => void;
+        hasConfig: boolean;
     };
 };
 
