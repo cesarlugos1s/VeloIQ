@@ -11,19 +11,35 @@ type ModelOverride = Partial<Omit<ModelDef, 'fields' | 'relations'>> & {
 };
 
 export const tasksManualOverrides: ModelOverride[] = [
-    // Add field/relation/model overrides here. This file is never overwritten by veloiq generate.
-    // Examples:
-    // {
-    //     name: 'MyModel',
-    //     fields: [
-    //         // Override an existing field's view type:
-    //         { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },
-    //         // Add a new virtual field:
-    //         { key: 'custom_field', label: 'Custom', type: 'string' },
-    //     ],
-    //     relations: [
-    //         // Override a relation's label:
-    //         { resource: 'task', label: 'Project Tasks' },
-    //     ],
-    // },
+    {
+        name: 'Task',
+        fields: [
+            { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },
+            {
+                key: 'status',
+                options: [
+                    { label: 'To Do', value: 'todo' },
+                    { label: 'In Progress', value: 'in_progress' },
+                    { label: 'Done', value: 'done' },
+                ],
+                valueColors: { todo: 'default', in_progress: 'blue', done: 'green' },
+            },
+            {
+                key: 'priority',
+                options: [
+                    { label: 'Low', value: 'low' },
+                    { label: 'Medium', value: 'medium' },
+                    { label: 'High', value: 'high' },
+                    { label: 'Critical', value: 'critical' },
+                ],
+                valueColors: { low: 'green', medium: 'gold', high: 'orange', critical: 'volcano' },
+            },
+            { key: 'planned_cost', showViewType: 'read-only-currency', editViewType: 'editable-currency' },
+            { key: 'actual_cost', showViewType: 'read-only-currency', editViewType: 'editable-currency' },
+            { key: 'actual_progress', showViewType: 'read-only-progress', editViewType: 'editable-progress' },
+            { key: 'rating', showViewType: 'read-only-rating', editViewType: 'editable-rating' },
+            { key: 'created_at', showViewType: 'read-only-relative' },
+            { key: 'updated_at', showViewType: 'read-only-relative' },
+        ],
+    },
 ];

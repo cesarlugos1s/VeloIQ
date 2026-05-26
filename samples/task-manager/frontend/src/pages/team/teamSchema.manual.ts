@@ -11,19 +11,22 @@ type ModelOverride = Partial<Omit<ModelDef, 'fields' | 'relations'>> & {
 };
 
 export const teamManualOverrides: ModelOverride[] = [
-    // Add field/relation/model overrides here. This file is never overwritten by veloiq generate.
-    // Examples:
-    // {
-    //     name: 'MyModel',
-    //     fields: [
-    //         // Override an existing field's view type:
-    //         { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },
-    //         // Add a new virtual field:
-    //         { key: 'custom_field', label: 'Custom', type: 'string' },
-    //     ],
-    //     relations: [
-    //         // Override a relation's label:
-    //         { resource: 'task', label: 'Project Tasks' },
-    //     ],
-    // },
+    {
+        name: 'TeamMember',
+        fields: [
+            { key: 'email', showViewType: 'read-only-email', editViewType: 'editable-email' },
+            { key: 'phone', showViewType: 'read-only-phone', editViewType: 'editable-phone' },
+            {
+                key: 'role',
+                options: [
+                    { label: 'Admin', value: 'admin' },
+                    { label: 'Member', value: 'member' },
+                    { label: 'Viewer', value: 'viewer' },
+                ],
+                valueColors: { admin: 'volcano', member: 'blue', viewer: 'lime' },
+            },
+            { key: 'created_at', showViewType: 'read-only-relative' },
+            { key: 'updated_at', showViewType: 'read-only-relative' },
+        ],
+    },
 ];
