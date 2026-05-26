@@ -1,7 +1,11 @@
 # Quick Start — See It Running in 5 Minutes
 
+**From zero to a running full-stack app with auth, RBAC, and a React CRUD UI in under 5 minutes.**
+
 No tutorial to follow, no database to set up.  Run one script and the full
 task-manager demo app is live in your browser.
+
+> If this saves you time, please [⭐ star the repo](https://github.com/cesarlugos1s/VeloIQ) — it helps other developers find VeloIQ.
 
 ---
 

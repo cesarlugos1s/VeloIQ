@@ -5,6 +5,8 @@ a SQLAdmin back-office, and a React CRUD frontend — with almost no code to wri
 
 The finished app lives in `samples/task-manager/` if you want to compare at any point.
 
+> If this tutorial saves you time, please [⭐ star the repo](https://github.com/cesarlugos1s/VeloIQ) — it helps other developers find VeloIQ.
+
 ---
 
 ## What this tutorial covers

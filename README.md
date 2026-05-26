@@ -46,6 +46,16 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## See it in action
+
+![VeloIQ task manager — Teams and Tasks view](website/app-screenshot.png)
+
+*Full-stack CRUD with auth, RBAC, side panels, and analysis charts — generated from Python model definitions.*
+
+> Want to see this running on your machine in 5 minutes? Jump to the [Five-minute demo](#five-minute-demo) below.
+
+---
+
 ## What the framework provides
 
 **Backend** — FastAPI · SQLModel · SQLAdmin · Alembic
@@ -84,6 +94,8 @@ class Project(TimestampedModel, table=True):
 ---
 
 ## Five-minute demo
+
+**From zero to a running full-stack app with auth, RBAC, and a React CRUD UI in under 5 minutes.**
 
 See the framework in action without writing any code:
 
