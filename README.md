@@ -48,7 +48,7 @@ class Project(TimestampedModel, table=True):
 
 ## See it in action
 
-![VeloIQ task manager — Teams and Tasks view](website/app-screenshot.png)
+![VeloIQ task manager — Teams and Tasks view](website/VeloIQ-task-manager.gif)
 
 *Full-stack CRUD with auth, RBAC, side panels, and analysis charts — generated from Python model definitions.*
 
