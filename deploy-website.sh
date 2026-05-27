@@ -25,7 +25,7 @@ find /tmp/veloiq-website-deploy -maxdepth 1 \
 
 # Stage only website files
 git add index.html pricing.html contact.html styles.css
-git add *.png *.jpg *.jpeg *.gif *.webp *.svg 2>/dev/null || true
+find . -maxdepth 1 \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) -exec git add {} \;
 
 # Commit only if there are changes
 if git diff --cached --quiet; then
