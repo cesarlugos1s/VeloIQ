@@ -523,6 +523,8 @@ app = create_veloiq_app(VeloIQConfig(
 ))
 ```
 
+`ALL_METHODS` and `WRITE_METHODS` both include the `CONFIGURE_LAYOUT` permission, which enables the page layout configuration controls (move arrows, resize handles, cell config drawer, and the "Configure page layout" toggle). `READ_METHODS` does not include it, so Viewer and Auditor users see the layout without any configuration controls.
+
 The `Auditor` role is upserted to the database on the next startup and
 immediately appears in **Access Control → Roles**.
 
@@ -530,8 +532,8 @@ To test different roles, create users via **Access Control → Users** and assig
 
 | Username | Role | Can do |
 |---|---|---|
-| `alice` | Manager | Create and edit — no delete |
-| `carol` | Viewer | Read-only |
+| `alice` | Manager | Create and edit — no delete; configure page layout |
+| `carol` | Viewer | Read-only; no layout configuration |
 
 ## Layer 2 — Model-level exceptions (`@model_access`)
 

@@ -1,6 +1,6 @@
 import React5, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
 import { ThemedLayoutV2, Show, List, useForm, DeleteButton, useTable, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useInvalidate, useCan, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
+import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useCan, useInvalidate, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Divider, Row, Col, Card, Grid, Form, Drawer, Modal, Button, Tooltip, Skeleton, message, Switch, Tabs, Alert, Empty, Table, Select, DatePicker, InputNumber, Checkbox, Pagination, Collapse, Breadcrumb, Tree, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload, Rate, Progress } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, LockOutlined, LogoutOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, FileTextOutlined, BugOutlined, EyeOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, FullscreenOutlined, MinusSquareOutlined, CheckOutlined, UploadOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
@@ -8192,6 +8192,8 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
       saveButtonProps?.onClick?.(e);
     }
   } : saveButtonProps;
+  const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+  const canConfigureLayout = canLayoutData?.can !== false;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
   const [activeTabKey, setActiveTabKey] = useState("details");
   const { tabs: items, layoutConfig } = useStandardShowTabs(
@@ -8202,7 +8204,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     { formProps: showFormProps, effectiveFields }
   );
   saveLayoutRef.current = layoutConfig.saveLayout;
-  configureLayoutButtonRef.current = layoutConfig.hasConfig ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
+  configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
     /* @__PURE__ */ jsx("span", { children: _18("Configure page layout") }),
     /* @__PURE__ */ jsx(
       Button,
@@ -10283,6 +10285,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     resourceKey,
     "edit"
   );
+  const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+  const canConfigureLayout = canLayoutData?.can !== false;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
       /* @__PURE__ */ jsx("span", { children: _26("Relation's row actions buttons") }),
@@ -10312,7 +10316,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       )
     ] }),
-    hasConfig && /* @__PURE__ */ jsxs(Fragment, { children: [
+    hasConfig && canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
       /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
         /* @__PURE__ */ jsx("span", { children: _26("Configure page layout") }),
@@ -10439,7 +10443,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
                 }
               ),
               onConfigChange: onLayoutChange,
-              isConfiguring
+              isConfiguring: isConfiguring && canConfigureLayout
             }
           ) });
         })(),
@@ -10645,6 +10649,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     modelResource,
     "show"
   );
+  const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+  const canConfigureLayout = canLayoutData?.can !== false;
   isDarkColor2(token.colorBgBase || token.colorBgContainer) ? "transparent" : "#ffffff";
   const showDetailsLoading = showConfigLoading || viewSettingsLoading;
   const showFormProps = editForm?.formProps;
@@ -10760,7 +10766,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                   }
                 ),
                 onConfigChange: onLayoutChange,
-                isConfiguring
+                isConfiguring: isConfiguring && canConfigureLayout
               }
             );
           })(),
@@ -19949,8 +19955,8 @@ var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
 var RESOURCE_PERMISSIONS_KEY2 = "jm_resource_permissions";
 var _39 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
-  Admin: ["list", "show", "create", "edit", "delete", "clone", "field"],
-  Manager: ["list", "show", "create", "edit", "clone", "field"],
+  Admin: ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
+  Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
   Viewer: ["list", "show", "field"]
 };
 function getRoleActions() {
@@ -20238,7 +20244,7 @@ function useDashboardConfig() {
   }, [apiUrl]);
   return { config, enabled, loading, save, reload: load };
 }
-var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
   const { token } = theme.useToken();
   const model = findModelByName(allModels, cell.model);
   const cellRef = useRef(null);
@@ -20314,30 +20320,32 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
                 .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
                 .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
             ` }),
-    /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: "jm-resize-handle",
-        style: { ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" },
-        onPointerDown: (e) => startResize(e, "s")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: "jm-resize-handle",
-        style: { ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" },
-        onPointerDown: (e) => startResize(e, "e")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: "jm-resize-handle",
-        style: { ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` },
-        onPointerDown: (e) => startResize(e, "se")
-      }
-    ),
+    canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: "jm-resize-handle",
+          style: { ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" },
+          onPointerDown: (e) => startResize(e, "s")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: "jm-resize-handle",
+          style: { ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" },
+          onPointerDown: (e) => startResize(e, "e")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: "jm-resize-handle",
+          style: { ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` },
+          onPointerDown: (e) => startResize(e, "se")
+        }
+      )
+    ] }),
     /* @__PURE__ */ jsxs("div", { style: toolbarStyle, children: [
       /* @__PURE__ */ jsx("span", { style: {
         fontSize: 14,
@@ -20350,56 +20358,58 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
         letterSpacing: "-0.01em"
       }, children: cellTitle }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: "Move left", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "text",
-            size: "small",
-            icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }),
-            onClick: () => onMove("left"),
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-          }
-        ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: "Move up", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "text",
-            size: "small",
-            icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }),
-            onClick: () => onMove("up"),
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-          }
-        ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: "Move down", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "text",
-            size: "small",
-            icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }),
-            onClick: () => onMove("down"),
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-          }
-        ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: "Move right", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "text",
-            size: "small",
-            icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }),
-            onClick: () => onMove("right"),
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-          }
-        ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: "Configure cell", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "text",
-            size: "small",
-            icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }),
-            onClick: onConfigure,
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-          }
-        ) }),
+        canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
+          /* @__PURE__ */ jsx(Tooltip, { title: "Move left", children: /* @__PURE__ */ jsx(
+            Button,
+            {
+              type: "text",
+              size: "small",
+              icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }),
+              onClick: () => onMove("left"),
+              style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            }
+          ) }),
+          /* @__PURE__ */ jsx(Tooltip, { title: "Move up", children: /* @__PURE__ */ jsx(
+            Button,
+            {
+              type: "text",
+              size: "small",
+              icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }),
+              onClick: () => onMove("up"),
+              style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            }
+          ) }),
+          /* @__PURE__ */ jsx(Tooltip, { title: "Move down", children: /* @__PURE__ */ jsx(
+            Button,
+            {
+              type: "text",
+              size: "small",
+              icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }),
+              onClick: () => onMove("down"),
+              style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            }
+          ) }),
+          /* @__PURE__ */ jsx(Tooltip, { title: "Move right", children: /* @__PURE__ */ jsx(
+            Button,
+            {
+              type: "text",
+              size: "small",
+              icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }),
+              onClick: () => onMove("right"),
+              style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            }
+          ) }),
+          /* @__PURE__ */ jsx(Tooltip, { title: "Configure cell", children: /* @__PURE__ */ jsx(
+            Button,
+            {
+              type: "text",
+              size: "small",
+              icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }),
+              onClick: onConfigure,
+              style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            }
+          ) })
+        ] }),
         isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: "Open full page", children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
         /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? "Restore" : "Maximize", children: /* @__PURE__ */ jsx(
           Button,
@@ -20444,7 +20454,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, onConfigur
     ) })
   ] });
 };
-var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
+var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
   const cells = tab.cells;
   const numCols = useMemo(() => {
     if (!cells.length) return 2;
@@ -20481,6 +20491,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
           allModels,
           isMaximized: maximizedCellId === cell.id,
           isMinimized: minimizedCellIds.has(cell.id),
+          canConfigureLayout,
           onConfigure: () => onConfigure(cell),
           onMaximize: () => onMaximize(cell.id),
           onMinimize: () => onMinimize(cell.id),
@@ -20493,6 +20504,8 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   )) });
 };
 var ViewsGrid = ({ config, allModels, onConfigChange }) => {
+  const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+  const canConfigureLayout = canLayoutData?.can !== false;
   const [maximizedCellId, setMaximizedCellId] = useState(null);
   const [minimizedCellIds, setMinimizedCellIds] = useState(/* @__PURE__ */ new Set());
   const [drawerSelection, setDrawerSelection] = useState(null);
@@ -20566,6 +20579,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
           allModels,
           maximizedCellId,
           minimizedCellIds,
+          canConfigureLayout,
           onMaximize: handleMaximize,
           onMinimize: handleMinimize,
           onConfigure: (cell) => handleOpenDrawer(tab.id, cell),
@@ -20574,7 +20588,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
         }
       )
     })),
-    [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
+    [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
   );
   if (!config.tabs.length) {
     return /* @__PURE__ */ jsx(Empty, { description: "No tabs configured. Run veloiq add-dashboard to add models.", style: { padding: 48 } });

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCan } from "@refinedev/core";
 import { Tabs, Tooltip, Button, theme, Empty } from "antd";
 import {
     SettingOutlined,
@@ -38,12 +39,13 @@ const DashboardGridCell: React.FC<{
     allModels: ModelDef[];
     isMaximized: boolean;
     isMinimized: boolean;
+    canConfigureLayout: boolean;
     onConfigure: () => void;
     onMaximize: () => void;
     onMinimize: () => void;
     onResize: (minWidth: string | null, minHeight: string | null) => void;
     onMove: (direction: "left" | "right" | "up" | "down") => void;
-}> = ({ cell, allModels, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
+}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
@@ -133,15 +135,19 @@ const DashboardGridCell: React.FC<{
                 .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
             `}</style>
 
-            {/* Bottom edge */}
-            <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" }}
-                onPointerDown={(e) => startResize(e, "s")} />
-            {/* Right edge */}
-            <div className="jm-resize-handle" style={{ ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" }}
-                onPointerDown={(e) => startResize(e, "e")} />
-            {/* Corner */}
-            <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` }}
-                onPointerDown={(e) => startResize(e, "se")} />
+            {canConfigureLayout && (
+                <>
+                    {/* Bottom edge */}
+                    <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, left: 12, right: 12, height: 6, cursor: "ns-resize" }}
+                        onPointerDown={(e) => startResize(e, "s")} />
+                    {/* Right edge */}
+                    <div className="jm-resize-handle" style={{ ...handleBase, top: 12, right: 0, bottom: 12, width: 6, cursor: "ew-resize" }}
+                        onPointerDown={(e) => startResize(e, "e")} />
+                    {/* Corner */}
+                    <div className="jm-resize-handle" style={{ ...handleBase, bottom: 0, right: 0, width: 12, height: 12, cursor: "nwse-resize", borderRadius: `0 0 ${token.borderRadiusLG}px 0` }}
+                        onPointerDown={(e) => startResize(e, "se")} />
+                </>
+            )}
 
             <div style={toolbarStyle}>
                 <span style={{
@@ -157,6 +163,8 @@ const DashboardGridCell: React.FC<{
                     {cellTitle}
                 </span>
                 <div className="jm-cell-actions" style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {canConfigureLayout && (
+                <>
                 <Tooltip title="Move left">
                     <Button
                         type="text" size="small"
@@ -197,6 +205,8 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
+                </>
+                )}
                 {isModelLike || cell.source_type === "relation" ? (
                     <Tooltip title="Open full page">
                         <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
@@ -260,12 +270,13 @@ const DashboardTabContent: React.FC<{
     allModels: ModelDef[];
     maximizedCellId: string | null;
     minimizedCellIds: Set<string>;
+    canConfigureLayout: boolean;
     onMaximize: (cellId: string) => void;
     onMinimize: (cellId: string) => void;
     onConfigure: (cell: DashboardCell) => void;
     onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
     onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
-}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
+}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
     const cells = tab.cells;
 
     const numCols = useMemo(() => {
@@ -316,6 +327,7 @@ const DashboardTabContent: React.FC<{
                         allModels={allModels}
                         isMaximized={maximizedCellId === cell.id}
                         isMinimized={minimizedCellIds.has(cell.id)}
+                        canConfigureLayout={canConfigureLayout}
                         onConfigure={() => onConfigure(cell)}
                         onMaximize={() => onMaximize(cell.id)}
                         onMinimize={() => onMinimize(cell.id)}
@@ -333,6 +345,9 @@ const DashboardTabContent: React.FC<{
 // ---------------------------------------------------------------------------
 
 export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }) => {
+    const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+    const canConfigureLayout = canLayoutData?.can !== false;
+
     const [maximizedCellId, setMaximizedCellId] = useState<string | null>(null);
     const [minimizedCellIds, setMinimizedCellIds] = useState<Set<string>>(new Set());
     const [drawerSelection, setDrawerSelection] = useState<CellSelection | null>(null);
@@ -408,6 +423,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
                     allModels={allModels}
                     maximizedCellId={maximizedCellId}
                     minimizedCellIds={minimizedCellIds}
+                    canConfigureLayout={canConfigureLayout}
                     onMaximize={handleMaximize}
                     onMinimize={handleMinimize}
                     onConfigure={(cell) => handleOpenDrawer(tab.id, cell)}
@@ -416,7 +432,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
                 />
             ),
         })),
-        [config.tabs, allModels, maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
+        [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
     );
 
     if (!config.tabs.length) {

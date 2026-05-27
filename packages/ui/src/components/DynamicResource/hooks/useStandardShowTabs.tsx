@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useCan } from "@refinedev/core";
 import { Form, Skeleton, theme } from "antd";
 import dayjs from "dayjs";
 import { useModelTone, getModelTone, type ModelTone } from "../../../utils/modelTone";
@@ -113,6 +114,8 @@ export const useStandardShowTabs = (
         modelResource,
         "show",
     );
+    const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+    const canConfigureLayout = canLayoutData?.can !== false;
 
     const labelBackground = isDarkColor(token.colorBgBase || token.colorBgContainer)
         ? "transparent"
@@ -238,7 +241,7 @@ export const useStandardShowTabs = (
                                 />
                             )}
                             onConfigChange={onLayoutChange}
-                            isConfiguring={isConfiguring}
+                            isConfiguring={isConfiguring && canConfigureLayout}
                         />
                     );
                 })()}

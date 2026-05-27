@@ -26,8 +26,8 @@ const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((te
  * Matches the framework's DEFAULT_ROLES.
  */
 const FALLBACK_ROLE_ACTIONS: Record<string, string[]> = {
-    Admin:   ["list", "show", "create", "edit", "delete", "clone", "field"],
-    Manager: ["list", "show", "create", "edit", "clone", "field"],
+    Admin:   ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
+    Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
     Viewer:  ["list", "show", "field"],
 };
 

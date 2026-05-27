@@ -179,6 +179,16 @@ app = create_veloiq_app(VeloIQConfig(
 ))
 ```
 
+The three built-in method sets map to the following capabilities:
+
+| Constant | HTTP methods included | UI capabilities |
+|---|---|---|
+| `ALL_METHODS` | `GET POST PUT PATCH DELETE OPTIONS HEAD CONFIGURE_LAYOUT` | Full CRUD + page layout configuration |
+| `WRITE_METHODS` | `GET POST PUT PATCH OPTIONS HEAD CONFIGURE_LAYOUT` | Create/edit/view + page layout configuration, no delete |
+| `READ_METHODS` | `GET OPTIONS HEAD` | Read-only, no layout configuration controls |
+
+`CONFIGURE_LAYOUT` is a non-HTTP permission token that gates the page layout configuration UI — the move arrows, resize handles, cell config drawer, and the "Configure page layout" toggle on show and edit pages. Roles built from `READ_METHODS` alone do not receive this permission and will see the layout without any configuration controls.
+
 ### Layer 2 — Model-level exceptions (`@model_access`)
 
 Override which actions a role may perform on a specific model.  Roles not listed

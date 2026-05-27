@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useApiUrl, useGo } from "@refinedev/core";
+import { useApiUrl, useCan, useGo } from "@refinedev/core";
 import { useForm, DeleteButton } from "@refinedev/antd";
 import { StandardEdit } from "../../StandardCrud";
 import { Button, Divider, Form, Input, Popover, Skeleton, Switch, Tabs, Tooltip, message, theme } from "antd";
@@ -330,6 +330,8 @@ export const DynamicEdit: React.FC<{
         resourceKey,
         "edit",
     );
+    const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+    const canConfigureLayout = canLayoutData?.can !== false;
     const actionsSettingsContent = (
         <div style={{ display: "grid", gap: 8, minWidth: 200 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -354,7 +356,7 @@ export const DynamicEdit: React.FC<{
                     size="small"
                 />
             </div>
-            {hasConfig && (
+            {hasConfig && canConfigureLayout && (
                 <>
                     <Divider style={{ margin: "4px 0" }} />
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -487,7 +489,7 @@ export const DynamicEdit: React.FC<{
                                     />
                                 )}
                                 onConfigChange={onLayoutChange}
-                                isConfiguring={isConfiguring}
+                                isConfiguring={isConfiguring && canConfigureLayout}
                             />
                         </Form>
                         );

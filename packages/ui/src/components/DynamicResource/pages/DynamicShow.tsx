@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useCan } from "@refinedev/core";
 import { Button, Spin, Tabs } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import { StandardShow } from "../../StandardCrud";
@@ -47,6 +48,9 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         },
     } : saveButtonProps;
 
+    const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
+    const canConfigureLayout = canLayoutData?.can !== false;
+
     const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
     const [activeTabKey, setActiveTabKey] = useState("details");
     const { tabs: items, layoutConfig } = useStandardShowTabs(
@@ -59,7 +63,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
 
     // Update refs during render so the Actions popover always reads the latest values.
     saveLayoutRef.current = layoutConfig.saveLayout;
-    configureLayoutButtonRef.current = layoutConfig.hasConfig ? (
+    configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <span>{_("Configure page layout")}</span>
             <Button

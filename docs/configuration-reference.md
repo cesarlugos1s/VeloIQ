@@ -155,6 +155,8 @@ Without the pro version (Vantage), layout can be configured by:
 - **Section controls** — on any show or edit page that has section layout configured, users can reposition sections using the arrow buttons in each section's header. Changes are saved automatically.
 - **Cell config drawer** — accessible from the gear icon in each dashboard cell or section header; controls min/max width, height, and inline styles.
 
+> **Permission required:** The section controls (move arrows, resize handles) and cell config drawer are only shown to users whose role includes the `CONFIGURE_LAYOUT` permission. The built-in `ALL_METHODS` and `WRITE_METHODS` constants include this permission; `READ_METHODS` does not. Roles built from `READ_METHODS` alone (e.g. Viewer) will see the layout without any configuration controls.
+
 ### Migrating from legacy layout files
 
 Older projects generated before the unified layout system may have a separate `config/views_configuration.json` file for dashboard configuration. Run the migration command to consolidate it:

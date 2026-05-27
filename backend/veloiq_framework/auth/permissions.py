@@ -8,20 +8,21 @@ from typing import Any
 
 # ── HTTP method constants ─────────────────────────────────────────────────────
 
-ALL_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
-WRITE_METHODS = {"GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD"}
+ALL_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "CONFIGURE_LAYOUT"}
+WRITE_METHODS = {"GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD", "CONFIGURE_LAYOUT"}
 READ_METHODS = {"GET", "OPTIONS", "HEAD"}
 
 # ── HTTP method → Refine action mapping ──────────────────────────────────────
 
 HTTP_TO_REFINE: dict[str, set[str]] = {
-    "DELETE":  {"delete"},
-    "POST":    {"create"},
-    "PUT":     {"edit"},
-    "PATCH":   {"edit"},
-    "GET":     {"list", "show", "field", "clone"},
-    "OPTIONS": set(),
-    "HEAD":    set(),
+    "DELETE":           {"delete"},
+    "POST":             {"create"},
+    "PUT":              {"edit"},
+    "PATCH":            {"edit"},
+    "GET":              {"list", "show", "field", "clone"},
+    "OPTIONS":          set(),
+    "HEAD":             set(),
+    "CONFIGURE_LAYOUT": {"configure_layout"},
 }
 
 
