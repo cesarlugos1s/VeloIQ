@@ -217,6 +217,28 @@ For a full walkthrough see [Section 4 (RBAC)](./tutorial-task-manager.md#section
 
 ---
 
+## Project Explorer
+
+Running `veloiq` with no arguments opens an interactive terminal UI that lets you inspect everything your project has configured — without reading any files manually.
+
+```bash
+veloiq
+```
+
+The explorer has five screens navigated with arrow keys and letter shortcuts:
+
+| Screen | What you see |
+|---|---|
+| **Home** | App summary — database URL, auth status, module/model counts, dashboard and search totals |
+| **Modules** | All modules with per-module dashboard and search coverage counts |
+| **Module detail** | Every model in a module with its resource name, dashboard status, and search status at a glance |
+| **Model detail** | Full field list (type, FK reference, required, role restrictions), relations, dashboard tab, search enrollment, `@model_access` permissions, and ReBAC status |
+| **Search config** | Enrolled models, searchable fields, and models not yet enrolled |
+
+From any screen you can trigger CLI commands directly — `add-dashboard`, `search add-model`, `search add-field`, `generate`, `add-module` — with a Y/N confirmation before anything runs.
+
+If `veloiq generate` has not been run yet, the explorer still loads and shows module and model names, but field and relation details require the generated schemas.
+
 ## Next steps
 
 - [Tutorial: Build a Task Manager](./tutorial-task-manager.md) — step-by-step guide covering relations, custom endpoints, and the full dev loop in ~15 minutes

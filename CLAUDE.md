@@ -54,6 +54,15 @@ npm install
 npm run dev      # Dev server at http://localhost:5173
 ```
 
+### Project explorer (interactive TUI)
+```bash
+veloiq          # run with no arguments from inside a project directory
+```
+Opens a curses TUI showing all modules, models, fields, relations, dashboard
+configuration, and search configuration. Supports launching CLI commands
+(`add-dashboard`, `search add-model`, `generate`, `add-module`, etc.) with
+Y/N confirmation. Implemented in `backend/veloiq_framework/cli/explorer.py`.
+
 ### Install framework from local source (development)
 ```bash
 pip install -e backend/

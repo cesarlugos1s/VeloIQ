@@ -11,9 +11,10 @@ from veloiq_framework.cli.search import search
 from veloiq_framework.cli.dashboard import add_dashboard
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option(package_name="veloiq-framework", prog_name="veloiq")
-def cli():
+@click.pass_context
+def cli(ctx):
     """VeloIQ™ framework CLI.
 
     \b
@@ -23,7 +24,12 @@ def cli():
       veloiq generate                Generate frontend schemas from backend models
       veloiq run                     Start the development server
       veloiq db upgrade              Apply Alembic migrations
+
+    Run `veloiq` with no arguments to open the interactive project explorer.
     """
+    if ctx.invoked_subcommand is None:
+        from veloiq_framework.cli.explorer import launch_explorer
+        launch_explorer()
 
 
 cli.add_command(new)

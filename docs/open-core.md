@@ -13,7 +13,7 @@ ship a complete, production-ready application using only the free tier.
 - `veloiq-framework` Python package — `create_veloiq_app()`, module
   auto-loading, `FrameworkModel` / `TimestampedModel` / `StandardModel`,
   `create_crud_router()`, JWT auth middleware, SQLAdmin integration
-- `veloiq` CLI — `new`, `generate`, `run`, `db`
+- `veloiq` CLI — `new`, `generate`, `run`, `db`, `add-module`, `add-dashboard`, `search`, `migrate`; bare `veloiq` opens the interactive project explorer
 - `api_schema_gen` — generates `api.py` CRUD endpoints and TypeScript schemas
   from SQLModel definitions
 - `@juicemantics/veloiq-ui` npm package — `DynamicResource` (full CRUD rendering
