@@ -56,6 +56,17 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.5.0
+
+- **Command Center** (Ctrl+G) — full-screen command palette and cross-model search, keyboard-navigable from anywhere in the app
+- **Page Layout Builder** — drag-and-drop layout configuration for Dashboard, Show, and Edit pages, gated behind a new `CONFIGURE_LAYOUT` permission
+- **Project Explorer TUI** — run `veloiq` bare to inspect all modules, models, fields, relations, and permissions in an interactive terminal UI
+- **Three-file schema overrides** — `veloiq generate` now produces a `.manual.ts` layer per module so your field customizations survive regeneration
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
+---
+
 ## What the framework provides
 
 **Backend** — FastAPI · SQLModel · SQLAdmin · Alembic
@@ -123,6 +134,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, and frontend schema customisation |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |
 | [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — WYSIWYG page builder, User Journeys, VeloIQ AI engine, Advanced ReBAC, SSO, compliance audit logs, and Goal-Seeking Scenarios |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes and version history |
 
 **Recommended reading order for new developers:**
 
