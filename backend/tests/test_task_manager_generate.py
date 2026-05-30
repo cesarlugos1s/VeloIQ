@@ -1,24 +1,48 @@
 """Generator: veloiq generate produces correct file structure; manual files survive re-runs."""
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 SAMPLE = Path(__file__).parent.parent.parent / "samples" / "task-manager"
 SAMPLE_BACKEND = SAMPLE / "backend"
 SAMPLE_FRONTEND = SAMPLE / "frontend"
+# Absolute path to the local framework source (backend/) so the subprocess always
+# uses the development version rather than whatever is installed in the active venv.
+_FRAMEWORK_BACKEND = Path(__file__).parent.parent
 
 
 def _run_generate(cwd: Path) -> subprocess.CompletedProcess:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(_FRAMEWORK_BACKEND) + (":" + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     return subprocess.run(
-        ["veloiq", "generate"],
+        [sys.executable, "api_schema_gen.py"],
         cwd=cwd,
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
 def test_generate_exits_cleanly():
     result = _run_generate(SAMPLE_BACKEND)
+    assert result.returncode == 0, result.stderr
+
+
+def test_veloiq_generate_cli_exits_cleanly():
+    # Verify the 'veloiq generate' CLI route works end-to-end (CLI dispatch →
+    # run_api_schema_gen → script detection → _run_builtin).  Uses PYTHONPATH
+    # so the installed venv binary picks up the local development framework.
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(_FRAMEWORK_BACKEND) + (":" + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    result = subprocess.run(
+        ["veloiq", "generate"],
+        cwd=SAMPLE_BACKEND,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     assert result.returncode == 0, result.stderr
 
 

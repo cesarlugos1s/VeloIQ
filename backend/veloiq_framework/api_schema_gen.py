@@ -358,11 +358,13 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
         relations = []
         try:
             from sqlalchemy.orm import ONETOMANY
+            orm_covered_children: set[str] = set()
             for rel in mapper.relationships:
                 if rel.direction != ONETOMANY:
                     continue
                 other_cls = rel.mapper.class_
                 other_tablename = getattr(other_cls, "__tablename__", other_cls.__name__.lower())
+                orm_covered_children.add(other_tablename)
                 # The FK column is on the remote (child) side.
                 remote_cols = list(rel.remote_side)
                 target_key = remote_cols[0].key if remote_cols else "id"
@@ -388,6 +390,33 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 relations.append(
                     f'{{ resource: "{other_tablename}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
                 )
+
+            # Auto-discover FK back-relations not covered by explicit ORM relationship declarations.
+            # A bare FK column (e.g. trip_id on trip_manifest) registers in SQLAlchemy's MetaData
+            # but not in the mapper's relationship list, so the ORM loop above misses it.
+            # This pass closes that gap so parent show pages get linked tables for free.
+            from sqlmodel import SQLModel as _SM_all
+            for child_table in _SM_all.metadata.tables.values():
+                if child_table.name == tablename:
+                    continue  # skip self
+                if child_table.name in orm_covered_children:
+                    continue  # already handled by an ORM relationship declaration
+                # Skip link/junction tables: ≥2 FK cols and no meaningful data columns beyond PKs
+                child_fk_count = sum(1 for c in child_table.columns if c.foreign_keys)
+                child_pk_count = sum(1 for c in child_table.columns if c.primary_key)
+                child_col_count = len(list(child_table.columns))
+                if child_fk_count >= 2 and child_col_count <= child_pk_count + 2:
+                    continue
+                for col in child_table.columns:
+                    if not col.foreign_keys:
+                        continue
+                    for fk in col.foreign_keys:
+                        if fk.column.table.name == tablename and child_table.name not in orm_covered_children:
+                            child_label = child_table.name.replace("_", " ").title()
+                            relations.append(
+                                f'{{ resource: "{child_table.name}", targetKey: "{col.key}", label: "{child_label}" }}'
+                            )
+                            orm_covered_children.add(child_table.name)
         except Exception:
             pass
 

@@ -37,6 +37,17 @@ def test_veloiq_new_creates_runnable_app(tmp_path, register_summary_path):
     assert result.returncode == 0, f"veloiq generate failed:\n{result.stderr}"
 
     # Verify the app can be imported and started with TestClient
+    #
+    # The session-scoped conftest fixture already imported the task-manager's
+    # 'app' package (app.modules.tasks, etc.) into sys.modules.  If we leave
+    # those cached, the loader finds the wrong 'app' when it tries to import
+    # 'app.modules.items' from the smoke backend.  Snapshot and temporarily
+    # clear every 'app.*' entry, then restore after the smoke run.
+    app_module_cache = {k: v for k, v in sys.modules.items()
+                        if k == "app" or k.startswith("app.")}
+    for k in app_module_cache:
+        del sys.modules[k]
+
     sys.path.insert(0, str(backend_dir))
     original_cwd = os.getcwd()
     os.chdir(backend_dir)
@@ -64,5 +75,10 @@ def test_veloiq_new_creates_runnable_app(tmp_path, register_summary_path):
     finally:
         os.chdir(original_cwd)
         sys.path.remove(str(backend_dir))
+        # Remove smoke app's 'app.*' modules and restore the task-manager originals
+        for k in list(sys.modules.keys()):
+            if k == "app" or k.startswith("app."):
+                del sys.modules[k]
+        sys.modules.update(app_module_cache)
 
     register_summary_path("generated smoke app", str(tmp_path / "smoke-app"))
