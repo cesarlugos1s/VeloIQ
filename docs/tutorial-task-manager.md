@@ -149,8 +149,8 @@ backend/app/modules/
     └── models.py          ← fill this in
 ```
 
-> **Tip:** pass `--with-custom-api` or `--with-admin` to also generate a
-> `custom_api.py` or `admin/admin_views.py` stub.
+> **Tip:** `custom_api.py` is created automatically in every module. Pass
+> `--with-admin` to also generate an `admin/admin_views.py` stub.
 
 ---
 

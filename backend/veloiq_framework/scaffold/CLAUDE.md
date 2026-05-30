@@ -30,8 +30,8 @@ frontend/
 
 ```bash
 # Add a new feature module
-veloiq add-module <name>
-veloiq add-module <name> --with-custom-api --with-admin
+veloiq add-module <name>              # includes custom_api.py by default
+veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 
 # After adding or changing any model
 veloiq generate            # regenerates api.py + frontend TypeScript schemas
@@ -51,7 +51,8 @@ cd frontend && npm run dev  # frontend at http://localhost:5173
 2. Edit `backend/app/modules/<name>/models.py` — define your SQLModel fields
 3. `veloiq generate` — regenerates `api.py` and frontend schemas
 4. `veloiq db upgrade` — creates the database table
-5. Add custom endpoints in `custom_api.py` if needed (import `router` from `api.py`)
+5. Add custom endpoints in `custom_api.py` (import `router` from `api.py`) — file is already created
+6. Edit `frontend/src/navigation.config.json` to set menu label, icon, and display order
 
 **Never edit `api.py` or `*.gen.ts` files** — they are overwritten by `veloiq generate`.
 

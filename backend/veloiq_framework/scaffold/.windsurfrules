@@ -26,8 +26,8 @@ frontend/
 ## CLI commands
 
 ```bash
-veloiq add-module <name>                        # scaffold a new module
-veloiq add-module <name> --with-custom-api --with-admin
+veloiq add-module <name>              # scaffold a new module (includes custom_api.py)
+veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 veloiq generate       # regenerate api.py + TS schemas after model changes
 veloiq db init        # set up Alembic once (if alembic.ini is missing)
 veloiq db upgrade     # run Alembic migration after model changes

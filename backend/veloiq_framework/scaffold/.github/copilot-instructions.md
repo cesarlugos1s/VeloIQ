@@ -4,7 +4,7 @@ This is a VeloIQ™ framework project. Follow these rules exactly.
 
 ## Always use the CLI
 
-- Add a module: `veloiq add-module <name>` (optionally `--with-custom-api --with-admin`)
+- Add a module: `veloiq add-module <name>` — creates module with `custom_api.py` included (add `--with-admin` for SQLAdmin views)
 - After changing any model: `veloiq generate` then `veloiq db upgrade`
 - Start backend: `veloiq run`
 

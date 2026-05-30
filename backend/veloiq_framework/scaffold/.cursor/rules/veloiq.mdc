@@ -11,8 +11,8 @@ This project was generated with the VeloIQ™ framework. Use the `veloiq` CLI fo
 ## Adding a feature module
 
 ```bash
-veloiq add-module <name>                              # basic
-veloiq add-module <name> --with-custom-api --with-admin  # with custom endpoints + admin
+veloiq add-module <name>              # includes custom_api.py by default
+veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 ```
 
 After scaffolding:
@@ -20,6 +20,7 @@ After scaffolding:
 2. `veloiq generate` — regenerates `api.py` and frontend TypeScript schemas
 3. `veloiq db init` — set up Alembic once if alembic.ini is missing
 4. `veloiq db upgrade` — creates the database table
+5. Edit `frontend/src/navigation.config.json` to set the menu label, icon, and order
 
 ## File rules
 

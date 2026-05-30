@@ -12,7 +12,7 @@ backend/
       <module>/
         models.py         # SQLModel table definition — edit this
         api.py            # Auto-generated CRUD — do not edit
-        custom_api.py     # Custom endpoints (optional)
+        custom_api.py     # Custom endpoints — always created, never overwritten
         admin/
           admin_views.py  # SQLAdmin views (optional)
   alembic/                # Migrations
@@ -26,8 +26,8 @@ frontend/
 ## CLI commands to use
 
 ```bash
-veloiq add-module <name>                              # scaffold a new module
-veloiq add-module <name> --with-custom-api --with-admin
+veloiq add-module <name>              # scaffold a new module (includes custom_api.py)
+veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 veloiq generate       # regenerate api.py + frontend schemas after model changes
 veloiq db init        # set up Alembic (run once if alembic.ini is missing)
 veloiq db upgrade     # apply Alembic migration after model changes
