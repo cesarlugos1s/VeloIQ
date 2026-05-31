@@ -98,9 +98,25 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 **CLI**
 - `veloiq new <app>` — scaffold a new project in seconds
 - `veloiq add-module <name>` — add a module to an existing project
-- `veloiq generate` — regenerate `api.py` and TypeScript schemas from your models
+- `veloiq generate` — regenerate `api.py` and TypeScript schemas from your models; also syncs installed extension schemas
 - `veloiq run` — start the development server
 - `veloiq db upgrade` — apply Alembic migrations
+- `veloiq new-extension <name>` — scaffold a new extension package (backend modules + frontend schemas + license module + licensing CLI)
+- `veloiq add-licensing` — add optional license enforcement to a host app's own modules
+
+---
+
+## Extension packages
+
+VeloIQ has a **modular extension architecture** — pip-installable packages that add modules, UI schemas, and license-gated features to any host app without modifying the host app's code.
+
+Extension packages declare themselves via a `veloiq.extensions` Python entry point.  When the app starts, `create_veloiq_app()` discovers all installed extensions automatically, loads their backend modules alongside the host app's own modules, and mounts their static JS bundles at `/ext/{name}/`.  Running `veloiq generate` copies the extension's frontend schema files into the host app and updates `allModels.gen.ts` and `navigation.config.json`.
+
+Each extension manages its own licensing through a bundled license module.  The extension developer holds a private RSA key used to sign JWT license tokens; the matching public key ships inside the package.  The host app's License Management page (a pre-built React bundle from the extension) handles key registration, expiry, and grace-period enforcement.  Extension licensing is completely independent — multiple extensions installed in the same app each enforce their own licenses separately.
+
+The **host app itself is always MIT** — the framework never enforces licensing on the app developer's own modules unless `veloiq add-licensing` is explicitly run.
+
+See [docs/open-core.md](docs/open-core.md) for the Pro/Enterprise extension packages (VigilantIQ, VantageIQ) and [docs/module-authoring.md](docs/module-authoring.md) for the extension authoring reference.
 
 ---
 
@@ -131,9 +147,9 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/quickstart.md](docs/quickstart.md) | Run the sample app in five minutes and explore RBAC, ReBAC, Miller columns, and the analysis UI |
 | [docs/getting-started.md](docs/getting-started.md) | Install the CLI, scaffold your first project, and understand the key concepts |
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
-| [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, and frontend schema customisation |
+| [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, frontend schema customisation, and extension package authoring |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |
-| [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — WYSIWYG page builder, User Journeys, VeloIQ AI engine, Advanced ReBAC, SSO, compliance audit logs, and Goal-Seeking Scenarios |
+| [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — extension packages (VigilantIQ, VantageIQ), licensing architecture, and the full feature set |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes and version history |
 
 **Recommended reading order for new developers:**

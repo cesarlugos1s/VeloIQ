@@ -9,6 +9,8 @@ from veloiq_framework.cli.run import run
 from veloiq_framework.cli.db import db
 from veloiq_framework.cli.search import search
 from veloiq_framework.cli.dashboard import add_dashboard
+from veloiq_framework.cli.new_extension import new_extension
+from veloiq_framework.cli.add_licensing import add_licensing
 
 
 @click.group(invoke_without_command=True)
@@ -25,6 +27,10 @@ def cli(ctx):
       veloiq run                     Start the development server
       veloiq db upgrade              Apply Alembic migrations
 
+    Extension packages:
+      veloiq new-extension myext     Scaffold a new extension package
+      veloiq add-licensing           Add license enforcement to this host app
+
     Run `veloiq` with no arguments to open the interactive project explorer.
     """
     if ctx.invoked_subcommand is None:
@@ -40,3 +46,5 @@ cli.add_command(run)
 cli.add_command(db)
 cli.add_command(search)
 cli.add_command(add_dashboard)
+cli.add_command(new_extension)
+cli.add_command(add_licensing)

@@ -2,6 +2,7 @@
 
 from veloiq_framework._version import __version__
 from veloiq_framework.config import VeloIQConfig
+from veloiq_framework.extension import VeloIQExtension
 from veloiq_framework.factory import create_veloiq_app
 from veloiq_framework.models import (
     FrameworkModel,
@@ -30,6 +31,7 @@ from veloiq_framework.auth.permissions import (
 __all__ = [
     "__version__",
     "VeloIQConfig",
+    "VeloIQExtension",
     "create_veloiq_app",
     "FrameworkModel",
     "TimestampedModel",

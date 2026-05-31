@@ -465,6 +465,103 @@ import navConfigData from "./navigation.config.json";
 
 The scaffold (`veloiq new`) generates this wiring automatically.
 
+## Extension packages
+
+An **extension package** is a pip-installable Python package that adds modules, frontend schemas, and optional licensing to any host app without modifying the host app's source code.  Extension packages follow the same module conventions as host app modules.
+
+### Scaffolding a new extension
+
+```bash
+veloiq new-extension myext
+```
+
+Creates a self-contained package structure:
+
+```
+myext/
+  backend/
+    myext/
+      manifest.py           # ExtensionManifest — declares the extension to the framework
+      modules/              # Backend modules (same structure as app/modules/)
+      frontend/pages/       # Schema files shipped as package data
+      static/               # Pre-built JS bundles (optional — only for custom UX)
+      keys/                 # RSA public key for license verification
+    pyproject.toml          # Declares the veloiq.extensions entry point
+  frontend/src/pages/       # Development working area for schema files
+  licensing/
+    generate_license.py     # CLI for generating RSA keys and signing JWTs
+```
+
+### Extension manifest
+
+Subclass `VeloIQExtension` in `manifest.py`:
+
+```python
+from veloiq_framework import VeloIQExtension
+
+class ExtensionManifest(VeloIQExtension):
+    name = "myext"
+    version = "1.0.0"
+    modules_package = "myext.modules"     # Python package containing module sub-packages
+    static_dir = "static"                  # relative to installed package dir; served at /ext/myext/
+    frontend_pages_dir = "frontend/pages"  # relative to installed package dir; copied by veloiq generate
+```
+
+The `pyproject.toml` entry point wires the manifest to the framework:
+
+```toml
+[project.entry-points."veloiq.extensions"]
+myext = "myext.manifest:ExtensionManifest"
+```
+
+### How the framework loads extension modules
+
+At startup, `create_veloiq_app()` scans all installed `veloiq.extensions` entry points and passes the discovered manifests to the module loader.  The loader runs the same three-pass process for each extension's `modules_package` (models → API routers → admin views) as it does for the host app's own `app/modules/`.  Extension module names follow the same conventions: `models.py`, `api.py`, `custom_api.py`, `admin/admin_views.py`.
+
+### Frontend schema files
+
+Extension packages ship their schema files (the `{module}Schema.gen.ts` / `.manual.ts` / `.ts` trio) inside the Python package under `frontend/pages/`.  Running `veloiq generate` from the host app copies them into `frontend/src/pages/` and adds the extension modules to `allModels.gen.ts` and `navigation.config.json`.
+
+Files copied on each `veloiq generate` run (always overwritten — extension owns them):
+- `{module}Schema.gen.ts`
+- `{module}Schema.ts`
+
+Files written only if missing (developer customisations are preserved):
+- `{module}Schema.manual.ts`
+
+### Custom UI bundles
+
+For module screens that cannot be expressed as schema-driven CRUD (e.g. a drag-and-drop page builder or a conversational AI interface), the extension ships pre-built JS bundles in `static/`.  The framework serves them at `/ext/{name}/{filename}`.  The host app's frontend loads them lazily via dynamic `import()`.
+
+Modules whose screens are standard CRUD do not need any static bundles — the host app's existing `DynamicList`, `DynamicShow`, `DynamicCreate`, and `DynamicEdit` components render them from the schema files.
+
+### License enforcement in extension modules
+
+An extension's own modules carry license enforcement through the extension's own license module.  The host app's modules are never affected.
+
+`make_license_dependency(module_name)` (from the extension's `license_registry.py`) returns a FastAPI dependency that raises HTTP 403 if the module's group is not licensed or HTTP 403 (read-only) if the group is in a grace period.  The extension's `custom_api.py` imports and uses this dependency; the generated `api.py` CRUD router is also wrapped automatically when the extension's license module is active.
+
+### Adding license enforcement to a host app
+
+Host app modules are MIT-licensed by default.  If you want to sell access to your own app's modules:
+
+```bash
+veloiq add-licensing
+```
+
+This scaffolds a complete, working license module at `app/modules/license/` — models, service, registry, API endpoints, SQLAdmin views, a React management page at `frontend/src/pages/license/`, and a `licensing/generate_license.py` CLI for issuing JWTs.
+
+Edit `app/modules/license/license_registry.py` to declare your module groups:
+
+```python
+MODULE_GROUPS: dict[str, list[str]] = {
+    "Basic":   ["products", "orders"],
+    "Premium": ["analytics", "reports"],
+}
+```
+
+The host app's license module is independent of any installed extension's license — they run side by side without interference.
+
 ## View types
 
 `showViewType` and `editViewType` control how a field or relation is rendered

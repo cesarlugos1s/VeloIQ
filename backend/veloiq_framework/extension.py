@@ -1,0 +1,113 @@
+"""VeloIQ extension manifest contract.
+
+Extension packages declare themselves to the framework by:
+
+1. Subclassing ``VeloIQExtension`` and filling in the class-level attributes.
+2. Pointing to the subclass via a ``veloiq.extensions`` entry point in their
+   ``pyproject.toml``::
+
+       [project.entry-points."veloiq.extensions"]
+       vigilantiq = "vigilantiq.manifest:ExtensionManifest"
+
+The framework discovers all installed extensions at app startup by scanning
+that entry point group.  The host app needs no changes — installing and
+generating is enough.
+"""
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+from typing import Optional
+
+
+class VeloIQExtension:
+    """Base class / contract for VeloIQ extension manifests.
+
+    Subclass this in your extension package and override the class attributes.
+    All path fields (``static_dir``, ``frontend_pages_dir``) are relative to
+    the installed Python package directory (i.e. the directory that contains
+    your ``__init__.py``).
+
+    Example::
+
+        from veloiq_framework import VeloIQExtension
+
+        class ExtensionManifest(VeloIQExtension):
+            name = "vigilantiq"
+            version = "1.0.0"
+            modules_package = "vigilantiq.modules"
+            static_dir = "static"
+            frontend_pages_dir = "frontend/pages"
+    """
+
+    # ── Required ──────────────────────────────────────────────────────────────
+
+    #: Short identifier used in URL paths and log messages (e.g. "vigilantiq").
+    name: str = ""
+
+    #: Dotted Python package path that contains the extension's modules
+    #: (e.g. "vigilantiq.modules").  The loader will scan this package the
+    #: same way it scans the host app's ``app/modules/``.
+    modules_package: str = ""
+
+    # ── Optional ──────────────────────────────────────────────────────────────
+
+    #: Human-readable version string.
+    version: str = "0.1.0"
+
+    #: Path *relative to the installed package directory* where pre-built JS
+    #: bundles for custom UX live (e.g. "static").  Mounted by the framework
+    #: at ``/ext/{name}/``.  Leave ``None`` if the extension has no custom UI.
+    static_dir: Optional[str] = None
+
+    #: Path *relative to the installed package directory* where the
+    #: extension's ``frontend/src/pages/`` schema files are stored as package
+    #: data (e.g. "frontend/pages").  ``veloiq generate`` copies these into
+    #: the host app's ``frontend/src/pages/`` directory.
+    #: Leave ``None`` if the extension ships no schema files.
+    frontend_pages_dir: Optional[str] = None
+
+    # ── Path resolution helpers ───────────────────────────────────────────────
+
+    def package_dir(self) -> Path:
+        """Return the absolute path to the installed Python package directory.
+
+        Derived from the top-level package in ``modules_package``
+        (e.g. "vigilantiq" from "vigilantiq.modules").
+        """
+        top_pkg = self.modules_package.split(".")[0] if self.modules_package else self.name
+        spec = importlib.util.find_spec(top_pkg)
+        if spec is None or spec.origin is None:
+            raise RuntimeError(
+                f"Cannot locate package '{top_pkg}' for extension '{self.name}'. "
+                "Make sure the extension is properly installed."
+            )
+        return Path(spec.origin).parent
+
+    def resolved_static_dir(self) -> Optional[Path]:
+        """Return the absolute path to the static bundles directory, or None."""
+        if not self.static_dir:
+            return None
+        p = self.package_dir() / self.static_dir
+        return p if p.exists() else None
+
+    def resolved_frontend_pages_dir(self) -> Optional[Path]:
+        """Return the absolute path to the frontend pages directory, or None."""
+        if not self.frontend_pages_dir:
+            return None
+        p = self.package_dir() / self.frontend_pages_dir
+        return p if p.exists() else None
+
+    # ── Validation ────────────────────────────────────────────────────────────
+
+    def validate(self) -> None:
+        """Raise ``ValueError`` if required fields are missing."""
+        if not self.name:
+            raise ValueError(f"{self.__class__.__name__}: 'name' is required.")
+        if not self.modules_package:
+            raise ValueError(
+                f"Extension '{self.name}': 'modules_package' is required."
+            )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} name={self.name!r} version={self.version!r}>"

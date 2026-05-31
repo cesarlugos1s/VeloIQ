@@ -33,8 +33,9 @@ frontend/
 veloiq add-module <name>              # includes custom_api.py by default
 veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 
-# After adding or changing any model
-veloiq generate            # regenerates api.py + frontend TypeScript schemas
+# After adding or changing any model, or after installing an extension package
+veloiq generate            # regenerates api.py + frontend TypeScript schemas;
+                           # also syncs schemas from any installed extension packages
 veloiq db upgrade          # applies Alembic migration
 
 # If alembic.ini is missing (project built without `veloiq new`)
@@ -43,6 +44,13 @@ veloiq db init             # copies Alembic scaffold into backend/; run once
 # Run the app
 veloiq run                 # backend at http://localhost:{{backend_port}}
 cd frontend && npm run dev  # frontend at http://localhost:5173
+
+# Extension packages (optional)
+pip install <extension>    # e.g. pip install vigilantiq
+veloiq generate            # sync the extension's schemas and nav config
+
+# Add license enforcement to this app's own modules (optional)
+veloiq add-licensing       # scaffolds app/modules/license/ + frontend/src/pages/license/
 ```
 
 ## How to add a feature

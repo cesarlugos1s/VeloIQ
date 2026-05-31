@@ -13,22 +13,71 @@ ship a complete, production-ready application using only the free tier.
 - `veloiq-framework` Python package — `create_veloiq_app()`, module
   auto-loading, `FrameworkModel` / `TimestampedModel` / `StandardModel`,
   `create_crud_router()`, JWT auth middleware, SQLAdmin integration
-- `veloiq` CLI — `new`, `generate`, `run`, `db`, `add-module`, `add-dashboard`, `search`, `migrate`; bare `veloiq` opens the interactive project explorer
+- `VeloIQExtension` base class and `discover_extensions()` — the extension
+  package contract and discovery mechanism; any developer can build and
+  distribute their own extension package using these
+- `veloiq` CLI — `new`, `generate`, `run`, `db`, `add-module`, `add-dashboard`,
+  `search`, `migrate`, `new-extension`, `add-licensing`; bare `veloiq` opens the
+  interactive project explorer
 - `api_schema_gen` — generates `api.py` CRUD endpoints and TypeScript schemas
-  from SQLModel definitions
+  from SQLModel definitions; also syncs installed extension schemas on `veloiq generate`
 - `@juicemantics/veloiq-ui` npm package — `DynamicResource` (full CRUD rendering
   engine), `LayoutWrapper`, `GlobalSearch`, `HierarchyView`, `MultiPane`,
   auth providers, all standard UI components
 
 **License:** MIT.  Use freely in commercial and open-source projects.
 
+## Extension package architecture
+
+Pro features are distributed as pip-installable **extension packages** rather than
+as monolithic framework additions.  Each extension:
+
+- Declares itself to the framework via a `veloiq.extensions` Python entry point
+- Ships its own backend modules (loaded automatically alongside the host app's modules)
+- Ships frontend schema files (copied into the host app by `veloiq generate`)
+- Manages its own licensing through a bundled license module with RS256 JWT enforcement
+- Optionally ships pre-built React bundles for genuinely custom UX, served at `/ext/{name}/`
+
+The host app is unmodified — installing an extension and running `veloiq generate` is all that is required.
+
+### Third-party extensions
+
+The same architecture is available to any developer.  `veloiq new-extension <name>`
+scaffolds a complete extension package including the backend module structure, frontend
+schema layout, a fully functional license module, and a `generate_license.py` CLI for
+issuing signed JWT license keys.  See [module-authoring.md](module-authoring.md) for
+the full contract.
+
 ## Pro / Enterprise tier (Commercial License)
+
+Pro features are distributed as two extension packages that install on top of
+the free core.
+
+```bash
+pip install vigilantiq    # Personalization + Natural Language
+pip install vantageiq     # Benefit Realization Management
+```
+
+After installation, run `veloiq generate` from the host app to sync schemas.
+Each package manages its own license keys through its own License Management page.
+
+### VigilantIQ (`pip install vigilantiq`)
 
 The Pro tier targets CTOs and CFOs who need to move faster, govern more
 safely, and deploy AI without the risks that come with unconstrained
-generative tools.  Pro modules install on top of the free core and unlock
-three categories of capability: **Superpowers**, **Intelligence**, and
-**Governance**.
+generative tools.  VigilantIQ unlocks three categories of capability:
+**Personalization**, **Natural Language**, and **Enterprise Governance**.
+
+**Licensed module groups:**
+
+- **Personalization** — `pageconfig` + `journey` modules.  License JWT claims: `max_page_configurations`, `max_journey_definitions` (in addition to `start_date` / `end_date`).
+- **Natural Language** — `nlp` module.  License JWT claims: `max_nlp_users` (seat-based), `start_date` / `end_date`.
+
+### VantageIQ (`pip install vantageiq`)
+
+Benefit Realization Management for organisations that need to define measurable
+business goals and track objectives, benefits, and enablers with planned versus
+actual measures.  Also includes Goal-Seeking Scenarios powered by AI forecasting.
 
 ---
 

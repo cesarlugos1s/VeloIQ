@@ -38,6 +38,7 @@ except ImportError:
     pass
 
 from veloiq_framework.config import VeloIQConfig
+from veloiq_framework.extensions import discover_extensions
 from veloiq_framework.loader import load_factory_events, load_modules
 
 
@@ -82,6 +83,9 @@ def create_veloiq_app(
     engine = create_engine(cfg.database_url, **engine_kwargs)
     _set_engine(engine)
 
+    # ── Discover extensions (entry points) ───────────────────────────────────
+    extensions = discover_extensions()
+
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -102,6 +106,17 @@ def create_veloiq_app(
     # ── Static files ──────────────────────────────────────────────────────────
     if cfg.static_dir and Path(cfg.static_dir).exists():
         app.mount("/static", StaticFiles(directory=str(cfg.static_dir)), name="static")
+
+    # ── Extension static bundles (/ext/{name}/) ───────────────────────────────
+    for ext in extensions:
+        static_path = ext.resolved_static_dir()
+        if static_path:
+            app.mount(
+                f"/ext/{ext.name}",
+                StaticFiles(directory=str(static_path)),
+                name=f"ext_{ext.name}",
+            )
+            print(f"  📦 Static: /ext/{ext.name}/ → {static_path}")
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     app.add_middleware(
@@ -133,7 +148,7 @@ def create_veloiq_app(
             admin.add_view(view)
 
     # ── Module loading ────────────────────────────────────────────────────────
-    load_modules(app, admin, cfg)
+    load_modules(app, admin, cfg, extensions=extensions)
 
     # ── Core endpoints ────────────────────────────────────────────────────────
     _register_core_endpoints(app, engine, cfg)

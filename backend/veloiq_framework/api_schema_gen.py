@@ -221,6 +221,10 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
             module_model_names[module_name] = []
 
     _update_nav_config(generated, module_model_names, frontend_src)
+
+    # ── Sync installed extension schema files ─────────────────────────────────
+    _sync_extension_schemas(frontend_src)
+
     print(f"\n✅ Generation complete — {len(generated)} module(s).")
 
 
@@ -878,6 +882,87 @@ def _update_nav_config(
     merged = list(existing) + new_entries
     nav_file.write_text(json.dumps(merged, indent=2))
     print(f"  📐 navigation.config.json updated (+{len(new_entries)} entries)")
+
+
+def _sync_extension_schemas(frontend_src: Path) -> None:
+    """Copy installed extension schema files into the host app's frontend/src/pages/.
+
+    For each installed extension that declares a ``frontend_pages_dir``:
+    - Copies ``{extension}/frontend/pages/{module}/`` into
+      ``frontend_src/pages/{module}/`` (existing files are overwritten so
+      the extension stays in sync with the installed version).
+    - Writes ``{module}Schema.manual.ts`` stubs only if they don't exist yet
+      (preserving any developer customisations).
+    - Updates ``allModels.gen.ts`` and ``navigation.config.json`` to include
+      the extension's modules.
+    """
+    from veloiq_framework.extensions import discover_extensions
+    import shutil
+
+    extensions = discover_extensions()
+    if not extensions:
+        return
+
+    pages_dir = frontend_src / "pages"
+    pages_dir.mkdir(parents=True, exist_ok=True)
+
+    ext_modules: list[str] = []          # module names added from extensions
+    ext_module_label_map: dict[str, str] = {}  # module_name → extension name label
+
+    for ext in extensions:
+        src_pages = ext.resolved_frontend_pages_dir()
+        if not src_pages or not src_pages.exists():
+            continue
+
+        print(f"\n🔌 Syncing extension '{ext.name}' schemas…")
+
+        for mod_dir in sorted(src_pages.iterdir()):
+            if not mod_dir.is_dir() or mod_dir.name.startswith("_"):
+                continue
+            module_name = mod_dir.name
+            dest_dir = pages_dir / module_name
+            dest_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy gen + merged schema (always overwrite — extension owns these).
+            for fname in (
+                f"{module_name}Schema.gen.ts",
+                f"{module_name}Schema.ts",
+            ):
+                src_file = mod_dir / fname
+                if src_file.exists():
+                    shutil.copy2(src_file, dest_dir / fname)
+                    print(f"  ✅ {module_name}/{fname}")
+
+            # Write manual stub only if missing (developer may have customised it).
+            _write_manual_schema_if_missing(module_name, dest_dir)
+
+            ext_modules.append(module_name)
+            ext_module_label_map[module_name] = ext.name
+
+    if not ext_modules:
+        return
+
+    # Rebuild allModels.gen.ts including extension modules.
+    # Collect all modules: existing host-app modules already in pages_dir
+    # plus the newly synced extension modules.
+    all_modules: list[str] = []
+    seen: set[str] = set()
+    for d in sorted(pages_dir.iterdir()):
+        if d.is_dir() and not d.name.startswith("_"):
+            gen_file = d / f"{d.name}Schema.gen.ts"
+            if gen_file.exists() and d.name not in seen:
+                all_modules.append(d.name)
+                seen.add(d.name)
+
+    _write_all_models(all_modules, frontend_src)
+
+    # Update navigation.config.json with extension module entries.
+    # We pass empty model_name lists because extension schemas already declare
+    # their own resource keys; the nav entries use the module key only.
+    ext_model_names: dict[str, list[str]] = {m: [] for m in ext_modules}
+    _update_nav_config(ext_modules, ext_model_names, frontend_src)
+
+    print(f"\n  🔌 {len(ext_modules)} extension module(s) synced.")
 
 
 def _guess_modules_dir(cwd: Path) -> Path:
