@@ -53,6 +53,7 @@ export { ColorModeContext } from "./contexts/ColorModeContext";
 export { ColorModeContextProvider } from "./contexts/color-mode";
 export { PaneNavigationContext, usePaneNavigation } from "./contexts/PaneNavigationContext";
 export { ResourceContext } from "./contexts/ResourceContext";
+export { NavConfigContext, useNavConfig, useNavModules } from "./contexts/NavConfigContext";
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 export { LoginPage } from "./pages/auth/LoginPage";

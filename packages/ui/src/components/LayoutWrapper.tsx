@@ -15,6 +15,7 @@ import { CustomSider } from "./CustomSider";
 import { GlobalSearch } from "./GlobalSearch";
 import { CommandCenterPortal } from "./CommandCenterPortal";
 import { ColorModeContext } from "../contexts/ColorModeContext";
+import { NavConfigContext } from "../contexts/NavConfigContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
 
@@ -230,7 +231,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         : () => null;
 
     return (
-        <>
+        <NavConfigContext.Provider value={navConfig}>
             <ThemedLayoutV2
                 key={layoutMode}
                 Title={({ collapsed }) => <DefaultLogo logo={logo} appTitle={appTitle} collapsed={collapsed} />}
@@ -279,6 +280,6 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                     </Form.Item>
                 </Form>
             </Modal>
-        </>
+        </NavConfigContext.Provider>
     );
 };
