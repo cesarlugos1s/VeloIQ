@@ -67,6 +67,37 @@ class VeloIQExtension:
     #: Leave ``None`` if the extension ships no schema files.
     frontend_pages_dir: Optional[str] = None
 
+    #: Path *relative to the installed package directory* where the extension's
+    #: React page components (``.tsx``) are stored as package data
+    #: (e.g. "frontend/components").  ``veloiq generate`` copies these into the
+    #: host app's ``frontend/src/pages/{name}/`` directory so the routes declared
+    #: in :attr:`routes` can import them.  Leave ``None`` if the extension ships
+    #: no page components.
+    frontend_components_dir: Optional[str] = None
+
+    #: Routes contributed to the host app's router.  Each entry is a dict::
+    #:
+    #:     {
+    #:         "path": "/vigilantiq-license",     # URL path
+    #:         "component": "LicenseManagement",  # import name used in the route
+    #:         "source": "LicenseManagement.tsx", # file under frontend_components_dir
+    #:         "export": "default",               # "default" or a named export
+    #:     }
+    #:
+    #: ``veloiq generate`` turns these into ready-to-mount ``element`` entries in
+    #: the generated ``extensions.gen.tsx``.
+    routes: list = []
+
+    #: Items added to the host app's user dropdown menu.  Each entry is a dict::
+    #:
+    #:     {
+    #:         "key": "vigilantiq-license",       # unique key
+    #:         "label": "VigilantIQ Licensing",   # menu label
+    #:         "icon": "KeyOutlined",             # Ant Design icon component name
+    #:         "route": "/vigilantiq-license",    # path navigated to on click
+    #:     }
+    user_menu_items: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
@@ -96,6 +127,13 @@ class VeloIQExtension:
         if not self.frontend_pages_dir:
             return None
         p = self.package_dir() / self.frontend_pages_dir
+        return p if p.exists() else None
+
+    def resolved_frontend_components_dir(self) -> Optional[Path]:
+        """Return the absolute path to the frontend components directory, or None."""
+        if not self.frontend_components_dir:
+            return None
+        p = self.package_dir() / self.frontend_components_dir
         return p if p.exists() else None
 
     # ── Validation ────────────────────────────────────────────────────────────

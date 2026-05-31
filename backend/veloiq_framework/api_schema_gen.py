@@ -906,6 +906,9 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     pages_dir = frontend_src / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)
 
+    # Deliver page components, routes, and user-menu items (independent of schemas).
+    _sync_extension_frontend(extensions, frontend_src)
+
     ext_modules: list[str] = []          # module names added from extensions
     ext_module_label_map: dict[str, str] = {}  # module_name → extension name label
 
@@ -1024,6 +1027,115 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
         print(f"  📐 navigation.config.json updated (+{len(new_nav_entries)} extension entries)")
 
     print(f"\n  🔌 {len(ext_modules)} extension module(s) synced.")
+
+
+def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
+    """Deliver extension page components, routes, and user-menu items to the host app.
+
+    For each installed extension:
+    - Copies ``.tsx`` files from its ``frontend_components_dir`` into the host
+      app's ``frontend/src/pages/{name}/`` (always overwritten — extension-owned).
+    - Collects its declared ``routes`` and ``user_menu_items``.
+
+    Then writes a single ``frontend/src/extensions.gen.tsx`` exporting:
+    - ``extensionRoutes``         — ``[{ path, element }]`` ready to mount.
+    - ``extensionUserMenuItems``  — ``[{ key, label, icon, onClick }]`` for LayoutWrapper.
+
+    The file is always (re)written — even with no contributions — so the host
+    app's static import never breaks.
+    """
+    import shutil
+
+    pages_dir = frontend_src / "pages"
+
+    # (import_name, import_path, export) tuples for the generated imports.
+    imports: list[tuple[str, str, str]] = []
+    route_entries: list[tuple[str, str]] = []   # (path, import_name)
+    menu_entries: list[dict] = []
+    icon_names: set[str] = set()
+
+    for ext in extensions:
+        comp_dir = ext.resolved_frontend_components_dir()
+        # Copy component files into the host pages dir (namespaced by extension).
+        if comp_dir and comp_dir.exists():
+            dest = pages_dir / ext.name
+            dest.mkdir(parents=True, exist_ok=True)
+            for src_file in sorted(comp_dir.rglob("*.tsx")):
+                rel = src_file.relative_to(comp_dir)
+                target = dest / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_file, target)
+                print(f"  ✅ {ext.name}/{rel} (component)")
+
+        # Routes → imports + route entries.
+        for route in (getattr(ext, "routes", None) or []):
+            path = route.get("path")
+            component = route.get("component")
+            source = route.get("source", "")
+            export = route.get("export", "default")
+            if not path or not component or not source:
+                continue
+            # Strip a trailing .tsx/.ts for the import specifier.
+            mod_rel = source[:-4] if source.endswith(".tsx") else (
+                source[:-3] if source.endswith(".ts") else source
+            )
+            import_path = f"./pages/{ext.name}/{mod_rel}"
+            import_name = f"{ext.name}_{component}"
+            imports.append((import_name, import_path, export))
+            route_entries.append((path, import_name))
+
+        # User-menu items.
+        for item in (getattr(ext, "user_menu_items", None) or []):
+            if not item.get("key") or not item.get("route"):
+                continue
+            icon = item.get("icon")
+            if icon:
+                icon_names.add(icon)
+            menu_entries.append(item)
+
+    # ── Emit extensions.gen.tsx ───────────────────────────────────────────────
+    lines: list[str] = [
+        "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
+        "// Extension-contributed routes and user-menu items.",
+        'import { createElement } from "react";',
+    ]
+    if icon_names:
+        icon_import = ", ".join(sorted(icon_names))
+        lines.append(f'import {{ {icon_import} }} from "@ant-design/icons";')
+    for import_name, import_path, export in imports:
+        if export == "default":
+            lines.append(f'import {import_name} from "{import_path}";')
+        else:
+            lines.append(f'import {{ {export} as {import_name} }} from "{import_path}";')
+
+    lines += [
+        "",
+        "export interface ExtensionRoute { path: string; element: React.ReactNode; }",
+        "export const extensionRoutes: ExtensionRoute[] = [",
+    ]
+    for path, import_name in route_entries:
+        lines.append(f'  {{ path: "{path}", element: createElement({import_name}) }},')
+    lines += [
+        "];",
+        "",
+        "export interface ExtensionUserMenuItem { key: string; label: string; icon?: React.ReactNode; onClick: () => void; }",
+        "export const extensionUserMenuItems: ExtensionUserMenuItem[] = [",
+    ]
+    for item in menu_entries:
+        key = item["key"]
+        label = item["label"].replace('"', '\\"')
+        route = item["route"]
+        icon = item.get("icon")
+        icon_expr = f"createElement({icon})" if icon else "undefined"
+        lines.append(
+            f'  {{ key: "{key}", label: "{label}", icon: {icon_expr}, '
+            f'onClick: () => {{ window.location.assign("{route}"); }} }},'
+        )
+    lines += ["];", ""]
+
+    out_file = frontend_src / "extensions.gen.tsx"
+    out_file.write_text("\n".join(lines))
+    print(f"  📦 extensions.gen.tsx updated ({len(route_entries)} route(s), {len(menu_entries)} menu item(s))")
 
 
 def _guess_modules_dir(cwd: Path) -> Path:
