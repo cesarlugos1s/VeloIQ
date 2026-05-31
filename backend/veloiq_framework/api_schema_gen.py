@@ -943,8 +943,6 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
         return
 
     # Rebuild allModels.gen.ts including extension modules.
-    # Collect all modules: existing host-app modules already in pages_dir
-    # plus the newly synced extension modules.
     all_modules: list[str] = []
     seen: set[str] = set()
     for d in sorted(pages_dir.iterdir()):
@@ -956,11 +954,66 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
 
     _write_all_models(all_modules, frontend_src)
 
-    # Update navigation.config.json with extension module entries.
-    # We pass empty model_name lists because extension schemas already declare
-    # their own resource keys; the nav entries use the module key only.
-    ext_model_names: dict[str, list[str]] = {m: [] for m in ext_modules}
-    _update_nav_config(ext_modules, ext_model_names, frontend_src)
+    # Parse (name, resource, label) triples from each extension gen schema file
+    # so nav config entries use the correct resource key (e.g. "cw_nlchat", not
+    # "nlchat"), bypassing the app.modules.* SQLModel lookup in _update_nav_config.
+    import re as _re
+    import json as _json
+
+    nav_file = frontend_src / "navigation.config.json"
+    existing_nav: list[dict] = []
+    if nav_file.exists():
+        try:
+            existing_nav = _json.loads(nav_file.read_text())
+        except Exception:
+            existing_nav = []
+    existing_keys: set[str] = {e.get("key", "") for e in existing_nav if "key" in e}
+
+    new_nav_entries: list[dict] = []
+    # Add module-level entries first (one per extension module).
+    for mod_seq, module_name in enumerate(ext_modules, start=500):
+        module_key = f"module:{module_name}"
+        if module_key not in existing_keys:
+            module_label = module_name.replace("_", " ").title()
+            new_nav_entries.append({
+                "key": module_key,
+                "label": module_label,
+                "icon": _guess_icon_py(module_label, is_module=True),
+                "sequence": mod_seq * 10,
+                "type": "module",
+            })
+
+    # Add model-level entries by parsing resource + name from gen schema files.
+    for mod_seq, module_name in enumerate(ext_modules, start=500):
+        gen_file = pages_dir / module_name / f"{module_name}Schema.gen.ts"
+        if not gen_file.exists():
+            continue
+        content = gen_file.read_text(encoding="utf-8")
+        # Extract {name: "...", resource: "..."} pairs from ModelDef objects.
+        # Both fields appear as object properties; grab them in document order.
+        model_blocks = _re.findall(
+            r'\{[^{}]*?name:\s*["\']([A-Za-z][A-Za-z0-9_]*)["\'][^{}]*?resource:\s*["\']([^"\']+)["\'][^{}]*?\}',
+            content, _re.DOTALL,
+        )
+        # Fallback: just name (resource = name.lower())
+        if not model_blocks:
+            names_only = _re.findall(r'name:\s*["\']([A-Za-z][A-Za-z0-9_]*)["\']', content)
+            model_blocks = [(n, n.lower()) for n in names_only]
+        for model_seq, (model_name, resource_key) in enumerate(model_blocks, start=1):
+            if resource_key not in existing_keys:
+                model_label = _re.sub(r"(?<=[a-z])(?=[A-Z])", " ", model_name)
+                new_nav_entries.append({
+                    "key": resource_key,
+                    "label": model_label,
+                    "icon": _guess_icon_py(model_label, is_module=False),
+                    "sequence": mod_seq * 10 + model_seq,
+                    "type": "model",
+                })
+
+    if new_nav_entries:
+        merged = list(existing_nav) + new_nav_entries
+        nav_file.write_text(_json.dumps(merged, indent=2))
+        print(f"  📐 navigation.config.json updated (+{len(new_nav_entries)} extension entries)")
 
     print(f"\n  🔌 {len(ext_modules)} extension module(s) synced.")
 

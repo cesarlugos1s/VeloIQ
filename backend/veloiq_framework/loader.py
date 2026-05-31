@@ -357,14 +357,31 @@ def _load_extension_modules(
     # Inject model classes across the extension's module prefix.
     _inject_model_classes(pkg)
 
+    # Auto-discover the extension's own license dependency factory.
+    # Convention: the extension's license module lives at {pkg}.license.license_registry
+    # and exposes make_license_dependency(module_name) and LICENSE_EXEMPT_MODULES.
+    ext_lic_factory = license_dependency_factory  # caller-provided factory takes precedence
+    ext_exempt: frozenset[str] = frozenset()
+    if ext_lic_factory is None:
+        for candidate in ("license",):
+            try:
+                lic_reg = importlib.import_module(f"{pkg}.{candidate}.license_registry")
+                if callable(getattr(lic_reg, "make_license_dependency", None)):
+                    ext_lic_factory = lic_reg.make_license_dependency
+                    ext_exempt = getattr(lic_reg, "LICENSE_EXEMPT_MODULES", frozenset())
+                    print(f"  🔐 License enforcement: {pkg}.{candidate}.license_registry")
+                    break
+            except ModuleNotFoundError:
+                pass
+            except Exception as exc:
+                print(f"  ⚠️  Could not load license registry from {pkg}.{candidate}: {exc}")
+
     # Pass 1: APIs.
     for folder_name in submodule_names:
-        # Extension modules always carry license enforcement (they are never
-        # exempt by default — the extension's own license module marks itself
-        # exempt by declaring "license" in the exempt set if needed).
+        exempt = folder_name in ext_exempt
         lic_dep = (
-            Depends(license_dependency_factory(folder_name))
-            if license_dependency_factory
+            Depends(ext_lic_factory(folder_name))
+            if (ext_lic_factory and not exempt)
             else None
         )
         for sub in ("custom_api", "api"):
@@ -375,9 +392,12 @@ def _load_extension_modules(
                     router = mod.router
                     if id(router) in registered_router_ids:
                         continue
-                    if lic_dep is not None:
-                        router.dependencies.append(lic_dep)
-                    app.include_router(router, tags=[folder_name.upper()])
+                    inc_deps = [lic_dep] if lic_dep is not None else []
+                    app.include_router(
+                        router,
+                        tags=[folder_name.upper()],
+                        dependencies=inc_deps,
+                    )
                     registered_router_ids.add(id(router))
                     print(f"  ✅ {ext.name}/{folder_name}/{sub}")
             except ModuleNotFoundError as exc:
@@ -414,7 +434,18 @@ def _load_extension_modules(
     except Exception:
         pass
 
+    # Auto-discover the extension's admin license patcher if not caller-provided.
+    ext_patch_admin = patch_admin_license
+    if ext_patch_admin is None:
+        try:
+            lic_reg = importlib.import_module(f"{pkg}.license.license_registry")
+            if callable(getattr(lic_reg, "patch_admin_view_with_license", None)):
+                ext_patch_admin = lic_reg.patch_admin_view_with_license
+        except (ModuleNotFoundError, Exception):
+            pass
+
     for folder_name in submodule_names:
+        exempt = folder_name in ext_exempt
         dotted = f"{pkg}.{folder_name}.admin.admin_views"
         registered_any = False
         try:
@@ -426,8 +457,8 @@ def _load_extension_modules(
                 ):
                     for view in getattr(admin_mod, attr_name):
                         try:
-                            if patch_admin_license:
-                                patch_admin_license(view, folder_name)
+                            if ext_patch_admin and not exempt:
+                                ext_patch_admin(view, folder_name)
                             admin.add_view(view)
                             registered_any = True
                         except Exception:
@@ -443,8 +474,8 @@ def _load_extension_modules(
                         and getattr(obj, "model", None) is not None
                     ):
                         try:
-                            if patch_admin_license:
-                                patch_admin_license(obj, folder_name)
+                            if ext_patch_admin and not exempt:
+                                ext_patch_admin(obj, folder_name)
                             admin.add_view(obj)
                             registered_any = True
                         except Exception:
