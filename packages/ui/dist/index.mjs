@@ -330,14 +330,23 @@ function useJourneyMenuItems() {
 }
 function injectJourneyMenuItems(items, byModule) {
   if (!byModule || Object.keys(byModule).length === 0) return items;
-  return items.map((item) => {
-    const key = String(item?.key || "");
-    if (!key.startsWith("module:")) return item;
-    const moduleName = key.slice("module:".length);
-    const extra = byModule[moduleName];
-    if (!extra || extra.length === 0) return item;
-    return { ...item, children: [...item.children || [], ...extra] };
+  const moduleNameOf = (item) => {
+    const key = String(item?.key ?? item?.name ?? "");
+    if (key.startsWith("module:")) return key.slice("module:".length);
+    if (byModule[key]) return key;
+    return null;
+  };
+  const walk = (list) => list.map((item) => {
+    const childrenWalked = Array.isArray(item?.children) && item.children.length ? walk(item.children) : item?.children;
+    const moduleName = moduleNameOf(item);
+    const extra = moduleName ? byModule[moduleName] : void 0;
+    if (extra && extra.length) {
+      return { ...item, children: [...extra, ...childrenWalked || []] };
+    }
+    if (childrenWalked !== item?.children) return { ...item, children: childrenWalked };
+    return item;
   });
+  return walk(items);
 }
 var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = useMenu();
@@ -912,7 +921,12 @@ var CommandCenterPortal = ({
   onClose,
   navConfig = []
 }) => {
-  const { menuItems } = useMenu();
+  const { menuItems: rawMenuItems } = useMenu();
+  const journeysByModule = useJourneyMenuItems();
+  const menuItems = useMemo(
+    () => injectJourneyMenuItems(rawMenuItems, journeysByModule),
+    [rawMenuItems, journeysByModule]
+  );
   const go = useGo();
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -1518,6 +1532,12 @@ var CommandCenterPortal = ({
     }
   ) });
 };
+var NavConfigContext = createContext([]);
+var useNavConfig = () => useContext(NavConfigContext);
+function useNavModules() {
+  const navConfig = useNavConfig();
+  return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
+}
 var API_URL4 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
@@ -1686,7 +1706,7 @@ var LayoutWrapper = ({
     ] })
   ] });
   const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
-  return /* @__PURE__ */ jsxs(Fragment, { children: [
+  return /* @__PURE__ */ jsxs(NavConfigContext.Provider, { value: navConfig, children: [
     /* @__PURE__ */ jsx(
       ThemedLayoutV2,
       {
@@ -21159,6 +21179,6 @@ var authSystemModels = [
   }
 ];
 
-export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

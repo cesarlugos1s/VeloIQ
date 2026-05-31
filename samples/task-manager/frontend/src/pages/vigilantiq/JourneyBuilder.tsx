@@ -23,9 +23,8 @@ import {
     BranchesOutlined, PlusOutlined, DeleteOutlined, ArrowRightOutlined,
     ArrowLeftOutlined, SaveOutlined, EditOutlined, SyncOutlined, WarningOutlined,
 } from "@ant-design/icons";
-import { useMenu } from "@refinedev/core";
 import type { ModelDef } from "@juicemantics/veloiq-ui";
-import { API_URL, authenticatedFetch, useAllModels } from "@juicemantics/veloiq-ui";
+import { API_URL, authenticatedFetch, useAllModels, useNavModules } from "@juicemantics/veloiq-ui";
 
 const { Title, Text } = Typography;
 const JOURNEYS = `${API_URL}/journeys`;
@@ -413,7 +412,7 @@ const DesignCanvas: React.FC<{
 // ---------------------------------------------------------------------------
 export default function JourneyBuilder() {
     const allModels = useAllModels();
-    const { menuItems } = useMenu();
+    const navModules = useNavModules();
     const { token } = theme.useToken();
     const [journeys, setJourneys] = useState<JourneyDef[]>([]);
     const [loading, setLoading] = useState(true);
@@ -445,24 +444,21 @@ export default function JourneyBuilder() {
 
     const modelOptions = useMemo(() => allModels.filter((m) => !m.hideInMenu)
         .map((m) => ({ label: m.label || m.name, value: m.resource || m.name })), [allModels]);
-    // Module options come from the app's actual menu modules (keys "module:{name}")
-    // so a journey's module matches the key the sidebar/top menu injects under.
-    // Falls back to any ModelDef.module. The field is free-text (AutoComplete),
-    // so a module can always be typed even if no suggestion is detected.
+    // Module options come from the app's navigation config (the authoritative
+    // list of "module:{name}" entries), so a journey's module matches the key
+    // the sidebar/top menu injects journeys under. Also folds in any
+    // ModelDef.module and existing journeys' modules. The field is free-text
+    // (AutoComplete), so a module can always be typed even without a suggestion.
     const moduleOptions = useMemo(() => {
         const opts: { label: string; value: string }[] = [];
         const add = (value: string, label?: string) => {
             if (value && !opts.some((o) => o.value === value)) opts.push({ value, label: label || value });
         };
-        const walk = (items: any[]) => (items || []).forEach((it) => {
-            const key = String(it?.key || it?.name || "");
-            if (key.startsWith("module:")) add(key.slice("module:".length), typeof it.label === "string" ? it.label : undefined);
-            if (it?.children?.length) walk(it.children);
-        });
-        walk(menuItems || []);
+        navModules.forEach((m) => add(m.value, m.label));
         allModels.forEach((m) => { if (m.module) add(m.module); });
+        journeys.forEach((j) => { if (j.module) add(j.module); });
         return opts.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-    }, [menuItems, allModels]);
+    }, [navModules, allModels, journeys]);
     const modelLabel = (resource: string) =>
         allModels.find((m) => (m.resource || m.name) === resource)?.label || resource;
 

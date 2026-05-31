@@ -75,5 +75,26 @@
     "icon": "BankOutlined",
     "sequence": 903,
     "type": "model"
+  },
+  {
+    "key": "module:nlp",
+    "label": "Nlp",
+    "icon": "FolderOutlined",
+    "sequence": 5010,
+    "type": "module"
+  },
+  {
+    "key": "cw_nlchat",
+    "label": "NLChat",
+    "icon": "MailOutlined",
+    "sequence": 5011,
+    "type": "model"
+  },
+  {
+    "key": "cw_nlsentence",
+    "label": "NLSentence",
+    "icon": "TableOutlined",
+    "sequence": 5012,
+    "type": "model"
   }
 ]

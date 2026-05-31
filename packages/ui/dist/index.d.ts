@@ -462,6 +462,19 @@ interface ResourceContextValue {
 }
 declare const ResourceContext: React$1.Context<ResourceContextValue>;
 
+/**
+ * Makes the app's navigation.config.json available to any component rendered
+ * inside LayoutWrapper (including extension-contributed routes). This is the
+ * authoritative list of modules ("module:{name}" entries) and their labels.
+ */
+declare const NavConfigContext: React$1.Context<NavConfig>;
+declare const useNavConfig: () => NavConfig;
+/** Convenience: module entries from the nav config as {value, label} options. */
+declare function useNavModules(): {
+    value: string;
+    label: string;
+}[];
+
 interface LoginPageProps {
     /** App title shown on the login card. Defaults to "VeloIQ". */
     appTitle?: string;
@@ -623,4 +636,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, NavConfigContext, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };

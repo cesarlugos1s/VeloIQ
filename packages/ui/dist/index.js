@@ -357,14 +357,23 @@ function useJourneyMenuItems() {
 }
 function injectJourneyMenuItems(items, byModule) {
   if (!byModule || Object.keys(byModule).length === 0) return items;
-  return items.map((item) => {
-    const key = String(item?.key || "");
-    if (!key.startsWith("module:")) return item;
-    const moduleName = key.slice("module:".length);
-    const extra = byModule[moduleName];
-    if (!extra || extra.length === 0) return item;
-    return { ...item, children: [...item.children || [], ...extra] };
+  const moduleNameOf = (item) => {
+    const key = String(item?.key ?? item?.name ?? "");
+    if (key.startsWith("module:")) return key.slice("module:".length);
+    if (byModule[key]) return key;
+    return null;
+  };
+  const walk = (list) => list.map((item) => {
+    const childrenWalked = Array.isArray(item?.children) && item.children.length ? walk(item.children) : item?.children;
+    const moduleName = moduleNameOf(item);
+    const extra = moduleName ? byModule[moduleName] : void 0;
+    if (extra && extra.length) {
+      return { ...item, children: [...extra, ...childrenWalked || []] };
+    }
+    if (childrenWalked !== item?.children) return { ...item, children: childrenWalked };
+    return item;
   });
+  return walk(items);
 }
 var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = core.useMenu();
@@ -939,7 +948,12 @@ var CommandCenterPortal = ({
   onClose,
   navConfig = []
 }) => {
-  const { menuItems } = core.useMenu();
+  const { menuItems: rawMenuItems } = core.useMenu();
+  const journeysByModule = useJourneyMenuItems();
+  const menuItems = React5.useMemo(
+    () => injectJourneyMenuItems(rawMenuItems, journeysByModule),
+    [rawMenuItems, journeysByModule]
+  );
   const go = core.useGo();
   const searchRef = React5.useRef(null);
   const [query, setQuery] = React5.useState("");
@@ -1545,6 +1559,12 @@ var CommandCenterPortal = ({
     }
   ) });
 };
+var NavConfigContext = React5.createContext([]);
+var useNavConfig = () => React5.useContext(NavConfigContext);
+function useNavModules() {
+  const navConfig = useNavConfig();
+  return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
+}
 var API_URL4 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
@@ -1713,7 +1733,7 @@ var LayoutWrapper = ({
     ] })
   ] });
   const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsxRuntime.jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
-  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+  return /* @__PURE__ */ jsxRuntime.jsxs(NavConfigContext.Provider, { value: navConfig, children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.ThemedLayoutV2,
       {
@@ -21206,6 +21226,7 @@ exports.LayoutWrapper = LayoutWrapper;
 exports.LoginPage = LoginPage;
 exports.ModelHeading = ModelHeading;
 exports.MultiPaneLayout = MultiPaneLayout;
+exports.NavConfigContext = NavConfigContext;
 exports.PaneNavigationContext = PaneNavigationContext;
 exports.PinnedRecordsPanel = PinnedRecordsPanel;
 exports.PrimaryShowContext = PrimaryShowContext;
@@ -21235,6 +21256,8 @@ exports.sortItemsByNavConfig = sortItemsByNavConfig;
 exports.useAllModels = useAllModels;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;
 exports.useMetadataModal = useMetadataModal;
+exports.useNavConfig = useNavConfig;
+exports.useNavModules = useNavModules;
 exports.usePaneNavigation = usePaneNavigation;
 exports.useRecordSearch = useRecordSearch;
 exports.useShowActionsPreferences = useShowActionsPreferences;

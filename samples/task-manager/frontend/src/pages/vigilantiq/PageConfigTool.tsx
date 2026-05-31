@@ -31,10 +31,31 @@ const { Title, Text } = Typography;
 const BASE = `${API_URL}/pageconfig/configs`;
 const VIEW_TYPES = ["show", "edit", "list", "create"];
 
+// Per-element-type view-type option sets (mirrors the JuiceMantics panel).
+const FIELD_VIEW_TYPES_SHOW = [
+    "read-only-field", "read-only-textarea", "read-only-markdown", "read-only-json",
+    "read-only-url", "read-only-email", "read-only-currency", "read-only-percentage",
+    "read-only-progress", "read-only-rating", "read-only-duration", "read-only-phone",
+    "read-only-color", "read-only-code", "read-only-image-url", "read-only-qrcode",
+    "read-only-relative", "read-only-truncated-text",
+];
+const FIELD_VIEW_TYPES_EDIT = [
+    "editable-field", "editable-textarea", "editable-markdown", "editable-json",
+    "editable-url", "editable-email", "editable-currency", "editable-percentage",
+    "editable-progress", "editable-rating", "editable-duration", "editable-phone",
+    "editable-color", "editable-code", "editable-image-url", "read-only-field",
+];
+const RELATION_VIEW_TYPES = [
+    "table", "editable-table", "editable-list", "list", "csv", "read-and-edit-csv",
+    "editable-csv", "gallery", "calendar", "primary", "totals-details", "tree", "tree-details",
+];
+const NLSENTENCE_VIEW_TYPES = ["primary", "editable-table", "table", "list", "muledit"];
+
 type EntryKind = "field" | "relation" | "nlsentence";
 interface Entry {
     id: string; kind: EntryKind; key: string; label: string;
     row: number; column: number; show_label: boolean; view_type?: string;
+    limit?: number; // relations only
 }
 interface Section { id: string; name: string; grid_row: number; grid_col: number; entries: Entry[]; }
 interface Tab { id: string; name: string; tab_order: number; sections: Section[]; }
@@ -47,8 +68,11 @@ export default function PageConfigTool() {
     const allModels = useAllModels();
     const { token } = theme.useToken();
 
+    // Keyed by model.name (the entity class name) because that is what the host
+    // app's DynamicShow/DynamicEdit fetch view configurations with — keeping the
+    // saved config discoverable at render time.
     const modelOptions = useMemo(() => allModels.filter((m) => !m.hideInMenu)
-        .map((m) => ({ label: m.label || m.name, value: m.resource || m.name })), [allModels]);
+        .map((m) => ({ label: m.label || m.name, value: m.name })), [allModels]);
 
     const [model, setModel] = useState<string | undefined>();
     const [viewType, setViewType] = useState("show");
@@ -99,7 +123,7 @@ export default function PageConfigTool() {
         return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     }, [drag]);
 
-    const modelDef = allModels.find((m) => (m.resource || m.name) === model);
+    const modelDef = allModels.find((m) => m.name === model);
 
     // ---- load config + nl sentences ----
     const loadConfig = async (m: string, v: string) => {
@@ -300,9 +324,13 @@ export default function PageConfigTool() {
         if (activeSections.length === 0)
             return <Empty image={<ToolOutlined style={{ fontSize: 40, color: token.colorTextDisabled }} />}
                 description="No sections yet. Add a section, then click palette items to place fields." />;
-        return rows.map((r) => (
-            <div key={r} style={{ display: "flex", gap: 12, alignItems: "stretch", marginBottom: 12 }}>
-                {(rowMap.get(r) || []).sort((a, b) => a.grid_col - b.grid_col).map((section) => (
+        return rows.map((r) => {
+            const rowSecs = (rowMap.get(r) || []).slice().sort((a, b) => a.grid_col - b.grid_col);
+            const rowMaxCol = Math.max(1, ...rowSecs.map((s) => s.grid_col));
+            return (
+            <div key={r} style={{ display: "grid", gridTemplateColumns: `repeat(${rowMaxCol}, minmax(0, 1fr))`, gap: 12, alignItems: "stretch", marginBottom: 12 }}>
+                {rowSecs.map((section) => (
+                    <div key={section.id} style={{ gridColumn: section.grid_col }}>
                     <SectionBlock key={section.id} section={section}
                         selected={selSectionId === section.id} selEntryId={selEntryId}
                         onSelectSection={() => { setSelSectionId(section.id); setSelEntryId(null); }}
@@ -310,9 +338,11 @@ export default function PageConfigTool() {
                         onUpdate={updateSection} onRemove={removeSection} onRemoveEntry={removeEntry}
                         onDrop={onDropToCell}
                         kindIcon={kindIcon} kindColor={kindColor} token={token} />
+                    </div>
                 ))}
             </div>
-        ));
+            );
+        });
     };
 
     if (!model) {
@@ -495,20 +525,18 @@ const Palette: React.FC<{
         ) : (
             <List size="small" split={false} dataSource={items} renderItem={(it) => (
                 <List.Item style={{ padding: "2px 0" }}>
-                    <Tag
-                        icon={kindIcon(it.kind)}
-                        color={kindColor(it.kind)}
+                    <div
                         draggable
                         onDragStart={(e) => {
-                            e.dataTransfer.effectAllowed = "copy";
+                            e.dataTransfer.effectAllowed = "all";
                             e.dataTransfer.setData("text/plain", JSON.stringify({ type: "new", kind: it.kind, key: it.key, label: it.label }));
                         }}
                         onClick={() => onAdd(it)}
-                        style={{ cursor: "grab" }}
+                        style={{ cursor: "grab", display: "inline-block" }}
                         title="Drag into a section cell, or click to add"
                     >
-                        {it.label}
-                    </Tag>
+                        <Tag icon={kindIcon(it.kind)} color={kindColor(it.kind)} style={{ pointerEvents: "none" }}>{it.label}</Tag>
+                    </div>
                 </List.Item>
             )} />
         )}
@@ -636,7 +664,7 @@ const SectionBlock: React.FC<{
                                     const cell = section.entries.filter((e) => e.row === row && e.column === col);
                                     return (
                                         <td key={ci}
-                                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (overCell !== cellId) setOverCell(cellId); }}
+                                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (overCell !== cellId) setOverCell(cellId); }}
                                             onDragLeave={() => { if (overCell === cellId) setOverCell(null); }}
                                             onDrop={(e) => handleCellDrop(e, row, col)}
                                             style={{
@@ -652,7 +680,7 @@ const SectionBlock: React.FC<{
                                             ) : cell.map((e) => (
                                                 <div key={e.id}
                                                     draggable
-                                                    onDragStart={(ev) => { ev.stopPropagation(); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", JSON.stringify({ type: "move", entryId: e.id })); }}
+                                                    onDragStart={(ev) => { ev.stopPropagation(); ev.dataTransfer.effectAllowed = "all"; ev.dataTransfer.setData("text/plain", JSON.stringify({ type: "move", entryId: e.id })); }}
                                                     onClick={() => onSelectEntry(e.id)}
                                                     style={{
                                                         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, padding: "2px 6px", marginBottom: 2,
@@ -686,28 +714,50 @@ const PropertiesPanel: React.FC<{
     kindColor: (k: EntryKind) => string;
 }> = ({ selEntry, selSection, viewType, onUpdateEntry, onRemoveEntry, onUpdateSection, onRemoveSection, kindColor }) => {
     if (selEntry) {
-        const viewOpts = viewType === "edit"
-            ? ["editable-field", "read-only-field", "editable-textarea", "editable-markdown", "editable-csv", "editable-table"]
-            : ["read-only-field", "read-only-markdown", "read-only-url", "read-only-currency", "table", "list", "gallery", "totals-details"];
+        // View-type options depend on the element kind (field / relation / nlsentence).
+        const viewOpts = selEntry.kind === "relation"
+            ? RELATION_VIEW_TYPES
+            : selEntry.kind === "nlsentence"
+                ? NLSENTENCE_VIEW_TYPES
+                : (viewType === "edit" ? FIELD_VIEW_TYPES_EDIT : FIELD_VIEW_TYPES_SHOW);
+        const kindLabel = selEntry.kind === "relation" ? "Relation" : selEntry.kind === "nlsentence" ? "NL Sentence" : "Field";
         return (
             <div>
                 <Title level={5}>
-                    <Tag color={kindColor(selEntry.kind)}>{selEntry.kind}</Tag> {selEntry.label}
+                    <Tag color={kindColor(selEntry.kind)}>{kindLabel}</Tag> {selEntry.label}
                 </Title>
                 <div style={{ marginBottom: 12 }}>
                     <Text type="secondary">Label</Text>
                     <Input value={selEntry.label} onChange={(e) => onUpdateEntry(selEntry.id, { label: e.target.value })} />
                 </div>
-                <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Text type="secondary">Show label</Text>
-                    <Switch checked={selEntry.show_label} onChange={(v) => onUpdateEntry(selEntry.id, { show_label: v })} />
-                </div>
+
+                {/* show_label: not relevant for NL sentences (they render their own block) */}
+                {selEntry.kind !== "nlsentence" && (
+                    <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Text type="secondary">Show label</Text>
+                        <Switch checked={selEntry.show_label} onChange={(v) => onUpdateEntry(selEntry.id, { show_label: v })} />
+                    </div>
+                )}
+
                 <div style={{ marginBottom: 12 }}>
-                    <Text type="secondary">View type</Text>
-                    <Select allowClear placeholder="default" value={selEntry.view_type} style={{ width: "100%" }}
+                    <Text type="secondary">
+                        {selEntry.kind === "relation" ? "Relation view type"
+                            : selEntry.kind === "nlsentence" ? "NL Chat view type" : "Field view type"}
+                    </Text>
+                    <Select allowClear showSearch placeholder="default" value={selEntry.view_type} style={{ width: "100%" }}
                         options={viewOpts.map((v) => ({ label: v, value: v }))}
                         onChange={(v) => onUpdateEntry(selEntry.id, { view_type: v })} />
                 </div>
+
+                {/* Relations can cap the number of related rows shown */}
+                {selEntry.kind === "relation" && (
+                    <div style={{ marginBottom: 12 }}>
+                        <Text type="secondary">Row limit</Text>
+                        <Input type="number" min={1} placeholder="no limit" value={selEntry.limit ?? ""} style={{ width: "100%" }}
+                            onChange={(e) => onUpdateEntry(selEntry.id, { limit: e.target.value ? Math.max(1, Number(e.target.value)) : undefined })} />
+                    </div>
+                )}
+
                 <Space style={{ marginBottom: 12 }}>
                     <span><Text type="secondary">Row</Text><br />
                         <Input type="number" min={1} value={selEntry.row} style={{ width: 80 }}
