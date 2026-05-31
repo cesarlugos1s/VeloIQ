@@ -325,6 +325,7 @@ var authenticatedFetch = (url, options = {}) => {
 
 // src/utils/journeyMenu.ts
 var API_URL = "/api";
+var JOURNEY_ICON_NAME = "NodeIndexOutlined";
 function useJourneyMenuItems() {
   const [byModule, setByModule] = React5.useState({});
   React5.useEffect(() => {
@@ -342,7 +343,8 @@ function useJourneyMenuItems() {
           (map[_a = j.module] ?? (map[_a] = [])).push({
             key: `journey:${j.journey_id}`,
             label: j.name || j.journey_id,
-            route: `/journey-run/${j.journey_id}`
+            route: `/journey-run/${j.journey_id}`,
+            icon: JOURNEY_ICON_NAME
           });
         }
         if (!cancelled) setByModule(map);
@@ -385,7 +387,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
     const entry = getNavEntry(navConfig, key);
-    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2__namespace[iconName];
     const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
     return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
@@ -457,7 +459,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
     const entry = getNavEntry(navConfig, key);
-    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2__namespace[iconName];
     const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
     return Icon ? /* @__PURE__ */ jsxRuntime.jsx(Icon, {}) : /* @__PURE__ */ jsxRuntime.jsx(Fallback, {});
@@ -1119,7 +1121,8 @@ var CommandCenterPortal = ({
     window.addEventListener("mouseup", onUp);
   };
   if (!open) return null;
-  const getItemIcon = (key, label, isModule) => {
+  const getItemIcon = (key, label, isModule, explicitIcon) => {
+    if (explicitIcon) return resolveAntIcon(explicitIcon);
     const entry = getNavEntry(navConfig, key);
     return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
   };
@@ -1341,7 +1344,7 @@ var CommandCenterPortal = ({
                   const childKey = String(child.key || child.name || "");
                   const childLabel = String(child.label || child.name || "");
                   const childTone = getModelTone(childKey);
-                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
                   return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
                     idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                     /* @__PURE__ */ jsxRuntime.jsxs(
@@ -1388,7 +1391,7 @@ var CommandCenterPortal = ({
             const childKey = String(child.key || child.name || "");
             const childLabel = String(child.label || child.name || "");
             const childTone = getModelTone(childKey);
-            const childIcon = getItemIcon(childKey, childLabel, false);
+            const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
             const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
             const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
             const moduleLabel = child.moduleLabel || "";
@@ -1525,7 +1528,7 @@ var CommandCenterPortal = ({
                 const childKey = String(child.key || child.name || "");
                 const childLabel = String(child.label || child.name || "");
                 const childTone = getModelTone(childKey);
-                const childIcon = getItemIcon(childKey, childLabel, false);
+                const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
                 return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
                   idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
                   /* @__PURE__ */ jsxRuntime.jsxs(

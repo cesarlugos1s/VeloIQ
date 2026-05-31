@@ -298,6 +298,7 @@ var authenticatedFetch = (url, options = {}) => {
 
 // src/utils/journeyMenu.ts
 var API_URL = "/api";
+var JOURNEY_ICON_NAME = "NodeIndexOutlined";
 function useJourneyMenuItems() {
   const [byModule, setByModule] = useState({});
   useEffect(() => {
@@ -315,7 +316,8 @@ function useJourneyMenuItems() {
           (map[_a = j.module] ?? (map[_a] = [])).push({
             key: `journey:${j.journey_id}`,
             label: j.name || j.journey_id,
-            route: `/journey-run/${j.journey_id}`
+            route: `/journey-run/${j.journey_id}`,
+            icon: JOURNEY_ICON_NAME
           });
         }
         if (!cancelled) setByModule(map);
@@ -358,7 +360,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
     const entry = getNavEntry(navConfig, key);
-    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2[iconName];
     const Fallback = AntDIcons2["DatabaseOutlined"];
     return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
@@ -430,7 +432,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
     const entry = getNavEntry(navConfig, key);
-    const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+    const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2[iconName];
     const Fallback = AntDIcons2["DatabaseOutlined"];
     return Icon ? /* @__PURE__ */ jsx(Icon, {}) : /* @__PURE__ */ jsx(Fallback, {});
@@ -1092,7 +1094,8 @@ var CommandCenterPortal = ({
     window.addEventListener("mouseup", onUp);
   };
   if (!open) return null;
-  const getItemIcon = (key, label, isModule) => {
+  const getItemIcon = (key, label, isModule, explicitIcon) => {
+    if (explicitIcon) return resolveAntIcon(explicitIcon);
     const entry = getNavEntry(navConfig, key);
     return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
   };
@@ -1314,7 +1317,7 @@ var CommandCenterPortal = ({
                   const childKey = String(child.key || child.name || "");
                   const childLabel = String(child.label || child.name || "");
                   const childTone = getModelTone(childKey);
-                  const childIcon = getItemIcon(childKey, childLabel, false);
+                  const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
                   return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
                     idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                     /* @__PURE__ */ jsxs(
@@ -1361,7 +1364,7 @@ var CommandCenterPortal = ({
             const childKey = String(child.key || child.name || "");
             const childLabel = String(child.label || child.name || "");
             const childTone = getModelTone(childKey);
-            const childIcon = getItemIcon(childKey, childLabel, false);
+            const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
             const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
             const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
             const moduleLabel = child.moduleLabel || "";
@@ -1498,7 +1501,7 @@ var CommandCenterPortal = ({
                 const childKey = String(child.key || child.name || "");
                 const childLabel = String(child.label || child.name || "");
                 const childTone = getModelTone(childKey);
-                const childIcon = getItemIcon(childKey, childLabel, false);
+                const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
                 return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
                   idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
                   /* @__PURE__ */ jsxs(

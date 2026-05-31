@@ -348,7 +348,9 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
 
     // ── Render helpers ──────────────────────────────────────────────────────
 
-    const getItemIcon = (key: string, label: string, isModule: boolean) => {
+    const getItemIcon = (key: string, label: string, isModule: boolean, explicitIcon?: string) => {
+        // An explicit icon name on the item (e.g. injected journeys) wins.
+        if (explicitIcon) return resolveAntIcon(explicitIcon);
         const entry = getNavEntry(navConfig, key);
         return resolveAntIcon(entry?.icon ?? guessIcon(label || key, isModule));
     };
@@ -618,7 +620,7 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                                     const childKey = String(child.key || child.name || "");
                                                     const childLabel = String(child.label || child.name || "");
                                                     const childTone = getModelTone(childKey);
-                                                    const childIcon = getItemIcon(childKey, childLabel, false);
+                                                    const childIcon = getItemIcon(childKey, childLabel, false, (child as any).icon);
                                                     return (
                                                         <React.Fragment key={childKey}>
                                                             {idx > 0 && <Divider style={{ margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" }} />}
@@ -669,7 +671,7 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                     const childKey = String(child.key || child.name || "");
                                     const childLabel = String(child.label || child.name || "");
                                     const childTone = getModelTone(childKey);
-                                    const childIcon = getItemIcon(childKey, childLabel, false);
+                                    const childIcon = getItemIcon(childKey, childLabel, false, (child as any).icon);
                                     const cmdVerb = parsedCommand.command.charAt(0).toUpperCase() + parsedCommand.command.slice(1);
                                     const route = commandRoute(parsedCommand.command, child.route || `/${childKey}`);
                                     const moduleLabel = (child as any).moduleLabel || "";
@@ -822,7 +824,7 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
                                                             const childKey = String(child.key || child.name || "");
                                                             const childLabel = String(child.label || child.name || "");
                                                             const childTone = getModelTone(childKey);
-                                                            const childIcon = getItemIcon(childKey, childLabel, false);
+                                                            const childIcon = getItemIcon(childKey, childLabel, false, (child as any).icon);
                                                             return (
                                                                 <React.Fragment key={childKey}>
                                                                     {idx > 0 && <Divider style={{ margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" }} />}

@@ -28,7 +28,9 @@ export const CustomSider: React.FC<{
         const label = String(item?.label || item?.name || "");
         const isModule = key.startsWith("module:") || key === "dashboard";
         const entry = getNavEntry(navConfig, key);
-        const iconName = entry?.icon ?? guessIcon(label || key, isModule);
+        // An explicit icon name on the item (e.g. injected journeys) wins.
+        const iconName = (typeof item?.icon === "string" && item.icon)
+            || entry?.icon || guessIcon(label || key, isModule);
         const Icon = (AntDIcons as any)[iconName] as React.ComponentType | undefined;
         const Fallback = (AntDIcons as any)["DatabaseOutlined"] as React.ComponentType;
         return Icon ? <Icon /> : <Fallback />;

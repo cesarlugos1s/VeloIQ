@@ -11,7 +11,10 @@ const API_URL = "/api";
  * silently yields {} when the journey endpoints are absent (e.g. the extension
  * is not installed), so the core menu degrades gracefully.
  */
-export type JourneyMenuMap = Record<string, { key: string; label: string; route: string }[]>;
+export type JourneyMenuMap = Record<string, { key: string; label: string; route: string; icon: string }[]>;
+
+/** Ant Design icon name used for journeys everywhere (matches the Journey Runner page title). */
+export const JOURNEY_ICON_NAME = "NodeIndexOutlined";
 
 export function useJourneyMenuItems(): JourneyMenuMap {
     const [byModule, setByModule] = useState<JourneyMenuMap>({});
@@ -31,6 +34,7 @@ export function useJourneyMenuItems(): JourneyMenuMap {
                         key: `journey:${j.journey_id}`,
                         label: j.name || j.journey_id,
                         route: `/journey-run/${j.journey_id}`,
+                        icon: JOURNEY_ICON_NAME,
                     });
                 }
                 if (!cancelled) setByModule(map);
