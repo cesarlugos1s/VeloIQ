@@ -969,9 +969,33 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
             existing_nav = []
     existing_keys: set[str] = {e.get("key", "") for e in existing_nav if "key" in e}
 
+    # Parse {name, resource} pairs per module from the gen schema files.
+    # Modules with NO models (e.g. bundle-only modules whose UI is delivered as a
+    # pre-built JS bundle and reached from the user menu) are intentionally NOT
+    # added to the left navigation — they have no schema-driven list resource.
+    module_models: dict[str, list[tuple[str, str]]] = {}
+    for module_name in ext_modules:
+        gen_file = pages_dir / module_name / f"{module_name}Schema.gen.ts"
+        if not gen_file.exists():
+            module_models[module_name] = []
+            continue
+        content = gen_file.read_text(encoding="utf-8")
+        # Extract {name: "...", resource: "..."} pairs from ModelDef objects,
+        # in document order.
+        pairs = _re.findall(
+            r'name:\s*["\']([A-Za-z][A-Za-z0-9_]*)["\']\s*,\s*'
+            r'(?:label:\s*["\'][^"\']*["\']\s*,\s*)?'
+            r'resource:\s*["\']([^"\']+)["\']',
+            content,
+        )
+        module_models[module_name] = pairs
+
     new_nav_entries: list[dict] = []
-    # Add module-level entries first (one per extension module).
     for mod_seq, module_name in enumerate(ext_modules, start=500):
+        models = module_models.get(module_name, [])
+        if not models:
+            continue  # bundle-only module — never appears in the left nav
+
         module_key = f"module:{module_name}"
         if module_key not in existing_keys:
             module_label = module_name.replace("_", " ").title()
@@ -983,23 +1007,7 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
                 "type": "module",
             })
 
-    # Add model-level entries by parsing resource + name from gen schema files.
-    for mod_seq, module_name in enumerate(ext_modules, start=500):
-        gen_file = pages_dir / module_name / f"{module_name}Schema.gen.ts"
-        if not gen_file.exists():
-            continue
-        content = gen_file.read_text(encoding="utf-8")
-        # Extract {name: "...", resource: "..."} pairs from ModelDef objects.
-        # Both fields appear as object properties; grab them in document order.
-        model_blocks = _re.findall(
-            r'\{[^{}]*?name:\s*["\']([A-Za-z][A-Za-z0-9_]*)["\'][^{}]*?resource:\s*["\']([^"\']+)["\'][^{}]*?\}',
-            content, _re.DOTALL,
-        )
-        # Fallback: just name (resource = name.lower())
-        if not model_blocks:
-            names_only = _re.findall(r'name:\s*["\']([A-Za-z][A-Za-z0-9_]*)["\']', content)
-            model_blocks = [(n, n.lower()) for n in names_only]
-        for model_seq, (model_name, resource_key) in enumerate(model_blocks, start=1):
+        for model_seq, (model_name, resource_key) in enumerate(models, start=1):
             if resource_key not in existing_keys:
                 model_label = _re.sub(r"(?<=[a-z])(?=[A-Z])", " ", model_name)
                 new_nav_entries.append({
