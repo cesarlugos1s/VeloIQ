@@ -329,6 +329,23 @@ def _load_extension_modules(
 
     print(f"\n🔌 Loading extension '{ext.name}' modules ({pkg})…")
 
+    # Factory events: call register_*_events() in any submodule factory.py
+    for folder_name in submodule_names:
+        for fname in ("factory", f"{folder_name}_factory"):
+            dotted = f"{pkg}.{folder_name}.{fname}"
+            try:
+                factory_mod = importlib.import_module(dotted)
+                for attr_name in dir(factory_mod):
+                    if attr_name.startswith("register_") and attr_name.endswith("_events"):
+                        fn = getattr(factory_mod, attr_name)
+                        if callable(fn):
+                            fn()
+                            print(f"  ✅ {ext.name}/{folder_name}.{attr_name}()")
+            except ModuleNotFoundError:
+                pass
+            except Exception as exc:
+                print(f"  ❌ {ext.name}/{folder_name}/{fname} factory FAILED: {exc}")
+
     # Pass 0: import all models first.
     for folder_name in submodule_names:
         dotted = f"{pkg}.{folder_name}.models"
