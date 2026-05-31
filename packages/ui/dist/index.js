@@ -19045,7 +19045,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       if (field.options) return renderOptionTag(field, value);
                       return value;
                     };
-                    if (!id || !resource) return renderValue();
+                    if (!id || !resource || field.reference) return renderValue();
                     return /* @__PURE__ */ jsxRuntime.jsx(
                       "a",
                       {

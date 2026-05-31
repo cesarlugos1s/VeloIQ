@@ -3780,7 +3780,10 @@ export const DynamicList: React.FC<{
                                             if (field.options) return renderOptionTag(field, value);
                                             return value;
                                         };
-                                        if (!id || !resource) return renderValue();
+                                        // Reference cells render their own <a> (ReferenceField),
+                                        // which navigates to the referenced record — don't wrap them
+                                        // in the row-navigation <a> (invalid nested anchors).
+                                        if (!id || !resource || field.reference) return renderValue();
                                         return (
                                             <a
                                                 href={getShowHref(resource, id, allModels)}
