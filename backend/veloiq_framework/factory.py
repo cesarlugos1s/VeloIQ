@@ -422,9 +422,73 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         return {"status": "ok"}
 
     @app.get("/views/configurations/{model_name}")
-    async def view_configurations(model_name: str):
-        """Return view layout configuration rows for a model. Empty list → schema-driven defaults."""
-        return []
+    async def view_configurations(model_name: str, view_type: str = ""):
+        """Return view layout configuration rows for a model.
+
+        Reads ``config/page_configs.json`` (written by a page-configuration tool,
+        e.g. the VigilantIQ extension) and converts the stored sections/tabs/entries
+        into the ViewConfigRow shape the frontend consumes. Returns both the show
+        and edit layouts (the frontend filters by ``form_type``). Empty list →
+        the frontend falls back to its schema-driven default layout.
+        """
+        candidates = [
+            _Path("config") / "page_configs.json",
+            _Path("..") / "config" / "page_configs.json",
+        ]
+        data = None
+        for candidate in candidates:
+            if candidate.exists():
+                try:
+                    data = _json.loads(candidate.read_text(encoding="utf-8"))
+                    break
+                except Exception:
+                    return []
+        if not data:
+            return []
+
+        configs = data.get("configs", {})
+        rows: list[dict] = []
+
+        def _emit(sections: list, form: str, tab_name):
+            for s in sections or []:
+                for e in s.get("entries", []) or []:
+                    kind = e.get("kind", "field")
+                    art = "attribute" if kind == "field" else kind
+                    vt_val = e.get("view_type")
+                    key = e.get("key", "")
+                    rows.append({
+                        "view_type": "PrimaryView",
+                        "subject_name": model_name,
+                        "relation_name": key if kind == "relation" else "",
+                        "object_name": key,
+                        "form_type": form,
+                        "section": s.get("name", ""),
+                        "section_id": s.get("id"),
+                        "section_grid_row": s.get("grid_row", 1),
+                        "section_grid_col": s.get("grid_col", 1),
+                        "tab_name": tab_name,
+                        "vid": vt_val,
+                        "show_vid": vt_val if form == "show" else None,
+                        "edit_vid": vt_val if form == "edit" else None,
+                        "limit": e.get("limit"),
+                        "row": e.get("row", 1),
+                        "column": e.get("column", 1),
+                        "show_label": e.get("show_label", True),
+                        "attribute_or_relation_type": art,
+                        "nl_sentence_eid": int(key) if kind == "nlsentence" and str(key).isdigit() else None,
+                        "nl_sentence_title": e.get("label") if kind == "nlsentence" else None,
+                        "name": key,
+                    })
+
+        for vt, form in (("show", "show"), ("edit", "edit")):
+            cfg = configs.get(f"{model_name}:{vt}")
+            if not cfg:
+                continue
+            _emit(cfg.get("sections", []), form, None)
+            for tab in cfg.get("tabs", []) or []:
+                _emit(tab.get("sections", []), form, tab.get("name"))
+
+        return rows
 
     # --- Dashboard configuration (config/views_configuration.json) ---
     _VIEWS_CONFIG_FILE = _Path("config") / "views_configuration.json"
