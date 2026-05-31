@@ -358,7 +358,8 @@ function useJourneyMenuItems() {
 function injectJourneyMenuItems(items, byModule) {
   if (!byModule || Object.keys(byModule).length === 0) return items;
   const moduleNameOf = (item) => {
-    const key = String(item?.key ?? item?.name ?? "");
+    let key = String(item?.key ?? item?.name ?? "");
+    if (key.startsWith("/")) key = key.slice(1);
     if (key.startsWith("module:")) return key.slice("module:".length);
     if (byModule[key]) return key;
     return null;

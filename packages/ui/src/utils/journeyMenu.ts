@@ -55,7 +55,9 @@ export function injectJourneyMenuItems<T extends { key?: string; name?: string; 
     if (!byModule || Object.keys(byModule).length === 0) return items;
 
     const moduleNameOf = (item: any): string | null => {
-        const key = String(item?.key ?? item?.name ?? "");
+        let key = String(item?.key ?? item?.name ?? "");
+        // Refine's useMenu keys items with a leading slash (e.g. "/module:identity").
+        if (key.startsWith("/")) key = key.slice(1);
         if (key.startsWith("module:")) return key.slice("module:".length);
         // Some menus key module groups by the bare module name.
         if (byModule[key]) return key;
