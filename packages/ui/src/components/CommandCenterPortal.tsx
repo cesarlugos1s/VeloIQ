@@ -12,6 +12,7 @@ import {
 import * as AntDIcons from "@ant-design/icons";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
+import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 import { getModelTone, getContrastingTextColor } from "../utils/modelTone";
 import { useRecordSearch } from "../hooks/useRecordSearch";
 import type { ModelSearchResult } from "../hooks/useRecordSearch";
@@ -150,7 +151,14 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
     onClose,
     navConfig = [],
 }) => {
-    const { menuItems } = useMenu();
+    const { menuItems: rawMenuItems } = useMenu();
+    const journeysByModule = useJourneyMenuItems();
+    // Inject journeys under their module so they appear in the command center
+    // alongside modules and their models.
+    const menuItems = useMemo(
+        () => injectJourneyMenuItems(rawMenuItems, journeysByModule),
+        [rawMenuItems, journeysByModule],
+    );
     const go = useGo();
     const searchRef = useRef<any>(null);
     const [query, setQuery] = useState("");

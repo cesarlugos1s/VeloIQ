@@ -48,15 +48,33 @@ export function useJourneyMenuItems(): JourneyMenuMap {
  * Inject journey menu items as children of their module's menu entry.
  * Modules are matched by the `module:{moduleName}` key convention.
  */
-export function injectJourneyMenuItems(items: any[], byModule: JourneyMenuMap): any[] {
+export function injectJourneyMenuItems<T extends { key?: string; name?: string; children?: any[] }>(
+    items: T[],
+    byModule: JourneyMenuMap,
+): T[] {
     if (!byModule || Object.keys(byModule).length === 0) return items;
-    return items.map((item) => {
-        const key = String(item?.key || "");
-        if (!key.startsWith("module:")) return item;
-        const moduleName = key.slice("module:".length);
-        const extra = byModule[moduleName];
-        if (!extra || extra.length === 0) return item;
-        // Journeys appear BEFORE the module's model entries.
-        return { ...item, children: [...extra, ...(item.children || [])] };
+
+    const moduleNameOf = (item: any): string | null => {
+        const key = String(item?.key ?? item?.name ?? "");
+        if (key.startsWith("module:")) return key.slice("module:".length);
+        // Some menus key module groups by the bare module name.
+        if (byModule[key]) return key;
+        return null;
+    };
+
+    const walk = (list: any[]): any[] => list.map((item) => {
+        const childrenWalked = Array.isArray(item?.children) && item.children.length
+            ? walk(item.children)
+            : item?.children;
+        const moduleName = moduleNameOf(item);
+        const extra = moduleName ? byModule[moduleName] : undefined;
+        if (extra && extra.length) {
+            // Journeys appear BEFORE the module's model entries.
+            return { ...item, children: [...extra, ...(childrenWalked || [])] };
+        }
+        if (childrenWalked !== item?.children) return { ...item, children: childrenWalked };
+        return item;
     });
+
+    return walk(items) as T[];
 }
