@@ -5,10 +5,12 @@ import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon } from "../utils/navConfig";
+import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 
 export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig = [] }) => {
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
+    const journeysByModule = useJourneyMenuItems();
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -69,7 +71,7 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
         });
     };
 
-    const items = transformItems(menuItems);
+    const items = transformItems(injectJourneyMenuItems(menuItems, journeysByModule));
 
     return (
         <Menu

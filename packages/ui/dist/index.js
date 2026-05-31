@@ -309,9 +309,67 @@ function sortItemsByNavConfig(items, navConfig) {
     return aSeq - bSeq;
   });
 }
+
+// src/utils/authenticatedFetch.ts
+var TOKEN_KEY = "jm_access_token";
+var authenticatedFetch = (url, options = {}) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = {
+    ...options.headers
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return fetch(url, { ...options, headers });
+};
+
+// src/utils/journeyMenu.ts
+var API_URL = "/api";
+function useJourneyMenuItems() {
+  const [byModule, setByModule] = React5.useState({});
+  React5.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      var _a;
+      try {
+        const res = await authenticatedFetch(`${API_URL}/journeys?_start=0&_end=200`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data?.data ?? [];
+        const map = {};
+        for (const j of list) {
+          if (!j?.module || !j?.journey_id) continue;
+          (map[_a = j.module] ?? (map[_a] = [])).push({
+            key: `journey:${j.journey_id}`,
+            label: j.name || j.journey_id,
+            route: `/journey-run/${j.journey_id}`
+          });
+        }
+        if (!cancelled) setByModule(map);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return byModule;
+}
+function injectJourneyMenuItems(items, byModule) {
+  if (!byModule || Object.keys(byModule).length === 0) return items;
+  return items.map((item) => {
+    const key = String(item?.key || "");
+    if (!key.startsWith("module:")) return item;
+    const moduleName = key.slice("module:".length);
+    const extra = byModule[moduleName];
+    if (!extra || extra.length === 0) return item;
+    return { ...item, children: [...item.children || [], ...extra] };
+  });
+}
 var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
+  const journeysByModule = useJourneyMenuItems();
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -363,7 +421,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
       };
     });
   };
-  const items = transformItems(menuItems);
+  const items = transformItems(injectJourneyMenuItems(menuItems, journeysByModule));
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Menu,
     {
@@ -383,6 +441,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { mode } = React5.useContext(ColorModeContext);
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
+  const journeysByModule = useJourneyMenuItems();
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -438,7 +497,11 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
     [menuItems, navConfig]
   );
-  const items = React5.useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
+  const withJourneys = React5.useMemo(
+    () => injectJourneyMenuItems(sortedMenuItems, journeysByModule),
+    [sortedMenuItems, journeysByModule]
+  );
+  const items = React5.useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Layout.Sider,
     {
@@ -522,21 +585,8 @@ var AllModelsProvider = ({
 }) => /* @__PURE__ */ jsxRuntime.jsx(AllModelsContext.Provider, { value: models, children });
 var useAllModels = () => React5.useContext(AllModelsContext);
 
-// src/utils/authenticatedFetch.ts
-var TOKEN_KEY = "jm_access_token";
-var authenticatedFetch = (url, options = {}) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  const headers = {
-    ...options.headers
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return fetch(url, { ...options, headers });
-};
-
 // src/hooks/useRecordSearch.ts
-var API_URL = "/api";
+var API_URL2 = "/api";
 function useRecordSearch() {
   const allSystemModels = useAllModels();
   const [searchConfig, setSearchConfig] = React5.useState(null);
@@ -545,7 +595,7 @@ function useRecordSearch() {
   const debounceRef = React5.useRef(null);
   const abortRef = React5.useRef(null);
   React5.useEffect(() => {
-    authenticatedFetch(`${API_URL}/config/search`).then((r) => {
+    authenticatedFetch(`${API_URL2}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((d) => setSearchConfig(d)).catch(() => {
@@ -603,7 +653,7 @@ function useRecordSearch() {
           const fetches = searchableModels.slice(0, 8).map(async (m) => {
             try {
               const fieldFetches = m.searchFields.map(async (field) => {
-                const url = `${API_URL}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
+                const url = `${API_URL2}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
                 const resp = await authenticatedFetch(url, { signal: controller.signal });
                 if (!resp.ok) return [];
                 const data = await resp.json();
@@ -772,7 +822,7 @@ var GlobalSearch = () => {
 };
 
 // src/providers/constants.ts
-var API_URL2 = "/api";
+var API_URL3 = "/api";
 
 // src/pages/dashboard/hooks/useRecentActivity.ts
 function useRecentActivity(days) {
@@ -782,7 +832,7 @@ function useRecentActivity(days) {
     setLoading(true);
     try {
       const params = days !== void 0 ? `?days=${days}` : "";
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/recent-activity${params}`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
       if (res.ok) setData(await res.json());
     } catch {
     } finally {
@@ -825,7 +875,7 @@ function usePinnedGroups() {
   const load = React5.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
       if (res.ok) {
         const d = await res.json();
         setGroups(d.groups ?? []);
@@ -1495,7 +1545,7 @@ var CommandCenterPortal = ({
     }
   ) });
 };
-var API_URL3 = "/api";
+var API_URL4 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
@@ -1568,7 +1618,7 @@ var LayoutWrapper = ({
   const handleChangePassword = async (values) => {
     setPwdLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL3}/auth/change-password`, {
+      const res = await authenticatedFetch(`${API_URL4}/auth/change-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
@@ -7632,7 +7682,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
-      `${API_URL2}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
     ).then((r) => r.json()).then((d) => {
       if (!cancelled) setPinned(Boolean(d.pinned));
     }).catch(() => {
@@ -7646,7 +7696,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
-      await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`, {
+      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resource, record_id: String(recordId) })
@@ -7661,7 +7711,7 @@ function usePinRecord(resource, recordId) {
     setLoading(true);
     try {
       await authenticatedFetch(
-        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
         { method: "DELETE" }
       );
       setPinned(false);
@@ -7676,7 +7726,7 @@ async function unpinRecords(resource, recordIds) {
   await Promise.all(
     recordIds.map(
       (id) => authenticatedFetch(
-        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
         { method: "DELETE" }
       )
     )
@@ -20788,7 +20838,7 @@ function usePinnedRecords() {
   const load = React5.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups ?? []);
@@ -21136,7 +21186,7 @@ var authSystemModels = [
   }
 ];
 
-exports.API_URL = API_URL2;
+exports.API_URL = API_URL3;
 exports.AllModelsProvider = AllModelsProvider;
 exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;

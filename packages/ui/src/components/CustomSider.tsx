@@ -6,6 +6,7 @@ import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
+import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 
 const API_URL = "/api";
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
@@ -20,6 +21,7 @@ export const CustomSider: React.FC<{
     const { mode } = useContext(ColorModeContext);
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
+    const journeysByModule = useJourneyMenuItems();
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -85,8 +87,13 @@ export const CustomSider: React.FC<{
         () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
         [menuItems, navConfig],
     );
+    // Inject journey entries under their module before transforming.
+    const withJourneys = useMemo(
+        () => injectJourneyMenuItems(sortedMenuItems, journeysByModule),
+        [sortedMenuItems, journeysByModule],
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const items = useMemo(() => transformItems(sortedMenuItems), [sortedMenuItems, mode, navConfig]);
+    const items = useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
     return (
         <Layout.Sider
             width={280} // Slightly wider to fit the name nicely
