@@ -56,6 +56,7 @@ export function injectJourneyMenuItems(items: any[], byModule: JourneyMenuMap): 
         const moduleName = key.slice("module:".length);
         const extra = byModule[moduleName];
         if (!extra || extra.length === 0) return item;
-        return { ...item, children: [...(item.children || []), ...extra] };
+        // Journeys appear BEFORE the module's model entries.
+        return { ...item, children: [...extra, ...(item.children || [])] };
     });
 }
