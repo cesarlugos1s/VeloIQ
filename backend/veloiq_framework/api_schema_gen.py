@@ -1108,6 +1108,10 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             icon = item.get("icon")
             if icon:
                 icon_names.add(icon)
+            # Grouped items are nested under a single "Configurations" submenu
+            # whose parent uses the SettingOutlined icon.
+            if item.get("group"):
+                icon_names.add("SettingOutlined")
             menu_entries.append(item)
 
     # ── Emit extensions.gen.tsx ───────────────────────────────────────────────
@@ -1139,19 +1143,58 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     lines += [
         "];",
         "",
-        "export interface ExtensionUserMenuItem { key: string; label: string; icon?: React.ReactNode; onClick: () => void; }",
+        ("export interface ExtensionUserMenuItem { key: string; label: string; "
+         "icon?: React.ReactNode; onClick?: () => void; type?: \"group\"; "
+         "children?: ExtensionUserMenuItem[]; }"),
         "export const extensionUserMenuItems: ExtensionUserMenuItem[] = [",
     ]
-    for item in menu_entries:
-        key = item["key"]
-        label = item["label"].replace('"', '\\"')
-        route = item["route"]
-        icon = item.get("icon")
+
+    def _menu_leaf_ts(menu_item: dict) -> str:
+        key = menu_item["key"]
+        label = menu_item["label"].replace('"', '\\"')
+        route = menu_item["route"]
+        icon = menu_item.get("icon")
         icon_expr = f"createElement({icon})" if icon else "undefined"
-        lines.append(
-            f'  {{ key: "{key}", label: "{label}", icon: {icon_expr}, '
-            f'onClick: () => {{ window.location.assign("{route}"); }} }},'
+        return (
+            f'{{ key: "{key}", label: "{label}", icon: {icon_expr}, '
+            f'onClick: () => {{ window.location.assign("{route}"); }} }}'
         )
+
+    ungrouped_items = [it for it in menu_entries if not it.get("group")]
+    grouped_items = [it for it in menu_entries if it.get("group")]
+
+    # Items without a group stay at the top level of the user dropdown.
+    for item in ungrouped_items:
+        lines.append(f'  {_menu_leaf_ts(item)},')
+
+    # Grouped items are bucketed (preserving first-seen order) into Ant
+    # ``type: "group"`` sections nested inside a single "Configurations" submenu.
+    if grouped_items:
+        group_order: list[str] = []
+        groups: dict[str, list[dict]] = {}
+        for it in grouped_items:
+            grp = it["group"]
+            if grp not in groups:
+                groups[grp] = []
+                group_order.append(grp)
+            groups[grp].append(it)
+
+        lines.append(
+            '  { key: "configurations", label: "Configurations", '
+            'icon: createElement(SettingOutlined), children: ['
+        )
+        for grp in group_order:
+            grp_label = grp.replace('"', '\\"')
+            grp_slug = re.sub(r'[^a-z0-9]+', '-', grp.lower()).strip('-')
+            lines.append(
+                f'    {{ key: "cfg-group-{grp_slug}", type: "group", '
+                f'label: "{grp_label}", children: ['
+            )
+            for item in groups[grp]:
+                lines.append(f'      {_menu_leaf_ts(item)},')
+            lines.append('    ] },')
+        lines.append('  ] },')
+
     lines += ["];", ""]
 
     # Per-resource Show-page overrides → map consumed by the host App.tsx.
