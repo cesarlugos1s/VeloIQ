@@ -34,3 +34,6 @@ backend/tests/results.xml
 backend/tests/results.html
 /tests/results.html
 /tests/results.xml
+
+# NLP engine output (DataFrame records of generated query results)
+jm_knowledge_datalake/
