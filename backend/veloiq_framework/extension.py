@@ -98,6 +98,21 @@ class VeloIQExtension:
     #:     }
     user_menu_items: list = []
 
+    #: Per-resource Show-page overrides.  Each entry replaces the host app's
+    #: default ``DynamicShow`` for one resource with a custom component::
+    #:
+    #:     {
+    #:         "resource": "cw_nlchat",        # Refine resource name (= model.resource)
+    #:         "component": "NLChatShow",      # import name used internally
+    #:         "source": "NLChatShow.tsx",     # file under frontend_components_dir
+    #:         "export": "NLChatShow",         # "default" or a named export
+    #:     }
+    #:
+    #: ``veloiq generate`` emits these as an ``extensionShowComponents`` map in
+    #: ``extensions.gen.tsx`` keyed by resource; the host App.tsx renders the
+    #: mapped component at ``/{resource}/show/:id`` instead of ``DynamicShow``.
+    show_overrides: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:

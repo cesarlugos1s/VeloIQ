@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { Refine, Authenticated } from "@refinedev/core";
 import { notificationProvider } from "@refinedev/antd";
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
@@ -29,12 +30,23 @@ import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
-import { extensionRoutes, extensionUserMenuItems } from "./extensions.gen";
+import { extensionRoutes, extensionUserMenuItems, extensionShowComponents } from "./extensions.gen";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
-const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => (
-    <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />
-);
+const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {
+    const Override = extensionShowComponents[(model as any).resource || model.name];
+    return Override
+        ? createElement(Override, { idOverride: String(id) })
+        : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;
+};
+
+// Render the Show page for a model, honoring extension-supplied overrides.
+const renderShow = (model: any, models: any[]) => {
+    const Override = extensionShowComponents[(model as any).resource || model.name];
+    return Override
+        ? createElement(Override)
+        : <DynamicShow model={model} allModels={models} />;
+};
 
 const queryClient = new QueryClient();
 
@@ -93,7 +105,7 @@ export default function App() {
                                                 <Route path="edit/:id" element={<DynamicEdit model={model} allModels={allModels} />} />
                                                 <Route path="show/:id" element={
                                                     <MultiPaneLayout>
-                                                        <DynamicShow model={model} allModels={allModels} />
+                                                        {renderShow(model, allModels)}
                                                     </MultiPaneLayout>
                                                 } />
                                             </Route>

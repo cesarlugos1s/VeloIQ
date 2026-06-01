@@ -1051,6 +1051,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     # (import_name, import_path, export) tuples for the generated imports.
     imports: list[tuple[str, str, str]] = []
     route_entries: list[tuple[str, str]] = []   # (path, import_name)
+    show_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
     menu_entries: list[dict] = []
     icon_names: set[str] = set()
 
@@ -1084,6 +1085,22 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             imports.append((import_name, import_path, export))
             route_entries.append((path, import_name))
 
+        # Show-page overrides → imports + (resource → component) entries.
+        for override in (getattr(ext, "show_overrides", None) or []):
+            resource = override.get("resource")
+            component = override.get("component")
+            source = override.get("source", "")
+            export = override.get("export", "default")
+            if not resource or not component or not source:
+                continue
+            mod_rel = source[:-4] if source.endswith(".tsx") else (
+                source[:-3] if source.endswith(".ts") else source
+            )
+            import_path = f"./pages/{ext.name}/{mod_rel}"
+            import_name = f"{ext.name}_{component}"
+            imports.append((import_name, import_path, export))
+            show_override_entries.append((resource, import_name))
+
         # User-menu items.
         for item in (getattr(ext, "user_menu_items", None) or []):
             if not item.get("key") or not item.get("route"):
@@ -1102,7 +1119,11 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     if icon_names:
         icon_import = ", ".join(sorted(icon_names))
         lines.append(f'import {{ {icon_import} }} from "@ant-design/icons";')
+    seen_imports: set[str] = set()
     for import_name, import_path, export in imports:
+        if import_name in seen_imports:
+            continue
+        seen_imports.add(import_name)
         if export == "default":
             lines.append(f'import {import_name} from "{import_path}";')
         else:
@@ -1133,9 +1154,22 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         )
     lines += ["];", ""]
 
+    # Per-resource Show-page overrides → map consumed by the host App.tsx.
+    lines += [
+        "// Resource → custom Show component. The host App.tsx renders the mapped",
+        "// component at /{resource}/show/:id instead of the default DynamicShow.",
+        "export const extensionShowComponents: Record<string, React.ComponentType<any>> = {",
+    ]
+    for resource, import_name in show_override_entries:
+        lines.append(f'  "{resource}": {import_name},')
+    lines += ["};", ""]
+
     out_file = frontend_src / "extensions.gen.tsx"
     out_file.write_text("\n".join(lines))
-    print(f"  📦 extensions.gen.tsx updated ({len(route_entries)} route(s), {len(menu_entries)} menu item(s))")
+    print(
+        f"  📦 extensions.gen.tsx updated ({len(route_entries)} route(s), "
+        f"{len(menu_entries)} menu item(s), {len(show_override_entries)} show override(s))"
+    )
 
 
 def _guess_modules_dir(cwd: Path) -> Path:
