@@ -118,6 +118,13 @@ class VeloIQConfig:
         in ("1", "true")
     )
 
+    # ── Extensions (explicit per-app opt-in) ──────────────────────────────────
+    # Allowlist of extension (entry-point) names this app loads. ``None`` means
+    # "resolve from the environment": the ``VELOIQ_EXTENSIONS`` env var, else the
+    # ``[extensions].enabled`` list in the project's ``veloiq.toml``, else none.
+    # Pass an explicit list (including ``[]``) to override that resolution.
+    extensions: list[str] | None = None
+
     def __post_init__(self) -> None:
         self.modules_dir = Path(self.modules_dir)
         if self.static_dir is not None:

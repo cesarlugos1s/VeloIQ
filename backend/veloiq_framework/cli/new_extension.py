@@ -83,7 +83,8 @@ def new_extension(name: str, title: str, output_dir: str) -> None:
     click.echo(f"  cd {root}/backend")
     click.echo(f"  pip install -e .")
     click.echo(f"  # Add your modules under backend/{pkg_name}/modules/")
-    click.echo(f"  # Run 'veloiq generate' from your host app to pick up the extension")
+    click.echo(f"  # In your host app, enable it:  veloiq extend-package {pkg_name}")
+    click.echo(f"  # Then run 'veloiq generate' from the host app to pick up the extension")
     click.echo(f"  # Generate license keys: cd {root}/licensing && python generate_license.py keygen")
 
 
@@ -329,11 +330,13 @@ A VeloIQ extension package.
 pip install {pkg}
 ```
 
-After installing, regenerate the host app schemas:
+After installing, enable the extension for your host app and regenerate schemas:
 
 ```bash
 cd your-host-app
-veloiq generate
+veloiq extend-package {pkg}   # opt in (writes veloiq.toml)
+veloiq generate               # sync schemas/menus
+# restart the backend so the extension's modules load
 ```
 
 ## Development

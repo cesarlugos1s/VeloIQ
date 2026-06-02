@@ -64,6 +64,13 @@ class ModuleInfo:
 
 
 @dataclass
+class ExtInfo:
+    name: str
+    installed: bool = False   # entry point present in this venv
+    enabled: bool = False     # listed in the app's veloiq.toml
+
+
+@dataclass
 class AppData:
     name: str
     root: Path
@@ -73,6 +80,7 @@ class AppData:
     db_url_sanitized: str = "(not configured)"
     auth_disabled: bool = False
     generate_run: bool = False
+    extensions: list[ExtInfo] = field(default_factory=list)
 
     @property
     def all_models(self) -> list[ModelInfo]:
@@ -136,6 +144,22 @@ def _load_app_data(root: Path) -> AppData:
                 data.auth_disabled = True
         except Exception:
             pass
+
+    # Extensions: installed (entry points) vs. enabled (veloiq.toml at root).
+    try:
+        from veloiq_framework.extension_registry import (
+            installed_extensions,
+            read_enabled_extensions,
+        )
+        installed = installed_extensions()
+        enabled = read_enabled_extensions(root)
+        names = sorted({*installed, *enabled})
+        data.extensions = [
+            ExtInfo(name=n, installed=(n in installed), enabled=(n in enabled))
+            for n in names
+        ]
+    except Exception:
+        data.extensions = []
 
     modules_dir = root / "backend" / "app" / "modules"
     pages_dir = frontend_src / "pages"
@@ -371,6 +395,8 @@ class Explorer:
             self._draw_model_detail(stdscr, max_y, max_x)
         elif screen == "search":
             self._draw_search(stdscr, max_y, max_x)
+        elif screen == "extensions":
+            self._draw_extensions(stdscr, max_y, max_x)
 
     # ── Home ──────────────────────────────────────────────────────────────────
 
@@ -402,6 +428,8 @@ class Explorer:
         kv("Dashboard", f"{dash_n} model(s) configured")
         srch_n = sum(1 for m in d.all_models if m.in_search)
         kv("Search", f"{srch_n} model(s) · {len(d.search_fields)} field(s)")
+        ext_on = sum(1 for e in d.extensions if e.enabled)
+        kv("Extensions", f"{ext_on} enabled · {len(d.extensions)} installed")
 
         if not d.generate_run:
             r += 1
@@ -417,6 +445,7 @@ class Explorer:
         menu = [
             ("1", "Browse Modules & Models"),
             ("2", "Search Configuration"),
+            ("3", "Manage Extensions"),
             ("g", "Run: veloiq generate"),
             ("q", "Quit"),
         ]
@@ -429,6 +458,55 @@ class Explorer:
 
         self._w(stdscr, max_y - 1, 0,
                 "  ↑↓ / jk  navigate    Enter  select    q  quit",
+                curses.color_pair(_C_WARN))
+
+    # ── Extensions ────────────────────────────────────────────────────────────
+
+    def _draw_extensions(self, stdscr, max_y, max_x):
+        d = self.data
+        f = self._f
+        r = 2
+        self._w(stdscr, r, 2, "Extensions  (veloiq.toml — explicit opt-in)",
+                curses.color_pair(_C_TTL) | curses.A_BOLD)
+        r += 1
+        self._divider(stdscr, r, max_x)
+        r += 1
+
+        if not d.extensions:
+            self._w(stdscr, r, 4,
+                    "(no VeloIQ extensions installed in this environment)", curses.A_DIM)
+            self._w(stdscr, max_y - 1, 0,
+                    "  pip install an extension, then it appears here    b  back    q  quit",
+                    curses.color_pair(_C_WARN))
+            return
+
+        list_start = r
+        list_h = max_y - list_start - 1
+        if f.cursor < f.scroll:
+            f.scroll = f.cursor
+        elif f.cursor >= f.scroll + list_h:
+            f.scroll = f.cursor - list_h + 1
+
+        for i in range(list_h):
+            idx = f.scroll + i
+            if idx >= len(d.extensions):
+                break
+            ext    = d.extensions[idx]
+            is_sel = idx == f.cursor
+            attr   = curses.color_pair(_C_SEL) if is_sel else 0
+            prefix = " ► " if is_sel else "   "
+            if ext.enabled and ext.installed:
+                state, s_attr = "✓ enabled ", curses.color_pair(_C_OK) | curses.A_BOLD
+            elif ext.installed:
+                state, s_attr = "✗ disabled", curses.color_pair(_C_ERR)
+            else:
+                state, s_attr = "! missing ", curses.color_pair(_C_WARN)
+            self._w(stdscr, list_start + i, 2, f"{prefix}{ext.name:<24}", attr)
+            if not is_sel:
+                self._w(stdscr, list_start + i, 2 + len(prefix) + 24, state, s_attr)
+
+        self._w(stdscr, max_y - 1, 0,
+                "  ↑↓ / jk  navigate    Enter/e  toggle    g  generate    b  back    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Module list ───────────────────────────────────────────────────────────
@@ -708,6 +786,8 @@ class Explorer:
             return self._handle_model(key, stdscr, max_y, max_x)
         if screen == "search":
             return self._handle_search(key, stdscr, max_y, max_x)
+        if screen == "extensions":
+            return self._handle_extensions(key, stdscr, max_y, max_x)
         return None
 
     def _move_cursor(self, f: _Frame, n: int, key: int) -> None:
@@ -724,7 +804,7 @@ class Explorer:
 
     def _handle_home(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
-        self._move_cursor(f, 4, key)
+        self._move_cursor(f, 5, key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if f.cursor == 0:
@@ -732,14 +812,40 @@ class Explorer:
             elif f.cursor == 1:
                 self.nav.append(_Frame("search"))
             elif f.cursor == 2:
+                self.nav.append(_Frame("extensions"))
+            elif f.cursor == 3:
                 if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                     return "veloiq generate"
-            elif f.cursor == 3:
+            elif f.cursor == 4:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
         elif key == ord('2'):
             self.nav.append(_Frame("search"))
+        elif key == ord('3'):
+            self.nav.append(_Frame("extensions"))
+        elif key == ord('g'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
+                return "veloiq generate"
+        return None
+
+    def _handle_extensions(self, key, stdscr, max_y, max_x) -> Optional[str]:
+        f = self._f
+        exts = self.data.extensions
+        self._move_cursor(f, len(exts), key)
+        if not exts:
+            return None
+        ext = exts[f.cursor]
+
+        if key in (curses.KEY_ENTER, ord('\n'), ord('\r'), ord('e')):
+            if ext.enabled:
+                cmd = f"veloiq remove-package {ext.name}"
+            elif ext.installed:
+                cmd = f"veloiq extend-package {ext.name}"
+            else:
+                return None  # enabled-but-not-installed: nothing to toggle on
+            if self._confirm(stdscr, max_y, max_x, cmd):
+                return cmd
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"

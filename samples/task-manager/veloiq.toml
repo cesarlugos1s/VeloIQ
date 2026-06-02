@@ -1,0 +1,12 @@
+# VeloIQ project configuration.
+#
+# Extensions explicitly enabled for THIS app. Only the extensions listed here
+# load — at startup and during `veloiq generate` — regardless of what is
+# pip-installed in the virtualenv. The task-manager sample uses none.
+#
+# Manage with:
+#   veloiq extend-package <name>     veloiq remove-package <name>
+#   veloiq list-extensions
+
+[extensions]
+enabled = []

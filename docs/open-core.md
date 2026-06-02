@@ -33,12 +33,19 @@ Pro features are distributed as pip-installable **extension packages** rather th
 as monolithic framework additions.  Each extension:
 
 - Declares itself to the framework via a `veloiq.extensions` Python entry point
-- Ships its own backend modules (loaded automatically alongside the host app's modules)
+- Ships its own backend modules (loaded alongside the host app's modules **once the host enables the extension**)
 - Ships frontend schema files (copied into the host app by `veloiq generate`)
 - Manages its own licensing through a bundled license module with RS256 JWT enforcement
 - Optionally ships pre-built React bundles for genuinely custom UX, served at `/ext/{name}/`
 
-The host app is unmodified — installing an extension and running `veloiq generate` is all that is required.
+**Explicit opt-in.** Installing an extension into the virtualenv does **not** load
+it automatically — that would leak an extension into every app sharing the venv.
+A host app loads only the extensions it lists in its `veloiq.toml`
+(`[extensions].enabled`). Enable one with `veloiq extend-package <name>`, disable
+with `veloiq remove-package <name>`, and inspect installed-vs-enabled with
+`veloiq list-extensions`. With no `veloiq.toml` (and no `VELOIQ_EXTENSIONS`
+override), no extensions load. The same allowlist gates both app startup and
+`veloiq generate`, so runtime and generated frontend never diverge.
 
 ### Third-party extensions
 
@@ -58,7 +65,14 @@ pip install vigilantiq    # Personalization + Natural Language
 pip install vantageiq     # Benefit Realization Management
 ```
 
-After installation, run `veloiq generate` from the host app to sync schemas.
+After installation, enable the extension for the host app and sync its schemas:
+
+```bash
+veloiq extend-package vigilantiq   # adds it to the app's veloiq.toml
+veloiq generate                    # sync schemas/menus into the frontend
+# then restart the backend so its modules load
+```
+
 Each package manages its own license keys through its own License Management page.
 
 ### VigilantIQ (`pip install vigilantiq`)

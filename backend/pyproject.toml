@@ -37,6 +37,7 @@ dependencies = [
     "click>=8.0",
     "python-dotenv>=1.0",
     "typing-extensions>=4.9",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 # ── Project URLs ──────────────────────────────────────────────────────────────

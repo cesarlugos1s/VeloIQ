@@ -83,8 +83,15 @@ def create_veloiq_app(
     engine = create_engine(cfg.database_url, **engine_kwargs)
     _set_engine(engine)
 
-    # ── Discover extensions (entry points) ───────────────────────────────────
-    extensions = discover_extensions()
+    # ── Discover extensions (explicit per-app opt-in) ─────────────────────────
+    # An installed extension loads only if this app enables it — via
+    # cfg.extensions, the VELOIQ_EXTENSIONS env var, or veloiq.toml. With none
+    # of those configured, no extensions load (strict default).
+    from veloiq_framework.extension_registry import read_enabled_extensions
+    enabled_extensions = (
+        cfg.extensions if cfg.extensions is not None else read_enabled_extensions()
+    )
+    extensions = discover_extensions(enabled_extensions)
 
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager

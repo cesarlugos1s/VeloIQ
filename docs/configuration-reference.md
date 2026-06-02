@@ -50,6 +50,40 @@ app = create_veloiq_app()
 | `title` | — | `"VeloIQ App"` | FastAPI app title, shown in `/docs`. |
 | `modules_dir` | `VELOIQ_MODULES_DIR` | `"app/modules"` | Path to the modules directory, relative to the working directory. |
 | `static_dir` | — | `None` | Directory to mount at `/static`. |
+| `extensions` | `VELOIQ_EXTENSIONS` | `None` → resolves from `veloiq.toml` | Allowlist of extension (entry-point) names this app loads. See **Extensions** below. |
+
+### Extensions (explicit opt-in)
+
+A VeloIQ extension (e.g. `vigilantiq`) declares a `veloiq.extensions` entry
+point, which makes it discoverable to *every* app in the same virtualenv. To
+keep each app's surface explicit, an app loads **only** the extensions it opts
+into — it does not auto-load whatever is pip-installed.
+
+The enabled list is resolved with this precedence:
+
+1. `VeloIQConfig(extensions=[...])` passed in code (an explicit list, including `[]`, wins).
+2. `VELOIQ_EXTENSIONS` env var (comma-separated).
+3. `[extensions].enabled` in the project's `veloiq.toml` (at the app root).
+4. Empty — **no extensions load** (strict default).
+
+`veloiq.toml` lives at the project root (next to `backend/` and `frontend/`):
+
+```toml
+[extensions]
+enabled = ["vigilantiq"]
+```
+
+Manage it with the CLI (which edits `veloiq.toml` for you):
+
+```bash
+veloiq extend-package vigilantiq   # enable
+veloiq remove-package vigilantiq   # disable
+veloiq list-extensions             # installed vs. enabled
+```
+
+The same allowlist gates both app startup and `veloiq generate`, so the running
+backend and the generated frontend never disagree about which extensions are
+active. After enabling or disabling, run `veloiq generate` and restart.
 
 ### CORS
 
@@ -205,4 +239,5 @@ AUTH_SECRET=your-secret-key-here
 AUTH_ALGORITHM=HS256
 AUTH_TOKEN_EXPIRE_MINUTES=60
 ECHO_SQL=false
+VELOIQ_EXTENSIONS=vigilantiq   # comma-separated; overrides veloiq.toml (usually unset)
 ```

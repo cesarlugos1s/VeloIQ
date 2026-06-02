@@ -12,8 +12,10 @@ if TYPE_CHECKING:
     from veloiq_framework.extension import VeloIQExtension
 
 
-def discover_extensions() -> list["VeloIQExtension"]:
-    """Return all installed VeloIQ extensions in entry-point declaration order.
+def discover_extensions(
+    enabled: list[str] | None = None,
+) -> list["VeloIQExtension"]:
+    """Return installed VeloIQ extensions in entry-point declaration order.
 
     Each extension must declare a ``veloiq.extensions`` entry point in its
     ``pyproject.toml`` pointing to a :class:`VeloIQExtension` subclass::
@@ -25,6 +27,16 @@ def discover_extensions() -> list["VeloIQExtension"]:
     - A class (subclass of ``VeloIQExtension``) — instantiated with no args.
     - An already-instantiated object — used as-is.
 
+    Parameters
+    ----------
+    enabled:
+        Per-app allowlist of extension (entry-point) names to load. Only
+        extensions whose name appears here are returned; the rest are skipped.
+        ``None`` means *no filtering* (load every installed extension) and is
+        kept for back-compatible direct calls. Callers that want the strict,
+        opt-in behaviour pass the resolved list (possibly empty) from
+        :func:`veloiq_framework.extension_registry.read_enabled_extensions`.
+
     Failed loads are logged and skipped so one broken extension does not
     prevent the entire app from starting.
     """
@@ -34,6 +46,8 @@ def discover_extensions() -> list["VeloIQExtension"]:
     extensions: list[VeloIQExtension] = []
 
     for ep in eps:
+        if enabled is not None and ep.name not in enabled:
+            continue
         try:
             obj = ep.load()
             # Support both class-based and instance-based manifests.

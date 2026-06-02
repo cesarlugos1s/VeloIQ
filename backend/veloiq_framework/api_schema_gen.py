@@ -897,9 +897,14 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
       the extension's modules.
     """
     from veloiq_framework.extensions import discover_extensions
+    from veloiq_framework.extension_registry import read_enabled_extensions
     import shutil
 
-    extensions = discover_extensions()
+    # Only sync schemas for extensions this app has explicitly enabled
+    # (veloiq.toml / VELOIQ_EXTENSIONS) — mirrors the startup opt-in so generate
+    # and runtime never diverge.
+    enabled = read_enabled_extensions(frontend_src)
+    extensions = discover_extensions(enabled)
     if not extensions:
         return
 
