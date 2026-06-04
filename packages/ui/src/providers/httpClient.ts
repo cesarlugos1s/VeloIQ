@@ -18,3 +18,21 @@ httpClient.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Surface the backend's error payload to the UI.  FastAPI returns
+// ``{"detail": "<message>"}`` on 4xx (e.g. validation failures and VigilantIQ
+// business-rule constraint violations).  Refine/antd shows ``error.message`` in
+// the failure notification, which by default is axios's generic
+// "Request failed with status code NNN".  Promote the server-provided detail so
+// the user sees the actual message (e.g. a constraint rule's violation text).
+httpClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const detail = error?.response?.data?.detail;
+        if (detail) {
+            error.message =
+                typeof detail === "string" ? detail : JSON.stringify(detail);
+        }
+        return Promise.reject(error);
+    },
+);
