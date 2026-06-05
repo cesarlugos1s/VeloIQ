@@ -35,7 +35,7 @@ export interface FieldDef {
     writeRoles?: string[];
 }
 
-export type RelationViewType = "table" | "editable-table" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
 
 export interface MillerLeafConfig {
     relationPath: string;

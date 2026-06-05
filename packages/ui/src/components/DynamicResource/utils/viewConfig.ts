@@ -414,6 +414,8 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
         .replace(/view$/, "");
     if (normalized === "table") return "table";
     if (normalized === "editabletable" || normalized === "editable") return "editable-table";
+    if (normalized === "crosstab") return "crosstab";
+    if (normalized === "editablecrosstab") return "editable-crosstab";
     if (normalized === "editablelist") return "editable-list";
     if (normalized === "list") return "list";
     if (normalized === "csv") return "csv";
