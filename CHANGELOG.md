@@ -4,6 +4,73 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.6.0] — 2026-06-05
+
+### Features
+
+#### Modular Extension Architecture
+Pip-installable extension packages can now add modules, schemas, frontend pages,
+and licensing to any host app **without modifying the host app's code**.
+
+- `VeloIQExtension` base class + `veloiq.extensions` entry-point discovery — an
+  extension declares itself in `pyproject.toml` and is loaded at app startup
+- `veloiq new-extension <name>` scaffolds a complete extension package; each
+  extension ships its own license module (RS256 JWT enforcement with grace period)
+- `veloiq add-licensing` scaffolds license enforcement into a host app's own modules
+- **Explicit per-app opt-in** via `veloiq.toml` `[extensions] enabled = [...]` —
+  only listed extensions load, at both startup and `veloiq generate`, regardless
+  of what is pip-installed. Manage with `veloiq extend-package` / `list-extensions`
+- Extension frontend delivery: `veloiq generate` copies extension routes, page
+  components, and user-menu items into the host app (`extensions.gen.tsx`)
+- Per-resource Show-page overrides — extensions can replace `DynamicShow` for a
+  specific resource via a generated `extensionShowComponents` map
+- Extension user-menu items are grouped into a **Configurations** submenu
+
+#### Journeys in Navigation & Command Center
+- Journeys are auto-listed under their owning module in the sidebar and top menu,
+  rendered with the Journey Runner icon (`NodeIndexOutlined`)
+- Journeys are injected into the **Command Center** (Ctrl+G) via a recursive,
+  generic injection pass
+
+#### Crosstab View Types
+- New `crosstab` and `editable-crosstab` view types for pivot-style display and
+  inline editing of tabular data
+
+#### Configurable Global View Settings — `veloiq.toml` `[views]`
+- Tune how `DynamicResource` renders list / show / edit pages across the whole
+  app: color schemas, default view types, gallery image sizes, relation row
+  limits, action-button position, and more — served to the frontend via
+  `GET /config/views`. Every key is optional and falls back to framework defaults
+
+#### Frontend Configuration Context
+- `NavConfigContext` exposes the navigation config to any component via
+  `useNavConfig()` / `useNavModules()`
+- Saved page-layout configurations now render in `DynamicShow` / `DynamicEdit`
+
+#### Generator & CLI
+- `veloiq add-module` always scaffolds `custom_api.py` and updates
+  `navigation.config.json`
+- Schema generator auto-discovers FK back-relations
+- `publish-pypi.sh` — version-guarded release script that refuses to publish
+  unless the Python and npm package versions match
+
+### Fixes
+
+- Backend error detail is now surfaced in frontend failure notifications instead
+  of a generic message
+- `DynamicList` reference cells no longer nest `<a>` inside `<a>`
+- License enforcement and navigation config corrected for extension modules
+- `license` field in `pyproject.toml` now uses an SPDX string
+
+### Docs & Website
+
+- New "Upgrading an existing app" guide in `getting-started.md`
+- UI showcase gallery and documentation screenshots added to the website
+- Documented the `crosstab` / `editable-crosstab` view types
+- Scaffolded apps now pin `@juicemantics/veloiq-ui ^0.6.0`
+
+---
+
 ## [0.5.0] — 2026-05-28
 
 ### Features

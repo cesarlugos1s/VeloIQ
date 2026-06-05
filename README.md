@@ -56,12 +56,13 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.5.0
+## What's New in v0.6.0
 
-- **Command Center** (Ctrl+G) — full-screen command palette and cross-model search, keyboard-navigable from anywhere in the app
-- **Page Layout Builder** — drag-and-drop layout configuration for Dashboard, Show, and Edit pages, gated behind a new `CONFIGURE_LAYOUT` permission
-- **Project Explorer TUI** — run `veloiq` bare to inspect all modules, models, fields, relations, and permissions in an interactive terminal UI
-- **Three-file schema overrides** — `veloiq generate` now produces a `.manual.ts` layer per module so your field customizations survive regeneration
+- **Modular extension architecture** — pip-installable extension packages add modules, frontend pages, and licensing to any host app without touching its code; enabled per-app via `veloiq.toml`
+- **Journeys in navigation & Command Center** — journeys auto-list under their module and are searchable from the Ctrl+G palette
+- **Crosstab view types** — new `crosstab` and `editable-crosstab` view types for pivot-style display and inline editing
+- **Configurable global view settings** — tune color schemas, default view types, gallery sizes, and more via `veloiq.toml [views]`
+- **NavConfig context** — `useNavConfig()` / `useNavModules()` expose navigation config to any component
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 

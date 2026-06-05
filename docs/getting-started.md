@@ -18,15 +18,6 @@ pip install veloiq-framework
 veloiq --version
 ```
 
-> **Before PyPI release:** install directly from the source repository using
-> pip's editable mode — the package stays in place and any source changes are
-> reflected immediately:
->
-> ```bash
-> pip install -e /path/to/fastapi_sqladmin_prototype/backend
-> veloiq --version
-> ```
-
 ## Create your first project
 
 ```bash
@@ -238,6 +229,60 @@ The explorer has five screens navigated with arrow keys and letter shortcuts:
 From any screen you can trigger CLI commands directly — `add-dashboard`, `search add-model`, `search add-field`, `generate`, `add-module` — with a Y/N confirmation before anything runs.
 
 If `veloiq generate` has not been run yet, the explorer still loads and shows module and model names, but field and relation details require the generated schemas.
+
+## Upgrading an existing app
+
+When a new framework version ships, `veloiq generate` **alone is not enough** to
+upgrade an app that was scaffolded against an older version. `generate` only
+rewrites auto-generated artifacts (`api.py`, `*.gen.ts`, `allModels.gen.ts`,
+`extensions.gen.tsx`, and the upserted `navigation.config.json`). It does not
+upgrade the installed packages, the host-owned `App.tsx`, or the project's
+`veloiq.toml`. Follow these steps in order:
+
+```bash
+# 1. Upgrade the backend package (provides the veloiq CLI + code generator)
+pip install -U veloiq-framework
+
+# 2. Upgrade the frontend component library, then rebuild
+cd frontend
+npm install @juicemantics/veloiq-ui@latest
+cd ..
+```
+
+3. **Ensure `veloiq.toml` exists at the project root.** Newer versions read
+   enabled extensions and global view settings from this file. Apps created
+   before it was introduced won't have one — extensions stay disabled and the
+   `[views]` settings are ignored until it's present. Create it with:
+
+   ```toml
+   [extensions]
+   enabled = []        # add extension names here, e.g. ["vigilantiq"]
+
+   [views]
+   # optional global UI view settings — see the Configuration Reference
+   ```
+
+   or manage it with `veloiq extend-package <name>` / `veloiq list-extensions`.
+
+4. **Reconcile `App.tsx` if your app predates extension frontend delivery.**
+   `App.tsx` is host-owned and is *never* regenerated. The current scaffold's
+   `App.tsx` imports from `./extensions.gen` and wires up
+   `extensionShowComponents`, `extensionRoutes`, and `extensionUserMenuItems`,
+   plus `NavConfig`. If your `App.tsx` does not already import from
+   `./extensions.gen`, hand-merge those additions from a freshly scaffolded app
+   (`veloiq new _tmp` in a scratch directory) before continuing — otherwise the
+   regenerated `extensions.gen.tsx` is written but nothing consumes it.
+
+```bash
+# 5. Regenerate api.py + frontend schemas + extension schemas
+veloiq generate
+
+# 6. Apply any new migrations (e.g. when enabling extensions or licensing)
+veloiq db upgrade
+```
+
+If your app was scaffolded recently (its `App.tsx` already imports
+`./extensions.gen`), step 4 is a no-op and the upgrade is just steps 1–3, 5, 6.
 
 ## Next steps
 
