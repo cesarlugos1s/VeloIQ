@@ -114,6 +114,61 @@ def read_enabled_extensions(start: Path | str | None = None) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Global UI view settings ([views] table in veloiq.toml)
+# ---------------------------------------------------------------------------
+
+# Maps the snake_case keys a developer writes in the ``[views]`` table of
+# ``veloiq.toml`` to the camelCase keys the frontend ViewSettings consumer
+# (packages/ui DynamicResource) expects, plus a coercer used as a safety net.
+# These knobs were configurable in the original JuiceMantics ``jm_config.ini``
+# ``[views]`` section and are restored here so each host app can tune them.
+_VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
+    "modules_color_schema": ("modulesColorSchema", str),
+    "models_color_schema": ("modelsColorSchema", str),
+    "plain_color_base_hex": ("plainColorBaseHex", str),
+    "show_view_type": ("showViewType", str),
+    "edit_view_type": ("editViewType", str),
+    "list_view_type": ("listViewType", str),
+    "file_list_view_type": ("fileListViewType", str),
+    "gallery_image_width": ("galleryImageWidth", int),
+    "gallery_image_height": ("galleryImageHeight", int),
+    "relations_max_rows_to_load": ("relationsMaxRowsToLoad", int),
+    "max_distinct_column_filter_values_to_ranges": ("maxDistinctColumnFilterValuesToRanges", int),
+    "general_actions_button_position": ("generalActionsButtonPosition", str),
+    "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
+}
+
+
+def read_views_config(start: Path | str | None = None) -> dict:
+    """Return the ``[views]`` table from the nearest ``veloiq.toml``.
+
+    Keys are mapped from the developer-facing snake_case names to the camelCase
+    keys the frontend expects. Only keys actually present in the file are
+    returned, so anything left unset falls back to the frontend's built-in
+    defaults. Missing file / table / parse error → ``{}``.
+    """
+    cfg = find_config_file(start)
+    if cfg is None:
+        return {}
+    try:
+        data = _load_toml(cfg)
+    except Exception:
+        return {}
+    views = data.get("views")
+    if not isinstance(views, dict):
+        return {}
+    out: dict = {}
+    for toml_key, (frontend_key, coerce) in _VIEWS_KEY_MAP.items():
+        if toml_key not in views or views[toml_key] is None:
+            continue
+        try:
+            out[frontend_key] = coerce(views[toml_key])
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Mutating the allowlist (used by the CLI)
 # ---------------------------------------------------------------------------
 

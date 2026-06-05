@@ -85,6 +85,44 @@ The same allowlist gates both app startup and `veloiq generate`, so the running
 backend and the generated frontend never disagree about which extensions are
 active. After enabling or disabling, run `veloiq generate` and restart.
 
+### Global view settings (`[views]`)
+
+The same `veloiq.toml` can carry a `[views]` table that tunes how the frontend
+renders list / show / edit pages across the whole app. The backend serves it at
+`GET /config/views`; the UI applies it in `DynamicResource`. Every key is
+optional — anything you omit falls back to the framework's built-in default, so
+a project with no `[views]` table behaves exactly as before.
+
+```toml
+[views]
+modules_color_schema = "plain-color"   # or "color-coded"
+models_color_schema  = "plain-color"
+plain_color_base_hex = "#c2410c"        # base hue for plain-color; blank = grayscale
+general_actions_button_position = "top-right"   # or "left" / "right"
+relations_max_rows_to_load = 1000
+```
+
+| Key | Default | Description |
+|---|---|---|
+| `modules_color_schema` | `"plain-color"` | `"color-coded"` gives each module its own color; `"plain-color"` uses one light/dark-aware color. |
+| `models_color_schema` | `"plain-color"` | Same options, applied per model. |
+| `plain_color_base_hex` | `""` (grayscale) | Base hex color used when a schema is `"plain-color"`. |
+| `show_view_type` | framework default | Default view type for show forms (`table`, `editable-table`, `list`, `editable-list`, `csv`, `primary`, `gallery`, `calendar`, `totals-details`). |
+| `edit_view_type` | framework default | Default view type for edit forms (same options). |
+| `list_view_type` | framework default | Default view type for list pages. |
+| `file_list_view_type` | framework default | Default view type for file / attachment lists. |
+| `gallery_image_width` | `180` | Width (px) of images in gallery views. |
+| `gallery_image_height` | `140` | Height (px) of images in gallery views. |
+| `relations_max_rows_to_load` | `1000` | Max rows loaded in a relation table, to cap latency on large relations. |
+| `max_distinct_column_filter_values_to_ranges` | `20` | Above this many distinct numeric values, a column filter offers ranges instead of individual values. |
+| `general_actions_button_position` | `"top-right"` | Where general action buttons sit on list / show / edit pages: `"top-right"`, `"left"`, `"right"`. |
+| `add_tabs_for_non_configured_relations` | `true` | When `true`, forward relations not configured in `views_preferences.json` each get their own tab in show / edit forms. |
+
+The scaffolded `veloiq.toml` ships these keys as commented examples with the
+same guidance, so you can uncomment and edit the ones you want to change. Apps
+that enable an extension (e.g. `vigilantiq`) get the same settings on the
+extension's pages automatically — they render through the host's `DynamicResource`.
+
 ### CORS
 
 | Field | Env var | Default | Description |

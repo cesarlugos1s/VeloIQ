@@ -273,8 +273,14 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
 
     @app.get("/config/views")
     async def config_views():
-        """Return global UI view settings. Empty dict → frontend uses its defaults."""
-        return {}
+        """Return global UI view settings from the ``[views]`` table of the
+        project's ``veloiq.toml``. Keys absent from the file are omitted so the
+        frontend falls back to its built-in defaults. Empty dict → all defaults."""
+        from veloiq_framework.extension_registry import read_views_config
+        try:
+            return read_views_config()
+        except Exception:
+            return {}
 
     # --- View preferences (file-backed persistence) ---
     import json as _json

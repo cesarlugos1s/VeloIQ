@@ -13,3 +13,59 @@
 
 [extensions]
 enabled = []
+
+# ---------------------------------------------------------------------------
+# Global UI view settings.
+#
+# These knobs tune how DynamicResource renders list / show / edit pages across
+# the whole app. Every key is OPTIONAL — anything left commented out falls back
+# to the framework's built-in default (shown after each key). Uncomment and
+# edit to override. Served to the frontend by the GET /config/views endpoint.
+# ---------------------------------------------------------------------------
+[views]
+
+# Color schema for modules in the UI.
+#   "color-coded" = each module gets a different color.
+#   "plain-color" = every module uses the same color, compatible with the
+#                   light or dark mode of the UI.
+#modules_color_schema = "plain-color"
+
+# Color schema for models in the UI (same options as modules_color_schema).
+#models_color_schema = "plain-color"
+
+# Base hex color used when a color schema is set to "plain-color".
+# If left blank it defaults to grayscale. Example: "#c2410c" (burnt rust).
+#plain_color_base_hex = ""
+
+# Default view type for a model's show / edit forms when nothing else is
+# configured. Possible view types: table, editable-table, list, editable-list,
+# csv, primary, gallery, calendar, totals-details.
+#show_view_type = "list"
+#edit_view_type = "editable-list"
+
+# Default view type for list pages and for file / attachment list views.
+#list_view_type = "table"
+#file_list_view_type = "gallery"
+
+# Pixel dimensions for images rendered in gallery views (defaults: 180 x 140).
+#gallery_image_width = 180
+#gallery_image_height = 140
+
+# Maximum number of rows to load in relation tables in the UI, to avoid high
+# latency when there are too many related objects (default: 1000).
+#relations_max_rows_to_load = 1000
+
+# If a column filter dropdown on a table has more than this many distinct
+# numeric values, the filter offers that many ranges to pick from instead of
+# individual values, applying the filter using the selected ranges (default: 20).
+#max_distinct_column_filter_values_to_ranges = 20
+
+# Where the general action buttons are rendered on a model's list / show / edit
+# pages: "top-right", "left", or "right" (default: "top-right").
+#general_actions_button_position = "top-right"
+
+# If true, in the show and edit forms the forward relations that are not
+# configured in views_preferences.json are each rendered in their own tab,
+# separate from the Details tab. Set false to suppress those auto-tabs
+# (default: true).
+#add_tabs_for_non_configured_relations = true
