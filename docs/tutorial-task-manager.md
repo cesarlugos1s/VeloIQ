@@ -840,7 +840,8 @@ Click the ⚙ gear icon on any cell to open the drawer.  You can:
   moved into that tab; otherwise a new tab is created for just this cell.  Other
   cells in the original tab are unaffected.
 - **Row / Column** (1-based) — reposition the cell in the CSS grid.
-- **View type** — override the default (table, gallery, calendar, totals/details).
+- **View type** — override the default (table, gallery, calendar, totals/details,
+  crosstab, editable-crosstab).
 - **Size** — set `min-width`, `max-width`, `min-height`, `max-height`.
 - **HTML style** — arbitrary inline CSS applied to the cell wrapper.
 

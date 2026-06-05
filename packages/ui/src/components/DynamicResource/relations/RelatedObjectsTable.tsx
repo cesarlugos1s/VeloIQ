@@ -86,6 +86,8 @@ import { getDefaultViewName, normalizeViewName, normalizeFieldViewType, useViewS
 import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
 import { AnalysisChart } from "../analysis/AnalysisChart";
+import { CrosstabTable } from "../analysis/CrosstabTable";
+import { buildColumnFilterOptions, matchesColumnFilterValue } from "../utils/columnFilters";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
@@ -101,7 +103,8 @@ export const PolymorphicRelatedObjectsTable: React.FC<{
     allowInlineEdit?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
     viewVariant?: "default" | "totals-details";
-}> = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default" }) => {
+    viewMode?: "table" | "crosstab";
+}> = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
     const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
     const apiUrl = useApiUrl();
     const [loading, setLoading] = useState(false);
@@ -170,6 +173,7 @@ export const PolymorphicRelatedObjectsTable: React.FC<{
                     allowInlineEdit={allowInlineEdit}
                     layoutPreferenceType={layoutPreferenceType}
                     viewVariant={viewVariant}
+                    viewMode={viewMode}
                     allowedRelatedIds={new Set()}
                     allModels={allModels}
                 />
@@ -193,6 +197,7 @@ export const PolymorphicRelatedObjectsTable: React.FC<{
                         allowInlineEdit={allowInlineEdit}
                         layoutPreferenceType={layoutPreferenceType}
                         viewVariant={viewVariant}
+                        viewMode={viewMode}
                         allowedRelatedIds={idSet}
                         allModels={allModels}
                     />
@@ -227,7 +232,9 @@ export const RelatedObjectsTable: React.FC<{
     allModels?: ModelDef[];
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
     viewVariant?: "default" | "totals-details";
-}> = ({ rel, record, relatedModel, parentModel, showActions = false, showCreate = false, title, allowInlineEdit = false, allowedRelatedIds, allModels, layoutPreferenceType, viewVariant = "default" }) => {
+    viewMode?: "table" | "crosstab";
+}> = ({ rel, record, relatedModel, parentModel, showActions = false, showCreate = false, title, allowInlineEdit = false, allowedRelatedIds, allModels, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
+    const isCrosstabView = viewMode === "crosstab";
     const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
     const apiUrl = useApiUrl();
     const go = useGo();
@@ -303,6 +310,11 @@ export const RelatedObjectsTable: React.FC<{
     const analyzePrefsResourceRef = useRef<string | null>(null);
     const [categoryField1, setCategoryField1] = useState<string | null>(null);
     const [categoryField2, setCategoryField2] = useState<string | null | undefined>(undefined);
+    // Fields exposed as Excel-style multi-select filter dropdowns above the crosstab body.
+    const [crosstabFilterFields, setCrosstabFilterFields] = useState<string[]>([]);
+    // Live staged edits for editable-crosstab cells (recordId -> fieldKey -> value); mirrored
+    // into the edit `form` so the existing Save button (saveAllEdits) persists them.
+    const [crosstabStaged, setCrosstabStaged] = useState<Record<string, Record<string, number>>>({});
     const [chartType, setChartType] = useState<"bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo">("area");
     const [summaryFn, setSummaryFn] = useState<"sum" | "avg" | "count" | "max" | "min" | "stddev">("sum");
     const [selectedSeriesKeys, setSelectedSeriesKeys] = useState<string[] | null>(null);
@@ -414,6 +426,7 @@ export const RelatedObjectsTable: React.FC<{
             rankingMode,
             rankingFieldKey,
             rankingN,
+            crosstabFilterFields,
             custom_view_name: resolvedViewName,
         };
         setIsSavingAnalyzePrefs(true);
@@ -432,7 +445,7 @@ export const RelatedObjectsTable: React.FC<{
         } finally {
             setIsSavingAnalyzePrefs(false);
         }
-    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, relatedModel.name, relatedModel.resource, allModels]);
+    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, relatedModel.name, relatedModel.resource, allModels]);
 
     const categoricalFields = useMemo(() => {
         return relatedModel.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
@@ -462,6 +475,7 @@ export const RelatedObjectsTable: React.FC<{
         setRankingMode("none");
         setRankingFieldKey(numericFields[0]?.key ?? null);
         setRankingN(10);
+        setCrosstabFilterFields([]);
     }, [categoricalFields, numericFields]);
 
     const persistCurrentViewNames = useCallback(async (nextSelected: string[], nextCurrent: string) => {
@@ -728,6 +742,9 @@ export const RelatedObjectsTable: React.FC<{
                 if ("rankingN" in prefs) {
                     const nextRankingN = Number(prefs.rankingN);
                     setRankingN(Number.isFinite(nextRankingN) && nextRankingN > 0 ? Math.floor(nextRankingN) : 10);
+                }
+                if ("crosstabFilterFields" in prefs && Array.isArray(prefs.crosstabFilterFields)) {
+                    setCrosstabFilterFields(prefs.crosstabFilterFields);
                 }
                 analyzePrefsLoadedRef.current = true;
                 if (!cancelled) setAnalyzePrefsReady(true);
@@ -1001,16 +1018,13 @@ export const RelatedObjectsTable: React.FC<{
         const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
         if (activeEntries.length === 0) return filteredRows;
         return filteredRows.filter((row) =>
-            activeEntries.every(([fieldKey, selectedValues]) =>
-                selectedValues.some((value) => {
-                    if (fieldKey === "eid" && row?._label) {
-                        return String(row._label) === String(value) || String(row.eid) === String(value);
-                    }
-                    return String(row?.[fieldKey]) === String(value);
-                })
-            )
+            activeEntries.every(([fieldKey, selectedValues]) => {
+                const field = relatedModel.fields.find((f) => f.key === fieldKey);
+                if (!field) return true;
+                return selectedValues.some((value) => matchesColumnFilterValue(field, row, value));
+            })
         );
-    }, [filteredRows, columnFiltersSelected]);
+    }, [filteredRows, columnFiltersSelected, relatedModel.fields]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -1088,6 +1102,7 @@ export const RelatedObjectsTable: React.FC<{
                 );
             }
             setHasPendingEdits(false);
+            setCrosstabStaged({});
             message.success("Changes saved.");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to save changes");
@@ -1600,6 +1615,227 @@ export const RelatedObjectsTable: React.FC<{
         };
     }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
 
+    // ---- Crosstab view body --------------------------------------------------
+    const editableCrosstab = isCrosstabView && allowInlineEdit;
+
+    const stageCrosstabCellEdits = useCallback((updates: Array<{ recordId: string | number; fieldKey: string; value: number }>) => {
+        if (updates.length === 0) return;
+        setCrosstabStaged((prev) => {
+            const next = { ...prev };
+            updates.forEach(({ recordId, fieldKey, value }) => {
+                const key = String(recordId);
+                next[key] = { ...(next[key] || {}), [fieldKey]: value };
+            });
+            return next;
+        });
+        // Mirror into the edit form so the existing Save button (saveAllEdits) persists it.
+        updates.forEach(({ recordId, fieldKey, value }) => {
+            form.setFieldValue([recordId, fieldKey], value);
+        });
+        setHasPendingEdits(true);
+    }, [form]);
+
+    const getCrosstabStagedValue = useCallback((recordId: string | number, fieldKey: string) => {
+        return crosstabStaged[String(recordId)]?.[fieldKey];
+    }, [crosstabStaged]);
+
+    // Resolve FK display labels (dc_title) for reference fields used as crosstab categories/filters.
+    const crosstabResolvedRefIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        if (!isCrosstabView) return;
+        const refFields = [categoryField1, categoryField2, ...crosstabFilterFields]
+            .filter((k): k is string => Boolean(k))
+            .map((k) => relatedModel.fields.find((f) => f.key === k))
+            .filter((f): f is FieldDef => Boolean(f && f.reference));
+        if (refFields.length === 0) return;
+        const data = columnFilteredRows || [];
+        let cancelled = false;
+        (async () => {
+            for (const field of refFields) {
+                const resourcePath = field.referencePath || resolveResourcePath(field.reference as string, allModels);
+                const ids = Array.from(new Set(data.map((r) => r?.[field.key]).filter((v) => v !== undefined && v !== null)))
+                    .filter((id) => !crosstabResolvedRefIdsRef.current.has(`${field.reference}:${id}`));
+                if (ids.length === 0) continue;
+                const batchSize = 20;
+                for (let i = 0; i < ids.length && !cancelled; i += batchSize) {
+                    const batch = ids.slice(i, i + batchSize);
+                    await Promise.all(batch.map(async (id) => {
+                        try {
+                            const resp = await authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`);
+                            if (!resp.ok) return;
+                            const rec = await resp.json();
+                            if (cancelled) return;
+                            const label = rec?._label ?? rec?.name ?? rec?.description ?? String(id);
+                            crosstabResolvedRefIdsRef.current.add(`${field.reference}:${id}`);
+                            setLabelCache((prev) => {
+                                const key = `${field.reference}:${id}`;
+                                return prev[key] === String(label) ? prev : { ...prev, [key]: String(label) };
+                            });
+                        } catch {
+                            // best-effort
+                        }
+                    }));
+                }
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isCrosstabView, categoryField1, categoryField2, crosstabFilterFields, columnFilteredRows, relatedModel.fields, allModels, apiUrl]);
+
+    // Filter dropdown options for the crosstab filter fields (full range grouping, independent of columns).
+    const crosstabFilterOptions = useMemo(() => {
+        if (crosstabFilterFields.length === 0) return new Map<string, { text: string; value: string }[]>();
+        const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
+        const fields = crosstabFilterFields
+            .map((k) => relatedModel.fields.find((f) => f.key === k))
+            .filter((f): f is FieldDef => Boolean(f));
+        return buildColumnFilterOptions({ fields, data: filteredRows || [], rangeCount });
+    }, [crosstabFilterFields, filteredRows, viewSettings, relatedModel.fields]);
+
+    const crosstabFilterRow = crosstabFilterFields.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+            {crosstabFilterFields.map((fieldKey) => {
+                const field = relatedModel.fields.find((f) => f.key === fieldKey);
+                if (!field) return null;
+                const options = (crosstabFilterOptions.get(fieldKey) || []).map((opt) => ({
+                    label: field.reference ? (labelCache[`${field.reference}:${opt.value}`] || opt.text) : opt.text,
+                    value: opt.value,
+                }));
+                return (
+                    <div key={`ct-filter-${fieldKey}`} style={{ minWidth: 200 }}>
+                        <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{field.label}</div>
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            size="small"
+                            style={{ width: "100%" }}
+                            placeholder={_("All")}
+                            maxTagCount="responsive"
+                            value={columnFiltersSelected[fieldKey] || []}
+                            options={options}
+                            onChange={(values) => setColumnFiltersSelected((prev) => ({ ...prev, [fieldKey]: values }))}
+                        />
+                    </div>
+                );
+            })}
+        </div>
+    ) : null;
+
+    const crosstabSummaryOptions = [
+        { label: _("Sum"), value: "sum" },
+        { label: _("Average"), value: "avg" },
+        { label: _("Count"), value: "count" },
+        { label: _("Max"), value: "max" },
+        { label: _("Min"), value: "min" },
+        { label: _("Std Dev"), value: "stddev" },
+    ];
+
+    const crosstabConfigPanel = (
+        <Collapse
+            size="small"
+            defaultActiveKey={[]}
+            style={{ marginBottom: 12 }}
+            items={[{
+                key: "crosstab-config",
+                label: <Tooltip title={_("Crosstab configuration")}><span><SettingOutlined /></span></Tooltip>,
+                children: (
+                    <div style={{ display: "grid", gap: 12 }}>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 1 (rows)")}</div>
+                                <Select
+                                    value={categoryField1 || undefined}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField1(value); }}
+                                    style={{ width: "100%" }}
+                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("Select category")}
+                                />
+                            </div>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 2 (columns)")}</div>
+                                <Select
+                                    value={categoryField2 || "__none__"}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField2(value === "__none__" ? null : value); }}
+                                    style={{ width: "100%" }}
+                                    options={[
+                                        { label: _("None"), value: "__none__" },
+                                        ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key })),
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Cell fields")}</div>
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    value={selectedSeriesKeys || []}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setSelectedSeriesKeys(value); }}
+                                    style={{ width: "100%" }}
+                                    options={relatedModel.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("All numeric fields")}
+                                    maxTagCount="responsive"
+                                />
+                            </div>
+                            <div style={{ minWidth: 150 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Summary")}</div>
+                                <Select
+                                    value={summaryFn}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setSummaryFn(value as typeof summaryFn); }}
+                                    style={{ width: "100%" }}
+                                    options={crosstabSummaryOptions}
+                                />
+                            </div>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Filter fields")}</div>
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    value={crosstabFilterFields}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCrosstabFilterFields(value); }}
+                                    style={{ width: "100%" }}
+                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("Select filter fields")}
+                                    maxTagCount="responsive"
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <Tooltip title={_("Save configuration")}>
+                                <Button size="small" icon={<SaveOutlined />} onClick={() => openSaveViewModalFor("analyze")} loading={isSavingAnalyzePrefs} aria-label={_("Save configuration")} />
+                            </Tooltip>
+                        </div>
+                    </div>
+                ),
+            }]}
+        />
+    );
+
+    const crosstabBodyNode = (
+        <div>
+            {crosstabConfigPanel}
+            {crosstabFilterRow}
+            <CrosstabTable
+                rows={columnFilteredRows}
+                rowField={categoryField1}
+                colField={categoryField2 ?? null}
+                cellFieldKeys={(selectedSeriesKeys && selectedSeriesKeys.length > 0) ? selectedSeriesKeys : numericFields.map((f) => f.key)}
+                cellFieldLabels={Object.fromEntries(relatedModel.fields.map((f) => [f.key, f.label]))}
+                allFields={relatedModel.fields}
+                allModels={allModels}
+                summaryFn={summaryFn}
+                formatCategoryValue={formatCategoryValue}
+                numericBarColor={numericBarColor}
+                editable={editableCrosstab ? {
+                    pkField: relatedModel.pkField || "eid",
+                    getStagedValue: getCrosstabStagedValue,
+                    onCommitCell: stageCrosstabCellEdits,
+                    confirmProration: true,
+                } : undefined}
+            />
+        </div>
+    );
+
     const numericColumnMaxes = useMemo(() => {
         const maxes: Record<string, number> = {};
         const data = filteredRows || [];
@@ -1753,30 +1989,12 @@ export const RelatedObjectsTable: React.FC<{
     };
 
     const columnFilters = useMemo(() => {
-        const data = filteredRows || [];
-        const limit = 50;
-        const filtersMap = new Map<string, { text: string; value: string }[]>();
-        for (const field of displayFields) {
-            const seen = new Set<string>();
-            const options: { text: string; value: string }[] = [];
-            for (const recordRow of data) {
-                let value = recordRow?.[field.key];
-                let label = value;
-                if (field.key === "eid" && recordRow?._label) {
-                    value = recordRow.eid;
-                    label = recordRow._label;
-                }
-                if (value === undefined || value === null) continue;
-                const key = String(value);
-                if (seen.has(key)) continue;
-                seen.add(key);
-                options.push({ text: String(label), value: key });
-                if (options.length >= limit) break;
-            }
-            filtersMap.set(field.key, options);
-        }
-        return filtersMap;
-    }, [displayFields, filteredRows]);
+        // Build grouped filter options (ranges past the distinct threshold) from the loaded
+        // rows. The loaded set is capped by relationsMaxRowsToLoad; the "Load all related"
+        // banner surfaces when capped so the user knows values may be partial.
+        const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
+        return buildColumnFilterOptions({ fields: displayFields, data: filteredRows || [], rangeCount });
+    }, [displayFields, filteredRows, viewSettings]);
 
     const allFieldOptions = useMemo(() => {
         return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
@@ -2675,6 +2893,7 @@ export const RelatedObjectsTable: React.FC<{
                                 if (allowInlineEdit) setHasPendingEdits(true);
                             }}
                         >
+                        {isCrosstabView ? crosstabBodyNode : (
                         <Table
                             dataSource={filteredRows}
                             pagination={{
@@ -2877,6 +3096,7 @@ export const RelatedObjectsTable: React.FC<{
                                 />
                             )}
                         </Table>
+                        )}
                         </Form>
                         {relationRowsCapped && (
                             <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>

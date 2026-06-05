@@ -636,6 +636,8 @@ relations, or on `FieldDef.showViewType` / `FieldDef.editViewType` for FK
 | `editable-list` | Bullet list with add / remove controls |
 | `table` | Read-only data table |
 | `editable-table` | **Default for to-many in edit mode.** Table with inline editing |
+| `crosstab` | Pivot table: Category 1 → rows, Category 2 → columns (optional), one or more fields per cell. Numeric cells aggregate (sum/avg/count/max/min/stddev) with value bars; other fields render with their own field view type. Includes Excel-style multi-select filter dropdowns and the Analyze chart/stats card. Reuses the Analysis-area crosstab chart-type, so the two stay in sync. Config (categories, cell fields, filters, summary) is saved to the views JSON. |
+| `editable-crosstab` | Same as `crosstab` with editable numeric cells (Tab / arrow-key navigation). Editing an aggregated cell distributes the value back to its underlying records prorated by the summary function (sum/avg, with a confirmation step; max/min/stddev only when the cell maps to a single record), rounded to 2 decimals, persisted via the standard Save button. |
 | `gallery` | Image / card grid |
 | `calendar` | Calendar view (requires a `date` or `datetime` field in the related model) |
 | `primary` | Embedded show view of the related record |

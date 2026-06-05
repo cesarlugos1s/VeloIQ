@@ -152,7 +152,7 @@ interface FieldDef {
     /** Roles allowed to write this field (absent = all roles). Emitted by veloiq_field(write_roles=…). */
     writeRoles?: string[];
 }
-type RelationViewType = "table" | "editable-table" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
 interface MillerLeafConfig {
     relationPath: string;
     targetKey: string;
@@ -390,7 +390,7 @@ declare const DynamicList: React__default.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "gallery" | "calendar" | "totals-details";
+    listViewType?: "table" | "gallery" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab";
     rowSelection?: any;
     extraHeaderButtons?: React__default.ReactNode;
     bulkActions?: BulkActionDef[];

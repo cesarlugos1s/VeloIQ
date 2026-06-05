@@ -130,6 +130,7 @@ import {
     getTabDisplayLabel,
 } from "./relations/helpers";
 import { AnalysisChart } from "./analysis/AnalysisChart";
+import { CrosstabTable } from "./analysis/CrosstabTable";
 import { PolymorphicRelatedObjectsTable, RelatedObjectsTable } from "./relations/RelatedObjectsTable";
 import { MetadataModal } from "./MetadataModal";
 import { useMetadataModal } from "./hooks/useMetadataModal";
@@ -176,6 +177,7 @@ import {
 } from "./utils/viewConfig";
 import type { ViewSettings, NormalizedViewConfigRow } from "./utils/viewConfig";
 import { ActionsButtonStack, VerticalActionsLayout } from "./utils/verticalActionsBar";
+import { buildColumnFilterOptions, matchesColumnFilterValue } from "./utils/columnFilters";
 import { RelationSelect } from "./fields/RelationSelect";
 import { ReferenceField } from "./fields/ReferenceField";
 import { FileUploadInput } from "./fields/FileUploadInput";
@@ -244,7 +246,7 @@ export const DynamicList: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "gallery" | "calendar" | "totals-details";
+    listViewType?: "table" | "gallery" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -319,6 +321,8 @@ export const DynamicList: React.FC<{
     const isGalleryView = resolvedListViewType === "gallery";
     const isCalendarView = resolvedListViewType === "calendar";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
+    const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
+    const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
     const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
     const calendarDateFieldOptions = useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
@@ -390,6 +394,11 @@ export const DynamicList: React.FC<{
     const useLocalSearch = true;
     const [categoryField1, setCategoryField1] = useState<string | null>(null);
     const [categoryField2, setCategoryField2] = useState<string | null | undefined>(undefined);
+    // Excel-style filter dropdowns shown above the crosstab body (crosstab/editable-crosstab views).
+    const [crosstabFilterFields, setCrosstabFilterFields] = useState<string[]>([]);
+    // Live staged edits for editable-crosstab cells (recordId -> fieldKey -> value).
+    const [crosstabStaged, setCrosstabStaged] = useState<Record<string, Record<string, number>>>({});
+    const [crosstabSaving, setCrosstabSaving] = useState(false);
     const [chartType, setChartType] = useState<"bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo">("area");
     const [summaryFn, setSummaryFn] = useState<"sum" | "avg" | "count" | "max" | "min" | "stddev">("sum");
     const [selectedSeriesKeys, setSelectedSeriesKeys] = useState<string[] | null>(null);
@@ -728,45 +737,7 @@ export const DynamicList: React.FC<{
             activeEntries.every(([fieldKey, selectedValues]) => {
                 const field = model.fields.find((f) => f.key === fieldKey);
                 if (!field) return true;
-                return selectedValues.some((value) => {
-                    const strValue = String(value);
-                    if (field.type === "number" && !field.reference && strValue.startsWith("__range__:")) {
-                        const parts = strValue.split(":");
-                        const lo = Number(parts[1]);
-                        const hi = Number(parts[2]);
-                        const recordVal = Number(record?.[field.key]);
-                        if (isNaN(recordVal)) return false;
-                        return recordVal >= lo && recordVal <= hi;
-                    }
-                    if ((field.type === "date" || field.type === "datetime") && strValue.startsWith("__daterange__:")) {
-                        const sub = strValue.substring("__daterange__:".length);
-                        const sepIdx = sub.indexOf(":");
-                        const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                        const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                        const recordVal = String(record?.[field.key] ?? "").substring(0, 10);
-                        return recordVal >= lo && recordVal <= hi;
-                    }
-                    if (field.type === "string" && !field.reference && strValue.startsWith("__catrange__:")) {
-                        const sub = strValue.substring("__catrange__:".length);
-                        const sepIdx = sub.indexOf(":");
-                        const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                        const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                        const recordVal = String(record?.[field.key] ?? "");
-                        return recordVal.localeCompare(lo) >= 0 && recordVal.localeCompare(hi) <= 0;
-                    }
-                    if (field.key === "eid" && strValue.startsWith("__catrange__:")) {
-                        const sub = strValue.substring("__catrange__:".length);
-                        const sepIdx = sub.indexOf(":");
-                        const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                        const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                        const recordLabel = String(record?._label ?? "");
-                        return recordLabel.localeCompare(lo) >= 0 && recordLabel.localeCompare(hi) <= 0;
-                    }
-                    if (field.key === "eid" && record?._label) {
-                        return String(record._label) === strValue || String(record.eid) === strValue;
-                    }
-                    return String(record?.[field.key]) === strValue;
-                });
+                return selectedValues.some((value) => matchesColumnFilterValue(field, record, value));
             })
         );
     }, [filteredDataSource, columnFiltersSelected, model.fields]);
@@ -780,149 +751,8 @@ export const DynamicList: React.FC<{
         // fetched, regardless of whether client-side filtering is active. This ensures filter
         // dropdowns always show all distinct values, not just those on the visible page.
         const data = allRowsData.length > 0 ? allRowsData : (tableProps.dataSource || []);
-        const distinctLimit = 50;
         const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-        const filtersMap = new Map<string, { text: string; value: string }[]>();
-        const truncateLabel = (s: string) => s.length > 15 ? s.substring(0, 15) + "…" : s;
-
-        for (const field of displayFields) {
-            // eid column: ranges are based on the _label (__str__) values, not the numeric eid.
-            if (field.key === "eid") {
-                const labelValues: string[] = [];
-                for (const record of data) {
-                    const lbl = record?._label;
-                    if (lbl === undefined || lbl === null || lbl === "") continue;
-                    labelValues.push(String(lbl));
-                }
-                const distinctLabelSet = new Set(labelValues);
-                if (distinctLabelSet.size > rangeCount) {
-                    const sorted = Array.from(distinctLabelSet).sort((a, b) => a.localeCompare(b));
-                    const step = Math.ceil(sorted.length / rangeCount);
-                    const options: { text: string; value: string }[] = [];
-                    for (let i = 0; i < sorted.length; i += step) {
-                        const lo = sorted[i];
-                        const hi = sorted[Math.min(i + step - 1, sorted.length - 1)];
-                        options.push({
-                            text: `${truncateLabel(lo)} – ${truncateLabel(hi)}`,
-                            value: `__catrange__:${encodeURIComponent(lo)}:${encodeURIComponent(hi)}`,
-                        });
-                    }
-                    filtersMap.set(field.key, options);
-                    continue;
-                }
-                // Fewer than rangeCount distinct labels — fall through to default (handles eid specially)
-            }
-
-            // Numeric fields (non-reference): use ranges when distinct count exceeds rangeCount,
-            // only including ranges that contain at least one actual value.
-            if (field.type === "number" && !field.reference) {
-                const numericValues: number[] = [];
-                for (const record of data) {
-                    const v = record?.[field.key];
-                    if (v === undefined || v === null) continue;
-                    const n = Number(v);
-                    if (!isNaN(n)) numericValues.push(n);
-                }
-                const distinctSet = new Set(numericValues);
-                if (distinctSet.size > rangeCount) {
-                    let min = Infinity, max = -Infinity;
-                    for (const n of numericValues) {
-                        if (n < min) min = n;
-                        if (n > max) max = n;
-                    }
-                    const step = (max - min) / rangeCount;
-                    const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(2);
-                    const options: { text: string; value: string }[] = [];
-                    for (let i = 0; i < rangeCount; i++) {
-                        const lo = min + i * step;
-                        const hi = i === rangeCount - 1 ? max : min + (i + 1) * step;
-                        if (numericValues.some(n => n >= lo && n <= hi)) {
-                            options.push({ text: `${fmt(lo)} – ${fmt(hi)}`, value: `__range__:${lo}:${hi}` });
-                        }
-                    }
-                    filtersMap.set(field.key, options);
-                    continue;
-                }
-                // Fewer than rangeCount distinct numeric values — fall through to individual values
-            }
-
-            // Date/datetime fields: use date ranges when distinct count exceeds rangeCount,
-            // only including ranges that contain at least one actual value.
-            if (field.type === "date" || field.type === "datetime") {
-                const dateValues: string[] = [];
-                for (const record of data) {
-                    const v = record?.[field.key];
-                    if (v === undefined || v === null || v === "") continue;
-                    const d = String(v).substring(0, 10);
-                    if (d) dateValues.push(d);
-                }
-                const distinctDateSet = new Set(dateValues);
-                if (distinctDateSet.size > rangeCount) {
-                    const sorted = Array.from(distinctDateSet).sort();
-                    const step = Math.ceil(sorted.length / rangeCount);
-                    const options: { text: string; value: string }[] = [];
-                    for (let i = 0; i < sorted.length; i += step) {
-                        const lo = sorted[i];
-                        const hi = sorted[Math.min(i + step - 1, sorted.length - 1)];
-                        options.push({
-                            text: `${lo} – ${hi}`,
-                            value: `__daterange__:${encodeURIComponent(lo)}:${encodeURIComponent(hi)}`,
-                        });
-                    }
-                    filtersMap.set(field.key, options);
-                    continue;
-                }
-                // Fewer than rangeCount distinct dates — fall through to individual values
-            }
-
-            // String fields (non-reference): use alphabetical ranges when distinct count exceeds
-            // rangeCount, only including ranges that contain at least one actual value.
-            if (field.type === "string" && !field.reference) {
-                const strValues: string[] = [];
-                for (const record of data) {
-                    const v = record?.[field.key];
-                    if (v === undefined || v === null || v === "") continue;
-                    strValues.push(String(v));
-                }
-                const distinctStrSet = new Set(strValues);
-                if (distinctStrSet.size > rangeCount) {
-                    const sorted = Array.from(distinctStrSet).sort((a, b) => a.localeCompare(b));
-                    const step = Math.ceil(sorted.length / rangeCount);
-                    const options: { text: string; value: string }[] = [];
-                    for (let i = 0; i < sorted.length; i += step) {
-                        const lo = sorted[i];
-                        const hi = sorted[Math.min(i + step - 1, sorted.length - 1)];
-                        options.push({
-                            text: `${truncateLabel(lo)} – ${truncateLabel(hi)}`,
-                            value: `__catrange__:${encodeURIComponent(lo)}:${encodeURIComponent(hi)}`,
-                        });
-                    }
-                    filtersMap.set(field.key, options);
-                    continue;
-                }
-                // Fewer than rangeCount distinct string values — fall through to individual values
-            }
-
-            // Default: show individual distinct values (up to distinctLimit).
-            const seen = new Set<string>();
-            const options: { text: string; value: string }[] = [];
-            for (const record of data) {
-                let value = record?.[field.key];
-                let label = value;
-                if (field.key === "eid" && record?._label) {
-                    value = record.eid;
-                    label = record._label;
-                }
-                if (value === undefined || value === null) continue;
-                const key = String(value);
-                if (seen.has(key)) continue;
-                seen.add(key);
-                options.push({ text: String(label), value: key });
-                if (options.length >= distinctLimit) break;
-            }
-            filtersMap.set(field.key, options);
-        }
-        return filtersMap;
+        return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
     }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
 
     const allFieldOptions = useMemo(() => {
@@ -1042,10 +872,11 @@ export const DynamicList: React.FC<{
             analyzeOpen ||
             exportRequested ||
             isTotalsDetailsView ||
+            isCrosstabView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, localSearch]);
+    }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, localSearch]);
 
     useEffect(() => {
         if (!categoryField1 && categoricalFields.length > 0) {
@@ -1097,6 +928,7 @@ export const DynamicList: React.FC<{
         setRankingMode("none");
         setRankingFieldKey(numericFields[0]?.key ?? null);
         setRankingN(10);
+        setCrosstabFilterFields([]);
     }, [categoricalFields, numericFields]);
 
     const persistCurrentViewNames = useCallback(async (nextSelected: string[], nextCurrent: string) => {
@@ -1323,6 +1155,7 @@ export const DynamicList: React.FC<{
             rankingMode,
             rankingFieldKey,
             rankingN,
+            crosstabFilterFields,
             custom_view_name: resolvedViewName,
         };
         setIsSavingAnalyzePrefs(true);
@@ -1341,7 +1174,7 @@ export const DynamicList: React.FC<{
         } finally {
             setIsSavingAnalyzePrefs(false);
         }
-    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, model.name, model.resource, allModels, preferencesResourceOverride]);
+    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, model.name, model.resource, allModels, preferencesResourceOverride]);
 
     const handleConfirmSaveView = useCallback(async () => {
         if (!pendingSaveTarget) return;
@@ -1435,6 +1268,9 @@ export const DynamicList: React.FC<{
                 if ("rankingN" in prefs) {
                     const nextRankingN = Number(prefs.rankingN);
                     setRankingN(Number.isFinite(nextRankingN) && nextRankingN > 0 ? Math.floor(nextRankingN) : 10);
+                }
+                if ("crosstabFilterFields" in prefs && Array.isArray(prefs.crosstabFilterFields)) {
+                    setCrosstabFilterFields(prefs.crosstabFilterFields);
                 }
                 analyzePrefsLoadedRef.current = true;
                 if (!cancelled) setAnalyzePrefsReady(true);
@@ -1797,6 +1633,256 @@ export const DynamicList: React.FC<{
             filteredRawRows,
         };
     }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
+
+    // ---- Crosstab view body (DynamicList path: one-to-many relations & top-level lists) ----
+    const crosstabBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
+
+    const stageCrosstabCellEdits = useCallback((updates: Array<{ recordId: string | number; fieldKey: string; value: number }>) => {
+        if (updates.length === 0) return;
+        setCrosstabStaged((prev) => {
+            const next = { ...prev };
+            updates.forEach(({ recordId, fieldKey, value }) => {
+                const key = String(recordId);
+                next[key] = { ...(next[key] || {}), [fieldKey]: value };
+            });
+            return next;
+        });
+    }, []);
+
+    const getCrosstabStagedValue = useCallback((recordId: string | number, fieldKey: string) => {
+        return crosstabStaged[String(recordId)]?.[fieldKey];
+    }, [crosstabStaged]);
+
+    const crosstabHasPendingEdits = Object.keys(crosstabStaged).length > 0;
+
+    const saveCrosstabEdits = useCallback(async () => {
+        const entries = Object.entries(crosstabStaged);
+        if (entries.length === 0) return;
+        setCrosstabSaving(true);
+        try {
+            const resource = resolveResourcePath(model.resource || model.name, allModels);
+            for (const [recordId, fields] of entries) {
+                const resp = await authenticatedFetch(`${apiUrl}/${resource}/${recordId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(fields),
+                });
+                if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
+            }
+            setCrosstabStaged({});
+            message.success(_("Changes saved."));
+            invalidate({ resource: model.resource || model.name, invalidates: ["list"] });
+        } catch (err) {
+            message.error(err instanceof Error ? err.message : _("Failed to save changes."));
+        } finally {
+            setCrosstabSaving(false);
+        }
+    }, [crosstabStaged, apiUrl, allModels, model.resource, model.name, invalidate]);
+
+    // #1 Resolve FK display labels (dc_title) for reference fields used as crosstab row/column
+    // categories or filters, so headers show the related object's title instead of its raw id.
+    const crosstabResolvedRefIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        if (!isCrosstabView) return;
+        const refFields = [categoryField1, categoryField2, ...crosstabFilterFields]
+            .filter((k): k is string => Boolean(k))
+            .map((k) => model.fields.find((f) => f.key === k))
+            .filter((f): f is FieldDef => Boolean(f && f.reference));
+        if (refFields.length === 0) return;
+        const data = (allRowsData.length > 0 ? allRowsData : (columnFilteredDataSource || [])) as any[];
+        let cancelled = false;
+        (async () => {
+            for (const field of refFields) {
+                const resourcePath = field.referencePath || resolveResourcePath(field.reference as string, allModels);
+                const ids = Array.from(new Set(
+                    data.map((r) => r?.[field.key]).filter((v) => v !== undefined && v !== null)
+                )).filter((id) => !crosstabResolvedRefIdsRef.current.has(`${field.reference}:${id}`));
+                if (ids.length === 0) continue;
+                const batchSize = 20;
+                for (let i = 0; i < ids.length && !cancelled; i += batchSize) {
+                    const batch = ids.slice(i, i + batchSize);
+                    await Promise.all(batch.map(async (id) => {
+                        try {
+                            const resp = await authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`);
+                            if (!resp.ok) return;
+                            const rec = await resp.json();
+                            if (cancelled) return;
+                            const label = rec?._label ?? rec?.name ?? rec?.description ?? String(id);
+                            crosstabResolvedRefIdsRef.current.add(`${field.reference}:${id}`);
+                            handleReferenceLabel(field.reference as string, id, String(label));
+                        } catch {
+                            // best-effort label resolution
+                        }
+                    }));
+                }
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isCrosstabView, categoryField1, categoryField2, crosstabFilterFields, allRowsData, columnFilteredDataSource, model.fields, allModels, apiUrl, handleReferenceLabel]);
+
+    // #2 Filter dropdown options for the crosstab filter fields, built from the full dataset with
+    // range grouping (same util as the table column filters), independent of the display columns.
+    const crosstabFilterOptions = useMemo(() => {
+        if (crosstabFilterFields.length === 0) return new Map<string, { text: string; value: string }[]>();
+        const data = allRowsData.length > 0 ? allRowsData : (tableProps.dataSource || []);
+        const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
+        const fields = crosstabFilterFields
+            .map((k) => model.fields.find((f) => f.key === k))
+            .filter((f): f is FieldDef => Boolean(f));
+        return buildColumnFilterOptions({ fields, data, rangeCount });
+    }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
+
+    const crosstabSummaryOptions = [
+        { label: _("Sum"), value: "sum" },
+        { label: _("Average"), value: "avg" },
+        { label: _("Count"), value: "count" },
+        { label: _("Max"), value: "max" },
+        { label: _("Min"), value: "min" },
+        { label: _("Std Dev"), value: "stddev" },
+    ];
+
+    const crosstabConfigPanel = (
+        <Collapse
+            size="small"
+            defaultActiveKey={[]}
+            style={{ marginBottom: 12 }}
+            items={[{
+                key: "crosstab-config",
+                label: <Tooltip title={_("Crosstab configuration")}><span><SettingOutlined /></span></Tooltip>,
+                children: (
+                    <div style={{ display: "grid", gap: 12 }}>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 1 (rows)")}</div>
+                                <Select
+                                    value={categoryField1 || undefined}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField1(value); }}
+                                    style={{ width: "100%" }}
+                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("Select category")}
+                                />
+                            </div>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 2 (columns)")}</div>
+                                <Select
+                                    value={categoryField2 || "__none__"}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField2(value === "__none__" ? null : value); }}
+                                    style={{ width: "100%" }}
+                                    options={[
+                                        { label: _("None"), value: "__none__" },
+                                        ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key })),
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Cell fields")}</div>
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    value={selectedSeriesKeys || []}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setSelectedSeriesKeys(value); }}
+                                    style={{ width: "100%" }}
+                                    options={model.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("All numeric fields")}
+                                    maxTagCount="responsive"
+                                />
+                            </div>
+                            <div style={{ minWidth: 150 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Summary")}</div>
+                                <Select
+                                    value={summaryFn}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setSummaryFn(value as typeof summaryFn); }}
+                                    style={{ width: "100%" }}
+                                    options={crosstabSummaryOptions}
+                                />
+                            </div>
+                            <div style={{ minWidth: 200, flex: 1 }}>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Filter fields")}</div>
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    value={crosstabFilterFields}
+                                    onChange={(value) => { markAnalyzePrefsTouched(); setCrosstabFilterFields(value); }}
+                                    style={{ width: "100%" }}
+                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
+                                    placeholder={_("Select filter fields")}
+                                    maxTagCount="responsive"
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <Tooltip title={_("Save configuration")}>
+                                <Button size="small" icon={<SaveOutlined />} onClick={() => openSaveViewModalFor("analyze")} loading={isSavingAnalyzePrefs} aria-label={_("Save configuration")} />
+                            </Tooltip>
+                        </div>
+                    </div>
+                ),
+            }]}
+        />
+    );
+
+    const crosstabFilterRow = crosstabFilterFields.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+            {crosstabFilterFields.map((fieldKey) => {
+                const field = model.fields.find((f) => f.key === fieldKey);
+                if (!field) return null;
+                const options = (crosstabFilterOptions.get(fieldKey) || []).map((opt) => ({
+                    label: field.reference ? (labelCache[`${field.reference}:${opt.value}`] || opt.text) : opt.text,
+                    value: opt.value,
+                }));
+                return (
+                    <div key={`ct-filter-${fieldKey}`} style={{ minWidth: 200 }}>
+                        <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{field.label}</div>
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            size="small"
+                            style={{ width: "100%" }}
+                            placeholder={_("All")}
+                            maxTagCount="responsive"
+                            value={columnFiltersSelected[fieldKey] || []}
+                            options={options}
+                            onChange={(values) => setColumnFiltersSelected((prev) => ({ ...prev, [fieldKey]: values }))}
+                        />
+                    </div>
+                );
+            })}
+        </div>
+    ) : null;
+
+    const crosstabBodyNode = (
+        <div>
+            {editableCrosstab && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                    <Tooltip title={_("Save")}>
+                        <Button size="small" type="primary" icon={<SaveOutlined />} onClick={saveCrosstabEdits} loading={crosstabSaving} disabled={!crosstabHasPendingEdits} aria-label={_("Save")} />
+                    </Tooltip>
+                </div>
+            )}
+            {crosstabConfigPanel}
+            {crosstabFilterRow}
+            <CrosstabTable
+                rows={columnFilteredDataSource}
+                rowField={categoryField1}
+                colField={categoryField2 ?? null}
+                cellFieldKeys={(selectedSeriesKeys && selectedSeriesKeys.length > 0) ? selectedSeriesKeys : numericFields.map((f) => f.key)}
+                cellFieldLabels={Object.fromEntries(model.fields.map((f) => [f.key, f.label]))}
+                allFields={model.fields}
+                allModels={allModels}
+                summaryFn={summaryFn}
+                formatCategoryValue={formatCategoryValue}
+                numericBarColor={crosstabBarColor}
+                editable={editableCrosstab ? {
+                    pkField: model.pkField || "eid",
+                    getStagedValue: getCrosstabStagedValue,
+                    onCommitCell: stageCrosstabCellEdits,
+                    confirmProration: true,
+                } : undefined}
+            />
+        </div>
+    );
 
     const chartSignature = useMemo(() => {
         return JSON.stringify({
@@ -3620,6 +3706,8 @@ export const DynamicList: React.FC<{
                                 </div>
                             )}
                         </>
+                    ) : isCrosstabView ? (
+                        crosstabBodyNode
                     ) : (
                         <>
                         {selectModeBanner}
@@ -3711,46 +3799,7 @@ export const DynamicList: React.FC<{
                                             };
                                         },
                                     })}
-                                    onFilter={(value, record: any) => {
-                                        const strValue = String(value);
-                                        if (field.type === "number" && !field.reference && strValue.startsWith("__range__:")) {
-                                            const parts = strValue.split(":");
-                                            const lo = Number(parts[1]);
-                                            const hi = Number(parts[2]);
-                                            const recordVal = Number(record?.[field.key]);
-                                            if (isNaN(recordVal)) return false;
-                                            return recordVal >= lo && recordVal <= hi;
-                                        }
-                                        if ((field.type === "date" || field.type === "datetime") && strValue.startsWith("__daterange__:")) {
-                                            const sub = strValue.substring("__daterange__:".length);
-                                            const sepIdx = sub.indexOf(":");
-                                            const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                                            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                                            const recordVal = String(record?.[field.key] ?? "").substring(0, 10);
-                                            return recordVal >= lo && recordVal <= hi;
-                                        }
-                                        if (field.type === "string" && !field.reference && strValue.startsWith("__catrange__:")) {
-                                            const sub = strValue.substring("__catrange__:".length);
-                                            const sepIdx = sub.indexOf(":");
-                                            const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                                            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                                            const recordVal = String(record?.[field.key] ?? "");
-                                            return recordVal.localeCompare(lo) >= 0 && recordVal.localeCompare(hi) <= 0;
-                                        }
-                                        if (field.key === "eid" && strValue.startsWith("__catrange__:")) {
-                                            const sub = strValue.substring("__catrange__:".length);
-                                            const sepIdx = sub.indexOf(":");
-                                            const lo = decodeURIComponent(sub.substring(0, sepIdx));
-                                            const hi = decodeURIComponent(sub.substring(sepIdx + 1));
-                                            const recordLabel = String(record?._label ?? "");
-                                            return recordLabel.localeCompare(lo) >= 0 && recordLabel.localeCompare(hi) <= 0;
-                                        }
-                                        if (field.key === "eid" && record?._label) {
-                                            return String(record._label) === strValue || String(record.eid) === strValue;
-                                        }
-                                        const recordValue = record?.[field.key];
-                                        return String(recordValue) === strValue;
-                                    }}
+                                    onFilter={(value, record: any) => matchesColumnFilterValue(field, record, value)}
                                     render={(value, record: any) => {
                                         const { resource, id } = getTargetInfo(record);
                                         const renderValue = () => {

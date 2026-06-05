@@ -4,10 +4,12 @@ import { getRelationLabel, translateRelationKey } from "../utils/i18n";
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 const INLINE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
-const TABLE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["table", "totals-details"]);
+const TABLE_RELATION_VIEW_TYPES = new Set<RelationViewType>(["table", "totals-details", "crosstab", "editable-crosstab"]);
+const CROSSTAB_RELATION_VIEW_TYPES = new Set<RelationViewType>(["crosstab", "editable-crosstab"]);
 
 export const isInlineRelationViewType = (viewType: RelationViewType) => INLINE_RELATION_VIEW_TYPES.has(viewType);
 export const usesTableRelationBehavior = (viewType: RelationViewType) => TABLE_RELATION_VIEW_TYPES.has(viewType);
+export const isCrosstabViewType = (viewType: RelationViewType) => CROSSTAB_RELATION_VIEW_TYPES.has(viewType);
 
 export const DEFAULT_SHOW_RELATION_ROW_ACTIONS = false;
 export const DEFAULT_EDIT_RELATION_ROW_ACTIONS = true;

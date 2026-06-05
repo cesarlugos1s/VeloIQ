@@ -1,8 +1,7 @@
 import React from "react";
 import { theme, Empty } from "antd";
 import type { FieldDef } from "../types";
-import { formatNumberValue } from "../utils/formatting";
-import { renderNumericValueBar } from "../utils/statistics";
+import { CrosstabTable } from "./CrosstabTable";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -946,173 +945,19 @@ export const AnalysisChart: React.FC<{
         }
         const cat1Field = modelField(categoryField1);
         const cat2Field = modelField(categoryField2);
-        const rowLabels: string[] = [];
-        const colLabels: string[] = [];
-        const cellSeriesValues = new Map<string, Map<string, number[]>>();
-        const activeSeriesKeys = seriesKeys.length > 0 ? seriesKeys : ["__count__"];
-
-        rawRows.forEach((row) => {
-            const rowLabel = formatCategoryValue(cat1Field, row);
-            const colLabel = formatCategoryValue(cat2Field, row);
-            if (!rowLabels.includes(rowLabel)) rowLabels.push(rowLabel);
-            if (!colLabels.includes(colLabel)) colLabels.push(colLabel);
-            const cellKey = `${rowLabel}::${colLabel}`;
-            if (!cellSeriesValues.has(cellKey)) {
-                cellSeriesValues.set(cellKey, new Map<string, number[]>());
-            }
-            const seriesMap = cellSeriesValues.get(cellKey)!;
-            activeSeriesKeys.forEach((seriesKey) => {
-                if (!seriesMap.has(seriesKey)) {
-                    seriesMap.set(seriesKey, []);
-                }
-                const value = getNumericValue(row, seriesKey);
-                if (value !== null) {
-                    seriesMap.get(seriesKey)!.push(value);
-                }
-            });
-        });
-
-        if (rowLabels.length === 0 || colLabels.length === 0) {
-            return renderNoChartDataMessage();
-        }
-        const crosstabSeriesMaxes = activeSeriesKeys.reduce<Record<string, number>>((acc, seriesKey) => {
-            let maxForSeries = 0;
-            rowLabels.forEach((rowLabel) => {
-                colLabels.forEach((colLabel) => {
-                    const cellKey = `${rowLabel}::${colLabel}`;
-                    const values = cellSeriesValues.get(cellKey)?.get(seriesKey) || [];
-                    if (values.length === 0) return;
-                    const summarized = summarizeValues(values);
-                    maxForSeries = Math.max(maxForSeries, Math.abs(summarized));
-                });
-            });
-            acc[seriesKey] = maxForSeries;
-            return acc;
-        }, {});
-
         return (
-            <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
-                    {`${_("Crosstab")}: ${cat1Field?.label || categoryField1} × ${cat2Field?.label || categoryField2} (${summaryFn})`}
-                </div>
-                <div style={{ overflow: "auto", border: `1px solid ${token.colorBorder}`, borderRadius: 8 }}>
-                    <table style={{ borderCollapse: "collapse", width: "100%", minWidth: "max-content", fontSize: 12 }}>
-                        <thead>
-                            <tr>
-                                <th style={{ position: "sticky", left: 0, zIndex: 1, background: token.colorBgLayout, color: token.colorText, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180, fontWeight: "normal" }}>
-                                    {cat2Field?.label || categoryField2}
-                                </th>
-                                {colLabels.map((colLabel, colIndex) => (
-                                    <th
-                                        key={`crosstab-col-${colLabel}`}
-                                        colSpan={activeSeriesKeys.length}
-                                        style={{
-                                            background: token.colorBgLayout,
-                                            color: token.colorText,
-                                            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                                            borderLeft: colIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorderSecondary}`,
-                                            borderRight: `4px solid ${token.colorTextQuaternary}`,
-                                            padding: "8px 6px 4px",
-                                            textAlign: "center",
-                                            verticalAlign: "bottom",
-                                            fontWeight: "normal",
-                                        }}
-                                    >
-                                        <div style={{
-                                            writingMode: "vertical-rl",
-                                            transform: "rotate(210deg)",
-                                            whiteSpace: "normal",
-                                            wordBreak: "break-word",
-                                            display: "inline-block",
-                                            lineHeight: 1.2,
-                                            maxHeight: 200,
-                                        }}>
-                                            {colLabel}
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                            <tr>
-                                <th style={{ position: "sticky", left: 0, zIndex: 1, background: token.colorBgLayout, color: token.colorText, borderBottom: `2px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180, fontWeight: "normal" }}>
-                                    {cat1Field?.label || categoryField1}
-                                </th>
-                                {colLabels.flatMap((colLabel) =>
-                                    activeSeriesKeys.map((seriesKey, seriesIndex) => (
-                                        <th
-                                            key={`crosstab-head-${colLabel}-${seriesKey}`}
-                                            style={{
-                                                background: token.colorBgLayout,
-                                                color: token.colorText,
-                                                borderBottom: `2px solid ${token.colorBorderSecondary}`,
-                                                borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : undefined,
-                                                borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
-                                                padding: "6px 4px 4px",
-                                                textAlign: "center",
-                                                verticalAlign: "bottom",
-                                                fontWeight: "normal",
-                                                maxWidth: 48,
-                                                minWidth: 36,
-                                            }}
-                                        >
-                                            <div style={{
-                                                writingMode: "vertical-rl",
-                                                transform: "rotate(210deg)",
-                                                whiteSpace: "normal",
-                                                wordBreak: "break-word",
-                                                display: "inline-block",
-                                                lineHeight: 1.2,
-                                                maxHeight: 200,
-                                            }}>
-                                                {seriesLabels[seriesKey] || seriesKey}
-                                            </div>
-                                        </th>
-                                    ))
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rowLabels.map((rowLabel) => (
-                                <tr key={`crosstab-row-${rowLabel}`}>
-                                    <th style={{ position: "sticky", left: 0, zIndex: 1, background: token.colorBgContainer, color: token.colorText, borderBottom: `1px solid ${token.colorBorder}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", fontWeight: "normal" }}>
-                                        {rowLabel}
-                                    </th>
-                                    {colLabels.flatMap((colLabel) => {
-                                        const cellKey = `${rowLabel}::${colLabel}`;
-                                        const seriesMap = cellSeriesValues.get(cellKey);
-                                        return activeSeriesKeys.map((seriesKey, seriesIndex) => {
-                                            const values = seriesMap?.get(seriesKey) || [];
-                                            const summarized = values.length > 0 ? summarizeValues(values) : null;
-                                            const display = summarized !== null
-                                                ? renderNumericValueBar(
-                                                    summarized,
-                                                    crosstabSeriesMaxes[seriesKey] || 0,
-                                                    formatNumberValue(summarized),
-                                                    numericBarColor
-                                                )
-                                                : "–";
-                                            return (
-                                                <td
-                                                    key={`crosstab-cell-${rowLabel}-${colLabel}-${seriesKey}`}
-                                                    style={{
-                                                        borderBottom: `1px solid ${token.colorBorder}`,
-                                                        borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : undefined,
-                                                        borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
-                                                        padding: "8px 10px",
-                                                        textAlign: "right",
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                >
-                                                    {display}
-                                                </td>
-                                            );
-                                        });
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <CrosstabTable
+                rows={rawRows}
+                rowField={categoryField1}
+                colField={categoryField2}
+                cellFieldKeys={seriesKeys}
+                cellFieldLabels={seriesLabels}
+                allFields={allFields}
+                summaryFn={summaryFn}
+                formatCategoryValue={formatCategoryValue}
+                numericBarColor={numericBarColor}
+                caption={`${_("Crosstab")}: ${cat1Field?.label || categoryField1} × ${cat2Field?.label || categoryField2} (${summaryFn})`}
+            />
         );
     };
 

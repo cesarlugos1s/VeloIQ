@@ -10,6 +10,7 @@ import {
     DEFAULT_EDIT_RELATION_ROW_ACTIONS,
     DEFAULT_RELATION_CREATE_ACTIONS,
     getRelationViewType,
+    isCrosstabViewType,
     isInlineRelationViewType,
     usesTableRelationBehavior,
 } from "./helpers";
@@ -61,7 +62,9 @@ export const renderRelationBlock = ({
     const parentModel = findModelByName(allModels, parentResource);
     const relationTone = getModelTone(relatedModel || relationModel || rel.resource);
     const usesTableBehavior = usesTableRelationBehavior(viewType);
-    const allowInlineEdit = viewType === "editable-table";
+    const isCrosstab = isCrosstabViewType(viewType);
+    const allowInlineEdit = viewType === "editable-table" || viewType === "editable-crosstab";
+    const crosstabViewMode: "table" | "crosstab" = isCrosstab ? "crosstab" : "table";
     const tableViewVariant: "default" | "totals-details" = viewType === "totals-details" ? "totals-details" : "default";
     const showRelationActions = showActions;
     const showCreateButton = showCreate;
@@ -254,6 +257,7 @@ export const renderRelationBlock = ({
             allowInlineEdit={allowInlineEdit}
             layoutPreferenceType={layoutPreferenceType}
             viewVariant={tableViewVariant}
+            viewMode={crosstabViewMode}
             allModels={allModels}
         />
     ) : (
@@ -266,7 +270,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={usesTableBehavior ? "table" : undefined}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
         />
     );
 
@@ -282,7 +286,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={usesTableBehavior ? "table" : undefined}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
         />
     ) : polymorphicInfo ? (
         <PolymorphicRelatedObjectsTable
@@ -296,6 +300,7 @@ export const renderRelationBlock = ({
             allowInlineEdit={allowInlineEdit}
             layoutPreferenceType={layoutPreferenceType}
             viewVariant={tableViewVariant}
+            viewMode={crosstabViewMode}
         />
     ) : shouldShowRelatedObjects ? (
         <RelatedObjectsTable
@@ -309,6 +314,7 @@ export const renderRelationBlock = ({
             allowInlineEdit={allowInlineEdit}
             layoutPreferenceType={layoutPreferenceType}
             viewVariant={tableViewVariant}
+            viewMode={crosstabViewMode}
             allModels={allModels}
         />
     ) : (
@@ -321,11 +327,11 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={usesTableBehavior ? "table" : undefined}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
         />
     );
 
-    if (viewType === "editable-table") {
+    if (viewType === "editable-table" || isCrosstab) {
         return (
             <Card
                 key={rel.resource}
