@@ -16,15 +16,19 @@ git pull origin gh-pages --no-rebase --quiet
 
 # Copy only website files (never the whole working tree)
 cp /tmp/veloiq-website-deploy/index.html .
+cp /tmp/veloiq-website-deploy/showcase.html .
 cp /tmp/veloiq-website-deploy/pricing.html .
 cp /tmp/veloiq-website-deploy/contact.html .
 cp /tmp/veloiq-website-deploy/styles.css .
 find /tmp/veloiq-website-deploy -maxdepth 1 \
   \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) \
   -exec cp {} . \;
+# Showcase image assets (organized subdirectory)
+rm -rf showcase-assets
+cp -r /tmp/veloiq-website-deploy/showcase-assets .
 
 # Stage only website files
-git add index.html pricing.html contact.html styles.css
+git add index.html showcase.html pricing.html contact.html styles.css showcase-assets
 find . -maxdepth 1 \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) -exec git add {} \;
 
 # Commit only if there are changes

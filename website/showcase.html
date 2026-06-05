@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloIQ™ — The UI, Generated. A tour of the out-of-the-box interface.</title>
+  <meta name="description" content="Every screen generated from plain Python models — tables, galleries, crosstabs, Miller-column trees, master-detail panels, schema-driven forms, 18 chart types, dark mode. No React written, no design system assembled.">
+  <meta property="og:title" content="VeloIQ™ — See the UI you didn't have to build">
+  <meta property="og:description" content="Tables, galleries, crosstabs, trees, master-detail panels, forms, and 18 chart types — all generated from your data models.">
+  <meta property="og:image" content="dashboard-dark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
+    <div class="nav-links">
+      <a href="index.html#features">Features</a>
+      <a href="showcase.html">Showcase</a>
+      <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+      <a href="contact.html" class="nav-cta">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="showcase-hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      No React written &nbsp;·&nbsp; No design system assembled &nbsp;·&nbsp; 100% generated
+    </div>
+    <h1>The UI you <span class="highlight">didn't have to build</span></h1>
+    <p>
+      Every screen below comes from plain Python data models — VeloIQ generates the React
+      front-end automatically. Tables, galleries, crosstabs, trees, master-detail panels,
+      forms, and analytics, in light and dark mode, with zero boilerplate.
+    </p>
+  </div>
+</section>
+
+<!-- Section sub-nav -->
+<div class="subnav">
+  <div class="subnav-inner">
+    <a href="#dashboards">Dashboards &amp; Command Center</a>
+    <a href="#views">View Types</a>
+    <a href="#detail">Detail &amp; Forms</a>
+    <a href="#charts">18 Chart Types</a>
+    <a href="#themes">Dark &amp; Light</a>
+  </div>
+</div>
+
+<!-- Dashboards -->
+<section class="showcase-section" id="dashboards">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Your data, at a glance</span>
+      <h2>Dashboards &amp; Command Center</h2>
+      <p>An assembled overview and instant navigation — generated from your models, not hand-wired.</p>
+    </div>
+    <div class="gallery one">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/dashboard-dark.png" alt="VeloIQ dashboard with charts, recent activity and pinned records" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Dashboard</span>
+          <h4>A dashboard, out of the box</h4>
+          <p>Configurable cards combine live charts, recent activity, and pinned records — drop in a model and it appears. No front-end code, no chart library to wire up.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery one" style="margin-top:24px">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/command-center.png" alt="VeloIQ Command Center full-screen search palette" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Command Center · Ctrl + G</span>
+          <h4>Find anything in two keystrokes</h4>
+          <p>A full-screen palette to jump straight to any module, model, or record. Search-driven navigation your users will expect — included by default.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- View types -->
+<section class="showcase-section" id="views">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">One model, many lenses</span>
+      <h2>View Types</h2>
+      <p>The same data, shown the way each team needs it — switch the view, no rebuild required.</p>
+    </div>
+    <div class="gallery">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-table.png" alt="Table view with status tags and inline analysis chart" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Table</span>
+          <h4>Powerful tables, instantly</h4>
+          <p>Sortable columns, inline filters, colored status tags, and a live analysis chart sitting right beside the data.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-gallery.png" alt="Gallery card view of team members" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Gallery</span>
+          <h4>Cards for people &amp; media</h4>
+          <p>A visual card layout that's perfect for team members, products, or anything with an image — switchable per model.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-totals.png" alt="Totals view with aggregate cards" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Totals</span>
+          <h4>Roll-ups, automatically</h4>
+          <p>Counts and distributions across every column — an instant summary of any dataset, no spreadsheet export.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-totals-details.png" alt="Totals and details combined view" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Totals + Details</span>
+          <h4>Summary &amp; rows together</h4>
+          <p>Flip a switch to reveal the underlying records beneath the roll-up — drill down without losing the big picture.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-crosstab.png" alt="Crosstab pivot of related data inside an edit form" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Crosstab</span>
+          <h4>Pivot without queries</h4>
+          <p>Cross-tabulate related records by any two dimensions — even inline inside an edit form. No SQL, no BI tool.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-miller.png" alt="Miller-columns tree browsing subtasks" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Miller-Columns Tree</span>
+          <h4>Hierarchies you can browse</h4>
+          <p>Self-referential relationships are auto-detected and rendered as a column-by-column tree — drill from parent to child to leaf.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery one" style="margin-top:24px">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/view-named.png" alt="Saved named view with its own configuration" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Named Views</span>
+          <h4>Save a perspective, switch in a click</h4>
+          <p>Each model can keep multiple saved views — different columns, filters, view type, and chart — so every role gets the layout that fits them.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Detail & forms -->
+<section class="showcase-section" id="detail">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Read, relate, edit</span>
+      <h2>Detail Views &amp; Forms</h2>
+      <p>Inspect records side by side and edit them through forms derived straight from your schema.</p>
+    </div>
+    <div class="gallery">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/detail-master.png" alt="Master-detail side panel layout" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Master–Detail</span>
+          <h4>Browse and inspect at once</h4>
+          <p>Click a row to open a detail panel beside the list. Resize it, maximize it, or pop it out to a full page.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/detail-relations.png" alt="Related records rendered inline with charts" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Relations, Inline</span>
+          <h4>Linked data, in context</h4>
+          <p>Related records render right inside the record — each with its own view type, filters, and analysis chart.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/form-create.png" alt="Schema-driven create form" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Create</span>
+          <h4>Forms you never wrote</h4>
+          <p>Markdown editors, star ratings, currency, dates, and relation pickers — every input inferred from your model fields.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/form-edit.png" alt="Schema-driven edit form" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Edit</span>
+          <h4>The same schema, both ways</h4>
+          <p>Create and edit share one definition, with validation and relation handling built in. Change a model, the forms follow.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Charts -->
+<section class="showcase-section" id="charts">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Analytics, included</span>
+      <h2>Eighteen Chart Types</h2>
+      <p>Any list or relation can become a chart. Pick a type, set the axes — no charting library, no glue code.</p>
+    </div>
+    <div class="chart-grid">
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/bar.png" alt="Bar chart" loading="lazy"><span>Bars</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/stacked.png" alt="Stacked bar chart" loading="lazy"><span>Stacked Bars</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/bar-horizontal.png" alt="Horizontal bar chart" loading="lazy"><span>Horizontal Bars</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/stacked-horizontal.png" alt="Horizontal stacked chart" loading="lazy"><span>Horizontal Stacked</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/line.png" alt="Line chart" loading="lazy"><span>Lines</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/area.png" alt="Area chart" loading="lazy"><span>Area</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/area-horizontal.png" alt="Horizontal area chart" loading="lazy"><span>Horizontal Area</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/pie.png" alt="Pie chart" loading="lazy"><span>Pie</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/donut.png" alt="Donut chart" loading="lazy"><span>Donut</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/scatter.png" alt="Scatter chart" loading="lazy"><span>Scatter</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/bubble.png" alt="Bubble chart" loading="lazy"><span>Bubble</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/histogram.png" alt="Histogram" loading="lazy"><span>Histogram</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/box.png" alt="Box plot" loading="lazy"><span>Box Plot</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/waterfall.png" alt="Waterfall chart" loading="lazy"><span>Waterfall</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/heatmap.png" alt="Heatmap" loading="lazy"><span>Heatmap</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/crosstab.png" alt="Crosstab chart" loading="lazy"><span>Crosstab</span></figure>
+      <figure class="chart-tile"><img data-zoom src="showcase-assets/charts/combo.png" alt="Combo bar and line chart" loading="lazy"><span>Combo</span></figure>
+    </div>
+  </div>
+</section>
+
+<!-- Themes -->
+<section class="showcase-section" id="themes">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Designed for both</span>
+      <h2>Dark &amp; Light, Built In</h2>
+      <p>Every screen ships in both themes. One toggle, remembered per user — nothing to theme yourself.</p>
+    </div>
+    <div class="gallery">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/dashboard-dark.png" alt="Dashboard in dark mode" loading="lazy"></div>
+        <figcaption class="shot-body"><span class="shot-tag">Dark</span><h4>Dark mode</h4><p>The default, tuned for long sessions and dense data.</p></figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/dashboard-light.png" alt="Dashboard in light mode" loading="lazy"></div>
+        <figcaption class="shot-body"><span class="shot-tag">Light</span><h4>Light mode</h4><p>The same dashboard, one click away — no extra styling.</p></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section">
+  <div class="container">
+    <div class="demo-wrap">
+      <span class="section-tag">Five-minute demo</span>
+      <h2>This whole interface, from your models</h2>
+      <p class="sub">Clone the repo, run one script, and explore every screen above in your own browser — pre-loaded with sample data.</p>
+      <div class="demo-code">
+        <pre><span class="c-prompt">$</span> <span class="c-cmd">git clone https://github.com/cesarlugos1s/veloiq.git</span>
+<span class="c-prompt">$</span> <span class="c-cmd">cd veloiq</span>
+<span class="c-prompt">$</span> <span class="c-cmd">bash samples/task-manager/quickstart.sh</span></pre>
+      </div>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+        <a href="https://github.com/cesarlugos1s/veloiq" class="btn-primary" target="_blank">View on GitHub →</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/quickstart.md" class="btn-secondary" target="_blank">Quick Start</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">Velo<span class="accent">IQ</span>™</span>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="showcase.html">Showcase</a>
+        <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+        <a href="https://pypi.org/project/veloiq-framework/" target="_blank">PyPI</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <span class="footer-copy">© 2026 JuiceMantics · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox"><img alt="Expanded screenshot"></div>
+<script>
+  (function () {
+    var lb = document.getElementById('lightbox');
+    var lbImg = lb.querySelector('img');
+    document.querySelectorAll('img[data-zoom]').forEach(function (img) {
+      img.addEventListener('click', function () {
+        lbImg.src = img.currentSrc || img.src;
+        lb.classList.add('open');
+      });
+    });
+    lb.addEventListener('click', function () { lb.classList.remove('open'); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lb.classList.remove('open'); });
+  })();
+</script>
+
+</body>
+</html>
