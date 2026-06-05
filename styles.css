@@ -290,9 +290,78 @@ footer { border-top: 1px solid var(--border-subtle); padding: 44px 0; }
 .footer-links a:hover { color: var(--text); }
 .footer-copy { font-size: 0.8rem; color: var(--text-dim); }
 
+/* ── Showcase / UI gallery ── */
+.showcase-hero { padding: 72px 0 8px; text-align: center; }
+.showcase-hero h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; max-width: 820px; margin: 0 auto 16px; }
+.showcase-hero h1 .highlight { color: var(--accent); }
+.showcase-hero p { color: var(--text-muted); max-width: 600px; margin: 0 auto; font-size: 1.05rem; line-height: 1.6; }
+
+/* sticky section sub-nav */
+.subnav {
+  position: sticky; top: 60px; z-index: 90;
+  background: rgba(9,9,11,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.subnav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 24px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.subnav a {
+  font-size: 0.82rem; font-weight: 500; color: var(--text-muted);
+  padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.subnav a:hover { color: var(--text); border-color: var(--text-muted); background: var(--bg-elevated); }
+
+.showcase-section { padding: 64px 0; border-top: 1px solid var(--border-subtle); }
+.showcase-section .section-header { margin-bottom: 40px; }
+
+/* feature shot grid */
+.gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.gallery.one { grid-template-columns: 1fr; max-width: 880px; margin: 0 auto; }
+.ui-shot {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.ui-shot:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+.ui-shot .shot-frame {
+  background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+  cursor: zoom-in; overflow: hidden;
+}
+.ui-shot .shot-frame img { display: block; width: 100%; }
+.ui-shot .shot-body { padding: 20px 22px 22px; }
+.ui-shot .shot-tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.ui-shot h4 { font-size: 1.05rem; font-weight: 600; margin: 6px 0 8px; }
+.ui-shot p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
+
+/* charts grid */
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.chart-tile {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); overflow: hidden; cursor: zoom-in;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.chart-tile:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+.chart-tile img { display: block; width: 100%; background: var(--bg); }
+.chart-tile span { display: block; padding: 8px 10px; font-size: 0.78rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-subtle); }
+
+/* lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 1000; display: none;
+  align-items: center; justify-content: center; padding: 32px;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(4px); cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 95vw; max-height: 92vh; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 24px 80px rgba(0,0,0,0.7); }
+
+/* homepage UI teaser strip */
+.ui-teaser-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 36px 0 0; }
+.ui-teaser-grid img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .section { padding: 64px 0; }
+  .gallery, .gallery.one { grid-template-columns: 1fr; }
+  .ui-teaser-grid { grid-template-columns: 1fr; }
+  .subnav { top: 0; }
   .features-grid { grid-template-columns: 1fr; }
   .capabilities { grid-template-columns: 1fr; gap: 32px; }
   .demo-wrap { padding: 48px 24px; }
