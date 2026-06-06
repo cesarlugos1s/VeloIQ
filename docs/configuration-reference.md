@@ -54,7 +54,7 @@ app = create_veloiq_app()
 
 ### Extensions (explicit opt-in)
 
-A VeloIQ extension (e.g. `vigilantiq`) declares a `veloiq.extensions` entry
+A VeloIQ extension (e.g. `iqvigilant`) declares a `veloiq.extensions` entry
 point, which makes it discoverable to *every* app in the same virtualenv. To
 keep each app's surface explicit, an app loads **only** the extensions it opts
 into — it does not auto-load whatever is pip-installed.
@@ -70,14 +70,14 @@ The enabled list is resolved with this precedence:
 
 ```toml
 [extensions]
-enabled = ["vigilantiq"]
+enabled = ["iqvigilant"]
 ```
 
 Manage it with the CLI (which edits `veloiq.toml` for you):
 
 ```bash
-veloiq extend-package vigilantiq   # enable
-veloiq remove-package vigilantiq   # disable
+veloiq extend-package iqvigilant   # enable
+veloiq remove-package iqvigilant   # disable
 veloiq list-extensions             # installed vs. enabled
 ```
 
@@ -120,7 +120,7 @@ relations_max_rows_to_load = 1000
 
 The scaffolded `veloiq.toml` ships these keys as commented examples with the
 same guidance, so you can uncomment and edit the ones you want to change. Apps
-that enable an extension (e.g. `vigilantiq`) get the same settings on the
+that enable an extension (e.g. `iqvigilant`) get the same settings on the
 extension's pages automatically — they render through the host's `DynamicResource`.
 
 ### CORS
@@ -277,5 +277,5 @@ AUTH_SECRET=your-secret-key-here
 AUTH_ALGORITHM=HS256
 AUTH_TOKEN_EXPIRE_MINUTES=60
 ECHO_SQL=false
-VELOIQ_EXTENSIONS=vigilantiq   # comma-separated; overrides veloiq.toml (usually unset)
+VELOIQ_EXTENSIONS=iqvigilant   # comma-separated; overrides veloiq.toml (usually unset)
 ```

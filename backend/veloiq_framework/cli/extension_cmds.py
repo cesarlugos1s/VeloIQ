@@ -23,7 +23,7 @@ def extend_package(name: str):
 
     \b
     Example:
-      veloiq extend-package vigilantiq
+      veloiq extend-package iqvigilant
 
     The extension must already be pip-installed in this environment. After
     enabling, run `veloiq generate` to sync its frontend, then restart the app.
@@ -57,7 +57,7 @@ def remove_package(name: str):
 
     \b
     Example:
-      veloiq remove-package vigilantiq
+      veloiq remove-package iqvigilant
 
     This does not uninstall the package — it only stops this app from loading it.
     Run `veloiq generate` afterwards and restart to fully drop its frontend.

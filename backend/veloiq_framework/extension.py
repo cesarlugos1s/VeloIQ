@@ -7,7 +7,7 @@ Extension packages declare themselves to the framework by:
    ``pyproject.toml``::
 
        [project.entry-points."veloiq.extensions"]
-       vigilantiq = "vigilantiq.manifest:ExtensionManifest"
+       iqvigilant = "iqvigilant.manifest:ExtensionManifest"
 
 The framework discovers all installed extensions at app startup by scanning
 that entry point group.  The host app needs no changes — installing and
@@ -33,20 +33,20 @@ class VeloIQExtension:
         from veloiq_framework import VeloIQExtension
 
         class ExtensionManifest(VeloIQExtension):
-            name = "vigilantiq"
+            name = "iqvigilant"
             version = "1.0.0"
-            modules_package = "vigilantiq.modules"
+            modules_package = "iqvigilant.modules"
             static_dir = "static"
             frontend_pages_dir = "frontend/pages"
     """
 
     # ── Required ──────────────────────────────────────────────────────────────
 
-    #: Short identifier used in URL paths and log messages (e.g. "vigilantiq").
+    #: Short identifier used in URL paths and log messages (e.g. "iqvigilant").
     name: str = ""
 
     #: Dotted Python package path that contains the extension's modules
-    #: (e.g. "vigilantiq.modules").  The loader will scan this package the
+    #: (e.g. "iqvigilant.modules").  The loader will scan this package the
     #: same way it scans the host app's ``app/modules/``.
     modules_package: str = ""
 
@@ -78,7 +78,7 @@ class VeloIQExtension:
     #: Routes contributed to the host app's router.  Each entry is a dict::
     #:
     #:     {
-    #:         "path": "/vigilantiq-license",     # URL path
+    #:         "path": "/iqvigilant-license",     # URL path
     #:         "component": "LicenseManagement",  # import name used in the route
     #:         "source": "LicenseManagement.tsx", # file under frontend_components_dir
     #:         "export": "default",               # "default" or a named export
@@ -91,10 +91,10 @@ class VeloIQExtension:
     #: Items added to the host app's user dropdown menu.  Each entry is a dict::
     #:
     #:     {
-    #:         "key": "vigilantiq-license",       # unique key
-    #:         "label": "VigilantIQ Licensing",   # menu label
+    #:         "key": "iqvigilant-license",       # unique key
+    #:         "label": "IQVigilant Licensing",   # menu label
     #:         "icon": "KeyOutlined",             # Ant Design icon component name
-    #:         "route": "/vigilantiq-license",    # path navigated to on click
+    #:         "route": "/iqvigilant-license",    # path navigated to on click
     #:     }
     user_menu_items: list = []
 
@@ -119,7 +119,7 @@ class VeloIQExtension:
         """Return the absolute path to the installed Python package directory.
 
         Derived from the top-level package in ``modules_package``
-        (e.g. "vigilantiq" from "vigilantiq.modules").
+        (e.g. "iqvigilant" from "iqvigilant.modules").
         """
         top_pkg = self.modules_package.split(".")[0] if self.modules_package else self.name
         spec = importlib.util.find_spec(top_pkg)

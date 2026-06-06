@@ -8,8 +8,8 @@
 #   veloiq extend-package <name>     veloiq remove-package <name>
 #   veloiq list-extensions
 #
-# Example (after `pip install vigilantiq`):
-#   enabled = ["vigilantiq"]
+# Example (after `pip install iqvigilant`):
+#   enabled = ["iqvigilant"]
 
 [extensions]
 enabled = []

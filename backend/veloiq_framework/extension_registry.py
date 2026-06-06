@@ -7,7 +7,7 @@ just because it is pip-installed), each app opts in through a ``veloiq.toml``
 file at its **project root**::
 
     [extensions]
-    enabled = ["vigilantiq"]
+    enabled = ["iqvigilant"]
 
 Only the listed extensions are loaded — both at app startup
 (``create_veloiq_app``) and during ``veloiq generate``. With no ``veloiq.toml``

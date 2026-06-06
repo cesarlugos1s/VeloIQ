@@ -7,7 +7,7 @@ const API_URL = "/api";
  * Journey menu items grouped by the module they belong to.
  * Shape: { [moduleName]: [{ key, label, route }] }
  *
- * Journeys are a VigilantIQ-extension concept; this fetch is best-effort and
+ * Journeys are a IQVigilant-extension concept; this fetch is best-effort and
  * silently yields {} when the journey endpoints are absent (e.g. the extension
  * is not installed), so the core menu degrades gracefully.
  */

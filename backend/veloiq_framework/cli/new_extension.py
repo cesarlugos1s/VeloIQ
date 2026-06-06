@@ -15,7 +15,7 @@ import click
 def new_extension(name: str, title: str, output_dir: str) -> None:
     """Scaffold a new VeloIQ extension package.
 
-    NAME is the short identifier for the extension (e.g. 'vigilantiq').
+    NAME is the short identifier for the extension (e.g. 'iqvigilant').
     The command creates the directory structure at OUTPUT_DIR/NAME.
     """
     slug = _slugify(name)

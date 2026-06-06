@@ -439,7 +439,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         """Return view layout configuration rows for a model.
 
         Reads ``config/page_configs.json`` (written by a page-configuration tool,
-        e.g. the VigilantIQ extension) and converts the stored sections/tabs/entries
+        e.g. the IQVigilant extension) and converts the stored sections/tabs/entries
         into the ViewConfigRow shape the frontend consumes. Returns both the show
         and edit layouts (the frontend filters by ``form_type``). Empty list →
         the frontend falls back to its schema-driven default layout.

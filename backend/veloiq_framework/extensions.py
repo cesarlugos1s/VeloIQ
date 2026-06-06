@@ -21,7 +21,7 @@ def discover_extensions(
     ``pyproject.toml`` pointing to a :class:`VeloIQExtension` subclass::
 
         [project.entry-points."veloiq.extensions"]
-        vigilantiq = "vigilantiq.manifest:ExtensionManifest"
+        iqvigilant = "iqvigilant.manifest:ExtensionManifest"
 
     The entry point value may be either:
     - A class (subclass of ``VeloIQExtension``) — instantiated with no args.

@@ -117,7 +117,7 @@ Each extension manages its own licensing through a bundled license module.  The 
 
 The **host app itself is always MIT** — the framework never enforces licensing on the app developer's own modules unless `veloiq add-licensing` is explicitly run.
 
-See [docs/open-core.md](docs/open-core.md) for the Pro/Enterprise extension packages (VigilantIQ, VantageIQ) and [docs/module-authoring.md](docs/module-authoring.md) for the extension authoring reference.
+See [docs/open-core.md](docs/open-core.md) for the Pro/Enterprise extension packages (IQVigilant, VantageIQ) and [docs/module-authoring.md](docs/module-authoring.md) for the extension authoring reference.
 
 ---
 
@@ -150,7 +150,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, frontend schema customisation, and extension package authoring |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |
-| [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — extension packages (VigilantIQ, VantageIQ), licensing architecture, and the full feature set |
+| [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — extension packages (IQVigilant, VantageIQ), licensing architecture, and the full feature set |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes and version history |
 
 **Recommended reading order for new developers:**

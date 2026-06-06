@@ -61,25 +61,25 @@ Pro features are distributed as two extension packages that install on top of
 the free core.
 
 ```bash
-pip install vigilantiq    # Personalization + Natural Language
+pip install iqvigilant    # Personalization + Natural Language
 pip install vantageiq     # Benefit Realization Management
 ```
 
 After installation, enable the extension for the host app and sync its schemas:
 
 ```bash
-veloiq extend-package vigilantiq   # adds it to the app's veloiq.toml
+veloiq extend-package iqvigilant   # adds it to the app's veloiq.toml
 veloiq generate                    # sync schemas/menus into the frontend
 # then restart the backend so its modules load
 ```
 
 Each package manages its own license keys through its own License Management page.
 
-### VigilantIQ (`pip install vigilantiq`)
+### IQVigilant (`pip install iqvigilant`)
 
 The Pro tier targets CTOs and CFOs who need to move faster, govern more
 safely, and deploy AI without the risks that come with unconstrained
-generative tools.  VigilantIQ unlocks three categories of capability:
+generative tools.  IQVigilant unlocks three categories of capability:
 **Personalization**, **Natural Language**, and **Enterprise Governance**.
 
 **Licensed module groups:**

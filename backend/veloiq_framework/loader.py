@@ -311,8 +311,8 @@ def _load_extension_modules(
         return
 
     # Derive the Python package that contains the module sub-packages.
-    # e.g. "vigilantiq.modules" → parent is "vigilantiq.modules",
-    # sub-folders are importable as "vigilantiq.modules.{folder}".
+    # e.g. "iqvigilant.modules" → parent is "iqvigilant.modules",
+    # sub-folders are importable as "iqvigilant.modules.{folder}".
     try:
         parent_mod = importlib.import_module(pkg)
     except Exception as exc:

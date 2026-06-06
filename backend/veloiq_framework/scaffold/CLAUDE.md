@@ -46,7 +46,7 @@ veloiq run                 # backend at http://localhost:{{backend_port}}
 cd frontend && npm run dev  # frontend at http://localhost:5173
 
 # Extension packages (optional)
-pip install <extension>    # e.g. pip install vigilantiq
+pip install <extension>    # e.g. pip install iqvigilant
 veloiq generate            # sync the extension's schemas and nav config
 
 # Add license enforcement to this app's own modules (optional)

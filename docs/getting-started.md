@@ -256,7 +256,7 @@ cd ..
 
    ```toml
    [extensions]
-   enabled = []        # add extension names here, e.g. ["vigilantiq"]
+   enabled = []        # add extension names here, e.g. ["iqvigilant"]
 
    [views]
    # optional global UI view settings — see the Configuration Reference

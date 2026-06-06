@@ -20,7 +20,7 @@ httpClient.interceptors.request.use((config) => {
 });
 
 // Surface the backend's error payload to the UI.  FastAPI returns
-// ``{"detail": "<message>"}`` on 4xx (e.g. validation failures and VigilantIQ
+// ``{"detail": "<message>"}`` on 4xx (e.g. validation failures and IQVigilant
 // business-rule constraint violations).  Refine/antd shows ``error.message`` in
 // the failure notification, which by default is axios's generic
 // "Request failed with status code NNN".  Promote the server-provided detail so
