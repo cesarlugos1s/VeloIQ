@@ -1,6 +1,6 @@
 # CLAUDE.md — {{app_title}}
 
-This project was generated with the [VeloIQ™ framework](https://github.com/juicemantics/VeloIQ_framework).
+This project was generated with the [VeloIQ™ framework](https://github.com/cesarlugos1s/veloiq).
 
 ## Project layout
 
