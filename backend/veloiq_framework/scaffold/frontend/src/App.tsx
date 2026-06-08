@@ -79,7 +79,7 @@ export default function App() {
                         <ColorModeContextProvider>
                             <PrimaryShowContext.Provider value={PrimaryShowRenderer}>
                                 <Routes>
-                                    <Route path="/" element={<Navigate to={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "login"}`} replace />} />
+                                    <Route path="/" element={<Navigate to={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "dashboard"}`} replace />} />
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route
                                         element={

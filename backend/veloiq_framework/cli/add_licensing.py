@@ -440,13 +440,13 @@ def patch_admin_view_with_license(view_class, module_name: str) -> None:
     original_is_accessible = getattr(view_class, "is_accessible", None)
     original_is_visible = getattr(view_class, "is_visible", None)
 
-    def is_accessible(self) -> bool:
-        if original_is_accessible and not original_is_accessible(self):
+    def is_accessible(self, request) -> bool:
+        if original_is_accessible and not original_is_accessible(self, request):
             return False
         return is_module_accessible(module_name)
 
-    def is_visible(self) -> bool:
-        if original_is_visible and not original_is_visible(self):
+    def is_visible(self, request) -> bool:
+        if original_is_visible and not original_is_visible(self, request):
             return False
         return is_module_accessible(module_name)
 

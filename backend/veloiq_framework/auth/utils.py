@@ -259,10 +259,12 @@ def seed_default_roles(engine) -> None:
 
 
 def seed_admin_user_if_needed(engine, username: str = "admin", password: str = "admin") -> None:
-    """Create the default admin user when no admin user exists yet.
+    """Create or update the default admin user.
 
-    This function is idempotent — if the user already exists it is left
-    unchanged (except that a missing password_hash is back-filled).
+    If the user does not exist yet, it is created with the given credentials.
+    If the user already exists, the password is updated to match the configured
+    value (so that changing VELOIQ_ADMIN_PASSWORD in .env takes effect even
+    after the initial seed).
     """
     from sqlmodel import Session, select
     from veloiq_framework.auth.models import Role, User, user_has_role_link
@@ -276,13 +278,13 @@ def seed_admin_user_if_needed(engine, username: str = "admin", password: str = "
 
         existing = session.exec(select(User).where(User.username == username)).first()
         if existing is not None:
-            if not existing.password_hash:
+            if existing.password_hash and verify_password(password, existing.password_hash):
+                print(f"[VeloIQ] Admin user '{username}' already exists.")
+            else:
                 existing.password_hash = hash_password(password)
                 session.add(existing)
                 session.commit()
-                print(f"\033[32m[VeloIQ] Password set on existing '{username}' user.\033[0m")
-            else:
-                print(f"[VeloIQ] Admin user '{username}' already exists.")
+                print(f"\033[32m[VeloIQ] Password updated for '{username}' user.\033[0m")
             return
 
         new_user = User(

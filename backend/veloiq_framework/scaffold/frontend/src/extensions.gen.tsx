@@ -7,3 +7,6 @@ export const extensionRoutes: ExtensionRoute[] = [];
 
 export interface ExtensionUserMenuItem { key: string; label: string; icon?: React.ReactNode; onClick: () => void; }
 export const extensionUserMenuItems: ExtensionUserMenuItem[] = [];
+
+export interface ExtensionShowComponent { resource: string; Component: React.ComponentType<{ idOverride?: string }>; }
+export const extensionShowComponents: Record<string, React.ComponentType<{ idOverride?: string }>> = {};

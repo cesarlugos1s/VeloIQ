@@ -54,6 +54,18 @@ By the end of Section 1 you will have:
 
 ---
 
+> **💡 TUI shortcut:** After installing the CLI (`pip install veloiq-framework`),
+> just type `veloiq` and a terminal UI will guide you through creating the app
+> interactively — no need to remember flags.  The TUI lets you set the app name,
+> database, admin credentials, and ports in a form, then creates everything
+> automatically — including installing Python and npm dependencies and running
+> `veloiq generate`.  After the app is created, the TUI launches the project
+> explorer where you can run commands like `add-module` directly.  If you
+> scaffold the modules there, skip ahead to **Step 4** (write models).  If you
+> prefer the command line, follow the steps below.
+
+---
+
 ## Step 1 — Create the project (1 min)
 
 ```bash
@@ -65,7 +77,8 @@ veloiq new task-manager
 cd task-manager
 ```
 
-You get this layout:
+This scaffolds the full project structure, creates `backend/.env` from `.env.example`,
+installs frontend and backend dependencies, and runs `veloiq generate`:
 
 ```
 task-manager/
@@ -73,6 +86,7 @@ task-manager/
 │   ├── app/
 │   │   ├── main.py          # one line
 │   │   └── modules/         # your modules go here
+│   ├── .env                 # pre-configured from .env.example
 │   ├── .env.example
 │   ├── requirements.txt
 │   └── api_schema_gen.py
@@ -94,24 +108,18 @@ app = create_veloiq_app()
 
 ## Step 2 — Configure the database (1 min)
 
-```bash
-cd backend
-cp .env.example .env
-```
-
-### Option A — SQLite (fastest start, no server required)
-
-`.env.example` already points to a local SQLite file — no changes needed:
-
-```
-DATABASE_URL=sqlite:///./app.db
-```
-
-SQLite creates `app.db` automatically on the first startup.
+By default the project uses SQLite — no configuration needed.  SQLite creates
+`app.db` automatically on the first startup.
 
 ### Option B — PostgreSQL
 
-Edit `.env` and set your database URL:
+If you prefer PostgreSQL, you can configure it at creation time:
+
+```bash
+veloiq new task-manager --db-type postgresql --db-user myuser --db-password secret
+```
+
+Or edit `backend/.env` after creation:
 
 ```
 DATABASE_URL=postgresql://user:pass@localhost/task_manager
@@ -122,6 +130,16 @@ Also update `requirements.txt` to pull in the PostgreSQL driver:
 ```
 veloiq-framework[postgres]
 ```
+
+### Customise admin credentials
+
+The default admin user is `admin` / `admin`.  To set custom credentials:
+
+```bash
+veloiq new task-manager --admin-username admin --admin-password "MyS3cret!"
+```
+
+Or set `VELOIQ_ADMIN_USERNAME` and `VELOIQ_ADMIN_PASSWORD` in `backend/.env`.
 
 ---
 

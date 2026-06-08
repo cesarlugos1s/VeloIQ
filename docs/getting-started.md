@@ -25,7 +25,8 @@ veloiq new my-app
 cd my-app
 ```
 
-This scaffolds the full project structure:
+This scaffolds the full project structure, creates `backend/.env` from `.env.example`,
+installs frontend and backend dependencies, and runs `veloiq generate`:
 
 ```
 my-app/
@@ -33,6 +34,7 @@ my-app/
 │   ├── app/
 │   │   ├── main.py          # one line: app = create_veloiq_app()
 │   │   └── modules/         # your domain modules go here
+│   ├── .env                 # pre-configured from .env.example
 │   ├── .env.example
 │   ├── requirements.txt
 │   └── api_schema_gen.py    # code generator entry point
@@ -44,13 +46,30 @@ my-app/
     └── vite.config.ts
 ```
 
-## Configure the database
+### Configure the database
+
+By default the project uses SQLite — no configuration needed.  To use PostgreSQL
+instead, pass `--db-type` when creating the project:
 
 ```bash
-cd backend
-cp .env.example .env
-# edit .env and set DATABASE_URL=postgresql://user:pass@localhost/myapp
+veloiq new my-app --db-type postgresql --db-user myuser --db-password secret
 ```
+
+Or edit `backend/.env` after creation:
+
+```
+DATABASE_URL=postgresql://user:pass@localhost/myapp
+```
+
+### Customise admin credentials
+
+The default admin user is `admin` / `admin`.  To set custom credentials:
+
+```bash
+veloiq new my-app --admin-username admin --admin-password "MyS3cret!"
+```
+
+Or set `VELOIQ_ADMIN_USERNAME` and `VELOIQ_ADMIN_PASSWORD` in `backend/.env`.
 
 ## Add your first module
 
@@ -216,7 +235,12 @@ Running `veloiq` with no arguments opens an interactive terminal UI that lets yo
 veloiq
 ```
 
-The explorer has five screens navigated with arrow keys and letter shortcuts:
+If you run `veloiq` outside a project directory, the explorer shows a form to
+create a new app interactively — you can set the app name, database, admin
+credentials, and ports without leaving the terminal.
+
+Once inside a project, the explorer has five screens navigated with arrow keys
+and letter shortcuts:
 
 | Screen | What you see |
 |---|---|

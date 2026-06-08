@@ -971,16 +971,203 @@ class Explorer:
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
 
+def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
+    """Interactive TUI for creating a new VeloIQ project when no project is found."""
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(_C_HDR,  curses.COLOR_WHITE,  curses.COLOR_BLUE)
+    curses.init_pair(_C_SEL,  curses.COLOR_BLACK,  curses.COLOR_CYAN)
+    curses.init_pair(_C_OK,   curses.COLOR_GREEN,  -1)
+    curses.init_pair(_C_WARN, curses.COLOR_YELLOW, -1)
+    curses.init_pair(_C_TTL,  curses.COLOR_CYAN,   -1)
+    curses.init_pair(_C_ERR,  curses.COLOR_RED,    -1)
+    curses.curs_set(0)
+    stdscr.keypad(True)
+
+    max_y, max_x = stdscr.getmaxyx()
+
+    # ── Form fields ────────────────────────────────────────────────────────────
+    fields = [
+        {"key": "app_name",      "label": "App name",              "value": "", "required": True},
+        {"key": "title",         "label": "Title",                  "value": "", "required": False},
+        {"key": "port",          "label": "Backend port",           "value": "8000", "required": False},
+        {"key": "frontend_port", "label": "Frontend port",          "value": "5173", "required": False},
+        {"key": "admin_username","label": "Admin username",         "value": "", "required": False},
+        {"key": "admin_password","label": "Admin password",         "value": "", "required": False},
+        {"key": "db_type",       "label": "DB type",                "value": "sqlite", "required": False},
+        {"key": "db_host",       "label": "DB host",                "value": "", "required": False},
+        {"key": "db_port",       "label": "DB port",                "value": "", "required": False},
+        {"key": "db_name",       "label": "DB name",                "value": "", "required": False},
+        {"key": "db_user",       "label": "DB user",                "value": "", "required": False},
+        {"key": "db_password",   "label": "DB password",            "value": "", "required": False},
+    ]
+    cursor = 0  # which field is selected
+    done = False
+    result: Optional[str] = None
+
+    def _w(row, col, text, attr=0):
+        if row < 0 or row >= max_y or col < 0 or col >= max_x:
+            return
+        try:
+            stdscr.addstr(row, col, str(text)[: max_x - col], attr)
+        except curses.error:
+            pass
+
+    def _draw():
+        stdscr.clear()
+        # Header
+        hdr = "  VeloIQ  ·  Create New Project"
+        _w(0, 0, hdr[:max_x], curses.color_pair(_C_HDR) | curses.A_BOLD)
+
+        r = 2
+        _w(r, 2, "No VeloIQ project found in the current directory.", curses.color_pair(_C_WARN))
+        r += 1
+        _w(r, 2, "Fill in the details below to create one:", curses.A_NORMAL)
+        r += 2
+
+        for i, fld in enumerate(fields):
+            is_sel = i == cursor
+            prefix = " ► " if is_sel else "   "
+            label  = fld["label"]
+            val    = fld["value"]
+            attr   = curses.color_pair(_C_SEL) if is_sel else 0
+            _w(r, 2, f"{prefix}{label:<18}", attr)
+            if val:
+                _w(r, 24, val, curses.A_BOLD)
+            else:
+                _w(r, 24, "(empty)", curses.A_DIM)
+            r += 1
+
+        r += 1
+        _w(r, 2, "Press Enter to edit a field.", curses.A_DIM)
+        r += 1
+        _w(r, 2, "Press 'c' to create the project, or 'q' to quit.", curses.color_pair(_C_WARN))
+
+        # Footer
+        _w(max_y - 1, 0,
+           "  ↑↓ / jk  navigate    Enter  edit    c  create    q  quit",
+           curses.color_pair(_C_WARN))
+
+        stdscr.refresh()
+
+    def _edit_field(idx: int) -> None:
+        fld = fields[idx]
+        curses.echo()
+        curses.curs_set(1)
+        prompt = f"  {fld['label']}: "
+        _w(max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        _w(max_y - 1, 0, prompt, curses.color_pair(_C_WARN) | curses.A_BOLD)
+        stdscr.refresh()
+        try:
+            raw = stdscr.getstr(max_y - 1, len(prompt), min(60, max(1, max_x - len(prompt) - 2)))
+            val = raw.decode("utf-8", errors="replace").strip()
+            if val:
+                fld["value"] = val
+        except Exception:
+            pass
+        finally:
+            curses.noecho()
+            curses.curs_set(0)
+
+    while not done:
+        _draw()
+        key = stdscr.getch()
+
+        if key == ord('q'):
+            return None
+
+        if key in (curses.KEY_UP, ord('k')):
+            cursor = max(0, cursor - 1)
+        elif key in (curses.KEY_DOWN, ord('j')):
+            cursor = min(len(fields) - 1, cursor + 1)
+        elif key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
+            _edit_field(cursor)
+        elif key == ord('c'):
+            # Validate required fields
+            app_name = fields[0]["value"].strip()
+            if not app_name:
+                _w(max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_ERR))
+                _w(max_y - 1, 0, "  ⚠  App name is required!", curses.color_pair(_C_ERR) | curses.A_BOLD)
+                stdscr.refresh()
+                stdscr.getch()
+                continue
+
+            title = fields[1]["value"].strip() or None
+            try:
+                port = int(fields[2]["value"].strip()) if fields[2]["value"].strip() else 8000
+            except ValueError:
+                port = 8000
+            try:
+                frontend_port = int(fields[3]["value"].strip()) if fields[3]["value"].strip() else 5173
+            except ValueError:
+                frontend_port = 5173
+            admin_username = fields[4]["value"].strip() or None
+            admin_password = fields[5]["value"].strip() or None
+            db_type = fields[6]["value"].strip() or "sqlite"
+            db_host = fields[7]["value"].strip() or None
+            db_port_str = fields[8]["value"].strip()
+            db_port = int(db_port_str) if db_port_str else None
+            db_name = fields[9]["value"].strip() or None
+            db_user = fields[10]["value"].strip() or None
+            db_password = fields[11]["value"].strip() or None
+
+            # Build the command
+            cmd_parts = [f"veloiq new {app_name}"]
+            if title:
+                cmd_parts.append(f'--title "{title}"')
+            if port != 8000:
+                cmd_parts.append(f"--port {port}")
+            if frontend_port != 5173:
+                cmd_parts.append(f"--frontend-port {frontend_port}")
+            if admin_username:
+                cmd_parts.append(f'--admin-username "{admin_username}"')
+            if admin_password:
+                cmd_parts.append(f'--admin-password "{admin_password}"')
+            if db_type != "sqlite":
+                cmd_parts.append(f"--db-type {db_type}")
+            if db_host:
+                cmd_parts.append(f'--db-host "{db_host}"')
+            if db_port is not None:
+                cmd_parts.append(f"--db-port {db_port}")
+            if db_name:
+                cmd_parts.append(f'--db-name "{db_name}"')
+            if db_user:
+                cmd_parts.append(f'--db-user "{db_user}"')
+            if db_password:
+                cmd_parts.append(f'--db-password "{db_password}"')
+            result = " ".join(cmd_parts)
+            done = True
+
+    return (result, app_name)
+
+
+
 def launch_explorer() -> None:
     import click
 
     root = _find_project_root()
     if root is None:
-        click.echo(
-            "❌  Not inside a VeloIQ project.\n"
-            "   Run from inside a project directory, or use `veloiq --help` for commands."
-        )
-        return
+        # Offer an interactive "create new app" TUI instead of just erroring out
+        try:
+            result = curses.wrapper(_create_app_interactive)
+        except KeyboardInterrupt:
+            result = None
+
+        if result:
+            cmd, app_name = result
+            print(f"\n  Running: {cmd}\n")
+            subprocess.run(cmd, shell=True)
+            # The project was created at ./<app_name> from the current directory
+            root = Path.cwd().resolve() / app_name
+            if not root.exists() or not (root / "backend" / "app" / "modules").exists():
+                click.echo(
+                    "❌  Could not find the newly created project.\n"
+                    "   Try changing to the project directory and running `veloiq` again."
+                )
+                return
+            # Fall through to launch the explorer for the new project
+        else:
+            return
 
     data = _load_app_data(root)
     explorer = Explorer(data)
