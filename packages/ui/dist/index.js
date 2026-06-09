@@ -20172,7 +20172,6 @@ function applyPanesToSearchParams(existing, panes) {
   panes.forEach((p) => next.append("pane", `${p.resource}:${p.id}`));
   return next;
 }
-var MULTIPANE_LAYOUT_KEY = "jm-multipane-layout";
 var _37 = window._ || ((text) => text);
 var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
@@ -20316,21 +20315,6 @@ var MultiPaneLayout = ({ children }) => {
   const PrimaryShowRenderer = React5.useContext(PrimaryShowContext);
   const { token } = antd.theme.useToken();
   const panes = React5.useMemo(() => parsePanes(searchParams), [searchParams]);
-  const [savedLayout, setSavedLayout] = React5.useState(() => {
-    try {
-      const raw = localStorage.getItem(MULTIPANE_LAYOUT_KEY);
-      return raw ? JSON.parse(raw) : void 0;
-    } catch {
-      return void 0;
-    }
-  });
-  const handleLayoutChanged = React5.useCallback((layout) => {
-    try {
-      localStorage.setItem(MULTIPANE_LAYOUT_KEY, JSON.stringify(layout));
-    } catch {
-    }
-    setSavedLayout(layout);
-  }, []);
   const groupRef = React5.useRef(null);
   const pendingLayoutRef = React5.useRef(null);
   const prevPaneCountRef = React5.useRef(0);
@@ -20480,8 +20464,6 @@ var MultiPaneLayout = ({ children }) => {
     {
       orientation: "horizontal",
       groupRef,
-      defaultLayout: savedLayout,
-      onLayoutChanged: handleLayoutChanged,
       style: { flex: 1, height: "100%" },
       children: panelChildren
     }
