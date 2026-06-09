@@ -1,8 +1,10 @@
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, UNSAFE_RouteContext } from "react-router-dom";
 import { PANE_TOOLBAR_HEIGHT } from "../../contexts/PaneNavigationContext";
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle, type Layout } from "react-resizable-panels";
 import type { GroupImperativeHandle } from "react-resizable-panels";
+
+const MULTIPANE_LAYOUT_KEY = "jm-multipane-layout";
 import { Button, Tooltip, theme } from "antd";
 import { CloseOutlined, LinkOutlined, MinusSquareOutlined, FullscreenOutlined } from "@ant-design/icons";
 import { PaneNavigationContext } from "../../contexts/PaneNavigationContext";
@@ -185,6 +187,24 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
     const { token } = theme.useToken();
 
     const panes = useMemo(() => parsePanes(searchParams), [searchParams]);
+
+    // --- Persist panel layout across refreshes ---
+    const [savedLayout, setSavedLayout] = useState<Layout | undefined>(() => {
+        try {
+            const raw = localStorage.getItem(MULTIPANE_LAYOUT_KEY);
+            return raw ? (JSON.parse(raw) as Layout) : undefined;
+        } catch {
+            return undefined;
+        }
+    });
+    const handleLayoutChanged = useCallback((layout: Layout) => {
+        try {
+            localStorage.setItem(MULTIPANE_LAYOUT_KEY, JSON.stringify(layout));
+        } catch {
+            // localStorage unavailable
+        }
+        setSavedLayout(layout);
+    }, []);
 
     // --- Imperative ref for the PanelGroup so we can call getLayout/setLayout ---
     const groupRef = useRef<GroupImperativeHandle | null>(null);
@@ -381,6 +401,8 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <PanelGroup
                 orientation="horizontal"
                 groupRef={groupRef}
+                defaultLayout={savedLayout}
+                onLayoutChanged={handleLayoutChanged}
                 style={{ flex: 1, height: "100%" }}
             >
                 {panelChildren}

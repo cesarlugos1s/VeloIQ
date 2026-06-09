@@ -20145,6 +20145,7 @@ function applyPanesToSearchParams(existing, panes) {
   panes.forEach((p) => next.append("pane", `${p.resource}:${p.id}`));
   return next;
 }
+var MULTIPANE_LAYOUT_KEY = "jm-multipane-layout";
 var _37 = window._ || ((text) => text);
 var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
@@ -20288,6 +20289,21 @@ var MultiPaneLayout = ({ children }) => {
   const PrimaryShowRenderer = useContext(PrimaryShowContext);
   const { token } = theme.useToken();
   const panes = useMemo(() => parsePanes(searchParams), [searchParams]);
+  const [savedLayout, setSavedLayout] = useState(() => {
+    try {
+      const raw = localStorage.getItem(MULTIPANE_LAYOUT_KEY);
+      return raw ? JSON.parse(raw) : void 0;
+    } catch {
+      return void 0;
+    }
+  });
+  const handleLayoutChanged = useCallback((layout) => {
+    try {
+      localStorage.setItem(MULTIPANE_LAYOUT_KEY, JSON.stringify(layout));
+    } catch {
+    }
+    setSavedLayout(layout);
+  }, []);
   const groupRef = useRef(null);
   const pendingLayoutRef = useRef(null);
   const prevPaneCountRef = useRef(0);
@@ -20437,6 +20453,8 @@ var MultiPaneLayout = ({ children }) => {
     {
       orientation: "horizontal",
       groupRef,
+      defaultLayout: savedLayout,
+      onLayoutChanged: handleLayoutChanged,
       style: { flex: 1, height: "100%" },
       children: panelChildren
     }
