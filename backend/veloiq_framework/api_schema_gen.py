@@ -403,10 +403,29 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 elif rel.direction == MANYTOMANY and rel.secondary is not None and rel.secondary.name:
                     # Many-to-many via a link/junction table.
                     link_tablename = rel.secondary.name
-                    local_fk_cols = [c.key for c in rel.secondary_local_columns]
-                    remote_fk_cols = [c.key for c in rel.secondary_remote_columns]
-                    target_key = local_fk_cols[0] if local_fk_cols else "eid_from"
-                    other_key = remote_fk_cols[0] if remote_fk_cols else "eid_to"
+                    # Determine which link-table FK column references the local entity
+                    # (targetKey — used to query the link table for the current record)
+                    # and which references the remote entity (otherKey — the record to show).
+                    # We resolve this by inspecting the FK targets on each secondary column.
+                    # Determine which link-table column references the local entity
+                    # (targetKey) vs the remote entity (otherKey) by checking FK columns
+                    # that have the same table as the local entity's PK column.
+                    # Fallback: assume eid_from is local, eid_to is remote.
+                    local_pk_column = next(iter(rel.local_columns), None)
+                    target_key = "eid_from"
+                    other_key = "eid_to"
+                    if local_pk_column is not None:
+                        local_table = local_pk_column.table
+                        for col in rel.secondary.columns:
+                            for fk in col.foreign_keys:
+                                try:
+                                    fk_target = fk.column
+                                except Exception:
+                                    continue
+                                if fk_target.table is local_table:
+                                    target_key = col.key
+                                else:
+                                    other_key = col.key
 
                     # Detect reverse relation name from the other model.
                     other_mapper = sa_inspect(other_cls)
@@ -437,11 +456,21 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
             # but not in the mapper's relationship list, so the ORM loop above misses it.
             # This pass closes that gap so parent show pages get linked tables for free.
             from sqlmodel import SQLModel as _SM_all
+            
+            # Collect known link/junction table names from all models in the module.
+            link_table_names: set[str] = set()
+            for _m in models:
+                if _is_link_model(_m):
+                    tn = getattr(_m, "__tablename__", _m.__name__.lower())
+                    link_table_names.add(tn)
+            
             for child_table in _SM_all.metadata.tables.values():
                 if child_table.name == tablename:
                     continue  # skip self
                 if child_table.name in orm_covered_children:
                     continue  # already handled by an ORM relationship declaration
+                if child_table.name in link_table_names:
+                    continue  # skip link/junction tables (M2M handled by ORM relations)
                 for col in child_table.columns:
                     if not col.foreign_keys:
                         continue
@@ -1149,6 +1178,38 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             if item.get("group"):
                 icon_names.add("SettingOutlined")
             menu_entries.append(item)
+
+    # ── Scan app module pages for custom_show.tsx overrides ────────────────────
+    # Each subdirectory under pages/<module>/<ModelName>/custom_show.tsx is
+    # registered as a show override keyed by the model's API resource.
+    if pages_dir.exists():
+        for mod_dir in sorted(pages_dir.iterdir()):
+            if not mod_dir.is_dir() or mod_dir.name.startswith(".") or mod_dir.name.startswith("iqvigilant"):
+                continue
+            for model_dir in sorted(mod_dir.iterdir()):
+                if not model_dir.is_dir():
+                    continue
+                custom_show_file = model_dir / "custom_show.tsx"
+                if not custom_show_file.exists():
+                    continue
+                model_name = model_dir.name
+                # Try to find the model's resource key in the generated schema.
+                module_gen_file = pages_dir / mod_dir.name / f"{mod_dir.name}Schema.gen.ts"
+                resource_key = ""
+                if module_gen_file.exists():
+                    content = module_gen_file.read_text()
+                    # Look for: name: "ModelName", ... resource: "cw_modelname"
+                    import re
+                    # Find name match for our model
+                    m = re.search(rf'name:\s*"{model_name}"[^}}]*resource:\s*"([^"]+)"', content)
+                    if m:
+                        resource_key = m.group(1)
+                if resource_key:
+                    import_path = f"./pages/{mod_dir.name}/{model_name}/custom_show"
+                    import_name = f"{mod_dir.name}_{model_name}_custom_show"
+                    imports.append((import_name, import_path, "default"))
+                    show_override_entries.append((resource_key, import_name))
+                    print(f"  📄 Custom show override: {resource_key} → {import_name}")
 
     # ── Emit extensions.gen.tsx ───────────────────────────────────────────────
     lines: list[str] = [
