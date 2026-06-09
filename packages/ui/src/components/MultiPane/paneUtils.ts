@@ -3,10 +3,7 @@ export interface PaneEntry {
     id: string;
 }
 
-/** Parse repeated `?pane=resource:id` search params into an ordered array.
- *  Also supports `?pane[0]=resource:id&pane[1]=...` format that some
- *  router implementations produce.
- */
+/** Parse repeated `?pane=resource:id` (or `?pane[]=resource:id`) search params into an ordered array. */
 export function parsePanes(searchParams: URLSearchParams): PaneEntry[] {
     // Try the standard repeated-key format first.
     const standard = searchParams.getAll("pane");
@@ -23,10 +20,10 @@ export function parsePanes(searchParams: URLSearchParams): PaneEntry[] {
             .filter((p): p is PaneEntry => p !== null);
     }
 
-    // Fallback: `pane[0]=...&pane[1]=...` format.
+    // Fallback: `pane[0]=...&pane[1]=...` or `pane[]=...&pane[]=...` format.
     const legacy: PaneEntry[] = [];
     for (const [key, value] of searchParams.entries()) {
-        if (/^pane\[\d+\]$/.test(key)) {
+        if (/^pane(?:\[\d*\])?$/.test(key)) {
             const colonIdx = value.indexOf(":");
             if (colonIdx < 1) continue;
             const resource = value.slice(0, colonIdx);

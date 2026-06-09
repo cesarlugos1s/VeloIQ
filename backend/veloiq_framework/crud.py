@@ -188,6 +188,11 @@ def _build_where_clauses(model_class: type, query_params) -> list:
     Supports two forms:
     - ``?field=value``        → exact equality (``WHERE field = value``)
     - ``?field__ilike=value`` → case-insensitive contains (``WHERE field ILIKE '%value%'``)
+    - ``?field_like=value``   → case-insensitive contains (short form, same as __ilike)
+    - ``?field_ne=value``     → not equal
+    - ``?field_gte=value``    → greater than or equal
+    - ``?field_lte=value``    → less than or equal
+    - ``?q=value``            → search all string/Text fields (ILIKE ANY)
     """
     from sqlalchemy.inspection import inspect as sa_inspect
     try:
@@ -203,16 +208,59 @@ def _build_where_clauses(model_class: type, query_params) -> list:
         if col.name != col_attr.key:
             filter_map[col.name] = entry
 
+    # Collect string-field keys for "search all" (q parameter).
+    from sqlalchemy import String, Text
+    string_keys: list[str] = []
+    for col_attr in mapper.column_attrs:
+        col = col_attr.columns[0]
+        if isinstance(col.type, (String, Text)) and col_attr.key not in ("eid", "id", "creation_date", "modification_date"):
+            string_keys.append(col_attr.key)
+
     clauses = []
     for key, value in query_params.items():
         if key.startswith("_") or value is None or value == "":
             continue
-        if key.endswith("__ilike"):
-            base = key[:-7]
+
+        # Handle operators
+        if key.endswith("__ilike") or key.endswith("_like"):
+            prefix = "__ilike" if key.endswith("__ilike") else "_like"
+            base = key[: -len(prefix)]
             if base in filter_map:
                 attr_key, _ = filter_map[base]
                 clauses.append(getattr(model_class, attr_key).ilike(f"%{value}%"))
             continue
+
+        if key.endswith("_ne"):
+            base = key[:-3]
+            if base in filter_map:
+                attr_key, _ = filter_map[base]
+                clauses.append(getattr(model_class, attr_key) != value)
+            continue
+
+        if key.endswith("_gte"):
+            base = key[:-4]
+            if base in filter_map:
+                attr_key, col_type = filter_map[base]
+                clauses.append(getattr(model_class, attr_key) >= _coerce_filter_value(value, col_type))
+            continue
+
+        if key.endswith("_lte"):
+            base = key[:-4]
+            if base in filter_map:
+                attr_key, col_type = filter_map[base]
+                clauses.append(getattr(model_class, attr_key) <= _coerce_filter_value(value, col_type))
+            continue
+
+        # "Search all fields" (q=value)
+        if key == "q":
+            if not string_keys:
+                continue
+            from sqlalchemy import or_
+            clauses.append(
+                or_(*[getattr(model_class, k).ilike(f"%{value}%") for k in string_keys])
+            )
+            continue
+
         if key not in filter_map:
             continue
         attr_key, col_type = filter_map[key]
