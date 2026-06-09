@@ -157,12 +157,12 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
             print(f"  ⚠️  {module_name}: could not import ({exc})")
             continue
 
-        # Collect non-link table models belonging to this module.
+        # Collect models belonging to this module, including link/junction
+        # tables so that many-to-many relations get their own CRUD endpoints.
         module_models = [
             cls for cls in _iter_subclasses(SQLModel)
             if getattr(cls, "__module__", "").startswith(f"app.modules.{module_name}")
             and getattr(cls, "__tablename__", None)
-            and not _is_link_model(cls)
         ]
         if not module_models:
             continue
@@ -355,45 +355,82 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
             fields = []
 
         # Discover SQLAlchemy relationships → RelationDef entries.
-        # Only emit ONETOMANY relations: RelationsExplorer queries
-        #   {child_resource}?{targetKey}={current_record.pk}
-        # which only makes sense when the FK (targetKey) lives on the child side.
-        # MANYTOONE relations are already represented as FK fields in `fields`.
+        # Three cases are handled:
+        #
+        # 1. ONETOMANY (direct FK child → parent):
+        #       RelationsExplorer queries {child_resource}?{targetKey}={current_record.pk}
+        #    where targetKey is the FK column on the child side.
+        #
+        # 2. MANYTOMANY (via link/junction table):
+        #       RelationsExplorer queries {resourcePath}?{targetKey}={current_record.pk}
+        #    where resourcePath is the link table name, targetKey is eid_from,
+        #    and otherKey / otherResource point to the target entity.
+        #
+        # 3. MANYTOONE: already represented as FK fields — no relation entry emitted.
         relations = []
         try:
-            from sqlalchemy.orm import ONETOMANY
+            from sqlalchemy.orm import ONETOMANY, MANYTOMANY
             orm_covered_children: set[str] = set()
             for rel in mapper.relationships:
-                if rel.direction != ONETOMANY:
-                    continue
+                rel_label = rel.key.replace("_", " ").title()
                 other_cls = rel.mapper.class_
                 other_tablename = getattr(other_cls, "__tablename__", other_cls.__name__.lower())
-                orm_covered_children.add(other_tablename)
-                # The FK column is on the remote (child) side.
-                remote_cols = list(rel.remote_side)
-                target_key = remote_cols[0].key if remote_cols else "id"
-                is_recursive = other_cls is model
-                rel_label = rel.key.replace("_", " ").title()
-                if is_recursive:
-                    # Self-referential: give MillerBrowserLayout everything it needs to render
-                    # a tree view without a separate link table.
-                    other_pk = next(
-                        (p.key for p in sa_inspect(other_cls).column_attrs if any(c.primary_key for c in p.columns)),
-                        "id",
+                if rel.direction == ONETOMANY:
+                    orm_covered_children.add(other_tablename)
+                    # The FK column is on the remote (child) side.
+                    remote_cols = list(rel.remote_side)
+                    target_key = remote_cols[0].key if remote_cols else "id"
+                    is_recursive = other_cls is model
+                    if is_recursive:
+                        other_pk = next(
+                            (p.key for p in sa_inspect(other_cls).column_attrs if any(c.primary_key for c in p.columns)),
+                            "id",
+                        )
+                        extra = (
+                            f', isRecursive: true'
+                            f', otherKey: "{other_pk}"'
+                            f', otherResource: "{other_tablename}"'
+                            f', resourcePath: "{other_tablename}"'
+                            f', showViewType: "tree-details"'
+                            f', showViewTypeFromCsv: true'
+                        )
+                    else:
+                        extra = ''
+                    relations.append(
+                        f'{{ resource: "{other_tablename}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
                     )
+
+                elif rel.direction == MANYTOMANY and rel.secondary is not None and rel.secondary.name:
+                    # Many-to-many via a link/junction table.
+                    link_tablename = rel.secondary.name
+                    local_fk_cols = [c.key for c in rel.secondary_local_columns]
+                    remote_fk_cols = [c.key for c in rel.secondary_remote_columns]
+                    target_key = local_fk_cols[0] if local_fk_cols else "eid_from"
+                    other_key = remote_fk_cols[0] if remote_fk_cols else "eid_to"
+
+                    # Detect reverse relation name from the other model.
+                    other_mapper = sa_inspect(other_cls)
+                    reverse_rel_name = ""
+                    for other_rel in other_mapper.relationships:
+                        if (
+                            other_rel.direction == MANYTOMANY
+                            and other_rel.secondary is not None
+                            and other_rel.secondary.name is not None
+                            and other_rel.secondary.name == link_tablename
+                        ):
+                            reverse_rel_name = other_rel.key
+                            break
+
                     extra = (
-                        f', isRecursive: true'
-                        f', otherKey: "{other_pk}"'
-                        f', otherResource: "{other_tablename}"'
-                        f', resourcePath: "{other_tablename}"'
-                        f', showViewType: "tree-details"'
-                        f', showViewTypeFromCsv: true'
+                        f', resourcePath: "{link_tablename}"'
+                        f', otherKey: "{other_key}"'
+                        f', otherResource: "{other_cls.__name__}"'
                     )
-                else:
-                    extra = ''
-                relations.append(
-                    f'{{ resource: "{other_tablename}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
-                )
+                    if reverse_rel_name:
+                        extra += f', relationName: "{reverse_rel_name}"'
+                    relations.append(
+                        f'{{ resource: "{other_cls.__name__}", targetKey: "{target_key}", label: "{rel_label}"{extra} }}'
+                    )
 
             # Auto-discover FK back-relations not covered by explicit ORM relationship declarations.
             # A bare FK column (e.g. trip_id on trip_manifest) registers in SQLAlchemy's MetaData
@@ -405,12 +442,6 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                     continue  # skip self
                 if child_table.name in orm_covered_children:
                     continue  # already handled by an ORM relationship declaration
-                # Skip link/junction tables: ≥2 FK cols and no meaningful data columns beyond PKs
-                child_fk_count = sum(1 for c in child_table.columns if c.foreign_keys)
-                child_pk_count = sum(1 for c in child_table.columns if c.primary_key)
-                child_col_count = len(list(child_table.columns))
-                if child_fk_count >= 2 and child_col_count <= child_pk_count + 2:
-                    continue
                 for col in child_table.columns:
                     if not col.foreign_keys:
                         continue
