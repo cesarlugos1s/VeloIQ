@@ -161,7 +161,7 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         # tables so that many-to-many relations get their own CRUD endpoints.
         module_models = [
             cls for cls in _iter_subclasses(SQLModel)
-            if getattr(cls, "__module__", "").startswith(f"app.modules.{module_name}")
+            if getattr(cls, "__module__", "") == f"app.modules.{module_name}.models"
             and getattr(cls, "__tablename__", None)
         ]
         if not module_models:
@@ -212,7 +212,7 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
             names = [
                 cls.__name__
                 for cls in _iter_subclasses(_SM)
-                if getattr(cls, "__module__", "").startswith(f"app.modules.{module_name}")
+                if getattr(cls, "__module__", "") == f"app.modules.{module_name}.models"
                 and getattr(cls, "__tablename__", None)
                 and not _is_link_model(cls)
             ]
@@ -897,7 +897,7 @@ def _update_nav_config(
                 model_cls = next(
                     (c for c in _iter_subclasses(_SM)
                      if c.__name__ == model_name
-                     and getattr(c, "__module__", "").startswith(f"app.modules.{module_name}")),
+                     and getattr(c, "__module__", "") == f"app.modules.{module_name}.models"),
                     None,
                 )
                 resource_key = getattr(model_cls, "__tablename__", model_name.lower()) if model_cls else model_name.lower()
