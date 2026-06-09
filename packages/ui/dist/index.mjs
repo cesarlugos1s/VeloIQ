@@ -20130,14 +20130,30 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
 
 // src/components/MultiPane/paneUtils.ts
 function parsePanes(searchParams) {
-  return searchParams.getAll("pane").map((param) => {
-    const colonIdx = param.indexOf(":");
-    if (colonIdx < 1) return null;
-    const resource = param.slice(0, colonIdx);
-    const id = param.slice(colonIdx + 1);
-    if (!resource || !id) return null;
-    return { resource, id };
-  }).filter((p) => p !== null);
+  const standard = searchParams.getAll("pane");
+  if (standard.length > 0) {
+    return standard.map((param) => {
+      const colonIdx = param.indexOf(":");
+      if (colonIdx < 1) return null;
+      const resource = param.slice(0, colonIdx);
+      const id = param.slice(colonIdx + 1);
+      if (!resource || !id) return null;
+      return { resource, id };
+    }).filter((p) => p !== null);
+  }
+  const legacy = [];
+  for (const [key, value] of searchParams.entries()) {
+    if (/^pane\[\d+\]$/.test(key)) {
+      const colonIdx = value.indexOf(":");
+      if (colonIdx < 1) continue;
+      const resource = value.slice(0, colonIdx);
+      const id = value.slice(colonIdx + 1);
+      if (resource && id) {
+        legacy.push({ resource, id });
+      }
+    }
+  }
+  return legacy;
 }
 function applyPanesToSearchParams(existing, panes) {
   const next = new URLSearchParams(existing);
