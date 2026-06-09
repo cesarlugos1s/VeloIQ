@@ -275,6 +275,15 @@ def _build_ts_schema(module_name: str, models: list) -> str:
 
 def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
     from sqlalchemy.inspection import inspect as sa_inspect
+    from sqlmodel import SQLModel as _SM_all
+
+    # Build a global set of link/junction table names across ALL loaded modules.
+    # This prevents the auto-discover FK loop from adding cross-module link tables
+    # as direct relations on entity show pages.
+    _all_link_table_names: set[str] = set()
+    for _cls in _iter_subclasses(_SM_all):
+        if getattr(_cls, "__tablename__", None) and _is_link_model(_cls):
+            _all_link_table_names.add(_cls.__tablename__)
 
     lines = [
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
@@ -457,19 +466,12 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
             # This pass closes that gap so parent show pages get linked tables for free.
             from sqlmodel import SQLModel as _SM_all
             
-            # Collect known link/junction table names from all models in the module.
-            link_table_names: set[str] = set()
-            for _m in models:
-                if _is_link_model(_m):
-                    tn = getattr(_m, "__tablename__", _m.__name__.lower())
-                    link_table_names.add(tn)
-            
             for child_table in _SM_all.metadata.tables.values():
                 if child_table.name == tablename:
                     continue  # skip self
                 if child_table.name in orm_covered_children:
                     continue  # already handled by an ORM relationship declaration
-                if child_table.name in link_table_names:
+                if child_table.name in _all_link_table_names:
                     continue  # skip link/junction tables (M2M handled by ORM relations)
                 for col in child_table.columns:
                     if not col.foreign_keys:
@@ -478,7 +480,7 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                         if fk.column.table.name == tablename and child_table.name not in orm_covered_children:
                             child_label = child_table.name.replace("_", " ").title()
                             relations.append(
-                                f'{{ resource: "{child_table.name}", targetKey: "{col.key}", label: "{child_label}" }}'
+                                f'{{ resource: "{child_table.name}", targetKey: "{col.name}", label: "{child_label}" }}'
                             )
                             orm_covered_children.add(child_table.name)
         except Exception:
