@@ -20294,11 +20294,15 @@ var MultiPaneLayout = ({ children }) => {
   useEffect(() => {
     const newCount = panes.length;
     const prevCount = prevPaneCountRef.current;
-    prevPaneCountRef.current = newCount;
-    if (newCount <= prevCount || !pendingLayoutRef.current || !groupRef.current) {
+    if (!pendingLayoutRef.current || !groupRef.current) {
       pendingLayoutRef.current = null;
       return;
     }
+    if (newCount <= prevCount) {
+      pendingLayoutRef.current = null;
+      return;
+    }
+    prevPaneCountRef.current = newCount;
     const prevLayout = pendingLayoutRef.current;
     pendingLayoutRef.current = null;
     const donorId = prevCount === 0 ? LIST_PANEL_ID : detailPanelId(prevCount - 1);

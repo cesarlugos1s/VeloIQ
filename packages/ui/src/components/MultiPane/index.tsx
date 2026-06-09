@@ -204,12 +204,22 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
     useEffect(() => {
         const newCount = panes.length;
         const prevCount = prevPaneCountRef.current;
-        prevPaneCountRef.current = newCount;
 
-        if (newCount <= prevCount || !pendingLayoutRef.current || !groupRef.current) {
+        // On page refresh the groupRef isn't available yet on first run,
+        // and pendingLayoutRef is null (not a new panel being added interactively).
+        // Don't advance prevPaneCountRef in that case so the next render can
+        // fall through to the 80/20 split logic.
+        if (!pendingLayoutRef.current || !groupRef.current) {
             pendingLayoutRef.current = null;
             return;
         }
+
+        if (newCount <= prevCount) {
+            pendingLayoutRef.current = null;
+            return;
+        }
+
+        prevPaneCountRef.current = newCount;
 
         const prevLayout = pendingLayoutRef.current;
         pendingLayoutRef.current = null;
