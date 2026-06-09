@@ -329,6 +329,27 @@ def _load_extension_modules(
 
     print(f"\n🔌 Loading extension '{ext.name}' modules ({pkg})…")
 
+    # Pass 0: import all models first so SQLModel.metadata is populated
+    # before factory events or create_all run.
+    for folder_name in submodule_names:
+        dotted = f"{pkg}.{folder_name}.models"
+        try:
+            importlib.import_module(dotted)
+        except Exception:
+            pass
+
+    # Inject model classes across the extension's module prefix.
+    _inject_model_classes(pkg)
+
+    # Create any tables defined by extension models (idempotent — only
+    # creates new tables, never alters existing ones).
+    try:
+        from veloiq_framework.db import get_engine
+        engine = get_engine()
+        SQLModel.metadata.create_all(engine)
+    except Exception:
+        pass  # Engine may not be available in all contexts (e.g. testing)
+
     # Factory events: call register_*_events() in any submodule factory.py
     for folder_name in submodule_names:
         for fname in ("factory", f"{folder_name}_factory"):
@@ -345,17 +366,6 @@ def _load_extension_modules(
                 pass
             except Exception as exc:
                 print(f"  ❌ {ext.name}/{folder_name}/{fname} factory FAILED: {exc}")
-
-    # Pass 0: import all models first.
-    for folder_name in submodule_names:
-        dotted = f"{pkg}.{folder_name}.models"
-        try:
-            importlib.import_module(dotted)
-        except Exception:
-            pass
-
-    # Inject model classes across the extension's module prefix.
-    _inject_model_classes(pkg)
 
     # Auto-discover the extension's own license dependency factory.
     # Convention: the extension's license module lives at {pkg}.license.license_registry

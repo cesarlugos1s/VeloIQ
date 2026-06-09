@@ -97,14 +97,6 @@ def create_veloiq_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         load_factory_events(cfg.modules_dir)
-        if cfg.create_tables_on_startup:
-            # Ensure auth tables are registered before create_all
-            from veloiq_framework.auth import models as _auth_models  # noqa: F401
-            SQLModel.metadata.create_all(engine)
-        if cfg.auth_enabled:
-            from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
-            seed_roles(engine, cfg.roles)
-            seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
         yield
 
     # ── FastAPI app ───────────────────────────────────────────────────────────
@@ -156,6 +148,16 @@ def create_veloiq_app(
 
     # ── Module loading ────────────────────────────────────────────────────────
     load_modules(app, admin, cfg, extensions=extensions)
+
+    # ── Table creation & seeding (after all modules + extensions loaded) ──────
+    if cfg.create_tables_on_startup:
+        # Ensure auth tables are registered before create_all
+        from veloiq_framework.auth import models as _auth_models  # noqa: F401
+        SQLModel.metadata.create_all(engine)
+    if cfg.auth_enabled:
+        from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
+        seed_roles(engine, cfg.roles)
+        seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
 
     # ── Core endpoints ────────────────────────────────────────────────────────
     _register_core_endpoints(app, engine, cfg)
