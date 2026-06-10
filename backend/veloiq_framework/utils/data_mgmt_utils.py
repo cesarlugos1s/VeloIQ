@@ -2448,6 +2448,11 @@ def orm_execution_supported() -> bool:
     return True
 
 
+class _OrmModelUnavailable(Exception):
+    """Raised when an ORM spec targets a model/table that is not available."""
+    pass
+
+
 def jm_execute_orm(self, entity
                    , orm_query_command
                    , orm_command_parameters=None
