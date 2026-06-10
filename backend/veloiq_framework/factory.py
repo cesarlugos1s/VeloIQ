@@ -96,6 +96,13 @@ def create_veloiq_app(
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Configure i18n from app settings.
+        from veloiq_framework.utils.i18n_utils import configure_i18n
+
+        configure_i18n(
+            locales_dir=str(cfg.i18n_locales_dir.resolve()),
+            default_locale=cfg.i18n_default_locale,
+        )
         load_factory_events(cfg.modules_dir)
         yield
 

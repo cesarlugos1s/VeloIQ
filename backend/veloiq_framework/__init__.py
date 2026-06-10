@@ -4,6 +4,7 @@ from veloiq_framework._version import __version__
 from veloiq_framework.config import VeloIQConfig
 from veloiq_framework.extension import VeloIQExtension
 from veloiq_framework.factory import create_veloiq_app
+from veloiq_framework.utils.i18n_utils import _, configure_i18n, set_request_locale, get_request_locale
 from veloiq_framework.models import (
     FrameworkModel,
     TimestampedModel,
@@ -57,4 +58,6 @@ __all__ = [
     # Permission primitives — ReBAC
     "rebac",
     "rebac_subquery",
+    # i18n
+    "_",
 ]

@@ -112,6 +112,19 @@ class VeloIQConfig:
         default_factory=lambda: int(os.environ.get("VELOIQ_DASHBOARD_RECENT_DAYS", "30"))
     )
 
+    # ── Internationalization (i18n) ──────────────────────────────────────────
+    i18n_locales_dir: Path = field(
+        default_factory=lambda: Path(
+            os.environ.get(
+                "VELOIQ_I18N_LOCALES_DIR",
+                str(Path("config") / "internationalization" / "locales"),
+            )
+        )
+    )
+    i18n_default_locale: str = field(
+        default_factory=lambda: os.environ.get("VELOIQ_I18N_DEFAULT_LOCALE", "en")
+    )
+
     # ── ReBAC (row-level filtering) ───────────────────────────────────────────
     rebac_enabled: bool = field(
         default_factory=lambda: os.environ.get("VELOIQ_REBAC_ENABLED", "").lower()
