@@ -148,6 +148,14 @@ class StandardModel(SQLModel):
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
 
+    def pk_value(self) -> Optional[int]:
+        """Return the primary key value regardless of whether it is named ``id`` or ``eid``."""
+        for attr in ("id", "eid"):
+            val = getattr(self, attr, None)
+            if val is not None:
+                return val
+        return None
+
     def build_model_str_label(self) -> str:
         for attr in type(self).model_fields:
             if attr in ("eid", "creation_date", "modification_date"):
@@ -155,7 +163,7 @@ class StandardModel(SQLModel):
             val = getattr(self, attr, None)
             if isinstance(val, str) and val:
                 return val
-        return f"{type(self).__name__} #{self.eid or '?'}"
+        return f"{type(self).__name__} #{self.pk_value() or '?'}"
 
     def __str__(self) -> str:
         return self.build_model_str_label()

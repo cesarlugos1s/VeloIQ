@@ -1533,7 +1533,7 @@ def _resolve_entity_eid_cells(
         return
 
     try:
-        from .db import get_engine
+        from veloiq_framework.db import get_engine
         with Session(get_engine()) as session:
             anchor_cache: Dict[tuple, Optional[str]] = {}
             for col, model in col_models.items():
@@ -1753,7 +1753,8 @@ def jm_render_html_from_rset(view, rset, view_type, rset_type = 'SQL'):
                 if rset and rset.rowcount > 0 and rset.get_entity(0, 0):
                     entity = rset.get_entity(0, 0)
                     if entity:
-                        view_content = _('The entity ID is:') + ' ' + str(entity.entity.eid)
+                        pk = getattr(entity.entity, 'id', None) or getattr(entity.entity, 'eid', None) or '?'
+                        view_content = _('The entity ID is:') + ' ' + str(pk)
                 else:
                     view_content = _('The entity ID cannot be found, the results are empty.')
 
@@ -4349,7 +4350,8 @@ def jm_render_views(view, entity
             for column in range(1, max_columns + 1):
                 rendered_elements_in_column_count = 0
                 for element_idx, jm_render_view_content in enumerate(jm_render_views_content):
-                    id_unique_suffix = entity.eid * 10000000 + row * 100 + column * 100 + element_idx
+                    pk = getattr(entity, 'id', None) or getattr(entity, 'eid', None) or 1
+                    id_unique_suffix = pk * 10000000 + row * 100 + column * 100 + element_idx
                     if jm_render_view_content['row_column'][0] == row:
                         if jm_render_view_content['row_column'][1] == column:
                             # Render the element or relation in this column of the row.
@@ -4958,7 +4960,7 @@ def plot_cause_effect_chart(
 
 def __getattr__(name):
     if name == "engine":
-        from .db import get_engine
+        from veloiq_framework.db import get_engine
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 def jm_apply_standard_chart_layout(

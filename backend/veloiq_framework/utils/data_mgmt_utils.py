@@ -820,7 +820,8 @@ def obtain_model_admin_url_from_model_object(model_object):
     """
 
     model_name = model_object.__class__.__name__.lower()
-    return f"/admin/{model_name}/details/{model_object.eid}"
+    pk = getattr(model_object, 'id', None) or getattr(model_object, 'eid', None) or '?'
+    return f"/admin/{model_name}/details/{pk}"
 
 
 def absolute_url(model_object):
