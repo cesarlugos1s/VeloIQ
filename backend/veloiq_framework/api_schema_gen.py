@@ -302,10 +302,14 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 "id",
             )
             _TIMESTAMP_KEYS = {"created_at", "updated_at", "creation_date", "modification_date"}
+            # System-managed fields inherited from StandardEidModel — never shown in the UI.
+            _SYSTEM_ONLY_KEYS = {"cwuri", "creation_date", "modification_date"}
             fields = []
             timestamp_fields = []
             for p in mapper.column_attrs:
                 if p.key == pk_field:
+                    continue
+                if p.key in _SYSTEM_ONLY_KEYS:
                     continue
                 col = p.columns[0]
                 ts_type = _col_to_ts_type(col, field_key=p.key)
