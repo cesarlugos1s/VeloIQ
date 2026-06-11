@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "veloiq-framework"
-version = "0.6.0"
+version = "0.7.0"
 description = "VeloIQ™ — AI-native FastAPI + React admin framework. The speed of No-Code. The power of Pro-Code."
 readme = "README.md"
 license = "MIT"

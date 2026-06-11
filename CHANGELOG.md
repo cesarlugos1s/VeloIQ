@@ -6,6 +6,10 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [Unreleased]
 
+---
+
+## [0.7.0] — 2026-06-11
+
 ### Features
 
 #### Internationalisation (i18n)
@@ -14,9 +18,31 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 - `VELOIQ_I18N_LOCALES_DIR` and `VELOIQ_I18N_DEFAULT_LOCALE` env vars (and matching `VeloIQConfig` fields) control catalog location and fallback locale
 - Catalog lookup normalises underscores to spaces and strips extra whitespace, so `_("total_amount")` matches `msgid "total amount"`
 
+#### Utilities package
+- `veloiq_framework.utils` — new `i18n_utils`, `data_mgmt_utils`, and `views_utils` sub-modules available for use in custom endpoints and repositories
+- `jm_config.ini` defaults wired in; i18n integration configurable via `VeloIQConfig`
+
 #### Schema generator: system fields excluded from UI schemas
 - `cwuri`, `creation_date`, and `modification_date` (fields inherited from `StandardEidModel`) are now excluded from all generated TypeScript schemas — they no longer appear as table columns or form inputs
 - Fields that should remain hidden can be overridden per-model in `{module}Schema.manual.ts`
+
+#### M2M relation schema generation
+- `veloiq generate` now produces full TypeScript schemas for many-to-many relations, including automatic link-table discovery across all modules
+- FK back-relations for link tables are filtered from generated schemas to avoid duplicate relation tabs
+
+#### TUI improvements
+- Interactive new-app creation from inside the TUI — answer prompts and the framework scaffolds, installs deps, and opens the project automatically
+- Various TUI bug fixes
+
+#### Error handling
+- `_OrmModelUnavailable` exception raised when a model references a missing table or model class; prevents silent failures in generated API code
+
+### Fixes
+
+- **Primary key access** — `id` and `eid` fields both resolve correctly across CRUD operations
+- **Command Center / menu** — many-to-many junction models are excluded from Command Center and sidebar menu
+- **Schema generator** — models are matched by exact module path (not `startswith`) preventing cross-module class leakage when module names share a prefix
+- **MultiPaneLayout** — panel sizes persist correctly on page refresh; legacy `pane[0]=...` search-param format handled to avoid layout reset
 
 ---
 

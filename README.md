@@ -56,13 +56,16 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.6.0
+## What's New in v0.7.0
 
-- **Modular extension architecture** — pip-installable extension packages add modules, frontend pages, and licensing to any host app without touching its code; enabled per-app via `veloiq.toml`
-- **Journeys in navigation & Command Center** — journeys auto-list under their module and are searchable from the Ctrl+G palette
-- **Crosstab view types** — new `crosstab` and `editable-crosstab` view types for pivot-style display and inline editing
-- **Configurable global view settings** — tune color schemas, default view types, gallery sizes, and more via `veloiq.toml [views]`
-- **NavConfig context** — `useNavConfig()` / `useNavModules()` expose navigation config to any component
+- **i18n support** — PO-file-based translation helper (`_()`) available in all custom endpoints; locale resolved per request from `Accept-Language`
+- **Utilities package** — `veloiq_framework.utils` ships `i18n_utils`, `data_mgmt_utils`, and `views_utils` sub-modules ready for use in any module
+- **M2M schema generation** — `veloiq generate` now emits full TypeScript schemas for many-to-many relations, with automatic link-table discovery across all modules
+- **System fields excluded** — `cwuri`, `creation_date`, and `modification_date` are stripped from generated schemas so they never appear in tables or forms
+- **Junction models hidden** — many-to-many link models are excluded from the Command Center palette and sidebar menu
+- **Exact module matching** — schema generator matches models by full module path, preventing class leakage when module names share a prefix
+- **Interactive TUI** — create a new app directly from the TUI; framework scaffolds, installs deps, and opens the project automatically
+- **`_OrmModelUnavailable` exception** — raised for missing model/table references instead of silent failures
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 
