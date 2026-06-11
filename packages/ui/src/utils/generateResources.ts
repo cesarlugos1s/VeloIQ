@@ -56,7 +56,9 @@ export function generateResources(
                 resource.toLowerCase().endsWith("_rela") ||
                 (Array.isArray(model.fields) &&
                     model.fields.some((f) => f?.key === "eid_from") &&
-                    model.fields.some((f) => f?.key === "eid_to")));
+                    model.fields.some((f) => f?.key === "eid_to") ||
+                    (model.fields.length > 0 &&
+                     model.fields.every((f) => !!f?.reference))));
 
         return {
             name: resource,

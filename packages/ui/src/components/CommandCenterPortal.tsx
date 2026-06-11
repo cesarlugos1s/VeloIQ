@@ -222,7 +222,9 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
 
     const allModelChildren = useMemo(
         () => menuItems.flatMap((m) =>
-            (m.children || []).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
+            (m.children || [])
+                .filter((c) => !c.meta?.hide)
+                .map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
         ),
         [menuItems]
     );
@@ -249,8 +251,12 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
 
     const modules = useMemo(() => {
         const q = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
-        const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
-        const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
+        // Always exclude hidden children (junction tables, hideInMenu models).
+        const visibleModules = menuItems
+            .filter((item) => item.children && item.children.length > 0)
+            .map((item) => ({ ...item, children: (item.children || []).filter((c) => !c.meta?.hide) }))
+            .filter((item) => item.children && item.children.length > 0);
+        const sorted = navConfig.length > 0 ? sortItemsByNavConfig(visibleModules, navConfig) : visibleModules;
         if (!q) return sorted;
         return sorted
             .map((module) => {

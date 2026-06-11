@@ -992,7 +992,7 @@ var CommandCenterPortal = ({
   }, [query, parsedCommand, search, clear]);
   const allModelChildren = useMemo(
     () => menuItems.flatMap(
-      (m) => (m.children || []).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
+      (m) => (m.children || []).filter((c) => !c.meta?.hide).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
     ),
     [menuItems]
   );
@@ -1010,8 +1010,8 @@ var CommandCenterPortal = ({
   }, [allModelChildren]);
   const modules = useMemo(() => {
     const q2 = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
-    const moduleItems = menuItems.filter((item) => item.children && item.children.length > 0);
-    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(moduleItems, navConfig) : moduleItems;
+    const visibleModules = menuItems.filter((item) => item.children && item.children.length > 0).map((item) => ({ ...item, children: (item.children || []).filter((c) => !c.meta?.hide) })).filter((item) => item.children && item.children.length > 0);
+    const sorted = navConfig.length > 0 ? sortItemsByNavConfig(visibleModules, navConfig) : visibleModules;
     if (!q2) return sorted;
     return sorted.map((module) => {
       const moduleMatch = (module.label || "").toLowerCase().includes(q2);
@@ -20143,7 +20143,7 @@ function parsePanes(searchParams) {
   }
   const legacy = [];
   for (const [key, value] of searchParams.entries()) {
-    if (/^pane\[\d+\]$/.test(key)) {
+    if (/^pane(?:\[\d*\])?$/.test(key)) {
       const colonIdx = value.indexOf(":");
       if (colonIdx < 1) continue;
       const resource = value.slice(0, colonIdx);
@@ -21777,7 +21777,7 @@ function generateResources(models, moduleName, options = {}) {
   };
   const children = (models || []).map((model) => {
     const resource = model.resource || model.name;
-    const isRelation = hideRelations && (resource.toLowerCase().endsWith("_relation") || resource.toLowerCase().endsWith("_rela") || Array.isArray(model.fields) && model.fields.some((f) => f?.key === "eid_from") && model.fields.some((f) => f?.key === "eid_to"));
+    const isRelation = hideRelations && (resource.toLowerCase().endsWith("_relation") || resource.toLowerCase().endsWith("_rela") || (Array.isArray(model.fields) && model.fields.some((f) => f?.key === "eid_from") && model.fields.some((f) => f?.key === "eid_to") || model.fields.length > 0 && model.fields.every((f) => !!f?.reference)));
     return {
       name: resource,
       list: `/${resource}`,
