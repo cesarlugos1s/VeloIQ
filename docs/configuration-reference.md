@@ -263,6 +263,47 @@ veloiq db history                           # show revision history
 veloiq db current                           # show current revision
 ```
 
+## Internationalisation (i18n)
+
+VeloIQ includes a PO-file-based translation system available in backend code via the `_()` helper.
+
+| Field | Env var | Default | Description |
+|---|---|---|---|
+| `i18n_locales_dir` | `VELOIQ_I18N_LOCALES_DIR` | `config/internationalization/locales` | Path to the directory that contains per-locale subdirectories (resolved relative to the working directory at startup). |
+| `i18n_default_locale` | `VELOIQ_I18N_DEFAULT_LOCALE` | `en` | Locale used when no `Accept-Language` header is present. |
+
+The expected directory layout is:
+
+```
+config/
+  internationalization/
+    locales/
+      en/
+        LC_MESSAGES/
+          messages.po
+      es/
+        LC_MESSAGES/
+          messages.po
+```
+
+Import and call `_()` in any custom endpoint or repository:
+
+```python
+from veloiq_framework.utils.i18n_utils import _
+
+def my_function():
+    label = _("sales_price")          # looks up msgid in the active locale's catalog
+    title = _("Total Amount", locale="es")  # explicit locale override
+```
+
+The active locale per request is set automatically from the `Accept-Language` header by the framework middleware. Catalog files are parsed on first use and cached; edits on disk are picked up automatically (the cache is keyed on file mtime).
+
+> **Path resolution note:** `VELOIQ_I18N_LOCALES_DIR` is resolved relative to the process working directory when `create_veloiq_app()` is called. If you run `veloiq run` from the `backend/` subdirectory instead of the project root, set an absolute path or a `../`-relative path in your `.env` to point to the shared catalogs:
+>
+> ```bash
+> VELOIQ_I18N_LOCALES_DIR=../config/internationalization/locales
+> ```
+
 ## Environment variable reference
 
 ```bash
@@ -278,4 +319,8 @@ AUTH_ALGORITHM=HS256
 AUTH_TOKEN_EXPIRE_MINUTES=60
 ECHO_SQL=false
 VELOIQ_EXTENSIONS=iqvigilant   # comma-separated; overrides veloiq.toml (usually unset)
+
+# i18n
+VELOIQ_I18N_LOCALES_DIR=../config/internationalization/locales
+VELOIQ_I18N_DEFAULT_LOCALE=en
 ```

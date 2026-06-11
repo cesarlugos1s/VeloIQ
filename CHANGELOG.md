@@ -4,6 +4,22 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [Unreleased]
+
+### Features
+
+#### Internationalisation (i18n)
+- `veloiq_framework.utils.i18n_utils._()` — PO-file-based translation helper available in all custom endpoints and repositories
+- Locale resolved per request from the `Accept-Language` header; per-catalog caching keyed on file mtime so edits are picked up without restart
+- `VELOIQ_I18N_LOCALES_DIR` and `VELOIQ_I18N_DEFAULT_LOCALE` env vars (and matching `VeloIQConfig` fields) control catalog location and fallback locale
+- Catalog lookup normalises underscores to spaces and strips extra whitespace, so `_("total_amount")` matches `msgid "total amount"`
+
+#### Schema generator: system fields excluded from UI schemas
+- `cwuri`, `creation_date`, and `modification_date` (fields inherited from `StandardEidModel`) are now excluded from all generated TypeScript schemas — they no longer appear as table columns or form inputs
+- Fields that should remain hidden can be overridden per-model in `{module}Schema.manual.ts`
+
+---
+
 ## [0.6.0] — 2026-06-05
 
 ### Features

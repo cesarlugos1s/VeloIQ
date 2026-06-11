@@ -350,6 +350,22 @@ class OrderAdmin(ModelView, model=Order):
     icon = "fa-solid fa-receipt"
 ```
 
+## Internationalisation (i18n) in custom code
+
+Use `_()` from `veloiq_framework.utils.i18n_utils` to translate strings in custom endpoints and repositories. The framework resolves the locale from the incoming `Accept-Language` header automatically.
+
+```python
+from veloiq_framework.utils.i18n_utils import _
+
+@router.get("/{item_id}/summary")
+def get_summary(item_id: int):
+    return {"label": _("total_amount"), "title": _("Summary")}
+```
+
+Translation strings are looked up in the PO catalog at `config/internationalization/locales/<locale>/LC_MESSAGES/messages.po`. If no translation is found, the source text is returned unchanged. The lookup also tries replacing underscores with spaces, so `_("total_amount")` matches a `msgid "total amount"` entry.
+
+See [configuration-reference.md](configuration-reference.md#internationalisation-i18n) for catalog layout and the `VELOIQ_I18N_LOCALES_DIR` env var.
+
 ## Frontend schema customisation
 
 `veloiq generate` produces three files per module in
@@ -406,6 +422,39 @@ export const projectsManualOverrides: ModelOverride[] = [
 
 Overrides survive all future `veloiq generate` runs — the manual file is never
 touched after its initial creation.
+
+### Fields excluded from generated schemas
+
+The schema generator automatically skips a set of system-managed fields so they never appear as table columns or form inputs in the UI:
+
+| Field | Reason |
+|---|---|
+| `cwuri` | Internal CubicWeb URI — not meaningful to end users |
+| `creation_date` | Auto-set on insert; not user-editable |
+| `modification_date` | Auto-set on update; not user-editable |
+
+These are inherited from `StandardEidModel` (or equivalent base classes). If you need to expose one of these fields in the UI, add it explicitly in the module's `{module}Schema.manual.ts` override.
+
+### Cross-extension FK references
+
+When a model in your module holds a foreign key to a model defined in an extension package (e.g. IQVigilant's `NLChat`), `veloiq generate` cannot resolve the reference and produces an empty `fields` array for that link table model. Override it in `{module}Schema.manual.ts`:
+
+```ts
+{
+    name: 'my_link_table',
+    pkField: 'eid_from',
+    fields: [
+        {
+            key: 'eid_to',
+            label: 'NL Chat',
+            type: 'number',
+            reference: 'NLChat',
+            referencePath: 'jm_nlchat',
+            required: true,
+        },
+    ],
+},
+```
 
 ## Navigation config
 
