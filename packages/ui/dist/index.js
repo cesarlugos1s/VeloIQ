@@ -4489,8 +4489,13 @@ var resolveRelationFromConfig = (relations, item) => {
     (rel) => (rel.relationName || "").toLowerCase() === target || (rel.resource || "").toLowerCase() === target || (rel.label || "").toLowerCase() === target
   );
   if (exact) return exact;
-  return relations.find(
+  const byVariant = relations.find(
     (rel) => targetVariants.has((rel.relationName || "").toLowerCase()) || targetVariants.has((rel.resource || "").toLowerCase()) || targetVariants.has((rel.label || "").toLowerCase())
+  );
+  if (byVariant) return byVariant;
+  const relPathBase = (rel) => String(rel.resourcePath || "").toLowerCase().replace(/_relation$/, "");
+  return relations.find(
+    (rel) => relPathBase(rel) === target || targetVariants.has(relPathBase(rel))
   );
 };
 var buildConfiguredRelationKeys = (rows) => {

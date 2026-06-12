@@ -311,10 +311,23 @@ export const resolveRelationFromConfig = (relations: RelationDef[] | undefined, 
         || (rel.label || "").toLowerCase() === target
     );
     if (exact) return exact;
-    return relations.find((rel) =>
+    const byVariant = relations.find((rel) =>
         targetVariants.has((rel.relationName || "").toLowerCase())
         || targetVariants.has((rel.resource || "").toLowerCase())
         || targetVariants.has((rel.label || "").toLowerCase())
+    );
+    if (byVariant) return byVariant;
+    // Fallback: match the relation's resourcePath base name (the link table with
+    // the trailing "_relation" stripped — the canonical forward relation
+    // identifier, always present). This resolves forward link relations whose
+    // generated schema has no relationName because the other model declares no
+    // reverse relationship (e.g. Item.item_has_images -> File). Runs only after
+    // the relationName/resource/label checks above, so existing matches are
+    // unchanged.
+    const relPathBase = (rel: RelationDef) =>
+        String(rel.resourcePath || "").toLowerCase().replace(/_relation$/, "");
+    return relations.find((rel) =>
+        relPathBase(rel) === target || targetVariants.has(relPathBase(rel))
     );
 };
 
