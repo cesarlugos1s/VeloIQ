@@ -987,23 +987,48 @@ def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
     max_y, max_x = stdscr.getmaxyx()
 
     # ── Form fields ────────────────────────────────────────────────────────────
+    # `default` is the effective value `veloiq new` uses when the field is left
+    # blank — it is shown as a dim hint so the user can see what they'll get.
+    # `type: choice` fields are cycled with ←/→ or space; press Enter on a
+    # choice field to type a custom value (any SQLAlchemy dialect string).
+    # SQLite & PostgreSQL drivers ship with the framework; the others need
+    # their driver installed (pymysql, pyodbc, cx_Oracle, …).
+    DB_CHOICES = ["sqlite", "postgresql", "mysql", "mariadb", "mssql", "oracle",
+                  "db2", "informix"]
+    DB_DEFAULT_PORTS = {"postgresql": "5432", "mysql": "3306", "mariadb": "3306",
+                        "mssql": "1433", "oracle": "1521", "db2": "50000",
+                        "informix": "9088"}
+    DB_CONN_KEYS = {"db_host", "db_port", "db_name", "db_user", "db_password"}
+
     fields = [
-        {"key": "app_name",      "label": "App name",              "value": "", "required": True},
-        {"key": "title",         "label": "Title",                  "value": "", "required": False},
-        {"key": "port",          "label": "Backend port",           "value": "8000", "required": False},
-        {"key": "frontend_port", "label": "Frontend port",          "value": "5173", "required": False},
-        {"key": "admin_username","label": "Admin username",         "value": "", "required": False},
-        {"key": "admin_password","label": "Admin password",         "value": "", "required": False},
-        {"key": "db_type",       "label": "DB type",                "value": "sqlite", "required": False},
-        {"key": "db_host",       "label": "DB host",                "value": "", "required": False},
-        {"key": "db_port",       "label": "DB port",                "value": "", "required": False},
-        {"key": "db_name",       "label": "DB name",                "value": "", "required": False},
-        {"key": "db_user",       "label": "DB user",                "value": "", "required": False},
-        {"key": "db_password",   "label": "DB password",            "value": "", "required": False},
+        {"key": "app_name",      "label": "App name",       "value": "", "required": True,  "default": ""},
+        {"key": "title",         "label": "Title",          "value": "", "required": False, "default": "from app name"},
+        {"key": "port",          "label": "Backend port",   "value": "", "required": False, "default": "8000"},
+        {"key": "frontend_port", "label": "Frontend port",  "value": "", "required": False, "default": "5173"},
+        {"key": "admin_username","label": "Admin username", "value": "", "required": False, "default": "admin"},
+        {"key": "admin_password","label": "Admin password", "value": "", "required": False, "default": "admin"},
+        {"key": "db_type",       "label": "DB type",        "value": "sqlite", "required": False,
+         "type": "choice", "choices": DB_CHOICES},
+        {"key": "db_host",       "label": "DB host",        "value": "", "required": False, "default": "localhost"},
+        {"key": "db_port",       "label": "DB port",        "value": "", "required": False, "default": "engine default"},
+        {"key": "db_name",       "label": "DB name",        "value": "", "required": False, "default": "app name"},
+        {"key": "db_user",       "label": "DB user",        "value": "", "required": False, "default": "veloiq"},
+        {"key": "db_password",   "label": "DB password",    "value": "", "required": False, "default": "none"},
     ]
     cursor = 0  # which field is selected
     done = False
     result: Optional[str] = None
+
+    def _db_is_sqlite() -> bool:
+        return fields[6]["value"].strip().lower() == "sqlite"
+
+    def _field_default(fld) -> str:
+        """Resolve the dim hint shown when a field has no explicit value."""
+        if fld["key"] == "db_port":
+            return DB_DEFAULT_PORTS.get(fields[6]["value"].strip().lower(), "—")
+        if fld["key"] == "db_name":
+            return fields[0]["value"].strip() or "app name"
+        return fld.get("default", "")
 
     def _w(row, col, text, attr=0):
         if row < 0 or row >= max_y or col < 0 or col >= max_x:
@@ -1025,27 +1050,51 @@ def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
         _w(r, 2, "Fill in the details below to create one:", curses.A_NORMAL)
         r += 2
 
+        sqlite = _db_is_sqlite()
         for i, fld in enumerate(fields):
             is_sel = i == cursor
+            is_choice = fld.get("type") == "choice"
+            # DB connection fields are unused for SQLite — dim them.
+            irrelevant = sqlite and fld["key"] in DB_CONN_KEYS
             prefix = " ► " if is_sel else "   "
             label  = fld["label"]
             val    = fld["value"]
             attr   = curses.color_pair(_C_SEL) if is_sel else 0
+            if irrelevant and not is_sel:
+                attr = curses.A_DIM
             _w(r, 2, f"{prefix}{label:<18}", attr)
-            if val:
+
+            if is_choice:
+                # Render selectable choice with ◄ ► markers when focused.
+                opts = fld["choices"]
+                if val in opts:
+                    rendered = "  ".join(
+                        f"[{o}]" if o == val else f" {o} " for o in opts
+                    )
+                else:
+                    # A custom dialect the user typed — show it highlighted.
+                    rendered = f"[{val}]  (custom)"
+                marker = "◄ " if is_sel else "  "
+                end    = " ►" if is_sel else ""
+                _w(r, 24, f"{marker}{rendered}{end}",
+                   curses.A_BOLD if is_sel else curses.A_NORMAL)
+            elif val:
                 _w(r, 24, val, curses.A_BOLD)
+            elif irrelevant:
+                _w(r, 24, "not used for sqlite", curses.A_DIM)
             else:
-                _w(r, 24, "(empty)", curses.A_DIM)
+                hint = _field_default(fld)
+                _w(r, 24, f"default: {hint}" if hint else "(empty)", curses.A_DIM)
             r += 1
 
         r += 1
-        _w(r, 2, "Press Enter to edit a field.", curses.A_DIM)
+        _w(r, 2, "Dim values are defaults — fields left blank use them.", curses.A_DIM)
         r += 1
         _w(r, 2, "Press 'c' to create the project, or 'q' to quit.", curses.color_pair(_C_WARN))
 
         # Footer
         _w(max_y - 1, 0,
-           "  ↑↓ / jk  navigate    Enter  edit    c  create    q  quit",
+           "  ↑↓/jk move   ←→/Space cycle DB type (Enter = custom)   c create   q quit",
            curses.color_pair(_C_WARN))
 
         stdscr.refresh()
@@ -1076,11 +1125,24 @@ def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
         if key == ord('q'):
             return None
 
+        cur_fld = fields[cursor]
+        is_choice = cur_fld.get("type") == "choice"
+
         if key in (curses.KEY_UP, ord('k')):
             cursor = max(0, cursor - 1)
         elif key in (curses.KEY_DOWN, ord('j')):
             cursor = min(len(fields) - 1, cursor + 1)
+        elif is_choice and key in (curses.KEY_LEFT, curses.KEY_RIGHT, ord(' ')):
+            # Cycle through the common dialects (Space/→ forward, ← backward).
+            opts = cur_fld["choices"]
+            try:
+                idx = opts.index(cur_fld["value"])
+            except ValueError:
+                idx = 0  # currently a custom value — re-enter the list at start
+            step = -1 if key == curses.KEY_LEFT else 1
+            cur_fld["value"] = opts[(idx + step) % len(opts)]
         elif key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
+            # Enter edits any field; on a choice field this types a custom value.
             _edit_field(cursor)
         elif key == ord('c'):
             # Validate required fields

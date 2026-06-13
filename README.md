@@ -80,7 +80,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 - SQLAdmin back-office at `/admin/` with zero configuration
 - Alembic migrations pre-wired and managed by `veloiq db upgrade`
 - Runs on **Linux**, **macOS**, and **Windows** (native or WSL)
-- Supports **PostgreSQL**, **MySQL**, **SQLite**, and any other SQLAlchemy-compatible database
+- Supports **PostgreSQL**, **MySQL**, **MariaDB**, **SQL Server**, **Oracle**, **DB2**, **Informix**, **SQLite**, and any other SQLAlchemy-compatible database
 
 **Access control**
 - Three-layer RBAC: global role permissions → per-model exceptions → per-field exceptions

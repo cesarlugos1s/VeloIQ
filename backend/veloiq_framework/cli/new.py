@@ -33,8 +33,11 @@ _TEXT_EXTENSIONS = {
 @click.option("--admin-password", default=None,
               help="Admin password for initial seed (default: admin).")
 @click.option("--db-type", default="sqlite",
-              type=click.Choice(["sqlite", "postgresql", "mysql", "mssql"], case_sensitive=False),
-              help="Database engine type (default: sqlite).")
+              help="Database engine / SQLAlchemy dialect (default: sqlite). "
+                   "Common: sqlite, postgresql, mysql, mariadb, mssql, oracle, "
+                   "db2, informix. Any SQLAlchemy dialect string is accepted "
+                   "(the matching driver must be installed; sqlite & postgresql "
+                   "ship by default, db2/informix need ibm-db-sa/IfxAlchemy).")
 @click.option("--db-host", default=None, help="Database host (default: localhost).")
 @click.option("--db-port", default=None, type=int, help="Database port.")
 @click.option("--db-name", default=None, help="Database name (default: app_name).")

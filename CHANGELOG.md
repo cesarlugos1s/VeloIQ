@@ -6,6 +6,18 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [Unreleased]
 
+### Improvements
+
+#### Friendlier interactive app creation (`veloiq` TUI)
+- The "create new project" form now shows each field's effective default as a dim hint (admin user `admin`, DB user `veloiq`, ports `8000`/`5173`, etc.), so the values you'll get are visible before creating
+- **DB type** is now a selector cycled with ←/→ or Space instead of a free-text field; press Enter on it to type any custom SQLAlchemy dialect
+- DB host/port/user/password fields dim out when SQLite is selected, since they aren't used
+
+#### Expanded database engine support
+- `--db-type` (on `veloiq new` and `veloiq configure-db`) and the TUI selector now offer `sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2`, and `informix`, with correct default ports for each
+- The previous hardcoded 4-engine restriction is lifted — any SQLAlchemy dialect string (e.g. `postgresql+asyncpg`, `cockroachdb`) is accepted; `dialect+driver` forms resolve the default port from the base dialect
+- SQLite and PostgreSQL drivers still ship with the framework; other engines require their driver installed (`pymysql`, `pyodbc`, `cx_Oracle`, `ibm-db-sa`, `IfxAlchemy`)
+
 ---
 
 ## [0.7.0] — 2026-06-11

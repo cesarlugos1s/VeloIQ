@@ -9,8 +9,11 @@ import click
 
 @click.command("configure-db")
 @click.option("--db-type", default="sqlite",
-              type=click.Choice(["sqlite", "postgresql", "mysql", "mssql"], case_sensitive=False),
-              help="Database engine type (default: sqlite).")
+              help="Database engine / SQLAlchemy dialect (default: sqlite). "
+                   "Common: sqlite, postgresql, mysql, mariadb, mssql, oracle, "
+                   "db2, informix. Any SQLAlchemy dialect string is accepted "
+                   "(the matching driver must be installed; sqlite & postgresql "
+                   "ship by default, db2/informix need ibm-db-sa/IfxAlchemy).")
 @click.option("--db-host", default=None, help="Database host (default: localhost).")
 @click.option("--db-port", default=None, type=int, help="Database port.")
 @click.option("--db-name", default=None, help="Database name.")
@@ -114,9 +117,16 @@ def _build_database_url(db_type: str, host: str | None, port: int | None,
     default_ports = {
         "postgresql": 5432,
         "mysql": 3306,
+        "mariadb": 3306,
         "mssql": 1433,
+        "oracle": 1521,
+        "db2": 50000,
+        "informix": 9088,
     }
-    port = port or default_ports.get(db_type, 5432)
+    # `db_type` may be a "dialect+driver" form (e.g. postgresql+asyncpg);
+    # match the default port on the base dialect before the "+".
+    base_dialect = db_type.split("+", 1)[0]
+    port = port or default_ports.get(base_dialect, 5432)
 
     pw_part = f":{password}" if password else ""
     return f"{db_type}://{user}{pw_part}@{host}:{port}/{name}"

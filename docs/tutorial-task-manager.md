@@ -57,7 +57,8 @@ By the end of Section 1 you will have:
 > **💡 TUI shortcut:** After installing the CLI (`pip install veloiq-framework`),
 > just type `veloiq` and a terminal UI will guide you through creating the app
 > interactively — no need to remember flags.  The TUI lets you set the app name,
-> database, admin credentials, and ports in a form, then creates everything
+> database, admin credentials, and ports in a form (each field shows its default
+> as a hint, and the DB type is a selector you cycle with ←/→), then creates everything
 > automatically — including installing Python and npm dependencies and running
 > `veloiq generate`.  After the app is created, the TUI launches the project
 > explorer where you can run commands like `add-module` directly.  If you

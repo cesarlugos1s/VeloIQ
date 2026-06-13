@@ -48,12 +48,30 @@ my-app/
 
 ### Configure the database
 
-By default the project uses SQLite — no configuration needed.  To use PostgreSQL
-instead, pass `--db-type` when creating the project:
+By default the project uses SQLite — no configuration needed.  To use a different
+engine, pass `--db-type` when creating the project:
 
 ```bash
 veloiq new my-app --db-type postgresql --db-user myuser --db-password secret
 ```
+
+`--db-type` accepts any SQLAlchemy dialect.  The commonly used engines are:
+
+| `--db-type` | Default port | Driver |
+|---|---|---|
+| `sqlite` | — | built in |
+| `postgresql` | 5432 | bundled (`psycopg2-binary`) |
+| `mysql` | 3306 | `pip install pymysql` |
+| `mariadb` | 3306 | `pip install pymysql` |
+| `mssql` | 1433 | `pip install pyodbc` |
+| `oracle` | 1521 | `pip install cx_Oracle` |
+| `db2` | 50000 | `pip install ibm-db-sa` |
+| `informix` | 9088 | `pip install IfxAlchemy` |
+
+Only **SQLite** and **PostgreSQL** drivers ship with the framework; every other
+engine needs its driver installed into the project's environment.  Any other
+SQLAlchemy dialect string (e.g. `postgresql+asyncpg`, `cockroachdb`) is accepted
+too, as long as the matching driver is installed.
 
 Or edit `backend/.env` after creation:
 
@@ -237,7 +255,14 @@ veloiq
 
 If you run `veloiq` outside a project directory, the explorer shows a form to
 create a new app interactively — you can set the app name, database, admin
-credentials, and ports without leaving the terminal.
+credentials, and ports without leaving the terminal.  Every field shows its
+default as a dim hint (e.g. admin user `admin`, DB user `veloiq`), so you can
+see exactly what you'll get before pressing **c** to create.  The **DB type**
+field is a selector you cycle with **←/→** or **Space** through the supported
+engines (`sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2`,
+`informix`); press **Enter** on it to type any other SQLAlchemy dialect.  When
+SQLite is selected the host/port/user/password fields dim out, since they aren't
+used.
 
 Once inside a project, the explorer has five screens navigated with arrow keys
 and letter shortcuts:
