@@ -14,6 +14,23 @@ export const getRecordId = (record: any, fields?: FieldDef[]): any => {
     return record.eid ?? record.id;
 };
 
+/**
+ * True when a field is the model's primary key. Detected by metadata
+ * (FieldDef.isPk or ModelDef.pkField) rather than a hardcoded field name, so
+ * framework consumers can name their PK field however they like (eid, id, …).
+ */
+export const isPkField = (field: FieldDef, model?: ModelDef): boolean => {
+    if (field.isPk === true) return true;
+    if (model?.pkField != null && field.key === model.pkField) return true;
+    return false;
+};
+
+/**
+ * True when a field is a foreign key (references another model). Detected by
+ * the `reference` metadata rather than a hardcoded name (eid_to, eid_from, …).
+ */
+export const isReferenceField = (field: FieldDef): boolean => !!field.reference;
+
 export const getListViewFields = (model: ModelDef, filterField?: string) => {
     const baseFields = filterField ? model.fields.filter((field) => field.key !== filterField) : model.fields;
     return baseFields.slice(0, 6);

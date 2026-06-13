@@ -4019,6 +4019,12 @@ var getRecordId = (record, fields) => {
   }
   return record.eid ?? record.id;
 };
+var isPkField = (field, model) => {
+  if (field.isPk === true) return true;
+  if (model?.pkField != null && field.key === model.pkField) return true;
+  return false;
+};
+var isReferenceField = (field) => !!field.reference;
 var getListViewFields = (model, filterField) => {
   const baseFields = filterField ? model.fields.filter((field) => field.key !== filterField) : model.fields;
   return baseFields.slice(0, 6);
@@ -8465,7 +8471,7 @@ function buildColumnFilterOptions({
 }) {
   const filtersMap = /* @__PURE__ */ new Map();
   for (const field of fields) {
-    if (field.key === "eid") {
+    if (isPkField(field)) {
       const labelValues = [];
       for (const record of data) {
         const lbl = record?._label;
@@ -8572,7 +8578,7 @@ function buildColumnFilterOptions({
     for (const record of data) {
       let value = record?.[field.key];
       let label = value;
-      if (field.key === "eid" && record?._label) {
+      if (isPkField(field) && record?._label) {
         value = record.eid;
         label = record._label;
       }
@@ -8613,7 +8619,7 @@ function matchesColumnFilterValue(field, record, value) {
     const recordVal = String(record?.[field.key] ?? "");
     return recordVal.localeCompare(lo) >= 0 && recordVal.localeCompare(hi) <= 0;
   }
-  if (field.key === "eid" && strValue.startsWith("__catrange__:")) {
+  if (isPkField(field) && strValue.startsWith("__catrange__:")) {
     const sub = strValue.substring("__catrange__:".length);
     const sepIdx = sub.indexOf(":");
     const lo = decodeURIComponent(sub.substring(0, sepIdx));
@@ -8621,7 +8627,7 @@ function matchesColumnFilterValue(field, record, value) {
     const recordLabel = String(record?._label ?? "");
     return recordLabel.localeCompare(lo) >= 0 && recordLabel.localeCompare(hi) <= 0;
   }
-  if (field.key === "eid" && record?._label) {
+  if (isPkField(field) && record?._label) {
     return String(record._label) === strValue || String(record.eid) === strValue;
   }
   return String(record?.[field.key]) === strValue;
@@ -12739,11 +12745,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, relatedModel.name, relatedModel.resource, allModels]);
   const categoricalFields = React5.useMemo(() => {
-    return relatedModel.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
-  }, [relatedModel.fields]);
+    return relatedModel.fields.filter((field) => isPkField(field, relatedModel) || (field.type !== "number" || field.reference));
+  }, [relatedModel]);
   const numericFields = React5.useMemo(() => {
-    return relatedModel.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
-  }, [relatedModel.fields]);
+    return relatedModel.fields.filter((field) => !isPkField(field, relatedModel) && field.type === "number" && !field.reference);
+  }, [relatedModel]);
   const resetLayoutDefaults = React5.useCallback(() => {
     setListVisible(true);
     setAnalyzeOpen(false);
@@ -13312,7 +13318,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         if (!rowValues) return;
         const payload = {};
         relatedModel.fields.forEach((field) => {
-          if (field.key === "eid") return;
+          if (isPkField(field, relatedModel)) return;
           if (!Object.prototype.hasOwnProperty.call(rowValues, field.key)) return;
           const newVal = normalizeFieldValue(field, rowValues[field.key]);
           const oldVal = normalizeFieldValue(field, row?.[field.key]);
@@ -13413,7 +13419,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const getSortValue = React5.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return null;
-    if (field.key === "eid" && recordRow?._label) return recordRow._label;
+    if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] ?? raw;
@@ -13689,7 +13695,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (!field) return _34("All");
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "-";
-    if (field.key === "eid" && recordRow?._label) return recordRow._label;
+    if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] || String(raw);
@@ -13970,7 +13976,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setSelectedSeriesKeys(value);
                   },
                   style: { width: "100%" },
-                  options: relatedModel.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key })),
+                  options: relatedModel.fields.filter((field) => !isPkField(field, relatedModel)).map((field) => ({ label: field.label, value: field.key })),
                   placeholder: _34("All numeric fields"),
                   maxTagCount: "responsive"
                 }
@@ -14237,9 +14243,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   }, [columnFilteredRows, displayFields, labelCache]);
   const isTotalsDetailsVariant = viewVariant === "totals-details";
   const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
-    if (field.key === "eid") return "count";
+    if (isPkField(field, relatedModel)) return "count";
     return "sum";
-  }, []);
+  }, [relatedModel]);
   const resolveTotalsSummaryFn = React5.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
@@ -15073,10 +15079,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     allowInlineEdit && /* @__PURE__ */ jsxRuntime.jsx(
                       antd.Table.Column,
                       {
-                        title: rel.otherKey || "Related",
+                        title: relatedModel.label || relatedModel.name,
+                        sorter: { compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)) },
+                        filters: Array.from(new Set((filteredRows || []).map((r) => getRecordDisplayLabel(r)))).map((label) => ({ text: label, value: label })),
+                        filterSearch: true,
+                        onFilter: (value, row) => getRecordDisplayLabel(row) === String(value),
                         render: (_unused, row) => {
                           const id = row?.eid ?? row?.id;
-                          if (!id) return "-";
+                          const label = getRecordDisplayLabel(row);
+                          if (!id) return label;
                           return /* @__PURE__ */ jsxRuntime.jsx(
                             "a",
                             {
@@ -15091,7 +15102,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 }
                               },
                               style: { cursor: "pointer", color: "inherit", textDecoration: "none" },
-                              children: String(id)
+                              children: label
                             }
                           );
                         }
@@ -15116,15 +15127,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           }
                         }),
                         onFilter: (value, recordRow) => {
-                          if (field.key === "eid" && recordRow?._label) {
+                          if (isPkField(field, relatedModel) && recordRow?._label) {
                             return String(recordRow._label) === String(value) || String(recordRow.eid) === String(value);
                           }
                           const recordValue = recordRow?.[field.key];
                           return String(recordValue) === String(value);
                         },
-                        align: field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
+                        align: field.type === "number" && !isReferenceField(field) && !isPkField(field, relatedModel) ? "right" : void 0,
                         render: (value, row) => {
-                          if (allowInlineEdit && field.key !== "eid") {
+                          if (allowInlineEdit && !isPkField(field, relatedModel)) {
                             const rowId = row?.eid ?? row?.id ?? row?.__relationKey;
                             return /* @__PURE__ */ jsxRuntime.jsx(
                               antd.Form.Item,
@@ -15146,7 +15157,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                               const cacheKey = `${field.reference}:${value}`;
                               return labelCache[cacheKey] || value;
                             }
-                            if (field.key === "eid" && row._label) return row._label;
+                            if (isPkField(field, relatedModel) && row._label) return row._label;
                             if (field.type === "boolean") return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: value, disabled: true });
                             if (field.type === "number" && !field.reference) {
                               const formatted = formatNumberValue(value);
@@ -16681,7 +16692,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const getSortValue = React5.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
-    if (field.key === "eid" && record?._label) return record._label;
+    if (isPkField(field, model) && record?._label) return record._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] ?? raw;
@@ -16966,10 +16977,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     };
   }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
   const categoricalFields = React5.useMemo(() => {
-    return model.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
+    return model.fields.filter((field) => isPkField(field, model) || (field.type !== "number" || field.reference));
   }, [model.fields]);
   const numericFields = React5.useMemo(() => {
-    return model.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
+    return model.fields.filter((field) => !isPkField(field, model) && field.type === "number" && !field.reference);
   }, [model.fields]);
   const hasActiveRangeColumnFilter = React5.useMemo(() => {
     return Object.values(columnFiltersSelected).some(
@@ -17568,7 +17579,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (!field) return _36("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
-    if (field.key === "eid" && record?._label) return record._label;
+    if (isPkField(field, model) && record?._label) return record._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] || String(raw);
@@ -17838,7 +17849,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     setSelectedSeriesKeys(value);
                   },
                   style: { width: "100%" },
-                  options: model.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key })),
+                  options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
                   placeholder: _36("All numeric fields"),
                   maxTagCount: "responsive"
                 }
@@ -17989,7 +18000,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
   const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
-    if (["eid", "eid_from", "eid_to"].includes(field.key)) return "count";
+    if (isPkField(field, model) || isReferenceField(field)) return "count";
     return "sum";
   }, []);
   const resolveTotalsSummaryFn = React5.useCallback((field) => {
@@ -18286,8 +18297,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     const resourceName = model.isNamedQuery && model.primaryResource ? model.primaryResource : model.resource || model.name;
     const explicitPk = model.pkField ? record[model.pkField] : void 0;
-    const isPkField = model.fields?.find((f) => f.isPk)?.key;
-    const pkValue = explicitPk ?? (isPkField ? record[isPkField] : void 0) ?? record.eid ?? record.id ?? null;
+    const isPkField2 = model.fields?.find((f) => f.isPk)?.key;
+    const pkValue = explicitPk ?? (isPkField2 ? record[isPkField2] : void 0) ?? record.eid ?? record.id ?? null;
     if (pkValue != null) {
       return { resource: resourceName, id: pkValue, isLinkRow: false };
     }
@@ -19684,7 +19695,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   dataIndex: field.key,
                   title: field.label,
                   sorter: { compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) },
-                  align: field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key) ? "right" : void 0,
+                  align: field.type === "number" && !isReferenceField(field) && !isPkField(field, model) ? "right" : void 0,
                   filters: columnFilters.get(field.key),
                   filteredValue: columnFiltersSelected[field.key] || null,
                   sortOrder: columnSort.find((item) => item.fieldKey === field.key)?.order ?? null,
@@ -19719,7 +19730,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           }
                         );
                       }
-                      if (field.key === "eid" && record._label) return record._label;
+                      if (isPkField(field, model) && record._label) return record._label;
                       if (field.type === "boolean") return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: value, disabled: true });
                       if (field.type === "number" && !field.reference) {
                         const formatted = formatNumberValue(value);

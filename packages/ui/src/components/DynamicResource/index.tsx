@@ -216,6 +216,8 @@ import {
     resolveModelName,
     getPolymorphicReferenceInfo,
     getRecordDisplayLabel,
+    isPkField,
+    isReferenceField,
 } from "./utils/model";
 
 
@@ -533,7 +535,7 @@ export const DynamicList: React.FC<{
     const getSortValue = useCallback((field: FieldDef, record: any) => {
         const raw = record?.[field.key];
         if (raw === undefined || raw === null) return null;
-        if (field.key === "eid" && record?._label) return record._label;
+        if (isPkField(field, model) && record?._label) return record._label;
         if (field.reference) {
             const cacheKey = `${field.reference}:${raw}`;
             return labelCache[cacheKey] ?? raw;
@@ -852,11 +854,11 @@ export const DynamicList: React.FC<{
     }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
 
     const categoricalFields = useMemo(() => {
-        return model.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
+        return model.fields.filter((field) => isPkField(field, model) || (field.type !== "number" || field.reference));
     }, [model.fields]);
 
     const numericFields = useMemo(() => {
-        return model.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
+        return model.fields.filter((field) => !isPkField(field, model) && field.type === "number" && !field.reference);
     }, [model.fields]);
 
     const hasActiveRangeColumnFilter = useMemo(() => {
@@ -1510,7 +1512,7 @@ export const DynamicList: React.FC<{
         if (!field) return _("All");
         const raw = record?.[field.key];
         if (raw === undefined || raw === null) return "-";
-        if (field.key === "eid" && record?._label) return record._label;
+        if (isPkField(field, model) && record?._label) return record._label;
         if (field.reference) {
             const cacheKey = `${field.reference}:${raw}`;
             return labelCache[cacheKey] || String(raw);
@@ -1784,7 +1786,7 @@ export const DynamicList: React.FC<{
                                     value={selectedSeriesKeys || []}
                                     onChange={(value) => { markAnalyzePrefsTouched(); setSelectedSeriesKeys(value); }}
                                     style={{ width: "100%" }}
-                                    options={model.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key }))}
+                                    options={model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key }))}
                                     placeholder={_("All numeric fields")}
                                     maxTagCount="responsive"
                                 />
@@ -1945,7 +1947,7 @@ export const DynamicList: React.FC<{
             });
     }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
     const getDefaultTotalsSummaryFn = useCallback((field: FieldDef): TotalsSummaryFn => {
-        if (["eid", "eid_from", "eid_to"].includes(field.key)) return "count";
+        if (isPkField(field, model) || isReferenceField(field)) return "count";
         return "sum";
     }, []);
     const resolveTotalsSummaryFn = useCallback((field: FieldDef): TotalsSummaryFn => {
@@ -3782,7 +3784,7 @@ export const DynamicList: React.FC<{
                                     dataIndex={field.key}
                                     title={field.label}
                                     sorter={{ compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) }}
-                                    align={(field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
+                                    align={(field.type === "number" && !isReferenceField(field) && !isPkField(field, model)) ? "right" : undefined}
                                     filters={columnFilters.get(field.key)}
                                     filteredValue={columnFiltersSelected[field.key] || null}
                                     sortOrder={columnSort.find((item) => item.fieldKey === field.key)?.order ?? null}
@@ -3816,7 +3818,7 @@ export const DynamicList: React.FC<{
                                                     />
                                                 );
                                             }
-                                            if (field.key === 'eid' && record._label) return record._label;
+                                            if (isPkField(field, model) && record._label) return record._label;
                                             if (field.type === 'boolean') return <Checkbox checked={value} disabled />;
                                             if (field.type === 'number' && !field.reference) {
                                                 const formatted = formatNumberValue(value);

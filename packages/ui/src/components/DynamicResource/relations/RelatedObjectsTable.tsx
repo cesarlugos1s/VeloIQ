@@ -71,6 +71,9 @@ import {
     findModelByName,
     getListViewFields,
     getPolymorphicReferenceInfo,
+    getRecordDisplayLabel,
+    isPkField,
+    isReferenceField,
     resolveModelByEntityType,
     resolveResourcePath,
 } from "../utils/model";
@@ -448,12 +451,12 @@ export const RelatedObjectsTable: React.FC<{
     }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, relatedModel.name, relatedModel.resource, allModels]);
 
     const categoricalFields = useMemo(() => {
-        return relatedModel.fields.filter((field) => field.key === "eid" || (field.type !== "number" || field.reference));
-    }, [relatedModel.fields]);
+        return relatedModel.fields.filter((field) => isPkField(field, relatedModel) || (field.type !== "number" || field.reference));
+    }, [relatedModel]);
 
     const numericFields = useMemo(() => {
-        return relatedModel.fields.filter((field) => field.key !== "eid" && field.type === "number" && !field.reference);
-    }, [relatedModel.fields]);
+        return relatedModel.fields.filter((field) => !isPkField(field, relatedModel) && field.type === "number" && !field.reference);
+    }, [relatedModel]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(true);
@@ -1068,7 +1071,7 @@ export const RelatedObjectsTable: React.FC<{
                 if (!rowValues) return;
                 const payload: Record<string, any> = {};
                 relatedModel.fields.forEach((field) => {
-                    if (field.key === "eid") return;
+                    if (isPkField(field, relatedModel)) return;
                     if (!Object.prototype.hasOwnProperty.call(rowValues, field.key)) return;
                     const newVal = normalizeFieldValue(field, rowValues[field.key]);
                     const oldVal = normalizeFieldValue(field, row?.[field.key]);
@@ -1182,7 +1185,7 @@ export const RelatedObjectsTable: React.FC<{
     const getSortValue = useCallback((field: FieldDef, recordRow: any) => {
         const raw = recordRow?.[field.key];
         if (raw === undefined || raw === null) return null;
-        if (field.key === "eid" && recordRow?._label) return recordRow._label;
+        if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
         if (field.reference) {
             const cacheKey = `${field.reference}:${raw}`;
             return labelCache[cacheKey] ?? raw;
@@ -1484,7 +1487,7 @@ export const RelatedObjectsTable: React.FC<{
         if (!field) return _("All");
         const raw = recordRow?.[field.key];
         if (raw === undefined || raw === null) return "-";
-        if (field.key === "eid" && recordRow?._label) return recordRow._label;
+        if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
         if (field.reference) {
             const cacheKey = `${field.reference}:${raw}`;
             return labelCache[cacheKey] || String(raw);
@@ -1772,7 +1775,7 @@ export const RelatedObjectsTable: React.FC<{
                                     value={selectedSeriesKeys || []}
                                     onChange={(value) => { markAnalyzePrefsTouched(); setSelectedSeriesKeys(value); }}
                                     style={{ width: "100%" }}
-                                    options={relatedModel.fields.filter((field) => !field.isPk && field.key !== "eid").map((field) => ({ label: field.label, value: field.key }))}
+                                    options={relatedModel.fields.filter((field) => !isPkField(field, relatedModel)).map((field) => ({ label: field.label, value: field.key }))}
                                     placeholder={_("All numeric fields")}
                                     maxTagCount="responsive"
                                 />
@@ -2056,9 +2059,9 @@ export const RelatedObjectsTable: React.FC<{
     }, [columnFilteredRows, displayFields, labelCache]);
     const isTotalsDetailsVariant = viewVariant === "totals-details";
     const getDefaultTotalsSummaryFn = useCallback((field: FieldDef): TotalsSummaryFn => {
-        if (field.key === "eid") return "count";
+        if (isPkField(field, relatedModel)) return "count";
         return "sum";
-    }, []);
+    }, [relatedModel]);
     const resolveTotalsSummaryFn = useCallback((field: FieldDef): TotalsSummaryFn => {
         return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
     }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
@@ -2939,10 +2942,18 @@ export const RelatedObjectsTable: React.FC<{
                             {allowInlineEdit && (
                                 <Table.Column
                                     key="relation-link"
-                                    title={rel.otherKey || "Related"}
+                                    // Identify the related entity by its dc_title()/__str__ label
+                                    // (the API-provided _label), never the raw PK/FK value.
+                                    title={relatedModel.label || relatedModel.name}
+                                    sorter={{ compare: (a: any, b: any) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)) }}
+                                    filters={Array.from(new Set((filteredRows || []).map((r: any) => getRecordDisplayLabel(r))))
+                                        .map((label) => ({ text: label, value: label }))}
+                                    filterSearch
+                                    onFilter={(value, row: any) => getRecordDisplayLabel(row) === String(value)}
                                     render={(_unused, row: any) => {
                                         const id = row?.eid ?? row?.id;
-                                        if (!id) return "-";
+                                        const label = getRecordDisplayLabel(row);
+                                        if (!id) return label;
                                         return (
                                             <a
                                                 href={getShowHref(relatedModel.name, id, allModels)}
@@ -2957,7 +2968,7 @@ export const RelatedObjectsTable: React.FC<{
                                                 }}
                                                 style={{ cursor: "pointer", color: "inherit", textDecoration: "none" }}
                                             >
-                                                {String(id)}
+                                                {label}
                                             </a>
                                         );
                                     }}
@@ -2981,15 +2992,15 @@ export const RelatedObjectsTable: React.FC<{
                                         },
                                     })}
                                     onFilter={(value, recordRow: any) => {
-                                        if (field.key === "eid" && recordRow?._label) {
+                                        if (isPkField(field, relatedModel) && recordRow?._label) {
                                             return String(recordRow._label) === String(value) || String(recordRow.eid) === String(value);
                                         }
                                         const recordValue = recordRow?.[field.key];
                                         return String(recordValue) === String(value);
                                     }}
-                                    align={(field.type === "number" && !field.reference && !["eid", "eid_from", "eid_to"].includes(field.key)) ? "right" : undefined}
+                                    align={(field.type === "number" && !isReferenceField(field) && !isPkField(field, relatedModel)) ? "right" : undefined}
                                     render={(value, row: any) => {
-                                        if (allowInlineEdit && field.key !== "eid") {
+                                        if (allowInlineEdit && !isPkField(field, relatedModel)) {
                                             const rowId = row?.eid ?? row?.id ?? row?.__relationKey;
                                             return (
                                                 <Form.Item
@@ -3012,7 +3023,7 @@ export const RelatedObjectsTable: React.FC<{
                                                 const cacheKey = `${field.reference}:${value}`;
                                                 return labelCache[cacheKey] || value;
                                             }
-                                            if (field.key === "eid" && row._label) return row._label;
+                                            if (isPkField(field, relatedModel) && row._label) return row._label;
                                             if (field.type === "boolean") return <Checkbox checked={value} disabled />;
                                             if (field.type === "number" && !field.reference) {
                                                 const formatted = formatNumberValue(value);

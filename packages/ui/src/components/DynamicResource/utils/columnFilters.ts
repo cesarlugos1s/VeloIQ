@@ -1,5 +1,6 @@
 import type React from "react";
 import type { FieldDef } from "../types";
+import { isPkField } from "./model";
 
 /**
  * Shared column-filter helpers used by the table/editable-table/crosstab view types.
@@ -46,8 +47,8 @@ export function buildColumnFilterOptions({
     const filtersMap = new Map<string, ColumnFilterOption[]>();
 
     for (const field of fields) {
-        // eid column: ranges are based on the _label (__str__) values, not the numeric eid.
-        if (field.key === "eid") {
+        // PK column: ranges are based on the _label (__str__) values, not the numeric PK.
+        if (isPkField(field)) {
             const labelValues: string[] = [];
             for (const record of data) {
                 const lbl = record?._label;
@@ -169,7 +170,7 @@ export function buildColumnFilterOptions({
         for (const record of data) {
             let value = record?.[field.key];
             let label = value;
-            if (field.key === "eid" && record?._label) {
+            if (isPkField(field) && record?._label) {
                 value = record.eid;
                 label = record._label;
             }
@@ -219,7 +220,7 @@ export function matchesColumnFilterValue(field: FieldDef, record: any, value: Re
         const recordVal = String(record?.[field.key] ?? "");
         return recordVal.localeCompare(lo) >= 0 && recordVal.localeCompare(hi) <= 0;
     }
-    if (field.key === "eid" && strValue.startsWith("__catrange__:")) {
+    if (isPkField(field) && strValue.startsWith("__catrange__:")) {
         const sub = strValue.substring("__catrange__:".length);
         const sepIdx = sub.indexOf(":");
         const lo = decodeURIComponent(sub.substring(0, sepIdx));
@@ -227,7 +228,7 @@ export function matchesColumnFilterValue(field: FieldDef, record: any, value: Re
         const recordLabel = String(record?._label ?? "");
         return recordLabel.localeCompare(lo) >= 0 && recordLabel.localeCompare(hi) <= 0;
     }
-    if (field.key === "eid" && record?._label) {
+    if (isPkField(field) && record?._label) {
         return String(record._label) === strValue || String(record.eid) === strValue;
     }
     return String(record?.[field.key]) === strValue;
