@@ -64,6 +64,7 @@ class ModelInfo:
     custom_pages: set[str] = field(default_factory=set)  # e.g. {"list", "show"}
     models_path: Optional[Path] = None                   # absolute path to models.py
     description: Optional[str] = None                    # from class docstring
+    referenced_by: list = field(default_factory=list)    # [(model_name, field_key, resource)]
 
 
 @dataclass
@@ -194,6 +195,8 @@ def _load_app_data(root: Path) -> AppData:
 
     # Read custom_pages.ts and mark which page types each model has scaffolded.
     _enrich_custom_pages(frontend_src, data.all_models)
+    # Build reverse-reference index across all app models.
+    _enrich_reverse_refs(data.all_models)
 
     return data
 
@@ -204,6 +207,17 @@ _CUSTOM_MAP_TO_TYPE = {
     "customEditComponents":   "edit",
     "customCreateComponents": "create",
 }
+
+
+def _enrich_reverse_refs(models: list[ModelInfo]) -> None:
+    """Populate ModelInfo.referenced_by for each model that other models FK into."""
+    resource_map = {m.resource: m for m in models}
+    for m in models:
+        for fld in m.fields:
+            if fld.reference:
+                target = resource_map.get(fld.reference)
+                if target and target is not m:
+                    target.referenced_by.append((m.name, fld.key, m.resource))
 
 
 def _enrich_custom_pages(frontend_src: Path, models: list) -> None:
@@ -405,6 +419,7 @@ class _Frame:
     cursor: int = 0
     scroll: int = 0
     context: Any = None
+    filter_str: str = ""
 
 
 class Explorer:
@@ -656,8 +671,17 @@ class Explorer:
         self._divider(stdscr, r, max_x)
         r += 1
 
+        filtered = [m for m in mod.models if not f.filter_str
+                    or f.filter_str in m.name.lower() or f.filter_str in m.resource.lower()]
+
+        if f.filter_str:
+            fhint = f"  Filter: \"{f.filter_str}\"  ({len(filtered)}/{len(mod.models)} models)  [/] change  [x] clear"
+            self._w(stdscr, r, 2, fhint, curses.color_pair(_C_WARN))
+            r += 1
+
         list_start = r
         list_h = max_y - list_start - 1
+        f.cursor = max(0, min(f.cursor, max(0, len(filtered) - 1)))
 
         if f.cursor < f.scroll:
             f.scroll = f.cursor
@@ -666,12 +690,14 @@ class Explorer:
 
         if not mod.models:
             self._w(stdscr, r, 4, "(no models — run veloiq generate)", curses.A_DIM)
+        elif not filtered:
+            self._w(stdscr, r, 4, f'(no models match "{f.filter_str}")', curses.A_DIM)
         else:
             for i in range(list_h):
                 idx = f.scroll + i
-                if idx >= len(mod.models):
+                if idx >= len(filtered):
                     break
-                model  = mod.models[idx]
+                model  = filtered[idx]
                 is_sel = idx == f.cursor
                 attr   = curses.color_pair(_C_SEL) if is_sel else 0
                 prefix = " ► " if is_sel else "   "
@@ -690,8 +716,9 @@ class Explorer:
                     self._w(stdscr, list_start + i, col + 21, srch_icon, s_attr)
                     self._w(stdscr, list_start + i, col + 23, nq_tag, curses.A_DIM)
 
+        filter_hint = "  [/] filter" if not f.filter_str else "  [x] clear filter"
         self._w(stdscr, max_y - 1, 0,
-                "  ↑↓ / jk  navigate    Enter  view model    g  generate    b  back    q  quit",
+                f"  ↑↓ / jk  navigate    Enter  view model    g  generate{filter_hint}    b  back    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Model detail ──────────────────────────────────────────────────────────
@@ -771,6 +798,15 @@ class Explorer:
             lines.append(("Relations: none", DIM))
 
         lines.append(("", A))
+
+        if model.referenced_by:
+            lines.append((f"Referenced by ({len(model.referenced_by)}):", BOLD))
+            for (mname, fkey, _mres) in model.referenced_by:
+                lines.append((f"  {mname:<22}  via {fkey}", A))
+        else:
+            lines.append(("Referenced by: none (no FK points to this model)", DIM))
+
+        lines.append(("", A))
         lines.append(("Configuration:", BOLD))
 
         dash_val  = f"✓  tab \"{model.dashboard_tab}\"" if model.in_dashboard else "✗  not on dashboard"
@@ -792,6 +828,29 @@ class Explorer:
             lines.append((f"  Custom pages ✓  {' · '.join(ordered)}", OK))
         else:
             lines.append(("  Custom pages –  none", DIM))
+
+        lines.append(("", A))
+        lines.append(("Endpoints:", BOLD))
+        res = model.resource
+        if model.is_named_query:
+            lines.append((f"  GET    /{res}            named query (read-only)", DIM))
+        else:
+            _routes = [
+                ("GET",    f"/{res}",         "list"),
+                ("POST",   f"/{res}",         "create"),
+                ("GET",    f"/{res}/{{id}}",  "show"),
+                ("PATCH",  f"/{res}/{{id}}",  "update"),
+                ("DELETE", f"/{res}/{{id}}",  "delete"),
+            ]
+            for _method, _path, _action in _routes:
+                lines.append((f"  {_method:<7}  {_path:<32}  {_action}", A))
+            if model.permissions:
+                all_roles = sorted({r for roles in model.permissions.values() for r in roles})
+                lines.append((f"  Access   restricted to: {', '.join(all_roles)}", A))
+            elif self.data.auth_disabled:
+                lines.append(("  Access   auth disabled — open to all", curses.color_pair(_C_ERR)))
+            else:
+                lines.append(("  Access   all authenticated users", DIM))
 
         # Render with scroll
         content_h = max_y - 3
@@ -819,6 +878,10 @@ class Explorer:
             scaffold_hint = f"[p] scaffold-page ({' '.join(t + ' ✓' for t in ordered)})"
         else:
             scaffold_hint = "[p] scaffold-page"
+        follow_targets = [rel.resource for rel in model.relations if not rel.is_recursive]
+        follow_targets += [fld.reference for fld in model.fields if fld.reference and fld.reference not in follow_targets]
+        if follow_targets:
+            actions.append("[f] follow →")
         actions += [scaffold_hint, "[g] generate (all modules)", "[b] back", "[q] quit"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
@@ -996,11 +1059,20 @@ class Explorer:
         mod: ModuleInfo = f.context
         if mod is None:
             return None
-        self._move_cursor(f, len(mod.models), key)
+        filtered = [m for m in mod.models if not f.filter_str
+                    or f.filter_str in m.name.lower() or f.filter_str in m.resource.lower()]
+        self._move_cursor(f, len(filtered), key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
-            if mod.models:
-                self.nav.append(_Frame("model", context=mod.models[f.cursor]))
+            if filtered:
+                self.nav.append(_Frame("model", context=filtered[f.cursor]))
+        elif key == ord('/'):
+            q = self._get_input(stdscr, max_y, max_x, "Filter models")
+            f.filter_str = q.lower()
+            f.cursor = 0
+        elif key == ord('x'):
+            f.filter_str = ""
+            f.cursor = 0
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
@@ -1035,10 +1107,60 @@ class Explorer:
                 cmd = f"veloiq scaffold-page {model.resource} {page_type}"
                 if self._confirm(stdscr, max_y, max_x, cmd):
                     return cmd
+        elif key == ord('f'):
+            self._follow_relation(stdscr, max_y, max_x, model)
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
         return None
+
+    def _follow_relation(self, stdscr, max_y, max_x, model: "ModelInfo") -> None:
+        """Prompt the user to choose a related model and navigate to it."""
+        # Collect unique jump targets: relations first, then FK fields not already covered
+        seen: set[str] = set()
+        targets: list[tuple[str, str]] = []  # (label, resource)
+        for rel in model.relations:
+            if not rel.is_recursive and rel.resource not in seen:
+                targets.append((rel.label, rel.resource))
+                seen.add(rel.resource)
+        for fld in model.fields:
+            if fld.reference and fld.reference not in seen:
+                targets.append((fld.label, fld.reference))
+                seen.add(fld.reference)
+
+        if not targets:
+            self._w(stdscr, max_y - 1, 0,
+                    "  (no related models to navigate to)  press any key",
+                    curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+            stdscr.getch()
+            return
+
+        if len(targets) == 1:
+            chosen = targets[0][1]
+        else:
+            parts = "  ".join(f"[{i+1}] {lbl}" for i, (lbl, _) in enumerate(targets[:9]))
+            prompt = f"  Jump to: {parts}  [Esc] cancel "
+            self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+            self._w(stdscr, max_y - 1, 0, prompt[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+            k = stdscr.getch()
+            if k == 27:
+                return
+            idx = k - ord('1')
+            if not (0 <= idx < len(targets)):
+                return
+            chosen = targets[idx][1]
+
+        target_model = next((m for m in self.data.all_models if m.resource == chosen), None)
+        if target_model:
+            self.nav.append(_Frame("model", context=target_model))
+        else:
+            self._w(stdscr, max_y - 1, 0,
+                    f"  Model '{chosen}' not found (extension or auth model?).  press any key",
+                    curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+            stdscr.getch()
 
     def _pick_page_type(self, stdscr, max_y, max_x, existing: set[str] = frozenset()) -> Optional[str]:
         def _label(key: str, name: str) -> str:

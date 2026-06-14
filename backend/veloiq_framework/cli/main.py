@@ -13,6 +13,8 @@ from veloiq_framework.cli.new_extension import new_extension
 from veloiq_framework.cli.add_licensing import add_licensing
 from veloiq_framework.cli.configure_db import configure_db
 from veloiq_framework.cli.scaffold_page import scaffold_page
+from veloiq_framework.cli.check import check
+from veloiq_framework.cli.add_field import add_field
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -30,9 +32,11 @@ def cli(ctx):
     Quick start:
       veloiq new my-app              Create a new project
       veloiq add-module inventory    Add a module to an existing project
+      veloiq add-field Task notes    Add a field to an existing model
       veloiq generate                Generate frontend schemas from backend models
       veloiq run                     Start the development server
       veloiq db upgrade              Apply Alembic migrations
+      veloiq check                   Health-check the project (descriptions, config gaps)
 
     Extension packages:
       veloiq new-extension myext     Scaffold a new extension package
@@ -63,3 +67,5 @@ cli.add_command(extend_package)
 cli.add_command(remove_package)
 cli.add_command(list_extensions)
 cli.add_command(scaffold_page)
+cli.add_command(check)
+cli.add_command(add_field)
