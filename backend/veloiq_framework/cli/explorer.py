@@ -7,7 +7,6 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-import json
 from typing import Any, Optional
 
 # ── Color pair indices ────────────────────────────────────────────────────────
@@ -32,6 +31,8 @@ class FieldInfo:
     write_roles: list[str] = field(default_factory=list)
     read_only: bool = False
     default: Optional[Any] = None
+    options: list = field(default_factory=list)
+    description: Optional[str] = None
 
 
 @dataclass
@@ -62,6 +63,7 @@ class ModelInfo:
     has_rebac: bool = False
     custom_pages: set[str] = field(default_factory=set)  # e.g. {"list", "show"}
     models_path: Optional[Path] = None                   # absolute path to models.py
+    description: Optional[str] = None                    # from class docstring
 
 
 @dataclass
@@ -263,8 +265,8 @@ def _parse_gen_ts(path, module_name, search_set, dashboard_models, dashboard_tab
 
 
 def _parse_model_block(block, module_name, search_set, dashboard_models, dashboard_tabs):
-    def _s(p):
-        m = re.search(p, block)
+    def _s(p, flags=0):
+        m = re.search(p, block, flags)
         return m.group(1) if m else None
 
     name = _s(r'name:\s*"([^"]+)"')
@@ -273,6 +275,8 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
     resource = _s(r'resource:\s*"([^"]+)"') or name.lower()
     label    = _s(r'label:\s*"([^"]+)"') or name
     pk       = _s(r'pkField:\s*"([^"]+)"') or "id"
+    # Model-level description lives on its own indented line (4 spaces), distinct from field descriptions
+    model_desc = _s(r'^\s{4}description:\s*"([^"]+)"', re.MULTILINE)
 
     fields: list[FieldInfo] = []
     relations: list[RelationInfo] = []
@@ -301,6 +305,14 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                         fld_default = json.loads(dm.group(1).strip())
                     except Exception:
                         fld_default = dm.group(1).strip().strip('"')
+                om  = re.search(r'\boptions:\s*(\[[^\]]*\])', s)
+                fld_options: list = []
+                if om:
+                    try:
+                        fld_options = json.loads(om.group(1))
+                    except Exception:
+                        pass
+                fdm = re.search(r'\bdescription:\s*"([^"]+)"', s)
                 fields.append(FieldInfo(
                     key=km.group(1),
                     label=lm.group(1) if lm else km.group(1),
@@ -311,6 +323,8 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                     write_roles=[x.strip(' "') for x in wrm.group(1).split(",") if x.strip()] if wrm else [],
                     read_only="readOnly: true" in s,
                     default=fld_default,
+                    options=fld_options,
+                    description=fdm.group(1) if fdm else None,
                 ))
         elif in_rel and s.startswith("{"):
             res_m  = re.search(r'resource:\s*"([^"]+)"', s)
@@ -337,6 +351,7 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
         in_dashboard=resource in dashboard_models,
         dashboard_tab=dashboard_tabs.get(resource),
         in_search=name.lower() in search_set,
+        description=model_desc,
     )
 
 
@@ -702,6 +717,8 @@ class Explorer:
             except ValueError:
                 rel = model.models_path
             lines.append((f"  {rel}", DIM))
+        if model.description:
+            lines.append((f"  {model.description}", DIM))
         lines.append(("─" * max(0, max_x - 4), DIM))
 
         _TS = {"created_at", "updated_at", "creation_date", "modification_date"}
@@ -718,6 +735,8 @@ class Explorer:
                     parts.append(f"→ {fld.reference}  ")
                 if fld.key in _TS:
                     parts.append("(timestamp)")
+                if fld.options:
+                    parts.append(f"[{' | '.join(str(v) for v in fld.options)}]  ")
                 if fld.default is not None:
                     parts.append(f"default: {json.dumps(fld.default)}  ")
                 if fld.read_roles:
@@ -725,6 +744,8 @@ class Explorer:
                 if fld.write_roles:
                     parts.append(f"write:{','.join(fld.write_roles)}")
                 lines.append(("".join(parts), DIM if fld.key in _TS else A))
+                if fld.description:
+                    lines.append((f"    └ {fld.description}", DIM))
         else:
             lines.append(("Fields: (run veloiq generate to see fields)", DIM))
 

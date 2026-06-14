@@ -359,7 +359,22 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                                 role_extra += f', writeRoles: {_to_ts_array(wr)}'
                 except Exception:
                     pass
-                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{role_extra} }}'
+                # Emit options and description from json_schema_extra.
+                options_extra = ""
+                desc_extra = ""
+                try:
+                    fi = model.model_fields.get(p.key)
+                    if fi is not None:
+                        jse = getattr(fi, "json_schema_extra", None) or {}
+                        if isinstance(jse, dict):
+                            if "options" in jse:
+                                options_extra = f", options: {json.dumps(jse['options'])}"
+                        desc = getattr(fi, "description", None)
+                        if desc:
+                            desc_extra = f", description: {json.dumps(desc)}"
+                except Exception:
+                    pass
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{options_extra}{desc_extra}{role_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:
@@ -511,6 +526,12 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
         extra_props = []
         if "listViewType" in veloiq_ui:
             extra_props.append(f'    listViewType: "{veloiq_ui["listViewType"]}",')
+        # Emit class docstring as description if present.
+        raw_doc = getattr(model, "__doc__", None)
+        if raw_doc:
+            doc = " ".join(raw_doc.split())  # collapse whitespace
+            if doc and not doc.startswith(model_name):  # skip Pydantic auto-doc
+                extra_props.append(f'    description: {json.dumps(doc)},')
 
         lines += [
             "  {",
