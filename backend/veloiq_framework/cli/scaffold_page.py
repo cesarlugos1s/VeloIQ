@@ -453,21 +453,44 @@ def _patch_app_tsx(root: Path) -> bool:
             content = content[:m.start()] + "\n" + custom_import + content[m.start():]
 
     # ── Patch B: update PrimaryShowRenderer ─────────────────────────────────
-    old_renderer = (
+    # Variant 1 — simple expression body (original scaffold template)
+    old_renderer_v1 = (
         'const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => (\n'
         '    <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />\n'
         ');'
     )
-    new_renderer = (
+    new_renderer_v1 = (
         'const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {\n'
         '    const resource = (model as any).resource || model.name;\n'
-        '    const Override = customShowComponents[resource];\n'
+        '    const AppOverride = customShowComponents[resource];\n'
+        '    if (AppOverride) return <AppOverride />;\n'
+        '    return <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;\n'
+        '};'
+    )
+    # Variant 2 — block body with extensionShowComponents (projects that have extensions)
+    old_renderer_v2 = (
+        'const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {\n'
+        '    const Override = extensionShowComponents[(model as any).resource || model.name];\n'
         '    return Override\n'
-        '        ? <Override />\n'
+        '        ? createElement(Override, { idOverride: String(id) })\n'
         '        : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;\n'
         '};'
     )
-    content = content.replace(old_renderer, new_renderer)
+    new_renderer_v2 = (
+        'const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {\n'
+        '    const resource = (model as any).resource || model.name;\n'
+        '    const AppOverride = customShowComponents[resource];\n'
+        '    if (AppOverride) return <AppOverride />;\n'
+        '    const ExtOverride = extensionShowComponents[resource];\n'
+        '    return ExtOverride\n'
+        '        ? createElement(ExtOverride, { idOverride: String(id) })\n'
+        '        : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;\n'
+        '};'
+    )
+    if old_renderer_v1 in content:
+        content = content.replace(old_renderer_v1, new_renderer_v1)
+    elif old_renderer_v2 in content:
+        content = content.replace(old_renderer_v2, new_renderer_v2)
 
     # ── Patch D (BEFORE C): update allSystemModels.map loop ─────────────────
     # Must run before Patch C so the helpers' DynamicCreate/DynamicEdit strings
@@ -515,12 +538,43 @@ def _patch_app_tsx(root: Path) -> bool:
             1,
         )
 
-        # D6: Replace DynamicShow in the show route (it's a JSX child → needs {} wrapper)
-        content = content.replace(
-            '<DynamicShow model={model} allModels={allModels} />',
-            '{_renderShow(resource, model, allModels)}',
-            1,
-        )
+        # D6: Replace the show route in allSystemModels.map only.
+        # Scope replacement to before authSystemModels.map to avoid hitting auth routes
+        # where `resource` is not in scope.
+        # Two patterns:
+        #   old format: {renderShow(model, allModels)}
+        #   new format: <DynamicShow model={model} allModels={allModels} />
+        _auth_marker = 'authSystemModels.map'
+        if _auth_marker in content:
+            _split = content.index(_auth_marker)
+            _before, _after = content[:_split], content[_split:]
+            if '{renderShow(model, allModels)}' in _before:
+                _before = _before.replace(
+                    '{renderShow(model, allModels)}',
+                    '{_renderShow(resource, model, allModels)}',
+                    1,
+                )
+            elif '<DynamicShow model={model} allModels={allModels} />' in _before:
+                _before = _before.replace(
+                    '<DynamicShow model={model} allModels={allModels} />',
+                    '{_renderShow(resource, model, allModels)}',
+                    1,
+                )
+            content = _before + _after
+        else:
+            # No authSystemModels.map — safe to replace first occurrence
+            if '{renderShow(model, allModels)}' in content:
+                content = content.replace(
+                    '{renderShow(model, allModels)}',
+                    '{_renderShow(resource, model, allModels)}',
+                    1,
+                )
+            else:
+                content = content.replace(
+                    '<DynamicShow model={model} allModels={allModels} />',
+                    '{_renderShow(resource, model, allModels)}',
+                    1,
+                )
 
         # D7: Fix map closing: `))}` → `    );\n})}`, detecting actual indentation.
         # The allSystemModels.map closing looks like:

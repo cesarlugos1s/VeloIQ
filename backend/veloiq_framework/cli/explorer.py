@@ -54,6 +54,7 @@ class ModelInfo:
     in_search: bool = False
     permissions: dict[str, list[str]] = field(default_factory=dict)
     has_rebac: bool = False
+    custom_pages: set[str] = field(default_factory=set)  # e.g. {"list", "show"}
 
 
 @dataclass
@@ -179,7 +180,43 @@ def _load_app_data(root: Path) -> AppData:
         _enrich_permissions(mod_dir, mod.models)
         data.modules.append(mod)
 
+    # Read custom_pages.ts and mark which page types each model has scaffolded.
+    _enrich_custom_pages(frontend_src, data.all_models)
+
     return data
+
+
+_CUSTOM_MAP_TO_TYPE = {
+    "customListComponents":   "list",
+    "customShowComponents":   "show",
+    "customEditComponents":   "edit",
+    "customCreateComponents": "create",
+}
+
+
+def _enrich_custom_pages(frontend_src: Path, models: list) -> None:
+    """Read custom_pages.ts and populate ModelInfo.custom_pages for each model."""
+    cp = frontend_src / "custom_pages.ts"
+    if not cp.exists():
+        return
+    text = cp.read_text(encoding="utf-8")
+    # Build resource → set[page_type] from each map block
+    resource_types: dict[str, set[str]] = {}
+    block_re = re.compile(
+        r'export const (custom\w+Components)[^=]+=\s*\{([^}]*)\}',
+        re.MULTILINE | re.DOTALL,
+    )
+    entry_re = re.compile(r'"([^"]+)"\s*:')
+    for bm in block_re.finditer(text):
+        page_type = _CUSTOM_MAP_TO_TYPE.get(bm.group(1))
+        if not page_type:
+            continue
+        for em in entry_re.finditer(bm.group(2)):
+            resource = em.group(1)
+            resource_types.setdefault(resource, set()).add(page_type)
+    for model in models:
+        if model.resource in resource_types:
+            model.custom_pages = resource_types[model.resource]
 
 
 def _parse_gen_ts(path, module_name, search_set, dashboard_models, dashboard_tabs):
@@ -675,6 +712,12 @@ class Explorer:
         rebac_val = "✓  enabled" if model.has_rebac else "✗  none"
         lines.append((f"  ReBAC        {rebac_val}", OK if model.has_rebac else DIM))
 
+        if model.custom_pages:
+            ordered = [t for t in ("list", "show", "edit", "create") if t in model.custom_pages]
+            lines.append((f"  Custom pages ✓  {' · '.join(ordered)}", OK))
+        else:
+            lines.append(("  Custom pages –  none", DIM))
+
         # Render with scroll
         content_h = max_y - 3
         total     = len(lines)
@@ -696,7 +739,12 @@ class Explorer:
         if not model.is_named_query:
             actions.append("[d] add-dashboard" if not model.in_dashboard else "[D] rm-dashboard")
             actions.append("[s] add-search"    if not model.in_search    else "[S] rm-search")
-        actions += ["[p] scaffold-page", "[g] generate (all modules)", "[b] back", "[q] quit"]
+        if model.custom_pages:
+            ordered = [t for t in ("list", "show", "edit", "create") if t in model.custom_pages]
+            scaffold_hint = f"[p] scaffold-page ({' '.join(t + ' ✓' for t in ordered)})"
+        else:
+            scaffold_hint = "[p] scaffold-page"
+        actions += [scaffold_hint, "[g] generate (all modules)", "[b] back", "[q] quit"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
     # ── Search config ─────────────────────────────────────────────────────────
@@ -907,7 +955,7 @@ class Explorer:
             if self._confirm(stdscr, max_y, max_x, cmd):
                 return cmd
         elif key == ord('p'):
-            page_type = self._pick_page_type(stdscr, max_y, max_x)
+            page_type = self._pick_page_type(stdscr, max_y, max_x, model.custom_pages)
             if page_type:
                 cmd = f"veloiq scaffold-page {model.resource} {page_type}"
                 if self._confirm(stdscr, max_y, max_x, cmd):
@@ -917,8 +965,15 @@ class Explorer:
                 return "veloiq generate"
         return None
 
-    def _pick_page_type(self, stdscr, max_y, max_x) -> Optional[str]:
-        prompt = "  Scaffold page type: [1] list  [2] show  [3] edit  [4] create  [Esc] cancel "
+    def _pick_page_type(self, stdscr, max_y, max_x, existing: set[str] = frozenset()) -> Optional[str]:
+        def _label(key: str, name: str) -> str:
+            mark = " ✓" if name in existing else ""
+            return f"[{key}] {name}{mark}"
+        prompt = (
+            "  Scaffold page type: "
+            + "  ".join([_label("1", "list"), _label("2", "show"), _label("3", "edit"), _label("4", "create")])
+            + "  [Esc] cancel "
+        )
         self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0, prompt, curses.color_pair(_C_WARN) | curses.A_BOLD)
         stdscr.refresh()
