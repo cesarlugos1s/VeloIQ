@@ -550,6 +550,7 @@ class Explorer:
             ("2", "Search Configuration"),
             ("3", "Manage Extensions"),
             ("g", "Run: veloiq generate"),
+            ("c", "Run: veloiq check  (health report)"),
             ("q", "Quit"),
         ]
         for i, (key, label) in enumerate(menu):
@@ -992,7 +993,7 @@ class Explorer:
 
     def _handle_home(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
-        self._move_cursor(f, 5, key)
+        self._move_cursor(f, 6, key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if f.cursor == 0:
@@ -1005,6 +1006,9 @@ class Explorer:
                 if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                     return "veloiq generate"
             elif f.cursor == 4:
+                if self._confirm(stdscr, max_y, max_x, "veloiq check"):
+                    return "veloiq check"
+            elif f.cursor == 5:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
@@ -1015,6 +1019,9 @@ class Explorer:
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
+        elif key == ord('c'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq check"):
+                return "veloiq check"
         return None
 
     def _handle_extensions(self, key, stdscr, max_y, max_x) -> Optional[str]:

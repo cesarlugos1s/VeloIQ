@@ -23,6 +23,7 @@ The TUI loads your project's modules, models, fields, relations, dashboard confi
 | `b` / `Backspace` / `Esc` | Go back |
 | `q` | Quit |
 | `g` | Run `veloiq generate` (with confirmation) |
+| `c` | Run `veloiq check` — health report (from home screen) |
 
 ### Model list — type-to-filter
 
