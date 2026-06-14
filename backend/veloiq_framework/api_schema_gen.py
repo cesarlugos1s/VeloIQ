@@ -1220,7 +1220,6 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
                 if module_gen_file.exists():
                     content = module_gen_file.read_text()
                     # Look for: name: "ModelName", ... resource: "cw_modelname"
-                    import re
                     # Find name match for our model
                     m = re.search(rf'name:\s*"{model_name}"[^}}]*resource:\s*"([^"]+)"', content)
                     if m:
