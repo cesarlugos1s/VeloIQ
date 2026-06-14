@@ -56,16 +56,18 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.7.0
+## What's New in v0.8.0
 
-- **i18n support** — PO-file-based translation helper (`_()`) available in all custom endpoints; locale resolved per request from `Accept-Language`
-- **Utilities package** — `veloiq_framework.utils` ships `i18n_utils`, `data_mgmt_utils`, and `views_utils` sub-modules ready for use in any module
-- **M2M schema generation** — `veloiq generate` now emits full TypeScript schemas for many-to-many relations, with automatic link-table discovery across all modules
-- **System fields excluded** — `cwuri`, `creation_date`, and `modification_date` are stripped from generated schemas so they never appear in tables or forms
-- **Junction models hidden** — many-to-many link models are excluded from the Command Center palette and sidebar menu
-- **Exact module matching** — schema generator matches models by full module path, preventing class leakage when module names share a prefix
-- **Interactive TUI** — create a new app directly from the TUI; framework scaffolds, installs deps, and opens the project automatically
-- **`_OrmModelUnavailable` exception** — raised for missing model/table references instead of silent failures
+- **`veloiq add-model`** — add a new SQLModel class to any module interactively; no manual file editing required
+- **`veloiq add-field`** — add a field to an existing model and auto-run `alembic autogenerate` + `upgrade` in one step
+- **`veloiq add-relation`** — wire up FK or many-to-many relations between models; auto-disambiguates `foreign_keys=` when multiple paths exist
+- **`veloiq scaffold-page`** — generate a custom React override for any list or show page, pre-wired and patched into `App.tsx`
+- **`veloiq check`** — health-check your project for missing dashboard config, unindexed search models, and undocumented models
+- **Richer TUI** — model detail shows the path to `models.py`, field defaults, docstrings, options, relations, and custom page overrides; `[a]` opens `add-field` inline
+- **Schema generator** — field options emitted as `{label, value}[]` typed objects; model docstrings and field descriptions flow into TypeScript
+- **Alembic scaffold** — `naming_convention` and `render_as_batch=True` added to `env.py` for deterministic constraint names and SQLite `ALTER TABLE` support
+- **UI** — relation tables show related entity labels; config relations resolve by `resourcePath` when `relationName` is absent
+- **Expanded DB support** — any SQLAlchemy dialect string accepted in `veloiq new` and `veloiq configure-db`
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 
@@ -102,6 +104,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 **CLI**
 - `veloiq new <app>` — scaffold a new project in seconds
 - `veloiq add-module <name>` — add a module to an existing project
+- `veloiq add-model` — add a SQLModel class to any module interactively
+- `veloiq add-field` — add a field to a model and auto-migrate the database
+- `veloiq add-relation` — wire up FK or many-to-many relations between models
+- `veloiq scaffold-page` — generate a custom React page override for any resource
+- `veloiq check` — health-check your project configuration
 - `veloiq generate` — regenerate `api.py` and TypeScript schemas from your models; also syncs installed extension schemas
 - `veloiq run` — start the development server
 - `veloiq db upgrade` — apply Alembic migrations

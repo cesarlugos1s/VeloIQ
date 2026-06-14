@@ -6,17 +6,72 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [0.8.0] — 2026-06-14
 
-### Improvements
+### Features
 
-#### Friendlier interactive app creation (`veloiq` TUI)
-- The "create new project" form now shows each field's effective default as a dim hint (admin user `admin`, DB user `veloiq`, ports `8000`/`5173`, etc.), so the values you'll get are visible before creating
-- **DB type** is now a selector cycled with ←/→ or Space instead of a free-text field; press Enter on it to type any custom SQLAlchemy dialect
-- DB host/port/user/password fields dim out when SQLite is selected, since they aren't used
+#### Model Builder CLI — `veloiq add-model`, `add-field`, `add-relation`
+Three new interactive CLI commands let you grow your schema from the terminal
+without hand-editing Python files or migration scripts:
+
+- **`veloiq add-model`** — interactively define a new SQLModel class (name, table
+  name, fields, base class) and write it directly into the right `models.py`; also
+  handles models that live in the same file as existing ones
+- **`veloiq add-field`** — add a field to an existing model and immediately run
+  Alembic `autogenerate` + `upgrade` so the column lands in the database without
+  a separate migration step
+- **`veloiq add-relation`** — wire up a FK or many-to-many relation between any
+  two models; auto-disambiguates `foreign_keys=` when multiple FK paths exist
+  between the same pair of models; TUI integration via `[r]` on any model screen
+
+All three commands are also launchable from the TUI.
+
+#### `veloiq scaffold-page` — custom page overrides
+- `veloiq scaffold-page <module> <model>` generates a custom React page component
+  (list, show, or both) pre-wired to the framework's data hooks, so you can
+  override DynamicList / DynamicShow for any resource without boilerplate
+- The scaffold patches `custom_pages.ts` and `App.tsx` automatically
+
+#### `veloiq check` — project health checks
+- Scans the project for common issues: missing dashboard config, unindexed search
+  models, models without descriptions; reports errors vs. hints with actionable
+  suggestions
+- Accessible from the TUI home screen and as a standalone CLI command
+
+#### TUI — richer model inspection
+- Model detail screen shows the **path to `models.py`**, field defaults, options
+  (as `{label, value}[]` objects), and model docstrings
+- Many-to-one FK relations now appear in the **Relations** section, not Fields
+- Reverse references, endpoint summary, filter, and follow-relation navigation added
+- `[a]` shortcut on a model screen opens `add-field` inline
+- Horizontal dividers between sections for readability
+- Custom page overrides (scaffolded via `scaffold-page`) are listed in model detail
+
+#### Schema generator improvements
+- Field `options` are now emitted as `{label, value}[]` typed objects instead of
+  plain strings — no manual conversion needed in `{module}Schema.manual.ts`
+- Model docstrings and field descriptions flow through to generated TypeScript comments
+- Richer field defaults and inherited-base metadata included in generated schemas
+
+#### Friendlier interactive app creation
+- The "create new project" form shows each field's effective default as a dim hint
+  (`admin`, `veloiq`, ports `8000`/`5173`, etc.) before you type
+- **DB type** is now a ←/→ selector; press Enter to type any custom SQLAlchemy dialect
+- DB host/port/user/password fields dim out automatically when SQLite is selected
 
 #### Expanded database engine support
-- `--db-type` (on `veloiq new` and `veloiq configure-db`) and the TUI selector now offer `sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2`, and `informix`, with correct default ports for each
-- The previous hardcoded 4-engine restriction is lifted — any SQLAlchemy dialect string (e.g. `postgresql+asyncpg`, `cockroachdb`) is accepted; `dialect+driver` forms resolve the default port from the base dialect
-- SQLite and PostgreSQL drivers still ship with the framework; other engines require their driver installed (`pymysql`, `pyodbc`, `cx_Oracle`, `ibm-db-sa`, `IfxAlchemy`)
+- `--db-type` (on `veloiq new` and `veloiq configure-db`) and the TUI selector now
+  accept `sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2`,
+  `informix`, and any other SQLAlchemy dialect string (e.g. `postgresql+asyncpg`)
+- `dialect+driver` forms resolve the default port from the base dialect
+- SQLite and PostgreSQL drivers ship with the framework; other engines require their
+  driver (`pymysql`, `pyodbc`, `cx_Oracle`, `ibm-db-sa`, `IfxAlchemy`)
+
+### Fixes
+
+- **UI** — relation tables now display the related entity's label instead of raw `eid`/`eid_to` values
+- **UI** — config relations resolve correctly by `resourcePath` when `relationName` is absent
+- **Alembic scaffold** — `naming_convention` added to `env.py` so constraint names are deterministic across databases
+- **Alembic scaffold** — `render_as_batch=True` added so `ALTER TABLE` works on SQLite during migrations
+- **Schema generator** — options emitted as `{label,value}[]` objects (was plain strings)
 
 ---
 
