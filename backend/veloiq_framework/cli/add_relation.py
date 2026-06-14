@@ -103,6 +103,14 @@ def _add_fk_relation(
 ) -> None:
     fk_col = f"{attr_name}_id"
     src_text = src_file.read_text(encoding="utf-8")
+    tgt_text = tgt_file.read_text(encoding="utf-8")
+
+    # Detect if multiple FK paths will exist between these tables after the addition
+    existing_src_to_tgt = _has_fk_to(src_text, tgt_table)
+    existing_tgt_to_src = _has_fk_to(tgt_text, src_table)
+    need_disambig = existing_src_to_tgt or existing_tgt_to_src
+
+    fk_expr = f"[{src_class}.{fk_col}]"
 
     if re.search(rf'^\s+{re.escape(fk_col)}\s*:', src_text, re.M):
         click.echo(click.style(f"⚠️   '{fk_col}' already exists in {src_file.name}.", fg="yellow"))
@@ -111,26 +119,49 @@ def _add_fk_relation(
             fk_line = f'    {fk_col}: int = Field(foreign_key="{tgt_table}.id")'
         else:
             fk_line = f'    {fk_col}: Optional[int] = Field(default=None, foreign_key="{tgt_table}.id")'
-        rel_line = f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(back_populates="{back_name}")'
+
+        if need_disambig:
+            rel_line = (
+                f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
+                f'        back_populates="{back_name}",\n'
+                f'        sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}},\n'
+                f'    )'
+            )
+        else:
+            rel_line = f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(back_populates="{back_name}")'
 
         src_text = _ensure_optional_import(src_text)
         src_text = _ensure_jm_relationship_import(src_text)
         src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
         src_text = _insert_before_relationships(src_text, src_class, fk_line)
         src_text = _insert_after_last_relationship(src_text, src_class, rel_line)
-        src_file.write_text(src_text, encoding="utf-8")
 
+        if need_disambig:
+            src_text, tgt_text = _patch_existing_rels_for_disambig(
+                src_text, tgt_text, src_class, tgt_class, src_table, tgt_table
+            )
+
+        src_file.write_text(src_text, encoding="utf-8")
         rel = src_file.relative_to(project_root)
         click.echo(click.style(f"✅  Added '{fk_col}' + '{attr_name}' to {rel}", fg="green"))
+        if need_disambig:
+            click.echo(click.style(
+                "   ℹ️  Multiple FK paths detected — added foreign_keys disambiguation to existing relationships.",
+                fg="cyan",
+            ))
 
     if not no_back:
-        tgt_text = tgt_file.read_text(encoding="utf-8")
         if re.search(rf'^\s+{re.escape(back_name)}\s*:', tgt_text, re.M):
             click.echo(click.style(f"⚠️   '{back_name}' already exists in {tgt_file.name}.", fg="yellow"))
         else:
-            kwargs = _cardinality_kwargs(min_items, max_items)
-            kwargs.append(f'back_populates="{attr_name}"')
-            back_line = f'    {back_name}: List["{src_class}"] = jm_relationship({", ".join(kwargs)})'
+            card_kwargs = _cardinality_kwargs(min_items, max_items)
+            card_kwargs.append(f'back_populates="{attr_name}"')
+            if need_disambig:
+                card_kwargs.append(f'sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}}')
+                args = ',\n        '.join(card_kwargs)
+                back_line = f'    {back_name}: List["{src_class}"] = jm_relationship(\n        {args},\n    )'
+            else:
+                back_line = f'    {back_name}: List["{src_class}"] = jm_relationship({", ".join(card_kwargs)})'
 
             tgt_text = _ensure_list_import(tgt_text)
             tgt_text = _ensure_jm_relationship_import(tgt_text)
@@ -208,7 +239,113 @@ def _add_many_to_many(
     click.echo("   Run `veloiq generate` to update the TypeScript schemas.")
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── Disambiguation helpers ─────────────────────────────────────────────────────
+
+def _has_fk_to(text: str, table: str) -> bool:
+    """Return True if text contains any FK column pointing to table."""
+    return bool(re.search(rf"""foreign_key=['"]({re.escape(table)}\.id)['"]""", text))
+
+
+def _find_back_populates(text: str, attr_name: str) -> Optional[str]:
+    """Return the back_populates value for the named relationship, or None."""
+    m = re.search(
+        rf'^\s+{re.escape(attr_name)}\s*:.*?back_populates=["\'](\w+)["\']',
+        text, re.M | re.S,
+    )
+    return m.group(1) if m else None
+
+
+def _patch_rel_foreign_keys(text: str, attr_name: str, fk_expr: str) -> str:
+    """
+    Inject sa_relationship_kwargs={"foreign_keys": fk_expr} into an existing jm_relationship.
+    Skips if foreign_keys already present; skips if sa_relationship_kwargs present (to avoid
+    overwriting deliberate custom kwargs).
+    """
+    lines = text.splitlines(keepends=True)
+    start = -1
+    for i, ln in enumerate(lines):
+        if re.match(rf'\s+{re.escape(attr_name)}\s*:.*=\s*jm_relationship\s*\(', ln):
+            start = i
+            break
+    if start < 0:
+        return text
+
+    depth = 0
+    end = start
+    for i in range(start, len(lines)):
+        depth += lines[i].count('(') - lines[i].count(')')
+        if depth <= 0:
+            end = i
+            break
+
+    span = ''.join(lines[start:end + 1])
+    if 'foreign_keys' in span or 'sa_relationship_kwargs' in span:
+        return text  # already handled
+
+    indent = re.match(r'(\s*)', lines[start]).group(1)
+    inner_indent = indent + "    "
+    fk_kwarg = f'sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}}'
+
+    if start == end:
+        m = re.match(r'(\s*\w+\s*:.*=\s*jm_relationship\s*\()([^)]*)\)(.*)', lines[start])
+        if not m:
+            return text
+        before, inner, after = m.group(1), m.group(2).strip().rstrip(','), m.group(3).rstrip('\n')
+        parts = ([f'{inner},'] if inner else []) + [f'{fk_kwarg},']
+        args = '\n'.join(f'{inner_indent}{p}' for p in parts)
+        lines[start] = f'{before}\n{args}\n{indent}){after}\n'
+    else:
+        # Multi-line: insert fk_kwarg before the closing paren line
+        lines.insert(end, f'{inner_indent}{fk_kwarg},\n')
+
+    return ''.join(lines)
+
+
+def _patch_existing_rels_for_disambig(
+    src_text: str, tgt_text: str,
+    src_class: str, tgt_class: str,
+    src_table: str, tgt_table: str,
+) -> tuple[str, str]:
+    """
+    Patch all existing jm_relationship attrs between src and tgt to include explicit foreign_keys.
+    Called when a second FK path is being introduced between the two tables.
+    """
+    # Rels in src that reference TgtClass — FK is on src side: [SrcClass.{attr}_id]
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
+        src_text, re.M,
+    ):
+        src_text = _patch_rel_foreign_keys(src_text, ra, f"[{src_class}.{ra}_id]")
+
+    # List["TgtClass"] in src — reverse relationship; FK is on tgt side: [TgtClass.{bp}_id]
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*List\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
+        src_text, re.M,
+    ):
+        bp = _find_back_populates(src_text, ra)
+        if bp:
+            src_text = _patch_rel_foreign_keys(src_text, ra, f"[{tgt_class}.{bp}_id]")
+
+    # Rels in tgt that reference SrcClass — FK on tgt side: [TgtClass.{attr}_id]
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
+        tgt_text, re.M,
+    ):
+        tgt_text = _patch_rel_foreign_keys(tgt_text, ra, f"[{tgt_class}.{ra}_id]")
+
+    # List["SrcClass"] in tgt — FK is on src side: [SrcClass.{bp}_id]
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*List\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
+        tgt_text, re.M,
+    ):
+        bp = _find_back_populates(tgt_text, ra)
+        if bp:
+            tgt_text = _patch_rel_foreign_keys(tgt_text, ra, f"[{src_class}.{bp}_id]")
+
+    return src_text, tgt_text
+
+
+# ── Other helpers ──────────────────────────────────────────────────────────────
 
 def _find_model_info(root: Path, model_id: str) -> Optional[tuple[str, str, Path, str]]:
     """Return (class_name, table_name, models_py_path, module_import_path) or None."""
