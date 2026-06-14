@@ -13,7 +13,7 @@ The finished app lives in `samples/task-manager/` if you want to compare at any 
 
 | Section | Goal | Time | Required? |
 |---|---|---|---|
-| [Section 1 — Core app](#section-1--create-and-run-your-first-app) | Have a working full-stack app in your browser | ~15 min | **Yes** |
+| [Section 1 — Core app](#section-1--create-and-run-your-first-app) | Have a working full-stack app in your browser | ~10 min | **Yes** |
 | [Section 2 — Custom endpoints](#section-2--custom-endpoints) | Add business logic beyond standard CRUD | ~5 min | Optional |
 | [Section 3 — Global search](#section-3--global-search) | Wire up the header search bar | ~5 min | Optional |
 | [Section 4 — RBAC](#section-4--role-based-access-control-rbac) | Restrict what roles can do globally, per-model, and per-field | ~10 min | Optional |
@@ -144,7 +144,7 @@ Or set `VELOIQ_ADMIN_USERNAME` and `VELOIQ_ADMIN_PASSWORD` in `backend/.env`.
 
 ---
 
-## Step 3 — Scaffold the three modules (30 sec)
+## Step 3 — Scaffold the three modules (optional, 30 sec)
 
 ```bash
 cd ..                  # back to task-manager/
@@ -153,19 +153,23 @@ veloiq add-module projects
 veloiq add-module tasks
 ```
 
+> **CLI path users:** You can skip this step. `veloiq add-model` (Step 4)
+> creates the module directory automatically when you pass `--module`. Jump
+> ahead to Step 4 now.
+
 Each command creates the module skeleton under `backend/app/modules/`:
 
 ```
 backend/app/modules/
 ├── team/
 │   ├── __init__.py
-│   └── models.py          ← fill this in
+│   └── models.py
 ├── projects/
 │   ├── __init__.py
-│   └── models.py          ← fill this in
+│   └── models.py
 └── tasks/
     ├── __init__.py
-    └── models.py          ← fill this in
+    └── models.py
 ```
 
 > **Tip:** `custom_api.py` is created automatically in every module. Pass
@@ -173,7 +177,7 @@ backend/app/modules/
 
 ---
 
-## Shortcut — use a vibe coding tool for Steps 4–6
+## Shortcut — use a vibe coding tool for Steps 4–5
 
 Once the project skeleton exists you can hand the remaining model-writing to an
 AI coding tool instead of typing models by hand.  Every project created with
@@ -188,7 +192,7 @@ AI coding tool instead of typing models by hand.  Every project created with
 | OpenAI Codex CLI | `AGENTS.md` |
 | Continue.dev | `.continue/config.json` |
 
-Open the project root in your tool and paste this prompt to complete Steps 4–6
+Open the project root in your tool and paste this prompt to complete Steps 4–5
 in a single interaction:
 
 > Build the task-manager app using the VeloIQ framework.
@@ -216,11 +220,123 @@ in a single interaction:
 > After writing the models run `veloiq generate`. The backend creates all
 > tables automatically when you start it with `veloiq run`.
 
-When the AI is done, skip ahead to **Step 7**.
+When the AI is done, skip ahead to **Step 6**.
 
 ---
 
-## Step 4 — Write the Team module (1 min)
+## Step 4 — Add models and fields (3 min)
+
+The fastest way is to let the CLI create each model class and then add fields
+one by one.  All commands run from the project root (the directory that contains
+`backend/` and `frontend/`).
+
+`veloiq add-model` starts every class with `name` and `description` fields.
+Use `veloiq add-field` to add the rest.  Pass `--no-migrate` throughout — on a
+fresh project the tables are created automatically when the backend starts for
+the first time.
+
+```bash
+# ── Team ──────────────────────────────────────────────────────────────────────
+veloiq add-model TeamMember --module team \
+  --description "A team member with a name, email, and role." --no-migrate
+
+veloiq add-field TeamMember email str \
+  --required --description "Email address" --no-migrate
+veloiq add-field TeamMember role str \
+  --default member --description "Team role" --no-migrate
+
+# ── Projects ──────────────────────────────────────────────────────────────────
+veloiq add-model Project --module projects \
+  --description "A container for related tasks with an owner and a lifecycle status." --no-migrate
+
+veloiq add-field Project status str \
+  --default active \
+  --options planning,active,on_hold,completed,archived \
+  --description "Current lifecycle phase" --no-migrate
+
+# ── Tasks ─────────────────────────────────────────────────────────────────────
+veloiq add-model Task --module tasks \
+  --description "A unit of work that belongs to a project." --no-migrate
+
+veloiq add-field Task status str \
+  --default todo --options todo,in_progress,done \
+  --description "Current workflow state" --no-migrate
+veloiq add-field Task priority str \
+  --default medium --options low,medium,high,critical \
+  --description "Task urgency level" --no-migrate
+veloiq add-field Task due_date date \
+  --description "Target completion date" --no-migrate
+veloiq add-field Task planned_work_hours float \
+  --description "Estimated hours" --no-migrate
+veloiq add-field Task actual_work_hours float \
+  --description "Hours logged" --no-migrate
+```
+
+> **`TimestampedModel`** — every VeloIQ model automatically gets `created_at`
+> and `updated_at` columns, always placed last in list, form, and detail views.
+
+> **TUI shortcut:** run `veloiq` and press `m` from the modules list or from a
+> module detail page to add a model interactively.  Inside any model, press `a`
+> to add a field and `r` to add a relation.
+
+---
+
+## Step 5 — Add relations (1 min)
+
+Wire the three models together with FK relationships:
+
+```bash
+# Task belongs to Project
+veloiq add-relation Task Project \
+  --attr project --back-attr tasks --no-migrate
+
+# Task is assigned to a TeamMember
+veloiq add-relation Task TeamMember \
+  --attr assignee --back-attr assigned_tasks --no-migrate
+
+# Project is owned by a TeamMember
+veloiq add-relation Project TeamMember \
+  --attr owner --back-attr owned_projects --no-migrate
+```
+
+Each command adds the FK column, the `Optional` relationship on the source model,
+and the `List` back-relationship on the target — including all `TYPE_CHECKING`
+import guards.
+
+**Self-referential parent/subtask (for Section 6 — tree views)**
+
+The self-referential `parent_task` relationship requires `remote_side`, which
+`add-relation` does not yet generate.  If you want the Miller columns tree view
+from Section 6, open `backend/app/modules/tasks/models.py` and add these lines
+inside the `Task` class after the other FK fields:
+
+```python
+parent_task_id: Optional[int] = Field(default=None, foreign_key="task.id")
+subtasks: List["Task"] = jm_relationship(
+    back_populates="parent_task",
+    sa_relationship_kwargs={"foreign_keys": "[Task.parent_task_id]"},
+)
+parent_task: Optional["Task"] = jm_relationship(
+    back_populates="subtasks",
+    sa_relationship_kwargs={
+        "foreign_keys": "[Task.parent_task_id]",
+        "remote_side": "[Task.id]",
+    },
+)
+```
+
+The code generator detects this self-referential pattern and automatically sets
+`showViewType: "tree-details"` in the TypeScript schema.
+
+---
+
+### Alternative path — write models.py directly
+
+If you prefer to write the model classes by hand (more control over field
+ordering, column types, and inline comments), skip Steps 4–5 and follow this
+section instead.  Jump to Step 6 when done.
+
+#### Team module
 
 Replace `backend/app/modules/team/models.py` with:
 
@@ -240,13 +356,7 @@ class TeamMember(TimestampedModel, table=True):
     assigned_tasks: List["Task"] = jm_relationship(back_populates="assignee")
 ```
 
-> **`TimestampedModel`** adds `created_at` and `updated_at` automatically,
-> always placed last in every list, form, and detail view.  Use `FrameworkModel`
-> instead if you do not need audit timestamps.
-
----
-
-## Step 5 — Write the Projects module (1 min)
+#### Projects module
 
 Replace `backend/app/modules/projects/models.py` with:
 
@@ -268,9 +378,7 @@ class Project(TimestampedModel, table=True):
     tasks: List["Task"] = jm_relationship(back_populates="project")
 ```
 
----
-
-## Step 6 — Write the Tasks module (2 min)
+#### Tasks module
 
 Replace `backend/app/modules/tasks/models.py` with:
 
@@ -313,15 +421,9 @@ class Task(TimestampedModel, table=True):
     )
 ```
 
-The `parent_task_id` FK and the `subtasks` / `parent_task` relationships give
-every task an optional parent.  The code generator detects the self-referential
-relationship and automatically sets `showViewType: "tree-details"` in the
-TypeScript schema — telling the React UI to render sub-tasks as a **Miller
-columns** tree browser instead of a flat table.
-
 ---
 
-## Step 7 — Generate API and frontend schemas (1 min)
+## Step 6 — Generate API and frontend schemas (1 min)
 
 ```bash
 veloiq generate
@@ -339,7 +441,7 @@ This writes two files per module:
 
 ---
 
-## Step 8 — Start the backend (1 min)
+## Step 7 — Start the backend (1 min)
 
 Make sure you are inside the `backend/` directory, then:
 
@@ -363,7 +465,7 @@ three entities.  Open `http://localhost:8000/admin/` for the SQLAdmin back-offic
 
 ---
 
-## Step 9 — Start the frontend and log in (2 min)
+## Step 8 — Start the frontend and log in (2 min)
 
 In a second terminal:
 
@@ -396,7 +498,7 @@ and **Tenants**.
 
 | You wrote | The framework generated |
 |---|---|
-| 3 × `models.py` | 3 × `api.py` (full CRUD REST endpoints) |
+| 3 modules (CLI or code) | 3 × `api.py` (full CRUD REST endpoints) |
 | nothing in `main.py` | TypeScript schemas, all routers, SQLAdmin views |
 | a self-referential FK in Task | Miller columns tree view — automatically |
 
@@ -703,7 +805,7 @@ detection automatically.
 **Goal:** Explore the built-in interactive tree browser for navigating hierarchical
 data (parent → sub-tasks).
 
-**Depends on:** Section 1 (the self-referential `parent_task_id` in the Task model) · **Time:** ~5 min
+**Depends on:** Section 1 with `parent_task_id` added to Task (CLI path: the manual edit in Step 5; code path: included in the Tasks module) · **Time:** ~5 min
 
 ---
 

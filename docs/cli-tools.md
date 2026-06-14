@@ -24,6 +24,7 @@ The TUI loads your project's modules, models, fields, relations, dashboard confi
 | `q` | Quit |
 | `g` | Run `veloiq generate` (with confirmation) |
 | `c` | Run `veloiq check` — health report (from home screen) |
+| `m` | Add a model — prompts for name, runs `veloiq add-model` (modules list and module detail) |
 
 ### Model list — type-to-filter
 
@@ -61,6 +62,7 @@ Press the corresponding number key to navigate. Press `Esc` to cancel.
 |-----|--------|
 | `f` | Follow → jump to a related model |
 | `a` | Add a field — prompts for name and type, runs `veloiq add-field` |
+| `r` | Add a relation — prompts for type, target, and attr names, runs `veloiq add-relation` |
 | `d` / `D` | Add / remove from dashboard |
 | `s` / `S` | Enroll / remove from search |
 | `p` | Scaffold a custom page for this model |
@@ -101,6 +103,45 @@ WARNINGS
 ```
 
 Run `veloiq check` as part of CI to enforce description coverage or dashboard enrollment before a release.
+
+---
+
+## `veloiq add-model`
+
+Add a new model class to a VeloIQ project without editing `models.py` manually:
+
+```bash
+veloiq add-model <ModelName> [options]
+```
+
+| Argument / Option | Description |
+|-------------------|-------------|
+| `MODEL_NAME` | PascalCase class name (e.g. `Invoice`, `TeamMember`) |
+| `--module NAME` | Module to place the model in (default: pluralized snake_case of model name). Created automatically if it does not exist. |
+| `--description TEXT` | One-line docstring for the model class |
+| `--migrate / --no-migrate` | Run Alembic migration after adding. Default: prompt |
+| `--root / -C` | Project root override |
+
+**Examples:**
+
+```bash
+# Create Invoice — auto-creates an 'invoices' module
+veloiq add-model Invoice
+
+# Create Invoice in an existing 'billing' module with a description
+veloiq add-model Invoice --module billing --description "A customer invoice"
+
+# Create TeamMember in a module named 'team' (not 'team_members')
+veloiq add-model TeamMember --module team
+```
+
+Every new model starts with two fields — `name: str` and `description: Optional[str]` — following VeloIQ's standard scaffold. Add more fields with `veloiq add-field` and relations with `veloiq add-relation`.
+
+**Existing module:** the class is appended to the existing `models.py`; `navigation.config.json` is updated and `veloiq generate` runs automatically.
+
+**New module:** a full module scaffold is written: `__init__.py`, `models.py`, `custom_api.py`, and a navigation entry.
+
+> **TUI:** Press `m` from the modules list or from a module's model list to add a model interactively — it prompts for the name and runs the command with confirmation.
 
 ---
 
