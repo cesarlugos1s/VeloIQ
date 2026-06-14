@@ -696,7 +696,7 @@ class Explorer:
         if not model.is_named_query:
             actions.append("[d] add-dashboard" if not model.in_dashboard else "[D] rm-dashboard")
             actions.append("[s] add-search"    if not model.in_search    else "[S] rm-search")
-        actions += ["[g] generate (all modules)", "[b] back", "[q] quit"]
+        actions += ["[p] scaffold-page", "[g] generate (all modules)", "[b] back", "[q] quit"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
     # ── Search config ─────────────────────────────────────────────────────────
@@ -906,10 +906,24 @@ class Explorer:
             cmd = f"veloiq search remove-model {model.name}"
             if self._confirm(stdscr, max_y, max_x, cmd):
                 return cmd
+        elif key == ord('p'):
+            page_type = self._pick_page_type(stdscr, max_y, max_x)
+            if page_type:
+                cmd = f"veloiq scaffold-page {model.resource} {page_type}"
+                if self._confirm(stdscr, max_y, max_x, cmd):
+                    return cmd
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
         return None
+
+    def _pick_page_type(self, stdscr, max_y, max_x) -> Optional[str]:
+        prompt = "  Scaffold page type: [1] list  [2] show  [3] edit  [4] create  [Esc] cancel "
+        self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 1, 0, prompt, curses.color_pair(_C_WARN) | curses.A_BOLD)
+        stdscr.refresh()
+        k = stdscr.getch()
+        return {ord('1'): "list", ord('2'): "show", ord('3'): "edit", ord('4'): "create"}.get(k)
 
     def _handle_search(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f

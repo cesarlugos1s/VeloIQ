@@ -12,6 +12,7 @@ from veloiq_framework.cli.dashboard import add_dashboard
 from veloiq_framework.cli.new_extension import new_extension
 from veloiq_framework.cli.add_licensing import add_licensing
 from veloiq_framework.cli.configure_db import configure_db
+from veloiq_framework.cli.scaffold_page import scaffold_page
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -61,3 +62,4 @@ cli.add_command(configure_db)
 cli.add_command(extend_package)
 cli.add_command(remove_package)
 cli.add_command(list_extensions)
+cli.add_command(scaffold_page)

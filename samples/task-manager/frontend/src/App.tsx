@@ -27,12 +27,22 @@ import {
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps, NavConfig } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
+import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
 import navConfigData from "./navigation.config.json";
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
-const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => (
-    <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />
-);
+const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {
+    const resource = (model as any).resource || model.name;
+    const Override = customShowComponents[resource];
+    return Override
+        ? <Override />
+        : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;
+};
+
+const _renderList   = (resource: string, model: any, allModels: any[]) => { const C = customListComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicList key={resource} model={model} allModels={allModels} />; };
+const _renderShow   = (resource: string, model: any, allModels: any[]) => { const C = customShowComponents[resource];   return C ? <C /> : <DynamicShow model={model} allModels={allModels} />; };
+const _renderCreate = (resource: string, model: any, allModels: any[]) => { const C = customCreateComponents[resource]; return C ? <C model={model} allModels={allModels} /> : <DynamicCreate model={model} allModels={allModels} />; };
+const _renderEdit   = (resource: string, model: any, allModels: any[]) => { const C = customEditComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicEdit model={model} allModels={allModels} />; };
 
 const queryClient = new QueryClient();
 
@@ -77,22 +87,25 @@ export default function App() {
                                         }
                                     >
                                         <Route path="/dashboard" element={<DashboardPage />} />
-                                        {allSystemModels.map((model) => (
-                                            <Route key={model.name} path={`/${(model as any).resource || model.name}`}>
+                                        {allSystemModels.map((model) => {
+                                            const resource = (model as any).resource || model.name;
+                                            return (
+                                            <Route key={model.name} path={`/${resource}`}>
                                                 <Route index element={
                                                     <MultiPaneLayout>
-                                                        <DynamicList key={(model as any).resource || model.name} model={model} allModels={allModels} />
+                                                        {_renderList(resource, model, allModels)}
                                                     </MultiPaneLayout>
                                                 } />
-                                                <Route path="create" element={<DynamicCreate model={model} allModels={allModels} />} />
-                                                <Route path="edit/:id" element={<DynamicEdit model={model} allModels={allModels} />} />
+                                                <Route path="create" element={_renderCreate(resource, model, allModels)} />
+                                                <Route path="edit/:id" element={_renderEdit(resource, model, allModels)} />
                                                 <Route path="show/:id" element={
                                                     <MultiPaneLayout>
-                                                        <DynamicShow model={model} allModels={allModels} />
+                                                        {_renderShow(resource, model, allModels)}
                                                     </MultiPaneLayout>
                                                 } />
                                             </Route>
-                                        ))}
+                                            );
+                                        })}
                                         {authSystemModels.map((model) => (
                                             <Route key={model.name} path={`/${model.resource || model.name}`}>
                                                 <Route index element={

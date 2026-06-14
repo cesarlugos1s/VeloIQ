@@ -31,21 +31,24 @@ import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
 import { extensionRoutes, extensionUserMenuItems, extensionShowComponents } from "./extensions.gen";
+import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
+
+// Render helpers — check for app-level custom page overrides first, then
+// extension overrides, then fall back to the Dynamic component.
+const _renderList   = (resource: string, model: any, allModels: any[]) => { const C = customListComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicList key={resource} model={model} allModels={allModels} />; };
+const _renderShow   = (resource: string, model: any, allModels: any[]) => { const C = customShowComponents[resource];   return C ? <C /> : <DynamicShow model={model} allModels={allModels} />; };
+const _renderCreate = (resource: string, model: any, allModels: any[]) => { const C = customCreateComponents[resource]; return C ? <C model={model} allModels={allModels} /> : <DynamicCreate model={model} allModels={allModels} />; };
+const _renderEdit   = (resource: string, model: any, allModels: any[]) => { const C = customEditComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicEdit model={model} allModels={allModels} />; };
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
 const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {
-    const Override = extensionShowComponents[(model as any).resource || model.name];
-    return Override
-        ? createElement(Override, { idOverride: String(id) })
+    const resource = (model as any).resource || model.name;
+    const AppOverride = customShowComponents[resource];
+    if (AppOverride) return <AppOverride />;
+    const ExtOverride = extensionShowComponents[resource];
+    return ExtOverride
+        ? createElement(ExtOverride, { idOverride: String(id) })
         : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;
-};
-
-// Render the Show page for a model, honoring extension-supplied overrides.
-const renderShow = (model: any, models: any[]) => {
-    const Override = extensionShowComponents[(model as any).resource || model.name];
-    return Override
-        ? createElement(Override)
-        : <DynamicShow model={model} allModels={models} />;
 };
 
 const queryClient = new QueryClient();
@@ -94,22 +97,25 @@ export default function App() {
                                         {extensionRoutes.map((r) => (
                                             <Route key={r.path} path={r.path} element={r.element} />
                                         ))}
-                                        {allSystemModels.map((model) => (
-                                            <Route key={model.name} path={`/${(model as any).resource || model.name}`}>
-                                                <Route index element={
-                                                    <MultiPaneLayout>
-                                                        <DynamicList key={(model as any).resource || model.name} model={model} allModels={allModels} />
-                                                    </MultiPaneLayout>
-                                                } />
-                                                <Route path="create" element={<DynamicCreate model={model} allModels={allModels} />} />
-                                                <Route path="edit/:id" element={<DynamicEdit model={model} allModels={allModels} />} />
-                                                <Route path="show/:id" element={
-                                                    <MultiPaneLayout>
-                                                        {renderShow(model, allModels)}
-                                                    </MultiPaneLayout>
-                                                } />
-                                            </Route>
-                                        ))}
+                                        {allSystemModels.map((model) => {
+                                            const resource = (model as any).resource || model.name;
+                                            return (
+                                                <Route key={model.name} path={`/${resource}`}>
+                                                    <Route index element={
+                                                        <MultiPaneLayout>
+                                                            {_renderList(resource, model, allModels)}
+                                                        </MultiPaneLayout>
+                                                    } />
+                                                    <Route path="create" element={_renderCreate(resource, model, allModels)} />
+                                                    <Route path="edit/:id" element={_renderEdit(resource, model, allModels)} />
+                                                    <Route path="show/:id" element={
+                                                        <MultiPaneLayout>
+                                                            {_renderShow(resource, model, allModels)}
+                                                        </MultiPaneLayout>
+                                                    } />
+                                                </Route>
+                                            );
+                                        })}
                                         {authSystemModels.map((model) => (
                                             <Route key={model.name} path={`/${model.resource || model.name}`}>
                                                 <Route index element={
