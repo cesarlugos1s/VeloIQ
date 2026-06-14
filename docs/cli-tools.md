@@ -121,11 +121,13 @@ veloiq add-field <model> <field_name> [field_type] [options]
 | `--default VALUE` | Default value (e.g. `active`, `0`, `true`) |
 | `--description TEXT` | Field description shown in TUI and emitted to gen.ts |
 | `--options a,b,c` | Comma-separated valid values — uses `veloiq_field()` automatically |
+| `--migrate` | Automatically run `alembic autogenerate` + `upgrade head` (no prompt) |
+| `--no-migrate` | Skip migration entirely (useful in CI or when batching changes) |
 
 **Examples:**
 
 ```bash
-# Simple optional string field
+# Simple optional string field (will prompt to run migration)
 veloiq add-field Task notes str --description "Internal notes"
 
 # Required float with description
@@ -137,11 +139,26 @@ veloiq add-field task priority str \
   --default medium \
   --description "Task urgency level"
 
-# Date field
-veloiq add-field task resolved_at date --description "When the task was closed"
+# Date field — skip migration prompt (run manually later)
+veloiq add-field task resolved_at date --description "When the task was closed" --no-migrate
+
+# Auto-apply migration without prompting (CI / scripted workflows)
+veloiq add-field task resolved_at date --migrate
 ```
 
-After running, the field is inserted into the model's `models.py` just before the relationship definitions. Run `veloiq generate` to update the TypeScript schemas.
+After writing the field, `veloiq add-field` checks whether Alembic is configured in the project's `backend/` directory. If `alembic.ini` is found, it prompts:
+
+```
+   Run database migration now? (alembic autogenerate + upgrade head) [Y/n]:
+```
+
+Answering **Y** runs:
+1. `alembic revision --autogenerate -m "add <field_name> to <model>"`
+2. `alembic upgrade head`
+
+This ensures the database column is created immediately, avoiding the `OperationalError: no such column` error when the backend restarts.
+
+> **Note:** New models created with `veloiq add-module` do not require explicit migrations — VeloIQ calls `SQLModel.metadata.create_all()` on startup, which creates missing tables automatically. Migrations are only needed when adding columns to **existing** tables.
 
 **Type reference:**
 

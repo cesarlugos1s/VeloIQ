@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -35,9 +37,11 @@ _TYPE_MAP: dict[str, tuple[str, bool, bool]] = {
 @click.option("--description", "-d", default=None, help="Field description")
 @click.option("--options", "-o", default=None,
               help="Comma-separated valid values (e.g. 'todo,in_progress,done')")
+@click.option("--migrate/--no-migrate", default=None,
+              help="Run Alembic migration after adding the field. Default: prompt interactively.")
 @click.option("--root", "-C", default=None, type=click.Path(exists=True, file_okay=False),
               help="Project root (default: auto-detect)")
-def add_field(model, field_name, field_type, optional, default_val, description, options, root):
+def add_field(model, field_name, field_type, optional, default_val, description, options, migrate, root):
     """Add a field to an existing model's models.py.
 
     \b
@@ -89,6 +93,9 @@ def add_field(model, field_name, field_type, optional, default_val, description,
     rel = models_py.relative_to(project_root)
     click.echo(click.style(f"✅  Added '{field_name}' to {rel}", fg="green"))
     click.echo("   Run `veloiq generate` to update the TypeScript schemas.")
+
+    # Offer to run an Alembic migration so the DB column is created immediately
+    _maybe_migrate(project_root, model, field_name, migrate)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -197,6 +204,59 @@ def _ensure_imports(text: str, needs_datetime: bool, needs_text: bool, needs_vel
         )
 
     return text
+
+
+def _maybe_migrate(project_root: Path, model: str, field_name: str, flag: Optional[bool]) -> None:
+    """Auto-generate and apply an Alembic migration for the new field."""
+    backend_dir = project_root / "backend"
+    if not (backend_dir / "alembic.ini").exists():
+        click.echo(
+            "   ℹ️  No alembic.ini found — skipping migration.\n"
+            "      Run `veloiq db init` to set up Alembic, then `veloiq db upgrade`."
+        )
+        return
+
+    if flag is False:
+        click.echo("   (skipping migration — run `veloiq db migrate -m '...' && veloiq db upgrade` when ready)")
+        return
+
+    if flag is None:
+        run_it = click.confirm(
+            "\n   Run database migration now? (alembic autogenerate + upgrade head)",
+            default=True,
+        )
+        if not run_it:
+            click.echo("   Skipped. Run `veloiq db migrate -m '...' && veloiq db upgrade` when ready.")
+            return
+
+    click.echo()
+    msg = f"add {field_name} to {model}"
+    _load_env(backend_dir)
+    for alembic_args in (
+        ["revision", "--autogenerate", "-m", msg],
+        ["upgrade", "head"],
+    ):
+        cmd = [sys.executable, "-m", "alembic", *alembic_args]
+        click.echo(f"  $ {' '.join(cmd)}")
+        result = subprocess.run(cmd, cwd=str(backend_dir))
+        if result.returncode != 0:
+            click.echo(click.style("❌  Migration failed — check the output above.", fg="red"))
+            raise SystemExit(result.returncode)
+
+    click.echo(click.style("✅  Database migrated successfully.", fg="green"))
+
+
+def _load_env(backend_dir: Path) -> None:
+    """Load .env from backend dir (best-effort)."""
+    for name in (".env", ".env.local"):
+        env_file = backend_dir / name
+        if env_file.exists():
+            try:
+                from dotenv import load_dotenv
+                load_dotenv(env_file, override=False)
+            except ImportError:
+                pass
+            return
 
 
 def _insert_field(text: str, model_id: str, field_line: str) -> str:
