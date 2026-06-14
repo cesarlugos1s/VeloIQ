@@ -780,7 +780,7 @@ class Explorer:
         else:
             lines.append(("Fields: (run veloiq generate to see fields)", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
 
         if model.relations:
             lines.append((f"Relations ({len(model.relations)}):", BOLD))
@@ -798,7 +798,7 @@ class Explorer:
         else:
             lines.append(("Relations: none", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
 
         if model.referenced_by:
             lines.append((f"Referenced by ({len(model.referenced_by)}):", BOLD))
@@ -807,7 +807,7 @@ class Explorer:
         else:
             lines.append(("Referenced by: none (no FK points to this model)", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
         lines.append(("Configuration:", BOLD))
 
         dash_val  = f"✓  tab \"{model.dashboard_tab}\"" if model.in_dashboard else "✗  not on dashboard"
@@ -830,7 +830,7 @@ class Explorer:
         else:
             lines.append(("  Custom pages –  none", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
         lines.append(("Endpoints:", BOLD))
         res = model.resource
         if model.is_named_query:
@@ -852,6 +852,8 @@ class Explorer:
                 lines.append(("  Access   auth disabled — open to all", curses.color_pair(_C_ERR)))
             else:
                 lines.append(("  Access   all authenticated users", DIM))
+
+        lines.append(("─" * max(0, max_x - 4), DIM))
 
         # Render with scroll
         content_h = max_y - 3
@@ -912,14 +914,14 @@ class Explorer:
         else:
             lines.append(("  (none)", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
         lines.append((f"Searchable fields ({len(d.search_fields)}):", BOLD))
         if d.search_fields:
             lines.append(("  " + "  ·  ".join(d.search_fields), A))
         else:
             lines.append(("  (none — all string fields in enrolled models will be searched)", DIM))
 
-        lines.append(("", A))
+        lines.append(("─" * max(0, max_x - 4), DIM))
         enrolled_lower = {e.lower() for e in d.search_models}
         not_enrolled = sorted(
             m.name for m in d.all_models
@@ -931,6 +933,8 @@ class Explorer:
                 lines.append((f"  ✗  {name}", ERR))
         else:
             lines.append(("  (all app models are enrolled)", DIM))
+
+        lines.append(("─" * max(0, max_x - 4), DIM))
 
         content_h = max_y - 3
         total     = len(lines)
