@@ -754,16 +754,18 @@ class Explorer:
 
         _TS = {"created_at", "updated_at", "creation_date", "modification_date"}
 
+        # FK reference fields shown separately in Relations; exclude them from Fields display
+        fk_fields = [fld for fld in model.fields if fld.reference]
+        plain_fields = [fld for fld in model.fields if not fld.reference]
+
         if model.fields:
-            lines.append((f"Fields ({len(model.fields)}):", BOLD))
-            for fld in model.fields:
+            lines.append((f"Fields ({len(plain_fields)}):", BOLD))
+            for fld in plain_fields:
                 parts = [f"  {fld.key:<22}  {fld.type:<10}"]
                 if fld.read_only:
                     parts.append("[read-only]  ")
                 elif fld.required:
                     parts.append("required  ")
-                if fld.reference:
-                    parts.append(f"→ {fld.reference}  ")
                 if fld.key in _TS:
                     parts.append("(timestamp)")
                 if fld.options:
@@ -782,9 +784,11 @@ class Explorer:
 
         lines.append(("─" * max(0, max_x - 4), DIM))
 
-        if model.relations:
-            lines.append((f"Relations ({len(model.relations)}):", BOLD))
-            for rel in model.relations:
+        all_rels = list(model.relations)
+        total_rel_count = len(all_rels) + len(fk_fields)
+        if total_rel_count > 0:
+            lines.append((f"Relations ({total_rel_count}):", BOLD))
+            for rel in all_rels:
                 rtype = _infer_relation_type(rel)
                 extra = ""
                 if rtype == "self-ref":
@@ -793,6 +797,12 @@ class Explorer:
                     extra = f"  link: {rel.resource_path}"
                 lines.append((
                     f"  {rel.label:<22}  {rtype:<14} → {rel.resource}  (via {rel.target_key}){extra}",
+                    A,
+                ))
+            for fld in fk_fields:
+                label = fld.label if fld.label != fld.key else fld.key.replace("_id", "").replace("_", " ").title()
+                lines.append((
+                    f"  {label:<22}  {'many-to-one':<14} → {fld.reference}  (via {fld.key})",
                     A,
                 ))
         else:
