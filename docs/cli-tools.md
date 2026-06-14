@@ -59,6 +59,7 @@ Press the corresponding number key to navigate. Press `Esc` to cancel.
 | Key | Action |
 |-----|--------|
 | `f` | Follow → jump to a related model |
+| `a` | Add a field — prompts for name and type, runs `veloiq add-field` |
 | `d` / `D` | Add / remove from dashboard |
 | `s` / `S` | Enroll / remove from search |
 | `p` | Scaffold a custom page for this model |

@@ -882,6 +882,8 @@ class Explorer:
         follow_targets += [fld.reference for fld in model.fields if fld.reference and fld.reference not in follow_targets]
         if follow_targets:
             actions.append("[f] follow →")
+        if not model.is_named_query:
+            actions.append("[a] add-field")
         actions += [scaffold_hint, "[g] generate (all modules)", "[b] back", "[q] quit"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
@@ -1109,6 +1111,14 @@ class Explorer:
                     return cmd
         elif key == ord('f'):
             self._follow_relation(stdscr, max_y, max_x, model)
+        elif key == ord('a') and not model.is_named_query:
+            field_name = self._get_input(stdscr, max_y, max_x, "New field name (snake_case)")
+            if field_name:
+                ftype = self._pick_field_type(stdscr, max_y, max_x)
+                if ftype:
+                    cmd = f"veloiq add-field {model.resource} {field_name} {ftype}"
+                    if self._confirm(stdscr, max_y, max_x, cmd):
+                        return cmd
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
@@ -1161,6 +1171,19 @@ class Explorer:
                     curses.color_pair(_C_WARN) | curses.A_BOLD)
             stdscr.refresh()
             stdscr.getch()
+
+    def _pick_field_type(self, stdscr, max_y, max_x) -> Optional[str]:
+        _types = ["str", "int", "float", "bool", "date", "datetime", "text"]
+        parts  = "  ".join(f"[{i+1}] {t}" for i, t in enumerate(_types))
+        prompt = f"  Field type: {parts}  [Esc] cancel "
+        self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 1, 0, prompt[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        stdscr.refresh()
+        k = stdscr.getch()
+        if k == 27:
+            return None
+        idx = k - ord('1')
+        return _types[idx] if 0 <= idx < len(_types) else None
 
     def _pick_page_type(self, stdscr, max_y, max_x, existing: set[str] = frozenset()) -> Optional[str]:
         def _label(key: str, name: str) -> str:
