@@ -61,6 +61,7 @@ class ModelInfo:
     permissions: dict[str, list[str]] = field(default_factory=dict)
     has_rebac: bool = False
     custom_pages: set[str] = field(default_factory=set)  # e.g. {"list", "show"}
+    models_path: Optional[Path] = None                   # absolute path to models.py
 
 
 @dataclass
@@ -184,6 +185,9 @@ def _load_app_data(root: Path) -> AppData:
         elif (mod_dir / "models.py").exists():
             mod.models = _scan_models_minimal(mod_dir, name, search_set, dashboard_models, dashboard_tabs)
         _enrich_permissions(mod_dir, mod.models)
+        models_py = mod_dir / "models.py"
+        for m in mod.models:
+            m.models_path = models_py if models_py.exists() else None
         data.modules.append(mod)
 
     # Read custom_pages.ts and mark which page types each model has scaffolded.
@@ -692,6 +696,12 @@ class Explorer:
         lines.append((f"Model: {model.name}  ·  module: {model.module_name}  ·  resource: {model.resource}", TTL))
         if model.is_named_query:
             lines.append(("  [named query]", DIM))
+        if model.models_path:
+            try:
+                rel = model.models_path.relative_to(self.data.root)
+            except ValueError:
+                rel = model.models_path
+            lines.append((f"  {rel}", DIM))
         lines.append(("─" * max(0, max_x - 4), DIM))
 
         _TS = {"created_at", "updated_at", "creation_date", "modification_date"}
