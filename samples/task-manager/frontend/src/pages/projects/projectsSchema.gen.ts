@@ -10,7 +10,7 @@ export const projectsModelsGen: ModelDef[] = [
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
       { key: "description", label: "Description", type: "string" },
-      { key: "status", label: "Status", type: "string" },
+      { key: "status", label: "Status", type: "string", default: "active" },
       { key: "owner_id", label: "Owner Id", type: "number", reference: "team_member" },
       { key: "created_at", label: "Created At", type: "datetime" },
       { key: "updated_at", label: "Updated At", type: "datetime" },

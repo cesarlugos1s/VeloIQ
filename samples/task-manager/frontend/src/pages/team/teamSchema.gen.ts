@@ -11,7 +11,7 @@ export const teamModelsGen: ModelDef[] = [
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
       { key: "email", label: "Email", type: "string", required: true },
-      { key: "role", label: "Role", type: "string" },
+      { key: "role", label: "Role", type: "string", default: "member" },
       { key: "phone", label: "Phone", type: "string" },
       { key: "avatar_url", label: "Avatar Url", type: "image_url" },
       { key: "created_at", label: "Created At", type: "datetime" },

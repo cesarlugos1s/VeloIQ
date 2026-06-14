@@ -329,6 +329,21 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                     and p.key not in _TIMESTAMP_KEYS
                 ):
                     required_extra = ", required: true"
+                # Emit default: value for scalar Python-side defaults (not FK, not timestamps).
+                default_extra = ""
+                if (
+                    not col.foreign_keys
+                    and p.key not in _TIMESTAMP_KEYS
+                    and col.default is not None
+                ):
+                    try:
+                        import sqlalchemy as _sa
+                        if isinstance(col.default, _sa.ColumnDefault):
+                            arg = col.default.arg
+                            if not callable(arg):
+                                default_extra = f", default: {json.dumps(arg)}"
+                    except Exception:
+                        pass
                 # Emit veloiq_field read/write role restrictions if present.
                 role_extra = ""
                 try:
@@ -344,7 +359,7 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                                 role_extra += f', writeRoles: {_to_ts_array(wr)}'
                 except Exception:
                     pass
-                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{role_extra} }}'
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{role_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:

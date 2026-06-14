@@ -7,6 +7,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+import json
 from typing import Any, Optional
 
 # ── Color pair indices ────────────────────────────────────────────────────────
@@ -29,6 +30,8 @@ class FieldInfo:
     reference: Optional[str] = None
     read_roles: list[str] = field(default_factory=list)
     write_roles: list[str] = field(default_factory=list)
+    read_only: bool = False
+    default: Optional[Any] = None
 
 
 @dataclass
@@ -37,6 +40,9 @@ class RelationInfo:
     target_key: str
     label: str
     is_recursive: bool = False
+    other_resource: Optional[str] = None   # M2M remote resource or recursive peer
+    other_key: Optional[str] = None        # FK column on link-table side (M2M)
+    resource_path: Optional[str] = None    # link-table resource name (M2M only)
 
 
 @dataclass
@@ -219,6 +225,14 @@ def _enrich_custom_pages(frontend_src: Path, models: list) -> None:
             model.custom_pages = resource_types[model.resource]
 
 
+def _infer_relation_type(r: RelationInfo) -> str:
+    if r.is_recursive:
+        return "self-ref"
+    if r.resource_path and r.other_key:
+        return "many-to-many"
+    return "one-to-many"
+
+
 def _parse_gen_ts(path, module_name, search_set, dashboard_models, dashboard_tabs):
     lines = path.read_text(encoding="utf-8").splitlines()
     models = []
@@ -276,6 +290,13 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                 rm  = re.search(r'reference:\s*"([^"]+)"', s)
                 rrm = re.search(r'readRoles:\s*\[([^\]]*)\]', s)
                 wrm = re.search(r'writeRoles:\s*\[([^\]]*)\]', s)
+                dm  = re.search(r'\bdefault:\s*([^,}]+)', s)
+                fld_default = None
+                if dm:
+                    try:
+                        fld_default = json.loads(dm.group(1).strip())
+                    except Exception:
+                        fld_default = dm.group(1).strip().strip('"')
                 fields.append(FieldInfo(
                     key=km.group(1),
                     label=lm.group(1) if lm else km.group(1),
@@ -284,17 +305,25 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                     reference=rm.group(1) if rm else None,
                     read_roles=[x.strip(' "') for x in rrm.group(1).split(",") if x.strip()] if rrm else [],
                     write_roles=[x.strip(' "') for x in wrm.group(1).split(",") if x.strip()] if wrm else [],
+                    read_only="readOnly: true" in s,
+                    default=fld_default,
                 ))
         elif in_rel and s.startswith("{"):
-            res_m = re.search(r'resource:\s*"([^"]+)"', s)
-            tk_m  = re.search(r'targetKey:\s*"([^"]+)"', s)
-            lm    = re.search(r'label:\s*"([^"]+)"', s)
+            res_m  = re.search(r'resource:\s*"([^"]+)"', s)
+            tk_m   = re.search(r'targetKey:\s*"([^"]+)"', s)
+            lm     = re.search(r'label:\s*"([^"]+)"', s)
+            or_m   = re.search(r'otherResource:\s*"([^"]+)"', s)
+            ok_m   = re.search(r'otherKey:\s*"([^"]+)"', s)
+            rp_m   = re.search(r'resourcePath:\s*"([^"]+)"', s)
             if res_m and tk_m:
                 relations.append(RelationInfo(
                     resource=res_m.group(1),
                     target_key=tk_m.group(1),
                     label=lm.group(1) if lm else res_m.group(1),
                     is_recursive="isRecursive: true" in s,
+                    other_resource=or_m.group(1) if or_m else None,
+                    other_key=ok_m.group(1) if ok_m else None,
+                    resource_path=rp_m.group(1) if rp_m else None,
                 ))
 
     return ModelInfo(
@@ -671,12 +700,16 @@ class Explorer:
             lines.append((f"Fields ({len(model.fields)}):", BOLD))
             for fld in model.fields:
                 parts = [f"  {fld.key:<22}  {fld.type:<10}"]
-                if fld.required:
+                if fld.read_only:
+                    parts.append("[read-only]  ")
+                elif fld.required:
                     parts.append("required  ")
                 if fld.reference:
                     parts.append(f"→ {fld.reference}  ")
                 if fld.key in _TS:
                     parts.append("(timestamp)")
+                if fld.default is not None:
+                    parts.append(f"default: {json.dumps(fld.default)}  ")
                 if fld.read_roles:
                     parts.append(f"read:{','.join(fld.read_roles)}")
                 if fld.write_roles:
@@ -690,8 +723,16 @@ class Explorer:
         if model.relations:
             lines.append((f"Relations ({len(model.relations)}):", BOLD))
             for rel in model.relations:
-                tag = "  [recursive tree]" if rel.is_recursive else ""
-                lines.append((f"  {rel.label:<24}  resource: {rel.resource}  ← {rel.target_key}{tag}", A))
+                rtype = _infer_relation_type(rel)
+                extra = ""
+                if rtype == "self-ref":
+                    extra = "  [tree]"
+                elif rtype == "many-to-many" and rel.resource_path:
+                    extra = f"  link: {rel.resource_path}"
+                lines.append((
+                    f"  {rel.label:<22}  {rtype:<14} → {rel.resource}  (via {rel.target_key}){extra}",
+                    A,
+                ))
         else:
             lines.append(("Relations: none", DIM))
 

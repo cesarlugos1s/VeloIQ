@@ -10,8 +10,8 @@ export const tasksModelsGen: ModelDef[] = [
     fields: [
       { key: "title", label: "Title", type: "string", required: true },
       { key: "description", label: "Description", type: "string" },
-      { key: "status", label: "Status", type: "string" },
-      { key: "priority", label: "Priority", type: "string" },
+      { key: "status", label: "Status", type: "string", default: "todo" },
+      { key: "priority", label: "Priority", type: "string", default: "medium" },
       { key: "due_date", label: "Due Date", type: "date" },
       { key: "planned_work_hours", label: "Planned Work Hours", type: "number" },
       { key: "actual_work_hours", label: "Actual Work Hours", type: "number" },
