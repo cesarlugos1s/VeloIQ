@@ -11,8 +11,8 @@ export const tasksModelsGen: ModelDef[] = [
     fields: [
       { key: "title", label: "Title", type: "string", required: true, description: "Short summary of the work to be done" },
       { key: "description", label: "Description", type: "string", description: "Full details and acceptance criteria" },
-      { key: "status", label: "Status", type: "string", default: "todo", options: ["todo", "in_progress", "done", "cancelled"], description: "Current workflow state" },
-      { key: "priority", label: "Priority", type: "string", default: "medium", options: ["low", "medium", "high", "critical"], description: "Urgency level" },
+      { key: "status", label: "Status", type: "string", default: "todo", options: [{ label: "todo", value: "todo" }, { label: "in_progress", value: "in_progress" }, { label: "done", value: "done" }, { label: "cancelled", value: "cancelled" }], description: "Current workflow state" },
+      { key: "priority", label: "Priority", type: "string", default: "medium", options: [{ label: "low", value: "low" }, { label: "medium", value: "medium" }, { label: "high", value: "high" }, { label: "critical", value: "critical" }], description: "Urgency level" },
       { key: "due_date", label: "Due Date", type: "date", description: "Target completion date" },
       { key: "planned_work_hours", label: "Planned Work Hours", type: "number", description: "Estimated effort in hours" },
       { key: "actual_work_hours", label: "Actual Work Hours", type: "number", description: "Actual hours spent" },

@@ -368,7 +368,16 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                         jse = getattr(fi, "json_schema_extra", None) or {}
                         if isinstance(jse, dict):
                             if "options" in jse:
-                                options_extra = f", options: {json.dumps(jse['options'])}"
+                                raw_opts = jse["options"]
+                                # FieldDef.options expects { label, value }[] — normalise string arrays
+                                if raw_opts and isinstance(raw_opts[0], str):
+                                    ts_opts = "[" + ", ".join(
+                                        f'{{ label: {json.dumps(v)}, value: {json.dumps(v)} }}'
+                                        for v in raw_opts
+                                    ) + "]"
+                                else:
+                                    ts_opts = json.dumps(raw_opts)
+                                options_extra = f", options: {ts_opts}"
                         desc = getattr(fi, "description", None)
                         if desc:
                             desc_extra = f", description: {json.dumps(desc)}"

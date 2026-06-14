@@ -305,13 +305,16 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                         fld_default = json.loads(dm.group(1).strip())
                     except Exception:
                         fld_default = dm.group(1).strip().strip('"')
-                om  = re.search(r'\boptions:\s*(\[[^\]]*\])', s)
+                om  = re.search(r'\boptions:\s*(\[.*?\])', s)
                 fld_options: list = []
                 if om:
+                    raw_opts = om.group(1)
+                    # Try JSON first (plain string arrays); fall back to extracting value: "..." strings
                     try:
-                        fld_options = json.loads(om.group(1))
+                        parsed = json.loads(raw_opts)
+                        fld_options = [v["value"] if isinstance(v, dict) else v for v in parsed]
                     except Exception:
-                        pass
+                        fld_options = re.findall(r'value:\s*"([^"]+)"', raw_opts) or re.findall(r'"([^"]+)"', raw_opts)
                 fdm = re.search(r'\bdescription:\s*"([^"]+)"', s)
                 fields.append(FieldInfo(
                     key=km.group(1),
