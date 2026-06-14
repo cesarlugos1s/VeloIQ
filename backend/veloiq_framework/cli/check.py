@@ -37,6 +37,7 @@ def check(root, strict):
 
     warnings: list[tuple[str, str]] = []
     errors: list[tuple[str, str]] = []
+    hints: list[tuple[str, str]] = []
 
     for model in data.all_models:
         prefix = f"{model.module_name}/{model.name}"
@@ -44,9 +45,9 @@ def check(root, strict):
         if model.is_named_query:
             continue
 
-        # Missing model docstring
+        # Missing model docstring — cosmetic only
         if not model.description:
-            warnings.append((prefix, "No model description — add a class docstring"))
+            hints.append((prefix, "No model description — add a class docstring"))
 
         # Fields without descriptions (required fields are more important)
         for fld in model.fields:
@@ -62,19 +63,26 @@ def check(root, strict):
                                   f"Has options {fld.options[:2]}… but no default — "
                                   "add default= to veloiq_field()"))
 
-        # Dashboard / search enrollment
+        # Dashboard / search enrollment — intentional omissions are valid
         if not model.in_dashboard:
-            warnings.append((prefix, "Not on dashboard — run: veloiq add-dashboard " + model.resource))
+            hints.append((prefix, "Not on dashboard — run: veloiq add-dashboard " + model.resource))
         if not model.in_search:
-            warnings.append((prefix, "Not enrolled in search — run: veloiq search add-model " + model.name))
+            hints.append((prefix, "Not enrolled in search — run: veloiq search add-model " + model.name))
 
-    if not warnings and not errors:
+    if not warnings and not errors and not hints:
         click.echo(click.style("✅  No issues found.", fg="green", bold=True))
         return
 
+    parts = []
+    if errors:
+        parts.append(f"{len(errors)} error(s)")
+    if warnings:
+        parts.append(f"{len(warnings)} warning(s)")
+    if hints:
+        parts.append(f"{len(hints)} hint(s)")
     click.echo(click.style(
-        f"Found {len(errors)} error(s) and {len(warnings)} warning(s) in {data.name}",
-        fg="red" if errors else "yellow",
+        "Found " + ", ".join(parts) + f" in {data.name}",
+        fg="red" if errors else ("yellow" if warnings else "cyan"),
         bold=True,
     ))
 
@@ -87,6 +95,11 @@ def check(root, strict):
         click.echo(click.style("\nWARNINGS", fg="yellow", bold=True))
         for ctx, msg in warnings:
             click.echo(f"  ⚠️   {ctx:<38}  {msg}")
+
+    if hints:
+        click.echo(click.style("\nHINTS", fg="cyan"))
+        for ctx, msg in hints:
+            click.echo(click.style(f"  ·    {ctx:<38}  {msg}", dim=True))
 
     if strict and (errors or warnings):
         raise SystemExit(1)
