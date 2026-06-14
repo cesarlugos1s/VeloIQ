@@ -16,6 +16,7 @@ from veloiq_framework.cli.scaffold_page import scaffold_page
 from veloiq_framework.cli.check import check
 from veloiq_framework.cli.add_field import add_field
 from veloiq_framework.cli.add_relation import add_relation
+from veloiq_framework.cli.add_model import add_model
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -33,6 +34,7 @@ def cli(ctx):
     Quick start:
       veloiq new my-app              Create a new project
       veloiq add-module inventory    Add a module to an existing project
+      veloiq add-model Invoice       Add a new model class to a module
       veloiq add-field Task notes    Add a field to an existing model
       veloiq add-relation Task Project  Add a FK or many-to-many relation
       veloiq generate                Generate frontend schemas from backend models
@@ -72,3 +74,4 @@ cli.add_command(scaffold_page)
 cli.add_command(check)
 cli.add_command(add_field)
 cli.add_command(add_relation)
+cli.add_command(add_model)

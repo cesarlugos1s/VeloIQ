@@ -102,16 +102,18 @@ def _add_fk_relation(
     required: bool, no_back: bool,
 ) -> None:
     fk_col = f"{attr_name}_id"
-    src_text = src_file.read_text(encoding="utf-8")
-    tgt_text = tgt_file.read_text(encoding="utf-8")
+    same_file = src_file.resolve() == tgt_file.resolve()
 
-    # Detect if multiple FK paths will exist between these tables after the addition
+    src_text = src_file.read_text(encoding="utf-8")
+    # When both models are in the same file, work on a single text buffer
+    tgt_text = src_text if same_file else tgt_file.read_text(encoding="utf-8")
+
     existing_src_to_tgt = _has_fk_to(src_text, tgt_table)
     existing_tgt_to_src = _has_fk_to(tgt_text, src_table)
     need_disambig = existing_src_to_tgt or existing_tgt_to_src
-
     fk_expr = f"[{src_class}.{fk_col}]"
 
+    added_src = False
     if re.search(rf'^\s+{re.escape(fk_col)}\s*:', src_text, re.M):
         click.echo(click.style(f"⚠️   '{fk_col}' already exists in {src_file.name}.", fg="yellow"))
     else:
@@ -132,24 +134,28 @@ def _add_fk_relation(
 
         src_text = _ensure_optional_import(src_text)
         src_text = _ensure_jm_relationship_import(src_text)
-        src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
+        if not same_file:
+            # Same-file models don't need a TYPE_CHECKING import for each other
+            src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
         src_text = _insert_before_relationships(src_text, src_class, fk_line)
         src_text = _insert_after_last_relationship(src_text, src_class, rel_line)
+        added_src = True
 
         if need_disambig:
-            src_text, tgt_text = _patch_existing_rels_for_disambig(
-                src_text, tgt_text, src_class, tgt_class, src_table, tgt_table
-            )
+            if same_file:
+                src_text = _patch_same_file_disambig(
+                    src_text, src_class, tgt_class, src_table, tgt_table
+                )
+            else:
+                src_text, tgt_text = _patch_existing_rels_for_disambig(
+                    src_text, tgt_text, src_class, tgt_class, src_table, tgt_table
+                )
 
-        src_file.write_text(src_text, encoding="utf-8")
-        rel = src_file.relative_to(project_root)
-        click.echo(click.style(f"✅  Added '{fk_col}' + '{attr_name}' to {rel}", fg="green"))
-        if need_disambig:
-            click.echo(click.style(
-                "   ℹ️  Multiple FK paths detected — added foreign_keys disambiguation to existing relationships.",
-                fg="cyan",
-            ))
+    # Sync the unified buffer after src modifications
+    if same_file:
+        tgt_text = src_text
 
+    added_back = False
     if not no_back:
         if re.search(rf'^\s+{re.escape(back_name)}\s*:', tgt_text, re.M):
             click.echo(click.style(f"⚠️   '{back_name}' already exists in {tgt_file.name}.", fg="yellow"))
@@ -165,10 +171,37 @@ def _add_fk_relation(
 
             tgt_text = _ensure_list_import(tgt_text)
             tgt_text = _ensure_jm_relationship_import(tgt_text)
-            tgt_text = _ensure_type_checking_import(tgt_text, src_module, src_class)
+            if not same_file:
+                tgt_text = _ensure_type_checking_import(tgt_text, src_module, src_class)
             tgt_text = _insert_after_last_relationship(tgt_text, tgt_class, back_line)
-            tgt_file.write_text(tgt_text, encoding="utf-8")
+            added_back = True
 
+    # Writes — same_file: single write; different files: write each independently
+    if same_file:
+        if added_src or added_back:
+            src_file.write_text(tgt_text, encoding="utf-8")
+            rel = src_file.relative_to(project_root)
+            if added_src:
+                click.echo(click.style(f"✅  Added '{fk_col}' + '{attr_name}' to {rel}", fg="green"))
+            if added_back:
+                click.echo(click.style(f"✅  Added '{back_name}' to {rel}", fg="green"))
+            if need_disambig and added_src:
+                click.echo(click.style(
+                    "   ℹ️  Multiple FK paths detected — added foreign_keys disambiguation to existing relationships.",
+                    fg="cyan",
+                ))
+    else:
+        if added_src:
+            src_file.write_text(src_text, encoding="utf-8")
+            rel = src_file.relative_to(project_root)
+            click.echo(click.style(f"✅  Added '{fk_col}' + '{attr_name}' to {rel}", fg="green"))
+            if need_disambig:
+                click.echo(click.style(
+                    "   ℹ️  Multiple FK paths detected — added foreign_keys disambiguation to existing relationships.",
+                    fg="cyan",
+                ))
+        if added_back:
+            tgt_file.write_text(tgt_text, encoding="utf-8")
             rel = tgt_file.relative_to(project_root)
             click.echo(click.style(f"✅  Added '{back_name}' to {rel}", fg="green"))
 
@@ -345,6 +378,39 @@ def _patch_existing_rels_for_disambig(
     return src_text, tgt_text
 
 
+def _patch_same_file_disambig(
+    text: str,
+    src_class: str, tgt_class: str,
+    src_table: str, tgt_table: str,
+) -> str:
+    """Like _patch_existing_rels_for_disambig but for a single file containing both models."""
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
+        text, re.M,
+    ):
+        text = _patch_rel_foreign_keys(text, ra, f"[{src_class}.{ra}_id]")
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*List\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
+        text, re.M,
+    ):
+        bp = _find_back_populates(text, ra)
+        if bp:
+            text = _patch_rel_foreign_keys(text, ra, f"[{tgt_class}.{bp}_id]")
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
+        text, re.M,
+    ):
+        text = _patch_rel_foreign_keys(text, ra, f"[{tgt_class}.{ra}_id]")
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*List\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
+        text, re.M,
+    ):
+        bp = _find_back_populates(text, ra)
+        if bp:
+            text = _patch_rel_foreign_keys(text, ra, f"[{src_class}.{bp}_id]")
+    return text
+
+
 # ── Other helpers ──────────────────────────────────────────────────────────────
 
 def _find_model_info(root: Path, model_id: str) -> Optional[tuple[str, str, Path, str]]:
@@ -365,13 +431,25 @@ def _find_model_info(root: Path, model_id: str) -> Optional[tuple[str, str, Path
         m = re.search(rf'^class\s+({re.escape(model_id)})\s*\(', text, re.M | re.I)
         if m:
             class_name = m.group(1)
-        elif re.search(rf'__tablename__\s*=\s*["\']({re.escape(needle)})["\']', text):
-            cm = re.search(r'^class\s+(\w+)\s*\(', text, re.M)
-            class_name = cm.group(1) if cm else model_id
+            class_start = m.start()
         else:
-            continue
+            tm_match = re.search(rf'__tablename__\s*=\s*["\']({re.escape(needle)})["\']', text)
+            if not tm_match:
+                continue
+            # Find the class that contains this tablename (search backwards from the match)
+            cm = re.search(r'^class\s+(\w+)\s*\(', text[: tm_match.start()], re.M)
+            if not cm:
+                cm = re.search(r'^class\s+(\w+)\s*\(', text, re.M)
+            class_name = cm.group(1) if cm else model_id
+            class_start = cm.start() if cm else 0
 
-        tm = re.search(r'__tablename__\s*=\s*["\'](\w+)["\']', text)
+        # Extract only this class's body to find its __tablename__ (avoids picking up
+        # the wrong tablename when multiple models share the same file)
+        after_class = text[class_start:]
+        next_class_m = re.search(r'^class\s', after_class[1:], re.M)
+        class_body = after_class[: 1 + next_class_m.start()] if next_class_m else after_class
+
+        tm = re.search(r'__tablename__\s*=\s*["\'](\w+)["\']', class_body)
         table_name = tm.group(1) if tm else needle
         module_path = f"app.modules.{mod_dir.name}.models"
         return (class_name, table_name, mp, module_path)

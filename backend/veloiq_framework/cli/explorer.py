@@ -649,7 +649,7 @@ class Explorer:
             self._w(stdscr, list_start + i, 2, prefix + line, attr)
 
         self._w(stdscr, max_y - 1, 0,
-                "  ↑↓ / jk  navigate    Enter  view    a  add-module    g  generate    b  back    q  quit",
+                "  ↑↓ / jk  navigate    Enter  view    m  add-model    a  add-module    g  generate    b  back    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Module detail ─────────────────────────────────────────────────────────
@@ -719,7 +719,7 @@ class Explorer:
 
         filter_hint = "  [/] filter" if not f.filter_str else "  [x] clear filter"
         self._w(stdscr, max_y - 1, 0,
-                f"  ↑↓ / jk  navigate    Enter  view model    g  generate{filter_hint}    b  back    q  quit",
+                f"  ↑↓ / jk  navigate    Enter  view model    m  add-model    g  generate{filter_hint}    b  back    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Model detail ──────────────────────────────────────────────────────────
@@ -1069,6 +1069,12 @@ class Explorer:
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if mods:
                 self.nav.append(_Frame("module", context=mods[f.cursor]))
+        elif key == ord('m'):
+            model_name = self._get_input(stdscr, max_y, max_x, "New model name (PascalCase)")
+            if model_name:
+                cmd = f"veloiq add-model {model_name}"
+                if self._confirm(stdscr, max_y, max_x, cmd):
+                    return cmd
         elif key == ord('a'):
             name = self._get_input(stdscr, max_y, max_x, "New module name")
             if name and self._confirm(stdscr, max_y, max_x, f"veloiq add-module {name}"):
@@ -1090,6 +1096,12 @@ class Explorer:
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if filtered:
                 self.nav.append(_Frame("model", context=filtered[f.cursor]))
+        elif key == ord('m'):
+            model_name = self._get_input(stdscr, max_y, max_x, "New model name (PascalCase)")
+            if model_name:
+                cmd = f"veloiq add-model {model_name} --module {mod.name}"
+                if self._confirm(stdscr, max_y, max_x, cmd):
+                    return cmd
         elif key == ord('/'):
             q = self._get_input(stdscr, max_y, max_x, "Filter models")
             f.filter_str = q.lower()
