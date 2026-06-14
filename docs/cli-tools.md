@@ -174,6 +174,89 @@ This ensures the database column is created immediately, avoiding the `Operation
 
 ---
 
+## `veloiq add-relation`
+
+Add a relation between two models without editing `models.py` manually:
+
+```bash
+veloiq add-relation <source> <target> [options]
+```
+
+| Argument / Option | Description |
+|-------------------|-------------|
+| `SOURCE` | Model that holds the FK or initiates the relation (e.g., `Task`) |
+| `TARGET` | Model being referenced (e.g., `Project`) |
+| `--type fk\|many-to-many` | Relation type (default: `fk`) |
+| `--attr NAME` | Attribute name on source (default: snake_case of TARGET) |
+| `--back-attr NAME` | Attribute name on target for `back_populates` (default: snake_case of SOURCE + `s`) |
+| `--min-items INT` | Minimum cardinality on the List side (default: `0`) |
+| `--max-items INT` | Maximum cardinality on the List side (default: unlimited) |
+| `--required / --optional` | Make FK non-nullable (`fk` type only). Default: optional |
+| `--no-back` | Skip adding the reverse relationship to the target model |
+| `--migrate / --no-migrate` | Run Alembic migration after adding. Default: prompt |
+
+**Examples:**
+
+```bash
+# Task belongs to Project (adds FK column + relationship on Task, reverse on Project)
+veloiq add-relation Task Project
+
+# Explicit names + required FK
+veloiq add-relation Task Project --attr project --back-attr tasks --required
+
+# Enforce that a project must have at least one task
+veloiq add-relation Task Project --min-items 1
+
+# Many-to-many: Task ↔ Tag (creates TaskTagLink table, List relations on both sides)
+veloiq add-relation Task Tag --type many-to-many
+
+# Many-to-many with custom attr names
+veloiq add-relation Task Tag --type many-to-many --attr tags --back-attr tasks
+```
+
+**What gets written — FK (many-to-one):**
+
+In `source/models.py`:
+```python
+# FK column (before existing relationships)
+project_id: Optional[int] = Field(default=None, foreign_key="project.id")
+
+# Relationship (after existing relationships)
+project: Optional["Project"] = jm_relationship(back_populates="tasks")
+```
+
+In `target/models.py`:
+```python
+tasks: List["Task"] = jm_relationship(back_populates="project")
+```
+
+Both files get the correct `TYPE_CHECKING` import guard automatically.
+
+**What gets written — many-to-many:**
+
+In `source/models.py` (link class added above the main class):
+```python
+class TaskTagLink(SQLModel, table=True):
+    __tablename__ = "task_tag_link"
+    task_id: Optional[int] = Field(default=None, foreign_key="task.id", primary_key=True)
+    tag_id: Optional[int] = Field(default=None, foreign_key="tag.id", primary_key=True)
+
+# Inside Task:
+tags: List["Tag"] = jm_relationship(back_populates="tasks", link_model=TaskTagLink)
+```
+
+In `target/models.py` (`TaskTagLink` imported directly — not inside `TYPE_CHECKING`, since it's needed at runtime):
+```python
+from app.modules.tasks.models import TaskTagLink
+
+# Inside Tag:
+tasks: List["Task"] = jm_relationship(back_populates="tags", link_model=TaskTagLink)
+```
+
+After running, the relation is wired in both directions. Run `veloiq generate` to update the TypeScript schemas, then `veloiq db upgrade` to apply the migration (or answer **Y** at the prompt).
+
+---
+
 ## `veloiq scaffold-page`
 
 See [Custom Page Scaffolding](scaffold-page.md) for full documentation.

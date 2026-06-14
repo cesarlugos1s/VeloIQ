@@ -887,6 +887,7 @@ class Explorer:
             actions.append("[f] follow →")
         if not model.is_named_query:
             actions.append("[a] add-field")
+            actions.append("[r] add-relation")
         actions += [scaffold_hint, "[g] generate (all modules)", "[b] back", "[q] quit"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
@@ -1130,6 +1131,24 @@ class Explorer:
                     cmd = f"veloiq add-field {model.resource} {field_name} {ftype}"
                     if self._confirm(stdscr, max_y, max_x, cmd):
                         return cmd
+        elif key == ord('r') and not model.is_named_query:
+            rel_type = self._pick_relation_type(stdscr, max_y, max_x)
+            if rel_type:
+                target = self._pick_target_model(stdscr, max_y, max_x, model)
+                if target:
+                    tgt_class, tgt_resource = target
+                    import re as _re
+                    default_attr = _re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2',
+                                   _re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', tgt_class)).lower()
+                    default_back = model.resource + "s"
+                    attr = self._get_input(stdscr, max_y, max_x, "Relation attr name", default_attr)
+                    if attr:
+                        back = self._get_input(stdscr, max_y, max_x, "Back attr name", default_back)
+                        if back:
+                            cmd = (f"veloiq add-relation {model.name} {tgt_class}"
+                                   f" --type {rel_type} --attr {attr} --back-attr {back}")
+                            if self._confirm(stdscr, max_y, max_x, cmd):
+                                return cmd
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
@@ -1211,6 +1230,51 @@ class Explorer:
         k = stdscr.getch()
         return {ord('1'): "list", ord('2'): "show", ord('3'): "edit", ord('4'): "create"}.get(k)
 
+    def _pick_relation_type(self, stdscr, max_y, max_x) -> Optional[str]:
+        prompt = "  Relation type: [1] many-to-one (FK)  [2] many-to-many (link table)  [Esc] cancel "
+        self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 1, 0, prompt[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        stdscr.refresh()
+        k = stdscr.getch()
+        return {ord('1'): "fk", ord('2'): "many-to-many"}.get(k)
+
+    def _pick_target_model(self, stdscr, max_y, max_x, current: "ModelInfo") -> Optional[tuple[str, str]]:
+        """Return (class_name, resource) of the chosen target, or None."""
+        others = [m for m in self.data.all_models if m.resource != current.resource and not m.is_named_query]
+        if not others:
+            self._w(stdscr, max_y - 1, 0,
+                    "  (no other models available)  press any key",
+                    curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+            stdscr.getch()
+            return None
+
+        if len(others) <= 9:
+            parts = "  ".join(f"[{i+1}] {m.name}" for i, m in enumerate(others))
+            prompt = f"  Add relation to: {parts}  [Esc] cancel "
+            self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+            self._w(stdscr, max_y - 1, 0, prompt[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+            k = stdscr.getch()
+            if k == 27:
+                return None
+            idx = k - ord('1')
+            if not (0 <= idx < len(others)):
+                return None
+            m = others[idx]
+            return (m.name, m.resource)
+        else:
+            # Too many to list — fall back to text input
+            name = self._get_input(stdscr, max_y, max_x, "Target model name")
+            if not name:
+                return None
+            m = next((x for x in self.data.all_models if x.name.lower() == name.lower()
+                      or x.resource.lower() == name.lower()), None)
+            if m:
+                return (m.name, m.resource)
+            # Pass through whatever was typed — CLI will validate
+            return (name, name.lower())
+
     def _handle_search(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
         self._scroll(f, key)
@@ -1251,10 +1315,11 @@ class Explorer:
         k = stdscr.getch()
         return k in (ord('y'), ord('Y'))
 
-    def _get_input(self, stdscr, max_y, max_x, prompt: str) -> str:
+    def _get_input(self, stdscr, max_y, max_x, prompt: str, default: str = "") -> str:
         curses.echo()
         curses.curs_set(1)
-        prompt_str = f"  {prompt}: "
+        hint = f" [{default}]" if default else ""
+        prompt_str = f"  {prompt}{hint}: "
         self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0, prompt_str, curses.color_pair(_C_WARN) | curses.A_BOLD)
         stdscr.refresh()
@@ -1266,7 +1331,7 @@ class Explorer:
         finally:
             curses.noecho()
             curses.curs_set(0)
-        return result
+        return result if result else default
 
 
 # ── CLI entry point ───────────────────────────────────────────────────────────

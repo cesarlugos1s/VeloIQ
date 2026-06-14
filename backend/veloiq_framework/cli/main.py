@@ -15,6 +15,7 @@ from veloiq_framework.cli.configure_db import configure_db
 from veloiq_framework.cli.scaffold_page import scaffold_page
 from veloiq_framework.cli.check import check
 from veloiq_framework.cli.add_field import add_field
+from veloiq_framework.cli.add_relation import add_relation
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -33,6 +34,7 @@ def cli(ctx):
       veloiq new my-app              Create a new project
       veloiq add-module inventory    Add a module to an existing project
       veloiq add-field Task notes    Add a field to an existing model
+      veloiq add-relation Task Project  Add a FK or many-to-many relation
       veloiq generate                Generate frontend schemas from backend models
       veloiq run                     Start the development server
       veloiq db upgrade              Apply Alembic migrations
@@ -69,3 +71,4 @@ cli.add_command(list_extensions)
 cli.add_command(scaffold_page)
 cli.add_command(check)
 cli.add_command(add_field)
+cli.add_command(add_relation)
