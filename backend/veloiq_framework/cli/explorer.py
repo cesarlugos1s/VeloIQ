@@ -1330,12 +1330,12 @@ class Explorer:
     # ── Input / confirmation dialogs ──────────────────────────────────────────
 
     def _confirm(self, stdscr, max_y, max_x, cmd: str) -> bool:
-        prompt = f"  Run: {cmd}  [y/N] "
+        prompt = f"  Run: {cmd}  [Y/n] "
         self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0, prompt, curses.color_pair(_C_WARN) | curses.A_BOLD)
         stdscr.refresh()
         k = stdscr.getch()
-        return k in (ord('y'), ord('Y'))
+        return k not in (ord('n'), ord('N'))
 
     def _get_input(self, stdscr, max_y, max_x, prompt: str, default: str = "") -> str:
         curses.echo()
