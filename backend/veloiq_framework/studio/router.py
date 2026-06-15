@@ -88,6 +88,8 @@ _ALLOWED_PREFIXES = (
     "veloiq generate",
     "veloiq build",
     "veloiq check",
+    "veloiq migrate",
+    "veloiq db upgrade",
     "veloiq extend-package ",
     "veloiq remove-package ",
 )

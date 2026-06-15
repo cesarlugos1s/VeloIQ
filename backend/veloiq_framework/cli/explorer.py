@@ -552,6 +552,8 @@ class Explorer:
             ("g", "Run: veloiq generate"),
             ("c", "Run: veloiq check  (health report)"),
             ("b", "Run: veloiq build  (build frontend for production)"),
+            ("m", "Run: veloiq migrate  (upgrade app to current framework)"),
+            ("u", "Run: veloiq db upgrade  (apply Alembic migrations)"),
             ("q", "Quit"),
         ]
         for i, (key, label) in enumerate(menu):
@@ -562,7 +564,7 @@ class Explorer:
             r += 1
 
         self._w(stdscr, max_y - 2, 0,
-                "  ↑↓ / jk  navigate    Enter  select    g  generate    b  build    q  quit",
+                "  ↑↓ / jk  navigate    Enter  select    g  generate    b  build    m  migrate    u  db-upgrade    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Extensions ────────────────────────────────────────────────────────────
@@ -1026,7 +1028,7 @@ class Explorer:
 
     def _handle_home(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
-        self._move_cursor(f, 6, key)
+        self._move_cursor(f, 8, key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if f.cursor == 0:
@@ -1045,6 +1047,12 @@ class Explorer:
                 if self._confirm(stdscr, max_y, max_x, "veloiq build"):
                     return "veloiq build"
             elif f.cursor == 6:
+                if self._confirm(stdscr, max_y, max_x, "veloiq migrate"):
+                    return "veloiq migrate"
+            elif f.cursor == 7:
+                if self._confirm(stdscr, max_y, max_x, "veloiq db upgrade"):
+                    return "veloiq db upgrade"
+            elif f.cursor == 8:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
@@ -1061,6 +1069,12 @@ class Explorer:
         elif key == ord('b'):
             if self._confirm(stdscr, max_y, max_x, "veloiq build"):
                 return "veloiq build"
+        elif key == ord('m'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq migrate"):
+                return "veloiq migrate"
+        elif key == ord('u'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq db upgrade"):
+                return "veloiq db upgrade"
         return None
 
     def _handle_extensions(self, key, stdscr, max_y, max_x) -> Optional[str]:
