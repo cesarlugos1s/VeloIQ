@@ -19,7 +19,7 @@ var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read fr
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
 var ColorModeContext = createContext({ mode: "light", setMode: () => {
-} });
+}, schemaVersion: 0 });
 
 // src/utils/modelTone.ts
 var MODEL_TONES_LIGHT = [
@@ -58,6 +58,16 @@ var _modulesColorSchema = typeof localStorage !== "undefined" && localStorage.ge
 var _modelsColorSchema = typeof localStorage !== "undefined" && localStorage.getItem("jm_modelsColorSchema") || "plain-color";
 var _customPlainToneLight = null;
 var _customPlainToneDark = null;
+var _colorSchemaListeners = [];
+var onColorSchemaChange = (listener) => {
+  _colorSchemaListeners.push(listener);
+  return () => {
+    _colorSchemaListeners = _colorSchemaListeners.filter((l) => l !== listener);
+  };
+};
+var _notifyColorSchemaListeners = () => {
+  for (const l of [..._colorSchemaListeners]) l();
+};
 var hexToRgb = (hex) => {
   const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!match) return null;
@@ -192,6 +202,7 @@ var setColorSchemas = (schemas) => {
       }
     }
   }
+  _notifyColorSchemaListeners();
 };
 var hashString = (input) => {
   let hash = 0;
@@ -221,7 +232,7 @@ var getModelTone = (modelLike, darkMode) => {
   return tones[hashString(seed) % tones.length];
 };
 var useModelTone = (modelLike) => {
-  const { mode } = useContext(ColorModeContext);
+  const { mode, schemaVersion } = useContext(ColorModeContext);
   return getModelTone(modelLike, mode === "dark");
 };
 var getContrastingTextColor = (background) => isDarkColor(background) ? "#f8fafc" : "#0f172a";
@@ -20854,6 +20865,10 @@ var ColorModeContextProvider = ({
     colorModeFromLocalStorage === "dark" || colorModeFromLocalStorage === "light" ? colorModeFromLocalStorage : systemPreference
   );
   const initializedFromServer = useRef(false);
+  const [schemaVersion, setSchemaVersion] = useState(0);
+  useEffect(() => {
+    return onColorSchemaChange(() => setSchemaVersion((v) => v + 1));
+  }, []);
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -20895,7 +20910,7 @@ var ColorModeContextProvider = ({
     void saveToServer(newMode);
   }, [saveToServer]);
   const { darkAlgorithm, defaultAlgorithm } = theme;
-  return /* @__PURE__ */ jsx(ColorModeContext.Provider, { value: { mode, setMode: setColorMode }, children: /* @__PURE__ */ jsx(
+  return /* @__PURE__ */ jsx(ColorModeContext.Provider, { value: { mode, setMode: setColorMode, schemaVersion }, children: /* @__PURE__ */ jsx(
     ConfigProvider,
     {
       theme: {

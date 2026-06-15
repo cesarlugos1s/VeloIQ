@@ -9,6 +9,7 @@ import {
 } from "react";
 import { ColorModeContext } from "../ColorModeContext";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
+import { onColorSchemaChange } from "../../utils/modelTone";
 
 const API_BASE_URL = "/api";
 
@@ -27,6 +28,15 @@ export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
       : systemPreference) as "light" | "dark"
   );
   const initializedFromServer = useRef(false);
+  const [schemaVersion, setSchemaVersion] = useState(0);
+
+  // Re-render colour-tone consumers when the color schema (plain-color /
+  // color-coded / custom hex) changes via setColorSchemas() — without this,
+  // components like the sidebar menu stick with the initial grayscale tones
+  // even after the async /config/views fetch completes in production mode.
+  useEffect(() => {
+    return onColorSchemaChange(() => setSchemaVersion((v) => v + 1));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +81,7 @@ export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
   const { darkAlgorithm, defaultAlgorithm } = theme;
 
   return (
-    <ColorModeContext.Provider value={{ mode, setMode: setColorMode }}>
+    <ColorModeContext.Provider value={{ mode, setMode: setColorMode, schemaVersion }}>
       <ConfigProvider
         theme={{
           ...RefineThemes.Blue,

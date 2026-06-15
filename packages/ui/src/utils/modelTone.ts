@@ -56,6 +56,28 @@ let _modelsColorSchema: string = (typeof localStorage !== "undefined" && localSt
 let _customPlainToneLight: ModelTone | null = null;
 let _customPlainToneDark: ModelTone | null = null;
 
+// ── Subscription mechanism ─────────────────────────────────────────────────
+// setColorSchemas() updates module-level variables outside of React's
+// knowledge.  Components that call useModelTone() need to re-render when the
+// schema changes (e.g. after the async /config/views fetch completes in
+// production mode).  This simple listener list bridges the gap: the provider
+// subscribes via onColorSchemaChange(), and setColorSchemas() fires all
+// listeners after updating the module-level state.
+let _colorSchemaListeners: Array<() => void> = [];
+
+/** Subscribe to color-schema changes. Returns an unsubscribe function. */
+export const onColorSchemaChange = (listener: () => void): (() => void) => {
+    _colorSchemaListeners.push(listener);
+    return () => {
+        _colorSchemaListeners = _colorSchemaListeners.filter((l) => l !== listener);
+    };
+};
+
+const _notifyColorSchemaListeners = () => {
+    // Iterate a copy so a listener can unsubscribe itself during the loop.
+    for (const l of [..._colorSchemaListeners]) l();
+};
+
 const hexToRgb = (hex: string) => {
     const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!match) return null;
@@ -201,6 +223,10 @@ export const setColorSchemas = (schemas: {
             }
         }
     }
+
+    // Notify React components (via ColorModeContextProvider's subscription)
+    // that the color schema changed so they re-render with the updated tones.
+    _notifyColorSchemaListeners();
 };
 
 const hashString = (input: string) => {
@@ -253,13 +279,18 @@ export const getModelTone = (
     return tones[hashString(seed) % tones.length];
 };
 
-// Reactive hook — re-evaluates whenever dark mode is toggled.
+// Reactive hook — re-evaluates whenever dark mode is toggled or the color
+// schema (plain-color / color-coded / custom hex) changes via setColorSchemas().
 // Use this instead of getModelTone() inside React components so that tones
-// update immediately on mode change without needing stale useMemo deps.
+// update immediately on mode or schema change.
 export const useModelTone = (
     modelLike?: string | { resource?: string; name?: string; label?: string },
 ): ModelTone => {
-    const { mode } = useContext(ColorModeContext);
+    const { mode, schemaVersion } = useContext(ColorModeContext);
+    // schemaVersion is read to make this hook reactive to setColorSchemas()
+    // calls; the actual value is unused because getModelTone reads the
+    // module-level _customPlainToneLight/Dark variables directly.
+    void schemaVersion;
     return getModelTone(modelLike, mode === "dark");
 };
 
