@@ -144,8 +144,13 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
     try:
         from sqlalchemy.orm import configure_mappers
         configure_mappers()
-    except Exception:
-        pass
+    except Exception as _mapper_exc:
+        print(
+            f"\n❌  ORM mapper initialization failed — aborting generate to preserve existing schemas.\n"
+            f"    Fix the error below, then re-run `veloiq generate`.\n\n"
+            f"    {_mapper_exc}\n"
+        )
+        raise SystemExit(1)
 
     for mod_dir in mod_dirs:
         module_name = mod_dir.name

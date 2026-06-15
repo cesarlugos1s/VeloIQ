@@ -108,8 +108,8 @@ def _add_fk_relation(
     # When both models are in the same file, work on a single text buffer
     tgt_text = src_text if same_file else tgt_file.read_text(encoding="utf-8")
 
-    existing_src_to_tgt = _has_fk_to(src_text, tgt_table)
-    existing_tgt_to_src = _has_fk_to(tgt_text, src_table)
+    existing_src_to_tgt = _class_has_fk_to(src_text, src_class, tgt_table)
+    existing_tgt_to_src = _class_has_fk_to(tgt_text, tgt_class, src_table)
     need_disambig = existing_src_to_tgt or existing_tgt_to_src
     fk_expr = f"[{src_class}.{fk_col}]"
 
@@ -277,6 +277,17 @@ def _add_many_to_many(
 def _has_fk_to(text: str, table: str) -> bool:
     """Return True if text contains any FK column pointing to table."""
     return bool(re.search(rf"""foreign_key=['"]({re.escape(table)}\.id)['"]""", text))
+
+
+def _class_has_fk_to(text: str, class_name: str, table: str) -> bool:
+    """Return True only if the named class itself has a FK column pointing to table."""
+    m = re.search(rf'^class\s+{re.escape(class_name)}\s*\(', text, re.M | re.I)
+    if not m:
+        return _has_fk_to(text, table)  # fallback: whole-file check
+    after = text[m.start():]
+    next_cls = re.search(r'^class\s+\w+\s*\(', after[1:], re.M)
+    class_body = after[: 1 + next_cls.start()] if next_cls else after
+    return _has_fk_to(class_body, table)
 
 
 def _find_back_populates(text: str, attr_name: str) -> Optional[str]:

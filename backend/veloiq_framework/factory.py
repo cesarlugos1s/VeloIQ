@@ -169,6 +169,9 @@ def create_veloiq_app(
     # ── Core endpoints ────────────────────────────────────────────────────────
     _register_core_endpoints(app, engine, cfg)
 
+    # ── VeloIQ Studio ─────────────────────────────────────────────────────────
+    _mount_studio(app, cfg)
+
     return app
 
 
@@ -190,8 +193,9 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         "/admin",
         "/favicon.ico",
         "/health",
+        "/veloiq-studio",
     )
-    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc")
+    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio")
 
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
@@ -902,3 +906,22 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                 f"No relations defined for <strong>{model_label}</strong>.</div>"
             )
         return {"html": svg}
+
+
+# ---------------------------------------------------------------------------
+# VeloIQ Studio
+# ---------------------------------------------------------------------------
+
+def _mount_studio(app: FastAPI, cfg: VeloIQConfig) -> None:
+    """Mount the Studio API router and serve the pre-built frontend."""
+    from veloiq_framework.studio import make_studio_router
+    app.include_router(make_studio_router(cfg))
+
+    static_dir = Path(__file__).parent / "studio" / "static"
+    if static_dir.exists():
+        app.mount(
+            "/veloiq-studio",
+            StaticFiles(directory=str(static_dir), html=True),
+            name="veloiq_studio",
+        )
+        print("  🔬 VeloIQ Studio: /veloiq-studio/")

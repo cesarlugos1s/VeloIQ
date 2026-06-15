@@ -33,7 +33,7 @@ def run(host, port, no_reload, app_path, env_file):
 
     cmd = [sys.executable, "-m", "uvicorn", app_path, f"--host={host}", f"--port={port}"]
     if not no_reload:
-        cmd.append("--reload")
+        cmd.extend(["--reload", "--reload-delay", "2"])
 
     click.echo(f"🚀 Starting VeloIQ server: {app_path} on {host}:{port}")
     result = subprocess.run(cmd)
