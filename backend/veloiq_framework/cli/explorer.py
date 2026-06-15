@@ -560,7 +560,7 @@ class Explorer:
             self._w(stdscr, r, 2, f"{prefix}[{key}]  {label}", attr)
             r += 1
 
-        self._w(stdscr, max_y - 1, 0,
+        self._w(stdscr, max_y - 2, 0,
                 "  ↑↓ / jk  navigate    Enter  select    q  quit",
                 curses.color_pair(_C_WARN))
 
@@ -579,13 +579,16 @@ class Explorer:
         if not d.extensions:
             self._w(stdscr, r, 4,
                     "(no VeloIQ extensions installed in this environment)", curses.A_DIM)
+            self._w(stdscr, max_y - 2, 0,
+                    "  b  back    q  quit",
+                    curses.color_pair(_C_WARN))
             self._w(stdscr, max_y - 1, 0,
-                    "  pip install an extension, then it appears here    b  back    q  quit",
+                    "  pip install an extension, then it appears here",
                     curses.color_pair(_C_WARN))
             return
 
         list_start = r
-        list_h = max_y - list_start - 1
+        list_h = max_y - list_start - 2
         if f.cursor < f.scroll:
             f.scroll = f.cursor
         elif f.cursor >= f.scroll + list_h:
@@ -609,8 +612,11 @@ class Explorer:
             if not is_sel:
                 self._w(stdscr, list_start + i, 2 + len(prefix) + 24, state, s_attr)
 
+        self._w(stdscr, max_y - 2, 0,
+                "  ↑↓ / jk  navigate    b  back    q  quit",
+                curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0,
-                "  ↑↓ / jk  navigate    Enter/e  toggle    g  generate    b  back    q  quit",
+                "  Enter / e  toggle    g  generate",
                 curses.color_pair(_C_WARN))
 
     # ── Module list ───────────────────────────────────────────────────────────
@@ -627,7 +633,7 @@ class Explorer:
         r += 1
 
         list_start = r
-        list_h = max_y - list_start - 1
+        list_h = max_y - list_start - 2
 
         if f.cursor < f.scroll:
             f.scroll = f.cursor
@@ -648,8 +654,11 @@ class Explorer:
                     f"   dashboard:{dash_n}  search:{srch_n}")
             self._w(stdscr, list_start + i, 2, prefix + line, attr)
 
+        self._w(stdscr, max_y - 2, 0,
+                "  ↑↓ / jk  navigate    Enter  view    b  back    q  quit",
+                curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0,
-                "  ↑↓ / jk  navigate    Enter  view    m  add-model    a  add-module    g  generate    b  back    q  quit",
+                "  m  add-model    a  add-module    g  generate",
                 curses.color_pair(_C_WARN))
 
     # ── Module detail ─────────────────────────────────────────────────────────
@@ -681,7 +690,7 @@ class Explorer:
             r += 1
 
         list_start = r
-        list_h = max_y - list_start - 1
+        list_h = max_y - list_start - 2
         f.cursor = max(0, min(f.cursor, max(0, len(filtered) - 1)))
 
         if f.cursor < f.scroll:
@@ -717,9 +726,12 @@ class Explorer:
                     self._w(stdscr, list_start + i, col + 21, srch_icon, s_attr)
                     self._w(stdscr, list_start + i, col + 23, nq_tag, curses.A_DIM)
 
-        filter_hint = "  [/] filter" if not f.filter_str else "  [x] clear filter"
+        filter_hint = "    [/] filter" if not f.filter_str else "    [x] clear filter"
+        self._w(stdscr, max_y - 2, 0,
+                f"  ↑↓ / jk  navigate    Enter  view model    b  back    q  quit{filter_hint}",
+                curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0,
-                f"  ↑↓ / jk  navigate    Enter  view model    m  add-model    g  generate{filter_hint}    b  back    q  quit",
+                "  m  add-model    g  generate",
                 curses.color_pair(_C_WARN))
 
     # ── Model detail ──────────────────────────────────────────────────────────
@@ -878,6 +890,9 @@ class Explorer:
             text, attr = lines[idx]
             self._w(stdscr, 1 + i, 2, text, attr)
 
+        self._w(stdscr, max_y - 2, 0,
+                "  ↑↓ scroll    b  back    q  quit",
+                curses.color_pair(_C_WARN))
         if total > content_h:
             self._w(stdscr, max_y - 2, max_x - 22, f"  ↑↓ scroll ({f.scroll+1}/{total})", DIM)
 
@@ -898,7 +913,7 @@ class Explorer:
         if not model.is_named_query:
             actions.append("[a] add-field")
             actions.append("[r] add-relation")
-        actions += [scaffold_hint, "[g] generate (all modules)", "[b] back", "[q] quit"]
+        actions += [scaffold_hint, "[g] generate"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
     # ── Search config ─────────────────────────────────────────────────────────
@@ -959,12 +974,14 @@ class Explorer:
             text, attr = lines[idx]
             self._w(stdscr, 1 + i, 2, text, attr)
 
+        self._w(stdscr, max_y - 2, 0,
+                "  ↑↓ scroll    b  back    q  quit",
+                curses.color_pair(_C_WARN))
         if total > content_h:
             self._w(stdscr, max_y - 2, max_x - 22, f"  ↑↓ scroll ({f.scroll+1}/{total})", DIM)
 
         self._w(stdscr, max_y - 1, 0,
-                "  [a] add-model    [f] add-field    [r] rm-model    [R] rm-field"
-                "    ↑↓ scroll    [b] back    [q] quit",
+                "  [a] add-model    [f] add-field    [r] rm-model    [R] rm-field",
                 curses.color_pair(_C_WARN))
 
     # ── Key handling ──────────────────────────────────────────────────────────
