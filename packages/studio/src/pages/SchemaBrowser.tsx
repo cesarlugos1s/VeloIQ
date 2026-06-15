@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { AppSchema, FieldInfo, ModelInfo, ModuleInfo, RelationInfo } from "../types";
+import { AppSchema, FieldInfo, ModelInfo, ModuleInfo, NamedQueryDef, RelationInfo } from "../types";
 import CommandCard, { CommandDef } from "../components/CommandCard";
+import NamedQueryCreator from "../components/NamedQueryCreator";
+import { api } from "../api";
 
 const FIELD_TYPES = [
   "text", "textarea", "richtext", "email", "password", "url", "phone",
@@ -275,10 +277,108 @@ function ModuleDetail({ mod, allModules, devMode, onSelectModel, onSuccess }: {
   );
 }
 
+// ── Named query panel inside ModelDetail ─────────────────────────────────────
+
+function NamedQueriesSection({ model, module, allModelInfos, devMode, onSuccess }: {
+  model: ModelInfo;
+  module: string;
+  allModelInfos: ModelInfo[];
+  devMode: boolean;
+  onSuccess?: () => void;
+}) {
+  const [defs, setDefs] = useState<NamedQueryDef[] | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<NamedQueryDef | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.namedQueries()
+      .then((r) => setDefs(r.named_queries.filter((d) => d.module === module && d.root_resource === model.resource)))
+      .catch((e: Error) => setError(e.message));
+  }, [module, model.resource]);
+
+  const refresh = () => {
+    setDefs(null);
+    setCreating(false);
+    setEditing(null);
+    api.namedQueries()
+      .then((r) => setDefs(r.named_queries.filter((d) => d.module === module && d.root_resource === model.resource)))
+      .catch((e: Error) => setError(e.message));
+    onSuccess?.();
+  };
+
+  const handleDelete = async (def: NamedQueryDef) => {
+    if (!confirm(`Delete named query "${def.name}"?`)) return;
+    try {
+      await api.deleteNamedQuery(module, def.name);
+      refresh();
+    } catch (e: unknown) {
+      setError(String(e));
+    }
+  };
+
+  if (creating || editing) {
+    return (
+      <NamedQueryCreator
+        rootModel={model}
+        module={module}
+        allModels={allModelInfos}
+        existingDef={editing ?? undefined}
+        onSaved={refresh}
+        onCancel={() => { setCreating(false); setEditing(null); }}
+      />
+    );
+  }
+
+  return (
+    <>
+      {error && <div className="vs-error-msg" style={{ marginBottom: 12 }}>{error}</div>}
+      {defs === null ? (
+        <div style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading…</div>
+      ) : defs.length === 0 ? (
+        <div className="vs-empty" style={{ padding: "12px 0", textAlign: "left" }}>
+          No named queries defined for {model.label} yet.
+        </div>
+      ) : (
+        <table className="vs-table" style={{ marginBottom: 12 }}>
+          <thead>
+            <tr><th>Name</th><th>Label</th><th>Joins</th><th>Fields</th><th></th></tr>
+          </thead>
+          <tbody>
+            {defs.map((d) => (
+              <tr key={d.name}>
+                <td><code className="vs-code">{d.name}</code></td>
+                <td>{d.label}</td>
+                <td style={{ color: "var(--text-muted)" }}>{d.joins.map((j) => j.alias).join(", ") || "—"}</td>
+                <td style={{ color: "var(--text-muted)" }}>{d.fields.length}</td>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  {devMode && (
+                    <>
+                      <button onClick={() => setEditing(d)} className="vs-nq-action-btn">Edit</button>
+                      <button onClick={() => handleDelete(d)} className="vs-nq-action-btn danger">Delete</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {devMode && (
+        <button className="vs-nq-add-btn" onClick={() => setCreating(true)}>
+          + Create Named Query
+        </button>
+      )}
+    </>
+  );
+}
+
 // ── Model detail panel ────────────────────────────────────────────────────────
 
-function ModelDetail({ model, allModels, allResources, devMode, onNavigate, onSuccess }: {
+function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMode, onNavigate, onSuccess }: {
   model: ModelInfo;
+  mod: ModuleInfo;
+  allModelInfos: ModelInfo[];
   allModels: string[];
   allResources: string[];
   devMode: boolean;
@@ -412,6 +512,20 @@ function ModelDetail({ model, allModels, allResources, devMode, onNavigate, onSu
       <div className="vs-section-title" style={{ marginTop: 28 }}>Relation Graph</div>
       <RelationGraph model={model} onNavigate={onNavigate} />
 
+      {/* Named queries */}
+      {!model.is_named_query && (
+        <>
+          <div className="vs-section-title" style={{ marginTop: 28 }}>Named Queries</div>
+          <NamedQueriesSection
+            model={model}
+            module={mod.name}
+            allModelInfos={allModelInfos}
+            devMode={devMode}
+            onSuccess={onSuccess}
+          />
+        </>
+      )}
+
       {/* Dev mode commands */}
       {devMode && (
         <>
@@ -501,6 +615,7 @@ export default function SchemaBrowser({ schema, loadSchema, devMode, onSuccess }
   const allModules = data.modules.map((m) => m.name);
   const allModels = data.modules.flatMap((m) => m.models.map((mo) => mo.name));
   const allResources = data.modules.flatMap((m) => m.models.map((mo) => mo.resource));
+  const allModelInfos = data.modules.flatMap((m) => m.models);
 
   return (
     <div className="vs-schema-layout">
@@ -561,6 +676,8 @@ export default function SchemaBrowser({ schema, loadSchema, devMode, onSuccess }
       {selection.kind === "model" && (
         <ModelDetail
           model={selection.model}
+          mod={selection.mod}
+          allModelInfos={allModelInfos}
           allModels={allModels}
           allResources={allResources}
           devMode={devMode}

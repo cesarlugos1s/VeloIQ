@@ -93,3 +93,41 @@ export type Page =
   | "extensions"
   | "health"
   | "commands";
+
+// ── Named query types ─────────────────────────────────────────────────────────
+
+export interface NQJoin {
+  resource: string;
+  alias: string;
+}
+
+export interface NQField {
+  from_alias: string;
+  key: string;
+  alias: string;
+  label: string;
+  type: string;
+}
+
+export interface NQFilter {
+  field: string;
+  operator: string;
+  value: unknown;
+}
+
+export interface NQSort {
+  field: string;
+  order: "asc" | "desc";
+}
+
+export interface NamedQueryDef {
+  name: string;
+  label: string;
+  module: string;
+  root_resource: string;
+  joins: NQJoin[];
+  fields: NQField[];
+  default_filters: NQFilter[];
+  default_sort: NQSort[];
+  list_view_type: string;
+}

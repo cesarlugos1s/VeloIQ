@@ -23,10 +23,12 @@ interface Props {
   page: Page;
   onNavigate: (p: Page) => void;
   onLogout: () => void;
+  darkMode: boolean;
+  onToggleTheme: () => void;
   children: ReactNode;
 }
 
-export default function Layout({ info, page, onNavigate, onLogout, children }: Props) {
+export default function Layout({ info, page, onNavigate, onLogout, darkMode, onToggleTheme, children }: Props) {
   const visible = NAV.filter((n) => !n.devOnly || info.dev_mode);
   const devItems = visible.filter((n) => n.devOnly);
   const mainItems = visible.filter((n) => !n.devOnly);
@@ -68,6 +70,9 @@ export default function Layout({ info, page, onNavigate, onLogout, children }: P
         <div className="vs-sidebar-footer">
           <div className="vs-app-name">{info.app_name}</div>
           <div className="vs-fw-version">v{info.framework_version}</div>
+          <button className="vs-theme-toggle" onClick={onToggleTheme}>
+            {darkMode ? "☀ Light mode" : "☾ Dark mode"}
+          </button>
           <button className="vs-logout" onClick={onLogout}>
             Log out
           </button>

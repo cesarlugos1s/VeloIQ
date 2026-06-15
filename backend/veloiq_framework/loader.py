@@ -205,6 +205,20 @@ def load_modules(
         except Exception as exc:
             print(f"  ❌ {folder_name}/queries CRASHED: {exc}")
 
+        # Also load declarative named queries from named_queries.json.
+        json_path = modules_dir / folder_name / "named_queries.json"
+        if json_path.exists():
+            from veloiq_framework.query_def import build_named_query, load_defs
+            for qdef in load_defs(json_path):
+                try:
+                    nq = build_named_query(qdef, folder_name)
+                    if nq is not None:
+                        router = create_query_router(nq)
+                        app.include_router(router, tags=[folder_name.upper()])
+                        print(f"  ✅ Query (json): {nq.name}")
+                except Exception as exc:
+                    print(f"  ❌ {folder_name}/named_queries.json '{qdef.name}' FAILED: {exc}")
+
     # ── Pass 2: Admin views ───────────────────────────────────────────────────
     from sqlalchemy.orm import configure_mappers
     from sqladmin import ModelView

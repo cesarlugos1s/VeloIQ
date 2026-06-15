@@ -17,6 +17,7 @@ from veloiq_framework.db import get_session
 from veloiq_framework.crud import create_crud_router
 from veloiq_framework.auth.utils import get_current_user, require_role
 from veloiq_framework.queries import NamedQuery, NamedQueryField
+from veloiq_framework.query_def import NamedQueryDef, NamedQueryJoinDef, NamedQueryFieldSpec, NamedQueryFilterSpec
 from veloiq_framework.auth.permissions import (
     RoleDef,
     model_access,

@@ -216,4 +216,87 @@ def make_studio_router(cfg: VeloIQConfig) -> APIRouter:
 
         return StreamingResponse(_generate(), media_type="text/event-stream")
 
+    # ── Named query CRUD ──────────────────────────────────────────────────────
+
+    def _nq_path(module: str) -> Path:
+        return _get_root() / "backend" / "app" / "modules" / module / "named_queries.json"
+
+    def _all_module_names() -> list[str]:
+        modules_dir = _get_root() / "backend" / "app" / "modules"
+        if not modules_dir.exists():
+            return []
+        return sorted(
+            d.name for d in modules_dir.iterdir()
+            if d.is_dir() and not d.name.startswith("__")
+        )
+
+    @router.get("/named-queries")
+    def named_queries_list(request: Request):
+        _admin(request)
+        from veloiq_framework.query_def import load_defs, _def_to_dict
+        result = []
+        for module in _all_module_names():
+            for qdef in load_defs(_nq_path(module)):
+                d = _def_to_dict(qdef)
+                d["module"] = module
+                result.append(d)
+        return {"named_queries": result}
+
+    @router.post("/named-queries")
+    async def named_queries_create(request: Request):
+        _admin(request)
+        _require_dev()
+        from veloiq_framework.query_def import load_defs, save_defs, _parse_one
+        body = await request.json()
+        module = body.get("module", "")
+        if not module:
+            raise HTTPException(status_code=400, detail="module is required")
+        path = _nq_path(module)
+        if not path.parent.exists():
+            raise HTTPException(status_code=404, detail=f"Module '{module}' not found")
+        body["module"] = module
+        try:
+            new_def = _parse_one(body)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        defs = load_defs(path)
+        if any(d.name == new_def.name for d in defs):
+            raise HTTPException(status_code=409, detail=f"Named query '{new_def.name}' already exists")
+        defs.append(new_def)
+        save_defs(path, defs)
+        return {"ok": True, "name": new_def.name}
+
+    @router.put("/named-queries/{module}/{name}")
+    async def named_queries_update(module: str, name: str, request: Request):
+        _admin(request)
+        _require_dev()
+        from veloiq_framework.query_def import load_defs, save_defs, _parse_one
+        path = _nq_path(module)
+        body = await request.json()
+        body["module"] = module
+        try:
+            updated = _parse_one(body)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        defs = load_defs(path)
+        idx = next((i for i, d in enumerate(defs) if d.name == name), None)
+        if idx is None:
+            raise HTTPException(status_code=404, detail=f"Named query '{name}' not found")
+        defs[idx] = updated
+        save_defs(path, defs)
+        return {"ok": True}
+
+    @router.delete("/named-queries/{module}/{name}")
+    def named_queries_delete(module: str, name: str, request: Request):
+        _admin(request)
+        _require_dev()
+        from veloiq_framework.query_def import load_defs, save_defs
+        path = _nq_path(module)
+        defs = load_defs(path)
+        new_defs = [d for d in defs if d.name != name]
+        if len(new_defs) == len(defs):
+            raise HTTPException(status_code=404, detail=f"Named query '{name}' not found")
+        save_defs(path, new_defs)
+        return {"ok": True}
+
     return router

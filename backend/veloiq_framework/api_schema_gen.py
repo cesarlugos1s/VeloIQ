@@ -794,26 +794,46 @@ def _is_link_model(cls: type) -> bool:
 # ---------------------------------------------------------------------------
 
 def _collect_named_query_ts_lines(mod_dir: Path, module_name: str) -> list[str]:
-    """Import *module_name*/queries.py and return TypeScript lines for each NamedQuery."""
+    """Return TypeScript lines for all NamedQuery instances in this module.
+
+    Sources: queries.py (hand-written) and named_queries.json (Studio-generated).
+    """
     import importlib
 
-    queries_file = mod_dir / "queries.py"
-    if not queries_file.exists():
-        return []
-
-    try:
-        from veloiq_framework.queries import NamedQuery
-        qs_mod = importlib.import_module(f"app.modules.{module_name}.queries")
-    except Exception as exc:
-        print(f"  ⚠️  {module_name}/queries: could not import ({exc})")
-        return []
-
     lines: list[str] = []
-    for attr_name in dir(qs_mod):
-        obj = getattr(qs_mod, attr_name)
-        if isinstance(obj, NamedQuery):
-            lines += _build_ts_named_query(obj)
-            print(f"  ✅ {module_name}/{obj.name} (named query)")
+
+    # Hand-written queries.py.
+    queries_file = mod_dir / "queries.py"
+    if queries_file.exists():
+        try:
+            from veloiq_framework.queries import NamedQuery
+            qs_mod = importlib.import_module(f"app.modules.{module_name}.queries")
+            for attr_name in dir(qs_mod):
+                obj = getattr(qs_mod, attr_name)
+                if isinstance(obj, NamedQuery):
+                    lines += _build_ts_named_query(obj)
+                    print(f"  ✅ {module_name}/{obj.name} (named query)")
+        except Exception as exc:
+            print(f"  ⚠️  {module_name}/queries: could not import ({exc})")
+
+    # Declarative named_queries.json.
+    json_path = mod_dir / "named_queries.json"
+    if json_path.exists():
+        try:
+            # Ensure models are registered before resolving.
+            try:
+                importlib.import_module(f"app.modules.{module_name}.models")
+            except Exception:
+                pass
+            from veloiq_framework.query_def import build_named_query, load_defs
+            for qdef in load_defs(json_path):
+                nq = build_named_query(qdef, module_name)
+                if nq is not None:
+                    lines += _build_ts_named_query(nq)
+                    print(f"  ✅ {module_name}/{nq.name} (named query / json)")
+        except Exception as exc:
+            print(f"  ⚠️  {module_name}/named_queries.json: could not process ({exc})")
+
     return lines
 
 

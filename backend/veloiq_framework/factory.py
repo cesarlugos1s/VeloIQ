@@ -194,6 +194,7 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         "/favicon.ico",
         "/health",
         "/veloiq-studio",
+        "/i18n/",
     )
     _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio")
 
@@ -253,6 +254,21 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
     @app.get("/health")
     def health():
         return {"status": "ok", "framework": "VeloIQ"}
+
+    @app.get("/i18n/{locale}.json")
+    def i18n_catalog(locale: str):
+        """Serve the translation catalogue for *locale* as a JSON dict."""
+        from fastapi.responses import JSONResponse
+        from veloiq_framework.utils.i18n_utils import (
+            _resolve_po_file,
+            _load_po_catalog_cached,
+        )
+        po_file = _resolve_po_file(locale)
+        if po_file is None:
+            return JSONResponse({})
+        mtime = int(po_file.stat().st_mtime_ns)
+        catalog = _load_po_catalog_cached(str(po_file), mtime)
+        return JSONResponse(catalog)
 
     # Auth endpoints (login, me, register, CRUD for user/role/tenant)
     from veloiq_framework.auth.router import make_auth_router

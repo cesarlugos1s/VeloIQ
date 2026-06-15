@@ -12,6 +12,13 @@ import Extensions from "./pages/Extensions";
 import HealthCheck from "./pages/HealthCheck";
 import CommandPanel from "./pages/CommandPanel";
 
+const THEME_KEY = "vs_theme";
+
+function applyTheme(dark: boolean) {
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
+}
+
 export default function App() {
   const [token, setToken] = useState(getToken());
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -20,6 +27,19 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem(THEME_KEY);
+    const prefersDark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(prefersDark);
+    return prefersDark;
+  });
+
+  const toggleTheme = useCallback(() => {
+    setDarkMode((prev) => {
+      applyTheme(!prev);
+      return !prev;
+    });
+  }, []);
 
   // Deduplicate concurrent loadSchema calls with an in-flight promise ref.
   const inflightRef = useRef<Promise<AppSchema> | null>(null);
@@ -113,7 +133,7 @@ export default function App() {
   };
 
   return (
-    <Layout info={info} page={page} onNavigate={setPage} onLogout={logout}>
+    <Layout info={info} page={page} onNavigate={setPage} onLogout={logout} darkMode={darkMode} onToggleTheme={toggleTheme}>
       {pages[page]}
     </Layout>
   );

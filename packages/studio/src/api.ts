@@ -44,6 +44,27 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (r.status === 401) throw new AuthError();
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json() as Promise<T>;
+}
+
+async function del<T>(path: string): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (r.status === 401) throw new AuthError();
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json() as Promise<T>;
+}
+
 export const api = {
   login: async (username: string, password: string): Promise<void> => {
     const r = await fetch("/auth/login", {
@@ -67,6 +88,15 @@ export const api = {
     get<{ stdout: string; stderr: string; returncode: number }>("/health"),
   runCommand: (command: string) =>
     post<{ run_id: string }>("/commands/run", { command }),
+
+  namedQueries: () =>
+    get<{ named_queries: import("./types").NamedQueryDef[] }>("/named-queries"),
+  createNamedQuery: (def: import("./types").NamedQueryDef) =>
+    post<{ ok: boolean; name: string }>("/named-queries", def),
+  updateNamedQuery: (module: string, name: string, def: import("./types").NamedQueryDef) =>
+    put<{ ok: boolean }>(`/named-queries/${module}/${name}`, def),
+  deleteNamedQuery: (module: string, name: string) =>
+    del<{ ok: boolean }>(`/named-queries/${module}/${name}`),
 
   streamCommand: async (
     run_id: string,

@@ -37,6 +37,36 @@ The **Relation Graph** at the bottom of each model detail shows every forward an
 
 ![Relation Graph — orbit diagram of model connections](images/studio/studio-relation-graph.png)
 
+The **Named Query Creator** sits below the Relation Graph on each model detail page (dev mode only). It lets you define a cross-model read query — entirely in the browser, with no Python coding required. Named queries are stored as `named_queries.json` in the module directory and are surfaced as first-class resources in the frontend (with their own list, show, and filter views).
+
+#### Creating a named query
+
+1. Open a model in the Schema Browser.
+2. Scroll to **Named Queries** and click **+ New Named Query**.
+3. Fill in the form:
+
+| Section | What you configure |
+|---|---|
+| **Basic Info** | Slug name (used as the route key), human-readable label, list view type (`table`, `gallery`, `calendar`) |
+| **Joins** | Tick related models to JOIN; set an alias for each join to prefix field names |
+| **Fields** | Toggle which columns appear in the result; the primary key is always included (shown with a `[pk]` badge). Named query rows must be identifiable for show/edit navigation |
+| **Field Labels** | Override the display label for any selected field; field type is read-only (inferred from schema) |
+| **Default Filters** | SQL WHERE clauses baked into every request — supports `eq`, `ne`, `contains`, `gt`, `gte`, `lt`, `lte` |
+| **Default Sort** | Ordered list of `{field, asc/desc}` entries applied as `ORDER BY` |
+
+4. Click **Create** (or **Update** for an existing query). The studio automatically runs `veloiq generate` and streams the output; the new resource appears in the frontend navigation as soon as generation completes.
+
+#### How named queries work
+
+- Stored in `backend/app/modules/<module>/named_queries.json` — committed alongside your models.
+- Loaded at app startup by the framework module loader; each query registers its own read-only REST router.
+- Joined via ORM relationships (not raw SQL `JOIN`) — the framework resolves the SQLAlchemy relationship attribute automatically.
+- Multi-sort order is fully respected at the database level (`ORDER BY col1 ASC, col2 DESC ...`).
+- The primary key of the root model is always SELECTed (even if the user did not tick it), ensuring every row has a valid `eid` for frontend navigation.
+- Cross-model filter fields reference the output column alias, so filters work regardless of which table a column comes from.
+
+Named queries appear in the module view under **Named Queries** with a count badge, and in the frontend as a dedicated list page that supports advanced filtering, sorting, and show/detail navigation into the root model's show page.
+
 **Dashboard** — models currently configured on the dashboard, grouped by tab. Toggle Dashboard Model command (dev mode).
 
 ![Dashboard configuration page](images/studio/studio-dashboard.png)

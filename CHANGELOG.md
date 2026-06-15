@@ -4,6 +4,45 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.8.2] — 2026-06-15
+
+### Features
+
+#### Named Query Creator — zero-code cross-model queries in Studio
+A new dev-mode panel on every model's detail page in the Schema Browser lets developers
+define cross-model read queries entirely in the browser — no Python coding required.
+
+- **Declarative JSON storage** — queries are saved to `named_queries.json` in the module
+  directory alongside `models.py`. The file is committed to source control and loaded by
+  the framework at startup and code-generation time.
+- **Relation-based JOINs** — joins are resolved via SQLAlchemy ORM relationships, not raw
+  SQL. The framework discovers the correct relationship attribute automatically.
+- **Field projection** — toggle individual columns from the root model and any joined model.
+  Column aliases and display labels are customisable per-query; field types are read-only
+  (inferred from the schema to avoid display inconsistencies).
+- **Primary key guarantee** — the root model's pk column is always injected into the SELECT,
+  ensuring every result row has a valid `eid` for show/edit navigation. The pk chip in the
+  field picker is shown as locked and cannot be deselected.
+- **Cross-model default filters** — SQL WHERE clauses baked in at query definition time,
+  referencing any selected output column by its alias. Supports `eq`, `ne`, `contains`,
+  `gt`, `gte`, `lt`, `lte`.
+- **Multi-field sort** — an ordered list of `{field, asc/desc}` entries, fully applied as
+  `ORDER BY col1 ASC, col2 DESC …` at the database level.
+- **Auto-generate** — after every create or update, the studio automatically runs
+  `veloiq generate` and streams the output. The new resource appears in the frontend as soon
+  as generation completes, with no manual step required.
+- **Light/dark mode toggle** — a theme toggle added to the Studio sidebar persists the
+  preference in `localStorage` and respects `prefers-color-scheme` on first load.
+
+#### i18n translation catalogue endpoint
+- Added `GET /i18n/{locale}.json` endpoint served by the framework (no host-app code
+  needed). Returns the compiled `.po` catalogue as a flat JSON object for the frontend
+  i18n client.
+- Added `/i18n/` to the auth-exempt path list so translation requests are never blocked by
+  JWT middleware.
+
+---
+
 ## [0.8.1] — 2026-06-15
 
 ### Features
