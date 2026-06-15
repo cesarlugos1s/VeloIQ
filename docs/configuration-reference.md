@@ -50,7 +50,51 @@ app = create_veloiq_app()
 | `title` | — | `"VeloIQ App"` | FastAPI app title, shown in `/docs`. |
 | `modules_dir` | `VELOIQ_MODULES_DIR` | `"app/modules"` | Path to the modules directory, relative to the working directory. |
 | `static_dir` | — | `None` | Directory to mount at `/static`. |
+| `serve_frontend` | — | `None` | Path to the built frontend dist folder (e.g. `\"../frontend/dist\"`). When set, FastAPI serves the React app at `/` — no separate Vite dev server needed. See **Production mode** below. |
 | `extensions` | `VELOIQ_EXTENSIONS` | `None` → resolves from `veloiq.toml` | Allowlist of extension (entry-point) names this app loads. See **Extensions** below. |
+
+### Production mode
+
+When `serve_frontend` points to a directory that contains a built frontend
+(`index.html` + `assets/`), FastAPI serves the React app directly at `/` —
+no separate Vite dev server needed.  The same process handles both the API at
+`/api/` and the user interface at `/`.
+
+**Build the frontend:**
+
+```bash
+cd frontend
+npm run build          # or:  veloiq build
+```
+
+This produces `frontend/dist/`.  The scaffolded `main.py` already wires it up:
+
+```python
+from pathlib import Path
+from veloiq_framework import create_veloiq_app, VeloIQConfig
+
+_frontend_dist = Path(__file__).parent.parent.parent / \"frontend\" / \"dist\"
+
+app = create_veloiq_app(VeloIQConfig(
+    serve_frontend=_frontend_dist if _frontend_dist.exists() else None,
+))
+```
+
+**Run in production:**
+
+```bash
+veloiq run              # single process — API + UI on http://localhost:8000
+```
+
+When the dist does **not** exist, `serve_frontend` is `None` and the app starts
+in development mode — you need a separate Vite dev server (`npm run dev`) on
+port 5173.
+
+In production mode the auth middleware only protects `/api/`, `/auth/me`, and
+`/auth/change-password` — all other paths (React routes) pass through to the
+SPA handler, which serves `index.html` for any unmatched path.  This means
+React Router can handle client-side redirects to `/login` without the backend
+interfering.
 
 ### Extensions (explicit opt-in)
 

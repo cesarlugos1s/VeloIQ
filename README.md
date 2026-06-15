@@ -110,7 +110,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 - `veloiq scaffold-page` — generate a custom React page override for any resource
 - `veloiq check` — health-check your project configuration
 - `veloiq generate` — regenerate `api.py` and TypeScript schemas from your models; also syncs installed extension schemas
-- `veloiq run` — start the development server
+- `veloiq build` — build the frontend for production; the backend serves the compiled React app at `/` — no Vite dev server needed
+- `veloiq run` — start the server (dev: backend only; production: API + UI on one port)
 - `veloiq db upgrade` — apply Alembic migrations
 - `veloiq new-extension <name>` — scaffold a new extension package (backend modules + frontend schemas + license module + licensing CLI)
 - `veloiq add-licensing` — add optional license enforcement to a host app's own modules

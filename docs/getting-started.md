@@ -148,6 +148,47 @@ npm run dev               # starts at http://localhost:5173
 Open http://localhost:5173 — you have a working CRUD interface for your Product
 model with zero additional code.
 
+## Production deployment
+
+For production, build the frontend once and serve it directly from FastAPI —
+no separate Vite dev server needed:
+
+```bash
+cd frontend
+npm run build              # or:  veloiq build
+```
+
+This produces `frontend/dist/`.  The scaffolded `main.py` already detects the
+dist folder and switches to production mode automatically:
+
+```python
+from pathlib import Path
+from veloiq_framework import create_veloiq_app, VeloIQConfig
+
+_frontend_dist = Path(__file__).parent.parent.parent / \"frontend\" / \"dist\"
+
+app = create_veloiq_app(VeloIQConfig(
+    serve_frontend=_frontend_dist if _frontend_dist.exists() else None,
+))
+```
+
+Now start as usual:
+
+```bash
+cd backend
+veloiq run                 # API + UI — single process on http://localhost:8000
+```
+
+The entire application runs at `/` — the React app, the REST API at `/api/`,
+and the admin panel at `/admin/` are all served by one FastAPI process.  No
+CORS configuration needed since everything is same-origin.
+
+When `frontend/dist/` does NOT exist, the app falls back to development mode
+and you need the Vite dev server (`npm run dev`) on port 5173.
+
+See [Configuration Reference → Production mode](./configuration-reference.md#production-mode)
+for details.
+
 ## Frontend layout and navigation
 
 The generated frontend shell (`LayoutWrapper`) includes built-in navigation

@@ -418,6 +418,37 @@ See [Custom Page Scaffolding](scaffold-page.md) for full documentation.
 
 ---
 
+## `veloiq build`
+
+Build the host app's frontend for production deployment — no Vite dev server
+needed at runtime.
+
+```bash
+veloiq build
+veloiq build --frontend-dir /path/to/frontend
+```
+
+Runs `npm run build` in the frontend directory, producing `frontend/dist/`.
+Once built, `veloiq run` serves the compiled React app directly at `/`
+alongside the API — the whole application runs on a single port.
+
+The scaffolded `main.py` already wires this up: when `frontend/dist/` exists,
+`serve_frontend` is set automatically; when it does not, the app falls back to
+development mode.
+
+```python
+_frontend_dist = Path(__file__).parent.parent.parent / \"frontend\" / \"dist\"
+
+app = create_veloiq_app(VeloIQConfig(
+    serve_frontend=_frontend_dist if _frontend_dist.exists() else None,
+))
+```
+
+Rebuild after any frontend change (`veloiq generate`, custom pages, etc.) and
+restart the backend.
+
+---
+
 ## Field metadata conventions
 
 VeloIQ reads metadata from model field declarations and emits it into the TypeScript schema (`gen.ts`) so the frontend can use it:
