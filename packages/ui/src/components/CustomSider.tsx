@@ -105,7 +105,7 @@ export const CustomSider: React.FC<{
             theme={mode === "dark" ? "dark" : "light"}
             style={{
                 borderRight: `1px solid ${token.colorBorderSecondary}`,
-                background: token.colorBgContainer,
+                background: mode === "dark" ? token.colorBgContainer : token.colorBgLayout,
                 height: "100vh",
                 position: "sticky",
                 top: 0,
