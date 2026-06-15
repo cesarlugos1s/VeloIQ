@@ -97,6 +97,12 @@ class VeloIQConfig:
     # ── Static files ──────────────────────────────────────────────────────────
     static_dir: Path | None = None        # None = no static mount
 
+    # ── Frontend (production) ─────────────────────────────────────────────────
+    # Path to the built frontend dist/ directory (e.g. Path("../frontend/dist")).
+    # When set and the directory exists, FastAPI serves it at / — no separate
+    # Vite dev server needed.  Leave None during development (use npm run dev).
+    serve_frontend: Path | None = None
+
     # ── Role presets ──────────────────────────────────────────────────────────
     # Developer-defined roles seeded to the DB on startup.  Defaults to the
     # three built-in presets (Admin / Manager / Viewer).  Add or replace entries
@@ -142,6 +148,8 @@ class VeloIQConfig:
         self.modules_dir = Path(self.modules_dir)
         if self.static_dir is not None:
             self.static_dir = Path(self.static_dir)
+        if self.serve_frontend is not None:
+            self.serve_frontend = Path(self.serve_frontend)
         if self.admin_templates_dir is not None:
             self.admin_templates_dir = Path(self.admin_templates_dir)
         if self.admin_title is None:

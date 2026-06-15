@@ -1542,7 +1542,6 @@ function useNavModules() {
   const navConfig = useNavConfig();
   return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
 }
-var API_URL4 = "/api";
 var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
   const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
@@ -1615,7 +1614,7 @@ var LayoutWrapper = ({
   const handleChangePassword = async (values) => {
     setPwdLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL4}/auth/change-password`, {
+      const res = await authenticatedFetch(`/auth/change-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)

@@ -86,6 +86,7 @@ _ALLOWED_PREFIXES = (
     "veloiq search remove-field ",
     "veloiq scaffold-page ",
     "veloiq generate",
+    "veloiq build",
     "veloiq check",
     "veloiq extend-package ",
     "veloiq remove-package ",

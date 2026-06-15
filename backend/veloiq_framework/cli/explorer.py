@@ -551,6 +551,7 @@ class Explorer:
             ("3", "Manage Extensions"),
             ("g", "Run: veloiq generate"),
             ("c", "Run: veloiq check  (health report)"),
+            ("b", "Run: veloiq build  (build frontend for production)"),
             ("q", "Quit"),
         ]
         for i, (key, label) in enumerate(menu):
@@ -561,7 +562,7 @@ class Explorer:
             r += 1
 
         self._w(stdscr, max_y - 2, 0,
-                "  ↑↓ / jk  navigate    Enter  select    q  quit",
+                "  ↑↓ / jk  navigate    Enter  select    g  generate    b  build    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Extensions ────────────────────────────────────────────────────────────
@@ -1041,6 +1042,9 @@ class Explorer:
                 if self._confirm(stdscr, max_y, max_x, "veloiq check"):
                     return "veloiq check"
             elif f.cursor == 5:
+                if self._confirm(stdscr, max_y, max_x, "veloiq build"):
+                    return "veloiq build"
+            elif f.cursor == 6:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
@@ -1054,6 +1058,9 @@ class Explorer:
         elif key == ord('c'):
             if self._confirm(stdscr, max_y, max_x, "veloiq check"):
                 return "veloiq check"
+        elif key == ord('b'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq build"):
+                return "veloiq build"
         return None
 
     def _handle_extensions(self, key, stdscr, max_y, max_x) -> Optional[str]:

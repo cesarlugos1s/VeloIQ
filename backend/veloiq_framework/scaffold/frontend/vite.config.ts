@@ -13,10 +13,9 @@ export default defineConfig({
     host: true,
     port: {{frontend_port}},
     proxy: {
-      "/api": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true, rewrite: (path: string) => path.replace(/^\/api/, "") },
+      "/api": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
       "/auth": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
       "/admin": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
-      "/views": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
       "/i18n": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
     },
   },

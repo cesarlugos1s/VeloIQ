@@ -172,7 +172,7 @@ def load_modules(
                     if lic_dep is not None:
                         router.dependencies.append(lic_dep)
                     tag = "CUSTOM" if sub == "custom_api" else folder_name.upper()
-                    app.include_router(router, tags=[folder_name.upper(), tag])
+                    app.include_router(router, prefix="/api", tags=[folder_name.upper(), tag])
                     registered_router_ids.add(id(router))
                     print(f"  ✅ {sub}: {folder_name}")
             except ModuleNotFoundError as exc:
@@ -197,7 +197,7 @@ def load_modules(
                 obj = getattr(queries_mod, attr_name)
                 if isinstance(obj, NamedQuery):
                     router = create_query_router(obj)
-                    app.include_router(router, tags=[folder_name.upper()])
+                    app.include_router(router, prefix="/api", tags=[folder_name.upper()])
                     print(f"  ✅ Query: {obj.name}")
         except ModuleNotFoundError as exc:
             if dotted not in str(exc):
@@ -214,7 +214,7 @@ def load_modules(
                     nq = build_named_query(qdef, folder_name)
                     if nq is not None:
                         router = create_query_router(nq)
-                        app.include_router(router, tags=[folder_name.upper()])
+                        app.include_router(router, prefix="/api", tags=[folder_name.upper()])
                         print(f"  ✅ Query (json): {nq.name}")
                 except Exception as exc:
                     print(f"  ❌ {folder_name}/named_queries.json '{qdef.name}' FAILED: {exc}")
@@ -419,6 +419,7 @@ def _load_extension_modules(
                     inc_deps = [lic_dep] if lic_dep is not None else []
                     app.include_router(
                         router,
+                        prefix="/api",
                         tags=[folder_name.upper()],
                         dependencies=inc_deps,
                     )
@@ -442,7 +443,7 @@ def _load_extension_modules(
                 obj = getattr(queries_mod, attr_name)
                 if isinstance(obj, NamedQuery):
                     router = create_query_router(obj)
-                    app.include_router(router, tags=[folder_name.upper()])
+                    app.include_router(router, prefix="/api", tags=[folder_name.upper()])
                     print(f"  ✅ {ext.name}/{obj.name} (named query)")
         except ModuleNotFoundError:
             pass

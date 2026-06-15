@@ -38,6 +38,13 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       inputs: [],
       build: () => "veloiq generate",
     },
+    {
+      id: "build",
+      label: "Build Frontend",
+      description: "Compile the frontend for production — FastAPI will then serve the app at /",
+      inputs: [],
+      build: () => "veloiq build",
+    },
   ];
 }
 

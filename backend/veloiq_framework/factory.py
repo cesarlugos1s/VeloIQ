@@ -172,6 +172,9 @@ def create_veloiq_app(
     # ── VeloIQ Studio ─────────────────────────────────────────────────────────
     _mount_studio(app, cfg)
 
+    # ── Host app frontend (production) — must be last so API routes win ───────
+    _mount_frontend(app, cfg)
+
     return app
 
 
@@ -198,10 +201,18 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
     )
     _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio")
 
+    # In production SPA mode only these prefixes require a JWT; everything else
+    # (React Router paths, static assets) is served as HTML/JS and the React app
+    # handles its own auth redirects.  All data APIs are under /api/ now.
+    _spa_protected = ("/api/", "/auth/me", "/auth/change-password")
+
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         path = request.url.path
-        if any(path.startswith(p) for p in _auth_exempt):
+        if cfg.serve_frontend is not None:
+            if not any(path.startswith(p) for p in _spa_protected):
+                return await call_next(request)
+        elif any(path.startswith(p) for p in _auth_exempt):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")
@@ -248,9 +259,10 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
 
 def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
     """Register the minimal set of framework-level REST endpoints."""
-    from fastapi import Request, HTTPException
+    from fastapi import APIRouter as _APIRouter, Request, HTTPException
     from pydantic import BaseModel
 
+    # Public endpoints served at root — not behind /api prefix.
     @app.get("/health")
     def health():
         return {"status": "ok", "framework": "VeloIQ"}
@@ -274,12 +286,16 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
     from veloiq_framework.auth.router import make_auth_router
     app.include_router(make_auth_router(cfg))
 
+    # All data API endpoints live under /api so the frontend's API_URL="/api"
+    # works in production without any Vite proxy path-rewriting.
+    core_api = _APIRouter()
+
     # --- UI configuration stubs ---
     # The frontend reads these endpoints on every page load.  When not configured
     # by the application, return safe empty defaults so the frontend uses its
     # built-in defaults rather than logging repeated 404s.
 
-    @app.get("/config/search")
+    @core_api.get("/config/search")
     async def config_search():
         """Return which entity/attribute types are globally searchable.
         Reads config/search.json if present; empty lists disable backend search."""
@@ -300,7 +316,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                     break
         return {"entity_types": [], "attribute_types": []}
 
-    @app.get("/config/views")
+    @core_api.get("/config/views")
     async def config_views():
         """Return global UI view settings from the ``[views]`` table of the
         project's ``veloiq.toml``. Keys absent from the file are omitted so the
@@ -369,7 +385,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         view_names: list[str] | None = None
         new_name: str | None = None
 
-    @app.get("/views/preferences")
+    @core_api.get("/views/preferences")
     async def get_view_preferences(resource: str, preference_type: str = "Analyze", custom_view_name: str | None = None):
         data = _load_prefs()
         bucket = data.get(_USER_KEY, {}).get(resource, {})
@@ -389,7 +405,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             return {"preferences": bucket[preference_type]}
         return {"preferences": {}}
 
-    @app.post("/views/preferences")
+    @core_api.post("/views/preferences")
     async def save_view_preferences(payload: _PrefsPayload):
         data = _load_prefs()
         data.setdefault(_USER_KEY, {})
@@ -414,7 +430,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         _save_prefs(data)
         return {"status": "ok"}
 
-    @app.post("/views/preferences/view")
+    @core_api.post("/views/preferences/view")
     async def manage_view(payload: _ManageViewPayload):
         data = _load_prefs()
         data.setdefault(_USER_KEY, {})
@@ -444,7 +460,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
 
     _COLOR_MODE_KEY = "__color_mode__"
 
-    @app.get("/views/preferences/color-mode")
+    @core_api.get("/views/preferences/color-mode")
     async def get_color_mode():
         data = _load_prefs()
         mode = data.get(_COLOR_MODE_KEY, {}).get("colorMode")
@@ -452,7 +468,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             return {"colorMode": mode}
         return {}
 
-    @app.post("/views/preferences/color-mode")
+    @core_api.post("/views/preferences/color-mode")
     async def save_color_mode(request: Request):
         body = await request.json()
         mode = body.get("colorMode")
@@ -463,7 +479,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         _save_prefs(data)
         return {"status": "ok"}
 
-    @app.get("/views/configurations/{model_name}")
+    @core_api.get("/views/configurations/{model_name}")
     async def view_configurations(model_name: str, view_type: str = ""):
         """Return view layout configuration rows for a model.
 
@@ -550,7 +566,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         tmp.write_text(_json.dumps(data, indent=2) + "\n", encoding="utf-8")
         tmp.replace(_VIEWS_CONFIG_FILE)
 
-    @app.get("/dashboard/config")
+    @core_api.get("/dashboard/config")
     async def get_dashboard_config():
         """Return the __dashboard__ section.
 
@@ -569,7 +585,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             return {"enabled": False}
         return {"enabled": True, "dashboard": dashboard}
 
-    @app.put("/dashboard/config")
+    @core_api.put("/dashboard/config")
     async def save_dashboard_config(request: Request):
         """Persist the __dashboard__ section to views_preferences.json."""
         from fastapi import HTTPException as _HTTPException
@@ -602,7 +618,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                 return v
         return str(row.get("id", ""))
 
-    @app.get("/dashboard/pinned-records/check")
+    @core_api.get("/dashboard/pinned-records/check")
     async def check_pinned_record(request: Request, resource: str, record_id: str):
         from sqlmodel import Session as _SMSession, select as _sm_select
         from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
@@ -617,7 +633,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             ).first()
         return {"pinned": pin is not None, "pin_id": pin.id if pin else None}
 
-    @app.post("/dashboard/pinned-records")
+    @core_api.post("/dashboard/pinned-records")
     async def pin_record(request: Request):
         from sqlmodel import Session as _SMSession, select as _sm_select
         from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
@@ -644,7 +660,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             session.refresh(pin)
         return {"pinned": True, "pin_id": pin.id}
 
-    @app.delete("/dashboard/pinned-records/{resource}/{record_id}")
+    @core_api.delete("/dashboard/pinned-records/{resource}/{record_id}")
     async def unpin_record(request: Request, resource: str, record_id: str):
         from sqlmodel import Session as _SMSession, select as _sm_select
         from veloiq_framework.auth.models import VeloIQPinnedRecord as _Pin
@@ -662,7 +678,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                 session.commit()
         return {"pinned": False}
 
-    @app.get("/dashboard/pinned-records")
+    @core_api.get("/dashboard/pinned-records")
     async def get_pinned_records(request: Request):
         from datetime import datetime as _dt
         from sqlmodel import Session as _SMSession, select as _sm_select
@@ -726,7 +742,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         except (ValueError, TypeError):
             return val
 
-    @app.get("/dashboard/recent-activity")
+    @core_api.get("/dashboard/recent-activity")
     async def get_dashboard_recent_activity(days: int | None = None):
         """Return records modified within the last N days, grouped by model."""
         from datetime import datetime, timedelta, timezone
@@ -810,7 +826,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
 
         return {"groups": groups, "days": effective_days}
 
-    @app.post("/views/model_graph")
+    @core_api.post("/views/model_graph")
     async def model_graph(request: Request):
         """Return an SVG knowledge-graph diagram for a model and its relations."""
         import math as _math
@@ -923,10 +939,25 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             )
         return {"html": svg}
 
+    # Mount all core data API endpoints under /api so they match API_URL="/api"
+    # used by the frontend (both dev proxy and production same-origin).
+    app.include_router(core_api, prefix="/api")
+
 
 # ---------------------------------------------------------------------------
 # VeloIQ Studio
 # ---------------------------------------------------------------------------
+
+def _mount_frontend(app: FastAPI, cfg: VeloIQConfig) -> None:
+    """Serve the host app's built frontend dist/ at / for production deployments."""
+    if cfg.serve_frontend is None:
+        return
+    dist = Path(cfg.serve_frontend)
+    if not dist.exists():
+        return
+    app.mount("/", StaticFiles(directory=str(dist), html=True), name="frontend")
+    print(f"  🌐 Frontend: / → {dist}")
+
 
 def _mount_studio(app: FastAPI, cfg: VeloIQConfig) -> None:
     """Mount the Studio API router and serve the pre-built frontend."""

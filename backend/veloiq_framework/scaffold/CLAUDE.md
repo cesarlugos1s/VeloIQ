@@ -41,9 +41,13 @@ veloiq db upgrade          # applies Alembic migration
 # If alembic.ini is missing (project built without `veloiq new`)
 veloiq db init             # copies Alembic scaffold into backend/; run once
 
-# Run the app
+# Run the app (development)
 veloiq run                 # backend at http://localhost:{{backend_port}}
 cd frontend && npm run dev  # frontend at http://localhost:5173
+
+# Run the app (production — single port, no Vite server needed)
+veloiq build               # builds frontend/dist/ from frontend/src/
+veloiq run                 # serves frontend + API at http://localhost:{{backend_port}}
 
 # Extension packages (optional)
 pip install <extension>    # e.g. pip install iqvigilant

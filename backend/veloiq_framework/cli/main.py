@@ -6,6 +6,7 @@ from veloiq_framework.cli.module import add_module
 from veloiq_framework.cli.generate import generate
 from veloiq_framework.cli.migrate import migrate
 from veloiq_framework.cli.run import run
+from veloiq_framework.cli.build import build
 from veloiq_framework.cli.db import db
 from veloiq_framework.cli.search import search
 from veloiq_framework.cli.dashboard import add_dashboard
@@ -39,6 +40,7 @@ def cli(ctx):
       veloiq add-relation Task Project  Add a FK or many-to-many relation
       veloiq generate                Generate frontend schemas from backend models
       veloiq run                     Start the development server
+      veloiq build                   Build the frontend for production
       veloiq db upgrade              Apply Alembic migrations
       veloiq check                   Health-check the project (descriptions, config gaps)
 
@@ -61,6 +63,7 @@ cli.add_command(add_module)
 cli.add_command(generate)
 cli.add_command(migrate)
 cli.add_command(run)
+cli.add_command(build)
 cli.add_command(db)
 cli.add_command(search)
 cli.add_command(add_dashboard)

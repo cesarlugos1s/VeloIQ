@@ -132,7 +132,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     const handleChangePassword = async (values: { current_password: string; new_password: string }) => {
         setPwdLoading(true);
         try {
-            const res = await authenticatedFetch(`${API_URL}/auth/change-password`, {
+            const res = await authenticatedFetch(`/auth/change-password`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
