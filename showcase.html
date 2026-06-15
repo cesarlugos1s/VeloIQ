@@ -55,6 +55,7 @@
     <a href="#detail">Detail &amp; Forms</a>
     <a href="#charts">18 Chart Types</a>
     <a href="#themes">Dark &amp; Light</a>
+    <a href="#studio">Developer Studio</a>
   </div>
 </div>
 
@@ -251,6 +252,65 @@
       <figure class="ui-shot">
         <div class="shot-frame"><img data-zoom src="showcase-assets/dashboard-light.png" alt="Dashboard in light mode" loading="lazy"></div>
         <figcaption class="shot-body"><span class="shot-tag">Light</span><h4>Light mode</h4><p>The same dashboard, one click away — no extra styling.</p></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Developer Studio -->
+<section class="showcase-section" id="studio">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Built-in dev tool</span>
+      <h2>VeloIQ Developer Studio</h2>
+      <p>A browser-based dashboard mounted automatically at <code>/veloiq-studio/</code> — explore your schema, run scaffolding commands, and inspect your app without touching the terminal.</p>
+    </div>
+    <div class="gallery one">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/studio/studio-schema-fields.png" alt="VeloIQ Studio schema browser showing model fields and relations" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Schema Browser</span>
+          <h4>Your full schema, at a glance</h4>
+          <p>A module/model tree on the left, rich detail on the right — fields, types, flags, and relations for every model in your project. Navigable: click a relation to jump to the target model.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery one" style="margin-top:24px">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/studio/studio-relation-graph.png" alt="VeloIQ Studio relation graph showing model connections" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Relation Graph</span>
+          <h4>See how your models connect</h4>
+          <p>Each model detail page includes an orbit graph of all its relations — forward FK parents, one-to-many children, many-to-many links, and reverse references — colour-coded by type. Click any node to navigate.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery" style="margin-top:24px">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/studio/studio-dashboard.png" alt="VeloIQ Studio dashboard configuration page" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Dashboard &amp; Search Config</span>
+          <h4>Configure what's visible</h4>
+          <p>See which models are on the dashboard and which are enrolled in search. In dev mode, toggle them with a single command — no config file edits.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/studio/studio-add-field.png" alt="VeloIQ Studio add field and add relation dev commands" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Dev Commands</span>
+          <h4>Scaffold from the browser</h4>
+          <p>Add Field, Add Relation, and Scaffold Page commands appear pre-filled with the selected model — run <code>veloiq</code> CLI commands without leaving the browser. Output streams live; schema refreshes automatically.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="gallery one" style="margin-top:24px">
+      <figure class="ui-shot">
+        <div class="shot-frame"><img data-zoom src="showcase-assets/studio/studio-summary.png" alt="VeloIQ Studio summary page showing app health at a glance" loading="lazy"></div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">Summary</span>
+          <h4>App health at a glance</h4>
+          <p>Project name, database URL, module count, dashboard and search enrollment, extensions status, and dev mode flag — the first thing you see when you open the studio.</p>
+        </figcaption>
       </figure>
     </div>
   </div>
