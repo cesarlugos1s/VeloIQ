@@ -1635,11 +1635,13 @@ def launch_explorer() -> None:
         else:
             return
 
-    data = _load_app_data(root)
-    explorer = Explorer(data)
-    cmd = explorer.run()
-
-    if cmd:
+    while True:
+        data = _load_app_data(root)
+        explorer = Explorer(data)
+        cmd = explorer.run()
+        if not cmd:
+            break
         print(f"\n  Running: {cmd}\n")
         subprocess.run(cmd, shell=True, cwd=str(root))
         print()
+        input("  Press Enter to return to the TUI...")
