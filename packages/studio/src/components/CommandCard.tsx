@@ -26,7 +26,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-const SKIP_AUTO_GENERATE = new Set(["veloiq generate", "veloiq check"]);
+const SKIP_AUTO_GENERATE = new Set(["veloiq generate", "veloiq check", "veloiq build", "veloiq migrate", "veloiq db upgrade"]);
 
 async function runAndStream(
   command: string,

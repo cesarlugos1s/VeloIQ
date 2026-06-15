@@ -45,6 +45,20 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       inputs: [],
       build: () => "veloiq build",
     },
+    {
+      id: "migrate",
+      label: "Migrate App",
+      description: "Upgrade this app to the current framework version — applies schema, config, and proxy migrations",
+      inputs: [],
+      build: () => "veloiq migrate",
+    },
+    {
+      id: "db-upgrade",
+      label: "Apply DB Migrations",
+      description: "Run pending Alembic database migrations (veloiq db upgrade)",
+      inputs: [],
+      build: () => "veloiq db upgrade",
+    },
   ];
 }
 
