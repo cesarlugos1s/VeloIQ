@@ -23,17 +23,31 @@ Log in with the same credentials as the main application. The studio reads the `
 
 ### Pages
 
+**Summary** — project name, database URL, module/model counts, dashboard and search enrollment, extensions, and dev mode status — the first page shown on login.
+
+![Summary page — app health overview](images/studio/studio-summary.png)
+
 **Schema Browser** — module/model tree on the left, detail panel on the right.  
 - Module view: lists all models with field count, dashboard and search status. Add Model command pre-fills the module.  
-- Model view: Fields section (plain columns), Relations section (many-to-one FK parents + one-to-many / many-to-many ORM relations), Meta section. In dev mode, Add Field, Add Relation, and Scaffold Page commands appear pre-filled with the selected model.
+- Model view: Fields section (plain columns), Relations section (many-to-one FK parents + one-to-many / many-to-many ORM relations), Meta section, and a **Relation Graph** showing all connections as a colour-coded orbit diagram. In dev mode, Add Field, Add Relation, and Scaffold Page commands appear pre-filled with the selected model.
+
+![Schema Browser — model fields and relations](images/studio/studio-schema-fields.png)
+
+The **Relation Graph** at the bottom of each model detail shows every forward and reverse connection. Nodes are colour-coded by type (blue = many-to-one, green = one-to-many, purple = many-to-many, grey = referenced-by). Click any satellite node to navigate to that model within the studio.
+
+![Relation Graph — orbit diagram of model connections](images/studio/studio-relation-graph.png)
 
 **Dashboard** — models currently configured on the dashboard, grouped by tab. Toggle Dashboard Model command (dev mode).
+
+![Dashboard configuration page](images/studio/studio-dashboard.png)
 
 **Search** — indexed models and fields. Toggle Search Model and Toggle Search Field commands (dev mode).
 
 **Extensions** — installed extensions and their enabled/disabled status. Enable/Disable toggle (dev mode).
 
-**Command Panel** — global Add Module, Add Model, and Generate commands.
+**Command Panel** — global Add Module, Add Model, and Generate commands. In dev mode, Add Field, Add Relation, and Scaffold Page appear pre-filled with the selected model context.
+
+![Dev commands — Add Field, Add Relation, Scaffold Page](images/studio/studio-add-field.png)
 
 **Health** — output of `veloiq check` (dev mode only).
 
