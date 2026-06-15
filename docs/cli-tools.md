@@ -1,6 +1,76 @@
 # CLI Tools & Interactive Explorer
 
-VeloIQ ships a rich CLI (`veloiq`) and an interactive terminal explorer (TUI) to help developers understand, navigate, and evolve their project without leaving the terminal.
+VeloIQ ships a rich CLI (`veloiq`), an interactive terminal explorer (TUI), and a browser-based developer dashboard (VeloIQ Studio) to help developers understand, navigate, and evolve their project.
+
+---
+
+## VeloIQ Studio
+
+VeloIQ Studio is a browser-based developer dashboard mounted automatically by `create_veloiq_app()` — no host-app code changes required. It is always available while the server is running.
+
+```
+http://localhost:8000/veloiq-studio/
+```
+
+### Access control
+
+| Capability | Requirement |
+|---|---|
+| View schema, dashboard, search, extensions | `Admin` role (JWT) |
+| Run scaffolding commands | `Admin` role **and** `VELOIQ_DEV=true` env var |
+
+Log in with the same credentials as the main application. The studio reads the `jm_access_token` from localStorage, so you stay logged in across page refreshes.
+
+### Pages
+
+**Schema Browser** — module/model tree on the left, detail panel on the right.  
+- Module view: lists all models with field count, dashboard and search status. Add Model command pre-fills the module.  
+- Model view: Fields section (plain columns), Relations section (many-to-one FK parents + one-to-many / many-to-many ORM relations), Meta section. In dev mode, Add Field, Add Relation, and Scaffold Page commands appear pre-filled with the selected model.
+
+**Dashboard** — models currently configured on the dashboard, grouped by tab. Toggle Dashboard Model command (dev mode).
+
+**Search** — indexed models and fields. Toggle Search Model and Toggle Search Field commands (dev mode).
+
+**Extensions** — installed extensions and their enabled/disabled status. Enable/Disable toggle (dev mode).
+
+**Command Panel** — global Add Module, Add Model, and Generate commands.
+
+**Health** — output of `veloiq check` (dev mode only).
+
+### Dev mode commands
+
+All write commands (`add-model`, `add-field`, `add-relation`, `scaffold-page`, etc.) require `VELOIQ_DEV=true`. Set it in your `backend/.env`:
+
+```
+VELOIQ_DEV=true
+```
+
+After any successful command, the studio automatically runs `veloiq generate` and refreshes the schema without a page reload. If the uvicorn `--reload` worker restarts mid-command (because a file changed), the studio detects the dropped connection, waits for the server to come back online, then completes the generate and refresh cycle.
+
+Database migrations are **not** run automatically from the studio. After adding fields or relations, run migrations manually:
+
+```bash
+veloiq db migrate -m "describe change"
+veloiq db upgrade
+```
+
+### Add Field options
+
+| Input | CLI flag | Notes |
+|---|---|---|
+| Field name | positional | snake_case |
+| Field type | positional | str, text, int, float, bool, date, datetime, … |
+| Nullable | `--optional` / `--required` | default: optional |
+| Literals | `--options` | comma-separated, e.g. `todo,in_progress,done` |
+| Default value | `--default` | e.g. `todo` |
+
+### Add Relation options
+
+| Input | CLI flag | Notes |
+|---|---|---|
+| Relation type | `--type` | `many-to-one` (FK) or `many-to-many` (link table) |
+| Min items | `--min-items` | cardinality lower bound on the list side |
+| Max items | `--max-items` | cardinality upper bound on the list side |
 
 ---
 

@@ -4,6 +4,47 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.8.1] — 2026-06-15
+
+### Features
+
+#### VeloIQ Studio — browser-based developer dashboard
+A new browser UI mounted automatically at `/veloiq-studio/` by `create_veloiq_app()`.
+No host-app changes required; available whenever the server is running.
+
+- **Schema Browser** — module/model tree with field and relation detail. Many-to-one FK
+  parent references are shown in the Relations section alongside one-to-many and
+  many-to-many ORM relations.
+- **Contextual commands** — Add Model appears on the module page; Add Field, Add Relation,
+  and Scaffold Page appear on the model page, all pre-filled with the selected context.
+- **Add Field** — optional literals (`--options`), default value (`--default`), and
+  nullable/required toggle.
+- **Add Relation** — relation type selector (`many-to-one` / `many-to-many`) and optional
+  min/max item cardinality inputs.
+- **Dashboard and Search pages** — view current config and toggle models/fields.
+- **Extensions page** — view installed extensions and enable/disable them.
+- **Auto-generate** — every successful command automatically runs `veloiq generate` and
+  refreshes the schema in the browser without a page reload.
+- **Reload recovery** — when `uvicorn --reload` restarts the worker mid-command, the
+  studio detects the dropped SSE stream, polls until the server is back, then completes
+  the generate and refresh cycle.
+- **Access control** — read access requires the `Admin` role; write access additionally
+  requires `VELOIQ_DEV=true` in the environment.
+
+### Fixes
+
+- **`add-relation`** — disambiguation check now scopes FK detection to the specific model
+  class body rather than the whole file, preventing false disambiguation when sibling
+  models in the same file already reference the target table.
+- **`veloiq generate`** — aborts immediately (with a clear error message) if
+  `configure_mappers()` fails, preserving existing `*Schema.gen.ts` files instead of
+  overwriting them with empty arrays.
+- **`veloiq run`** — adds `--reload-delay 2` so watchfiles waits 2 seconds before
+  reloading, giving multi-file CLI writes (e.g. `add-relation`) time to complete both
+  file writes before the worker restarts.
+
+---
+
 ## [0.8.0] — 2026-06-14
 
 ### Features
