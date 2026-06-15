@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppSchema, ModelInfo, ModuleInfo } from "../types";
+import { AppSchema, FieldInfo, ModelInfo, ModuleInfo, RelationInfo } from "../types";
 import CommandCard, { CommandDef } from "../components/CommandCard";
 
 const FIELD_TYPES = [
@@ -76,6 +76,155 @@ function scaffoldPageDef(resources: string[]): CommandDef {
   };
 }
 
+// ── Relation graph ────────────────────────────────────────────────────────────
+
+type EdgeType = "many-to-one" | "one-to-many" | "many-to-many" | "self-ref" | "referenced-by";
+
+interface GraphEdge {
+  label: string;
+  target: string;
+  targetLabel: string;
+  edgeType: EdgeType;
+}
+
+const EDGE_COLORS: Record<EdgeType, string> = {
+  "many-to-one": "#1677ff",
+  "one-to-many": "#52c41a",
+  "many-to-many": "#722ed1",
+  "self-ref": "#fa8c16",
+  "referenced-by": "#64748b",
+};
+
+function splitLabel(text: string, maxChars = 10): string[] {
+  const words = text.replace(/_/g, " ").split(" ");
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= maxChars) { cur = next; }
+    else { if (cur) lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.slice(0, 2);
+}
+
+function buildEdges(model: ModelInfo): GraphEdge[] {
+  const fkEdges: GraphEdge[] = model.fields
+    .filter((f: FieldInfo) => f.reference)
+    .map((f: FieldInfo) => ({
+      label: f.label.replace(/ Id$/, ""),
+      target: f.reference!,
+      targetLabel: f.reference!,
+      edgeType: "many-to-one" as EdgeType,
+    }));
+
+  const ormEdges: GraphEdge[] = model.relations.map((r: RelationInfo) => ({
+    label: r.label,
+    target: r.resource,
+    targetLabel: r.label,
+    edgeType: (r.is_recursive ? "self-ref" : r.resource_path ? "many-to-many" : "one-to-many") as EdgeType,
+  }));
+
+  const revEdges: GraphEdge[] = model.referenced_by.map(([mn, fk, resource]) => ({
+    label: fk,
+    target: resource || mn,
+    targetLabel: mn,
+    edgeType: "referenced-by" as EdgeType,
+  }));
+
+  return [...fkEdges, ...ormEdges, ...revEdges];
+}
+
+function RelationGraph({ model, onNavigate }: {
+  model: ModelInfo;
+  onNavigate?: (resource: string) => void;
+}) {
+  const edges = buildEdges(model);
+  if (edges.length === 0) return <div className="vs-empty">No relations defined.</div>;
+
+  const W = 700, H = 400;
+  const cx = W / 2, cy = H / 2;
+  const R_CENTER = 42, R_SAT = 30;
+  const ORBIT = Math.min(160, (Math.min(W, H) / 2) - R_SAT - 20);
+  const n = edges.length;
+
+  const satellites = edges.map((e, i) => {
+    const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+    const sx = cx + ORBIT * Math.cos(angle);
+    const sy = cy + ORBIT * Math.sin(angle);
+    const color = EDGE_COLORS[e.edgeType];
+    return { ...e, sx, sy, color };
+  });
+
+  const centerLines = splitLabel(model.label, 10);
+  const centerY0 = cy - (centerLines.length - 1) * 7;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", minHeight: 260 }}>
+      {/* Edges */}
+      {satellites.map((s, i) => {
+        const dx = s.sx - cx, dy = s.sy - cy;
+        const dist = Math.hypot(dx, dy) || 1;
+        const x1 = cx + dx / dist * R_CENTER;
+        const y1 = cy + dy / dist * R_CENTER;
+        const x2 = s.sx - dx / dist * R_SAT;
+        const y2 = s.sy - dy / dist * R_SAT;
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const dashed = s.edgeType === "referenced-by";
+        const shortLabel = s.label.length > 15 ? s.label.slice(0, 14) + "…" : s.label;
+        return (
+          <g key={i}>
+            <line x1={x1.toFixed(1)} y1={y1.toFixed(1)} x2={x2.toFixed(1)} y2={y2.toFixed(1)}
+              stroke={s.color} strokeWidth={1.5} strokeDasharray={dashed ? "4 2" : undefined} />
+            <text x={mx.toFixed(1)} y={(my - 5).toFixed(1)} textAnchor="middle"
+              fill={s.color} fontSize={9} fontFamily="sans-serif">{shortLabel}</text>
+          </g>
+        );
+      })}
+
+      {/* Center node */}
+      <circle cx={cx} cy={cy} r={R_CENTER} fill="#1677ff" stroke="#0958d9" strokeWidth={2} />
+      <text x={cx} y={centerY0} textAnchor="middle" dominantBaseline="middle"
+        fill="white" fontSize={11} fontWeight="bold" fontFamily="sans-serif">
+        {centerLines.map((line, i) => (
+          <tspan key={i} x={cx} dy={i === 0 ? 0 : 14}>{line}</tspan>
+        ))}
+      </text>
+
+      {/* Satellite nodes */}
+      {satellites.map((s, i) => {
+        const lines = splitLabel(s.targetLabel, 9);
+        const y0 = s.sy - (lines.length - 1) * 6;
+        const clickable = !!onNavigate;
+        return (
+          <g key={i} style={{ cursor: clickable ? "pointer" : "default" }}
+            onClick={clickable ? () => onNavigate!(s.target) : undefined}>
+            <circle cx={s.sx} cy={s.sy} r={R_SAT} fill={s.color} opacity={0.85}
+              stroke={s.color} strokeWidth={1.5} />
+            <text x={s.sx} y={y0} textAnchor="middle" dominantBaseline="middle"
+              fill="white" fontSize={10} fontFamily="sans-serif">
+              {lines.map((line, j) => (
+                <tspan key={j} x={s.sx} dy={j === 0 ? 0 : 13}>{line}</tspan>
+              ))}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Legend */}
+      {(["many-to-one", "one-to-many", "many-to-many", "referenced-by"] as EdgeType[])
+        .filter((t) => edges.some((e) => e.edgeType === t))
+        .map((t, i) => (
+          <g key={t} transform={`translate(${12 + i * 115}, ${H - 18})`}>
+            <rect width={10} height={10} rx={2} fill={EDGE_COLORS[t]} y={-8} />
+            <text x={14} y={0} fontSize={9} fill="#888" fontFamily="sans-serif">{t}</text>
+          </g>
+        ))}
+    </svg>
+  );
+}
+
 // ── Module detail panel ───────────────────────────────────────────────────────
 
 function ModuleDetail({ mod, allModules, devMode, onSelectModel, onSuccess }: {
@@ -128,11 +277,12 @@ function ModuleDetail({ mod, allModules, devMode, onSelectModel, onSuccess }: {
 
 // ── Model detail panel ────────────────────────────────────────────────────────
 
-function ModelDetail({ model, allModels, allResources, devMode, onSuccess }: {
+function ModelDetail({ model, allModels, allResources, devMode, onNavigate, onSuccess }: {
   model: ModelInfo;
   allModels: string[];
   allResources: string[];
   devMode: boolean;
+  onNavigate?: (resource: string) => void;
   onSuccess?: () => void;
 }) {
   return (
@@ -197,16 +347,26 @@ function ModelDetail({ model, allModels, allResources, devMode, onSuccess }: {
                 </thead>
                 <tbody>
                   {fkFields.map((f) => (
-                    <tr key={f.key}>
-                      <td style={{ color: "var(--text-secondary)" }}>{f.label.replace(/ Id$/, "")}</td>
+                    <tr
+                      key={f.key}
+                      style={onNavigate ? { cursor: "pointer" } : undefined}
+                      onClick={onNavigate && f.reference ? () => onNavigate(f.reference!) : undefined}
+                    >
+                      <td style={{ color: onNavigate ? "var(--accent)" : "var(--text-secondary)" }}>
+                        {f.label.replace(/ Id$/, "")}
+                      </td>
                       <td><code className="vs-code">{f.reference}</code></td>
                       <td><code className="vs-code">{f.key}</code></td>
                       <td><span className="vs-tag vs-tag-muted" style={{ fontSize: 11 }}>many-to-one</span></td>
                     </tr>
                   ))}
                   {model.relations.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.label}</td>
+                    <tr
+                      key={i}
+                      style={onNavigate ? { cursor: "pointer" } : undefined}
+                      onClick={onNavigate ? () => onNavigate(r.resource) : undefined}
+                    >
+                      <td style={{ color: onNavigate ? "var(--accent)" : undefined }}>{r.label}</td>
                       <td><code className="vs-code">{r.resource}</code></td>
                       <td><code className="vs-code">{r.target_key}</code></td>
                       <td>
@@ -247,6 +407,10 @@ function ModelDetail({ model, allModels, allResources, devMode, onSuccess }: {
           </div>
         )}
       </div>
+
+      {/* Relation graph */}
+      <div className="vs-section-title" style={{ marginTop: 28 }}>Relation Graph</div>
+      <RelationGraph model={model} onNavigate={onNavigate} />
 
       {/* Dev mode commands */}
       {devMode && (
@@ -400,6 +564,16 @@ export default function SchemaBrowser({ schema, loadSchema, devMode, onSuccess }
           allModels={allModels}
           allResources={allResources}
           devMode={devMode}
+          onNavigate={(resource) => {
+            for (const mod of data.modules) {
+              const found = mod.models.find((m) => m.resource === resource || m.name === resource);
+              if (found) {
+                setOpenModules((prev) => { const n = new Set(prev); n.add(mod.name); return n; });
+                setSelection({ kind: "model", mod, model: found });
+                break;
+              }
+            }
+          }}
           onSuccess={onSuccess}
         />
       )}
