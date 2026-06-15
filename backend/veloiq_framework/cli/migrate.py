@@ -1,17 +1,174 @@
-"""veloiq migrate — consolidate legacy layout configuration into views_preferences.json."""
+"""veloiq migrate — upgrade a VeloIQ host app to the current framework version.
+
+Each step is idempotent: safe to run multiple times and on already-current
+projects.  New migration steps are added here as the framework evolves so
+developers always run a single command to stay current.
+"""
 from __future__ import annotations
 
 import json
+import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
 import click
+
+# ---------------------------------------------------------------------------
+# Step 1 – legacy views_configuration.json → views_preferences.json
+# ---------------------------------------------------------------------------
 
 _DASHBOARD_KEY = "__dashboard__"
 _USER_KEY = "user:all"
 _PREFS_FILE = Path("views_preferences.json")
 _LEGACY_FILE = Path("config") / "views_configuration.json"
 
+
+def _migrate_views(root: Path, dry_run: bool) -> bool:
+    """Consolidate legacy dashboard config into views_preferences.json.
+
+    Returns True if a migration was performed (or would be in dry-run).
+    """
+    backend = root / "backend"
+    legacy_path = backend / _LEGACY_FILE
+    prefs_path = backend / _PREFS_FILE
+
+    if not legacy_path.exists():
+        return False
+
+    try:
+        legacy_data = json.loads(legacy_path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        click.echo(f"  ❌  Could not read {legacy_path}: {exc}", err=True)
+        return False
+
+    dashboard = legacy_data.get(_USER_KEY, {}).get(_DASHBOARD_KEY)
+    if not dashboard:
+        return False
+
+    prefs_data: dict = {}
+    if prefs_path.exists():
+        try:
+            prefs_data = json.loads(prefs_path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:
+            click.echo(f"  ❌  Could not read {prefs_path}: {exc}", err=True)
+            return False
+
+    if _USER_KEY in prefs_data and _DASHBOARD_KEY in prefs_data[_USER_KEY]:
+        click.echo("  ✅  views_preferences.json: dashboard already migrated — skipping")
+        return False
+
+    tab_count = len(dashboard.get("tabs", []))
+    cell_count = sum(len(t.get("cells", [])) for t in dashboard.get("tabs", []))
+
+    if dry_run:
+        click.echo(
+            f"  • views_preferences.json: import dashboard config from\n"
+            f"    config/views_configuration.json ({tab_count} tab(s), {cell_count} cell(s))"
+        )
+        return True
+
+    prefs_data.setdefault(_USER_KEY, {})[_DASHBOARD_KEY] = dashboard
+    _write_json(prefs_path, prefs_data)
+    bak_path = legacy_path.with_suffix(".json.bak")
+    legacy_path.rename(bak_path)
+    click.echo(
+        f"  ✅  views_preferences.json: imported dashboard config "
+        f"({tab_count} tab(s), {cell_count} cell(s))\n"
+        f"      legacy file backed up → config/views_configuration.json.bak"
+    )
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Step 2 – vite.config.ts proxy upgrade
+#           Removes legacy rewrite functions that stripped the /api prefix.
+#           The framework now serves all routes under /api/ natively so the
+#           proxy must forward the path unchanged.
+# ---------------------------------------------------------------------------
+
+# Proxy keys that the canonical scaffold declares.
+_CANONICAL_PROXY_KEYS = ["/api", "/auth", "/admin", "/i18n"]
+
+
+def _needs_vite_migration(content: str) -> bool:
+    """Return True if vite.config.ts has any old-style proxy patterns."""
+    return (
+        bool(re.search(r'\brewrite\s*:', content))
+        or '"/api/"' in content
+        or '"/api-tools/"' in content
+    )
+
+
+def _apply_vite_migration(content: str) -> tuple[str, list[str]]:
+    """Remove legacy proxy patterns. Returns (new_content, list_of_changes)."""
+    changes: list[str] = []
+    lines = content.splitlines(keepends=True)
+
+    # Remove the obsolete /api-tools/ proxy entry (entire line).
+    filtered = [l for l in lines if '"/api-tools/"' not in l]
+    if len(filtered) != len(lines):
+        changes.append('removed obsolete "/api-tools/" proxy entry')
+        lines = filtered
+
+    content = "".join(lines)
+
+    # Remove rewrite: property — two forms:
+    #   (a) standalone line:  "  rewrite: (path) => ...,\n"
+    #   (b) inline property:  "..., rewrite: (path) => ... }" (before closing brace)
+    rewrite_found = bool(re.search(r'\brewrite\s*:', content))
+    if rewrite_found:
+        # (a) standalone — line that contains only the rewrite property
+        content = re.sub(r'^[ \t]*rewrite[ \t]*:[^\n]+\n?', '', content, flags=re.MULTILINE)
+        # (b) inline — ", rewrite: <expr>" immediately before the closing "}"
+        content = re.sub(r',[ \t]*rewrite[ \t]*:[^}]*(?=[ \t]*\})', '', content)
+        changes.append('removed proxy rewrite functions (API prefix stripping is no longer needed)')
+
+    # Fix trailing slashes in proxy keys: "/api/" → "/api".
+    for key in _CANONICAL_PROXY_KEYS:
+        old = f'"{key}/"'
+        if old in content:
+            content = content.replace(old, f'"{key}"')
+            changes.append(f'fixed proxy key: "{key}/" → "{key}"')
+
+    return content, changes
+
+
+def _migrate_vite_config(root: Path, dry_run: bool) -> bool:
+    """Upgrade frontend/vite.config.ts to the current proxy format.
+
+    Returns True if a migration was performed (or would be in dry-run).
+    """
+    vite_cfg = root / "frontend" / "vite.config.ts"
+    if not vite_cfg.exists():
+        return False
+
+    content = vite_cfg.read_text(encoding="utf-8")
+    if not _needs_vite_migration(content):
+        return False
+
+    _, changes = _apply_vite_migration(content)
+    if not changes:
+        return False
+
+    if dry_run:
+        for c in changes:
+            click.echo(f"  • frontend/vite.config.ts: {c}")
+        return True
+
+    new_content, _ = _apply_vite_migration(content)
+    bak = vite_cfg.with_suffix(".ts.bak")
+    shutil.copy(vite_cfg, bak)
+    vite_cfg.write_text(new_content, encoding="utf-8")
+    for c in changes:
+        click.echo(f"  ✅  frontend/vite.config.ts: {c}")
+    click.echo(f"      original backed up → frontend/vite.config.ts.bak")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Main command
+# ---------------------------------------------------------------------------
 
 @click.command("migrate")
 @click.option(
@@ -20,99 +177,50 @@ _LEGACY_FILE = Path("config") / "views_configuration.json"
 )
 @click.option(
     "--dry-run", is_flag=True, default=False,
-    help="Show what would be migrated without writing any files.",
+    help="Show what would change without writing any files.",
 )
 def migrate(project_root: Optional[str], dry_run: bool) -> None:
-    """Consolidate legacy layout files into views_preferences.json.
+    """Upgrade this VeloIQ host app to the current framework version.
 
-    Detects config/views_configuration.json (the legacy separate dashboard
-    layout file) and merges its dashboard configuration into
-    views_preferences.json, which is the unified configuration file.
+    Runs all migration steps in order; each step is skipped automatically
+    when the project is already current.  Safe to run multiple times.
 
-    The legacy file is renamed to config/views_configuration.json.bak so it
-    can be reviewed or restored if needed.
+    \b
+    Steps performed:
+      1. views_preferences.json  — import legacy dashboard config
+      2. frontend/vite.config.ts — remove obsolete proxy rewrites
 
-    Safe to run multiple times — already-migrated projects are reported and
-    skipped without modification.
+    Use --dry-run to preview changes without writing files.
     """
-    root = Path(project_root).resolve() if project_root else _find_project_root()
+    root = _find_project_root(project_root)
     if root is None:
         click.echo(
             "❌  Could not locate a VeloIQ project from the current directory.\n"
-            "   Run this command from inside a project, or pass --project-root.",
+            "    Run this command from inside a project, or pass --project-root.",
             err=True,
         )
         raise SystemExit(1)
 
-    backend = root / "backend"
-    legacy_path = backend / _LEGACY_FILE
-    prefs_path = backend / _PREFS_FILE
-
-    if not legacy_path.exists():
-        click.echo("✅  No legacy config/views_configuration.json found — nothing to migrate.")
-        return
-
-    # Load legacy dashboard config
-    try:
-        legacy_data = json.loads(legacy_path.read_text(encoding="utf-8")) or {}
-    except Exception as exc:
-        click.echo(f"❌  Could not read {legacy_path}: {exc}", err=True)
-        raise SystemExit(1)
-
-    dashboard = legacy_data.get(_USER_KEY, {}).get(_DASHBOARD_KEY)
-    if not dashboard:
-        click.echo(
-            "ℹ️  config/views_configuration.json has no dashboard configuration — nothing to migrate.\n"
-            f"   File: {legacy_path}"
-        )
-        return
-
-    # Load views_preferences.json
-    prefs_data: dict = {}
-    if prefs_path.exists():
-        try:
-            prefs_data = json.loads(prefs_path.read_text(encoding="utf-8")) or {}
-        except Exception as exc:
-            click.echo(f"❌  Could not read {prefs_path}: {exc}", err=True)
-            raise SystemExit(1)
-
-    # Check if already migrated
-    existing_dashboard = prefs_data.get(_USER_KEY, {}).get(_DASHBOARD_KEY)
-    if existing_dashboard is not None:
-        click.echo(
-            "✅  Dashboard configuration already present in views_preferences.json — skipping.\n"
-            f"   If you want to re-import, remove the \"{_DASHBOARD_KEY}\" key from views_preferences.json first."
-        )
-        return
-
-    tab_count = len(dashboard.get("tabs", []))
-    cell_count = sum(len(t.get("cells", [])) for t in dashboard.get("tabs", []))
-
     if dry_run:
-        click.echo(
-            f"🔍  Dry run — would migrate dashboard config from config/views_configuration.json:\n"
-            f"    {tab_count} tab(s), {cell_count} cell(s)\n"
-            f"    → views_preferences.json (user:all.__dashboard__)\n"
-            f"    → config/views_configuration.json → config/views_configuration.json.bak"
-        )
-        return
+        click.echo(f"\n🔍  Dry run — no files will be written  (project: {root})\n")
+    else:
+        click.echo(f"\n🚀  Migrating project: {root}\n")
 
-    # Write merged prefs
-    prefs_data.setdefault(_USER_KEY, {})[_DASHBOARD_KEY] = dashboard
-    _write_json(prefs_path, prefs_data)
+    ran: list[str] = []
 
-    # Rename legacy file to .bak
-    bak_path = legacy_path.with_suffix(".json.bak")
-    legacy_path.rename(bak_path)
+    if _migrate_views(root, dry_run):
+        ran.append("views_preferences.json")
 
-    click.echo(
-        f"\n✅  Migration complete\n\n"
-        f"   Moved dashboard config ({tab_count} tab(s), {cell_count} cell(s))\n"
-        f"     from: config/views_configuration.json\n"
-        f"       to: views_preferences.json (user:all.__dashboard__)\n\n"
-        f"   Legacy file backed up as: config/views_configuration.json.bak\n"
-        f"   You can safely delete the .bak file once you've verified everything works.\n"
-    )
+    if _migrate_vite_config(root, dry_run):
+        ran.append("frontend/vite.config.ts")
+
+    if not ran:
+        click.echo("✅  Nothing to migrate — project is already current.")
+    elif dry_run:
+        click.echo(f"\n  Run without --dry-run to apply these changes.")
+    else:
+        click.echo(f"\n✅  Migration complete.  Rebuild the frontend to pick up config changes:")
+        click.echo(f"      veloiq build")
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +234,9 @@ def _write_json(path: Path, data: dict) -> None:
     tmp.replace(path)
 
 
-def _find_project_root() -> Optional[Path]:
+def _find_project_root(project_root_override: Optional[str] = None) -> Optional[Path]:
+    if project_root_override:
+        return Path(project_root_override).resolve()
     cwd = Path.cwd().resolve()
     for directory in [cwd, *cwd.parents]:
         if (directory / "backend" / "app" / "modules").exists():

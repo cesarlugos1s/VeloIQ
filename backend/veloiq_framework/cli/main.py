@@ -39,6 +39,7 @@ def cli(ctx):
       veloiq add-field Task notes    Add a field to an existing model
       veloiq add-relation Task Project  Add a FK or many-to-many relation
       veloiq generate                Generate frontend schemas from backend models
+      veloiq migrate                 Upgrade this app to the current framework version
       veloiq run                     Start the development server
       veloiq build                   Build the frontend for production
       veloiq db upgrade              Apply Alembic migrations
