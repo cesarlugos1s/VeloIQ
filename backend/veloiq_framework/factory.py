@@ -948,6 +948,18 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
 # VeloIQ Studio
 # ---------------------------------------------------------------------------
 
+class _SPAFiles(StaticFiles):
+    """StaticFiles with SPA fallback: serves index.html for unmatched paths."""
+    async def get_response(self, path: str, scope):
+        from starlette.exceptions import HTTPException as _StarletteHTTPException
+        try:
+            return await super().get_response(path, scope)
+        except _StarletteHTTPException as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
+
 def _mount_frontend(app: FastAPI, cfg: VeloIQConfig) -> None:
     """Serve the host app's built frontend dist/ at / for production deployments."""
     if cfg.serve_frontend is None:
@@ -955,7 +967,7 @@ def _mount_frontend(app: FastAPI, cfg: VeloIQConfig) -> None:
     dist = Path(cfg.serve_frontend)
     if not dist.exists():
         return
-    app.mount("/", StaticFiles(directory=str(dist), html=True), name="frontend")
+    app.mount("/", _SPAFiles(directory=str(dist), html=True), name="frontend")
     print(f"  🌐 Frontend: / → {dist}")
 
 
