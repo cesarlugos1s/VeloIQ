@@ -7,7 +7,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def test_create_project(client, auth):
-    r = client.post("/project", json={"name": "Alpha", "status": "active"}, headers=auth)
+    r = client.post("/api/project", json={"name": "Alpha", "status": "active"}, headers=auth)
     assert r.status_code == 201
     data = r.json()
     assert data["name"] == "Alpha"
@@ -15,8 +15,8 @@ def test_create_project(client, auth):
 
 
 def test_list_projects(client, auth):
-    client.post("/project", json={"name": "List-Test"}, headers=auth)
-    r = client.get("/project", headers=auth)
+    client.post("/api/project", json={"name": "List-Test"}, headers=auth)
+    r = client.get("/api/project", headers=auth)
     assert r.status_code == 200
     items = r.json()
     assert isinstance(items, list)
@@ -24,32 +24,32 @@ def test_list_projects(client, auth):
 
 
 def test_get_project(client, auth):
-    r = client.post("/project", json={"name": "GetMe"}, headers=auth)
+    r = client.post("/api/project", json={"name": "GetMe"}, headers=auth)
     pid = r.json()["id"]
-    r = client.get(f"/project/{pid}", headers=auth)
+    r = client.get(f"/api/project/{pid}", headers=auth)
     assert r.status_code == 200
     assert r.json()["name"] == "GetMe"
 
 
 def test_update_project(client, auth):
-    r = client.post("/project", json={"name": "OldName"}, headers=auth)
+    r = client.post("/api/project", json={"name": "OldName"}, headers=auth)
     pid = r.json()["id"]
-    r = client.put(f"/project/{pid}", json={"name": "NewName", "status": "completed"}, headers=auth)
+    r = client.put(f"/api/project/{pid}", json={"name": "NewName", "status": "completed"}, headers=auth)
     assert r.status_code == 200
     assert r.json()["name"] == "NewName"
 
 
 def test_delete_project(client, auth):
-    r = client.post("/project", json={"name": "DeleteMe"}, headers=auth)
+    r = client.post("/api/project", json={"name": "DeleteMe"}, headers=auth)
     pid = r.json()["id"]
-    r = client.delete(f"/project/{pid}", headers=auth)
+    r = client.delete(f"/api/project/{pid}", headers=auth)
     assert r.status_code == 204
-    r = client.get(f"/project/{pid}", headers=auth)
+    r = client.get(f"/api/project/{pid}", headers=auth)
     assert r.status_code == 404
 
 
 def test_get_nonexistent_project(client, auth):
-    r = client.get("/project/999999", headers=auth)
+    r = client.get("/api/project/999999", headers=auth)
     assert r.status_code == 404
 
 
@@ -59,7 +59,7 @@ def test_get_nonexistent_project(client, auth):
 
 def test_create_team_member(client, auth):
     r = client.post(
-        "/team_member",
+        "/api/team_member",
         json={"name": "Alice", "email": "alice@example.com", "role": "member"},
         headers=auth,
     )
@@ -68,32 +68,32 @@ def test_create_team_member(client, auth):
 
 
 def test_list_team_members(client, auth):
-    r = client.get("/team_member", headers=auth)
+    r = client.get("/api/team_member", headers=auth)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
 def test_update_team_member(client, auth):
     r = client.post(
-        "/team_member",
+        "/api/team_member",
         json={"name": "Bob", "email": "bob@example.com"},
         headers=auth,
     )
     mid = r.json()["id"]
-    r = client.put(f"/team_member/{mid}", json={"name": "Robert", "email": "bob@example.com"}, headers=auth)
+    r = client.put(f"/api/team_member/{mid}", json={"name": "Robert", "email": "bob@example.com"}, headers=auth)
     assert r.status_code == 200
     assert r.json()["name"] == "Robert"
 
 
 def test_delete_team_member(client, auth):
     r = client.post(
-        "/team_member",
+        "/api/team_member",
         json={"name": "Temp", "email": "temp@example.com"},
         headers=auth,
     )
     mid = r.json()["id"]
-    assert client.delete(f"/team_member/{mid}", headers=auth).status_code == 204
-    assert client.get(f"/team_member/{mid}", headers=auth).status_code == 404
+    assert client.delete(f"/api/team_member/{mid}", headers=auth).status_code == 204
+    assert client.get(f"/api/team_member/{mid}", headers=auth).status_code == 404
 
 
 # ---------------------------------------------------------------------------
@@ -101,10 +101,10 @@ def test_delete_team_member(client, auth):
 # ---------------------------------------------------------------------------
 
 def test_create_task(client, auth):
-    r = client.post("/project", json={"name": "TaskProject"}, headers=auth)
+    r = client.post("/api/project", json={"name": "TaskProject"}, headers=auth)
     pid = r.json()["id"]
     r = client.post(
-        "/task",
+        "/api/task",
         json={"title": "First Task", "status": "todo", "project_id": pid},
         headers=auth,
     )
@@ -113,21 +113,21 @@ def test_create_task(client, auth):
 
 
 def test_list_tasks(client, auth):
-    r = client.get("/task", headers=auth)
+    r = client.get("/api/task", headers=auth)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
 def test_update_task_status(client, auth):
-    r = client.post("/task", json={"title": "StatusTask", "status": "todo"}, headers=auth)
+    r = client.post("/api/task", json={"title": "StatusTask", "status": "todo"}, headers=auth)
     tid = r.json()["id"]
-    r = client.put(f"/task/{tid}", json={"title": "StatusTask", "status": "done"}, headers=auth)
+    r = client.put(f"/api/task/{tid}", json={"title": "StatusTask", "status": "done"}, headers=auth)
     assert r.status_code == 200
     assert r.json()["status"] == "done"
 
 
 def test_delete_task(client, auth):
-    r = client.post("/task", json={"title": "DropTask"}, headers=auth)
+    r = client.post("/api/task", json={"title": "DropTask"}, headers=auth)
     tid = r.json()["id"]
-    assert client.delete(f"/task/{tid}", headers=auth).status_code == 204
-    assert client.get(f"/task/{tid}", headers=auth).status_code == 404
+    assert client.delete(f"/api/task/{tid}", headers=auth).status_code == 204
+    assert client.get(f"/api/task/{tid}", headers=auth).status_code == 404

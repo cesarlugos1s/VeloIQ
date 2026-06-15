@@ -20,15 +20,15 @@ def test_login_unknown_user(client):
 
 
 def test_protected_route_requires_token(client):
-    resp = client.get("/project")
+    resp = client.get("/api/project")
     assert resp.status_code == 401
 
 
 def test_protected_route_accepts_token(client, auth):
-    resp = client.get("/project", headers=auth)
+    resp = client.get("/api/project", headers=auth)
     assert resp.status_code == 200
 
 
 def test_invalid_token_rejected(client):
-    resp = client.get("/project", headers={"Authorization": "Bearer not-a-real-token"})
+    resp = client.get("/api/project", headers={"Authorization": "Bearer not-a-real-token"})
     assert resp.status_code == 401
