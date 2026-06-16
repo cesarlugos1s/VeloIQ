@@ -161,6 +161,7 @@ def create_veloiq_app(
         # Ensure auth tables are registered before create_all
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
         SQLModel.metadata.create_all(engine)
+        _sync_schema(engine)
     if cfg.auth_enabled:
         from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
         seed_roles(engine, cfg.roles)
@@ -176,6 +177,71 @@ def create_veloiq_app(
     _mount_frontend(app, cfg)
 
     return app
+
+
+# ---------------------------------------------------------------------------
+# Schema synchronisation — detect & auto-fix table/model drift in dev mode
+# ---------------------------------------------------------------------------
+
+def _sync_schema(engine) -> None:
+    """Detect tables whose DB columns have fallen behind their model definitions.
+
+    After ``SQLModel.metadata.create_all()`` new tables are created perfectly,
+    but existing tables are never altered — even when the developer adds a
+    field to the Python model.  In dev mode (``VELOIQ_DEV=1``) this function
+    auto-adds the missing columns via ``ALTER TABLE ... ADD COLUMN`` so the
+    app doesn't crash with *no such column* at request time.
+    """
+    import os
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(engine)
+
+    # We only iterate over SQLModel tables (those with ``table=True``).
+    # ``SQLModel.metadata.tables`` includes both framework and user tables.
+    for table_name, table in SQLModel.metadata.tables.items():
+        try:
+            db_cols = {c["name"] for c in inspector.get_columns(table_name)}
+        except Exception:
+            # Table doesn't exist yet — create_all already handled it.
+            continue
+
+        model_cols = {c.name for c in table.columns}
+        missing = model_cols - db_cols
+
+        if not missing:
+            continue
+
+        # Resolve each missing column to its SQLAlchemy Column definition so
+        # we can emit a correct DDL statement.
+        for col_name in sorted(missing):
+            sa_col = table.columns[col_name]
+
+            # Build a minimal ADD COLUMN — type only, no constraints.
+            # The ORM/handle defaults and NOT NULL at the application level.
+            # Foreign-key constraints are omitted intentionally: they are
+            # ORM-level metadata, and including them would complicate the
+            # DDL across dialects.
+            col_type = sa_col.type.compile(engine.dialect)
+            ddl = f"ADD COLUMN {col_name} {col_type}"
+
+            is_dev = os.environ.get("VELOIQ_DEV", "").lower() in ("1", "true", "yes")
+
+            if is_dev:
+                try:
+                    with engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE {table_name} {ddl}"))
+                        conn.commit()
+                    print(f"  🔧 Auto-migrated: {table_name}.{col_name} ({col_type})")
+                except Exception as exc:
+                    print(f"  ⚠️  Could not auto-add column {table_name}.{col_name}: {exc}")
+            else:
+                print(
+                    f"  ⚠️  Schema drift: {table_name}.{col_name} is in the model "
+                    f"but missing from the database.\n"
+                    f"      Run `veloiq db migrate -m 'add {col_name}' && veloiq db upgrade` "
+                    f"to apply, or set VELOIQ_DEV=1 for automatic migration."
+                )
 
 
 # ---------------------------------------------------------------------------
