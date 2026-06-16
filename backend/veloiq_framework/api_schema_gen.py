@@ -172,6 +172,11 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         if not module_models:
             continue
 
+        # Separate link/junction tables from entity models.
+        # Link tables need CRUD endpoints (for RelationsExplorer M2M queries)
+        # but must NOT appear as entity models in the frontend schema / navigation.
+        entity_models = [m for m in module_models if not _is_link_model(m)]
+
         # ── Generate backend api.py ───────────────────────────────────────
         api_py = mod_dir / "api.py"
         if not api_py.exists():
@@ -187,9 +192,10 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
                 print(f"  ⏭️  {module_name}/api.py is custom — skipped")
 
         # ── Generate frontend TypeScript schema ───────────────────────────
+        # Only entity models (not link tables) appear in the TS schema.
         out_dir = pages_dir / module_name
         out_dir.mkdir(parents=True, exist_ok=True)
-        schema_lines = _build_ts_schema_lines(module_name, module_models)
+        schema_lines = _build_ts_schema_lines(module_name, entity_models)
         # Append any named queries defined in this module's queries.py.
         named_query_lines = _collect_named_query_ts_lines(mod_dir, module_name)
         schema_lines += named_query_lines
@@ -433,6 +439,10 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 other_cls = rel.mapper.class_
                 other_tablename = getattr(other_cls, "__tablename__", other_cls.__name__.lower())
                 if rel.direction == ONETOMANY:
+                    # Skip link/junction tables — their back-refs are
+                    # infrastructure, not meaningful entity relations.
+                    if other_tablename in _all_link_table_names:
+                        continue
                     orm_covered_children.add(other_tablename)
                     # The FK column is on the remote (child) side.
                     remote_cols = list(rel.remote_side)
@@ -776,17 +786,52 @@ def _iter_subclasses(base: type) -> list[type]:
     return out
 
 
+# Cache of link-table names discovered from SQLAlchemy MANYTOMANY secondary tables.
+# Built once lazily — after configure_mappers() has resolved all relationships.
+_link_table_names_cache: set[str] | None = None
+
+
+def _build_link_table_names() -> set[str]:
+    """Collect every link/junction table name from resolved MANYTOMANY relationships.
+
+    SQLAlchemy's ORM tracks the ``secondary`` table on every MANYTOMANY
+    relationship — this is the *authoritative* source of truth.  The heuristic
+    fallback in ``_is_link_model`` is only needed when ``configure_mappers()``
+    has not yet been called (e.g. the explorer's minimal scan path).
+    """
+    from sqlalchemy.orm import MANYTOMANY
+    from sqlalchemy.inspection import inspect as sa_inspect
+    from sqlmodel import SQLModel as _SM
+
+    link_names: set[str] = set()
+    for cls in _iter_subclasses(_SM):
+        try:
+            mapper = sa_inspect(cls)
+        except Exception:
+            continue
+        for rel in mapper.relationships:
+            if rel.direction == MANYTOMANY and rel.secondary is not None and rel.secondary.name:
+                link_names.add(rel.secondary.name)
+    return link_names
+
+
 def _is_link_model(cls: type) -> bool:
-    """Heuristic: link/junction models have exactly two FK columns and no other data columns."""
-    try:
-        from sqlalchemy.inspection import inspect as sa_inspect
-        mapper = sa_inspect(cls)
-        fk_cols = [c for p in mapper.column_attrs for c in p.columns if c.foreign_keys]
-        pk_cols = [c for p in mapper.column_attrs for c in p.columns if c.primary_key]
-        all_cols = [c for p in mapper.column_attrs for c in p.columns]
-        return len(fk_cols) >= 2 and len(all_cols) <= len(pk_cols) + 2
-    except Exception:
+    """Return ``True`` when *cls* is a link/junction table (M2M intermediary).
+
+    Uses the ORM's resolved MANYTOMANY secondary tables as the authoritative
+    source of truth.  The cache must have been populated (by calling
+    ``_ensure_link_cache()`` or indirectly via ``_run_builtin``).
+    """
+    global _link_table_names_cache
+
+    tablename = getattr(cls, "__tablename__", None)
+    if not tablename:
         return False
+
+    if _link_table_names_cache is None:
+        _link_table_names_cache = _build_link_table_names()
+
+    return tablename in _link_table_names_cache
 
 
 # ---------------------------------------------------------------------------

@@ -110,22 +110,34 @@ function splitLabel(text: string, maxChars = 10): string[] {
   return lines.slice(0, 2);
 }
 
-function buildEdges(model: ModelInfo): GraphEdge[] {
+function buildEdges(model: ModelInfo, allModelInfos: ModelInfo[]): GraphEdge[] {
+  const modelByResource = new Map<string, ModelInfo>();
+  for (const m of allModelInfos) {
+    modelByResource.set(m.resource, m);
+    modelByResource.set(m.name, m);
+  }
+
   const fkEdges: GraphEdge[] = model.fields
     .filter((f: FieldInfo) => f.reference)
-    .map((f: FieldInfo) => ({
-      label: f.label.replace(/ Id$/, ""),
-      target: f.reference!,
-      targetLabel: f.reference!,
-      edgeType: "many-to-one" as EdgeType,
-    }));
+    .map((f: FieldInfo) => {
+      const target = modelByResource.get(f.reference!);
+      return {
+        label: f.label.replace(/ Id$/, ""),
+        target: f.reference!,
+        targetLabel: target?.label || f.reference!,
+        edgeType: "many-to-one" as EdgeType,
+      };
+    });
 
-  const ormEdges: GraphEdge[] = model.relations.map((r: RelationInfo) => ({
-    label: r.label,
-    target: r.resource,
-    targetLabel: r.label,
-    edgeType: (r.is_recursive ? "self-ref" : r.resource_path ? "many-to-many" : "one-to-many") as EdgeType,
-  }));
+  const ormEdges: GraphEdge[] = model.relations.map((r: RelationInfo) => {
+    const target = modelByResource.get(r.resource);
+    return {
+      label: r.label,
+      target: r.resource,
+      targetLabel: target?.label || r.resource,
+      edgeType: (r.is_recursive ? "self-ref" : r.resource_path ? "many-to-many" : "one-to-many") as EdgeType,
+    };
+  });
 
   const revEdges: GraphEdge[] = model.referenced_by.map(([mn, fk, resource]) => ({
     label: fk,
@@ -137,18 +149,23 @@ function buildEdges(model: ModelInfo): GraphEdge[] {
   return [...fkEdges, ...ormEdges, ...revEdges];
 }
 
-function RelationGraph({ model, onNavigate }: {
+function RelationGraph({ model, allModelInfos, onNavigate }: {
   model: ModelInfo;
+  allModelInfos: ModelInfo[];
   onNavigate?: (resource: string) => void;
 }) {
-  const edges = buildEdges(model);
+  const edges = buildEdges(model, allModelInfos);
   if (edges.length === 0) return <div className="vs-empty">No relations defined.</div>;
 
-  const W = 700, H = 400;
-  const cx = W / 2, cy = H / 2;
   const R_CENTER = 42, R_SAT = 30;
-  const ORBIT = Math.min(160, (Math.min(W, H) / 2) - R_SAT - 20);
   const n = edges.length;
+  // Scale orbit so satellite circles don't overlap: each node
+  // needs at least 2*R_SAT + 10px arc spacing around the orbit.
+  const minSpacing = R_SAT * 2 + 10;
+  const ORBIT = Math.max(160, Math.ceil(n * minSpacing / (2 * Math.PI)));
+  const W = Math.max(700, ORBIT * 2 + R_SAT * 2 + 80);
+  const H = Math.max(400, ORBIT * 2 + R_SAT * 2 + 80);
+  const cx = W / 2, cy = H / 2;
 
   const satellites = edges.map((e, i) => {
     const angle = (2 * Math.PI * i / n) - Math.PI / 2;
@@ -174,25 +191,35 @@ function RelationGraph({ model, onNavigate }: {
         const mx = (x1 + x2) / 2;
         const my = (y1 + y2) / 2;
         const dashed = s.edgeType === "referenced-by";
-        const shortLabel = s.label.length > 15 ? s.label.slice(0, 14) + "…" : s.label;
+        const edgeLabelLines = splitLabel(s.label, 20);
+        const edgeLabelY0 = my - (edgeLabelLines.length - 1) * 6;
         return (
           <g key={i}>
             <line x1={x1.toFixed(1)} y1={y1.toFixed(1)} x2={x2.toFixed(1)} y2={y2.toFixed(1)}
               stroke={s.color} strokeWidth={1.5} strokeDasharray={dashed ? "4 2" : undefined} />
-            <text x={mx.toFixed(1)} y={(my - 5).toFixed(1)} textAnchor="middle"
-              fill={s.color} fontSize={9} fontFamily="sans-serif">{shortLabel}</text>
+            <text x={mx.toFixed(1)} y={edgeLabelY0.toFixed(1)} textAnchor="middle"
+              fill={s.color} fontSize={9} fontFamily="sans-serif">
+              <title>{s.label}</title>
+              {edgeLabelLines.map((line, j) => (
+                <tspan key={j} x={mx.toFixed(1)} dy={j === 0 ? 0 : 11}>{line}</tspan>
+              ))}
+            </text>
           </g>
         );
       })}
 
       {/* Center node */}
-      <circle cx={cx} cy={cy} r={R_CENTER} fill="#1677ff" stroke="#0958d9" strokeWidth={2} />
-      <text x={cx} y={centerY0} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize={11} fontWeight="bold" fontFamily="sans-serif">
-        {centerLines.map((line, i) => (
-          <tspan key={i} x={cx} dy={i === 0 ? 0 : 14}>{line}</tspan>
-        ))}
-      </text>
+      <g>
+        <title>{model.label}</title>
+        <circle cx={cx} cy={cy} r={R_CENTER} fill="#1677ff" stroke="#0958d9" strokeWidth={2} />
+        <text x={cx} y={centerY0} textAnchor="middle" dominantBaseline="middle"
+          fill="white" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" paintOrder="stroke"
+          fontSize={11} fontWeight="bold" fontFamily="sans-serif">
+          {centerLines.map((line, i) => (
+            <tspan key={i} x={cx} dy={i === 0 ? 0 : 14}>{line}</tspan>
+          ))}
+        </text>
+      </g>
 
       {/* Satellite nodes */}
       {satellites.map((s, i) => {
@@ -202,10 +229,12 @@ function RelationGraph({ model, onNavigate }: {
         return (
           <g key={i} style={{ cursor: clickable ? "pointer" : "default" }}
             onClick={clickable ? () => onNavigate!(s.target) : undefined}>
+            <title>{s.targetLabel}</title>
             <circle cx={s.sx} cy={s.sy} r={R_SAT} fill={s.color} opacity={0.85}
               stroke={s.color} strokeWidth={1.5} />
             <text x={s.sx} y={y0} textAnchor="middle" dominantBaseline="middle"
-              fill="white" fontSize={10} fontFamily="sans-serif">
+              fill="white" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" paintOrder="stroke"
+              fontSize={10} fontFamily="sans-serif">
               {lines.map((line, j) => (
                 <tspan key={j} x={s.sx} dy={j === 0 ? 0 : 13}>{line}</tspan>
               ))}
@@ -510,7 +539,7 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
 
       {/* Relation graph */}
       <div className="vs-section-title" style={{ marginTop: 28 }}>Relation Graph</div>
-      <RelationGraph model={model} onNavigate={onNavigate} />
+      <RelationGraph model={model} allModelInfos={allModelInfos} onNavigate={onNavigate} />
 
       {/* Named queries */}
       {!model.is_named_query && (

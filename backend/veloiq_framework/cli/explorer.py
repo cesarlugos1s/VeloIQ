@@ -380,6 +380,17 @@ def _scan_models_minimal(mod_dir, module_name, search_set, dashboard_models, das
         after = text[m.start(): m.start() + 300]
         tn = re.search(r'__tablename__\s*=\s*["\']([^"\']+)["\']', after)
         resource = tn.group(1) if tn else name.lower()
+        # Skip link/junction tables (M2M intermediaries) — detected
+        # deterministically via the ORM's MANYTOMANY secondary tables.
+        try:
+            from veloiq_framework.api_schema_gen import _is_link_model
+            import importlib
+            mod = importlib.import_module(f"app.modules.{module_name}.models")
+            cls = getattr(mod, name, None)
+            if cls is not None and _is_link_model(cls):
+                continue
+        except Exception:
+            pass
         models.append(ModelInfo(
             name=name,
             label=re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', name),
