@@ -56,6 +56,13 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.8.4
+
+- **Fix** — User/Role/Tenant CRUD routes are now correctly mounted under `/api`, matching the
+  frontend's dataProvider (new apps previously showed empty User/Role/Tenant lists)
+- **Fix** — `veloiq new` now correctly runs `veloiq generate` and `veloiq build` automatically,
+  so a freshly scaffolded app works immediately with just `veloiq run`
+
 ## What's New in v0.8.3
 
 - **Fix** — menu/journey rendering no longer crashes when `useMenu()` or an unlicensed

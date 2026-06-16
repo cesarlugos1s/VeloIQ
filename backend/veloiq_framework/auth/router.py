@@ -113,8 +113,14 @@ def _tenant_to_dict(tenant: Tenant) -> dict:
 # Factory
 # ---------------------------------------------------------------------------
 
-def make_auth_router(cfg) -> APIRouter:
-    """Return a router with all auth + User/Role/Tenant CRUD endpoints.
+def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
+    """Return ``(auth_router, crud_router)``.
+
+    *auth_router* holds the unprefixed ``/auth/*`` endpoints (login, me,
+    register, ...) called directly by the UI's authProvider. *crud_router*
+    holds the User/Role/Tenant CRUD + link-table read endpoints, which the
+    factory mounts under ``/api`` to match every other resource the
+    frontend's generic dataProvider talks to.
 
     *cfg* is a :class:`~veloiq_framework.config.VeloIQConfig` instance
     injected by the factory so that JWT secret, expiry, and engine are
@@ -325,8 +331,15 @@ def make_auth_router(cfg) -> APIRouter:
         return {"message": "Role removed"}
 
     # ── Link-table read endpoints (for UI M2M relation panels) ───────────────
+    #
+    # These, plus the User/Role/Tenant CRUD endpoints below, are returned as a
+    # separate router (see end of function) so the factory can mount them
+    # under "/api" — matching where the frontend's generic dataProvider sends
+    # every resource request. The "/auth/*" endpoints above stay unprefixed
+    # since the UI's authProvider calls them directly at that path.
+    crud_router = APIRouter(tags=["auth"])
 
-    @router.get("/user_role", summary="List user-role links")
+    @crud_router.get("/user_role", summary="List user-role links")
     def list_user_role_links(request: Request, _start: int = 0, _end: int = 100):
         engine = get_engine()
         from sqlmodel import func
@@ -344,7 +357,7 @@ def make_auth_router(cfg) -> APIRouter:
                 headers={"x-total-count": str(total)},
             )
 
-    @router.get("/user_tenant", summary="List user-tenant links")
+    @crud_router.get("/user_tenant", summary="List user-tenant links")
     def list_user_tenant_links(request: Request, _start: int = 0, _end: int = 100):
         engine = get_engine()
         from sqlmodel import func
@@ -372,7 +385,7 @@ def make_auth_router(cfg) -> APIRouter:
     # ── User CRUD (with password_hash excluded) ───────────────────────────────
     # We build a custom list/get so password_hash is never serialized.
 
-    @router.get("/user", summary="List users")
+    @crud_router.get("/user", summary="List users")
     def list_users(
         request: Request,
         _start: int = 0,
@@ -404,7 +417,7 @@ def make_auth_router(cfg) -> APIRouter:
                 },
             )
 
-    @router.get("/user/{user_id}", summary="Get user")
+    @crud_router.get("/user/{user_id}", summary="Get user")
     def get_user(user_id: int):
         engine = get_engine()
         with Session(engine) as session:
@@ -413,7 +426,7 @@ def make_auth_router(cfg) -> APIRouter:
                 raise HTTPException(status_code=404, detail="User not found")
             return _user_to_dict(user)
 
-    @router.post("/user", status_code=201, summary="Create user")
+    @crud_router.post("/user", status_code=201, summary="Create user")
     def create_user(request: Request, payload: dict):
         _require_admin(request)
         engine = get_engine()
@@ -429,8 +442,8 @@ def make_auth_router(cfg) -> APIRouter:
             session.refresh(user)
             return _user_to_dict(user)
 
-    @router.put("/user/{user_id}", summary="Update user")
-    @router.patch("/user/{user_id}", summary="Partial update user")
+    @crud_router.put("/user/{user_id}", summary="Update user")
+    @crud_router.patch("/user/{user_id}", summary="Partial update user")
     def update_user(user_id: int, request: Request, payload: dict):
         _require_admin(request)
         engine = get_engine()
@@ -454,7 +467,7 @@ def make_auth_router(cfg) -> APIRouter:
             session.refresh(user)
             return _user_to_dict(user)
 
-    @router.delete("/user/{user_id}", status_code=204, summary="Delete user")
+    @crud_router.delete("/user/{user_id}", status_code=204, summary="Delete user")
     def delete_user(user_id: int, request: Request):
         _require_admin(request)
         engine = get_engine()
@@ -467,7 +480,7 @@ def make_auth_router(cfg) -> APIRouter:
 
     # ── Role CRUD ─────────────────────────────────────────────────────────────
 
-    @router.get("/role", summary="List roles")
+    @crud_router.get("/role", summary="List roles")
     def list_roles_crud(request: Request, _start: int = 0, _end: int = 25):
         engine = get_engine()
         from sqlmodel import func
@@ -483,7 +496,7 @@ def make_auth_router(cfg) -> APIRouter:
                 },
             )
 
-    @router.get("/role/{role_id}", summary="Get role")
+    @crud_router.get("/role/{role_id}", summary="Get role")
     def get_role(role_id: int):
         engine = get_engine()
         with Session(engine) as session:
@@ -492,7 +505,7 @@ def make_auth_router(cfg) -> APIRouter:
                 raise HTTPException(status_code=404, detail="Role not found")
             return _role_to_dict(role)
 
-    @router.post("/role", status_code=201, summary="Create role")
+    @crud_router.post("/role", status_code=201, summary="Create role")
     def create_role(request: Request, payload: dict):
         _require_admin(request)
         from veloiq_framework.auth.utils import _invalidate_rbac_cache
@@ -506,8 +519,8 @@ def make_auth_router(cfg) -> APIRouter:
         _invalidate_rbac_cache()
         return _role_to_dict(role)
 
-    @router.put("/role/{role_id}", summary="Update role")
-    @router.patch("/role/{role_id}", summary="Partial update role")
+    @crud_router.put("/role/{role_id}", summary="Update role")
+    @crud_router.patch("/role/{role_id}", summary="Partial update role")
     def update_role(role_id: int, request: Request, payload: dict):
         _require_admin(request)
         from veloiq_framework.auth.utils import _invalidate_rbac_cache
@@ -526,7 +539,7 @@ def make_auth_router(cfg) -> APIRouter:
         _invalidate_rbac_cache()
         return _role_to_dict(role)
 
-    @router.delete("/role/{role_id}", status_code=204, summary="Delete role")
+    @crud_router.delete("/role/{role_id}", status_code=204, summary="Delete role")
     def delete_role(role_id: int, request: Request):
         _require_admin(request)
         engine = get_engine()
@@ -539,7 +552,7 @@ def make_auth_router(cfg) -> APIRouter:
 
     # ── Tenant CRUD ───────────────────────────────────────────────────────────
 
-    @router.get("/tenant", summary="List tenants")
+    @crud_router.get("/tenant", summary="List tenants")
     def list_tenants(request: Request, _start: int = 0, _end: int = 25):
         engine = get_engine()
         from sqlmodel import func
@@ -555,7 +568,7 @@ def make_auth_router(cfg) -> APIRouter:
                 },
             )
 
-    @router.get("/tenant/{tenant_id}", summary="Get tenant")
+    @crud_router.get("/tenant/{tenant_id}", summary="Get tenant")
     def get_tenant(tenant_id: int):
         engine = get_engine()
         with Session(engine) as session:
@@ -564,7 +577,7 @@ def make_auth_router(cfg) -> APIRouter:
                 raise HTTPException(status_code=404, detail="Tenant not found")
             return _tenant_to_dict(tenant)
 
-    @router.post("/tenant", status_code=201, summary="Create tenant")
+    @crud_router.post("/tenant", status_code=201, summary="Create tenant")
     def create_tenant(request: Request, payload: dict):
         _require_admin(request)
         engine = get_engine()
@@ -576,8 +589,8 @@ def make_auth_router(cfg) -> APIRouter:
             session.refresh(tenant)
             return _tenant_to_dict(tenant)
 
-    @router.put("/tenant/{tenant_id}", summary="Update tenant")
-    @router.patch("/tenant/{tenant_id}", summary="Partial update tenant")
+    @crud_router.put("/tenant/{tenant_id}", summary="Update tenant")
+    @crud_router.patch("/tenant/{tenant_id}", summary="Partial update tenant")
     def update_tenant(tenant_id: int, request: Request, payload: dict):
         _require_admin(request)
         engine = get_engine()
@@ -594,7 +607,7 @@ def make_auth_router(cfg) -> APIRouter:
             session.refresh(tenant)
             return _tenant_to_dict(tenant)
 
-    @router.delete("/tenant/{tenant_id}", status_code=204, summary="Delete tenant")
+    @crud_router.delete("/tenant/{tenant_id}", status_code=204, summary="Delete tenant")
     def delete_tenant(tenant_id: int, request: Request):
         _require_admin(request)
         engine = get_engine()
@@ -605,4 +618,4 @@ def make_auth_router(cfg) -> APIRouter:
             session.delete(tenant)
             session.commit()
 
-    return router
+    return router, crud_router

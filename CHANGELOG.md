@@ -4,6 +4,25 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.8.4] — 2026-06-16
+
+### Fixes
+
+- **Auth CRUD routing** — `/user`, `/role`, `/tenant`, `/user_role`, and `/user_tenant` were
+  registered without the `/api` prefix, while the frontend's generic dataProvider always
+  requests resources under `/api`. New apps showed empty User/Role/Tenant lists with no error
+  (the SPA static-file fallback silently served `index.html` for the mismatched path instead of
+  404ing). `make_auth_router()` now returns `(auth_router, crud_router)`; the factory mounts
+  `/auth/*` unprefixed and the CRUD router under `/api`, matching every other resource.
+- **`veloiq new`** — the automatic `veloiq generate` step after scaffolding was invoking
+  `python -m veloiq_framework.cli`, a package with no `__main__.py`, so it always failed
+  silently. It now locates the real `veloiq` binary (falling back to the sibling of
+  `sys.executable` when it's not on `$PATH`). `veloiq new` also now runs `veloiq build`
+  automatically afterward, so a freshly scaffolded app's frontend is built and the app works
+  immediately with just `veloiq run` — no manual `generate`/`build` step required.
+
+---
+
 ## [0.8.3] — 2026-06-16
 
 ### Fixes

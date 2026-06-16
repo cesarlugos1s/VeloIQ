@@ -164,9 +164,18 @@ def new(app_name: str, title: str | None, port: int, frontend_port: int,
 
     # ── Automatic veloiq generate ─────────────────────────────────────────────
     click.echo("\n  Running: veloiq generate\n")
-    try:
+    # shutil.which() relies on $PATH, which may not include the running
+    # interpreter's venv/bin (e.g. when invoked by full path without
+    # activation) — fall back to the sibling of sys.executable, which is
+    # always correct for whichever venv is actually running this code.
+    veloiq_bin = shutil.which("veloiq") or str(Path(sys.executable).with_name("veloiq"))
+    if not Path(veloiq_bin).exists():
+        veloiq_bin = None
+    if not veloiq_bin:
+        click.echo("  ⚠️  Could not find the `veloiq` command on PATH — run `veloiq generate` manually after adding modules.")
+    else:
         result = subprocess.run(
-            [sys.executable, "-m", "veloiq_framework.cli", "generate"],
+            [veloiq_bin, "generate"],
             cwd=str(backend_dir),
             capture_output=True,
             text=True,
@@ -177,21 +186,36 @@ def new(app_name: str, title: str | None, port: int, frontend_port: int,
         if result.returncode != 0 and result.stderr:
             for line in result.stderr.strip().splitlines():
                 click.echo(f"  {line}")
-    except FileNotFoundError:
-        click.echo("  ⚠️  Could not run veloiq generate — run it manually after adding modules.")
+
+    # ── Automatic veloiq build ────────────────────────────────────────────────
+    # Production mode (`veloiq run` serving frontend + API on one port) needs
+    # frontend/dist to exist; build it now so the app works immediately
+    # without a separate manual step.
+    click.echo("\n  Running: veloiq build\n")
+    if veloiq_bin:
+        result = subprocess.run(
+            [veloiq_bin, "build"],
+            cwd=str(dest),
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                click.echo(f"  {line}")
+        if result.returncode != 0 and result.stderr:
+            for line in result.stderr.strip().splitlines():
+                click.echo(f"  {line}")
 
     click.echo("\nNext steps:")
-    click.echo(f"  cd {dest}")
-    click.echo("\n  # Backend")
-    click.echo("  cd backend")
+    click.echo(f"  cd {dest}/backend")
     if no_pip_install:
         click.echo("  pip install -r requirements.txt")
-    click.echo("  veloiq run                   # tables are created automatically on first start")
-    click.echo("\n  # Frontend (second terminal)")
+    click.echo("  veloiq run                   # frontend is already built — UI served at the same port")
+    click.echo("\n  # To actively develop the frontend instead (hot reload), use a second terminal:")
     click.echo(f"  cd {dest}/frontend")
     if no_npm_install:
         click.echo("  npm install")
-    click.echo("  npm run dev")
+    click.echo("  npm run dev                  # UI at http://localhost:5173, proxies /api to the backend")
     click.echo("\n⭐ If VeloIQ saves you time, a star helps others find it:")
     click.echo("   https://github.com/cesarlugos1s/VeloIQ")
 

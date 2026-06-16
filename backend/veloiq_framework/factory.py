@@ -348,9 +348,15 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         catalog = _load_po_catalog_cached(str(po_file), mtime)
         return JSONResponse(catalog)
 
-    # Auth endpoints (login, me, register, CRUD for user/role/tenant)
+    # Auth endpoints (login, me, register, CRUD for user/role/tenant). The
+    # "/auth/*" router stays unprefixed (the UI's authProvider calls it
+    # directly); the User/Role/Tenant CRUD router is mounted under "/api"
+    # since the frontend's generic dataProvider talks to every resource
+    # there.
     from veloiq_framework.auth.router import make_auth_router
-    app.include_router(make_auth_router(cfg))
+    _auth_router, _auth_crud_router = make_auth_router(cfg)
+    app.include_router(_auth_router)
+    app.include_router(_auth_crud_router, prefix="/api")
 
     # All data API endpoints live under /api so the frontend's API_URL="/api"
     # works in production without any Vite proxy path-rewriting.
