@@ -727,7 +727,7 @@ export const DynamicList: React.FC<{
 
     const isClientFiltering = allRowsLoaded && !allRowsError;
     const filteredDataSource = useMemo(() => {
-        if (!isClientFiltering) return tableProps.dataSource || [];
+        if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
         const baseRows = allRows || [];
         return applyFilterRules(applyGlobalSearch(baseRows));
     }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
@@ -752,7 +752,7 @@ export const DynamicList: React.FC<{
         // Prefer allRowsData (complete dataset) over the current page whenever it has been
         // fetched, regardless of whether client-side filtering is active. This ensures filter
         // dropdowns always show all distinct values, not just those on the visible page.
-        const data = allRowsData.length > 0 ? allRowsData : (tableProps.dataSource || []);
+        const data = allRowsData.length > 0 ? allRowsData : (Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
         const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
         return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
     }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
@@ -1528,7 +1528,7 @@ export const DynamicList: React.FC<{
     }, [labelCache]);
 
     const chartData = useMemo(() => {
-        const data = columnFilteredDataSource || [];
+        const data = Array.isArray(columnFilteredDataSource) ? columnFilteredDataSource : [];
         const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : undefined;
         const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : undefined;
         const groupMap = new Map<string, { key: string; label: string; values: Record<string, number> }>();
@@ -1726,7 +1726,7 @@ export const DynamicList: React.FC<{
     // range grouping (same util as the table column filters), independent of the display columns.
     const crosstabFilterOptions = useMemo(() => {
         if (crosstabFilterFields.length === 0) return new Map<string, { text: string; value: string }[]>();
-        const data = allRowsData.length > 0 ? allRowsData : (tableProps.dataSource || []);
+        const data = allRowsData.length > 0 ? allRowsData : (Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
         const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
         const fields = crosstabFilterFields
             .map((k) => model.fields.find((f) => f.key === k))
@@ -2440,7 +2440,7 @@ export const DynamicList: React.FC<{
     // server-side pagination, so we merge each page's selections into the Map ourselves.
     const handleBulkRowSelectionChange = useCallback(
         (newKeys: React.Key[], newRowsOnPage: any[]) => {
-            const currentPageData = isClientFiltering ? filteredDataSource : (tableProps.dataSource || []);
+            const currentPageData = isClientFiltering ? filteredDataSource : (Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
             const currentPageKeys = new Set(currentPageData.map((r: any) => String(getRowKeyRef.current(r))));
             const newKeySet = new Set(newKeys.map((k) => String(k)));
             // Add / update records for rows now selected on this page

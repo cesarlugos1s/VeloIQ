@@ -13738,7 +13738,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
   const chartData = React5.useMemo(() => {
-    const data = columnFilteredRows || [];
+    const data = Array.isArray(columnFilteredRows) ? columnFilteredRows : [];
     const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : void 0;
     const groupMap = /* @__PURE__ */ new Map();
@@ -16894,7 +16894,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
   const filteredDataSource = React5.useMemo(() => {
-    if (!isClientFiltering) return tableProps.dataSource || [];
+    if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const baseRows = allRows || [];
     return applyFilterRules(applyGlobalSearch(baseRows));
   }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
@@ -16913,7 +16913,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
   const columnFilters = React5.useMemo(() => {
-    const data = allRowsData.length > 0 ? allRowsData : tableProps.dataSource || [];
+    const data = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
   }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
@@ -17617,7 +17617,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return String(raw);
   }, [labelCache]);
   const chartData = React5.useMemo(() => {
-    const data = columnFilteredDataSource || [];
+    const data = Array.isArray(columnFilteredDataSource) ? columnFilteredDataSource : [];
     const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : void 0;
     const groupMap = /* @__PURE__ */ new Map();
@@ -17799,7 +17799,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [isCrosstabView, categoryField1, categoryField2, crosstabFilterFields, allRowsData, columnFilteredDataSource, model.fields, allModels, apiUrl, handleReferenceLabel]);
   const crosstabFilterOptions = React5.useMemo(() => {
     if (crosstabFilterFields.length === 0) return /* @__PURE__ */ new Map();
-    const data = allRowsData.length > 0 ? allRowsData : tableProps.dataSource || [];
+    const data = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     const fields = crosstabFilterFields.map((k) => model.fields.find((f) => f.key === k)).filter((f) => Boolean(f));
     return buildColumnFilterOptions({ fields, data, rangeCount });
@@ -18466,7 +18466,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   getRowKeyRef.current = getRowKey;
   const handleBulkRowSelectionChange = React5.useCallback(
     (newKeys, newRowsOnPage) => {
-      const currentPageData = isClientFiltering ? filteredDataSource : tableProps.dataSource || [];
+      const currentPageData = isClientFiltering ? filteredDataSource : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
       const currentPageKeys = new Set(currentPageData.map((r) => String(getRowKeyRef.current(r))));
       const newKeySet = new Set(newKeys.map((k) => String(k)));
       newRowsOnPage.forEach((row) => {

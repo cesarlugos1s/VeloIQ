@@ -1509,7 +1509,7 @@ export const RelatedObjectsTable: React.FC<{
     }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
 
     const chartData = useMemo(() => {
-        const data = columnFilteredRows || [];
+        const data = Array.isArray(columnFilteredRows) ? columnFilteredRows : [];
         const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : undefined;
         const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : undefined;
         const groupMap = new Map<string, { key: string; label: string; values: Record<string, number> }>();
