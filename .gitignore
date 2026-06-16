@@ -37,3 +37,6 @@ backend/tests/results.html
 
 # NLP engine output (DataFrame records of generated query results)
 jm_knowledge_datalake/
+
+# Intermediate frames for showcase GIFs — reproducible via take_showcase_gif_frames.py
+website/showcase-assets/demo-gif/frames/

@@ -48,9 +48,9 @@ class Project(TimestampedModel, table=True):
 
 ## See it in action
 
-![VeloIQ task manager — Teams and Tasks view](website/VeloIQ-task-manager.gif)
+![Building an app with VeloIQ Studio — scaffolding models, fields, and relations, then running the generated app](website/showcase-assets/demo-gif/build-an-app.gif)
 
-*Full-stack CRUD with auth, RBAC, side panels, and analysis charts — generated from Python model definitions.*
+*Scaffold modules, models, fields, and a relation through VeloIQ Studio, then run the generated app — full CRUD, auth, RBAC, and analysis charts, with zero React written. See the resulting UI in the [showcase](https://veloiq.dev/showcase.html).*
 
 > Want to see this running on your machine in 5 minutes? Jump to the [Five-minute demo](#five-minute-demo) below.
 
