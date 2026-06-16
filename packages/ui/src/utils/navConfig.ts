@@ -79,6 +79,7 @@ export function sortItemsByNavConfig<T extends { key?: string; name?: string }>(
     items: T[],
     navConfig: NavConfig,
 ): T[] {
+    if (!Array.isArray(items)) return [];
     return [...items].sort((a, b) => {
         const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
         const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;

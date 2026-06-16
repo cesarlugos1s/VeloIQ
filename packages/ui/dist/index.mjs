@@ -287,6 +287,7 @@ function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
 }
 function sortItemsByNavConfig(items, navConfig) {
+  if (!Array.isArray(items)) return [];
   return [...items].sort((a, b) => {
     const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
     const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
@@ -342,6 +343,7 @@ function useJourneyMenuItems() {
   return byModule;
 }
 function injectJourneyMenuItems(items, byModule) {
+  if (!Array.isArray(items)) return [];
   if (!byModule || Object.keys(byModule).length === 0) return items;
   const moduleNameOf = (item) => {
     let key = String(item?.key ?? item?.name ?? "");
@@ -350,16 +352,20 @@ function injectJourneyMenuItems(items, byModule) {
     if (byModule[key]) return key;
     return null;
   };
-  const walk = (list) => list.map((item) => {
-    const childrenWalked = Array.isArray(item?.children) && item.children.length ? walk(item.children) : item?.children;
-    const moduleName = moduleNameOf(item);
-    const extra = moduleName ? byModule[moduleName] : void 0;
-    if (extra && extra.length) {
-      return { ...item, children: [...extra, ...childrenWalked || []] };
-    }
-    if (childrenWalked !== item?.children) return { ...item, children: childrenWalked };
-    return item;
-  });
+  const walk = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list.map((item) => {
+      const safeChildren = Array.isArray(item?.children) ? item.children : [];
+      const childrenWalked = safeChildren.length ? walk(safeChildren) : safeChildren;
+      const moduleName = moduleNameOf(item);
+      const extra = moduleName ? byModule[moduleName] : void 0;
+      if (extra && extra.length) {
+        return { ...item, children: [...extra, ...Array.isArray(childrenWalked) ? childrenWalked : []] };
+      }
+      if (childrenWalked !== item?.children) return { ...item, children: Array.isArray(childrenWalked) ? childrenWalked : item?.children };
+      return item;
+    });
+  };
   return walk(items);
 }
 var HorizontalMenu = ({ navConfig = [] }) => {
@@ -406,8 +412,10 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     );
   };
   const transformItems = (items2, depth = 0) => {
+    if (!Array.isArray(items2)) return [];
     return items2.map((item) => {
-      const hasChildren = item.children && item.children.length > 0;
+      const safeChildren = Array.isArray(item?.children) ? item.children : [];
+      const hasChildren = safeChildren.length > 0;
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
@@ -478,8 +486,10 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     );
   };
   const transformItems = (items2, depth = 0) => {
+    if (!Array.isArray(items2)) return [];
     return items2.map((item) => {
-      const hasChildren = item.children && item.children.length > 0;
+      const safeChildren = Array.isArray(item?.children) ? item.children : [];
+      const hasChildren = safeChildren.length > 0;
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
@@ -1563,16 +1573,19 @@ var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = fa
 var MobileMenuContent = ({ onClose }) => {
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
-  const transformItems = (items) => items.map((item) => ({
-    key: item.key,
-    label: item.label || item.name || item.key,
-    icon: item.icon,
-    onClick: item.children?.length ? void 0 : () => {
-      go({ to: item.route });
-      onClose();
-    },
-    children: item.children?.length ? transformItems(item.children) : void 0
-  }));
+  const transformItems = (items) => {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({
+      key: item.key,
+      label: item.label || item.name || item.key,
+      icon: item.icon,
+      onClick: item.children?.length ? void 0 : () => {
+        go({ to: item.route });
+        onClose();
+      },
+      children: item.children?.length ? transformItems(item.children) : void 0
+    }));
+  };
   return /* @__PURE__ */ jsx(
     Menu,
     {

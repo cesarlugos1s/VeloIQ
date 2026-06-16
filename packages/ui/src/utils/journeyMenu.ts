@@ -56,6 +56,7 @@ export function injectJourneyMenuItems<T extends { key?: string; name?: string; 
     items: T[],
     byModule: JourneyMenuMap,
 ): T[] {
+    if (!Array.isArray(items)) return [];
     if (!byModule || Object.keys(byModule).length === 0) return items;
 
     const moduleNameOf = (item: any): string | null => {
@@ -68,19 +69,21 @@ export function injectJourneyMenuItems<T extends { key?: string; name?: string; 
         return null;
     };
 
-    const walk = (list: any[]): any[] => list.map((item) => {
-        const childrenWalked = Array.isArray(item?.children) && item.children.length
-            ? walk(item.children)
-            : item?.children;
-        const moduleName = moduleNameOf(item);
-        const extra = moduleName ? byModule[moduleName] : undefined;
-        if (extra && extra.length) {
-            // Journeys appear BEFORE the module's model entries.
-            return { ...item, children: [...extra, ...(childrenWalked || [])] };
-        }
-        if (childrenWalked !== item?.children) return { ...item, children: childrenWalked };
-        return item;
-    });
+    const walk = (list: any[]): any[] => {
+        if (!Array.isArray(list)) return [];
+        return list.map((item) => {
+            const safeChildren: any[] = Array.isArray(item?.children) ? item.children : [];
+            const childrenWalked = safeChildren.length ? walk(safeChildren) : safeChildren;
+            const moduleName = moduleNameOf(item);
+            const extra = moduleName ? byModule[moduleName] : undefined;
+            if (extra && extra.length) {
+                // Journeys appear BEFORE the module's model entries.
+                return { ...item, children: [...extra, ...(Array.isArray(childrenWalked) ? childrenWalked : [])] };
+            }
+            if (childrenWalked !== item?.children) return { ...item, children: Array.isArray(childrenWalked) ? childrenWalked : item?.children };
+            return item;
+        });
+    };
 
     return walk(items) as T[];
 }

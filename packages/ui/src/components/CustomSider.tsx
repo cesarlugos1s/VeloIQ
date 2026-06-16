@@ -73,8 +73,10 @@ export const CustomSider: React.FC<{
     };
 
     const transformItems = (items: any[], depth = 0): any[] => {
+        if (!Array.isArray(items)) return [];
         return items.map((item) => {
-            const hasChildren = item.children && item.children.length > 0;
+            const safeChildren: any[] = Array.isArray(item?.children) ? item.children : [];
+            const hasChildren = safeChildren.length > 0;
             return {
                 key: item.key,
                 label: renderLabel(item, depth, hasChildren),

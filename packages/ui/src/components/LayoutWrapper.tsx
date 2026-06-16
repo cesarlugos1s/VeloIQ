@@ -67,14 +67,16 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
 
-    const transformItems = (items: any[]): any[] =>
-        items.map((item) => ({
+    const transformItems = (items: any[]): any[] => {
+        if (!Array.isArray(items)) return [];
+        return items.map((item) => ({
             key: item.key,
             label: item.label || item.name || item.key,
             icon: item.icon,
             onClick: item.children?.length ? undefined : () => { go({ to: item.route }); onClose(); },
             children: item.children?.length ? transformItems(item.children) : undefined,
         }));
+    };
 
     return (
         <Menu
