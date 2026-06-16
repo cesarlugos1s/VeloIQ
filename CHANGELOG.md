@@ -4,6 +4,19 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.8.3] — 2026-06-16
+
+### Fixes
+
+- **Menu rendering** — `CustomSider`, `HorizontalMenu`, `LayoutWrapper`, and
+  `CommandCenterPortal` now guard every menu/journey transform with
+  `Array.isArray()` checks. Previously, a transient non-array shape from
+  `useMenu()` or a 403 from an unlicensed extension's `/api/journeys`
+  endpoint (e.g. an installed-but-not-yet-licensed extension) could throw
+  `X.forEach is not a function` and crash the whole layout.
+
+---
+
 ## [0.8.2] — 2026-06-15
 
 ### Features

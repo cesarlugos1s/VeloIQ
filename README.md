@@ -56,6 +56,11 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.8.3
+
+- **Fix** — menu/journey rendering no longer crashes when `useMenu()` or an unlicensed
+  extension's `/api/journeys` endpoint returns a non-array shape (e.g. a 403)
+
 ## What's New in v0.8.0
 
 - **`veloiq add-model`** — add a new SQLModel class to any module interactively; no manual file editing required
