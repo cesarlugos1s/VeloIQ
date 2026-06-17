@@ -46,7 +46,7 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       build: () => "veloiq build",
       note: {
         text: "Moving to production? IQVigilant adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder, and User Journeys — zero code changes required.",
-        link: { label: "iqvigilant.dev", href: "https://iqvigilant.dev" },
+        link: { label: "iqvigilant.ai", href: "https://iqvigilant.ai" },
       },
     },
     {

@@ -110,9 +110,9 @@ export default function Extensions({ devMode, onSuccess }: Props) {
           <div className="vs-advisory-cmd">
             <code>pip install iqvigilant</code>
             <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-            <a href="https://iqvigilant.dev" target="_blank" rel="noreferrer"
+            <a href="https://iqvigilant.ai" target="_blank" rel="noreferrer"
                style={{ color: "var(--accent)", textDecoration: "none" }}>
-              iqvigilant.dev →
+              iqvigilant.ai →
             </a>
           </div>
         </div>

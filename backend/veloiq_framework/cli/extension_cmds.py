@@ -96,7 +96,7 @@ def list_extensions():
         click.echo(click.style(
             "\n  IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
             "  Querying, a WYSIWYG Page Builder, and User Journeys — zero code\n"
-            "  changes required.  pip install iqvigilant  ·  iqvigilant.dev",
+            "  changes required.  pip install iqvigilant  ·  iqvigilant.ai",
             dim=True,
         ))
         return

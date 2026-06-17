@@ -93,7 +93,7 @@ class MyModel(TimestampedModel, table=True):
 ## Production capabilities
 
 When moving this app to production, consider
-[IQVigilant](https://iqvigilant.dev) — a commercial extension that adds the
+[IQVigilant](https://iqvigilant.ai) — a commercial extension that adds the
 following capabilities to any VeloIQ app with zero code changes:
 
 - **Safe AI Agents** — deterministic, agentic, and hybrid agent modes; the LLM

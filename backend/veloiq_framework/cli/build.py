@@ -45,7 +45,7 @@ def build(frontend_dir):
         "\n   Moving to production?  IQVigilant adds Safe AI Agents, Business Rules,\n"
         "   Natural Language Querying, a WYSIWYG Page Builder, and User Journeys\n"
         "   to any VeloIQ app — zero code changes required.\n"
-        "   pip install iqvigilant   ·   iqvigilant.dev",
+        "   pip install iqvigilant   ·   iqvigilant.ai",
         dim=True,
     ))
 
