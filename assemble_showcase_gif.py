@@ -7,7 +7,8 @@ already-curated website/showcase-assets/*.png images instead of recapturing —
 they're already cropped to a consistent 1600x952 canvas for the website.
 
 Each frame gets a caption banner overlaid at the top explaining what's
-happening, so the GIF reads on its own without narration.
+happening. Branded title/transition cards are inserted between sections so the
+GIF reads as a guided tour rather than a raw screen recording.
 """
 
 from pathlib import Path
@@ -19,10 +20,22 @@ ASSETS = ROOT / "website/showcase-assets"
 OUT = ROOT / "website/showcase-assets/demo-gif/build-an-app.gif"
 
 CANVAS = (1600, 952)
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf"
+FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 BANNER_HEIGHT = 56
 BANNER_MARGIN = 320  # keep clear of the Studio sidebar badge / app toolbar corners
-FONT = ImageFont.truetype(FONT_PATH, 24)
+FONT = ImageFont.truetype(f"{FONT_DIR}/DejaVuSans-Oblique.ttf", 24)
+
+# Title-card fonts
+EYEBROW_FONT = ImageFont.truetype(f"{FONT_DIR}/DejaVuSans-Bold.ttf", 20)
+TITLE_FONT   = ImageFont.truetype(f"{FONT_DIR}/DejaVuSans-Bold.ttf", 52)
+BODY_FONT    = ImageFont.truetype(f"{FONT_DIR}/DejaVuSans.ttf", 25)
+
+# VeloIQ brand palette (website/styles.css)
+BG         = (9,   9,   11)   # --bg
+ACCENT     = (99,  102, 241)  # --accent  #6366f1 indigo
+ACCENT_TXT = (129, 140, 248)  # indigo-400 — lighter for eyebrow
+TEXT       = (250, 250, 250)  # --text
+TEXT_MUTED = (161, 161, 170)  # --text-muted
 
 # Zoom crop regions — (x1, y1, x2, y2) in original PNG pixel space (3360×1960).
 # Every box is sized to the CANVAS 1.68:1 ratio so PIL resize introduces no distortion.
@@ -33,16 +46,34 @@ Z_BUILD  = (1344, 270, 3360, 1470)  # Build Frontend card (right col, 2nd row) +
 Z_SCHEMA = (0,    0,   2240, 1333)  # Schema Browser — left ⅔ of page (field/relation forms)
 Z_GRAPH  = (600,  0,   2616, 1200)  # Relation graph — centered on the node cluster
 
-# (path, hold-duration-ms, caption[, zoom]).  zoom = one of the Z_* constants above,
-# or omitted for full-frame shots.  Consecutive frames repeat the same caption on purpose.
+# SEQUENCE entries are one of two shapes:
+#   ("title", (eyebrow, title, body), duration_ms)  — rendered title card
+#   (Path, duration_ms, caption[, zoom])             — screenshot frame
 SEQUENCE = [
-    # ── Login / overview ─────────────────────────────────────────────────────
+    # ── Intro ─────────────────────────────────────────────────────────────────
+    ("title", (
+        "BUILT ON FASTAPI · REACT · SQLMODEL",
+        "VeloIQ Studio",
+        "Scaffold modules, models, fields and relations — wire the dashboard "
+        "and search — then build. A full-stack production app in minutes, "
+        "no boilerplate.",
+    ), 7000),
+
+    # ── Login / overview ──────────────────────────────────────────────────────
     (FRAMES / "001_login_empty.png",  600,  "Signing in to VeloIQ Studio"),
     (FRAMES / "003_login_filled.png", 600,  "Signing in to VeloIQ Studio"),
     (FRAMES / "005_summary.png",      2600, "Studio summary — a fresh, empty project"),
     (FRAMES / "007_command_panel.png", 800, "Command Panel — scaffolding commands"),
 
-    # ── Add Module (left column) ──────────────────────────────────────────────
+    # ── Step 1: Define the data model ─────────────────────────────────────────
+    ("title", (
+        "STEP 1 · THE DATA MODEL",
+        "Modules, models and fields — no boilerplate",
+        "Create typed modules and models from the Command Panel. Every field, "
+        "relation and constraint is auto-wired into the REST API, admin views, "
+        "and frontend schemas.",
+    ), 6000),
+
     (FRAMES / "008_add_module_projects_typed.png",   1100, "Creating the \"projects\" module", Z_LEFT),
     (FRAMES / "009_add_module_projects_running.png",  700, "Creating the \"projects\" module", Z_LEFT),
     (FRAMES / "010_add_module_projects_done.png",    1400, "Creating the \"projects\" module", Z_LEFT),
@@ -50,37 +81,42 @@ SEQUENCE = [
     (FRAMES / "013_add_module_tasks_running.png",     700, "Creating the \"tasks\" module",    Z_LEFT),
     (FRAMES / "014_add_module_tasks_done.png",       1300, "Creating the \"tasks\" module",    Z_LEFT),
 
-    # ── Add Model (right column) ──────────────────────────────────────────────
-    (FRAMES / "016_add_model_Project_name_typed.png",     1100, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "016_add_model_Project_name_typed.png",      1100, "Adding the Project model", Z_RIGHT),
     (FRAMES / "017_add_model_Project_module_selected.png", 1100, "Adding the Project model", Z_RIGHT),
-    (FRAMES / "018_add_model_Project_running.png",         700, "Adding the Project model", Z_RIGHT),
-    (FRAMES / "019_add_model_Project_done.png",           1400, "Adding the Project model", Z_RIGHT),
-    (FRAMES / "021_add_model_Task_name_typed.png",        1000, "Adding the Task model",    Z_RIGHT),
-    (FRAMES / "022_add_model_Task_module_selected.png",   1000, "Adding the Task model",    Z_RIGHT),
-    (FRAMES / "023_add_model_Task_running.png",            700, "Adding the Task model",    Z_RIGHT),
-    (FRAMES / "024_add_model_Task_done.png",              1300, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "018_add_model_Project_running.png",          700, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "019_add_model_Project_done.png",            1400, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "021_add_model_Task_name_typed.png",         1000, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "022_add_model_Task_module_selected.png",    1000, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "023_add_model_Task_running.png",             700, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "024_add_model_Task_done.png",               1300, "Adding the Task model",    Z_RIGHT),
 
-    # ── Schema Browser — fields & relations ──────────────────────────────────
-    (FRAMES / "026_schema_project_fields.png",              1300, "Project model created — default fields",      Z_SCHEMA),
-    (FRAMES / "028_add_field_project_status_typed.png",     1000, "Adding a \"status\" field to Project",        Z_SCHEMA),
-    (FRAMES / "029_add_field_project_status_configured.png", 1300, "Adding a \"status\" field to Project",       Z_SCHEMA),
-    (FRAMES / "030_add_field_project_status_running.png",    700, "Adding a \"status\" field to Project",        Z_SCHEMA),
-    (FRAMES / "031_add_field_project_status_done.png",      1400, "Adding a \"status\" field to Project",        Z_SCHEMA),
-    (FRAMES / "033_schema_task_fields.png",                 1100, "Task model created — default fields",         Z_SCHEMA),
-    (FRAMES / "034_add_field_task_status_typed.png",         900, "Adding a \"status\" field to Task",           Z_SCHEMA),
-    (FRAMES / "035_add_field_task_status_configured.png",   1200, "Adding a \"status\" field to Task",           Z_SCHEMA),
-    (FRAMES / "036_add_field_task_status_running.png",       700, "Adding a \"status\" field to Task",           Z_SCHEMA),
-    (FRAMES / "037_add_field_task_status_done.png",         1200, "Adding a \"status\" field to Task",           Z_SCHEMA),
-    (FRAMES / "039_add_field_task_due_date_typed.png",       900, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
-    (FRAMES / "040_add_field_task_due_date_configured.png", 1100, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
-    (FRAMES / "042_add_field_task_due_date_done.png",       1300, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
-    (FRAMES / "044_add_relation_empty.png",                 1100, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
-    (FRAMES / "045_add_relation_configured.png",            1300, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
-    (FRAMES / "046_add_relation_running.png",                700, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
-    (FRAMES / "047_add_relation_done.png",                  1400, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
-    (FRAMES / "049_relation_graph.png",                     2200, "The relation graph: every Task belongs to a Project", Z_GRAPH),
+    (FRAMES / "026_schema_project_fields.png",               1300, "Project model — default fields",          Z_SCHEMA),
+    (FRAMES / "028_add_field_project_status_typed.png",      1000, "Adding a \"status\" field to Project",    Z_SCHEMA),
+    (FRAMES / "029_add_field_project_status_configured.png", 1300, "Adding a \"status\" field to Project",    Z_SCHEMA),
+    (FRAMES / "030_add_field_project_status_running.png",     700, "Adding a \"status\" field to Project",    Z_SCHEMA),
+    (FRAMES / "031_add_field_project_status_done.png",       1400, "Adding a \"status\" field to Project",    Z_SCHEMA),
+    (FRAMES / "033_schema_task_fields.png",                  1100, "Task model — default fields",             Z_SCHEMA),
+    (FRAMES / "034_add_field_task_status_typed.png",          900, "Adding a \"status\" field to Task",       Z_SCHEMA),
+    (FRAMES / "035_add_field_task_status_configured.png",    1200, "Adding a \"status\" field to Task",       Z_SCHEMA),
+    (FRAMES / "036_add_field_task_status_running.png",        700, "Adding a \"status\" field to Task",       Z_SCHEMA),
+    (FRAMES / "037_add_field_task_status_done.png",          1200, "Adding a \"status\" field to Task",       Z_SCHEMA),
+    (FRAMES / "039_add_field_task_due_date_typed.png",        900, "Adding a \"due_date\" field to Task",     Z_SCHEMA),
+    (FRAMES / "040_add_field_task_due_date_configured.png",  1100, "Adding a \"due_date\" field to Task",     Z_SCHEMA),
+    (FRAMES / "042_add_field_task_due_date_done.png",        1300, "Adding a \"due_date\" field to Task",     Z_SCHEMA),
+    (FRAMES / "044_add_relation_empty.png",                  1100, "Linking Task → Project (many-to-one)",    Z_SCHEMA),
+    (FRAMES / "045_add_relation_configured.png",             1300, "Linking Task → Project (many-to-one)",    Z_SCHEMA),
+    (FRAMES / "046_add_relation_running.png",                 700, "Linking Task → Project (many-to-one)",    Z_SCHEMA),
+    (FRAMES / "047_add_relation_done.png",                   1400, "Linking Task → Project (many-to-one)",    Z_SCHEMA),
+    (FRAMES / "049_relation_graph.png",                      2200, "The relation graph: every Task belongs to a Project", Z_GRAPH),
 
-    # ── Dashboard & Search ────────────────────────────────────────────────────
+    # ── Step 2: Wire the UI ───────────────────────────────────────────────────
+    ("title", (
+        "STEP 2 · WIRE THE UI",
+        "Dashboard and search — one toggle each",
+        "Add any model to the dashboard or global search without touching a "
+        "config file or writing frontend code. Changes take effect on next build.",
+    ), 6000),
+
     (FRAMES / "052_dashboard_before.png",           600, "Adding Project & Task to the Dashboard", Z_LEFT),
     (FRAMES / "054_dashboard_add_project_done.png", 700, "Adding Project & Task to the Dashboard", Z_LEFT),
     (FRAMES / "057_dashboard_add_task_done.png",    700, "Adding Project & Task to the Dashboard", Z_LEFT),
@@ -90,18 +126,79 @@ SEQUENCE = [
     (FRAMES / "066_search_add_Task_done.png",       600, "Adding Project & Task to Search",         Z_LEFT),
     (FRAMES / "068_search_after.png",               900, "Adding Project & Task to Search",         Z_LEFT),
 
-    # ── Build Frontend (right column, 2nd row) ────────────────────────────────
-    (FRAMES / "070_build_before.png",  600, "Building the frontend",          Z_BUILD),
-    (FRAMES / "071_build_running.png", 600, "Building the frontend",          Z_BUILD),
+    # ── Step 3: Build ─────────────────────────────────────────────────────────
+    ("title", (
+        "STEP 3 · BUILD & RUN",
+        "One command compiles the entire frontend",
+        "veloiq build regenerates routes and navigation from the current schema, "
+        "compiles React, and serves the app — ready for production.",
+    ), 6000),
+
+    (FRAMES / "070_build_before.png",  600, "Building the frontend",            Z_BUILD),
+    (FRAMES / "071_build_running.png", 600, "Building the frontend",            Z_BUILD),
     (FRAMES / "072_build_done.png",   1900, "Build complete — app served at /", Z_BUILD),
 
-    # ── Running app with data — reused website showcase assets (already 1600×952) ──
-    (ASSETS / "dashboard-light.png", 1500, "The running app — light theme"),
-    (ASSETS / "dashboard-dark.png",  1500, "...and dark theme, out of the box"),
-    (ASSETS / "view-table.png",      1500, "Task list, fully populated with data"),
+    # ── The result ────────────────────────────────────────────────────────────
+    ("title", (
+        "THE RESULT",
+        "A production-ready app — from zero",
+        "Light and dark themes, CRUD for every model, relational views, "
+        "dashboard charts, and global search — all from the schema you just defined.",
+    ), 6000),
+
+    (ASSETS / "dashboard-light.png",  1500, "The running app — light theme"),
+    (ASSETS / "dashboard-dark.png",   1500, "...and dark theme, out of the box"),
+    (ASSETS / "view-table.png",       1500, "Task list, fully populated with data"),
     (ASSETS / "detail-relations.png", 1700, "Project detail — its related Tasks"),
-    (ASSETS / "detail-master.png",   1700, "Task detail / edit form"),
+    (ASSETS / "detail-master.png",    1700, "Task detail / edit form"),
 ]
+
+CHUNK_MS = 1000  # GIF viewers often drop frame-0 delay on loop; splitting title
+                 # cards into 1s chunks means losing at most 1s on restart.
+
+
+def wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int,
+              draw: ImageDraw.ImageDraw) -> list[str]:
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        trial = f"{cur} {w}".strip()
+        if draw.textbbox((0, 0), trial, font=font)[2] <= max_width:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def title_card(eyebrow: str, title: str, body: str) -> Image.Image:
+    im = Image.new("RGB", CANVAS, BG)
+    draw = ImageDraw.Draw(im)
+    cx, max_w = CANVAS[0] // 2, 1100
+
+    # Thin accent rule above eyebrow
+    rule_y = 295
+    draw.rectangle([cx - 32, rule_y, cx + 32, rule_y + 3], fill=ACCENT)
+
+    eb_w = draw.textbbox((0, 0), eyebrow, font=EYEBROW_FONT)[2]
+    draw.text((cx - eb_w / 2, 316), eyebrow, font=EYEBROW_FONT, fill=ACCENT_TXT)
+
+    title_lines = wrap_text(title, TITLE_FONT, max_w, draw)
+    y = 370
+    for line in title_lines:
+        w = draw.textbbox((0, 0), line, font=TITLE_FONT)[2]
+        draw.text((cx - w / 2, y), line, font=TITLE_FONT, fill=TEXT)
+        y += 64
+
+    y += 18
+    for line in wrap_text(body, BODY_FONT, max_w, draw):
+        w = draw.textbbox((0, 0), line, font=BODY_FONT)[2]
+        draw.text((cx - w / 2, y), line, font=BODY_FONT, fill=TEXT_MUTED)
+        y += 34
+
+    return im
 
 
 def draw_caption(im: Image.Image, text: str) -> Image.Image:
@@ -117,7 +214,6 @@ def draw_caption(im: Image.Image, text: str) -> Image.Image:
     return Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB")
 
 
-
 def load_frame(path: Path, caption: str, zoom=None) -> Image.Image:
     im = Image.open(path).convert("RGB")
     if zoom:
@@ -129,16 +225,25 @@ def load_frame(path: Path, caption: str, zoom=None) -> Image.Image:
 
 
 def main():
-    missing = [e[0] for e in SEQUENCE if not e[0].exists()]
+    missing = [e[0] for e in SEQUENCE if not isinstance(e[0], str) and not e[0].exists()]
     if missing:
         raise SystemExit("Missing frames:\n" + "\n".join(str(p) for p in missing))
 
     frames, durations = [], []
     for entry in SEQUENCE:
-        path, dur, caption = entry[0], entry[1], entry[2]
-        zoom = entry[3] if len(entry) > 3 else None
-        frames.append(load_frame(path, caption, zoom))
-        durations.append(dur)
+        if entry[0] == "title":
+            _, (eyebrow, title, body), dur = entry
+            card = title_card(eyebrow, title, body)
+            card_q = card.quantize(colors=256, method=Image.MEDIANCUT)
+            reps = max(1, round(dur / CHUNK_MS))
+            for _ in range(reps):
+                frames.append(card_q)
+                durations.append(CHUNK_MS)
+        else:
+            path, dur, caption = entry[0], entry[1], entry[2]
+            zoom = entry[3] if len(entry) > 3 else None
+            frames.append(load_frame(path, caption, zoom))
+            durations.append(dur)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(
