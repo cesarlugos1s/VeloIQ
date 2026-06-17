@@ -504,7 +504,7 @@ export const DynamicList: React.FC<{
                 if (["true", "1", "t", "yes", "y"].includes(normalized)) value = true;
                 if (["false", "0", "f", "no", "n"].includes(normalized)) value = false;
             }
-            return [{ field: searchField.key, operator: "eq", value }];
+            return [{ field: searchField.key, operator: "contains", value }];
         },
     });
 
