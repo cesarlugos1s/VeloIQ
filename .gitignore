@@ -40,3 +40,4 @@ jm_knowledge_datalake/
 
 # Intermediate frames for showcase GIFs — reproducible via take_showcase_gif_frames.py
 website/showcase-assets/demo-gif/frames/
+/framework_adoption/veloiq_traffic_history.csv

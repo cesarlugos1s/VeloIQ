@@ -6,6 +6,8 @@ echo "Deploying website to GitHub Pages..."
 # Copy website files to temp
 rm -rf /tmp/veloiq-website-deploy
 cp -r website /tmp/veloiq-website-deploy
+# Strip raw PNG frames — never deploy to gh-pages
+rm -rf /tmp/veloiq-website-deploy/showcase-assets/demo-gif/frames
 
 # Switch to gh-pages, always return to main on exit
 git checkout gh-pages
