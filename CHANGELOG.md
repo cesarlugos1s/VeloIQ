@@ -6,6 +6,15 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [0.8.4] — 2026-06-16
 
+### Features
+
+- **Dev-mode auto-migration** — `create_veloiq_app()` now calls `_sync_schema()` after
+  `SQLModel.metadata.create_all()`. When `VELOIQ_DEV=1`, it detects columns present in the
+  model but missing from the database table and issues `ALTER TABLE … ADD COLUMN` automatically,
+  so adding a field to a model no longer causes a "no such column" crash at request time or
+  requires a manual `veloiq db migrate` / `veloiq db upgrade` cycle in development. Outside dev
+  mode the function logs a warning and points at the migration commands instead.
+
 ### Fixes
 
 - **Auth CRUD routing** — `/user`, `/role`, `/tenant`, `/user_role`, and `/user_tenant` were
@@ -20,6 +29,12 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   `sys.executable` when it's not on `$PATH`). `veloiq new` also now runs `veloiq build`
   automatically afterward, so a freshly scaffolded app's frontend is built and the app works
   immediately with just `veloiq run` — no manual `generate`/`build` step required.
+- **UI — `DynamicResource` crash on non-array dataSource** — `filteredDataSource`,
+  `columnFilters`, the crosstab data derivation, and `currentPageData` now all check
+  `Array.isArray(tableProps.dataSource)` instead of `|| []`. The previous guard only caught
+  `null`/`undefined`; other non-array truthy shapes still triggered
+  `TypeError: e.map is not a function` in `buildStatsSummary` and `Y.forEach` in `chartData`
+  on List, Show, Analyze, and crosstab pages.
 
 ---
 

@@ -58,10 +58,16 @@ class Project(TimestampedModel, table=True):
 
 ## What's New in v0.8.4
 
+- **New** — Dev-mode auto-migration: when `VELOIQ_DEV=1`, the framework detects missing columns
+  on startup and applies `ALTER TABLE … ADD COLUMN` automatically — no manual migration step
+  needed while iterating on your schema
 - **Fix** — User/Role/Tenant CRUD routes are now correctly mounted under `/api`, matching the
   frontend's dataProvider (new apps previously showed empty User/Role/Tenant lists)
 - **Fix** — `veloiq new` now correctly runs `veloiq generate` and `veloiq build` automatically,
   so a freshly scaffolded app works immediately with just `veloiq run`
+- **Fix** — `DynamicResource` list, show, and crosstab pages no longer crash with
+  `TypeError: e.map is not a function` when `tableProps.dataSource` resolves to a non-array
+  truthy value
 
 ## What's New in v0.8.3
 
