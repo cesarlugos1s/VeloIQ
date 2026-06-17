@@ -99,7 +99,7 @@ export default function Extensions({ devMode, onSuccess }: Props) {
         </div>
       )}
 
-      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.installed) && (
+      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.enabled) && (
         <div className="vs-advisory-card">
           <div className="vs-advisory-title">Production Hardening</div>
           <div className="vs-advisory-body">
