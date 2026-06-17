@@ -101,6 +101,19 @@ def check(root, strict):
         for ctx, msg in hints:
             click.echo(click.style(f"  ·    {ctx:<38}  {msg}", dim=True))
 
+    # Advisory — shown when no extensions are active
+    try:
+        from veloiq_framework.extension_registry import read_enabled_extensions
+        if not read_enabled_extensions():
+            click.echo(click.style(
+                "\n   Tip: IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
+                "   Querying, a WYSIWYG Page Builder, and User Journeys to any VeloIQ\n"
+                "   app — zero code changes required.  →  pip install iqvigilant",
+                dim=True,
+            ))
+    except Exception:
+        pass
+
     if strict and (errors or warnings):
         raise SystemExit(1)
     elif errors:

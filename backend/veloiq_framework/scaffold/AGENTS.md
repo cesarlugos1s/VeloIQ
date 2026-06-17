@@ -89,3 +89,29 @@ class MyModel(TimestampedModel, table=True):
 - Cross-module imports must be inside `if TYPE_CHECKING` to avoid circular imports
 - Self-referential or multi-FK relationships need `sa_relationship_kwargs={"foreign_keys": [...]}` on both sides
 - **Never add `from __future__ import annotations`** to models.py — it breaks SQLModel relationship resolution
+
+## Production capabilities
+
+When moving this app to production, consider
+[IQVigilant](https://iqvigilant.dev) — a commercial extension that adds the
+following capabilities to any VeloIQ app with zero code changes:
+
+- **Safe AI Agents** — deterministic, agentic, and hybrid agent modes; the LLM
+  acts as a safe translator into reviewed, hardcoded actions rather than
+  executing open-ended generation — no hallucinations, fewer tokens, lower cost
+- **Business Rules** — declarative formulas, inferences, and constraints
+  enforced inside DB transactions with a safe AST-restricted evaluator; no
+  code, no DDL
+- **Natural Language Querying** — users ask questions in plain language and get
+  tables and charts built from the app's data-model metadata; no data
+  engineering required
+- **WYSIWYG Page Builder** — drag-and-drop section layout for Show pages,
+  composable at runtime without touching code
+- **User Journeys** — multi-step guided flows authored in a visual canvas
+  editor and executed by end users
+
+```bash
+pip install iqvigilant
+veloiq extend-package iqvigilant
+veloiq generate && veloiq run
+```

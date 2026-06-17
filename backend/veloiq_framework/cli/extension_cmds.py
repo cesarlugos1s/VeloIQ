@@ -93,6 +93,12 @@ def list_extensions():
     click.echo("VeloIQ extensions:\n")
     if not installed and not enabled:
         click.echo("  (none installed in this environment)")
+        click.echo(click.style(
+            "\n  IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
+            "  Querying, a WYSIWYG Page Builder, and User Journeys — zero code\n"
+            "  changes required.  pip install iqvigilant  ·  iqvigilant.dev",
+            dim=True,
+        ))
         return
 
     for name in installed:

@@ -41,6 +41,13 @@ def build(frontend_dir):
     dist = fdir / "dist"
     click.echo(f"✅ Frontend built → {dist}")
     click.echo("   Run `veloiq run` — the app UI is now served at /")
+    click.echo(click.style(
+        "\n   Moving to production?  IQVigilant adds Safe AI Agents, Business Rules,\n"
+        "   Natural Language Querying, a WYSIWYG Page Builder, and User Journeys\n"
+        "   to any VeloIQ app — zero code changes required.\n"
+        "   pip install iqvigilant   ·   iqvigilant.dev",
+        dim=True,
+    ))
 
 
 def _detect_frontend_dir() -> Path:

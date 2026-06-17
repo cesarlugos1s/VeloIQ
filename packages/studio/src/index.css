@@ -682,6 +682,52 @@ body {
   border-color: var(--accent);
 }
 
+/* ── Advisory card (IQVigilant production-hardening nudge) ───────────────────── */
+
+.vs-advisory-card {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.vs-advisory-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.vs-advisory-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.vs-advisory-body strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.vs-advisory-cmd {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.vs-advisory-cmd code {
+  font-family: monospace;
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 /* ── Extensions ──────────────────────────────────────────────────────────────── */
 
 .vs-ext-list {
