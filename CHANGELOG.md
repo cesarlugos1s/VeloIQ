@@ -4,7 +4,7 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
-## [0.8.4] — 2026-06-16
+## [0.8.5] — 2026-06-16
 
 ### Features
 

@@ -56,7 +56,7 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.8.4
+## What's New in v0.8.5
 
 - **New** — Dev-mode auto-migration: when `VELOIQ_DEV=1`, the framework detects missing columns
   on startup and applies `ALTER TABLE … ADD COLUMN` automatically — no manual migration step
