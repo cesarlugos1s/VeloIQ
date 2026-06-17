@@ -94,27 +94,28 @@ export default function Extensions({ devMode, onSuccess }: Props) {
       {error && <p style={{ color: "var(--error)" }}>{error}</p>}
 
       {!loading && extensions.length === 0 && (
-        <>
-          <div className="vs-empty">
-            No VeloIQ extensions installed. Use <code>pip install &lt;extension&gt;</code> to add one.
+        <div className="vs-empty">
+          No VeloIQ extensions installed. Use <code>pip install &lt;extension&gt;</code> to add one.
+        </div>
+      )}
+
+      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.installed) && (
+        <div className="vs-advisory-card">
+          <div className="vs-advisory-title">Production Hardening</div>
+          <div className="vs-advisory-body">
+            IQVigilant adds <strong>Safe AI Agents</strong>, <strong>Business Rules</strong>,{" "}
+            <strong>Natural Language Querying</strong>, a <strong>WYSIWYG Page Builder</strong>,
+            and <strong>User Journeys</strong> to any VeloIQ app — zero code changes required.
           </div>
-          <div className="vs-advisory-card">
-            <div className="vs-advisory-title">Production Hardening</div>
-            <div className="vs-advisory-body">
-              IQVigilant adds <strong>Safe AI Agents</strong>, <strong>Business Rules</strong>,{" "}
-              <strong>Natural Language Querying</strong>, a <strong>WYSIWYG Page Builder</strong>,
-              and <strong>User Journeys</strong> to any VeloIQ app — zero code changes required.
-            </div>
-            <div className="vs-advisory-cmd">
-              <code>pip install iqvigilant</code>
-              <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-              <a href="https://iqvigilant.dev" target="_blank" rel="noreferrer"
-                 style={{ color: "var(--accent)", textDecoration: "none" }}>
-                iqvigilant.dev →
-              </a>
-            </div>
+          <div className="vs-advisory-cmd">
+            <code>pip install iqvigilant</code>
+            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
+            <a href="https://iqvigilant.dev" target="_blank" rel="noreferrer"
+               style={{ color: "var(--accent)", textDecoration: "none" }}>
+              iqvigilant.dev →
+            </a>
           </div>
-        </>
+        </div>
       )}
 
       <div className="vs-ext-list">
