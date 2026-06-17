@@ -17,6 +17,7 @@ export interface CommandDef {
   description: string;
   inputs: InputDef[];
   build: (v: Record<string, string>) => string;
+  note?: { text: string; link?: { label: string; href: string } };
 }
 
 interface Props {
@@ -165,6 +166,20 @@ export default function CommandCard({ def, prefill = {}, onSuccess }: Props) {
         <button className="vs-btn-run" disabled={running || !canRun} onClick={handleRun}>
           {running ? "Running…" : "Run"}
         </button>
+        {def.note && (
+          <div className="vs-cmd-note">
+            {def.note.text}
+            {def.note.link && (
+              <>
+                {" "}
+                <a href={def.note.link.href} target="_blank" rel="noreferrer"
+                   style={{ color: "var(--accent)", textDecoration: "none" }}>
+                  {def.note.link.label} →
+                </a>
+              </>
+            )}
+          </div>
+        )}
         {lines.length > 0 && (
           <Terminal lines={lines} running={running} returncode={returncode} />
         )}

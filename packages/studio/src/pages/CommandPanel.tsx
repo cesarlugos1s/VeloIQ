@@ -44,6 +44,10 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       description: "Compile the frontend for production — FastAPI will then serve the app at /",
       inputs: [],
       build: () => "veloiq build",
+      note: {
+        text: "Moving to production? IQVigilant adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder, and User Journeys — zero code changes required.",
+        link: { label: "iqvigilant.dev", href: "https://iqvigilant.dev" },
+      },
     },
     {
       id: "migrate",

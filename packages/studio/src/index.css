@@ -650,6 +650,14 @@ body {
 .vs-btn-run:hover { opacity: 0.85; }
 .vs-btn-run:disabled { opacity: 0.45; cursor: default; }
 
+.vs-cmd-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
 /* ── Inline form fields ──────────────────────────────────────────────────────── */
 
 .vs-inline-field {
