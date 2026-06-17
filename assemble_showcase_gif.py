@@ -24,71 +24,83 @@ BANNER_HEIGHT = 56
 BANNER_MARGIN = 320  # keep clear of the Studio sidebar badge / app toolbar corners
 FONT = ImageFont.truetype(FONT_PATH, 24)
 
-# (path, hold-duration-ms, caption). Studio portion is a curated subset of the
-# captured frames (not every duplicate "hold" file) so we control pacing
-# explicitly. Consecutive frames repeat the same caption on purpose.
+# Zoom crop regions — (x1, y1, x2, y2) in original PNG pixel space (3360×1960).
+# Every box is sized to the CANVAS 1.68:1 ratio so PIL resize introduces no distortion.
+# Unzoomed scale: 1600/3360 ≈ 0.48×.  Zoomed scale: ~1.7× magnification.
+Z_LEFT   = (0,    0,   2016, 1200)  # Command Panel left column (Add Module, Dashboard, Search)
+Z_RIGHT  = (1344, 0,   3360, 1200)  # Command Panel right column (Add Model)
+Z_BUILD  = (1344, 270, 3360, 1470)  # Build Frontend card (right col, 2nd row) + terminal
+Z_SCHEMA = (0,    0,   2240, 1333)  # Schema Browser — left ⅔ of page (field/relation forms)
+Z_GRAPH  = (600,  0,   2616, 1200)  # Relation graph — centered on the node cluster
+
+# (path, hold-duration-ms, caption[, zoom]).  zoom = one of the Z_* constants above,
+# or omitted for full-frame shots.  Consecutive frames repeat the same caption on purpose.
 SEQUENCE = [
-    (FRAMES / "001_login_empty.png", 600, "Signing in to VeloIQ Studio"),
-    (FRAMES / "003_login_filled.png", 600, "Signing in to VeloIQ Studio"),
-    (FRAMES / "005_summary.png", 2600, "Studio summary — a fresh, empty project"),
+    # ── Login / overview ─────────────────────────────────────────────────────
+    (FRAMES / "001_login_empty.png",  600,  "Signing in to VeloIQ Studio"),
+    (FRAMES / "003_login_filled.png", 600,  "Signing in to VeloIQ Studio"),
+    (FRAMES / "005_summary.png",      2600, "Studio summary — a fresh, empty project"),
     (FRAMES / "007_command_panel.png", 800, "Command Panel — scaffolding commands"),
 
-    (FRAMES / "008_add_module_projects_typed.png", 1100, "Creating the \"projects\" module"),
-    (FRAMES / "009_add_module_projects_running.png", 700, "Creating the \"projects\" module"),
-    (FRAMES / "010_add_module_projects_done.png", 1400, "Creating the \"projects\" module"),
-    (FRAMES / "012_add_module_tasks_typed.png", 1000, "Creating the \"tasks\" module"),
-    (FRAMES / "013_add_module_tasks_running.png", 700, "Creating the \"tasks\" module"),
-    (FRAMES / "014_add_module_tasks_done.png", 1300, "Creating the \"tasks\" module"),
+    # ── Add Module (left column) ──────────────────────────────────────────────
+    (FRAMES / "008_add_module_projects_typed.png",   1100, "Creating the \"projects\" module", Z_LEFT),
+    (FRAMES / "009_add_module_projects_running.png",  700, "Creating the \"projects\" module", Z_LEFT),
+    (FRAMES / "010_add_module_projects_done.png",    1400, "Creating the \"projects\" module", Z_LEFT),
+    (FRAMES / "012_add_module_tasks_typed.png",      1000, "Creating the \"tasks\" module",    Z_LEFT),
+    (FRAMES / "013_add_module_tasks_running.png",     700, "Creating the \"tasks\" module",    Z_LEFT),
+    (FRAMES / "014_add_module_tasks_done.png",       1300, "Creating the \"tasks\" module",    Z_LEFT),
 
-    (FRAMES / "016_add_model_Project_name_typed.png", 1100, "Adding the Project model"),
-    (FRAMES / "017_add_model_Project_module_selected.png", 1100, "Adding the Project model"),
-    (FRAMES / "018_add_model_Project_running.png", 700, "Adding the Project model"),
-    (FRAMES / "019_add_model_Project_done.png", 1400, "Adding the Project model"),
-    (FRAMES / "021_add_model_Task_name_typed.png", 1000, "Adding the Task model"),
-    (FRAMES / "022_add_model_Task_module_selected.png", 1000, "Adding the Task model"),
-    (FRAMES / "023_add_model_Task_running.png", 700, "Adding the Task model"),
-    (FRAMES / "024_add_model_Task_done.png", 1300, "Adding the Task model"),
+    # ── Add Model (right column) ──────────────────────────────────────────────
+    (FRAMES / "016_add_model_Project_name_typed.png",     1100, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "017_add_model_Project_module_selected.png", 1100, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "018_add_model_Project_running.png",         700, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "019_add_model_Project_done.png",           1400, "Adding the Project model", Z_RIGHT),
+    (FRAMES / "021_add_model_Task_name_typed.png",        1000, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "022_add_model_Task_module_selected.png",   1000, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "023_add_model_Task_running.png",            700, "Adding the Task model",    Z_RIGHT),
+    (FRAMES / "024_add_model_Task_done.png",              1300, "Adding the Task model",    Z_RIGHT),
 
-    (FRAMES / "026_schema_project_fields.png", 1300, "Project model created — default fields"),
-    (FRAMES / "028_add_field_project_status_typed.png", 1000, "Adding a \"status\" field to Project"),
-    (FRAMES / "029_add_field_project_status_configured.png", 1300, "Adding a \"status\" field to Project"),
-    (FRAMES / "030_add_field_project_status_running.png", 700, "Adding a \"status\" field to Project"),
-    (FRAMES / "031_add_field_project_status_done.png", 1400, "Adding a \"status\" field to Project"),
-    (FRAMES / "033_schema_task_fields.png", 1100, "Task model created — default fields"),
-    (FRAMES / "034_add_field_task_status_typed.png", 900, "Adding a \"status\" field to Task"),
-    (FRAMES / "035_add_field_task_status_configured.png", 1200, "Adding a \"status\" field to Task"),
-    (FRAMES / "036_add_field_task_status_running.png", 700, "Adding a \"status\" field to Task"),
-    (FRAMES / "037_add_field_task_status_done.png", 1200, "Adding a \"status\" field to Task"),
-    (FRAMES / "039_add_field_task_due_date_typed.png", 900, "Adding a \"due_date\" field to Task"),
-    (FRAMES / "040_add_field_task_due_date_configured.png", 1100, "Adding a \"due_date\" field to Task"),
-    (FRAMES / "042_add_field_task_due_date_done.png", 1300, "Adding a \"due_date\" field to Task"),
+    # ── Schema Browser — fields & relations ──────────────────────────────────
+    (FRAMES / "026_schema_project_fields.png",              1300, "Project model created — default fields",      Z_SCHEMA),
+    (FRAMES / "028_add_field_project_status_typed.png",     1000, "Adding a \"status\" field to Project",        Z_SCHEMA),
+    (FRAMES / "029_add_field_project_status_configured.png", 1300, "Adding a \"status\" field to Project",       Z_SCHEMA),
+    (FRAMES / "030_add_field_project_status_running.png",    700, "Adding a \"status\" field to Project",        Z_SCHEMA),
+    (FRAMES / "031_add_field_project_status_done.png",      1400, "Adding a \"status\" field to Project",        Z_SCHEMA),
+    (FRAMES / "033_schema_task_fields.png",                 1100, "Task model created — default fields",         Z_SCHEMA),
+    (FRAMES / "034_add_field_task_status_typed.png",         900, "Adding a \"status\" field to Task",           Z_SCHEMA),
+    (FRAMES / "035_add_field_task_status_configured.png",   1200, "Adding a \"status\" field to Task",           Z_SCHEMA),
+    (FRAMES / "036_add_field_task_status_running.png",       700, "Adding a \"status\" field to Task",           Z_SCHEMA),
+    (FRAMES / "037_add_field_task_status_done.png",         1200, "Adding a \"status\" field to Task",           Z_SCHEMA),
+    (FRAMES / "039_add_field_task_due_date_typed.png",       900, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
+    (FRAMES / "040_add_field_task_due_date_configured.png", 1100, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
+    (FRAMES / "042_add_field_task_due_date_done.png",       1300, "Adding a \"due_date\" field to Task",         Z_SCHEMA),
+    (FRAMES / "044_add_relation_empty.png",                 1100, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
+    (FRAMES / "045_add_relation_configured.png",            1300, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
+    (FRAMES / "046_add_relation_running.png",                700, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
+    (FRAMES / "047_add_relation_done.png",                  1400, "Linking Task → Project (many-to-one)",        Z_SCHEMA),
+    (FRAMES / "049_relation_graph.png",                     2200, "The relation graph: every Task belongs to a Project", Z_GRAPH),
 
-    (FRAMES / "044_add_relation_empty.png", 1100, "Linking Task → Project (many-to-one)"),
-    (FRAMES / "045_add_relation_configured.png", 1300, "Linking Task → Project (many-to-one)"),
-    (FRAMES / "046_add_relation_running.png", 700, "Linking Task → Project (many-to-one)"),
-    (FRAMES / "047_add_relation_done.png", 1400, "Linking Task → Project (many-to-one)"),
-    (FRAMES / "049_relation_graph.png", 2200, "The relation graph: every Task belongs to a Project"),
+    # ── Dashboard & Search ────────────────────────────────────────────────────
+    (FRAMES / "052_dashboard_before.png",           600, "Adding Project & Task to the Dashboard", Z_LEFT),
+    (FRAMES / "054_dashboard_add_project_done.png", 700, "Adding Project & Task to the Dashboard", Z_LEFT),
+    (FRAMES / "057_dashboard_add_task_done.png",    700, "Adding Project & Task to the Dashboard", Z_LEFT),
+    (FRAMES / "059_dashboard_after.png",           1100, "Adding Project & Task to the Dashboard", Z_LEFT),
+    (FRAMES / "061_search_before.png",              600, "Adding Project & Task to Search",         Z_LEFT),
+    (FRAMES / "063_search_add_Project_done.png",    600, "Adding Project & Task to Search",         Z_LEFT),
+    (FRAMES / "066_search_add_Task_done.png",       600, "Adding Project & Task to Search",         Z_LEFT),
+    (FRAMES / "068_search_after.png",               900, "Adding Project & Task to Search",         Z_LEFT),
 
-    (FRAMES / "052_dashboard_before.png", 600, "Adding Project & Task to the Dashboard"),
-    (FRAMES / "054_dashboard_add_project_done.png", 700, "Adding Project & Task to the Dashboard"),
-    (FRAMES / "057_dashboard_add_task_done.png", 700, "Adding Project & Task to the Dashboard"),
-    (FRAMES / "059_dashboard_after.png", 1100, "Adding Project & Task to the Dashboard"),
+    # ── Build Frontend (right column, 2nd row) ────────────────────────────────
+    (FRAMES / "070_build_before.png",  600, "Building the frontend",          Z_BUILD),
+    (FRAMES / "071_build_running.png", 600, "Building the frontend",          Z_BUILD),
+    (FRAMES / "072_build_done.png",   1900, "Build complete — app served at /", Z_BUILD),
 
-    (FRAMES / "061_search_before.png", 600, "Adding Project & Task to Search"),
-    (FRAMES / "063_search_add_Project_done.png", 600, "Adding Project & Task to Search"),
-    (FRAMES / "066_search_add_Task_done.png", 600, "Adding Project & Task to Search"),
-    (FRAMES / "068_search_after.png", 900, "Adding Project & Task to Search"),
-
-    (FRAMES / "070_build_before.png", 600, "Building the frontend"),
-    (FRAMES / "071_build_running.png", 600, "Building the frontend"),
-    (FRAMES / "072_build_done.png", 1900, "Build complete — app served at /"),
-
-    # ── Running app with data — reused website showcase assets ──────────────
+    # ── Running app with data — reused website showcase assets (already 1600×952) ──
     (ASSETS / "dashboard-light.png", 1500, "The running app — light theme"),
-    (ASSETS / "dashboard-dark.png", 1500, "...and dark theme, out of the box"),
-    (ASSETS / "view-table.png", 1500, "Task list, fully populated with data"),
+    (ASSETS / "dashboard-dark.png",  1500, "...and dark theme, out of the box"),
+    (ASSETS / "view-table.png",      1500, "Task list, fully populated with data"),
     (ASSETS / "detail-relations.png", 1700, "Project detail — its related Tasks"),
-    (ASSETS / "detail-master.png", 1700, "Task detail / edit form"),
+    (ASSETS / "detail-master.png",   1700, "Task detail / edit form"),
 ]
 
 
@@ -105,8 +117,11 @@ def draw_caption(im: Image.Image, text: str) -> Image.Image:
     return Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB")
 
 
-def load_frame(path: Path, caption: str) -> Image.Image:
+
+def load_frame(path: Path, caption: str, zoom=None) -> Image.Image:
     im = Image.open(path).convert("RGB")
+    if zoom:
+        im = im.crop(zoom)
     if im.size != CANVAS:
         im = im.resize(CANVAS, Image.LANCZOS)
     im = draw_caption(im, caption)
@@ -114,12 +129,16 @@ def load_frame(path: Path, caption: str) -> Image.Image:
 
 
 def main():
-    missing = [p for p, _, _ in SEQUENCE if not p.exists()]
+    missing = [e[0] for e in SEQUENCE if not e[0].exists()]
     if missing:
         raise SystemExit("Missing frames:\n" + "\n".join(str(p) for p in missing))
 
-    frames = [load_frame(p, caption) for p, _, caption in SEQUENCE]
-    durations = [d for _, d, _ in SEQUENCE]
+    frames, durations = [], []
+    for entry in SEQUENCE:
+        path, dur, caption = entry[0], entry[1], entry[2]
+        zoom = entry[3] if len(entry) > 3 else None
+        frames.append(load_frame(path, caption, zoom))
+        durations.append(dur)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(
