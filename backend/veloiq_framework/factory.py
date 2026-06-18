@@ -160,7 +160,7 @@ def create_veloiq_app(
     if cfg.create_tables_on_startup:
         # Ensure auth tables are registered before create_all
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
-        SQLModel.metadata.create_all(engine)
+        _create_tables_safe(engine)
         _sync_schema(engine)
     if cfg.auth_enabled:
         from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
@@ -180,6 +180,43 @@ def create_veloiq_app(
 
 
 # ---------------------------------------------------------------------------
+# Table creation — tolerates pre-existing tables with incompatible schemas
+# ---------------------------------------------------------------------------
+
+def _create_tables_safe(engine) -> None:
+    """Create all SQLModel tables, skipping tables that already exist.
+
+    Unlike SQLModel.metadata.create_all(), this creates tables one at a time
+    so that a FK constraint mismatch on a generated link table (e.g. when the
+    app points to an existing database whose PKs don't follow the VeloIQ `id`
+    convention) logs a warning instead of crashing the whole application.
+    """
+    import logging
+    from sqlalchemy.exc import NoReferencedTableError
+    logger = logging.getLogger("veloiq")
+
+    try:
+        tables = list(SQLModel.metadata.sorted_tables)
+    except NoReferencedTableError as exc:
+        logger.warning(
+            "Could not sort tables by FK dependency (%s) — "
+            "falling back to unsorted order. Check for dangling foreign_key references in your models.",
+            exc,
+        )
+        tables = list(SQLModel.metadata.tables.values())
+
+    for table in tables:
+        try:
+            table.create(engine, checkfirst=True)
+        except Exception as exc:
+            logger.warning(
+                "Could not create table '%s': %s — "
+                "this table may already exist with a different schema. "
+                "Run `veloiq db migrate && veloiq db upgrade` to reconcile.",
+                table.name, exc,
+            )
+
+
 # Schema synchronisation — detect & auto-fix table/model drift in dev mode
 # ---------------------------------------------------------------------------
 
@@ -242,6 +279,7 @@ def _sync_schema(engine) -> None:
                     f"      Run `veloiq db migrate -m 'add {col_name}' && veloiq db upgrade` "
                     f"to apply, or set VELOIQ_DEV=1 for automatic migration."
                 )
+
 
 
 # ---------------------------------------------------------------------------

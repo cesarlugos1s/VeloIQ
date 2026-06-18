@@ -166,6 +166,11 @@ export default function CommandCard({ def, prefill = {}, onSuccess }: Props) {
         <button className="vs-btn-run" disabled={running || !canRun} onClick={handleRun}>
           {running ? "Running…" : "Run"}
         </button>
+        {!canRun && !running && (
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+            Fill in the required fields above to enable Run.
+          </div>
+        )}
         {def.note && (
           <div className="vs-cmd-note">
             {def.note.text}

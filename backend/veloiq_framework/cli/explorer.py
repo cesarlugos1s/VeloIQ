@@ -566,6 +566,7 @@ class Explorer:
             ("1", "Browse Modules & Models"),
             ("2", "Search Configuration"),
             ("3", "Manage Extensions"),
+            ("i", "Import schema from existing database"),
             ("g", "Run: veloiq generate"),
             ("c", "Run: veloiq check  (health report)"),
             ("b", "Run: veloiq build  (build frontend for production)"),
@@ -581,7 +582,7 @@ class Explorer:
             r += 1
 
         self._w(stdscr, max_y - 2, 0,
-                "  ↑↓ / jk  navigate    Enter  select    g  generate    b  build    m  migrate    u  db-upgrade    q  quit",
+                "  ↑↓ / jk  navigate    Enter  select    i  import-schema    g  generate    b  build    m  migrate    u  db-upgrade    q  quit",
                 curses.color_pair(_C_WARN))
 
     # ── Extensions ────────────────────────────────────────────────────────────
@@ -1045,7 +1046,7 @@ class Explorer:
 
     def _handle_home(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
-        self._move_cursor(f, 8, key)
+        self._move_cursor(f, 9, key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if f.cursor == 0:
@@ -1055,21 +1056,24 @@ class Explorer:
             elif f.cursor == 2:
                 self.nav.append(_Frame("extensions"))
             elif f.cursor == 3:
+                if self._confirm(stdscr, max_y, max_x, "veloiq import-schema"):
+                    return "veloiq import-schema"
+            elif f.cursor == 4:
                 if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                     return "veloiq generate"
-            elif f.cursor == 4:
+            elif f.cursor == 5:
                 if self._confirm(stdscr, max_y, max_x, "veloiq check"):
                     return "veloiq check"
-            elif f.cursor == 5:
+            elif f.cursor == 6:
                 if self._confirm(stdscr, max_y, max_x, "veloiq build"):
                     return "veloiq build"
-            elif f.cursor == 6:
+            elif f.cursor == 7:
                 if self._confirm(stdscr, max_y, max_x, "veloiq migrate"):
                     return "veloiq migrate"
-            elif f.cursor == 7:
+            elif f.cursor == 8:
                 if self._confirm(stdscr, max_y, max_x, "veloiq db upgrade"):
                     return "veloiq db upgrade"
-            elif f.cursor == 8:
+            elif f.cursor == 9:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
@@ -1077,6 +1081,9 @@ class Explorer:
             self.nav.append(_Frame("search"))
         elif key == ord('3'):
             self.nav.append(_Frame("extensions"))
+        elif key == ord('i'):
+            if self._confirm(stdscr, max_y, max_x, "veloiq import-schema"):
+                return "veloiq import-schema"
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"

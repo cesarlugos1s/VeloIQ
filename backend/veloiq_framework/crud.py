@@ -27,6 +27,7 @@ Extend or override any route after calling ``create_crud_router``::
     def complete_task(id: int, session: Session = Depends(get_session)):
         ...
 """
+import base64
 import math
 from typing import Any, Type, TypeVar
 
@@ -270,9 +271,13 @@ def _build_where_clauses(model_class: type, query_params) -> list:
 
 
 def _sanitize(value: Any) -> Any:
-    """Replace NaN/Inf with None so JSON serialization never fails."""
+    """Replace non-JSON-serializable values so serialization never fails."""
     if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
         return None
+    if isinstance(value, memoryview):
+        value = bytes(value)
+    if isinstance(value, (bytes, bytearray)):
+        return "data:application/octet-stream;base64," + base64.b64encode(value).decode()
     if isinstance(value, dict):
         return {k: _sanitize(v) for k, v in value.items()}
     if isinstance(value, list):
@@ -281,6 +286,8 @@ def _sanitize(value: Any) -> Any:
 
 
 def _to_dict(obj: SQLModel) -> dict:
+    if obj is None:
+        return {}
     data = obj.model_dump()
     data["_label"] = str(obj)
     return _sanitize(data)
@@ -360,7 +367,7 @@ def create_crud_router(
         total = session.exec(count_stmt).one()
         rows = session.exec(list_stmt.offset(_start).limit(max(0, _end - _start))).all()
         user_roles = user.get("roles", [])
-        content = [_filter_read_fields(_to_dict(r), model_class, user_roles) for r in rows]
+        content = [_filter_read_fields(_to_dict(r), model_class, user_roles) for r in rows if r is not None]
         return JSONResponse(
             content=jsonable_encoder(content),
             headers={

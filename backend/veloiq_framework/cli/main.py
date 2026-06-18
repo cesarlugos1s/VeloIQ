@@ -18,6 +18,7 @@ from veloiq_framework.cli.check import check
 from veloiq_framework.cli.add_field import add_field
 from veloiq_framework.cli.add_relation import add_relation
 from veloiq_framework.cli.add_model import add_model
+from veloiq_framework.cli.import_schema import import_schema
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -53,6 +54,8 @@ def cli(ctx):
       veloiq list-extensions         Show installed vs. enabled extensions
 
     Run `veloiq` with no arguments to open the interactive project explorer.
+
+      veloiq import-schema           Import models from an existing database
     """
     if ctx.invoked_subcommand is None:
         from veloiq_framework.cli.explorer import launch_explorer
@@ -79,3 +82,4 @@ cli.add_command(check)
 cli.add_command(add_field)
 cli.add_command(add_relation)
 cli.add_command(add_model)
+cli.add_command(import_schema)

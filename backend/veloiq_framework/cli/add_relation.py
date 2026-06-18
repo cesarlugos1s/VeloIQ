@@ -114,7 +114,7 @@ def _add_fk_relation(
     fk_expr = f"[{src_class}.{fk_col}]"
 
     added_src = False
-    if re.search(rf'^\s+{re.escape(fk_col)}\s*:', src_text, re.M):
+    if re.search(rf'^\s+{re.escape(fk_col)}\s*:', _get_class_body(src_text, src_class), re.M):
         click.echo(click.style(f"⚠️   '{fk_col}' already exists in {src_file.name}.", fg="yellow"))
     else:
         if required:
@@ -157,7 +157,7 @@ def _add_fk_relation(
 
     added_back = False
     if not no_back:
-        if re.search(rf'^\s+{re.escape(back_name)}\s*:', tgt_text, re.M):
+        if re.search(rf'^\s+{re.escape(back_name)}\s*:', _get_class_body(tgt_text, tgt_class), re.M):
             click.echo(click.style(f"⚠️   '{back_name}' already exists in {tgt_file.name}.", fg="yellow"))
         else:
             card_kwargs = _cardinality_kwargs(min_items, max_items)
@@ -249,8 +249,9 @@ def _add_many_to_many(
         click.echo(click.style(f"✅  Added '{link_class}' + '{attr_name}' to {rel}", fg="green"))
 
     if not no_back:
-        tgt_text = tgt_file.read_text(encoding="utf-8")
-        if re.search(rf'^\s+{re.escape(back_name)}\s*:', tgt_text, re.M):
+        same_file_m2m = src_file.resolve() == tgt_file.resolve()
+        tgt_text = src_file.read_text(encoding="utf-8") if same_file_m2m else tgt_file.read_text(encoding="utf-8")
+        if re.search(rf'^\s+{re.escape(back_name)}\s*:', _get_class_body(tgt_text, tgt_class), re.M):
             click.echo(click.style(f"⚠️   '{back_name}' already exists in {tgt_file.name}.", fg="yellow"))
         else:
             kwargs = _cardinality_kwargs(min_items, max_items)
@@ -260,9 +261,10 @@ def _add_many_to_many(
 
             tgt_text = _ensure_list_import(tgt_text)
             tgt_text = _ensure_jm_relationship_import(tgt_text)
-            tgt_text = _ensure_type_checking_import(tgt_text, src_module, src_class)
-            # link_model= is evaluated at runtime, so this import must be direct (not TYPE_CHECKING)
-            tgt_text = _ensure_direct_import(tgt_text, src_module, link_class)
+            if not same_file_m2m:
+                tgt_text = _ensure_type_checking_import(tgt_text, src_module, src_class)
+                # link_model= is evaluated at runtime, so this import must be direct (not TYPE_CHECKING)
+                tgt_text = _ensure_direct_import(tgt_text, src_module, link_class)
             tgt_text = _insert_after_last_relationship(tgt_text, tgt_class, back_line)
             tgt_file.write_text(tgt_text, encoding="utf-8")
 
@@ -273,6 +275,16 @@ def _add_many_to_many(
 
 
 # ── Disambiguation helpers ─────────────────────────────────────────────────────
+
+def _get_class_body(text: str, class_name: str) -> str:
+    """Return only the text from `class ClassName(` to the next class definition (or EOF)."""
+    m = re.search(rf'^class\s+{re.escape(class_name)}\s*\(', text, re.M | re.I)
+    if not m:
+        return text  # fallback: whole-file
+    after = text[m.start():]
+    next_cls = re.search(r'^class\s+\w+\s*\(', after[1:], re.M)
+    return after[: 1 + next_cls.start()] if next_cls else after
+
 
 def _has_fk_to(text: str, table: str) -> bool:
     """Return True if text contains any FK column pointing to table."""

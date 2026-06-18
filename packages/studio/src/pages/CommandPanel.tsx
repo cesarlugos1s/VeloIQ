@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppSchema } from "../types";
 import CommandCard, { CommandDef } from "../components/CommandCard";
+import ImportSchemaCard from "../components/ImportSchemaCard";
 
 interface Props {
   schema: AppSchema | null;
@@ -77,6 +78,7 @@ export default function CommandPanel({ schema, loadSchema, onSuccess }: Props) {
   }, [data, loadSchema]);
 
   const commands = buildCommands(data);
+  const modules = data?.modules.map((m) => m.name) ?? [];
 
   return (
     <div className="vs-page">
@@ -92,6 +94,7 @@ export default function CommandPanel({ schema, loadSchema, onSuccess }: Props) {
         {commands.map((def) => (
           <CommandCard key={def.id} def={def} onSuccess={onSuccess} />
         ))}
+        <ImportSchemaCard modules={modules} onSuccess={onSuccess} />
       </div>
     </div>
   );

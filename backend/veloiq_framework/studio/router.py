@@ -92,6 +92,7 @@ _ALLOWED_PREFIXES = (
     "veloiq db upgrade",
     "veloiq extend-package ",
     "veloiq remove-package ",
+    "veloiq import-schema ",
 )
 
 _SHELL_METACHARACTERS = (";", "|", "&", "`", "$", ">", "<", "\n", "\r")
@@ -301,5 +302,69 @@ def make_studio_router(cfg: VeloIQConfig) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"Named query '{name}' not found")
         save_defs(path, new_defs)
         return {"ok": True}
+
+    @router.get("/import-schema/tables")
+    def import_schema_tables(url: str, request: Request):
+        """Connect to the given DB URL and return table names suitable for import."""
+        _admin(request)
+        _require_dev()
+        try:
+            from sqlalchemy import create_engine, inspect as sa_inspect
+            from veloiq_framework.cli.import_schema import _detect_junctions
+            engine = create_engine(url, connect_args={"connect_timeout": 10} if "postgresql" in url or "mysql" in url else {})
+            inspector = sa_inspect(engine)
+            all_tables = inspector.get_table_names()
+            skip = {t for t in all_tables if t.startswith("veloiq_") or t == "alembic_version"}
+            tables = [t for t in all_tables if t not in skip]
+            junctions = _detect_junctions(tables, inspector)
+            return {
+                "tables": sorted(t for t in tables if t not in junctions),
+                "junctions": sorted(junctions.keys()),
+            }
+        except Exception as exc:
+            from fastapi import HTTPException as _HTTPException
+            raise _HTTPException(status_code=400, detail=str(exc))
+
+    @router.get("/env/database-url")
+    def env_database_url_get(request: Request):
+        """Return the current DATABASE_URL from the project .env file."""
+        _admin(request)
+        _require_dev()
+        import re
+        root = _get_root()
+        env_file = root / "backend" / ".env"
+        if not env_file.exists():
+            env_file = root / ".env"
+        if not env_file.exists():
+            return {"database_url": None, "env_file": None}
+        text = env_file.read_text(encoding="utf-8")
+        m = re.search(r'^DATABASE_URL\s*=\s*(.+)$', text, re.M)
+        url = m.group(1).strip() if m else None
+        return {"database_url": url, "env_file": str(env_file.relative_to(root))}
+
+    @router.post("/env/database-url")
+    async def env_database_url_set(request: Request):
+        """Update DATABASE_URL in the project .env file."""
+        _admin(request)
+        _require_dev()
+        import re
+        body = await request.json()
+        new_url = (body.get("database_url") or "").strip()
+        if not new_url:
+            raise HTTPException(status_code=400, detail="database_url is required")
+        root = _get_root()
+        env_file = root / "backend" / ".env"
+        if not env_file.exists():
+            env_file = root / ".env"
+        if env_file.exists():
+            text = env_file.read_text(encoding="utf-8")
+            if re.search(r'^DATABASE_URL\s*=', text, re.M):
+                text = re.sub(r'^DATABASE_URL\s*=.*$', f'DATABASE_URL={new_url}', text, flags=re.M)
+            else:
+                text = text.rstrip() + f'\nDATABASE_URL={new_url}\n'
+            env_file.write_text(text, encoding="utf-8")
+        else:
+            env_file.write_text(f'DATABASE_URL={new_url}\n', encoding="utf-8")
+        return {"ok": True, "env_file": str(env_file.relative_to(root))}
 
     return router

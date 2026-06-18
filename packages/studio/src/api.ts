@@ -98,6 +98,14 @@ export const api = {
   deleteNamedQuery: (module: string, name: string) =>
     del<{ ok: boolean }>(`/named-queries/${module}/${name}`),
 
+  importSchemaTables: (url: string) =>
+    get<{ tables: string[]; junctions: string[] }>(`/import-schema/tables?url=${encodeURIComponent(url)}`),
+
+  getDatabaseUrl: () =>
+    get<{ database_url: string | null; env_file: string | null }>("/env/database-url"),
+  setDatabaseUrl: (database_url: string) =>
+    post<{ ok: boolean; env_file: string }>("/env/database-url", { database_url }),
+
   streamCommand: async (
     run_id: string,
     onLine: (line: string) => void,
