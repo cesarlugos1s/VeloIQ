@@ -1058,6 +1058,12 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         """
         from sqlalchemy.orm import Session as _SASession
         from sqlalchemy import select as _sa_select
+        from sqlalchemy.inspection import inspect as _sa_inspect
+        from datetime import datetime as _dt, date as _date
+
+        from veloiq_framework.crud import _to_dict, _sanitize
+        from veloiq_framework.models import get_pk_field_name
+        from veloiq_framework.query_def import _model_by_tablename
 
         body = await request.json()
         resource: str = body.get("resource", "")
@@ -1069,33 +1075,77 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
         # Strip leading slash if present (frontend may include it)
         resource = resource.lstrip("/")
 
+        def _to_json(v: object) -> object:
+            if isinstance(v, (_dt, _date)):
+                return v.isoformat()
+            return v
+
+        # ── Preferred path: resolve the mapped ORM model for this resource ──────
+        # Serializing through the same ``_to_dict`` the CRUD/list routes use keeps
+        # the response shape identical to every other endpoint: clean attribute
+        # names (no physical column prefixes such as ``cw_``), a ``_label``, and
+        # the primary-key value surfaced under the conventional ``eid`` alias the
+        # frontend keys related records by.  The primary key is located by
+        # introspection (``get_pk_field_name``) so this works for ANY pk name
+        # (``id``, ``eid``, ``model_id``, …) — never assume a hard-coded column.
+        model_cls = _model_by_tablename(resource)
+        if model_cls is not None:
+            pk_field = get_pk_field_name(model_cls)
+            pk_attr = getattr(model_cls, pk_field, None)
+            if pk_attr is None:
+                raise HTTPException(status_code=400, detail=f"No primary key on {resource}")
+
+            # Coerce incoming ids to the pk column's python type where possible.
+            try:
+                pk_col = _sa_inspect(model_cls).columns.get(pk_field)
+                py_type = pk_col.type.python_type if pk_col is not None else None
+                typed_ids = [py_type(i) for i in ids] if py_type is not None else list(ids)
+            except Exception:
+                typed_ids = list(ids)
+
+            with _SASession(engine) as session:
+                objs = session.execute(
+                    _sa_select(model_cls).where(pk_attr.in_(typed_ids))
+                ).scalars().all()
+
+            items = []
+            for obj in objs:
+                data = _to_dict(obj)
+                # Expose the primary-key value under the conventional ``eid`` alias
+                # so the frontend can correlate related records regardless of how
+                # the developer named the primary key.
+                if data.get("eid") is None:
+                    data["eid"] = getattr(obj, pk_field, None)
+                items.append(data)
+            return {"items": items}
+
+        # ── Fallback: raw Core table (e.g. unmapped link/junction tables) ──────
         table = SQLModel.metadata.tables.get(resource)
         if table is None:
             raise HTTPException(status_code=404, detail=f"Unknown resource: {resource}")
 
-        # Detect primary key column (prefer 'id', then first pk col)
+        # First declared primary-key column — name-agnostic, never hard-coded.
         pk_cols = [c for c in table.c if c.primary_key]
         if not pk_cols:
             raise HTTPException(status_code=400, detail=f"No primary key on {resource}")
-        pk_col = next((c for c in pk_cols if c.name == "id"), pk_cols[0])
+        pk_col = pk_cols[0]
 
-        # Coerce ids to the column type where possible
         try:
             typed_ids = [pk_col.type.python_type(i) for i in ids]
         except Exception:
             typed_ids = ids
 
         with _SASession(engine) as session:
-            stmt = _sa_select(table).where(pk_col.in_(typed_ids))
-            rows = session.execute(stmt).mappings().all()
+            rows = session.execute(
+                _sa_select(table).where(pk_col.in_(typed_ids))
+            ).mappings().all()
 
-        def _to_json(v: object) -> object:
-            from datetime import datetime, date
-            if isinstance(v, (datetime, date)):
-                return v.isoformat()
-            return v
-
-        items = [{k: _to_json(v) for k, v in dict(row).items()} for row in rows]
+        items = []
+        for row in rows:
+            data = _sanitize({k: _to_json(v) for k, v in dict(row).items()})
+            if data.get("eid") is None:
+                data["eid"] = data.get(pk_col.name)
+            items.append(data)
         return {"items": items}
 
     # Mount all core data API endpoints under /api so they match API_URL="/api"
