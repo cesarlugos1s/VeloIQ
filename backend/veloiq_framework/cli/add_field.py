@@ -11,19 +11,60 @@ import click
 
 
 # Maps CLI type aliases → (python_annotation, needs_datetime_import, needs_text_import)
+# Includes Studio UI display-hint types so the dropdown values pass through cleanly.
 _TYPE_MAP: dict[str, tuple[str, bool, bool]] = {
-    "str":      ("str",             False, False),
-    "string":   ("str",             False, False),
-    "text":     ("str",             False, True),   # stored as TEXT column
-    "int":      ("int",             False, False),
-    "integer":  ("int",             False, False),
-    "float":    ("float",           False, False),
-    "number":   ("float",           False, False),
-    "bool":     ("bool",            False, False),
-    "boolean":  ("bool",            False, False),
-    "date":     ("datetime.date",   True,  False),
-    "datetime": ("datetime.datetime", True, False),
+    # Core Python types
+    "str":          ("str",               False, False),
+    "string":       ("str",               False, False),
+    "int":          ("int",               False, False),
+    "integer":      ("int",               False, False),
+    "float":        ("float",             False, False),
+    "number":       ("float",             False, False),
+    "decimal":      ("float",             False, False),
+    "bool":         ("bool",              False, False),
+    "boolean":      ("bool",              False, False),
+    "date":         ("datetime.date",     True,  False),
+    "datetime":     ("datetime.datetime", True,  False),
+    "time":         ("datetime.time",     True,  False),
+    # TEXT-backed string types
+    "text":         ("str",               False, True),
+    "textarea":     ("str",               False, True),
+    "richtext":     ("str",               False, True),
+    "json":         ("str",               False, True),
+    "multiselect":  ("str",               False, True),
+    # Short-string display-hint types (varchar)
+    "email":        ("str",               False, False),
+    "password":     ("str",               False, False),
+    "url":          ("str",               False, False),
+    "phone":        ("str",               False, False),
+    "color":        ("str",               False, False),
+    "select":       ("str",               False, False),
+    "file":         ("str",               False, False),
+    "image":        ("str",               False, False),
+    "uuid":         ("str",               False, False),
 }
+
+# Automatically derive the best frontend view-type from the field's display-hint type.
+# Keys are field type aliases; values are the view-type suffix used in showViewType /
+# editViewType (e.g. "email" → showViewType: "read-only-email").
+_VIEW_TYPE_DEFAULT: dict[str, str] = {
+    "textarea":   "textarea",
+    "richtext":   "markdown",
+    "email":      "email",
+    "password":   "password",
+    "url":        "url",
+    "phone":      "phone",
+    "color":      "color",
+    "image":      "image-url",
+    "json":       "json",
+}
+
+# All view-type suffixes the UI library understands.
+_VALID_VIEW_TYPES: frozenset[str] = frozenset({
+    "textarea", "markdown", "json", "email", "password", "url", "phone",
+    "color", "image-url", "currency", "percentage", "progress", "rating",
+    "duration", "code", "qrcode", "relative", "truncated-text",
+})
 
 
 @click.command(name="add-field")
@@ -37,23 +78,29 @@ _TYPE_MAP: dict[str, tuple[str, bool, bool]] = {
 @click.option("--description", "-d", default=None, help="Field description")
 @click.option("--options", "-o", default=None,
               help="Comma-separated valid values (e.g. 'todo,in_progress,done')")
+@click.option("--view-type", "view_type", default=None,
+              help="Frontend view-type hint (e.g. email, url, markdown, image-url). "
+                   "Auto-derived from FIELD_TYPE when not specified.")
 @click.option("--migrate/--no-migrate", default=None,
               help="Run Alembic migration after adding the field. Default: prompt interactively.")
 @click.option("--root", "-C", default=None, type=click.Path(exists=True, file_okay=False),
               help="Project root (default: auto-detect)")
-def add_field(model, field_name, field_type, optional, default_val, description, options, migrate, root):
+def add_field(model, field_name, field_type, optional, default_val, description, options, view_type, migrate, root):
     """Add a field to an existing model's models.py.
 
     \b
     MODEL       Model class name or resource/table name (e.g. Task or task)
     FIELD_NAME  New field attribute name in snake_case
-    FIELD_TYPE  Python type: str, text, int, float, bool, date, datetime  [default: str]
+    FIELD_TYPE  Python type or display hint: str, text, email, url, textarea,
+                richtext, int, float, bool, date, datetime, …  [default: str]
 
     \b
     Examples:
       veloiq add-field Task notes str --description "Internal notes"
       veloiq add-field project budget float --optional --description "Budget cap"
       veloiq add-field task status str --options todo,in_progress,done --default todo
+      veloiq add-field contact website url
+      veloiq add-field article body richtext
     """
     from veloiq_framework.cli.explorer import _find_project_root
 
@@ -70,6 +117,17 @@ def add_field(model, field_name, field_type, optional, default_val, description,
 
     py_type, needs_datetime, needs_text = _TYPE_MAP[ft]
 
+    # Resolve view type: explicit flag > auto-derive from field type > None.
+    if view_type is not None:
+        vt = view_type.lower()
+        if vt not in _VALID_VIEW_TYPES:
+            valid_vt = ", ".join(sorted(_VALID_VIEW_TYPES))
+            click.echo(click.style(f"❌  Unknown view type '{view_type}'. Choose from: {valid_vt}", fg="red"))
+            raise SystemExit(1)
+        resolved_view_type: Optional[str] = vt
+    else:
+        resolved_view_type = _VIEW_TYPE_DEFAULT.get(ft)
+
     models_py = _find_models_file(project_root, model)
     if not models_py:
         click.echo(click.style(f"❌  Could not find models.py for '{model}'.", fg="red"))
@@ -84,9 +142,13 @@ def add_field(model, field_name, field_type, optional, default_val, description,
         return
 
     opt_list = [v.strip() for v in options.split(",")] if options else []
-    field_line = _build_field_line(field_name, py_type, optional, default_val, description, opt_list, needs_text)
+    field_line = _build_field_line(
+        field_name, py_type, optional, default_val, description,
+        opt_list, needs_text, resolved_view_type,
+    )
 
-    text = _ensure_imports(text, needs_datetime, needs_text, bool(opt_list or (default_val is not None and not optional)))
+    needs_veloiq = bool(opt_list or resolved_view_type or (default_val is not None and not optional))
+    text = _ensure_imports(text, needs_datetime, needs_text, needs_veloiq)
     text = _insert_field(text, model, field_line)
     models_py.write_text(text, encoding="utf-8")
 
@@ -132,9 +194,10 @@ def _build_field_line(
     description: Optional[str],
     options: list[str],
     needs_text: bool,
+    view_type: Optional[str] = None,
 ) -> str:
     """Build the complete field declaration line."""
-    use_veloiq = bool(options)
+    use_veloiq = bool(options or view_type)
 
     if optional:
         annotation = f"Optional[{py_type}]"
@@ -159,6 +222,9 @@ def _build_field_line(
     if options:
         opts_repr = "[" + ", ".join(f'"{v}"' for v in options) + "]"
         kwargs.append(f"options={opts_repr}")
+
+    if view_type:
+        kwargs.append(f'view_type="{view_type}"')
 
     if description:
         kwargs.append(f'description="{description}"')

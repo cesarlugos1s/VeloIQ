@@ -33,6 +33,8 @@ class FieldInfo:
     default: Optional[Any] = None
     options: list = field(default_factory=list)
     description: Optional[str] = None
+    show_view_type: Optional[str] = None
+    edit_view_type: Optional[str] = None
 
 
 @dataclass
@@ -329,7 +331,9 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                         fld_options = [v["value"] if isinstance(v, dict) else v for v in parsed]
                     except Exception:
                         fld_options = re.findall(r'value:\s*"([^"]+)"', raw_opts) or re.findall(r'"([^"]+)"', raw_opts)
-                fdm = re.search(r'\bdescription:\s*"([^"]+)"', s)
+                fdm  = re.search(r'\bdescription:\s*"([^"]+)"', s)
+                svtm = re.search(r'showViewType:\s*"([^"]+)"', s)
+                evtm = re.search(r'editViewType:\s*"([^"]+)"', s)
                 fields.append(FieldInfo(
                     key=km.group(1),
                     label=lm.group(1) if lm else km.group(1),
@@ -342,6 +346,8 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
                     default=fld_default,
                     options=fld_options,
                     description=fdm.group(1) if fdm else None,
+                    show_view_type=svtm.group(1) if svtm else None,
+                    edit_view_type=evtm.group(1) if evtm else None,
                 ))
         elif in_rel and s.startswith("{"):
             res_m  = re.search(r'resource:\s*"([^"]+)"', s)
@@ -1199,7 +1205,13 @@ class Explorer:
             if field_name:
                 ftype = self._pick_field_type(stdscr, max_y, max_x)
                 if ftype:
+                    from veloiq_framework.cli.add_field import _VIEW_TYPE_DEFAULT
+                    vtype = self._pick_view_type(
+                        stdscr, max_y, max_x, _VIEW_TYPE_DEFAULT.get(ftype)
+                    )
                     cmd = f"veloiq add-field {model.resource} {field_name} {ftype}"
+                    if vtype:
+                        cmd += f" --view-type {vtype}"
                     if self._confirm(stdscr, max_y, max_x, cmd):
                         return cmd
         elif key == ord('r') and not model.is_named_query:
@@ -1274,17 +1286,73 @@ class Explorer:
             stdscr.getch()
 
     def _pick_field_type(self, stdscr, max_y, max_x) -> Optional[str]:
-        _types = ["str", "int", "float", "bool", "date", "datetime", "text"]
-        parts  = "  ".join(f"[{i+1}] {t}" for i, t in enumerate(_types))
-        prompt = f"  Field type: {parts}  [Esc] cancel "
+        # Row 1 (keys 1–9): text/string display-hint types
+        row1 = ["text", "textarea", "richtext", "email", "password", "url", "phone", "uuid", "color"]
+        # Row 2 (keys a–l): numeric, date/time, collection, and media types
+        row2 = ["integer", "decimal", "number", "boolean", "date", "datetime", "time",
+                "select", "multiselect", "json", "file", "image"]
+
+        parts1 = "  ".join(f"[{i + 1}] {t}" for i, t in enumerate(row1))
+        parts2 = "  ".join(f"[{chr(ord('a') + i)}] {t}" for i, t in enumerate(row2))
+        prompt1 = f"  Text:  {parts1}"
+        prompt2 = f"  Other: {parts2}  [Esc] cancel"
+
+        self._w(stdscr, max_y - 2, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
         self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
-        self._w(stdscr, max_y - 1, 0, prompt[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        self._w(stdscr, max_y - 2, 0, prompt1[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        self._w(stdscr, max_y - 1, 0, prompt2[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
         stdscr.refresh()
+
         k = stdscr.getch()
         if k == 27:
             return None
-        idx = k - ord('1')
-        return _types[idx] if 0 <= idx < len(_types) else None
+        if ord('1') <= k <= ord('9'):
+            idx = k - ord('1')
+            return row1[idx] if idx < len(row1) else None
+        if ord('a') <= k <= ord('z'):
+            idx = k - ord('a')
+            return row2[idx] if idx < len(row2) else None
+        return None
+
+    def _pick_view_type(self, stdscr, max_y, max_x, default: Optional[str]) -> Optional[str]:
+        """Ask for an optional frontend view-type override.
+
+        Keys 1–9 → row1, a–k → row2.  Enter = keep default.  Esc = no view type.
+        """
+        # Row 1 (keys 1–9): most common view types
+        row1 = ["textarea", "markdown", "email", "password", "url", "phone", "color", "image-url", "json"]
+        # Row 2 (keys a–k): less common / specialised
+        row2 = ["currency", "percentage", "progress", "rating", "duration", "code",
+                "qrcode", "relative", "truncated-text"]
+
+        parts1 = "  ".join(f"[{i + 1}] {t}" for i, t in enumerate(row1))
+        parts2 = "  ".join(f"[{chr(ord('a') + i)}] {t}" for i, t in enumerate(row2))
+
+        if default:
+            enter_hint = f"Enter={default}"
+        else:
+            enter_hint = "Enter=none"
+        prompt1 = f"  View type ({enter_hint}): {parts1}"
+        prompt2 = f"  {parts2}  [Esc]=no view type"
+
+        self._w(stdscr, max_y - 2, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 1, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 2, 0, prompt1[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        self._w(stdscr, max_y - 1, 0, prompt2[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+        stdscr.refresh()
+
+        k = stdscr.getch()
+        if k == 27:           # Esc = explicitly no view type
+            return None
+        if k in (10, 13):     # Enter = accept default
+            return default
+        if ord('1') <= k <= ord('9'):
+            idx = k - ord('1')
+            return row1[idx] if idx < len(row1) else default
+        if ord('a') <= k <= ord('z'):
+            idx = k - ord('a')
+            return row2[idx] if idx < len(row2) else default
+        return default
 
     def _pick_page_type(self, stdscr, max_y, max_x, existing: set[str] = frozenset()) -> Optional[str]:
         def _label(key: str, name: str) -> str:

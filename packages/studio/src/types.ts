@@ -16,6 +16,8 @@ export interface FieldInfo {
   read_roles: string[];
   write_roles: string[];
   description: string | null;
+  show_view_type: string | null;
+  edit_view_type: string | null;
 }
 
 export interface RelationInfo {

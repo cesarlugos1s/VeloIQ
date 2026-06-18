@@ -523,6 +523,20 @@ body {
   border-bottom: 1px solid var(--surface-hover);
   vertical-align: top;
   line-height: 1.5;
+  max-width: 240px;
+}
+
+/* Columns whose content should never break onto a second line */
+.vs-table td.vs-td-nowrap {
+  white-space: nowrap;
+  max-width: none;
+}
+
+/* Truncated text cell: single line + ellipsis, full value in title tooltip */
+.vs-table td.vs-td-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vs-table tr:last-child td { border-bottom: none; }

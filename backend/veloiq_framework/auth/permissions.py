@@ -230,9 +230,11 @@ def veloiq_field(
     read_roles: list[str] | None = None,
     write_roles: list[str] | None = None,
     options: list | None = None,
+    view_type: str | None = None,
     **kwargs: Any,
 ) -> Any:
-    """SQLModel/Pydantic field with optional per-role restrictions and valid-value options.
+    """SQLModel/Pydantic field with optional per-role restrictions, valid-value options,
+    and a frontend view-type hint.
 
     The backend CRUD router enforces roles at runtime; the schema generator
     emits all metadata into TypeScript schemas for frontend use.
@@ -249,6 +251,15 @@ def veloiq_field(
             options=["todo", "in_progress", "done"],  # valid values (shown as dropdown)
             description="Current workflow state",
         )
+        body: str = veloiq_field(
+            default=None,
+            view_type="markdown",           # renders as markdown in show/edit views
+        )
+
+    Valid view_type suffixes (maps to showViewType/editViewType in the TS schema):
+        textarea, markdown, json, email, password, url, phone, color, image-url,
+        currency, percentage, progress, rating, duration, code, qrcode,
+        relative, truncated-text
     """
     # Use pydantic.Field (not sqlmodel.Field) so json_schema_extra is preserved
     # on the FieldInfo.  SQLModel classes accept both interchangeably for plain
@@ -262,6 +273,8 @@ def veloiq_field(
         extra["veloiq_write_roles"] = write_roles
     if options is not None:
         extra["options"] = options
+    if view_type is not None:
+        extra["veloiq_view_type"] = view_type
 
     if extra:
         existing = kwargs.pop("json_schema_extra", {}) or {}

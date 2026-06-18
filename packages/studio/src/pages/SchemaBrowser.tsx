@@ -10,6 +10,14 @@ const FIELD_TYPES = [
   "select", "multiselect", "file", "image", "uuid", "json", "color",
 ];
 
+// All field view-type suffixes the UI library understands (show + edit unless noted).
+const FIELD_VIEW_TYPES = [
+  "(auto)",
+  "textarea", "markdown", "json", "email", "password", "url", "phone",
+  "color", "image-url", "currency", "percentage", "progress", "rating",
+  "duration", "code", "qrcode", "relative", "truncated-text",
+];
+
 function addModelDef(modules: string[]): CommandDef {
   return {
     id: "add-model", label: "Add Model", description: "Scaffold a new model in this module",
@@ -28,12 +36,18 @@ function addFieldDef(resources: string[]): CommandDef {
       { key: "resource", label: "Resource", type: resources.length ? "select" : "text", options: resources, required: true },
       { key: "name", label: "Field name", type: "text", required: true, placeholder: "e.g. price" },
       { key: "type", label: "Field type", type: "select", options: FIELD_TYPES, required: true },
+      { key: "view_type", label: "Field view type", type: "select", options: FIELD_VIEW_TYPES },
       { key: "nullable", label: "Nullable", type: "select", options: ["optional", "required"] },
       { key: "literals", label: "Literals", type: "text", placeholder: "e.g. todo,in_progress,done" },
       { key: "default", label: "Default value", type: "text", placeholder: "e.g. todo" },
     ],
     build: (v) => {
       let cmd = `veloiq add-field ${v.resource} ${v.name} ${v.type}`;
+      // "(auto)" → omit the flag; CLI auto-derives from field type.
+      // Any explicit choice → pass it through so the user's override wins.
+      if (v.view_type && v.view_type !== "(auto)") {
+        cmd += ` --view-type ${v.view_type}`;
+      }
       if (v.nullable === "required") cmd += " --required";
       if (v.literals?.trim()) cmd += ` --options ${v.literals.split(",").map((s) => s.trim()).filter(Boolean).join(",")}`;
       if (v.default?.trim()) cmd += ` --default ${v.default.trim()}`;
@@ -442,25 +456,57 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
             ) : (
               <table className="vs-table">
                 <thead>
-                  <tr><th>Key</th><th>Label</th><th>Type</th><th>Flags</th><th>Roles</th></tr>
+                  <tr><th>Key</th><th>Label</th><th>Type</th><th>Field view type</th><th>Literals</th><th>Default</th><th>Flags</th><th>Roles</th></tr>
                 </thead>
                 <tbody>
-                  {plainFields.map((f) => (
-                    <tr key={f.key}>
-                      <td><code className="vs-code">{f.key}</code></td>
-                      <td>{f.label}</td>
-                      <td><span className="vs-tag vs-tag-info" style={{ fontSize: 11 }}>{f.type}</span></td>
-                      <td>
-                        {f.required && <span className="vs-tag vs-tag-warn" style={{ fontSize: 10, marginRight: 3 }}>required</span>}
-                        {f.read_only && <span className="vs-tag vs-tag-muted" style={{ fontSize: 10 }}>read-only</span>}
-                      </td>
-                      <td style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                        {f.read_roles.length > 0 && `r: ${f.read_roles.join(", ")}`}
-                        {f.read_roles.length > 0 && f.write_roles.length > 0 && " · "}
-                        {f.write_roles.length > 0 && `w: ${f.write_roles.join(", ")}`}
-                      </td>
-                    </tr>
-                  ))}
+                  {plainFields.map((f) => {
+                    const svt = f.show_view_type;
+                    const viewSuffix = svt ? svt.replace(/^read-only-/, "") : null;
+                    const showOnly = viewSuffix && !f.edit_view_type;
+
+                    // Literals: show first 3, then "+N more" — full list in tooltip.
+                    const OPTS_CAP = 3;
+                    const optsDisplay = f.options.length > OPTS_CAP
+                      ? `${f.options.slice(0, OPTS_CAP).join(", ")} +${f.options.length - OPTS_CAP} more`
+                      : f.options.join(", ");
+                    const optsFull = f.options.join(", ");
+
+                    // Roles: compact "r: A, B  w: C" — truncated in cell, full in tooltip.
+                    const rolesDisplay = [
+                      f.read_roles.length  > 0 && `r: ${f.read_roles.join(", ")}`,
+                      f.write_roles.length > 0 && `w: ${f.write_roles.join(", ")}`,
+                    ].filter(Boolean).join("  ·  ");
+
+                    return (
+                      <tr key={f.key}>
+                        <td className="vs-td-nowrap"><code className="vs-code">{f.key}</code></td>
+                        <td>{f.label}</td>
+                        <td className="vs-td-nowrap"><span className="vs-tag vs-tag-info" style={{ fontSize: 11 }}>{f.type}</span></td>
+                        <td className="vs-td-nowrap">
+                          {viewSuffix && (
+                            <span className="vs-tag vs-tag-muted" style={{ fontSize: 11 }}>
+                              {viewSuffix}{showOnly ? " ·show" : ""}
+                            </span>
+                          )}
+                        </td>
+                        <td className="vs-td-truncate" style={{ fontSize: 11, color: "var(--text-muted)" }}
+                            title={f.options.length > OPTS_CAP ? optsFull : undefined}>
+                          {optsDisplay}
+                        </td>
+                        <td className="vs-td-nowrap" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          {f.default != null && String(f.default)}
+                        </td>
+                        <td className="vs-td-nowrap">
+                          {f.required && <span className="vs-tag vs-tag-warn" style={{ fontSize: 10, marginRight: 3 }}>required</span>}
+                          {f.read_only && <span className="vs-tag vs-tag-muted" style={{ fontSize: 10 }}>read-only</span>}
+                        </td>
+                        <td className="vs-td-truncate" style={{ fontSize: 11, color: "var(--text-muted)" }}
+                            title={rolesDisplay || undefined}>
+                          {rolesDisplay}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -617,6 +663,25 @@ export default function SchemaBrowser({ schema, loadSchema, devMode, onSuccess }
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [data, loadSchema]);
+
+  // After a schema reload, re-point selection at the fresh objects so the
+  // detail panel shows updated fields/relations without requiring navigation.
+  useEffect(() => {
+    if (!data) return;
+    setSelection((prev) => {
+      if (prev.kind === "model") {
+        for (const mod of data.modules) {
+          const found = mod.models.find((m) => m.resource === prev.model.resource);
+          if (found) return { kind: "model", mod, model: found };
+        }
+      }
+      if (prev.kind === "module") {
+        const found = data.modules.find((m) => m.name === prev.mod.name);
+        if (found) return { kind: "module", mod: found };
+      }
+      return prev;
+    });
+  }, [data]);
 
   const toggleModule = (mod: ModuleInfo) => {
     const isOpen = openModules.has(mod.name);

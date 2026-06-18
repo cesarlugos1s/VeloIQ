@@ -370,9 +370,10 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                                 role_extra += f', writeRoles: {_to_ts_array(wr)}'
                 except Exception:
                     pass
-                # Emit options and description from json_schema_extra.
+                # Emit options, description, and view-type hint from json_schema_extra.
                 options_extra = ""
                 desc_extra = ""
+                view_type_extra = ""
                 try:
                     fi = model.model_fields.get(p.key)
                     if fi is not None:
@@ -389,12 +390,17 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                                 else:
                                     ts_opts = json.dumps(raw_opts)
                                 options_extra = f", options: {ts_opts}"
+                            if "veloiq_view_type" in jse:
+                                vt = jse["veloiq_view_type"]
+                                view_type_extra = f', showViewType: "read-only-{vt}"'
+                                if vt not in _SHOW_ONLY_FIELD_VIEW_TYPES:
+                                    view_type_extra += f', editViewType: "editable-{vt}"'
                         desc = getattr(fi, "description", None)
                         if desc:
                             desc_extra = f", description: {json.dumps(desc)}"
                 except Exception:
                     pass
-                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{options_extra}{desc_extra}{role_extra} }}'
+                field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{options_extra}{desc_extra}{role_extra}{view_type_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
                 else:
@@ -583,6 +589,9 @@ def _to_ts_array(values: list[str]) -> str:
 
 
 _IMAGE_URL_FIELD_NAMES = {"avatar_url", "image_url", "photo_url", "thumbnail_url", "cover_url", "picture_url"}
+
+# Field view-type suffixes that only have a read-only renderer (no editable counterpart).
+_SHOW_ONLY_FIELD_VIEW_TYPES: frozenset[str] = frozenset({"qrcode", "relative", "truncated-text"})
 
 
 def _col_to_ts_type(col, field_key: str = "") -> str:
