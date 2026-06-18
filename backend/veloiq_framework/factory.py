@@ -1049,6 +1049,55 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
             )
         return {"html": svg}
 
+    @core_api.post("/_meta/bulk-read")
+    async def meta_bulk_read(request: Request):
+        """Fetch multiple records by ID from any registered resource in one round-trip.
+
+        Body: { "resource": "<table_name>", "ids": [1, 2, 3, ...] }
+        Response: { "items": [ ... ] }
+        """
+        from sqlalchemy.orm import Session as _SASession
+        from sqlalchemy import select as _sa_select
+
+        body = await request.json()
+        resource: str = body.get("resource", "")
+        ids: list = body.get("ids", [])
+
+        if not resource or not ids:
+            return {"items": []}
+
+        # Strip leading slash if present (frontend may include it)
+        resource = resource.lstrip("/")
+
+        table = SQLModel.metadata.tables.get(resource)
+        if table is None:
+            raise HTTPException(status_code=404, detail=f"Unknown resource: {resource}")
+
+        # Detect primary key column (prefer 'id', then first pk col)
+        pk_cols = [c for c in table.c if c.primary_key]
+        if not pk_cols:
+            raise HTTPException(status_code=400, detail=f"No primary key on {resource}")
+        pk_col = next((c for c in pk_cols if c.name == "id"), pk_cols[0])
+
+        # Coerce ids to the column type where possible
+        try:
+            typed_ids = [pk_col.type.python_type(i) for i in ids]
+        except Exception:
+            typed_ids = ids
+
+        with _SASession(engine) as session:
+            stmt = _sa_select(table).where(pk_col.in_(typed_ids))
+            rows = session.execute(stmt).mappings().all()
+
+        def _to_json(v: object) -> object:
+            from datetime import datetime, date
+            if isinstance(v, (datetime, date)):
+                return v.isoformat()
+            return v
+
+        items = [{k: _to_json(v) for k, v in dict(row).items()} for row in rows]
+        return {"items": items}
+
     # Mount all core data API endpoints under /api so they match API_URL="/api"
     # used by the frontend (both dev proxy and production same-origin).
     app.include_router(core_api, prefix="/api")
