@@ -29,14 +29,16 @@ def run(host, port, no_reload, app_path, env_file):
 
     # Determine the ASGI app path
     if app_path is None:
-        app_path = _detect_app_path()
+        app_path, cwd = _detect_app_path()
+    else:
+        cwd = None
 
     cmd = [sys.executable, "-m", "uvicorn", app_path, f"--host={host}", f"--port={port}"]
     if not no_reload:
         cmd.extend(["--reload", "--reload-delay", "2"])
 
     click.echo(f"🚀 Starting VeloIQ server: {app_path} on {host}:{port}")
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, cwd=cwd)
     raise SystemExit(result.returncode)
 
 
@@ -56,14 +58,14 @@ def _load_env(env_file: str) -> None:
         pass
 
 
-def _detect_app_path() -> str:
-    """Return the most likely ASGI app import path for the current project."""
+def _detect_app_path() -> tuple[str, str | None]:
+    """Return (import_path, cwd) for the most likely ASGI app in the current project."""
     candidates = [
-        ("app/main.py", "app.main:app"),
-        ("backend/app/main.py", "app.main:app"),
-        ("main.py", "main:app"),
+        ("app/main.py", "app.main:app", None),
+        ("backend/app/main.py", "app.main:app", "backend"),
+        ("main.py", "main:app", None),
     ]
-    for file_path, import_path in candidates:
+    for file_path, import_path, cwd in candidates:
         if Path(file_path).exists():
-            return import_path
-    return "app.main:app"
+            return import_path, cwd
+    return "app.main:app", None
