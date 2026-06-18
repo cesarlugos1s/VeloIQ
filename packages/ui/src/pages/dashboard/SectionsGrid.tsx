@@ -244,6 +244,15 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
         return Math.max(...cells.map((c) => c.row)) + 1;
     }, [cells]);
 
+    // Rows occupied by exactly one section — those cells should span all columns.
+    const soloRows = useMemo(() => {
+        const counts = new Map<number, number>();
+        for (const c of cells) counts.set(c.row, (counts.get(c.row) ?? 0) + 1);
+        const solo = new Set<number>();
+        for (const [row, count] of counts) if (count === 1) solo.add(row);
+        return solo;
+    }, [cells]);
+
     const visibleCells = maximizedCellId
         ? cells.filter((c) => c.id === maximizedCellId)
         : cells;
@@ -270,7 +279,7 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
                     <div
                         key={cell.id}
                         style={{
-                            gridColumn: maximizedCellId ? "1 / -1" : `${cell.col + 1}`,
+                            gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
                             gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`,
                         }}
                     >

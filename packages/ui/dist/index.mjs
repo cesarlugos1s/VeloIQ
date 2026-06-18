@@ -10047,6 +10047,13 @@ var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isCon
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
+  const soloRows = useMemo(() => {
+    const counts = /* @__PURE__ */ new Map();
+    for (const c of cells) counts.set(c.row, (counts.get(c.row) ?? 0) + 1);
+    const solo = /* @__PURE__ */ new Set();
+    for (const [row, count] of counts) if (count === 1) solo.add(row);
+    return solo;
+  }, [cells]);
   const visibleCells = maximizedCellId ? cells.filter((c) => c.id === maximizedCellId) : cells;
   const gridStyle = {
     display: "grid",
@@ -10065,7 +10072,7 @@ var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isCon
       "div",
       {
         style: {
-          gridColumn: maximizedCellId ? "1 / -1" : `${cell.col + 1}`,
+          gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
           gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`
         },
         children: /* @__PURE__ */ jsx(
