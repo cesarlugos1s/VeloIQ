@@ -417,7 +417,30 @@ def _scaffold_from_schema(
     click.echo(click.style("\n  Phase 3 — relationships", bold=True))
     selected_set = set(selected)
 
+    # Pre-compute FK multiplicity straight from the live schema (never assume
+    # column / primary-key names) so we can disambiguate ambiguous joins:
+    #   • pair_fk_count[{A, B}] > 1  → more than one FK path between the two
+    #     tables (either direction) → SQLAlchemy cannot infer the join, so every
+    #     relationship between them must carry an explicit foreign_keys.
+    #   • directed_fk_cols[(A, B)]   → the FK columns A → B, used to give the
+    #     reverse collection a unique name when A has several FKs to B.
+    rel_targets = set(non_junction)
+    pair_fk_count: dict[frozenset, int] = {}
+    directed_fk_cols: dict[tuple[str, str], list[str]] = {}
+    for t in non_junction:
+        for fk in inspector.get_foreign_keys(t):
+            rt = fk["referred_table"]
+            constrained_cols = fk.get("constrained_columns", [])
+            if rt not in rel_targets or rt in junctions or not constrained_cols:
+                continue
+            key = frozenset((t, rt))
+            pair_fk_count[key] = pair_fk_count.get(key, 0) + 1
+            directed_fk_cols.setdefault((t, rt), []).append(constrained_cols[0])
+    for cols in directed_fk_cols.values():
+        cols.sort()  # deterministic ordering for reverse-name qualification
+
     for table in ordered:
+
         if table in skipped:
             continue
         src_cls = _to_pascal(table)
@@ -433,11 +456,27 @@ def _scaffold_from_schema(
                 continue
             col_name = constrained[0]
 
-            # attr name on source side (e.g. language_id → language)
+            # attr name on source side (e.g. language_id → language); never assume
+            # the column literally ends in "_id" — fall back to a column-derived name.
             attr_name = re.sub(r"_id$", "", col_name)
             if attr_name == col_name:
-                attr_name = _to_snake(tgt_cls) + "_ref"
-            back_name = _pluralize(_to_snake(src_cls))
+                attr_name = _to_snake(col_name) + "_ref"
+
+            # Reverse (collection) name. Qualify it with the source attr when the
+            # same source table has more than one FK to the same target, so the
+            # generated names never collide (e.g. films vs original_language_films).
+            back_base = _pluralize(_to_snake(src_cls))
+            pair_cols = directed_fk_cols.get((table, ref_table), [])
+            if len(pair_cols) > 1 and col_name in pair_cols and pair_cols.index(col_name) > 0:
+                back_name = f"{attr_name}_{back_base}"
+            else:
+                back_name = back_base
+
+            # More than one FK path between these two tables (either direction) means
+            # SQLAlchemy cannot infer the join — every relationship between them must
+            # carry an explicit foreign_keys pointing at the real child FK column.
+            need_fk = pair_fk_count.get(frozenset((table, ref_table)), 0) > 1
+            fk_expr = f"[{src_cls}.{col_name}]"
 
             src_info = _find_model_info(project_root, src_cls)
             tgt_info = _find_model_info(project_root, tgt_cls)
@@ -455,7 +494,15 @@ def _scaffold_from_schema(
             tgt_text = src_text if same_file else tgt_file.read_text(encoding="utf-8")
 
             # Source side: Optional["TgtClass"] = jm_relationship(...)
-            rel_line = f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(back_populates="{back_name}")'
+            if need_fk:
+                rel_line = (
+                    f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
+                    f'        back_populates="{back_name}",\n'
+                    f'        sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}},\n'
+                    f'    )'
+                )
+            else:
+                rel_line = f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(back_populates="{back_name}")'
             if not re.search(rf'^\s+{re.escape(attr_name)}\s*:', _get_class_body(src_text, src_class), re.M):
                 src_text = _ensure_optional_import(src_text)
                 src_text = _ensure_jm_relationship_import(src_text)
@@ -467,8 +514,20 @@ def _scaffold_from_schema(
                 src_file.write_text(src_text, encoding="utf-8")
                 click.echo(f"    + {src_class}.{attr_name} → {tgt_class}")
 
+            # Re-sync the target buffer after a same-file source write.
+            if same_file:
+                tgt_text = src_file.read_text(encoding="utf-8")
+
             # Target side: List["SrcClass"] = jm_relationship(...)
-            back_line = f'    {back_name}: List["{src_class}"] = jm_relationship(back_populates="{attr_name}")'
+            if need_fk:
+                back_line = (
+                    f'    {back_name}: List["{src_class}"] = jm_relationship(\n'
+                    f'        back_populates="{attr_name}",\n'
+                    f'        sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}},\n'
+                    f'    )'
+                )
+            else:
+                back_line = f'    {back_name}: List["{src_class}"] = jm_relationship(back_populates="{attr_name}")'
             if not re.search(rf'^\s+{re.escape(back_name)}\s*:', _get_class_body(tgt_text, tgt_class), re.M):
                 tgt_text = _ensure_list_import(tgt_text)
                 tgt_text = _ensure_jm_relationship_import(tgt_text)
@@ -477,6 +536,7 @@ def _scaffold_from_schema(
                 tgt_text = _insert_after_last_relationship(tgt_text, tgt_class, back_line)
                 tgt_file.write_text(tgt_text, encoding="utf-8")
                 click.echo(f"    + {tgt_class}.{back_name} ← {src_class}")
+
 
     # ── Phase 4: M2M junction link classes + relationships ───────────────────
     click.echo(click.style("\n  Phase 4 — M2M relations", bold=True))
@@ -514,7 +574,9 @@ def _scaffold_from_schema(
         col_b     = fk_b["constrained_columns"][0]
         ref_col_b = fk_b["referred_columns"][0]
 
-        # Write the link class before cls_a (maps the actual junction table)
+        # Write the link class before BOTH classes that reference it via
+        # link_model= (maps the actual junction table). Their order in the file
+        # is not guaranteed, so anchor on whichever class comes first.
         link_block = (
             f"\n\nclass {link_cls}(SQLModel, table=True):\n"
             f'    __tablename__ = "{jt}"\n'
@@ -526,9 +588,13 @@ def _scaffold_from_schema(
         if not re.search(rf'^class\s+{re.escape(link_cls)}\s*\(', src_text, re.M):
             src_text = _ensure_sqlmodel_import(src_text)
             src_text = _ensure_optional_import(src_text)
-            src_text = _insert_before_class(src_text, src_class, link_block)
+            if same_file:
+                src_text = _insert_before_earliest_class(src_text, [src_class, tgt_class], link_block)
+            else:
+                src_text = _insert_before_class(src_text, src_class, link_block)
             src_file.write_text(src_text, encoding="utf-8")
             click.echo(f"    + {link_cls} (maps existing {jt})")
+
 
         # Re-read after potential write
         src_text = src_file.read_text(encoding="utf-8")
@@ -1000,3 +1066,24 @@ def _pluralize(word: str) -> str:
     if word.endswith("y") and len(word) > 1 and word[-2] not in "aeiou":
         return word[:-1] + "ies"
     return word + "s"
+
+
+def _insert_before_earliest_class(text: str, class_names: list[str], block: str) -> str:
+    """Insert ``block`` before whichever of ``class_names`` appears first in ``text``.
+
+    A junction link class is referenced via ``link_model=`` by *both* sides of the
+    M2M, so it must be defined before either class — regardless of the order in
+    which they were scaffolded. Anchoring on the earliest class guarantees that.
+    """
+    from veloiq_framework.cli.add_relation import _insert_before_class
+
+    positions: list[tuple[int, str]] = []
+    for name in class_names:
+        m = re.search(rf'^class\s+{re.escape(name)}\s*\(', text, re.M)
+        if m:
+            positions.append((m.start(), name))
+    if not positions:
+        return text.rstrip() + "\n" + block + "\n"
+    positions.sort()
+    return _insert_before_class(text, positions[0][1], block)
+
