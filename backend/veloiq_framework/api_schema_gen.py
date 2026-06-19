@@ -556,6 +556,11 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
         extra_props = []
         if "listViewType" in veloiq_ui:
             extra_props.append(f'    listViewType: "{veloiq_ui["listViewType"]}",')
+        # Developer-configured fields whose values compose this model's title /
+        # __str__ (set via `veloiq set-title`, stored on __veloiq_ui__["titleFields"]).
+        title_fields = veloiq_ui.get("titleFields")
+        if isinstance(title_fields, (list, tuple)) and title_fields:
+            extra_props.append(f'    titleFields: {_to_ts_array([str(f) for f in title_fields])},')
         # Emit class docstring as description if present.
         raw_doc = getattr(model, "__doc__", None)
         if raw_doc:

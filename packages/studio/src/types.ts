@@ -47,6 +47,7 @@ export interface ModelInfo {
   custom_pages: string[];
   models_path: string | null;
   description: string | null;
+  title_fields: string[];
   referenced_by: [string, string, string][];
 }
 

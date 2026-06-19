@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { api } from "../api";
 import Terminal from "./Terminal";
+import { executeCommand } from "../lib/commandRunner";
 
 export interface InputDef {
   key: string;
@@ -27,35 +27,6 @@ interface Props {
   onSuccess?: () => void;
 }
 
-const SKIP_AUTO_GENERATE = new Set(["veloiq generate", "veloiq check", "veloiq build", "veloiq migrate", "veloiq db upgrade"]);
-
-async function runAndStream(
-  command: string,
-  onLine: (l: string) => void,
-  onDone: (rc: number) => void,
-  onError: (e: string) => void
-) {
-  try {
-    const { run_id } = await api.runCommand(command);
-    await api.streamCommand(run_id, onLine, onDone, onError);
-  } catch (e) {
-    onError(String(e));
-  }
-}
-
-async function waitForServer(maxWait = 15_000): Promise<boolean> {
-  const deadline = Date.now() + maxWait;
-  while (Date.now() < deadline) {
-    try {
-      await api.info();
-      return true;
-    } catch {
-      await new Promise((r) => setTimeout(r, 800));
-    }
-  }
-  return false;
-}
-
 export default function CommandCard({ def, prefill = {}, onSuccess }: Props) {
   const initial = Object.fromEntries(
     def.inputs.map((inp) => [inp.key, prefill[inp.key] ?? inp.options?.[0] ?? ""])
@@ -74,64 +45,7 @@ export default function CommandCard({ def, prefill = {}, onSuccess }: Props) {
     setLines([`$ ${cmd}`]);
     setReturncode(null);
     setRunning(true);
-
-    let cmdRc: number | null = null;
-
-    await runAndStream(
-      cmd,
-      append,
-      (rc) => { cmdRc = rc; },
-      (err) => { append(`error: ${err}`); cmdRc = 1; }
-    );
-
-    // cmdRc === null means the stream was cut without a done event (server reloaded).
-    // The subprocess survives the reload; wait for the server to come back then continue.
-    if (cmdRc === null) {
-      append("⚠  Connection lost — waiting for server reload…");
-      const recovered = await waitForServer();
-      if (!recovered) {
-        append("✗  Server did not recover within 15 s");
-        setReturncode(1);
-        setRunning(false);
-        return;
-      }
-      append("✓  Server back online");
-      cmdRc = 0;
-    }
-
-    if (cmdRc !== 0) {
-      setReturncode(cmdRc);
-      setRunning(false);
-      return;
-    }
-
-    // Auto-run generate unless this command already is generate/check
-    if (!SKIP_AUTO_GENERATE.has(cmd)) {
-      append("");
-      append("─── veloiq generate ───");
-      let genRc: number | null = null;
-      await runAndStream(
-        "veloiq generate",
-        append,
-        (rc) => { genRc = rc; },
-        (err) => { append(`error: ${err}`); genRc = 1; }
-      );
-      // If generate stream was also cut, assume it ran in the background and succeeded.
-      if (genRc === null) {
-        append("⚠  Generate connection lost — waiting for server…");
-        const recovered = await waitForServer();
-        genRc = recovered ? 0 : 1;
-        if (recovered) append("✓  Schema updated in background");
-      }
-      setReturncode(genRc);
-      setRunning(false);
-      if (genRc === 0) onSuccess?.();
-    } else {
-      // veloiq generate itself — just finish
-      setReturncode(cmdRc);
-      setRunning(false);
-      if (cmdRc === 0) onSuccess?.();
-    }
+    await executeCommand({ command: cmd, append, setReturncode, setRunning, onSuccess });
   };
 
   return (

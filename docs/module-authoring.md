@@ -68,6 +68,48 @@ class LegacyItem(StandardModel, table=True):
     cw_name: str = Field(sa_column=Column("cw_name", String))
 ```
 
+## Model title (record label)
+
+Every record has a **title** — the human-readable label shown across the UI (list rows, relation pickers, reference links, show-page headings). It is the value of `str(record)` / `record.dc_title()`.
+
+By default VeloIQ derives the title automatically from the model's first non-empty text field. You can pin the exact fields whose values compose the title by declaring `titleFields` on the model's `__veloiq_ui__` class attribute:
+
+```python
+from typing import ClassVar, Dict
+from veloiq_framework import TimestampedModel
+
+class Contact(TimestampedModel, table=True):
+    __tablename__ = "contact"
+    __veloiq_ui__: ClassVar[Dict] = {"titleFields": ["first_name", "last_name"]}
+    first_name: str
+    last_name: str
+```
+
+The title is the concatenation of those field values separated by a single blank space, skipping any that are empty — so a `Contact` named *Ada Lovelace* renders as `Ada Lovelace` everywhere instead of the default single-field guess.
+
+`titleFields` is **entirely optional** and **backwards compatible**: a model with no `titleFields` keeps the automatic behaviour, and existing apps need no changes. It works for any model, including plain `SQLModel` tables produced by `veloiq import-schema`.
+
+### Special tokens
+
+Two special tokens may appear in `titleFields` alongside (or instead of) real field names, in any order. They resolve at render time and are wrapped in **[brackets]**:
+
+| Token | Renders as | Example |
+|---|---|---|
+| `__model_name__` | the model's display name, bracketed | `[Contact]` |
+| `__pk__` | the record's primary-key value, bracketed | `[42]` |
+
+For example, `titleFields = ["__model_name__", "first_name"]` renders as `[Contact] Ada`, and `["__pk__", "title"]` renders as `[42] The Matrix`.
+
+### Setting title fields
+
+You rarely edit `__veloiq_ui__` by hand. Use any of:
+
+- the **`veloiq set-title`** command — see [CLI Tools](cli-tools.md#veloiq-set-title);
+- the **Set Title Fields** card in VeloIQ Studio (a dropdown row per field, reorderable, with a live preview);
+- the **`t`** action in the interactive Explorer (TUI).
+
+All three work on any existing model, show the currently configured fields, and offer the two special tokens as selectable choices.
+
 ## Relations
 
 Use `jm_relationship()` to declare SQLModel relationships with optional

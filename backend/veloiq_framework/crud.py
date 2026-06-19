@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session, SQLModel, func, select
 
 from veloiq_framework.db import get_session
-from veloiq_framework.models import get_pk_field_name
+from veloiq_framework.models import get_pk_field_name, build_model_str_label
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -289,7 +289,9 @@ def _to_dict(obj: SQLModel) -> dict:
     if obj is None:
         return {}
     data = obj.model_dump()
-    data["_label"] = str(obj)
+    # Canonical title (honours __veloiq_ui__["titleFields"]; works for plain
+    # SQLModel tables too, e.g. imported models that lack a VeloIQ base class).
+    data["_label"] = build_model_str_label(obj)
     return _sanitize(data)
 
 

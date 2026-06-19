@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AppSchema, FieldInfo, ModelInfo, ModuleInfo, NamedQueryDef, RelationInfo } from "../types";
 import CommandCard, { CommandDef } from "../components/CommandCard";
 import NamedQueryCreator from "../components/NamedQueryCreator";
+import TitleFieldsEditor from "../components/TitleFieldsEditor";
 import { api } from "../api";
 
 const FIELD_TYPES = [
@@ -568,6 +569,19 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
           <div className="vs-kv-val">{model.custom_pages.length > 0 ? model.custom_pages.join(", ") : "(none)"}</div>
         </div>
         <div className="vs-kv-row">
+          <div className="vs-kv-key">Title fields</div>
+          <div className="vs-kv-val">
+            {model.title_fields && model.title_fields.length > 0
+              ? model.title_fields
+                  .map((t) =>
+                    t === "__model_name__" ? "[Model name]"
+                      : t === "__pk__" ? "[Primary key]"
+                      : t)
+                  .join(" + ")
+              : "(auto — first text field)"}
+          </div>
+        </div>
+        <div className="vs-kv-row">
           <div className="vs-kv-key">Referenced by</div>
           <div className="vs-kv-val">
             {model.referenced_by.length > 0
@@ -622,6 +636,8 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
             prefill={{ resource: model.resource }}
             onSuccess={onSuccess}
           />
+          <div className="vs-section-title" style={{ marginTop: 20 }}>Set Title Fields</div>
+          <TitleFieldsEditor key={model.resource} model={model} onSuccess={onSuccess} />
         </>
       )}
     </div>

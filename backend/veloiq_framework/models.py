@@ -85,6 +85,106 @@ def get_pk_field_name(model_cls: type) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Title (dc_title / __str__) composition helper
+# ---------------------------------------------------------------------------
+
+# Special selectable tokens that may appear in __veloiq_ui__["titleFields"]
+# alongside (or instead of) real field names. They resolve at render time to
+# the model's display name / primary-key value and are wrapped in brackets.
+TITLE_TOKEN_MODEL_NAME = "__model_name__"
+TITLE_TOKEN_PK = "__pk__"
+TITLE_SPECIAL_TOKENS = (TITLE_TOKEN_MODEL_NAME, TITLE_TOKEN_PK)
+
+
+def _humanize_model_name(name: str) -> str:
+    """'FilmActor' -> 'Film Actor', 'Language' -> 'Language'."""
+    out: list[str] = []
+    for i, ch in enumerate(name):
+        if i > 0 and ch.isupper() and not name[i - 1].isupper():
+            out.append(" ")
+        out.append(ch)
+    return "".join(out)
+
+
+def _composed_title(instance: Any) -> Optional[str]:
+    """Build a record title from the model's configured ``titleFields``.
+
+    A developer can declare which fields compose the human-readable title via::
+
+        class Contact(TimestampedModel, table=True):
+            __veloiq_ui__: ClassVar[Dict] = {"titleFields": ["first_name", "last_name"]}
+            first_name: str
+            last_name: str
+
+    The title is the string concatenation of those field values, separated by a
+    single blank space, skipping any that are ``None`` / empty.  Returns ``None``
+    when no ``titleFields`` are configured (or none of them yield a value), so the
+    caller can fall back to the automatic single-field behaviour.
+    """
+    ui_meta = getattr(type(instance), "__veloiq_ui__", None) or {}
+    title_fields = ui_meta.get("titleFields") if isinstance(ui_meta, dict) else None
+    if not title_fields:
+        return None
+    parts: list[str] = []
+    for field_name in title_fields:
+        if field_name == TITLE_TOKEN_MODEL_NAME:
+            parts.append(f"[{_humanize_model_name(type(instance).__name__)}]")
+            continue
+        if field_name == TITLE_TOKEN_PK:
+            try:
+                pk_name = get_pk_field_name(type(instance))
+            except Exception:
+                pk_name = None
+            pk_val = getattr(instance, pk_name, None) if pk_name else None
+            if pk_val is None and hasattr(instance, "pk_value"):
+                pk_val = instance.pk_value()
+            if pk_val is not None:
+                parts.append(f"[{pk_val}]")
+            continue
+        val = getattr(instance, field_name, None)
+        if val is None:
+            continue
+        text = str(val).strip()
+        if text:
+            parts.append(text)
+    return " ".join(parts) if parts else None
+
+
+def build_model_str_label(instance: Any) -> str:
+    """Canonical human-readable title for *any* model record.
+
+    Single source of truth for a record's title, working for VeloIQ base models
+    **and** plain ``SQLModel`` classes (e.g. tables produced by
+    ``veloiq import-schema``):
+
+    1. If the model configures ``__veloiq_ui__["titleFields"]`` the title is the
+       space-joined concatenation of those field values.
+    2. Otherwise the previously existing fallback is used: the first non-empty
+       string field (skipping the primary key), else ``"<Class> #<pk>"``.
+    """
+    if instance is None:
+        return ""
+    # 1. Developer-configured title fields — honoured regardless of base class.
+    composed = _composed_title(instance)
+    if composed:
+        return composed
+    # 2. Existing fallback: first non-PK string field, else "<Class> #<pk>".
+    cls = type(instance)
+    try:
+        pk_name = get_pk_field_name(cls)
+    except Exception:
+        pk_name = None
+    for attr in getattr(cls, "model_fields", {}):
+        if attr == pk_name:
+            continue
+        val = getattr(instance, attr, None)
+        if isinstance(val, str) and val:
+            return val
+    pk_val = getattr(instance, pk_name, "?") if pk_name else "?"
+    return f"{cls.__name__} #{pk_val}"
+
+
+# ---------------------------------------------------------------------------
 # Base model classes
 # ---------------------------------------------------------------------------
 
@@ -105,15 +205,22 @@ class FrameworkModel(SQLModel):
     _pk_allocator: ClassVar[Optional[Callable]] = None
 
     def build_model_str_label(self) -> str:
-        """Human-readable label for this record (used in relation selectors)."""
-        pk_name = get_pk_field_name(type(self))
-        for attr in type(self).model_fields:
-            if attr == pk_name:
-                continue
-            val = getattr(self, attr, None)
-            if isinstance(val, str) and val:
-                return val
-        return f"{type(self).__name__} #{getattr(self, pk_name, '?')}"
+        """Human-readable label for this record (used in relation selectors).
+
+        Delegates to the module-level :func:`build_model_str_label` so the title
+        logic (``__veloiq_ui__["titleFields"]`` then first string field) lives in
+        one place.
+        """
+        return build_model_str_label(self)
+
+    def dc_title(self) -> str:
+        """Canonical record title — same value as ``str(self)``.
+
+        Kept as an explicit method so display layers can detect title support via
+        ``hasattr(obj, "dc_title")`` and so the title stays configurable through
+        ``__veloiq_ui__["titleFields"]``.
+        """
+        return self.build_model_str_label()
 
     def __str__(self) -> str:
         return self.build_model_str_label()
@@ -157,13 +264,12 @@ class StandardModel(SQLModel):
         return None
 
     def build_model_str_label(self) -> str:
-        for attr in type(self).model_fields:
-            if attr in ("eid", "creation_date", "modification_date"):
-                continue
-            val = getattr(self, attr, None)
-            if isinstance(val, str) and val:
-                return val
-        return f"{type(self).__name__} #{self.pk_value() or '?'}"
+        """Delegates to the module-level :func:`build_model_str_label`."""
+        return build_model_str_label(self)
+
+    def dc_title(self) -> str:
+        """Canonical record title — same value as ``str(self)`` (see ``FrameworkModel``)."""
+        return self.build_model_str_label()
 
     def __str__(self) -> str:
         return self.build_model_str_label()

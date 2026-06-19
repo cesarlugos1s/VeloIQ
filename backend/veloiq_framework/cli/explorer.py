@@ -66,6 +66,7 @@ class ModelInfo:
     custom_pages: set[str] = field(default_factory=set)  # e.g. {"list", "show"}
     models_path: Optional[Path] = None                   # absolute path to models.py
     description: Optional[str] = None                    # from class docstring
+    title_fields: list[str] = field(default_factory=list)  # __veloiq_ui__["titleFields"]
     referenced_by: list = field(default_factory=list)    # [(model_name, field_key, resource)]
 
 
@@ -293,6 +294,12 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
     pk       = _s(r'pkField:\s*"([^"]+)"') or "id"
     # Model-level description lives on its own indented line (4 spaces), distinct from field descriptions
     model_desc = _s(r'^\s{4}description:\s*"([^"]+)"', re.MULTILINE)
+    # Developer-configured title fields (set via `veloiq set-title`).
+    tf_m = re.search(r'^\s{4}titleFields:\s*\[([^\]]*)\]', block, re.MULTILINE)
+    title_fields = (
+        [x.strip().strip('"\'') for x in tf_m.group(1).split(",") if x.strip()]
+        if tf_m else []
+    )
 
     fields: list[FieldInfo] = []
     relations: list[RelationInfo] = []
@@ -375,15 +382,39 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
         dashboard_tab=dashboard_tabs.get(resource),
         in_search=name.lower() in search_set,
         description=model_desc,
+        title_fields=title_fields,
     )
+
+
+def _parse_titlefields_py(block: str) -> list[str]:
+    """Extract __veloiq_ui__['titleFields'] from a model class's Python source block."""
+    m = re.search(r'__veloiq_ui__\s*(?::[^=]+)?=\s*(\{[^}]*\})', block)
+    if not m:
+        return []
+    tm = re.search(r'titleFields["\']?\s*:\s*\[([^\]]*)\]', m.group(1))
+    if not tm:
+        return []
+    return [x.strip().strip('"\'') for x in tm.group(1).split(",") if x.strip()]
+
+
+_TITLE_TOKEN_LABELS = {"__model_name__": "[Model name]", "__pk__": "[Primary key]"}
+
+
+def _title_field_display(token: str) -> str:
+    """Readable label for a stored title token (special tokens shown bracketed)."""
+    return _TITLE_TOKEN_LABELS.get(token, token)
 
 
 def _scan_models_minimal(mod_dir, module_name, search_set, dashboard_models, dashboard_tabs):
     text = (mod_dir / "models.py").read_text(encoding="utf-8")
+    class_starts = [mm.start() for mm in re.finditer(r'^class\s+\w+\s*\(', text, re.M)]
     models = []
     for m in re.finditer(r'^class\s+(\w+)\s*\([^)]*table\s*=\s*True', text, re.M):
         name = m.group(1)
         after = text[m.start(): m.start() + 300]
+        # Class body spans up to the next top-level class declaration (or EOF).
+        nexts = [p for p in class_starts if p > m.start()]
+        block = text[m.start(): min(nexts) if nexts else len(text)]
         tn = re.search(r'__tablename__\s*=\s*["\']([^"\']+)["\']', after)
         resource = tn.group(1) if tn else name.lower()
         # Skip link/junction tables (M2M intermediaries) — detected
@@ -404,6 +435,7 @@ def _scan_models_minimal(mod_dir, module_name, search_set, dashboard_models, das
             in_dashboard=resource in dashboard_models,
             dashboard_tab=dashboard_tabs.get(resource),
             in_search=name.lower() in search_set,
+            title_fields=_parse_titlefields_py(block),
         ))
     return models
 
@@ -858,6 +890,12 @@ class Explorer:
         srch_val  = "✓  enrolled" if model.in_search else "✗  not enrolled"
         lines.append((f"  Search       {srch_val}", OK if model.in_search else ERR))
 
+        if model.title_fields:
+            ttl_val = "✓  " + " + ".join(_title_field_display(t) for t in model.title_fields)
+            lines.append((f"  Title        {ttl_val}", OK))
+        else:
+            lines.append(("  Title        auto (first text field)", DIM))
+
         if model.permissions:
             pstr = "  ".join(f"{role}: [{', '.join(acts)}]" for role, acts in model.permissions.items())
             lines.append((f"  Permissions  {pstr}", A))
@@ -934,6 +972,7 @@ class Explorer:
         if not model.is_named_query:
             actions.append("[a] add-field")
             actions.append("[r] add-relation")
+            actions.append("[t] set-title")
         actions += [scaffold_hint, "[g] generate"]
         self._w(stdscr, max_y - 1, 0, "  " + "    ".join(actions), curses.color_pair(_C_WARN))
 
@@ -1239,6 +1278,18 @@ class Explorer:
                                    f" --type {rel_type} --attr {attr} --back-attr {back}")
                             if self._confirm(stdscr, max_y, max_x, cmd):
                                 return cmd
+        elif key == ord('t') and not model.is_named_query:
+            selected = self._pick_title_fields(stdscr, max_y, max_x, model)
+            if selected is None:
+                return None  # cancelled
+            if selected:
+                cmd = f"veloiq set-title {model.name} --fields {','.join(selected)}"
+            elif model.title_fields:
+                cmd = f"veloiq set-title {model.name} --clear"
+            else:
+                cmd = None
+            if cmd and self._confirm(stdscr, max_y, max_x, cmd):
+                return cmd
         elif key == ord('g'):
             if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                 return "veloiq generate"
@@ -1291,6 +1342,61 @@ class Explorer:
                     curses.color_pair(_C_WARN) | curses.A_BOLD)
             stdscr.refresh()
             stdscr.getch()
+
+    def _pick_title_fields(self, stdscr, max_y, max_x, model: "ModelInfo") -> Optional[list[str]]:
+        """Ordered multi-select of title-field tokens (incl. the special tokens).
+
+        Returns the selected token list (empty = clear / restore auto), or None
+        if the user cancelled with Esc.
+        """
+        # Special tokens first, then the model's own fields.
+        options: list[tuple[str, str]] = [
+            ("__model_name__", "Model name"),
+            ("__pk__", "Primary key"),
+        ]
+        for f in model.fields:
+            options.append((f.key, getattr(f, "label", None) or f.key))
+
+        def _hotkey(i: int) -> Optional[str]:
+            if i < 9:
+                return str(i + 1)
+            j = i - 9
+            return chr(ord('a') + j) if j < 26 else None
+
+        keymap: dict[str, str] = {}
+        labels: list[str] = []
+        for i, (tok, lbl) in enumerate(options):
+            hk = _hotkey(i)
+            if hk is None:
+                break
+            keymap[hk] = tok
+            labels.append(f"[{hk}] {lbl}")
+
+        selected: list[str] = list(model.title_fields)
+
+        while True:
+            sel = " ".join(_title_field_display(t) for t in selected) if selected else "(auto — first text field)"
+            line_sel = f"  Title: {sel}"
+            line_opts = "  Pick: " + "   ".join(labels)
+            line_help = "  [Enter] save   [Backspace] remove last   [Esc] cancel"
+            for row, s in ((max_y - 3, line_sel), (max_y - 2, line_opts), (max_y - 1, line_help)):
+                self._w(stdscr, row, 0, " " * (max_x - 1), curses.color_pair(_C_WARN))
+                self._w(stdscr, row, 0, s[: max_x - 1], curses.color_pair(_C_WARN) | curses.A_BOLD)
+            stdscr.refresh()
+
+            k = stdscr.getch()
+            if k == 27:                                 # Esc — cancel
+                return None
+            if k in (10, 13):                           # Enter — save
+                return selected
+            if k in (8, 127, curses.KEY_BACKSPACE):     # remove last
+                if selected:
+                    selected.pop()
+                continue
+            ch = chr(k) if 0 <= k < 256 else ""
+            tok = keymap.get(ch)
+            if tok and tok not in selected:
+                selected.append(tok)
 
     def _pick_field_type(self, stdscr, max_y, max_x) -> Optional[str]:
         # Row 1 (keys 1–9): text/string display-hint types

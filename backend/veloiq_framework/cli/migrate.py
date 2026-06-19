@@ -167,6 +167,115 @@ def _migrate_vite_config(root: Path, dry_run: bool) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Step 3 – frontend/package.json: ensure @juicemantics/veloiq-ui is recent
+#           enough to understand newer optional ModelDef props (e.g. the
+#           `titleFields` emitted by `veloiq set-title`). Existing apps pinned
+#           to an older minor would otherwise fail `tsc`/`vite build` with a
+#           TS2353 "unknown property" error once they adopt the feature.
+# ---------------------------------------------------------------------------
+
+_UI_PACKAGE = "@juicemantics/veloiq-ui"
+# Fallback when the framework distribution version cannot be resolved. Keep in
+# sync with packages/ui/package.json (framework + UI ship in lockstep).
+_FALLBACK_UI_VERSION = "0.8.5"
+
+
+def _current_ui_version() -> str:
+    """The UI package version the current framework expects (lockstep release)."""
+    try:
+        import importlib.metadata as _md
+        return _md.version("veloiq-framework")
+    except Exception:
+        return _FALLBACK_UI_VERSION
+
+
+def _parse_ver(s: str) -> Optional[tuple[int, int, int]]:
+    m = re.match(r"\s*v?(\d+)\.(\d+)\.(\d+)", s)
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+
+
+def _range_admits(spec: str, target: str) -> bool:
+    """Best-effort: does the npm version range ``spec`` allow ``target``?
+
+    Conservative — when the spec can't be parsed we return True so migrate
+    never rewrites unfamiliar/dev specs (``file:``, ``workspace:``, git URLs…).
+    """
+    target_v = _parse_ver(target)
+    if target_v is None:
+        return True
+    spec = spec.strip()
+    if spec[:1] in "^~":
+        op, base = spec[0], spec[1:]
+    elif spec.startswith(">="):
+        op, base = ">=", spec[2:]
+    elif spec.startswith("="):
+        op, base = "=", spec[1:]
+    else:
+        op, base = "=", spec
+    base_v = _parse_ver(base)
+    if base_v is None:
+        return True  # not a plain version (file:/link:/workspace:/git/*) → leave it
+    if target_v < base_v:
+        return True  # app is already ahead of the framework — don't downgrade
+    if op == ">=":
+        return True
+    if op == "^":
+        if base_v[0] > 0:
+            return target_v[0] == base_v[0]
+        if base_v[1] > 0:
+            return target_v[:2] == base_v[:2]
+        return target_v == base_v
+    if op == "~":
+        return target_v[:2] == base_v[:2]
+    return base_v == target_v  # exact pin
+
+
+def _migrate_ui_package_version(root: Path, dry_run: bool) -> bool:
+    """Bump frontend/package.json's veloiq-ui floor when it predates the
+    current framework, so newer optional ModelDef props type-check.
+
+    Returns True if a migration was performed (or would be in dry-run).
+    """
+    pkg_path = root / "frontend" / "package.json"
+    if not pkg_path.exists():
+        return False
+    try:
+        data = json.loads(pkg_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        click.echo(f"  ❌  Could not read {pkg_path}: {exc}", err=True)
+        return False
+
+    deps = data.get("dependencies")
+    if not isinstance(deps, dict) or _UI_PACKAGE not in deps:
+        return False
+
+    current_spec = str(deps[_UI_PACKAGE])
+    target = _current_ui_version()
+    if _range_admits(current_spec, target):
+        return False  # already compatible (or a dev/file: link we must not touch)
+
+    new_spec = f"^{target}"
+
+    if dry_run:
+        click.echo(
+            f"  • frontend/package.json: bump {_UI_PACKAGE} "
+            f"{current_spec!r} → {new_spec!r}"
+        )
+        return True
+
+    deps[_UI_PACKAGE] = new_spec
+    bak = pkg_path.with_suffix(".json.bak")
+    shutil.copy(pkg_path, bak)
+    pkg_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    click.echo(
+        f"  ✅  frontend/package.json: {_UI_PACKAGE} {current_spec} → {new_spec}\n"
+        f"      original backed up → frontend/package.json.bak\n"
+        f"      run `npm install` in frontend/ to pick up the new version"
+    )
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Main command
 # ---------------------------------------------------------------------------
 
@@ -189,6 +298,8 @@ def migrate(project_root: Optional[str], dry_run: bool) -> None:
     Steps performed:
       1. views_preferences.json  — import legacy dashboard config
       2. frontend/vite.config.ts — remove obsolete proxy rewrites
+      3. frontend/package.json   — bump @juicemantics/veloiq-ui floor so newer
+                                   optional ModelDef props (e.g. titleFields) type-check
 
     Use --dry-run to preview changes without writing files.
     """
@@ -213,6 +324,9 @@ def migrate(project_root: Optional[str], dry_run: bool) -> None:
 
     if _migrate_vite_config(root, dry_run):
         ran.append("frontend/vite.config.ts")
+
+    if _migrate_ui_package_version(root, dry_run):
+        ran.append("frontend/package.json")
 
     if not ran:
         click.echo("✅  Nothing to migrate — project is already current.")

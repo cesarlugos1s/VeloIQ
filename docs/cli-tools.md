@@ -116,6 +116,13 @@ veloiq db upgrade
 | Min items | `--min-items` | cardinality lower bound on the list side |
 | Max items | `--max-items` | cardinality upper bound on the list side |
 
+### Set Title Fields options
+
+| Input | CLI flag | Notes |
+|---|---|---|
+| Title fields | `--fields` | Ordered rows, each a dropdown of the model's fields **plus** the special `Model name` / `Primary key` tokens (rendered in brackets). A live preview shows the resulting title |
+| Clear | `--clear` | Remove all rows to restore the automatic title |
+
 ---
 
 ## Interactive Explorer (TUI)
@@ -180,6 +187,7 @@ Press the corresponding number key to navigate. Press `Esc` to cancel.
 | `d` / `D` | Add / remove from dashboard |
 | `s` / `S` | Enroll / remove from search |
 | `p` | Scaffold a custom page for this model |
+| `t` | Set the model's **title fields** — opens a picker of the model's fields plus the special `Model name` / `Primary key` tokens, then runs `veloiq set-title` |
 | `g` | Run `veloiq generate` |
 | `b` | Back to module |
 
@@ -415,6 +423,51 @@ After running, the relation is wired in both directions. Run `veloiq generate` t
 ## `veloiq scaffold-page`
 
 See [Custom Page Scaffolding](scaffold-page.md) for full documentation.
+
+---
+
+## `veloiq set-title`
+
+Define or change which fields compose a model's **title** — the human-readable label shown across the UI (list rows, relation pickers, reference links, show-page headings). By default the title is derived automatically from the model's first text field; this command lets you pin the exact fields, in order.
+
+The configuration is stored on the model class as `__veloiq_ui__["titleFields"]`. It is **entirely optional** and **backwards compatible** (a model with no title fields keeps the automatic behaviour), and the command works on **any existing model**, not just freshly scaffolded ones.
+
+```bash
+veloiq set-title <model> --fields a,b,c
+```
+
+| Argument / Option | Description |
+|-------------------|-------------|
+| `MODEL` | Model class name (`Contact`) or resource/table name (`contact`) |
+| `--fields a,b,c` | Comma-separated field names whose values compose the title, in order |
+| `--clear` | Remove the configured title fields and restore automatic derivation |
+| `--no-generate` | Skip the automatic `veloiq generate` after editing |
+| `--root / -C` | Project root override |
+
+The title is the chosen field values joined by a single space. Two **special tokens** are also accepted in `--fields` and are rendered in **[brackets]** at runtime:
+
+| Token (or alias) | Renders as |
+|---|---|
+| `__model_name__` (alias `model_name`) | the model's name, e.g. `[Contact]` |
+| `__pk__` (alias `pk`) | the record's primary-key value, e.g. `[42]` |
+
+**Examples:**
+
+```bash
+# Title = "first_name last_name"
+veloiq set-title Contact --fields first_name,last_name
+
+# Title = "[Film] The Matrix"  — model name in brackets, then a real field
+veloiq set-title Film --fields model_name,title
+
+# Title = "[42] The Matrix"  — primary key in brackets
+veloiq set-title Film --fields pk,title
+
+# Restore the automatic single-field title
+veloiq set-title Contact --clear
+```
+
+After writing the model, `veloiq set-title` regenerates the frontend schemas so the new title reaches the UI (pass `--no-generate` to skip). The same configuration is also available from the **Set Title Fields** card in VeloIQ Studio and the `t` action in the interactive Explorer — both surface the currently configured fields and offer the special tokens as selectable options. See also [Model title (record label)](module-authoring.md#model-title-record-label).
 
 ---
 

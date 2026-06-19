@@ -88,6 +88,10 @@ export interface ModelDef {
     description?: string;
     pkField?: string;
     listViewType?: "table" | "gallery" | "calendar" | "totals-details";
+    /** Field keys whose values compose this model's record title (space-joined).
+     *  Configured via `veloiq set-title` and stored on the model's
+     *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */
+    titleFields?: string[];
     /** True when this ModelDef represents a NamedQuery rather than a plain model table. */
     isNamedQuery?: boolean;
     /** Resource name of the primary model (for show/edit navigation and write routing). */

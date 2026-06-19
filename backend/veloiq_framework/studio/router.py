@@ -79,6 +79,7 @@ _ALLOWED_PREFIXES = (
     "veloiq add-model ",
     "veloiq add-field ",
     "veloiq add-relation ",
+    "veloiq set-title ",
     "veloiq add-dashboard ",
     "veloiq search add-model ",
     "veloiq search remove-model ",

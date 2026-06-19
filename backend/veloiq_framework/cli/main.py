@@ -18,6 +18,7 @@ from veloiq_framework.cli.check import check
 from veloiq_framework.cli.add_field import add_field
 from veloiq_framework.cli.add_relation import add_relation
 from veloiq_framework.cli.add_model import add_model
+from veloiq_framework.cli.set_title import set_title
 from veloiq_framework.cli.import_schema import import_schema
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
@@ -38,6 +39,7 @@ def cli(ctx):
       veloiq add-module inventory    Add a module to an existing project
       veloiq add-model Invoice       Add a new model class to a module
       veloiq add-field Task notes    Add a field to an existing model
+      veloiq set-title Contact --fields first_name,last_name  Choose the fields that compose a model's title
       veloiq add-relation Task Project  Add a FK or many-to-many relation
       veloiq generate                Generate frontend schemas from backend models
       veloiq migrate                 Upgrade this app to the current framework version
@@ -82,4 +84,5 @@ cli.add_command(check)
 cli.add_command(add_field)
 cli.add_command(add_relation)
 cli.add_command(add_model)
+cli.add_command(set_title)
 cli.add_command(import_schema)
