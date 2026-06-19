@@ -21,11 +21,12 @@ For applications that need CubicWeb database compatibility (``eid`` primary key,
 """
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable, ClassVar, Optional
 
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, Integer, String, func
 from sqlalchemy.inspection import inspect
 from sqlmodel import Field, Relationship, SQLModel
@@ -95,6 +96,81 @@ TITLE_TOKEN_MODEL_NAME = "__model_name__"
 TITLE_TOKEN_PK = "__pk__"
 TITLE_SPECIAL_TOKENS = (TITLE_TOKEN_MODEL_NAME, TITLE_TOKEN_PK)
 
+# Infrastructure / audit columns that must never be used as a record title.
+# Housekeeping fields (e.g. the CubicWeb ``cwuri`` URI and audit timestamps);
+# the first-string-field fallback skips them so it lands on a real business
+# field instead of, say, a URL.
+_INFRA_TITLE_FIELDS = frozenset({
+    "cwuri",
+    "creation_date",
+    "modification_date",
+    "created_at",
+    "updated_at",
+})
+
+# Per-thread set of object ids currently being resolved by
+# build_model_str_label. Reentrancy guard so a base-class dc_title/__str__ that
+# delegates back into this function cannot recurse infinitely; on re-entry we
+# fall through to the field-based rungs.
+_label_resolving = threading.local()
+
+# __str__ implementations that are NOT a real title (default object / pydantic
+# repr) and therefore must never be used as a record label.
+_IGNORED_STR_DEFINERS = {object, BaseModel, SQLModel}
+
+
+def _title_method_definer(cls: type, name: str) -> Optional[type]:
+    """Return the most-derived class in ``cls``'s MRO that defines ``name``."""
+    for klass in cls.__mro__:
+        if name in klass.__dict__:
+            return klass
+    return None
+
+
+def _title_methods_in_priority(cls: type) -> list:
+    """Order ('dc_title', '__str__') by which the developer actually customized.
+
+    The method declared on the most-derived class wins (so a model that only
+    overrides ``__str__`` still beats an inherited generic ``dc_title``);
+    ``dc_title`` breaks ties. A default/repr ``__str__`` (object / pydantic
+    ``BaseModel`` / ``SQLModel``) is not treated as a title source.
+    """
+    mro = cls.__mro__
+    cands = []
+    dc_def = _title_method_definer(cls, "dc_title")
+    if dc_def is not None:
+        cands.append((mro.index(dc_def), 0, "dc_title"))
+    str_def = _title_method_definer(cls, "__str__")
+    if str_def is not None and str_def not in _IGNORED_STR_DEFINERS:
+        cands.append((mro.index(str_def), 1, "__str__"))
+    cands.sort()
+    return [name for _, _, name in cands]
+
+
+def model_field_label(instance: Any) -> str:
+    """First non-empty string field (skipping PK + infra/audit), else "[<Class> <pk>]".
+
+    The field-scan/fallback rungs (3 and 4) of :func:`build_model_str_label`,
+    factored out so base classes can reuse the exact same logic without
+    re-entering the dc_title/__str__ dispatch (which would double-apply an emoji
+    prefix). Treats a falsy primary key as ``?``.
+    """
+    if instance is None:
+        return ""
+    cls = type(instance)
+    try:
+        pk_name = get_pk_field_name(cls)
+    except Exception:
+        pk_name = None
+    for attr in getattr(cls, "model_fields", {}):
+        if attr == pk_name or attr in _INFRA_TITLE_FIELDS:
+            continue
+        val = getattr(instance, attr, None)
+        if isinstance(val, str) and val:
+            return val
+    pk_val = getattr(instance, pk_name, None) if pk_name else None
+    return f"[{cls.__name__} {pk_val if pk_val else '?'}]"
+
 
 def _humanize_model_name(name: str) -> str:
     """'FilmActor' -> 'Film Actor', 'Language' -> 'Language'."""
@@ -155,33 +231,54 @@ def build_model_str_label(instance: Any) -> str:
 
     Single source of truth for a record's title, working for VeloIQ base models
     **and** plain ``SQLModel`` classes (e.g. tables produced by
-    ``veloiq import-schema``):
+    ``veloiq import-schema``). Resolution order:
 
-    1. If the model configures ``__veloiq_ui__["titleFields"]`` the title is the
-       space-joined concatenation of those field values.
-    2. Otherwise the previously existing fallback is used: the first non-empty
-       string field (skipping the primary key), else ``"<Class> #<pk>"``.
+    1. ``__veloiq_ui__["titleFields"]`` when configured (explicit developer choice).
+    2. The model's customized ``dc_title()`` / ``__str__`` — whichever is
+       declared on the most-derived class (``dc_title`` breaks ties), so a model
+       that only overrides ``__str__`` still wins over an inherited generic
+       ``dc_title``. A per-instance reentrancy guard lets the framework base
+       methods (which delegate back here) fall through to the field rungs,
+       keeping output identical for pre-existing apps.
+    3. The first non-empty string field, skipping the primary key and
+       infrastructure/audit columns (see ``_INFRA_TITLE_FIELDS``).
+    4. ``"[<Class> <pk>]"`` (e.g. ``[Inventory 245]``).
     """
     if instance is None:
         return ""
+    cls = type(instance)
+
     # 1. Developer-configured title fields — honoured regardless of base class.
     composed = _composed_title(instance)
     if composed:
         return composed
-    # 2. Existing fallback: first non-PK string field, else "<Class> #<pk>".
-    cls = type(instance)
-    try:
-        pk_name = get_pk_field_name(cls)
-    except Exception:
-        pk_name = None
-    for attr in getattr(cls, "model_fields", {}):
-        if attr == pk_name:
-            continue
-        val = getattr(instance, attr, None)
-        if isinstance(val, str) and val:
-            return val
-    pk_val = getattr(instance, pk_name, "?") if pk_name else "?"
-    return f"{cls.__name__} #{pk_val}"
+
+    # 2. Model-provided title method (dc_title / __str__). Whichever the
+    #    developer customized on the most-derived class wins over the field
+    #    fallback; dc_title breaks ties. The reentrancy guard lets the framework
+    #    base dc_title/__str__ (which delegate back here) fall through safely.
+    active = getattr(_label_resolving, "ids", None)
+    if active is None:
+        active = set()
+        _label_resolving.ids = active
+    if id(instance) not in active:
+        active.add(id(instance))
+        try:
+            for meth_name in _title_methods_in_priority(cls):
+                meth = getattr(instance, meth_name, None)
+                if not callable(meth):
+                    continue
+                try:
+                    value = meth()
+                except Exception:
+                    continue
+                if isinstance(value, str) and value.strip():
+                    return value
+        finally:
+            active.discard(id(instance))
+
+    # 3 + 4. First string field (skipping PK + infra), else "[<Class> <pk>]".
+    return model_field_label(instance)
 
 
 # ---------------------------------------------------------------------------
