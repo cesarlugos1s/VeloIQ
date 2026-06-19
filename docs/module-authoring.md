@@ -279,6 +279,25 @@ annotations, run `python api_schema_gen.py` — the generator emits `readRoles`
 and `writeRoles` into the TypeScript schema so the frontend can hide or disable
 restricted inputs automatically.
 
+#### `view_type` — frontend rendering hint
+
+`veloiq_field` also accepts a `view_type` parameter that controls how the field is rendered in the UI, without changing the database column type. The value is stored in `json_schema_extra` and emitted as `showViewType` / `editViewType` in the generated `.gen.ts` schema.
+
+```python
+class Article(TimestampedModel, table=True):
+    __tablename__ = "article"
+    title: str
+    body: str = veloiq_field(default="", view_type="markdown")
+    cover_image: Optional[str] = veloiq_field(default=None, view_type="image-url")
+    author_email: str = veloiq_field(default="", view_type="email")
+```
+
+Show-only view types (`qrcode`, `relative`, `truncated-text`) emit only `showViewType` — no `editViewType` is generated since these types have no editable counterpart. All other view types emit both.
+
+Accepted values: `textarea` · `markdown` · `json` · `email` · `url` · `phone` · `password` · `color` · `image-url` · `currency` · `percentage` · `progress` · `rating` · `duration` · `code` · `qrcode` · `relative` · `truncated-text`
+
+`veloiq add-field` sets this automatically when a display-hint type is used (`email`, `richtext`, `image`, …); pass `--view-type` to override. See also [Scalar field view types](#scalar-field-view-types) for how these tokens render in the UI.
+
 ### ReBAC — Row-level access control (`@rebac`)
 
 Filter which rows a user can see, edit, or delete based on the data itself.
@@ -342,6 +361,32 @@ Response headers `x-total-count` and `content-range` are set on list responses
 to support the Refine data provider pagination convention.
 
 **Do not edit `api.py`.**  It is overwritten by `veloiq generate`.
+
+### Framework meta endpoint — `POST /api/_meta/bulk-read`
+
+In addition to the per-resource CRUD routes, the framework registers a single shared endpoint for fetching multiple records by ID across any resource in one round-trip:
+
+```
+POST /api/_meta/bulk-read
+```
+
+**Request body:**
+
+```json
+{ "resource": "<table_name>", "ids": [1, 2, 3] }
+```
+
+**Response:**
+
+```json
+{ "items": [ { "eid": 1, ... }, { "eid": 2, ... } ] }
+```
+
+- `resource` is the table name (e.g. `"task"`, `"project"`). A leading `/` is stripped automatically.
+- `ids` may be integers or strings — they are coerced to the primary key's Python type automatically.
+- Each item in `items` is serialized through the same `_to_dict` used by the CRUD list route, so the response shape (including `eid`, `_label`, and clean attribute names) is identical to a regular single-record GET.
+- Works for any registered model regardless of the primary key column name.
+- Requires authentication (same JWT as all other `/api/` routes).
 
 ## custom_api.py — custom endpoints
 

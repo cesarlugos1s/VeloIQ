@@ -279,11 +279,12 @@ veloiq add-field <model> <field_name> [field_type] [options]
 |-------------------|-------------|
 | `MODEL` | Model class name (`Task`) or resource/table name (`task`) |
 | `FIELD_NAME` | Snake-case attribute name for the new field |
-| `FIELD_TYPE` | `str` (default), `text`, `int`, `float`, `bool`, `date`, `datetime` |
+| `FIELD_TYPE` | Type or display hint (default: `str`). See type reference below |
 | `--optional / --required` | Make the field `Optional` (nullable). Default: `--optional` |
 | `--default VALUE` | Default value (e.g. `active`, `0`, `true`) |
 | `--description TEXT` | Field description shown in TUI and emitted to gen.ts |
 | `--options a,b,c` | Comma-separated valid values — uses `veloiq_field()` automatically |
+| `--view-type VALUE` | Frontend rendering hint (`email`, `url`, `markdown`, `image-url`, …). Auto-derived from display-hint types; omit for plain string/number fields |
 | `--migrate` | Automatically run `alembic autogenerate` + `upgrade head` (no prompt) |
 | `--no-migrate` | Skip migration entirely (useful in CI or when batching changes) |
 
@@ -325,15 +326,36 @@ This ensures the database column is created immediately, avoiding the `Operation
 
 **Type reference:**
 
-| CLI type | Python annotation | Notes |
-|----------|------------------|-------|
-| `str` | `str` | Standard VARCHAR column |
-| `text` | `str` | Uses `Column(Text)` for long content |
-| `int` | `int` | Integer column |
-| `float` | `float` | Floating-point column |
-| `bool` | `bool` | Boolean column |
-| `date` | `datetime.date` | Date-only column |
-| `datetime` | `datetime.datetime` | Full timestamp column |
+| CLI type | Aliases | Python annotation | Storage | Auto view type |
+|----------|---------|-------------------|---------|----------------|
+| `str` | `string` | `str` | VARCHAR | — |
+| `int` | `integer` | `int` | INTEGER | — |
+| `float` | `number`, `decimal` | `float` | FLOAT | — |
+| `bool` | `boolean` | `bool` | BOOLEAN | — |
+| `date` | — | `datetime.date` | DATE | — |
+| `datetime` | — | `datetime.datetime` | DATETIME | — |
+| `time` | — | `datetime.time` | TIME | — |
+| `text` | `textarea` | `str` | TEXT | `textarea` |
+| `richtext` | — | `str` | TEXT | `markdown` |
+| `json` | — | `str` | TEXT | `json` |
+| `multiselect` | — | `str` | TEXT | — |
+| `email` | — | `str` | VARCHAR | `email` |
+| `url` | — | `str` | VARCHAR | `url` |
+| `phone` | — | `str` | VARCHAR | `phone` |
+| `password` | — | `str` | VARCHAR | `password` |
+| `color` | — | `str` | VARCHAR | `color` |
+| `image` | — | `str` | VARCHAR | `image-url` |
+| `file` | — | `str` | VARCHAR | — |
+| `select` | — | `str` | VARCHAR | — |
+| `uuid` | — | `str` | VARCHAR | — |
+
+Display-hint types (`email`, `url`, `richtext`, `image`, …) map to plain `str` columns in the database — the type token only controls how the frontend renders the field. Auto view type values are passed to `veloiq_field(view_type=...)` automatically; use `--view-type` to override or to add a hint to an otherwise plain `str` field.
+
+**`--view-type` values:**
+
+`textarea` · `markdown` · `json` · `email` · `url` · `phone` · `password` · `color` · `image-url` · `currency` · `percentage` · `progress` · `rating` · `duration` · `code` · `qrcode` · `relative` · `truncated-text`
+
+> **TUI:** After choosing a field type in the TUI (`a` from model detail), a second picker asks for the view type. Press `Enter` to accept the auto-derived default, `Esc` to skip, or a digit/letter key to pick an explicit value.
 
 ---
 
@@ -417,6 +439,101 @@ tasks: List["Task"] = jm_relationship(back_populates="tags", link_model=TaskTagL
 ```
 
 After running, the relation is wired in both directions. Run `veloiq generate` to update the TypeScript schemas, then `veloiq db upgrade` to apply the migration (or answer **Y** at the prompt).
+
+---
+
+## `veloiq import-schema`
+
+Reflect an existing database and scaffold idiomatic VeloIQ models without writing any Python by hand. The command connects to a live database, reads its tables and relationships, then calls the same `add-model` / `add-field` / `add-relation` helpers a developer would use manually — producing the same output those commands would have produced.
+
+```bash
+veloiq import-schema [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url URL` | Full SQLAlchemy database URL — skips the interactive connection wizard |
+| `--module NAME` | Target module name (default: derived from the database name) |
+| `--tables LIST` | Comma-separated table names to import, or `all` for every available table — skips the interactive table picker |
+| `--root / -C` | Project root override |
+
+### Supported databases
+
+| Database | Driver (install if missing) |
+|----------|----------------------------|
+| SQLite | built-in |
+| PostgreSQL | `pip install psycopg2-binary` |
+| MySQL / MariaDB | `pip install pymysql` |
+| MSSQL | `pip install pyodbc` |
+| Oracle | `pip install cx_oracle` |
+
+### Examples
+
+```bash
+# Fully interactive — wizard walks through connection, table picker, module name
+veloiq import-schema
+
+# Supply the URL, pick tables interactively
+veloiq import-schema --url postgresql+psycopg2://user:pw@localhost/mydb
+
+# Non-interactive — imports all tables into a module named 'legacy'
+veloiq import-schema --url sqlite:///app.db --module legacy --tables all
+
+# Non-interactive — import two specific tables
+veloiq import-schema --url sqlite:///app.db --tables orders,customers --module billing
+```
+
+### Interactive workflow
+
+When run without `--url`, `--module`, and `--tables`, the command walks you through each step:
+
+1. **Connection wizard** — choose a database type, then enter host / port / user / password / database (or a SQLite file path). A live connection test runs immediately.
+2. **Table picker** — a full-screen curses UI lists every user table with column counts. Tables already in the project are marked `[skip]`.
+
+   | Key | Action |
+   |-----|--------|
+   | `Space` | Toggle table selection |
+   | `a` | Select all |
+   | `n` | Deselect all |
+   | `Enter` | Confirm selection |
+   | `q` | Cancel |
+
+3. **Module name** — prompted with a default derived from the database name.
+4. **Point `DATABASE_URL` at the source** — optionally updates `backend/.env` so the project connects to the imported database going forward.
+5. **Alembic migration** — prompted once, after all models are scaffolded (defaults to *no* when `DATABASE_URL` was updated, since the tables already exist).
+6. **`veloiq generate`** — refreshes frontend schemas.
+
+### What gets generated
+
+The command runs in four phases and reports each one:
+
+| Phase | What happens |
+|-------|-------------|
+| **1 — Model skeletons** | A bare `SQLModel` class is created for each selected table, using the source table's actual primary-key column name and type |
+| **2 — Fields** | Non-PK, non-timestamp columns are added. FK columns are written with `foreign_key=` so SQLAlchemy tracks the relationship. Binary columns are skipped (not UI-renderable) |
+| **3 — Relationships** | `jm_relationship` attributes are added on both sides of every FK. Ambiguous multi-FK paths (e.g. two FKs from `Film` to `Language`) automatically include `foreign_keys=` to prevent SQLAlchemy errors |
+| **4 — M2M junctions** | Pure junction tables (two FK columns = composite PK, no extra data) are converted to `SQLModel` link classes and wired as many-to-many relationships on both sides |
+
+> **`SQLModel` vs `TimestampedModel`** — `import-schema` always uses plain `SQLModel` so that the source table's own primary key and column names are preserved exactly. Common audit columns (`created_at`, `updated_at`, `modified_at`, etc.) are skipped automatically since they are already present in the source schema.
+
+When all three of `--url`, `--module`, and `--tables` are supplied the command runs fully non-interactively — suitable for scripted or CI workflows.
+
+### Launching from the TUI
+
+Press `i` from the TUI home screen. A confirmation prompt appears before the command runs; pressing `Y` hands control to the import-schema interactive wizard inside the same terminal session.
+
+```
+  ↑↓ / jk  navigate    Enter  select    i  import-schema    g  generate  ...
+```
+
+### Launching from VeloIQ Studio
+
+In dev mode (`VELOIQ_DEV=true`), the **Command Panel** in VeloIQ Studio exposes an **Import Schema** form:
+
+1. Enter the source database URL — the Studio queries the server to list available tables immediately.
+2. Tick the tables to import (junction tables are shown separately for visibility).
+3. Set the target module name.
+4. Click **Import** — the Studio runs `veloiq import-schema --url ... --module ... --tables ...` non-interactively and streams the output. `veloiq generate` runs automatically on completion and the schema browser refreshes without a page reload.
 
 ---
 
