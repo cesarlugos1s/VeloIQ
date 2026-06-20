@@ -17,7 +17,11 @@ export interface CommandDef {
   description: string;
   inputs: InputDef[];
   build: (v: Record<string, string>) => string;
-  note?: { text: string; link?: { label: string; href: string } };
+  note?: {
+    text?: string;
+    paragraphs?: Array<{ text: string; link?: { label: string; href: string } }>;
+    link?: { label: string; href: string };
+  };
 }
 
 interface Props {
@@ -87,7 +91,22 @@ export default function CommandCard({ def, prefill = {}, onSuccess }: Props) {
         )}
         {def.note && (
           <div className="vs-cmd-note">
-            {def.note.text}
+            {def.note.paragraphs
+              ? def.note.paragraphs.map((p, i) => (
+                  <p key={i} style={{ margin: i === 0 ? 0 : "8px 0 0" }}>
+                    {p.text}
+                    {p.link && (
+                      <>
+                        {" "}
+                        <a href={p.link.href} target="_blank" rel="noreferrer"
+                           style={{ color: "var(--accent)", textDecoration: "none" }}>
+                          {p.link.label} →
+                        </a>
+                      </>
+                    )}
+                  </p>
+                ))
+              : def.note.text}
             {def.note.link && (
               <>
                 {" "}

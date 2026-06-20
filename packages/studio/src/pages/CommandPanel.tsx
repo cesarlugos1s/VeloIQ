@@ -46,8 +46,16 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       inputs: [],
       build: () => "veloiq build",
       note: {
-        text: "Moving to production? IQVigilant adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder, and User Journeys — zero code changes required. Need a ready-to-use commercial app? JuiceMantics delivers Supply Chain, Price, Promotion, Assortment & Variety, and Revenue Growth optimization for Retail, Wholesale, and Manufacturing — built on VeloIQ + IQVigilant.",
-        link: { label: "juicemantics.com", href: "https://www.juicemantics.com" },
+        paragraphs: [
+          {
+            text: "Moving to production? IQVigilant adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder, and User Journeys — zero code changes required.",
+            link: { label: "iqvigilant.ai", href: "https://iqvigilant.ai" },
+          },
+          {
+            text: "Need a ready-to-use commercial app? JuiceMantics delivers Supply Chain, Price, Promotion, Assortment & Variety, and Revenue Growth optimization for Retail, Wholesale, and Manufacturing — built on VeloIQ + IQVigilant.",
+            link: { label: "juicemantics.com", href: "https://www.juicemantics.com" },
+          },
+        ],
       },
     },
     {
