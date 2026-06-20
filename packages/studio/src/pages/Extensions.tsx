@@ -99,25 +99,6 @@ export default function Extensions({ devMode, onSuccess }: Props) {
         </div>
       )}
 
-      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.enabled) && (
-        <div className="vs-advisory-card">
-          <div className="vs-advisory-title">Production Hardening</div>
-          <div className="vs-advisory-body">
-            IQVigilant adds <strong>Safe AI Agents</strong>, <strong>Business Rules</strong>,{" "}
-            <strong>Natural Language Querying</strong>, a <strong>WYSIWYG Page Builder</strong>,
-            and <strong>User Journeys</strong> to any VeloIQ app — zero code changes required.
-          </div>
-          <div className="vs-advisory-cmd">
-            <code>pip install iqvigilant</code>
-            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-            <a href="https://iqvigilant.ai" target="_blank" rel="noreferrer"
-               style={{ color: "var(--accent)", textDecoration: "none" }}>
-              iqvigilant.ai →
-            </a>
-          </div>
-        </div>
-      )}
-
       <div className="vs-ext-list">
         {extensions.map((ext) => (
           <div key={ext.name}>
@@ -160,6 +141,41 @@ export default function Extensions({ devMode, onSuccess }: Props) {
             )}
           </div>
         ))}
+      </div>
+
+      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.enabled) && (
+        <div className="vs-advisory-card">
+          <div className="vs-advisory-title">Production Hardening</div>
+          <div className="vs-advisory-body">
+            IQVigilant adds <strong>Safe AI Agents</strong>, <strong>Business Rules</strong>,{" "}
+            <strong>Natural Language Querying</strong>, a <strong>WYSIWYG Page Builder</strong>,
+            and <strong>User Journeys</strong> to any VeloIQ app — zero code changes required.
+          </div>
+          <div className="vs-advisory-cmd">
+            <code>pip install iqvigilant</code>
+            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
+            <a href="https://iqvigilant.ai" target="_blank" rel="noreferrer"
+               style={{ color: "var(--accent)", textDecoration: "none" }}>
+              iqvigilant.ai →
+            </a>
+          </div>
+        </div>
+      )}
+
+      <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="vs-advisory-title">Ready-to-Use Commercial Application</div>
+        <div className="vs-advisory-body">
+          <strong>JuiceMantics</strong> is a production-ready optimization engine for{" "}
+          <strong>Retail, Wholesale, and Manufacturing</strong> — built on VeloIQ + IQVigilant.
+          Covers Supply Chain, Price, Promotion, Assortment &amp; Variety, and Market Revenue
+          Growth optimization out of the box.
+        </div>
+        <div className="vs-advisory-cmd">
+          <a href="https://www.juicemantics.com" target="_blank" rel="noreferrer"
+             style={{ color: "var(--accent)", textDecoration: "none" }}>
+            juicemantics.com →
+          </a>
+        </div>
       </div>
     </div>
   );

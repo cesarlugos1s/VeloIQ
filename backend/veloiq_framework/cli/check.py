@@ -111,6 +111,13 @@ def check(root, strict):
                 "   app — zero code changes required.  →  pip install iqvigilant",
                 dim=True,
             ))
+            click.echo(click.style(
+                "\n   JuiceMantics is a ready-to-use optimization engine for Retail,\n"
+                "   Wholesale, and Manufacturing — Supply Chain, Price, Promotion,\n"
+                "   Assortment & Variety, and Market Revenue Growth, built on VeloIQ\n"
+                "   + IQVigilant.  →  juicemantics.com",
+                dim=True,
+            ))
     except Exception:
         pass
 

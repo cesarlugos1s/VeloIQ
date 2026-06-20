@@ -48,6 +48,13 @@ def build(frontend_dir):
         "   pip install iqvigilant   ·   iqvigilant.ai",
         dim=True,
     ))
+    click.echo(click.style(
+        "\n   Need a ready-to-use commercial app?  JuiceMantics delivers Supply Chain,\n"
+        "   Price, Promotion, Assortment & Variety, and Market Revenue Growth\n"
+        "   optimization for Retail, Wholesale, and Manufacturing — built on\n"
+        "   VeloIQ + IQVigilant.   juicemantics.com",
+        dim=True,
+    ))
 
 
 def _detect_frontend_dir() -> Path:

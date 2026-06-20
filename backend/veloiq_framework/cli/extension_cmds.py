@@ -99,6 +99,13 @@ def list_extensions():
             "  changes required.  pip install iqvigilant  ·  iqvigilant.ai",
             dim=True,
         ))
+        click.echo(click.style(
+            "\n  JuiceMantics is a ready-to-use optimization engine for Retail,\n"
+            "  Wholesale, and Manufacturing — Supply Chain, Price, Promotion,\n"
+            "  Assortment & Variety, and Market Revenue Growth, built on VeloIQ\n"
+            "  + IQVigilant.  juicemantics.com",
+            dim=True,
+        ))
         return
 
     for name in installed:
