@@ -9,7 +9,7 @@ export const AnalysisChart: React.FC<{
     data: { key: string; label: string; values: Record<string, number> }[];
     seriesKeys: string[];
     seriesLabels: Record<string, string>;
-    chartType: "bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo";
+    chartType: "bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "boxplot" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo" | "3d";
     svgRef?: React.RefObject<SVGSVGElement>;
     animationKey: number;
     animationStage: "enter" | "update";
@@ -99,6 +99,12 @@ export const AnalysisChart: React.FC<{
     };
     const primarySeriesKey = seriesKeys[0] || "__count__";
     const secondarySeriesKey = seriesKeys[1];
+
+    const resolveNumericField = (fields: FieldDef[], n: number): FieldDef =>
+        fields[Math.min(n, fields.length - 1)] ?? { key: "__count__", label: _("Count") } as FieldDef;
+
+    const resolveCategoryField = (field1: string | null, field2: string | null | undefined): string | null =>
+        field2 ?? field1;
     const getNumericValue = (record: any, key: string) => {
         if (key === "__count__") return 1;
         const value = Number(record?.[key]);
@@ -554,11 +560,11 @@ export const AnalysisChart: React.FC<{
     };
 
     const renderScatter = (isBubble: boolean) => {
-        if (numericFields.length < 2) {
-            return <Empty description="Scatter needs at least two numeric fields." />;
+        if (numericFields.length === 0) {
+            return <Empty description="Scatter needs at least one numeric field." />;
         }
-        const xField = numericFields[0];
-        const yField = numericFields[1];
+        const xField = resolveNumericField(numericFields, 0);
+        const yField = resolveNumericField(numericFields, 1);
         const points = rawRows
             .map((row) => {
                 const x = getNumericValue(row, xField.key);
@@ -852,11 +858,12 @@ export const AnalysisChart: React.FC<{
     };
 
     const renderHeatmap = () => {
-        if (!categoryField1 || !categoryField2) {
-            return <Empty description="Heatmap needs two category fields." />;
+        if (!categoryField1) {
+            return <Empty description="Heatmap needs a category field." />;
         }
+        const effectiveCat2 = resolveCategoryField(categoryField1, categoryField2);
         const cat1Field = modelField(categoryField1);
-        const cat2Field = modelField(categoryField2);
+        const cat2Field = modelField(effectiveCat2);
         const rowLabels: string[] = [];
         const colLabels: string[] = [];
         const grid = new Map<string, number[]>();
@@ -940,44 +947,48 @@ export const AnalysisChart: React.FC<{
     };
 
     const renderCrosstab = () => {
-        if (!categoryField1 || !categoryField2) {
-            return <Empty description="Crosstab needs two category fields." />;
+        if (!categoryField1) {
+            return <Empty description="Crosstab needs a category field." />;
         }
+        const effectiveCat2 = resolveCategoryField(categoryField1, categoryField2);
         const cat1Field = modelField(categoryField1);
-        const cat2Field = modelField(categoryField2);
+        const cat2Field = modelField(effectiveCat2);
         return (
             <CrosstabTable
                 rows={rawRows}
                 rowField={categoryField1}
-                colField={categoryField2}
+                colField={effectiveCat2 ?? categoryField1}
                 cellFieldKeys={seriesKeys}
                 cellFieldLabels={seriesLabels}
                 allFields={allFields}
                 summaryFn={summaryFn}
                 formatCategoryValue={formatCategoryValue}
                 numericBarColor={numericBarColor}
-                caption={`${_("Crosstab")}: ${cat1Field?.label || categoryField1} × ${cat2Field?.label || categoryField2} (${summaryFn})`}
+                caption={`${_("Crosstab")}: ${cat1Field?.label || categoryField1} × ${cat2Field?.label || effectiveCat2} (${summaryFn})`}
             />
         );
     };
 
     const renderRadar = () => {
-        if (seriesKeys.length < 3) {
-            return <Empty description="Radar needs at least three series." />;
+        if (seriesKeys.length === 0) {
+            return <Empty description="Radar needs at least one series." />;
         }
+        const effectiveSeriesKeys = seriesKeys.length >= 3
+            ? seriesKeys
+            : Array.from({ length: 3 }, (_, i) => seriesKeys[i % seriesKeys.length]);
         const centerX = paddingLeft + chartWidth / 2;
         const centerY = paddingTop + chartHeight / 2;
         const radius = Math.min(chartWidth, chartHeight) * 0.35;
-        const maxBySeries = seriesKeys.reduce<Record<string, number>>((acc, key) => {
+        const maxBySeries = effectiveSeriesKeys.reduce<Record<string, number>>((acc, key) => {
             acc[key] = Math.max(...data.map((group) => group.values[key] || 0), 1);
             return acc;
         }, {});
-        const angleStep = (Math.PI * 2) / seriesKeys.length;
+        const angleStep = (Math.PI * 2) / effectiveSeriesKeys.length;
         return (
             <svg ref={svgRef} className="chart-plot" viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img">
                 {renderTitle()}
                 {renderCaption("Radar chart")}
-                {seriesKeys.map((seriesKey, index) => {
+                {effectiveSeriesKeys.map((seriesKey, index) => {
                     const angle = -Math.PI / 2 + index * angleStep;
                     const x = centerX + radius * Math.cos(angle);
                     const y = centerY + radius * Math.sin(angle);
@@ -991,7 +1002,7 @@ export const AnalysisChart: React.FC<{
                     );
                 })}
                 {data.map((group, groupIndex) => {
-                    const points = seriesKeys
+                    const points = effectiveSeriesKeys
                         .map((seriesKey, index) => {
                             const value = group.values[seriesKey] || 0;
                             const ratio = value / Math.max(1, maxBySeries[seriesKey]);
@@ -1019,13 +1030,78 @@ export const AnalysisChart: React.FC<{
         );
     };
 
-    const renderCombo = () => {
-        if (!secondarySeriesKey) {
-            return <Empty description="Combo needs at least two series selected." />;
+    const render3D = () => {
+        if (numericFields.length === 0) {
+            return <Empty description="3D scatter needs at least one numeric field." />;
         }
+        const xField = resolveNumericField(numericFields, 0);
+        const yField = resolveNumericField(numericFields, 1);
+        const zField = resolveNumericField(numericFields, 2);
+        const points = rawRows
+            .map((row) => {
+                const x = getNumericValue(row, xField.key);
+                const y = getNumericValue(row, yField.key);
+                const z = getNumericValue(row, zField.key);
+                if (x === null || y === null || z === null) return null;
+                return { x, y, z };
+            })
+            .filter((p): p is { x: number; y: number; z: number } => !!p);
+        if (points.length === 0) return renderNoChartDataMessage();
+        const xs = points.map((p) => p.x);
+        const ys = points.map((p) => p.y);
+        const zs = points.map((p) => p.z);
+        const xMin = Math.min(...xs), xMax = Math.max(...xs);
+        const yMin = Math.min(...ys), yMax = Math.max(...ys);
+        const zMin = Math.min(...zs), zMax = Math.max(...zs);
+        const norm = (v: number, lo: number, hi: number) => (hi === lo ? 0.5 : (v - lo) / (hi - lo));
+        const isoScale = Math.min(chartWidth, chartHeight) * 0.38;
+        const cx = paddingLeft + chartWidth * 0.5;
+        const cy = paddingTop + chartHeight * 0.55;
+        const cos30 = Math.cos(Math.PI / 6);
+        const sin30 = Math.sin(Math.PI / 6);
+        const project = (nx: number, ny: number, nz: number) => ({
+            sx: cx + (nx - nz) * cos30 * isoScale,
+            sy: cy - ny * isoScale + (nx + nz) * sin30 * isoScale,
+        });
+        const axisEnd = (nx: number, ny: number, nz: number) => project(nx, ny, nz);
+        const origin = project(0, 0, 0);
+        const xTip = axisEnd(1, 0, 0);
+        const yTip = axisEnd(0, 1, 0);
+        const zTip = axisEnd(0, 0, 1);
+        const projected = points.map((p) =>
+            project(norm(p.x, xMin, xMax), norm(p.y, yMin, yMax), norm(p.z, zMin, zMax))
+        );
+        return (
+            <svg ref={svgRef} className="chart-plot" viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img">
+                {renderTitle()}
+                {renderCaption(`3D: ${xField.label} × ${yField.label} × ${zField.label}`)}
+                <line x1={origin.sx} y1={origin.sy} x2={xTip.sx} y2={xTip.sy} stroke={colors[0]} strokeWidth={1.5} opacity={0.6} />
+                <line x1={origin.sx} y1={origin.sy} x2={yTip.sx} y2={yTip.sy} stroke={colors[1]} strokeWidth={1.5} opacity={0.6} />
+                <line x1={origin.sx} y1={origin.sy} x2={zTip.sx} y2={zTip.sy} stroke={colors[2]} strokeWidth={1.5} opacity={0.6} />
+                <text x={xTip.sx + 4} y={xTip.sy + 4} fontSize="11" fill={colors[0]}>{xField.label}</text>
+                <text x={yTip.sx + 4} y={yTip.sy} fontSize="11" fill={colors[1]}>{yField.label}</text>
+                <text x={zTip.sx + 4} y={zTip.sy + 4} fontSize="11" fill={colors[2]}>{zField.label}</text>
+                {projected.map((p, i) => (
+                    <circle
+                        key={`3d-${i}`}
+                        className="chart-item chart-point"
+                        style={{ "--delay": `${i * 8}ms` } as React.CSSProperties}
+                        cx={p.sx}
+                        cy={p.sy}
+                        r={4}
+                        fill={colors[0]}
+                        opacity={0.7}
+                    />
+                ))}
+            </svg>
+        );
+    };
+
+    const renderCombo = () => {
+        const effectiveSecondaryKey = secondarySeriesKey ?? primarySeriesKey;
         const valuesCombo = data.flatMap((group) => [
             group.values[primarySeriesKey] || 0,
-            group.values[secondarySeriesKey] || 0,
+            group.values[effectiveSecondaryKey] || 0,
         ]);
         const maxCombo = Math.max(...valuesCombo, 1);
         const minCombo = Math.min(...valuesCombo, 0);
@@ -1035,7 +1111,7 @@ export const AnalysisChart: React.FC<{
         const points = data
             .map((group, index) => {
                 const x = paddingLeft + index * groupWidth + groupWidth / 2;
-                const y = scaleYCombo(group.values[secondarySeriesKey] || 0);
+                const y = scaleYCombo(group.values[effectiveSecondaryKey] || 0);
                 return `${x},${y}`;
             })
             .join(" ");
@@ -1045,7 +1121,7 @@ export const AnalysisChart: React.FC<{
                 {renderLegendItems(
                     [
                         { label: seriesLabels[primarySeriesKey] || primarySeriesKey, color: colors[0] },
-                        { label: seriesLabels[secondarySeriesKey] || secondarySeriesKey, color: colors[2] },
+                        { label: seriesLabels[effectiveSecondaryKey] || effectiveSecondaryKey, color: colors[2] },
                     ],
                     8
                 )}
@@ -1099,21 +1175,15 @@ export const AnalysisChart: React.FC<{
             {chartType === "histogram" && renderHistogram()}
             {chartType === "scatter" && renderScatter(false)}
             {chartType === "bubble" && renderScatter(true)}
-            {chartType === "box" && renderBoxPlot()}
+            {(chartType === "box" || chartType === "boxplot") && renderBoxPlot()}
             {chartType === "waterfall" && renderWaterfall()}
             {chartType === "heatmap" && renderHeatmap()}
             {chartType === "crosstab" && renderCrosstab()}
             {chartType === "radar" && renderRadar()}
             {chartType === "combo" && renderCombo()}
-            {chartType !== "histogram" &&
-                chartType !== "scatter" &&
-                chartType !== "bubble" &&
-                chartType !== "box" &&
-                chartType !== "waterfall" &&
-                chartType !== "heatmap" &&
-                chartType !== "crosstab" &&
-                chartType !== "radar" &&
-                chartType !== "combo" && (
+            {chartType === "3d" && render3D()}
+            {(chartType === "bar" || chartType === "line" || chartType === "area" || chartType === "stacked" ||
+              chartType === "bar-horizontal" || chartType === "stacked-horizontal" || chartType === "area-horizontal") && (
                 <svg ref={svgRef} className="chart-plot" viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img">
                 {renderTitle()}
                 {renderLegendItems(

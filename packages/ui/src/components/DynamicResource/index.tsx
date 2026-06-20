@@ -401,7 +401,7 @@ export const DynamicList: React.FC<{
     // Live staged edits for editable-crosstab cells (recordId -> fieldKey -> value).
     const [crosstabStaged, setCrosstabStaged] = useState<Record<string, Record<string, number>>>({});
     const [crosstabSaving, setCrosstabSaving] = useState(false);
-    const [chartType, setChartType] = useState<"bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo">("area");
+    const [chartType, setChartType] = useState<"bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "boxplot" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo" | "3d">("area");
     const [summaryFn, setSummaryFn] = useState<"sum" | "avg" | "count" | "max" | "min" | "stddev">("sum");
     const [selectedSeriesKeys, setSelectedSeriesKeys] = useState<string[] | null>(null);
     const [rankingMode, setRankingMode] = useState<"none" | "top" | "bottom">("none");
@@ -4011,6 +4011,7 @@ export const DynamicList: React.FC<{
                                                                             { label: _("Crosstab"), value: "crosstab" },
                                                                             { label: _("Radar"), value: "radar" },
                                                                             { label: _("Combo (Bar + Line)"), value: "combo" },
+                                                                            { label: _("3D Scatter"), value: "3d" },
                                                                         ]}
                                                                     />
                                                                 </div>

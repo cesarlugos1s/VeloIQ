@@ -2541,6 +2541,16 @@ def jm_plot_chart_from_DataFrame(self
     :return: an HTML with the plot.
     """
 
+    def resolve_numeric_col(cols, n):
+        return cols[min(n, len(cols) - 1)] if len(cols) > 0 else None
+
+    def resolve_categorical_col(cols, n, synthetic_name='Totals'):
+        if not cols:
+            if synthetic_name not in df_to_plot.columns:
+                df_to_plot[synthetic_name] = synthetic_name
+            return synthetic_name
+        return cols[min(n, len(cols) - 1)]
+
     def obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
                                      , categorical_column_for_x_axis, categorical_column_for_z_axis
                                      , prioritize_date_or_period_columns_for_x_axis=False
@@ -2586,35 +2596,34 @@ def jm_plot_chart_from_DataFrame(self
                 df_to_plot['Totals'] = 'Totals'
                 pivot_df_categorical_columns_names = ['Totals']
 
-        if chart_type == '3d':
+        if chart_type in ('3d', 'heatmap'):
             # We need 2 columns for x and z axis as Indexes.
-            pivot_df_index_names = (
-                list(pivot_df_categorical_columns_names[
-                         categorical_column_for_x_axis[my_chart_sequence]:
-                         min(len(pivot_df_categorical_columns_names)
-                             , categorical_column_for_x_axis[my_chart_sequence] + 1)])
+            # resolve_categorical_col falls back to the last available column, and uses a distinct
+            # synthetic name for z so pivot_table always receives two different dimension columns.
+            x_cat = resolve_categorical_col(
+                pivot_df_categorical_columns_names,
+                categorical_column_for_x_axis[my_chart_sequence]
             )
-
-            pivot_df_index_names.append(
-                list(pivot_df_categorical_columns_names[
-                         categorical_column_for_z_axis[my_chart_sequence]:
-                         min(len(pivot_df_categorical_columns_names)
-                             , categorical_column_for_z_axis[my_chart_sequence] + 1)])
+            z_cat = resolve_categorical_col(
+                pivot_df_categorical_columns_names,
+                categorical_column_for_z_axis[my_chart_sequence],
+                synthetic_name='Totals_z'
             )
+            if x_cat == z_cat:
+                if 'Totals_z' not in df_to_plot.columns:
+                    df_to_plot['Totals_z'] = 'Totals_z'
+                z_cat = 'Totals_z'
 
-            # Only create Pivot table Dataframe if we have at least 1 numeric and 1 categorical columns.
-            if pivot_df_index_names and pivot_df_numeric_columns_names:
-                if len(pivot_df_index_names) > 0 and len(pivot_df_numeric_columns_names) > 0:
-
-                    try:
-                        executable_command_pivot_df = pivot_table(df_to_plot
-                                                                  , values=pivot_df_numeric_columns_names
-                                                                  , index=pivot_df_index_names[0]
-                                                                  , columns=pivot_df_index_names[1]
-                                                                  , aggfunc=aggregate_function)
-                    except Exception as e:
-                        jm_log(1, 'An exception has occurred in catim views jm_plot_chart_from_DataFrame. ')
-                        jm_log(1, e)
+            if x_cat and pivot_df_numeric_columns_names:
+                try:
+                    executable_command_pivot_df = pivot_table(df_to_plot
+                                                              , values=pivot_df_numeric_columns_names
+                                                              , index=x_cat
+                                                              , columns=z_cat
+                                                              , aggfunc=aggregate_function)
+                except Exception as e:
+                    jm_log(1, 'An exception has occurred in catim views jm_plot_chart_from_DataFrame. ')
+                    jm_log(1, e)
 
             my_chart_sequence += 1
 
@@ -2679,7 +2688,7 @@ def jm_plot_chart_from_DataFrame(self
 
             for chart_type in chart_types:
 
-                if 'bar' in chart_type:
+                if 'bar' in chart_type and 'horizontal' not in chart_type:
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -2713,7 +2722,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'stacked' in chart_type:
+                if 'stacked' in chart_type and 'horizontal' not in chart_type:
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -2789,10 +2798,9 @@ def jm_plot_chart_from_DataFrame(self
                                                      , categorical_column_for_x_axis, categorical_column_for_z_axis))
 
                     if len(pivot_df_numeric_columns_names) > 0:
-                        x_column_name = pivot_df_numeric_columns_names[min(0, len(pivot_df_numeric_columns_names) - 1)]
-                        y_column_name = pivot_df_numeric_columns_names[min(1, len(pivot_df_numeric_columns_names) - 1)]
-                        bubble_size_column_name = pivot_df_numeric_columns_names[
-                            min(2, len(pivot_df_numeric_columns_names) - 1)]
+                        x_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 0)
+                        y_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 1)
+                        bubble_size_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 2)
 
                         if remove_rows_having_all_numeric_columns_zero:
                             executable_command_pivot_df = (
@@ -3145,22 +3153,444 @@ def jm_plot_chart_from_DataFrame(self
                                 executable_command_pivot_df)[
                                 (executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
 
-                        # for this type of Chart we need at least 2 index dimensions.
-                        if len(executable_command_pivot_df.index) >= 2:
-
-                            # for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                        if len(executable_command_pivot_df) > 0:
 
                             fig_plot = go.Figure(data=[go.Scatter3d(
                                 x=list(executable_command_pivot_df.index),
                                 y=list(executable_command_pivot_df.columns),
                                 z=list(executable_command_pivot_df[pivot_df_numeric_columns_names]),
-                                # name=','.join(pivot_df_numeric_columns_name),
                                 mode='markers')])
 
-                            if len(executable_command_pivot_df) > 0:
-                                charts_rendered += 1
+                            charts_rendered += 1
 
                         my_chart_sequence += 1
+
+                if 'area' in chart_type and 'horizontal' not in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                            fig_plot.add_trace(
+                                go.Scatter(
+                                    x=list(executable_command_pivot_df.index),
+                                    y=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                    name=pivot_df_numeric_columns_name,
+                                    fill='tozeroy',
+                                )
+                                , secondary_y=False
+                                , row=subplot_row, col=subplot_col
+                            )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'donut' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    pivot_df_numeric_columns_names = pivot_df_numeric_columns_names[:6]
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        max_donut_subplot_columns = 2
+                        donut_subplots_rows = int(ceil(len(pivot_df_numeric_columns_names) / max_donut_subplot_columns))
+                        donut_subplots_cols = int(ceil(len(pivot_df_numeric_columns_names) / donut_subplots_rows))
+
+                        type_domain_specs = [
+                            [{'type': 'domain'} for _ in range(donut_subplots_cols)]
+                            for _ in range(donut_subplots_rows)
+                        ]
+                        subplot_titles = list(pivot_df_numeric_columns_names)
+
+                        fig_plot = make_subplots(rows=donut_subplots_rows, cols=donut_subplots_cols
+                                                 , specs=type_domain_specs
+                                                 , subplot_titles=subplot_titles)
+
+                        for my_donut_sequence, pivot_df_numeric_columns_name in enumerate(pivot_df_numeric_columns_names):
+                            donut_subplot_row, donut_subplot_col = (
+                                jm_position_within_table_with_max_columns(my_donut_sequence, donut_subplots_cols))
+
+                            fig_plot.add_trace(
+                                go.Pie(
+                                    labels=list(executable_command_pivot_df.index),
+                                    values=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                    name=pivot_df_numeric_columns_name,
+                                    hole=0.4,
+                                    textinfo='label+percent',
+                                    insidetextorientation='radial',
+                                ),
+                                row=donut_subplot_row, col=donut_subplot_col
+                            )
+
+                        if len(executable_command_pivot_df) > 0:
+                            charts_rendered += 1
+
+                        my_chart_sequence += 1
+
+                if 'bar-horizontal' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                            fig_plot.add_trace(
+                                go.Bar(
+                                    x=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                    y=list(executable_command_pivot_df.index),
+                                    name=pivot_df_numeric_columns_name,
+                                    orientation='h',
+                                )
+                                , secondary_y=False
+                                , row=subplot_row, col=subplot_col
+                            )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'stacked-horizontal' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                            fig_plot.add_trace(
+                                go.Bar(
+                                    x=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                    y=list(executable_command_pivot_df.index),
+                                    name=pivot_df_numeric_columns_name,
+                                    orientation='h',
+                                )
+                                , secondary_y=False
+                                , row=subplot_row, col=subplot_col
+                            )
+
+                    fig_plot.update_layout(barmode='stack')
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'area-horizontal' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                            fig_plot.add_trace(
+                                go.Scatter(
+                                    x=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                    y=list(executable_command_pivot_df.index),
+                                    name=pivot_df_numeric_columns_name,
+                                    fill='tozerox',
+                                )
+                                , secondary_y=False
+                                , row=subplot_row, col=subplot_col
+                            )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'scatter' in chart_type and 'bubble' not in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        x_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 0)
+                        y_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 1)
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        fig_plot.add_trace(
+                            go.Scatter(
+                                x=list(executable_command_pivot_df[x_column_name]),
+                                y=list(executable_command_pivot_df[y_column_name]),
+                                text=list(executable_command_pivot_df.index),
+                                mode='markers',
+                                name=f'{x_column_name} vs {y_column_name}',
+                            )
+                            , secondary_y=False
+                            , row=subplot_row, col=subplot_col
+                        )
+
+                        fig_plot.update_layout(
+                            xaxis=dict(title=x_column_name),
+                            yaxis=dict(title=y_column_name),
+                        )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'histogram' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                            fig_plot.add_trace(
+                                go.Histogram(
+                                    x=list(df_to_plot[pivot_df_numeric_columns_name]),
+                                    name=pivot_df_numeric_columns_name,
+                                )
+                                , secondary_y=False
+                                , row=subplot_row, col=subplot_col
+                            )
+
+                        if len(df_to_plot) > 0:
+                            charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'waterfall' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        pivot_df_numeric_columns_name = resolve_numeric_col(pivot_df_numeric_columns_names, 0)
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        fig_plot.add_trace(
+                            go.Waterfall(
+                                x=list(executable_command_pivot_df.index),
+                                y=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
+                                measure=['relative'] * len(executable_command_pivot_df.index),
+                                name=pivot_df_numeric_columns_name,
+                                connector=dict(line=dict(color='rgba(128,128,128,0.4)')),
+                            )
+                            , secondary_y=False
+                            , row=subplot_row, col=subplot_col
+                        )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'heatmap' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(executable_command_pivot_df) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        z_values = [
+                            [float(v) if v == v else 0 for v in executable_command_pivot_df.loc[idx]]
+                            for idx in executable_command_pivot_df.index
+                        ]
+
+                        fig_plot = go.Figure(data=go.Heatmap(
+                            x=list(executable_command_pivot_df.columns),
+                            y=list(executable_command_pivot_df.index),
+                            z=z_values,
+                            colorscale='Blues',
+                        ))
+
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'crosstab' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(executable_command_pivot_df) > 0:
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        z_values = [
+                            [float(v) if v == v else 0 for v in executable_command_pivot_df.loc[idx]]
+                            for idx in executable_command_pivot_df.index
+                        ]
+
+                        fig_plot = go.Figure(data=go.Heatmap(
+                            x=list(executable_command_pivot_df.columns),
+                            y=list(executable_command_pivot_df.index),
+                            z=z_values,
+                            colorscale='Blues',
+                        ))
+
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'radar' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        # Ensure at least 3 spokes by cycling available columns, matching frontend fallback.
+                        spoke_cols = list(pivot_df_numeric_columns_names)
+                        while len(spoke_cols) < 3:
+                            spoke_cols.append(spoke_cols[len(spoke_cols) % len(pivot_df_numeric_columns_names)])
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        fig_plot = go.Figure()
+
+                        for idx in executable_command_pivot_df.index:
+                            r_values = [float(executable_command_pivot_df.at[idx, col]) for col in spoke_cols]
+                            fig_plot.add_trace(go.Scatterpolar(
+                                r=r_values,
+                                theta=spoke_cols,
+                                fill='toself',
+                                name=str(idx),
+                            ))
+
+                        fig_plot.update_layout(
+                            polar=dict(radialaxis=dict(visible=True)),
+                            showlegend=True,
+                        )
+
+                        if len(executable_command_pivot_df) > 0:
+                            charts_rendered += 1
+
+                    my_chart_sequence += 1
+
+                if 'combo' in chart_type:
+
+                    executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
+                        obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
+                                                     , categorical_column_for_x_axis, categorical_column_for_z_axis))
+
+                    if len(pivot_df_numeric_columns_names) > 0:
+
+                        primary_col = resolve_numeric_col(pivot_df_numeric_columns_names, 0)
+                        secondary_col = resolve_numeric_col(pivot_df_numeric_columns_names, 1)
+
+                        if remove_rows_having_all_numeric_columns_zero:
+                            executable_command_pivot_df = (
+                                executable_command_pivot_df)[(
+                                    executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
+
+                        subplot_row, subplot_col = (
+                            jm_position_within_table_with_max_columns(my_chart_sequence, subplots_cols))
+
+                        fig_plot.add_trace(
+                            go.Bar(
+                                x=list(executable_command_pivot_df.index),
+                                y=list(executable_command_pivot_df[primary_col]),
+                                name=primary_col,
+                            )
+                            , secondary_y=False
+                            , row=subplot_row, col=subplot_col
+                        )
+                        fig_plot.add_trace(
+                            go.Scatter(
+                                x=list(executable_command_pivot_df.index),
+                                y=list(executable_command_pivot_df[secondary_col]),
+                                name=secondary_col,
+                                mode='lines+markers',
+                            )
+                            , secondary_y=False
+                            , row=subplot_row, col=subplot_col
+                        )
+
+                    if len(executable_command_pivot_df) > 0:
+                        charts_rendered += 1
+
+                    my_chart_sequence += 1
 
             if charts_rendered > 0:
 
