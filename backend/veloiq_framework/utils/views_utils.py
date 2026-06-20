@@ -905,11 +905,17 @@ def _extract_text_from_html(value: Any) -> str:
 
 
 def _parse_primary_resource_from_sql(sql_statement: str, first_column_name: str) -> Optional[str]:
+    """Return the entity-type token for the first column when it encodes a CubicWeb table alias.
+
+    Kept for callers outside _resolve_entity_eid_cells (e.g. _build_primary_items).
+    For general PK resolution across all columns, use _build_pk_col_to_model_from_sql.
+    """
     sql_text = str(sql_statement or "")
     col_alias = str(first_column_name or "").strip().strip('"')
     if not sql_text or not col_alias:
         return None
 
+    # CubicWeb path: FROM cw_<type> [AS <alias>]
     alias_regex = re.compile(
         r"FROM\s+cw_([a-zA-Z0-9_]+)\s+as\s+" + re.escape(col_alias) + r"\b",
         flags=re.IGNORECASE,
@@ -921,7 +927,50 @@ def _parse_primary_resource_from_sql(sql_statement: str, first_column_name: str)
     generic_match = re.search(r"FROM\s+cw_([a-zA-Z0-9_]+)", sql_text, flags=re.IGNORECASE)
     if generic_match and generic_match.group(1):
         return generic_match.group(1).lower()
+
     return None
+
+
+def _build_pk_col_to_model_from_sql(sql_statement: str) -> Dict[str, Any]:
+    """Return {pk_column_name_lower: model} for every table referenced in the SQL.
+
+    Extracts all table names from FROM and JOIN clauses, resolves each to a
+    SQLModel class, and maps the model's actual primary-key column name(s) to
+    that model.  This lets _resolve_entity_eid_cells identify PK columns by their
+    real column name — regardless of what the developer named them (id, eid,
+    task_id, pricing_policy_id, ...) — rather than by column-name heuristics.
+    """
+    from sqlalchemy import inspect as sa_inspect
+
+    sql_text = str(sql_statement or "")
+    if not sql_text:
+        return {}
+
+    # Collect every table name that follows FROM or JOIN (handles cw_ prefix too).
+    raw_names = re.findall(
+        r"(?:FROM|JOIN)\s+['\"`]?([a-zA-Z][a-zA-Z0-9_]*)['\"`]?",
+        sql_text,
+        flags=re.IGNORECASE,
+    )
+
+    pk_to_model: Dict[str, Any] = {}
+    for raw in raw_names:
+        # Strip cw_ prefix used by the CubicWeb path.
+        name = raw[3:] if raw.lower().startswith("cw_") else raw
+        model = jm_obtain_model_by_name(name)
+        if model is None:
+            continue
+        try:
+            for pk_col in sa_inspect(model).primary_key:
+                pk_to_model[pk_col.name.lower()] = model
+        except Exception:
+            # Fallback: try the conventional names.
+            for attr in ("id", "eid"):
+                if hasattr(model, attr):
+                    pk_to_model[attr] = model
+                    break
+
+    return pk_to_model
 
 
 def _parse_primary_id_from_href(href: str) -> Optional[int]:
@@ -1509,31 +1558,43 @@ def _resolve_entity_eid_cells(
     so every view type (table, list, gallery, primary, csv, custom) shows the
     object's title and links to its show page.
 
-    Object columns are identified by the entity type encoded in the column name
-    (``HORSE__id`` -> model ``horse``), resolved to a model via
-    ``jm_obtain_model_by_name``; a bare-eid first column falls back to the SQL
-    FROM table. Attribute columns (``barn_name``) and aggregates (``count``) don't
-    encode a resolvable type, so they're left untouched. Mutates ``sql_rows``.
+    Columns are identified in two passes:
+    1. Column-name heuristic: ``HORSE__id`` / ``horse_id`` → model ``horse``.
+    2. SQL-aware PK lookup: for any column not matched by the heuristic, check
+       whether its name is the *actual* primary-key column of a model referenced
+       in the SQL FROM/JOIN clauses (via SQLAlchemy inspection).  This correctly
+       handles arbitrary PK names — id, eid, task_id, pricing_policy_id, etc. —
+       without relying on naming conventions.
+    Mutates ``sql_rows`` in place.
     """
     if not sql_rows or not sql_columns:
         return
 
-    # Map each object column to its model via the type encoded in the column name.
+    # Pass 1: column-name heuristic (<type>__id / <type>_id patterns).
     col_models: Dict[str, Any] = {}
-    for index, col in enumerate(sql_columns):
+    for col in sql_columns:
         etype = _parse_entity_type_from_column(col)
-        if not etype and index == 0 and sql_statement:
-            etype = _parse_primary_resource_from_sql(sql_statement, col)
         if not etype:
             continue
         model = jm_obtain_model_by_name(etype)
         if model is not None:
             col_models[col] = model
+
+    # Pass 2: SQL-aware PK lookup for columns not resolved by pass 1.
+    unresolved = [c for c in sql_columns if c not in col_models]
+    if unresolved and sql_statement:
+        pk_col_to_model = _build_pk_col_to_model_from_sql(sql_statement)
+        for col in unresolved:
+            col_key = col.strip().strip('"').lower()
+            if col_key in pk_col_to_model:
+                col_models[col] = pk_col_to_model[col_key]
+
     if not col_models:
         return
 
     try:
         from veloiq_framework.db import get_engine
+        from veloiq_framework.models import build_model_str_label as _bsl
         with Session(get_engine()) as session:
             anchor_cache: Dict[tuple, Optional[str]] = {}
             for col, model in col_models.items():
@@ -1554,17 +1615,10 @@ def _resolve_entity_eid_cells(
                         if entity_object is None:
                             anchor_cache[key] = None
                         else:
-                            # dc_title() is the canonical title (== __str__ for
-                            # framework models); fall back to str() if absent.
-                            label = entity_object.dc_title() if hasattr(entity_object, "dc_title") else str(entity_object)
-                            # Style as an Ant-Design-style link: primary-blue link
-                            # colour, no permanent underline, underline + pointer
-                            # on hover. Uses the theme's --jm-text-link variable
-                            # (light #1677FF, dark #4ea4f6) so it stays legible in
-                            # both modes, with a fallback for contexts that don't
-                            # define the variable. Inline (with onmouseover/out) so
-                            # it renders the same in any embedded results container
-                            # without relying on an external stylesheet.
+                            # Use the framework's canonical title resolution which honours
+                            # __veloiq_ui__["titleFields"], the most-derived __str__ /
+                            # dc_title override, then falls back to first string field.
+                            label = _bsl(entity_object)
                             anchor_cache[key] = (
                                 '<a href="' + html.escape(f"/{tablename}/show/{eid}") + '"'
                                 ' class="jm-entity-link"'
@@ -1576,6 +1630,22 @@ def _resolve_entity_eid_cells(
                     anchor = anchor_cache[key]
                     if anchor:
                         row[col] = anchor
+
+        # Rename resolved entity columns (e.g. "pricingpolicy__eid") to the model
+        # class name so the table header reads "Pricingpolicy" instead of an
+        # internal SQL alias. Mutates sql_columns and the row dicts in place.
+        for col, model in col_models.items():
+            new_col = model.__name__
+            if new_col == col:
+                continue
+            try:
+                idx = sql_columns.index(col)
+                sql_columns[idx] = new_col
+                for row in sql_rows:
+                    if col in row:
+                        row[new_col] = row.pop(col)
+            except (ValueError, Exception):
+                pass
     except Exception as resolve_error:
         jm_log(1, f"_resolve_entity_eid_cells: could not resolve entity eids: {resolve_error}")
         return
@@ -3598,8 +3668,8 @@ def jm_plot_chart_from_DataFrame(self
                     margin_b=90,
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False),
-                    yaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False),
+                    xaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False, automargin=True),
+                    yaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False, automargin=True),
                     font=dict(
                         family="sans-serif",
                         size=10,
@@ -5418,8 +5488,8 @@ def jm_apply_standard_chart_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(size=12, color="#666666"),
-        xaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False),
-        yaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False),
+        xaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False, automargin=True),
+        yaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False, automargin=True),
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(128,128,128,0.35)",
@@ -5441,6 +5511,6 @@ def jm_apply_standard_chart_layout(
         layout["annotations"] = annotations
     layout.update(extra_layout)
     fig.update_layout(**layout)
-    fig.update_xaxes(tickfont=dict(size=12, color="#666666"))
-    fig.update_yaxes(tickfont=dict(size=12, color="#666666"))
+    fig.update_xaxes(tickfont=dict(size=12, color="#666666"), automargin=True)
+    fig.update_yaxes(tickfont=dict(size=12, color="#666666"), automargin=True)
 
