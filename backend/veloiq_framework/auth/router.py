@@ -418,7 +418,8 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             )
 
     @crud_router.get("/user/{user_id}", summary="Get user")
-    def get_user(user_id: int):
+    def get_user(user_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             user = session.get(User, user_id)
@@ -497,7 +498,8 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             )
 
     @crud_router.get("/role/{role_id}", summary="Get role")
-    def get_role(role_id: int):
+    def get_role(role_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             role = session.get(Role, role_id)
@@ -569,7 +571,8 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             )
 
     @crud_router.get("/tenant/{tenant_id}", summary="Get tenant")
-    def get_tenant(tenant_id: int):
+    def get_tenant(tenant_id: int, request: Request):
+        _require_admin(request)
         engine = get_engine()
         with Session(engine) as session:
             tenant = session.get(Tenant, tenant_id)

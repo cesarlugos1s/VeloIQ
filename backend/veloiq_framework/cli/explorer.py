@@ -92,7 +92,6 @@ class AppData:
     search_models: list[str] = field(default_factory=list)
     search_fields: list[str] = field(default_factory=list)
     db_url_sanitized: str = "(not configured)"
-    auth_disabled: bool = False
     generate_run: bool = False
     extensions: list[ExtInfo] = field(default_factory=list)
 
@@ -153,9 +152,6 @@ def _load_app_data(root: Path) -> AppData:
             m = re.search(r'^DATABASE_URL\s*=\s*(.+)$', env, re.M)
             if m:
                 data.db_url_sanitized = re.sub(r':[^/@:]+@', ':***@', m.group(1).strip().strip('"\''))
-            m2 = re.search(r'^VELOIQ_AUTH_DISABLED\s*=\s*(\S+)', env, re.M)
-            if m2 and m2.group(1).strip() in ("1", "true", "True", "yes"):
-                data.auth_disabled = True
         except Exception:
             pass
 
@@ -570,9 +566,7 @@ class Explorer:
 
         kv("Project", d.name)
         kv("Database", d.db_url_sanitized)
-        auth_val  = "disabled" if d.auth_disabled else "enabled"
-        auth_attr = curses.color_pair(_C_ERR) if d.auth_disabled else curses.color_pair(_C_OK) | curses.A_BOLD
-        kv("Auth", auth_val, auth_attr)
+        kv("Auth", "enabled", curses.color_pair(_C_OK) | curses.A_BOLD)
         mod_names = "  ·  ".join(m.name for m in d.modules) or "(none)"
         kv("Modules", f"{len(d.modules)}   {mod_names}")
         kv("Models", f"{len(d.all_models)} app model(s)")
@@ -929,8 +923,6 @@ class Explorer:
             if model.permissions:
                 all_roles = sorted({r for roles in model.permissions.values() for r in roles})
                 lines.append((f"  Access   restricted to: {', '.join(all_roles)}", A))
-            elif self.data.auth_disabled:
-                lines.append(("  Access   auth disabled — open to all", curses.color_pair(_C_ERR)))
             else:
                 lines.append(("  Access   all authenticated users", DIM))
 

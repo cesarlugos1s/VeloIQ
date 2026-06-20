@@ -1,5 +1,39 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FileTextOutlined } from "@ant-design/icons";
+
+const _TOKEN_KEY = "jm_access_token";
+
+export function useAuthenticatedFileUrl(rawUrl: string): string {
+    const [src, setSrc] = useState("");
+    useEffect(() => {
+        if (!rawUrl) { setSrc(""); return; }
+        if (!rawUrl.includes("/api/file/")) { setSrc(rawUrl); return; }
+        const token = localStorage.getItem(_TOKEN_KEY) || "";
+        const controller = new AbortController();
+        let objectUrl = "";
+        fetch(rawUrl, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            signal: controller.signal,
+        })
+            .then(r => r.ok ? r.blob() : Promise.reject())
+            .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
+            .catch(() => setSrc(""));
+        return () => {
+            controller.abort();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [rawUrl]);
+    return src;
+}
+
+export const AuthenticatedImage: React.FC<{
+    url: string;
+    alt?: string;
+    style?: React.CSSProperties;
+}> = ({ url, alt, style }) => {
+    const src = useAuthenticatedFileUrl(url);
+    return src ? <img src={src} alt={alt ?? ""} style={style} /> : null;
+};
 
 export const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 
@@ -77,7 +111,7 @@ export const renderSharedGalleryCard = ({
             onClick={onClick}
         >
             {contentUrl ? (
-                <img src={contentUrl} alt={label} style={imageStyle} />
+                <AuthenticatedImage url={contentUrl} alt={label} style={imageStyle} />
             ) : (
                 <div style={{ ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }}>
                     <FileTextOutlined style={{ fontSize: 24 }} />

@@ -147,15 +147,16 @@ def _filter_write_payload(payload: dict, model_class: type, user_roles: list[str
 def _build_rebac_clause(model_class: type, user: dict | None, session):
     """Return a SQLAlchemy WHERE clause for the model's ReBAC filter, or None.
 
-    Returns None when the model has no ``@rebac`` decorator or when auth is
-    disabled (user is None/empty).  Returns a falsy ``false()`` clause when the
-    filter explicitly denies all rows.
+    Returns None when the model has no ``@rebac`` decorator.
+    Returns a ``false()`` clause when the filter explicitly denies all rows,
+    or when user is absent on a rebac-protected model (deny-by-default).
     """
-    if not user:
-        return None
     filter_fn = getattr(model_class, "__rebac_filter__", None)
     if filter_fn is None:
         return None
+    if not user:
+        from sqlalchemy import false
+        return false()
     clause = filter_fn(user, model_class, session)
     if clause is None or clause is True:
         return None
@@ -331,11 +332,11 @@ def create_crud_router(
         is inaccessible to *user* — callers raise 404 in both cases to avoid
         leaking record existence.
         """
-        if not user:
-            return session.get(model_class, record_id)
         filter_fn = getattr(model_class, "__rebac_filter__", None)
         if filter_fn is None:
             return session.get(model_class, record_id)
+        if not user:
+            return None
         clause = filter_fn(user, model_class, session)
         if clause is None or clause is True:
             return session.get(model_class, record_id)

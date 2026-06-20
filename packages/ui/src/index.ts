@@ -75,6 +75,7 @@ export type { RecordResult, ModelSearchResult, UseRecordSearchReturn } from "./h
 export { generateResources } from "./utils/generateResources";
 export type { ResourceDef } from "./utils/generateResources";
 export { authenticatedFetch } from "./utils/authenticatedFetch";
+export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/DynamicResource/utils/gallery";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
 export { guessIcon, resolveIcon, getNavEntry, sortItemsByNavConfig } from "./utils/navConfig";
 export type { NavConfigEntry, NavConfig } from "./utils/navConfig";

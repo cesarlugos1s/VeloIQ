@@ -5080,6 +5080,39 @@ var getSortPriority = (columnSort, fieldKey) => {
   const index = columnSort.findIndex((item) => item.fieldKey === fieldKey);
   return index === -1 ? 1 : columnSort.length - index + 1;
 };
+var _TOKEN_KEY = "jm_access_token";
+function useAuthenticatedFileUrl(rawUrl) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    if (!rawUrl) {
+      setSrc("");
+      return;
+    }
+    if (!rawUrl.includes("/api/file/")) {
+      setSrc(rawUrl);
+      return;
+    }
+    const token = localStorage.getItem(_TOKEN_KEY) || "";
+    const controller = new AbortController();
+    let objectUrl = "";
+    fetch(rawUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal
+    }).then((r) => r.ok ? r.blob() : Promise.reject()).then((blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      setSrc(objectUrl);
+    }).catch(() => setSrc(""));
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [rawUrl]);
+  return src;
+}
+var AuthenticatedImage = ({ url, alt, style }) => {
+  const src = useAuthenticatedFileUrl(url);
+  return src ? /* @__PURE__ */ jsx("img", { src, alt: alt ?? "", style }) : null;
+};
 var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 var isImageRecord = (record) => {
   if (record?.avatar_url || record?.image_url || record?.photo_url) return true;
@@ -5137,7 +5170,7 @@ var renderSharedGalleryCard = ({
       style: { width: imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        contentUrl ? /* @__PURE__ */ jsx("img", { src: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 24 } }) }),
+        contentUrl ? /* @__PURE__ */ jsx(AuthenticatedImage, { url: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 24 } }) }),
         /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: label })
       ]
     },
@@ -21949,6 +21982,6 @@ var authSystemModels = [
   }
 ];
 
-export { API_URL3 as API_URL, AllModelsProvider, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL3 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

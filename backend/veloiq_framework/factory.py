@@ -68,6 +68,14 @@ def create_veloiq_app(
     """
     cfg = config if config is not None else VeloIQConfig(**kwargs)
 
+    # ── Auth-disable guard ────────────────────────────────────────────────────
+    if not cfg.auth_enabled or os.environ.get("VELOIQ_AUTH_DISABLED", "").lower() in ("1", "true"):
+        raise RuntimeError(
+            "VeloIQ: authentication cannot be disabled.\n"
+            "Remove auth_enabled=False from VeloIQConfig and VELOIQ_AUTH_DISABLED from your .env,\n"
+            "then run:  veloiq migrate"
+        )
+
     if not cfg.database_url:
         raise ValueError(
             "No database URL configured. Set the DATABASE_URL environment variable "
@@ -135,12 +143,17 @@ def create_veloiq_app(
     )
 
     # ── Auth middleware ───────────────────────────────────────────────────────
-    if cfg.auth_enabled:
-        _add_auth_middleware(app, cfg)
+    _add_auth_middleware(app, cfg)
 
     # ── SQLAdmin ──────────────────────────────────────────────────────────────
     from sqladmin import Admin
-    admin_kwargs: dict = {"title": cfg.admin_title or cfg.title}
+    from starlette.middleware.sessions import SessionMiddleware
+    from veloiq_framework.auth.sqladmin_auth import VeloIQAdminAuth
+    app.add_middleware(SessionMiddleware, secret_key=cfg.auth_secret)
+    admin_kwargs: dict = {
+        "title": cfg.admin_title or cfg.title,
+        "authentication_backend": VeloIQAdminAuth(cfg),
+    }
     if cfg.admin_logo_url:
         admin_kwargs["logo_url"] = cfg.admin_logo_url
     if cfg.admin_templates_dir and Path(cfg.admin_templates_dir).exists():
@@ -148,10 +161,9 @@ def create_veloiq_app(
     admin = Admin(app, engine, **admin_kwargs)
 
     # ── Auth admin views ──────────────────────────────────────────────────────
-    if cfg.auth_enabled:
-        from veloiq_framework.auth.admin import AUTH_ADMIN_VIEWS
-        for view in AUTH_ADMIN_VIEWS:
-            admin.add_view(view)
+    from veloiq_framework.auth.admin import AUTH_ADMIN_VIEWS
+    for view in AUTH_ADMIN_VIEWS:
+        admin.add_view(view)
 
     # ── Module loading ────────────────────────────────────────────────────────
     load_modules(app, admin, cfg, extensions=extensions)
@@ -162,10 +174,9 @@ def create_veloiq_app(
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
         _create_tables_safe(engine)
         _sync_schema(engine)
-    if cfg.auth_enabled:
-        from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
-        seed_roles(engine, cfg.roles)
-        seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
+    from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
+    seed_roles(engine, cfg.roles)
+    seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
 
     # ── Core endpoints ────────────────────────────────────────────────────────
     _register_core_endpoints(app, engine, cfg)
@@ -287,7 +298,13 @@ def _sync_schema(engine) -> None:
 # ---------------------------------------------------------------------------
 
 def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
-    """Add JWT Bearer token validation + RBAC middleware."""
+    """Add JWT Bearer token validation + RBAC middleware.
+
+    Registration order matters: Starlette executes @app.middleware decorators in
+    reverse registration order (last registered = outermost = runs first).
+    RBAC is registered FIRST so it runs SECOND (after auth has set request.state.user).
+    Auth is registered SECOND so it runs FIRST (validates JWT and sets user).
+    """
     from fastapi import Request
     from starlette.responses import JSONResponse
 
@@ -310,6 +327,41 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
     # handles its own auth redirects.  All data APIs are under /api/ now.
     _spa_protected = ("/api/", "/auth/me", "/auth/change-password")
 
+    # ── RBAC middleware — registered FIRST, runs SECOND (inner) ─────────────
+    # auth_middleware (registered second, outermost) runs first and sets
+    # request.state.user before this middleware reads it.
+    @app.middleware("http")
+    async def rbac_middleware(request: Request, call_next):
+        method = request.method.upper()
+        path = request.url.path
+
+        # GET/OPTIONS/HEAD: no role check at middleware level.
+        # GET auth is enforced by auth_middleware (outermost); model-level
+        # permission exceptions are enforced at route level via _check_model_permissions.
+        if method in ("GET", "OPTIONS", "HEAD"):
+            return await call_next(request)
+        if any(path.startswith(p) for p in _rbac_exempt):
+            return await call_next(request)
+
+        # Write methods on non-exempt paths: auth_middleware (outermost) must
+        # have set user already. Explicit 401 here is defense-in-depth.
+        user = getattr(request.state, "user", None)
+        if user is None:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Authentication required"},
+            )
+
+        from veloiq_framework.auth.utils import check_rbac
+        roles = user.get("roles", [])
+        if not check_rbac(roles, method):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Insufficient permissions"},
+            )
+        return await call_next(request)
+
+    # ── Auth middleware — registered SECOND, runs FIRST (outer) ─────────────
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         path = request.url.path
@@ -336,24 +388,6 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
                 status_code=401,
                 content={"detail": "Invalid or expired token"},
             )
-        return await call_next(request)
-
-    @app.middleware("http")
-    async def rbac_middleware(request: Request, call_next):
-        if request.method.upper() in ("GET", "OPTIONS", "HEAD"):
-            return await call_next(request)
-        path = request.url.path
-        if any(path.startswith(p) for p in _rbac_exempt):
-            return await call_next(request)
-        user = getattr(request.state, "user", None)
-        if user is not None:
-            from veloiq_framework.auth.utils import check_rbac
-            roles = user.get("roles", [])
-            if not check_rbac(roles, request.method):
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "Insufficient permissions"},
-                )
         return await call_next(request)
 
 

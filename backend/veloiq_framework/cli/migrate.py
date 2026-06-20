@@ -276,6 +276,151 @@ def _migrate_ui_package_version(root: Path, dry_run: bool) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Step 4 – Remove VELOIQ_AUTH_DISABLED from .env and auth_enabled=False from main.py
+#           Authentication can no longer be disabled. This step comments out any
+#           VELOIQ_AUTH_DISABLED setting and removes auth_enabled=False kwargs.
+# ---------------------------------------------------------------------------
+
+_AUTH_DISABLED_RE = re.compile(
+    r'^(VELOIQ_AUTH_DISABLED\s*=\s*(?:1|true|yes).*)$',
+    re.IGNORECASE | re.MULTILINE,
+)
+_AUTH_ENABLED_FALSE_RE = re.compile(
+    r',?\s*auth_enabled\s*=\s*False\s*,?',
+)
+
+
+def _migrate_remove_auth_disabled(root: Path, dry_run: bool) -> bool:
+    """Remove auth-disable settings from .env and main.py.
+
+    Returns True if a migration was performed (or would be in dry-run).
+    """
+    changed = False
+
+    # ── backend/.env ─────────────────────────────────────────────────────────
+    env_path = root / "backend" / ".env"
+    if env_path.exists():
+        try:
+            content = env_path.read_text(encoding="utf-8")
+            if _AUTH_DISABLED_RE.search(content):
+                new_content = _AUTH_DISABLED_RE.sub(
+                    r'# \1  ← removed: authentication cannot be disabled (veloiq migrate)',
+                    content,
+                )
+                if dry_run:
+                    click.echo("  • backend/.env: comment out VELOIQ_AUTH_DISABLED setting")
+                else:
+                    bak = env_path.with_suffix(".env.bak")
+                    shutil.copy(env_path, bak)
+                    env_path.write_text(new_content, encoding="utf-8")
+                    click.echo(
+                        "  ✅  backend/.env: commented out VELOIQ_AUTH_DISABLED\n"
+                        f"      original backed up → backend/.env.bak"
+                    )
+                changed = True
+        except Exception as exc:
+            click.echo(f"  ❌  Could not process {env_path}: {exc}", err=True)
+
+    # ── backend/app/main.py (or backend/main.py) ──────────────────────────────
+    for candidate in ("backend/app/main.py", "backend/main.py"):
+        main_path = root / candidate
+        if not main_path.exists():
+            continue
+        try:
+            content = main_path.read_text(encoding="utf-8")
+            if _AUTH_ENABLED_FALSE_RE.search(content):
+                new_content = _AUTH_ENABLED_FALSE_RE.sub("", content)
+                if dry_run:
+                    click.echo(f"  • {candidate}: remove auth_enabled=False from VeloIQConfig")
+                else:
+                    bak = main_path.with_suffix(".py.bak")
+                    shutil.copy(main_path, bak)
+                    main_path.write_text(new_content, encoding="utf-8")
+                    click.echo(
+                        f"  ✅  {candidate}: removed auth_enabled=False\n"
+                        f"      original backed up → {candidate}.bak"
+                    )
+                changed = True
+        except Exception as exc:
+            click.echo(f"  ❌  Could not process {main_path}: {exc}", err=True)
+        break
+
+    return changed
+
+
+# ---------------------------------------------------------------------------
+# Step 5 – Detect <img src="…/api/file/…"> that need AuthenticatedImage
+#           File content endpoints now require a Bearer token. Plain <img> tags
+#           don't send auth headers, so they silently return 401 after the
+#           auth security update.  This step finds affected files and reports
+#           the exact lines so the developer can apply the fix manually.
+# ---------------------------------------------------------------------------
+
+# Any line containing /api/file/ and an img src attribute reference.
+_IMG_FILE_LINE_RE = re.compile(r'/api/file/')
+
+
+def _migrate_authenticated_images(root: Path, dry_run: bool) -> bool:
+    """Detect <img> tags referencing /api/file/ endpoints in custom frontend files.
+
+    Scans all non-generated .tsx / .ts files under frontend/src and reports
+    lines that need to be converted to <AuthenticatedImage url={…}> from
+    @juicemantics/veloiq-ui.
+
+    Returns True if any affected files were found.
+    """
+    frontend_src = root / "frontend" / "src"
+    if not frontend_src.exists():
+        return False
+
+    tsx_files = [
+        p for p in sorted(frontend_src.rglob("*.tsx"))
+        if not p.name.endswith(".gen.ts") and "node_modules" not in p.parts
+           and "AuthenticatedImage" not in p.name
+    ]
+
+    hits: list[tuple[Path, list[tuple[int, str]]]] = []
+
+    for fpath in tsx_files:
+        try:
+            lines = fpath.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            continue
+        if "AuthenticatedImage" in "".join(lines):
+            continue  # already migrated
+        matches = [
+            (i + 1, ln.strip())
+            for i, ln in enumerate(lines)
+            if _IMG_FILE_LINE_RE.search(ln) and ("<img" in ln or "src=" in ln)
+        ]
+        if matches:
+            hits.append((fpath, matches))
+
+    if not hits:
+        return False
+
+    rel_prefix = root
+    click.echo(
+        "  ⚠️   frontend/src: found <img> tags referencing /api/file/ endpoints.\n"
+        "      File content now requires a Bearer token — plain <img src=…> tags\n"
+        "      return 401.  Replace each with <AuthenticatedImage url={…}> from\n"
+        "      @juicemantics/veloiq-ui (no other code changes needed).\n"
+    )
+    for fpath, matches in hits:
+        rel = fpath.relative_to(rel_prefix)
+        click.echo(f"      {rel}:")
+        for lineno, snippet in matches:
+            click.echo(f"        line {lineno}: {snippet[:100]}")
+    click.echo(
+        "\n      Fix pattern:\n"
+        "        Before:  <img src={url} alt={label} style={…} />\n"
+        "        After:   <AuthenticatedImage url={url} alt={label} style={…} />\n"
+        "        Import:  import { AuthenticatedImage } from '@juicemantics/veloiq-ui';"
+    )
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Main command
 # ---------------------------------------------------------------------------
 
@@ -300,6 +445,10 @@ def migrate(project_root: Optional[str], dry_run: bool) -> None:
       2. frontend/vite.config.ts — remove obsolete proxy rewrites
       3. frontend/package.json   — bump @juicemantics/veloiq-ui floor so newer
                                    optional ModelDef props (e.g. titleFields) type-check
+      4. backend/.env / main.py  — remove VELOIQ_AUTH_DISABLED and auth_enabled=False
+      5. frontend/src/**/*.tsx   — replace <img src="/api/file/…"> with
+                                   <AuthenticatedImage url={…}> (file endpoints now
+                                   require Bearer auth; plain <img> tags do not send it)
 
     Use --dry-run to preview changes without writing files.
     """
@@ -327,6 +476,12 @@ def migrate(project_root: Optional[str], dry_run: bool) -> None:
 
     if _migrate_ui_package_version(root, dry_run):
         ran.append("frontend/package.json")
+
+    if _migrate_remove_auth_disabled(root, dry_run):
+        ran.append("auth-disable settings")
+
+    if _migrate_authenticated_images(root, dry_run):
+        ran.append("frontend/src (AuthenticatedImage)")
 
     if not ran:
         click.echo("✅  Nothing to migrate — project is already current.")

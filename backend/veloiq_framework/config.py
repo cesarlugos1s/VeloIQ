@@ -67,10 +67,9 @@ class VeloIQConfig:
     )
 
     # ── Auth ──────────────────────────────────────────────────────────────────
-    auth_enabled: bool = field(
-        default_factory=lambda: os.environ.get("VELOIQ_AUTH_DISABLED", "").lower()
-        not in ("1", "true")
-    )
+    # Kept for backwards-compat with existing VeloIQConfig(auth_enabled=False) calls;
+    # create_veloiq_app() raises RuntimeError if this is False.
+    auth_enabled: bool = field(default_factory=lambda: True)
     auth_secret: str = field(
         default_factory=lambda: os.environ.get("AUTH_SECRET", "veloiq-dev-secret-change-me")
     )

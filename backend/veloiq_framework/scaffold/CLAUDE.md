@@ -74,7 +74,7 @@ veloiq add-licensing       # scaffolds app/modules/license/ + frontend/src/pages
 - Table names use snake_case matching the module name (e.g., `inventory`)
 - Auth tables use the `safem_` prefix — don't use it for app tables
 - `eid` field in API responses equals `id` — used by the frontend for Refine compatibility
-- `AUTH_SECRET` env var is required for JWT signing; set `VELOIQ_AUTH_DISABLED=1` to skip auth in development
+- `AUTH_SECRET` env var is required for JWT signing; set a long random string before deploying to production
 - `DATABASE_URL` env var controls the database (defaults to SQLite)
 
 ## Relationships

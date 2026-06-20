@@ -5107,6 +5107,39 @@ var getSortPriority = (columnSort, fieldKey) => {
   const index = columnSort.findIndex((item) => item.fieldKey === fieldKey);
   return index === -1 ? 1 : columnSort.length - index + 1;
 };
+var _TOKEN_KEY = "jm_access_token";
+function useAuthenticatedFileUrl(rawUrl) {
+  const [src, setSrc] = React5.useState("");
+  React5.useEffect(() => {
+    if (!rawUrl) {
+      setSrc("");
+      return;
+    }
+    if (!rawUrl.includes("/api/file/")) {
+      setSrc(rawUrl);
+      return;
+    }
+    const token = localStorage.getItem(_TOKEN_KEY) || "";
+    const controller = new AbortController();
+    let objectUrl = "";
+    fetch(rawUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal
+    }).then((r) => r.ok ? r.blob() : Promise.reject()).then((blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      setSrc(objectUrl);
+    }).catch(() => setSrc(""));
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [rawUrl]);
+  return src;
+}
+var AuthenticatedImage = ({ url, alt, style }) => {
+  const src = useAuthenticatedFileUrl(url);
+  return src ? /* @__PURE__ */ jsxRuntime.jsx("img", { src, alt: alt ?? "", style }) : null;
+};
 var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 var isImageRecord = (record) => {
   if (record?.avatar_url || record?.image_url || record?.photo_url) return true;
@@ -5164,7 +5197,7 @@ var renderSharedGalleryCard = ({
       style: { width: imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        contentUrl ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 24 } }) }),
+        contentUrl ? /* @__PURE__ */ jsxRuntime.jsx(AuthenticatedImage, { url: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 24 } }) }),
         /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: label })
       ]
     },
@@ -21978,6 +22011,7 @@ var authSystemModels = [
 
 exports.API_URL = API_URL3;
 exports.AllModelsProvider = AllModelsProvider;
+exports.AuthenticatedImage = AuthenticatedImage;
 exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;
 exports.CommandCenterPortal = CommandCenterPortal;
@@ -22024,6 +22058,7 @@ exports.resolveIcon = resolveIcon;
 exports.setColorSchemas = setColorSchemas;
 exports.sortItemsByNavConfig = sortItemsByNavConfig;
 exports.useAllModels = useAllModels;
+exports.useAuthenticatedFileUrl = useAuthenticatedFileUrl;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;
 exports.useMetadataModal = useMetadataModal;
 exports.useNavConfig = useNavConfig;

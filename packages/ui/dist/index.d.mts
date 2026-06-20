@@ -200,6 +200,10 @@ interface ModelDef {
     description?: string;
     pkField?: string;
     listViewType?: "table" | "gallery" | "calendar" | "totals-details";
+    /** Field keys whose values compose this model's record title (space-joined).
+     *  Configured via `veloiq set-title` and stored on the model's
+     *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */
+    titleFields?: string[];
     /** True when this ModelDef represents a NamedQuery rather than a plain model table. */
     isNamedQuery?: boolean;
     /** Resource name of the primary model (for show/edit navigation and write routing). */
@@ -618,6 +622,13 @@ declare function generateResources(models: ModelDef[], moduleName: string, optio
  */
 declare const authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>;
 
+declare function useAuthenticatedFileUrl(rawUrl: string): string;
+declare const AuthenticatedImage: React__default.FC<{
+    url: string;
+    alt?: string;
+    style?: React__default.CSSProperties;
+}>;
+
 type ModelTone = {
     solid: string;
     soft: string;
@@ -640,4 +651,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, NavConfigContext, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, AuthenticatedImage, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, NavConfigContext, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
