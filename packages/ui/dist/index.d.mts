@@ -318,6 +318,7 @@ declare const DynamicShow: React__default.FC<{
     allModels?: ModelDef[];
     idOverride?: string;
     embedded?: boolean;
+    beforeTabs?: React__default.ReactNode;
 }>;
 
 interface JourneyCallbacks$1 {

@@ -19,7 +19,7 @@ import { useRoleFilteredModel } from "../utils/roleAccess";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean }> = ({ model: modelProp, allModels, idOverride, embedded }) => {
+export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs }) => {
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
@@ -97,6 +97,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                     </div>
                 ) : (
                     <>
+                        {beforeTabs}
                         <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
                         <ShowFooterButtons
                             model={model}
@@ -123,6 +124,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                 }))}
                 headerButtons={headerButtons}
             >
+                {beforeTabs}
                 <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
                 <ShowFooterButtons
                     model={model}

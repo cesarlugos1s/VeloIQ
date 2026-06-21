@@ -7560,6 +7560,13 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       if (syncHeightTimerRef.current) clearTimeout(syncHeightTimerRef.current);
     };
   }, []);
+  const inlineHtml = useMemo(
+    () => (html || "").replace(
+      /<script\b[^>]*\bsrc=["']?[^"'>]*cdn\.plot\.ly[^"'>]*["']?[^>]*><\/script>/gi,
+      ""
+    ),
+    [html]
+  );
   if (mode === "iframe") {
     return /* @__PURE__ */ jsx(
       "iframe",
@@ -7570,7 +7577,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       }
     );
   }
-  return /* @__PURE__ */ jsx("div", { ref: htmlRef, dangerouslySetInnerHTML: { __html: html || "" }, style });
+  return /* @__PURE__ */ jsx("div", { ref: htmlRef, dangerouslySetInnerHTML: { __html: inlineHtml }, style });
 };
 
 // src/components/DynamicResource/relations/helpers.ts
@@ -8786,7 +8793,7 @@ function useRoleFilteredModel(model) {
   }, [model, userRoles]);
 }
 var _19 = window._ || ((text) => text);
-var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
+var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -8848,6 +8855,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
     return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
       /* @__PURE__ */ jsx(ToneSharedStyles, {}),
       !record ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 32 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+        beforeTabs,
         /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
         /* @__PURE__ */ jsx(
           ShowFooterButtons,
@@ -8875,6 +8883,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded }) => {
         })),
         headerButtons,
         children: [
+          beforeTabs,
           /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
           /* @__PURE__ */ jsx(
             ShowFooterButtons,

@@ -377,6 +377,21 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
         };
     }, []);
 
+    // For inline rendering, strip the Plotly CDN <script src=cdn.plot.ly> tag the
+    // same way InlinePlotlyHtml does. Re-inserting + awaiting that external script
+    // in executeScriptNodesSequentially is fragile: a blocked/slow CDN stalls the
+    // sequential runner so the inline Plotly init script never runs, and the chart
+    // container reserves its space but no plot is drawn. The sanitized inline init
+    // script loads Plotly itself (via its __jmEnsurePlotly loader + retry), so the
+    // static CDN tag is redundant and only adds fragility.
+    const inlineHtml = useMemo(
+        () => (html || "").replace(
+            /<script\b[^>]*\bsrc=["']?[^"'>]*cdn\.plot\.ly[^"'>]*["']?[^>]*><\/script>/gi,
+            "",
+        ),
+        [html],
+    );
+
     if (mode === "iframe") {
         return (
             <iframe
@@ -387,5 +402,5 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
         );
     }
 
-    return <div ref={htmlRef} dangerouslySetInnerHTML={{ __html: html || "" }} style={style} />;
+    return <div ref={htmlRef} dangerouslySetInnerHTML={{ __html: inlineHtml }} style={style} />;
 };
