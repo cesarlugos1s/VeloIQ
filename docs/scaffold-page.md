@@ -95,6 +95,14 @@ export const CustomTaskShow: React.FC = () => {
 };
 ```
 
+### Injecting content above the form tabs (`beforeTabs`)
+
+`DynamicShow` accepts an optional `beforeTabs?: React.ReactNode` prop whose content is rendered **between the sticky standard header** (breadcrumbs, title, action buttons) **and the form tabs** — useful for a custom panel that should appear with the record's standard chrome but above the Details / relation tabs:
+
+```tsx
+<DynamicShow model={model} allModels={allModels} beforeTabs={<MyConversationPanel record={record} />} />
+```
+
 You can also mix in standard Refine hooks (`useShow`, `useList`, `useGo`) or Ant Design components.
 
 ## Navigating between custom pages

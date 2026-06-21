@@ -4,6 +4,35 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [Unreleased]
+
+### Features
+
+- **UI — `DynamicShow` `beforeTabs` slot** — `DynamicShow` accepts an optional
+  `beforeTabs?: React.ReactNode` prop, rendered between the sticky standard header
+  (breadcrumbs, title, action buttons) and the form tabs. Lets a custom show page place
+  content (e.g. an NL conversation panel) above the Details / relation tabs while keeping
+  the standard header chrome.
+
+### Fixes
+
+- **UI — inline Plotly charts in backend-rendered HTML** — `ExecutableHtml` now strips the
+  `<script src="…cdn.plot.ly…">` tag when rendering inline (non-iframe) HTML. Re-inserting and
+  awaiting that external script in the sequential script runner was fragile: a slow or blocked
+  CDN stalled the runner so the inline Plotly init script never executed, and charts reserved
+  their space but did not draw. The sanitized inline init script loads Plotly itself.
+
+### Docs
+
+- **i18n — clarified request-locale behavior** — the docs previously stated the active locale
+  was set automatically from `Accept-Language` by framework middleware. There is no such
+  middleware: `_()` resolves against the locale set via `set_request_locale()` and falls back to
+  `i18n_default_locale` when none is set. `configuration-reference.md` and `module-authoring.md`
+  now document setting the locale per request, including the `StreamingResponse` caveat (set it
+  in the async handler, not inside the body generator).
+
+---
+
 ## [0.8.5] — 2026-06-16
 
 ### Features

@@ -439,7 +439,7 @@ class OrderAdmin(ModelView, model=Order):
 
 ## Internationalisation (i18n) in custom code
 
-Use `_()` from `veloiq_framework.utils.i18n_utils` to translate strings in custom endpoints and repositories. The framework resolves the locale from the incoming `Accept-Language` header automatically.
+Use `_()` from `veloiq_framework.utils.i18n_utils` to translate strings in custom endpoints and repositories. The framework does **not** auto-detect the request locale: `_()` uses the locale set for the current request via `set_request_locale()`, falling back to `i18n_default_locale` if none was set. Set it at the start of each request that needs localized output (from a `?lang` query param, a header, or `resolve_locale_from_accept_language(request.headers.get("accept-language"))`) and pair it with `reset_request_locale(token)` in a `finally`. For a `StreamingResponse`, set the locale in the async request handler rather than inside the body generator (otherwise the reset raises `ValueError: <Token …> was created in a different Context` and the locale will not persist across chunks).
 
 ```python
 from veloiq_framework.utils.i18n_utils import _

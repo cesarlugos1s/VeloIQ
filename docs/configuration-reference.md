@@ -314,7 +314,7 @@ VeloIQ includes a PO-file-based translation system available in backend code via
 | Field | Env var | Default | Description |
 |---|---|---|---|
 | `i18n_locales_dir` | `VELOIQ_I18N_LOCALES_DIR` | `config/internationalization/locales` | Path to the directory that contains per-locale subdirectories (resolved relative to the working directory at startup). |
-| `i18n_default_locale` | `VELOIQ_I18N_DEFAULT_LOCALE` | `en` | Locale used when no `Accept-Language` header is present. |
+| `i18n_default_locale` | `VELOIQ_I18N_DEFAULT_LOCALE` | `en` | Fallback locale used by `_()` when no request locale has been set (see the note below). |
 
 The expected directory layout is:
 
@@ -340,7 +340,27 @@ def my_function():
     title = _("Total Amount", locale="es")  # explicit locale override
 ```
 
-The active locale per request is set automatically from the `Accept-Language` header by the framework middleware. Catalog files are parsed on first use and cached; edits on disk are picked up automatically (the cache is keyed on file mtime).
+The framework exposes the translation primitives but does **not** install any middleware that auto-detects the request locale. `_()` resolves against the locale set for the current request via `set_request_locale()`; if nothing has set it, `_()` falls back to `i18n_default_locale`. Applications (or modules) that want per-request localization must set the locale themselves at the start of each request:
+
+```python
+from fastapi import Query, Request
+from veloiq_framework.utils.i18n_utils import (
+    set_request_locale, reset_request_locale, resolve_locale_from_accept_language,
+)
+
+@router.get("/things/{thing_id}")
+def get_thing(thing_id: int, request: Request, lang: str | None = Query(None)):
+    locale = lang or resolve_locale_from_accept_language(request.headers.get("accept-language"))
+    token = set_request_locale(locale)
+    try:
+        ...                       # every _() in this call now resolves to `locale`
+    finally:
+        reset_request_locale(token)
+```
+
+> **Streaming caveat:** for `StreamingResponse`, set the locale in the **async** request handler (so each per-chunk `copy_context()` inherits it), **not** inside the body generator — setting/resetting it inside the generator raises `ValueError: <Token …> was created in a different Context` and the locale will not persist across chunks.
+
+The `GET /i18n/{locale}.json` route used by the frontend i18n client serves a catalog by explicit locale and is independent of the request-locale context above. Catalog files are parsed on first use and cached; edits on disk are picked up automatically (the cache is keyed on file mtime).
 
 > **Path resolution note:** `VELOIQ_I18N_LOCALES_DIR` is resolved relative to the process working directory when `create_veloiq_app()` is called. If you run `veloiq run` from the `backend/` subdirectory instead of the project root, set an absolute path or a `../`-relative path in your `.env` to point to the shared catalogs:
 >
