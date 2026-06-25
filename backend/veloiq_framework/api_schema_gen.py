@@ -400,6 +400,47 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                             desc_extra = f", description: {json.dumps(desc)}"
                 except Exception:
                     pass
+                # Auto-generate options from Python Literal type annotations.
+                if not options_extra:
+                    try:
+                        fi = model.model_fields.get(p.key)
+                        if fi is not None:
+                            annotation = getattr(fi, 'annotation', None)
+                            if annotation is not None:
+                                from typing import get_origin, get_args
+                                from typing import Literal as _LiteralType
+                                # Check for Literal["A", "B"] directly
+                                if get_origin(annotation) is _LiteralType:
+                                    lit_args = get_args(annotation)
+                                else:
+                                    # Check for Optional[Literal[...]] = Union[Literal[...], None]
+                                    lit_args = None
+                                    for arg in get_args(annotation):
+                                        if get_origin(arg) is _LiteralType:
+                                            lit_args = get_args(arg)
+                                            break
+                                if lit_args:
+                                    ts_opts = "[" + ", ".join(
+                                        f'{{ label: {json.dumps(v)}, value: {json.dumps(v)} }}'
+                                        for v in lit_args
+                                    ) + "]"
+                                    options_extra = f", options: {ts_opts}"
+                    except Exception:
+                        pass
+                # Auto-generate default from SQLModel Field(default=...).
+                if not default_extra:
+                    try:
+                        fi = model.model_fields.get(p.key)
+                        if fi is not None:
+                            try:
+                                from pydantic_core import PydanticUndefined
+                            except ImportError:
+                                from pydantic.fields import PydanticUndefined
+                            pydantic_default = getattr(fi, 'default', PydanticUndefined)
+                            if pydantic_default is not PydanticUndefined and not callable(pydantic_default):
+                                default_extra = f", default: {json.dumps(pydantic_default)}"
+                    except Exception:
+                        pass
                 field_str = f'{{ key: "{p.key}", label: "{label}", type: "{ts_type}"{reference_extra}{required_extra}{default_extra}{options_extra}{desc_extra}{role_extra}{view_type_extra} }}'
                 if p.key in _TIMESTAMP_KEYS:
                     timestamp_fields.append(field_str)
