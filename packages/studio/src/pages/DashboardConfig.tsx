@@ -11,19 +11,19 @@ interface Props {
   onSuccess?: () => void;
 }
 
-function toggleDashboardDef(resources: string[]): CommandDef {
+function toggleDashboardDef(models: string[]): CommandDef {
   return {
     id: "toggle-dashboard",
     label: "Toggle Dashboard Model",
     description: "Add or remove a model from the dashboard",
     inputs: [
-      { key: "resource", label: "Resource", type: resources.length ? "select" : "text", options: resources, required: true },
+      { key: "name", label: "Model name", type: models.length ? "select" : "text", options: models, required: true, placeholder: "e.g. Task", searchable: true },
       { key: "action", label: "Action", type: "select", options: ["add", "remove"], required: true },
     ],
     build: (v) =>
       v.action === "remove"
-        ? `veloiq add-dashboard --remove ${v.resource}`
-        : `veloiq add-dashboard ${v.resource}`,
+        ? `veloiq add-dashboard --remove ${v.name}`
+        : `veloiq add-dashboard ${v.name}`,
   };
 }
 
@@ -53,7 +53,7 @@ export default function DashboardConfig({ devMode, schema, loadSchema, refreshTo
     }
   }, [devMode, schemaData, loadSchema]);
 
-  const resources = schemaData?.modules.flatMap((m) => m.models.map((mo) => mo.resource)) ?? [];
+  const allModels = schemaData?.modules.flatMap((m) => m.models.map((mo) => mo.name)) ?? [];
 
   const byTab = models.reduce<Record<string, DashboardModel[]>>((acc, m) => {
     const key = m.tab || "(no tab)";
@@ -98,7 +98,7 @@ export default function DashboardConfig({ devMode, schema, loadSchema, refreshTo
       {devMode && (
         <>
           <div className="vs-section-title" style={{ marginTop: 28 }}>Toggle Dashboard Model</div>
-          <CommandCard def={toggleDashboardDef(resources)} onSuccess={onSuccess} />
+          <CommandCard def={toggleDashboardDef(allModels)} onSuccess={onSuccess} />
         </>
       )}
     </div>

@@ -34,7 +34,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 # JWT helpers
 # ---------------------------------------------------------------------------
 
-def create_access_token(data: dict, secret: str, expires_minutes: int = 480) -> str:
+def create_access_token(data: dict, secret: str, expires_minutes: int = 10080) -> str:
     """Return a signed HS256 JWT containing *data* plus an expiry claim."""
     from jose import jwt
     payload = data.copy()

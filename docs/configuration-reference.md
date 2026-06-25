@@ -180,7 +180,7 @@ extension's pages automatically — they render through the host's `DynamicResou
 | `auth_enabled` | `AUTH_ENABLED` | `True` | Enable JWT Bearer token middleware. |
 | `auth_secret` | `AUTH_SECRET` | `"change-me"` | Secret key for JWT signing. Change in production. |
 | `auth_algorithm` | `AUTH_ALGORITHM` | `"HS256"` | JWT algorithm. |
-| `auth_token_expire_minutes` | `AUTH_TOKEN_EXPIRE_MINUTES` | `60` | Token validity in minutes. |
+| `auth_token_expire_minutes` | `AUTH_TOKEN_EXPIRE_MINUTES` | `10080` (7 days) | Token validity in minutes. |
 
 ### Admin panel
 

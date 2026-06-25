@@ -492,10 +492,10 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
                         </td>
                         <td className="vs-td-truncate" style={{ fontSize: 11, color: "var(--text-muted)" }}
                             title={f.options.length > OPTS_CAP ? optsFull : undefined}>
-                          {optsDisplay}
+                          {optsDisplay || "—"}
                         </td>
                         <td className="vs-td-nowrap" style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                          {f.default != null && String(f.default)}
+                          {f.default != null ? String(f.default) : "—"}
                         </td>
                         <td className="vs-td-nowrap">
                           {f.required && <span className="vs-tag vs-tag-warn" style={{ fontSize: 10, marginRight: 3 }}>required</span>}

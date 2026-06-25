@@ -75,7 +75,7 @@ class VeloIQConfig:
     )
     auth_algorithm: str = "HS256"
     auth_token_expire_minutes: int = field(
-        default_factory=lambda: int(os.environ.get("AUTH_TOKEN_EXPIRE_MINUTES", "480"))
+        default_factory=lambda: int(os.environ.get("AUTH_TOKEN_EXPIRE_MINUTES", "10080"))
     )
 
     # ── Initial admin seed credentials ───────────────────────────────────────

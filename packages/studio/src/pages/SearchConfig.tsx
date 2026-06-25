@@ -17,7 +17,7 @@ function toggleSearchModelDef(models: string[]): CommandDef {
     label: "Toggle Search Model",
     description: "Add or remove a model from the search index",
     inputs: [
-      { key: "name", label: "Model name", type: models.length ? "select" : "text", options: models, required: true },
+      { key: "name", label: "Model name", type: models.length ? "select" : "text", options: models, required: true, placeholder: "e.g. Task", searchable: true },
       { key: "action", label: "Action", type: "select", options: ["add", "remove"], required: true },
     ],
     build: (v) =>

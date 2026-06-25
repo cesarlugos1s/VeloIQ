@@ -623,13 +623,13 @@ body {
 .vs-cmd-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .vs-cmd-card-hdr {
   padding: 12px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .vs-cmd-card-title {
