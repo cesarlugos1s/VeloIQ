@@ -284,8 +284,19 @@ def load_modules(
                     # which is where ModelViewMeta.__new__ reads it to set pk_columns.
                     # type(name, bases, {"model": cls}) puts it in attrs — wrong slot.
                     from sqladmin.models import ModelViewMeta
+                    from sqlalchemy import Column
+                    from sqlalchemy.orm import class_mapper
+
+                    # Only sort real SQLAlchemy columns (skip hybrid properties /
+                    # non-column attributes that would crash sort_query).
+                    mapper = class_mapper(model_cls)
+                    real_columns = [p.key for p in mapper.column_attrs]
+
                     view = ModelViewMeta(
-                        f"{model_cls.__name__}Admin", (ModelView,), {}, model=model_cls
+                        f"{model_cls.__name__}Admin",
+                        (ModelView,),
+                        {"column_sortable_list": real_columns},
+                        model=model_cls,
                     )
                     admin.add_view(view)
                     registered_any = True
