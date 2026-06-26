@@ -186,68 +186,51 @@ a single line of code.
 
 ## Section 5 — Making adjustments
 
-The imported models are plain Python — edit them just like hand-written models.
+The imported models are plain Python, but you rarely need to edit them by hand.
+The CLI, TUI, and Studio give you automated commands for the most common tweaks.
 
-### Add model title fields
+### Set model title fields
 
-By default, record labels use the first string field (e.g. `Name` for Artist,
-`Title` for Album).  Add a `titleFields` to control exactly how records are
-displayed:
+By default, record labels use the first string field — `Name` for Artist,
+`Title` for Album.  To make Customer records show *"Luís Gonçalves"* instead of
+just *"Luís"*, use `veloiq set-title`:
+
+```bash
+veloiq set-title Customer --fields FirstName,LastName
+```
+
+The command writes to `models.py` and runs `veloiq generate` automatically:
 
 ```python
-# In models.py — add to the Customer class
+# Added by veloiq set-title — no manual editing needed
 class Customer(SQLModel, table=True):
     __tablename__ = "Customer"
-    __titleFields__ = ["FirstName", "LastName"]   # ← add this line
-    # … rest of the fields
+    __veloiq_ui__: ClassVar[Dict] = {"titleFields": ["FirstName", "LastName"]}
+    # … rest of the fields untouched
 ```
 
-After adding `__titleFields__`, re-run `veloiq generate`.  Customer records
-now appear as *"Luís Gonçalves"* instead of just *"Luís"*.
+> **Also via TUI/Studio** — run `veloiq explore`, navigate to the Customer model,
+> press `t`, and pick the fields in a curses picker.  Or use the **Set Title
+> Fields** card in VeloIQ Studio.  All three paths produce the same result.
 
-### Tweak field labels
+### Scaffold a custom show page
 
-The importer uses the database column names as labels (`ArtistId`, `AlbumId`).
-To make them more readable, open `custom_api.py` and override the model's
-label configuration:
+The convention-based override system works on imported models.  Instead of
+creating `custom_show.tsx` by hand, scaffold it:
 
-```python
-# app/modules/chinook/custom_api.py
-from veloiq_framework.model_label_utils import register_model_labels
-
-register_model_labels(
-    "Album",
-    field_labels={
-        "Title": "Album Title",
-        "ArtistId": "Artist",
-    },
-)
+```bash
+veloiq scaffold-page Album show
 ```
 
-Re-run `veloiq generate` and the form labels update everywhere.
+This creates a ready-to-edit React component, registers it in
+`custom_pages.ts`, and patches `App.tsx` with the routing — the same as for
+hand-written models.  Run `veloiq generate` and the Album Show page renders
+your custom component.
 
-### Add a custom show page
+### Add a custom endpoint
 
-The convention-based override system works on imported models too — drop a
-`custom_show.tsx` in the model's page directory:
-
-```tsx
-// frontend/src/pages/chinook/Album/custom_show.tsx
-import React from "react";
-import { Alert } from "antd";
-
-export default function AlbumCustomShow({ model, allModels }: any) {
-  return <Alert type="info" message="Custom album detail" />;
-}
-```
-
-Run `veloiq generate` — the generator reports `📄 Custom show override: cw_album → …`
-and the Album Show page renders your custom component.
-
-### Add custom endpoints
-
-Since imported models are regular VeloIQ modules, you can add custom API
-endpoints to `custom_api.py` the same way you would for any hand-written module:
+Custom business logic still goes in `custom_api.py` — imported models are
+regular VeloIQ modules with their own `custom_api.py` stub:
 
 ```python
 # app/modules/chinook/custom_api.py
