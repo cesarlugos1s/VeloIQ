@@ -1,4 +1,4 @@
-import React5, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
+import React6, { createContext, lazy, useContext, useMemo, useState, useRef, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, Suspense, useId, useImperativeHandle } from 'react';
 import { ThemedLayoutV2, Show, List, useForm, DeleteButton, useTable, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useGetIdentity, useLogout, useOne, useApiUrl, useCan, useInvalidate, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Divider, Row, Col, Card, Grid, Form, Drawer, Modal, Button, Skeleton, Tooltip, message, Switch, Tabs, Alert, Empty, Collapse, Select, Table, DatePicker, InputNumber, Checkbox, Pagination, Breadcrumb, Tree, Tag, List as List$1, Popover, Dropdown, Avatar, TimePicker, Upload, Rate, Progress } from 'antd';
@@ -20,8 +20,6 @@ var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
 var ColorModeContext = createContext({ mode: "light", setMode: () => {
 }, schemaVersion: 0 });
-
-// src/utils/modelTone.ts
 var MODEL_TONES_LIGHT = [
   { solid: "#2563eb", soft: "#dbeafe", softer: "#eff6ff", text: "#1e3a8a", border: "#93c5fd", shadow: "rgba(37, 99, 235, 0.22)" },
   { solid: "#0f766e", soft: "#ccfbf1", softer: "#f0fdfa", text: "#115e59", border: "#5eead4", shadow: "rgba(15, 118, 110, 0.22)" },
@@ -138,6 +136,10 @@ var setColorSchemas = (schemas) => {
         const darkBgContent = `rgb(${shade(r, 0.06)}, ${shade(g, 0.06)}, ${shade(b, 0.06)})`;
         const darkBgElements = `rgb(${shade(r, 0.11)}, ${shade(g, 0.11)}, ${shade(b, 0.11)})`;
         const darkBgHover = `rgb(${shade(r, 0.16)}, ${shade(g, 0.16)}, ${shade(b, 0.16)})`;
+        const sidebarLightBg = hex;
+        const sidebarLightText = isDarkColor(hex) ? "#ffffff" : "#0f172a";
+        const sidebarDarkBg = lightBgElements;
+        const sidebarDarkText = "#0f172a";
         styleEl.innerHTML = `
                     /* --- LIGHT MODE OVERRIDES --- */
                     body.jm-light .ant-layout,
@@ -151,7 +153,31 @@ var setColorSchemas = (schemas) => {
                     body.jm-light .ant-menu,
                     body.jm-light .ant-menu-submenu,
                     body.jm-light .ant-menu-submenu-title,
-                    body.jm-light .ant-layout-header,
+                    body.jm-light .ant-layout-header {
+                        background-color: ${sidebarLightBg} !important;
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider *,
+                    body.jm-light .ant-layout-header * {
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup {
+                        background-color: ${sidebarLightBg} !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarLightText} !important;
+                    }
                     body.jm-light .ant-card,
                     body.jm-light .ant-table-wrapper .ant-table,
                     body.jm-light .ant-table-thead > tr > th,
@@ -181,7 +207,31 @@ var setColorSchemas = (schemas) => {
                     body.jm-dark .ant-menu,
                     body.jm-dark .ant-menu-submenu,
                     body.jm-dark .ant-menu-submenu-title,
-                    body.jm-dark .ant-layout-header,
+                    body.jm-dark .ant-layout-header {
+                        background-color: ${sidebarDarkBg} !important;
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider *,
+                    body.jm-dark .ant-layout-header * {
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup {
+                        background-color: ${sidebarDarkBg} !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarDarkText} !important;
+                    }
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,
                     body.jm-dark .ant-table-thead > tr > th,
@@ -281,7 +331,7 @@ function guessIcon(text, isModule = false) {
 function resolveIcon(iconName) {
   const registry = AntDIcons2;
   const IconCls = registry[iconName];
-  return IconCls ? React5.createElement(IconCls) : React5.createElement(registry["TableOutlined"]);
+  return IconCls ? React6.createElement(IconCls) : React6.createElement(registry["TableOutlined"]);
 }
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
@@ -369,6 +419,7 @@ function injectJourneyMenuItems(items, byModule) {
   return walk(items);
 }
 var HorizontalMenu = ({ navConfig = [] }) => {
+  const { mode } = useContext(ColorModeContext);
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
   const journeysByModule = useJourneyMenuItems();
@@ -394,7 +445,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
   const renderLabel = (item, depth, hasChildren) => {
     const label = String(item?.label || item?.name || item?.key || "");
     const isModule = depth === 0 || hasChildren;
-    const tone = isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
+    isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsx(
       "span",
       {
@@ -404,7 +455,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
           padding: isModule ? "2px 5px" : "1px 5px",
           borderRadius: 8,
           background: "transparent",
-          color: tone.text,
+          color: "inherit",
           fontWeight: 400
         },
         children: label
@@ -430,6 +481,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     Menu,
     {
       mode: "horizontal",
+      theme: mode === "dark" ? "light" : "dark",
       selectedKeys: [selectedKey],
       items,
       style: {
@@ -468,7 +520,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const renderLabel = (item, depth, hasChildren) => {
     const label = String(item?.label || item?.name || item?.key || "");
     const isModule = depth === 0 || hasChildren;
-    const tone = isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
+    isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsx(
       "span",
       {
@@ -478,7 +530,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
           padding: isModule ? "3px 8px" : "2px 8px",
           borderRadius: 8,
           background: "transparent",
-          color: tone.text,
+          color: "inherit",
           fontWeight: 400
         },
         children: label
@@ -1276,7 +1328,7 @@ var CommandCenterPortal = ({
               /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Pinned" }),
               pinnedLoading && /* @__PURE__ */ jsx(Spin, { size: "small", style: { marginLeft: "auto" } })
             ] }),
-            pinnedItems.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+            pinnedItems.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxs(React6.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
               renderRow(
                 `pin-${item.resource}-${item.id}`,
@@ -1299,7 +1351,7 @@ var CommandCenterPortal = ({
               /* @__PURE__ */ jsx(ClockCircleOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
               /* @__PURE__ */ jsx(Typography.Text, { style: SECTION_LABEL_STYLE, children: "Recent" })
             ] }),
-            /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+            /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxs(React6.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
               renderRow(
                 `recent-${item.resource}-${item.id}`,
@@ -1328,7 +1380,7 @@ var CommandCenterPortal = ({
               const moduleLabel = String(module.label || module.name || "");
               const tone = getModelTone(moduleKey);
               const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
-              return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+              return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
                 modIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "5px 0", borderColor: "rgba(255,255,255,0.06)" } }),
                 /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 8px 2px" }, children: [
                   /* @__PURE__ */ jsx("span", { style: { color: tone.solid, fontSize: 12, display: "flex", alignItems: "center" }, children: getItemIcon(moduleKey, moduleLabel, true) }),
@@ -1339,7 +1391,7 @@ var CommandCenterPortal = ({
                   const childLabel = String(child.label || child.name || "");
                   const childTone = getModelTone(childKey);
                   const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
-                  return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                  return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
                     idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                     /* @__PURE__ */ jsxs(
                       "div",
@@ -1391,7 +1443,7 @@ var CommandCenterPortal = ({
             const moduleLabel = child.moduleLabel || "";
             const navId = `cmd-${childKey}`;
             const active = isActive(navId);
-            return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+            return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsxs(
                 "div",
@@ -1435,13 +1487,13 @@ var CommandCenterPortal = ({
           ] }),
           backendResults.length > 0 && /* @__PURE__ */ jsx("div", { style: { padding: "6px 10px" }, children: backendResults.map((modelResult, modelIdx) => {
             const tone = getModelTone(modelResult.resource);
-            return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+            return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
               modelIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsx(Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em", display: "block", padding: "4px 10px 2px" }, children: modelResult.modelLabel }),
               modelResult.records.map((record, recIdx) => {
                 const navId = `record-${modelResult.resource}-${record.id}`;
                 const active = isActive(navId);
-                return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
                   recIdx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                   /* @__PURE__ */ jsxs(
                     "div",
@@ -1523,7 +1575,7 @@ var CommandCenterPortal = ({
                 const childLabel = String(child.label || child.name || "");
                 const childTone = getModelTone(childKey);
                 const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
-                return /* @__PURE__ */ jsxs(React5.Fragment, { children: [
+                return /* @__PURE__ */ jsxs(React6.Fragment, { children: [
                   idx > 0 && /* @__PURE__ */ jsx(Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
                   /* @__PURE__ */ jsxs(
                     "div",
@@ -4648,7 +4700,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React5.isValidElement(node)) {
+  if (React6.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -4665,14 +4717,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React5.isValidElement(node)) return node;
+    if (!React6.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React5.cloneElement(node, {
+      const element = React6.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -4683,7 +4735,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React5.cloneElement(node, {
+        const element = React6.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -4691,15 +4743,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React5.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React5.cloneElement(node, {
+      const mappedChildren = React6.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React6.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React5.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React6.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = Grid.useBreakpoint();
@@ -4750,7 +4802,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React5.isValidElement(node)) {
+  if (React6.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -4768,12 +4820,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React5.isValidElement(node)) return node;
+    if (!React6.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React5.cloneElement(node, {
+      const element = React6.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -4784,7 +4836,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React5.cloneElement(node, {
+        const element = React6.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -4792,15 +4844,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React5.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React5.cloneElement(node, {
+      const mappedChildren = React6.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React6.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React5.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React6.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -4964,7 +5016,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React5.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React6.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8030,7 +8082,7 @@ var renderModelHeading = ({
         paddingLeft: 10,
         paddingRight: 10
       },
-      children: /* @__PURE__ */ jsx("div", { style: { minWidth: 0, fontSize: 16, fontWeight: 700, color: tone.solid, padding: "2px 8px" }, children: title })
+      children: /* @__PURE__ */ jsx("div", { style: { minWidth: 0, fontSize: 18, fontWeight: 700, color: tone.solid, padding: "2px 8px" }, children: title })
     }
   );
 };
@@ -8562,7 +8614,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
     headerButtons
   };
 };
-var PrimaryShowContext = React5.createContext(null);
+var PrimaryShowContext = React6.createContext(null);
 
 // src/components/DynamicResource/utils/columnFilters.ts
 var truncateLabel = (s) => s.length > 15 ? s.substring(0, 15) + "\u2026" : s;
@@ -8907,7 +8959,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React5.useState(false);
+  const [loadAll, setLoadAll] = React6.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = useSelect({
     resource: resolvedResource,
@@ -8924,8 +8976,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React5.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React5.useState("");
+  const selectedSet = React6.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React6.useState("");
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsx(
       Select,
@@ -9861,7 +9913,9 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
       min_width: cell.min_width ?? "",
       max_width: cell.max_width ?? "",
       min_height: cell.min_height ?? "",
-      max_height: cell.max_height ?? ""
+      max_height: cell.max_height ?? "",
+      chart_url: cell.chart_url ?? "",
+      chart_title: cell.chart_title ?? ""
     });
   }, [cell, tabId, config, form]);
   const handleSave = () => {
@@ -9877,7 +9931,9 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
       min_width: values.min_width || null,
       max_width: values.max_width || null,
       min_height: values.min_height || null,
-      max_height: values.max_height || null
+      max_height: values.max_height || null,
+      chart_url: values.chart_url || void 0,
+      chart_title: values.chart_title || void 0
     };
     const currentTab = config.tabs.find((t) => t.id === tabId);
     const nameUnchanged = currentTab?.name.trim().toLowerCase() === newTabName.toLowerCase();
@@ -9924,7 +9980,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
   return /* @__PURE__ */ jsx(
     Drawer,
     {
-      title: cell?.source_type !== "model" ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}` : `Configure cell: ${cell?.model ?? ""}`,
+      title: cell?.source_type === "plotly_chart" ? `Configure chart: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}` : `Configure cell: ${cell?.model ?? ""}`,
       placement: "right",
       width: 380,
       open,
@@ -9951,6 +10007,11 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
         cell?.source_type === "model" && /* @__PURE__ */ jsxs(Fragment, { children: [
           /* @__PURE__ */ jsx(Divider, { orientation: "left", children: "View" }),
           /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: "View type", children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
+        ] }),
+        cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxs(Fragment, { children: [
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: "Chart" }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: "Chart title", children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. Confidence by Month" }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: "Chart URL", children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
         ] }),
         /* @__PURE__ */ jsx(Divider, { orientation: "left", children: "Size" }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, children: [
@@ -10468,7 +10529,6 @@ var SectionCellContent = ({
         borderRadius: 6,
         overflowWrap: "anywhere",
         maxWidth: "100%",
-        border: `1px solid ${token.colorBorder}`,
         ...parseInlineStyle(item.html_format)
       };
       const relationLabelStyle = {
@@ -10503,7 +10563,6 @@ var SectionCellContent = ({
       lineHeight: 1.15,
       background: valueBackground,
       borderRadius: 6,
-      border: `1px solid ${token.colorBorder}`,
       maxWidth: "100%",
       overflowWrap: "anywhere",
       textAlign: field.type === "number" && !field.reference ? "right" : "left",
@@ -21195,6 +21254,48 @@ function useDashboardConfig() {
   }, [apiUrl]);
   return { config, enabled, loading, save, reload: load };
 }
+var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
+  const [chartHtml, setChartHtml] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const fetchChart = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const apiUrl = typeof API_URL3 === "string" ? API_URL3 : "";
+      const fullUrl = chartUrl.startsWith("http") ? chartUrl : `${apiUrl}${chartUrl}`;
+      const sep = fullUrl.includes("?") ? "&" : "?";
+      const lang = (() => {
+        try {
+          return (localStorage.getItem("locale") || navigator.language || "en").split("-")[0].toLowerCase();
+        } catch {
+          return "en";
+        }
+      })();
+      const res = await authenticatedFetch(`${fullUrl}${sep}lang=${encodeURIComponent(lang)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setChartHtml(data.chart_html || "");
+    } catch (e) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [chartUrl]);
+  useEffect(() => {
+    fetchChart();
+  }, [fetchChart, refreshNonce]);
+  if (loading) {
+    return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  }
+  if (error) {
+    return /* @__PURE__ */ jsx(Empty, { description: `Chart error: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+  }
+  if (!chartHtml) {
+    return /* @__PURE__ */ jsx(Empty, { description: "No chart data", style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+  }
+  return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" } });
+};
 var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
   const { token } = theme.useToken();
   const model = findModelByName(allModels, cell.model);
@@ -21227,10 +21328,12 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     minHeight: 32,
     position: "relative"
   };
+  const isPlotlyChart = cell.source_type === "plotly_chart";
   const resource = model?.resource || cell.model;
   const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
-  const cellTitle = isModelLike ? model?.label || cell.model : cell.section_name || cell.model;
+  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name || cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
+  const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
   const startResize = useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
@@ -21384,7 +21487,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) })
       ] })
     ] }),
-    !isMinimized && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: model ? /* @__PURE__ */ jsx(
+    !isMinimized && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce }) : model ? /* @__PURE__ */ jsx(
       DynamicList,
       {
         model,
@@ -21722,7 +21825,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };

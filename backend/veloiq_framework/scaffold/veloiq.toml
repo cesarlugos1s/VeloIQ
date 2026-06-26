@@ -34,8 +34,8 @@ enabled = []
 #models_color_schema = "plain-color"
 
 # Base hex color used when a color schema is set to "plain-color".
-# If left blank it defaults to grayscale. Example: "#c2410c" (burnt rust).
-#plain_color_base_hex = ""
+# If left blank it defaults to dark blue. Example: "#c2410c" (burnt rust).
+plain_color_base_hex = "#1e708a"
 
 # Default view type for a model's show / edit forms when nothing else is
 # configured. Possible view types: table, editable-table, list, editable-list,

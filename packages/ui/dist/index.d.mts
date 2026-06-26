@@ -494,7 +494,7 @@ declare const LoginPage: React__default.FC<LoginPageProps>;
 
 declare const DashboardPage: React__default.FC;
 
-type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom";
+type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom" | "plotly_chart";
 interface DashboardCell {
     id: string;
     model: string;
@@ -509,6 +509,8 @@ interface DashboardCell {
     max_height: string | null;
     section_name?: string;
     section_id?: string;
+    chart_url?: string;
+    chart_title?: string;
 }
 interface DashboardTab {
     id: string;

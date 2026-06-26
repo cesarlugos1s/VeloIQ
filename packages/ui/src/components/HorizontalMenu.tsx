@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useContext } from "react";
 import { useMenu, useGo } from "@refinedev/core";
+import { ColorModeContext } from "../contexts/ColorModeContext";
 import { Menu } from "antd";
 import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
@@ -8,6 +9,7 @@ import { getNavEntry, guessIcon } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 
 export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig = [] }) => {
+    const { mode } = useContext(ColorModeContext);
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
@@ -51,7 +53,7 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
                     padding: isModule ? "2px 5px" : "1px 5px",
                     borderRadius: 8,
                     background: "transparent",
-                    color: tone.text,
+                    color: "inherit",
                     fontWeight: 400,
                 }}
             >
@@ -80,6 +82,7 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
     return (
         <Menu
             mode="horizontal"
+            theme={mode === "dark" ? "light" : "dark"}
             selectedKeys={[selectedKey]}
             items={items}
             style={{

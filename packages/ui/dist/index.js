@@ -1,6 +1,6 @@
 'use strict';
 
-var React5 = require('react');
+var React6 = require('react');
 var antd$1 = require('@refinedev/antd');
 var core = require('@refinedev/core');
 var antd = require('antd');
@@ -32,7 +32,7 @@ function _interopNamespace(e) {
   return Object.freeze(n);
 }
 
-var React5__default = /*#__PURE__*/_interopDefault(React5);
+var React6__default = /*#__PURE__*/_interopDefault(React6);
 var AntDIcons2__namespace = /*#__PURE__*/_interopNamespace(AntDIcons2);
 var dayjs9__default = /*#__PURE__*/_interopDefault(dayjs9);
 var relativeTime2__default = /*#__PURE__*/_interopDefault(relativeTime2);
@@ -45,10 +45,8 @@ var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot
 var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
-var ColorModeContext = React5.createContext({ mode: "light", setMode: () => {
+var ColorModeContext = React6.createContext({ mode: "light", setMode: () => {
 }, schemaVersion: 0 });
-
-// src/utils/modelTone.ts
 var MODEL_TONES_LIGHT = [
   { solid: "#2563eb", soft: "#dbeafe", softer: "#eff6ff", text: "#1e3a8a", border: "#93c5fd", shadow: "rgba(37, 99, 235, 0.22)" },
   { solid: "#0f766e", soft: "#ccfbf1", softer: "#f0fdfa", text: "#115e59", border: "#5eead4", shadow: "rgba(15, 118, 110, 0.22)" },
@@ -165,6 +163,10 @@ var setColorSchemas = (schemas) => {
         const darkBgContent = `rgb(${shade(r, 0.06)}, ${shade(g, 0.06)}, ${shade(b, 0.06)})`;
         const darkBgElements = `rgb(${shade(r, 0.11)}, ${shade(g, 0.11)}, ${shade(b, 0.11)})`;
         const darkBgHover = `rgb(${shade(r, 0.16)}, ${shade(g, 0.16)}, ${shade(b, 0.16)})`;
+        const sidebarLightBg = hex;
+        const sidebarLightText = isDarkColor(hex) ? "#ffffff" : "#0f172a";
+        const sidebarDarkBg = lightBgElements;
+        const sidebarDarkText = "#0f172a";
         styleEl.innerHTML = `
                     /* --- LIGHT MODE OVERRIDES --- */
                     body.jm-light .ant-layout,
@@ -178,7 +180,31 @@ var setColorSchemas = (schemas) => {
                     body.jm-light .ant-menu,
                     body.jm-light .ant-menu-submenu,
                     body.jm-light .ant-menu-submenu-title,
-                    body.jm-light .ant-layout-header,
+                    body.jm-light .ant-layout-header {
+                        background-color: ${sidebarLightBg} !important;
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider *,
+                    body.jm-light .ant-layout-header * {
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup {
+                        background-color: ${sidebarLightBg} !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarLightText} !important;
+                    }
                     body.jm-light .ant-card,
                     body.jm-light .ant-table-wrapper .ant-table,
                     body.jm-light .ant-table-thead > tr > th,
@@ -208,7 +234,31 @@ var setColorSchemas = (schemas) => {
                     body.jm-dark .ant-menu,
                     body.jm-dark .ant-menu-submenu,
                     body.jm-dark .ant-menu-submenu-title,
-                    body.jm-dark .ant-layout-header,
+                    body.jm-dark .ant-layout-header {
+                        background-color: ${sidebarDarkBg} !important;
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider *,
+                    body.jm-dark .ant-layout-header * {
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup {
+                        background-color: ${sidebarDarkBg} !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarDarkText} !important;
+                    }
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,
                     body.jm-dark .ant-table-thead > tr > th,
@@ -259,7 +309,7 @@ var getModelTone = (modelLike, darkMode) => {
   return tones[hashString(seed) % tones.length];
 };
 var useModelTone = (modelLike) => {
-  const { mode, schemaVersion } = React5.useContext(ColorModeContext);
+  const { mode, schemaVersion } = React6.useContext(ColorModeContext);
   return getModelTone(modelLike, mode === "dark");
 };
 var getContrastingTextColor = (background) => isDarkColor(background) ? "#f8fafc" : "#0f172a";
@@ -308,7 +358,7 @@ function guessIcon(text, isModule = false) {
 function resolveIcon(iconName) {
   const registry = AntDIcons2__namespace;
   const IconCls = registry[iconName];
-  return IconCls ? React5__default.default.createElement(IconCls) : React5__default.default.createElement(registry["TableOutlined"]);
+  return IconCls ? React6__default.default.createElement(IconCls) : React6__default.default.createElement(registry["TableOutlined"]);
 }
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
@@ -339,8 +389,8 @@ var authenticatedFetch = (url, options = {}) => {
 var API_URL = "/api";
 var JOURNEY_ICON_NAME = "NodeIndexOutlined";
 function useJourneyMenuItems() {
-  const [byModule, setByModule] = React5.useState({});
-  React5.useEffect(() => {
+  const [byModule, setByModule] = React6.useState({});
+  React6.useEffect(() => {
     let cancelled = false;
     (async () => {
       var _a;
@@ -396,6 +446,7 @@ function injectJourneyMenuItems(items, byModule) {
   return walk(items);
 }
 var HorizontalMenu = ({ navConfig = [] }) => {
+  const { mode } = React6.useContext(ColorModeContext);
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
   const journeysByModule = useJourneyMenuItems();
@@ -421,7 +472,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
   const renderLabel = (item, depth, hasChildren) => {
     const label = String(item?.label || item?.name || item?.key || "");
     const isModule = depth === 0 || hasChildren;
-    const tone = isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
+    isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsxRuntime.jsx(
       "span",
       {
@@ -431,7 +482,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
           padding: isModule ? "2px 5px" : "1px 5px",
           borderRadius: 8,
           background: "transparent",
-          color: tone.text,
+          color: "inherit",
           fontWeight: 400
         },
         children: label
@@ -457,6 +508,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     antd.Menu,
     {
       mode: "horizontal",
+      theme: mode === "dark" ? "light" : "dark",
       selectedKeys: [selectedKey],
       items,
       style: {
@@ -469,7 +521,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
 };
 var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = antd.theme.useToken();
-  const { mode } = React5.useContext(ColorModeContext);
+  const { mode } = React6.useContext(ColorModeContext);
   const { menuItems, selectedKey } = core.useMenu();
   const go = core.useGo();
   const journeysByModule = useJourneyMenuItems();
@@ -495,7 +547,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const renderLabel = (item, depth, hasChildren) => {
     const label = String(item?.label || item?.name || item?.key || "");
     const isModule = depth === 0 || hasChildren;
-    const tone = isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
+    isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsxRuntime.jsx(
       "span",
       {
@@ -505,7 +557,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
           padding: isModule ? "3px 8px" : "2px 8px",
           borderRadius: 8,
           background: "transparent",
-          color: tone.text,
+          color: "inherit",
           fontWeight: 400
         },
         children: label
@@ -526,15 +578,15 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
       };
     });
   };
-  const sortedMenuItems = React5.useMemo(
+  const sortedMenuItems = React6.useMemo(
     () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
     [menuItems, navConfig]
   );
-  const withJourneys = React5.useMemo(
+  const withJourneys = React6.useMemo(
     () => injectJourneyMenuItems(sortedMenuItems, journeysByModule),
     [sortedMenuItems, journeysByModule]
   );
-  const items = React5.useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
+  const items = React6.useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Layout.Sider,
     {
@@ -611,30 +663,30 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     }
   );
 };
-var AllModelsContext = React5.createContext([]);
+var AllModelsContext = React6.createContext([]);
 var AllModelsProvider = ({
   models,
   children
 }) => /* @__PURE__ */ jsxRuntime.jsx(AllModelsContext.Provider, { value: models, children });
-var useAllModels = () => React5.useContext(AllModelsContext);
+var useAllModels = () => React6.useContext(AllModelsContext);
 
 // src/hooks/useRecordSearch.ts
 var API_URL2 = "/api";
 function useRecordSearch() {
   const allSystemModels = useAllModels();
-  const [searchConfig, setSearchConfig] = React5.useState(null);
-  const [results, setResults] = React5.useState([]);
-  const [searching, setSearching] = React5.useState(false);
-  const debounceRef = React5.useRef(null);
-  const abortRef = React5.useRef(null);
-  React5.useEffect(() => {
+  const [searchConfig, setSearchConfig] = React6.useState(null);
+  const [results, setResults] = React6.useState([]);
+  const [searching, setSearching] = React6.useState(false);
+  const debounceRef = React6.useRef(null);
+  const abortRef = React6.useRef(null);
+  React6.useEffect(() => {
     authenticatedFetch(`${API_URL2}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((d) => setSearchConfig(d)).catch(() => {
     });
   }, []);
-  const searchableModels = React5.useMemo(() => {
+  const searchableModels = React6.useMemo(() => {
     if (!searchConfig) return [];
     const entityTypesLower = searchConfig.entity_types.map((e) => e.toLowerCase());
     const preferredFields = searchConfig.attribute_types;
@@ -667,7 +719,7 @@ function useRecordSearch() {
       };
     }).filter((m) => m.searchFields.length > 0);
   }, [allSystemModels, searchConfig]);
-  const search = React5.useCallback(
+  const search = React6.useCallback(
     (query) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortRef.current) abortRef.current.abort();
@@ -728,7 +780,7 @@ function useRecordSearch() {
     },
     [searchableModels]
   );
-  const clear = React5.useCallback(() => {
+  const clear = React6.useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (abortRef.current) abortRef.current.abort();
     setResults([]);
@@ -756,10 +808,10 @@ var flattenMenuItems = (items, parentLabel = "") => {
 var GlobalSearch = () => {
   const { menuItems } = core.useMenu();
   const navigate = reactRouterDom.useNavigate();
-  const [searchText, setSearchText] = React5.useState("");
+  const [searchText, setSearchText] = React6.useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
-  const searchableResources = React5.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
-  const resourceResults = React5.useMemo(() => {
+  const searchableResources = React6.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
+  const resourceResults = React6.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
     const matches = searchableResources.filter(
@@ -780,7 +832,7 @@ var GlobalSearch = () => {
       }
     ];
   }, [searchText, searchableResources]);
-  const backendGroups = React5.useMemo(
+  const backendGroups = React6.useMemo(
     () => backendResults.map((result) => ({
       label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: result.modelLabel }),
       options: result.records.map((record) => ({
@@ -791,14 +843,14 @@ var GlobalSearch = () => {
     })),
     [backendResults]
   );
-  const onSearch = React5.useCallback(
+  const onSearch = React6.useCallback(
     (value) => {
       setSearchText(value);
       search(value);
     },
     [search]
   );
-  const onSelect = React5.useCallback(
+  const onSelect = React6.useCallback(
     (value) => {
       const path = value.replace(/^(nav:|record:)/, "");
       navigate(path);
@@ -807,13 +859,13 @@ var GlobalSearch = () => {
     },
     [navigate, clear]
   );
-  const options = React5.useMemo(
+  const options = React6.useMemo(
     () => [...resourceResults, ...backendGroups],
     [resourceResults, backendGroups]
   );
-  const [focused, setFocused] = React5.useState(false);
-  const inputRef = React5.useRef(null);
-  React5.useEffect(() => {
+  const [focused, setFocused] = React6.useState(false);
+  const inputRef = React6.useRef(null);
+  React6.useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -859,9 +911,9 @@ var API_URL3 = "/api";
 
 // src/pages/dashboard/hooks/useRecentActivity.ts
 function useRecentActivity(days) {
-  const [data, setData] = React5.useState(null);
-  const [loading, setLoading] = React5.useState(true);
-  const load = React5.useCallback(async () => {
+  const [data, setData] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(true);
+  const load = React6.useCallback(async () => {
     setLoading(true);
     try {
       const params = days !== void 0 ? `?days=${days}` : "";
@@ -872,7 +924,7 @@ function useRecentActivity(days) {
       setLoading(false);
     }
   }, [days]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     load();
   }, [load]);
   return { data, loading, reload: load };
@@ -903,9 +955,9 @@ function relativeTime(iso) {
   return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString();
 }
 function usePinnedGroups() {
-  const [groups, setGroups] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(false);
-  const load = React5.useCallback(async () => {
+  const [groups, setGroups] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(false);
+  const load = React6.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
@@ -974,22 +1026,22 @@ var CommandCenterPortal = ({
 }) => {
   const { menuItems: rawMenuItems } = core.useMenu();
   const journeysByModule = useJourneyMenuItems();
-  const menuItems = React5.useMemo(
+  const menuItems = React6.useMemo(
     () => injectJourneyMenuItems(rawMenuItems, journeysByModule),
     [rawMenuItems, journeysByModule]
   );
   const go = core.useGo();
-  const searchRef = React5.useRef(null);
-  const [query, setQuery] = React5.useState("");
-  const [activeIdx, setActiveIdx] = React5.useState(-1);
-  const [colW, setColW] = React5.useState([220, 220]);
-  const colWRef = React5.useRef([220, 220]);
+  const searchRef = React6.useRef(null);
+  const [query, setQuery] = React6.useState("");
+  const [activeIdx, setActiveIdx] = React6.useState(-1);
+  const [colW, setColW] = React6.useState([220, 220]);
+  const colWRef = React6.useRef([220, 220]);
   colWRef.current = colW;
-  const dragRef = React5.useRef(null);
+  const dragRef = React6.useRef(null);
   const { results: backendResults, searching, search, clear } = useRecordSearch();
   const { groups: pinnedGroups, loading: pinnedLoading, load: loadPinned } = usePinnedGroups();
   const { data: recentData, reload: reloadRecent } = useRecentActivity(30);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (open) {
       setQuery("");
       setActiveIdx(-1);
@@ -1000,9 +1052,9 @@ var CommandCenterPortal = ({
       return () => clearTimeout(t);
     }
   }, [open, clear, loadPinned, reloadRecent]);
-  const navItemIdsRef = React5.useRef([]);
-  const activeIdxRef = React5.useRef(-1);
-  React5.useEffect(() => {
+  const navItemIdsRef = React6.useRef([]);
+  const activeIdxRef = React6.useRef(-1);
+  React6.useEffect(() => {
     if (!open) return;
     const handler = (e) => {
       if (e.key === "Escape") {
@@ -1030,33 +1082,33 @@ var CommandCenterPortal = ({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
-  const parsedCommand = React5.useMemo(() => parseCommand(query.toLowerCase().trim()), [query]);
-  React5.useEffect(() => {
+  const parsedCommand = React6.useMemo(() => parseCommand(query.toLowerCase().trim()), [query]);
+  React6.useEffect(() => {
     if (parsedCommand) {
       clear();
     } else {
       search(query.toLowerCase().trim());
     }
   }, [query, parsedCommand, search, clear]);
-  const allModelChildren = React5.useMemo(
+  const allModelChildren = React6.useMemo(
     () => menuItems.flatMap(
       (m) => (m.children || []).filter((c) => !c.meta?.hide).map((c) => ({ ...c, moduleLabel: String(m.label || m.name || "") }))
     ),
     [menuItems]
   );
-  const commandSuggestions = React5.useMemo(() => {
+  const commandSuggestions = React6.useMemo(() => {
     if (!parsedCommand) return [];
     const mq = parsedCommand.modelQuery;
     const children = mq ? allModelChildren.filter((c) => (c.label || "").toLowerCase().includes(mq) || (c.name || "").toLowerCase().includes(mq)) : allModelChildren;
     return (navConfig.length > 0 ? sortItemsByNavConfig(children, navConfig) : children).slice(0, 8);
   }, [parsedCommand, allModelChildren, navConfig]);
-  const searchPlaceholder = React5.useMemo(() => {
+  const searchPlaceholder = React6.useMemo(() => {
     const labels = allModelChildren.slice(0, 2).map((c) => String(c.label || c.name || "").toLowerCase()).filter(Boolean);
     if (labels.length === 0) return `Search modules, models, records\u2026`;
     const [a, b] = labels;
     return b && b !== a ? `Search modules, models, records\u2026 or "list ${a}", "create ${b}"` : `Search modules, models, records\u2026 or "list ${a}", "create ${a}"`;
   }, [allModelChildren]);
-  const modules = React5.useMemo(() => {
+  const modules = React6.useMemo(() => {
     const q2 = parsedCommand ? parsedCommand.modelQuery : query.toLowerCase().trim();
     const visibleModules = menuItems.filter((item) => item.children && item.children.length > 0).map((item) => ({ ...item, children: (item.children || []).filter((c) => !c.meta?.hide) })).filter((item) => item.children && item.children.length > 0);
     const sorted = navConfig.length > 0 ? sortItemsByNavConfig(visibleModules, navConfig) : visibleModules;
@@ -1070,7 +1122,7 @@ var CommandCenterPortal = ({
       return moduleMatch ? module : { ...module, children: filteredChildren };
     }).filter((m) => m !== null);
   }, [menuItems, query, parsedCommand, navConfig]);
-  const pinnedItems = React5.useMemo(
+  const pinnedItems = React6.useMemo(
     () => pinnedGroups.flatMap((g) => g.records.map((r) => ({
       resource: g.resource,
       modelName: g.model_name,
@@ -1079,7 +1131,7 @@ var CommandCenterPortal = ({
     }))),
     [pinnedGroups]
   );
-  const recentItems = React5.useMemo(() => {
+  const recentItems = React6.useMemo(() => {
     if (!recentData?.groups) return [];
     return recentData.groups.flatMap((g) => g.records.map((r) => ({
       resource: g.resource,
@@ -1090,7 +1142,7 @@ var CommandCenterPortal = ({
       isNew: Boolean(r.created_at && (!r.updated_at || r.updated_at === r.created_at))
     }))).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }, [recentData]);
-  const navItemIds = React5.useMemo(() => {
+  const navItemIds = React6.useMemo(() => {
     const ids = [];
     if (parsedCommand) {
       for (const child of commandSuggestions)
@@ -1111,10 +1163,10 @@ var CommandCenterPortal = ({
   }, [parsedCommand, commandSuggestions, query, pinnedItems, recentItems, backendResults, modules, navConfig]);
   navItemIdsRef.current = navItemIds;
   activeIdxRef.current = activeIdx;
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     setActiveIdx(-1);
   }, [navItemIds]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (activeIdx < 0) return;
     const id = navItemIds[activeIdx];
     if (id) document.querySelector(`[data-navid="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -1303,7 +1355,7 @@ var CommandCenterPortal = ({
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Pinned" }),
               pinnedLoading && /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small", style: { marginLeft: "auto" } })
             ] }),
-            pinnedItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+            pinnedItems.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: pinnedItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
               renderRow(
                 `pin-${item.resource}-${item.id}`,
@@ -1326,7 +1378,7 @@ var CommandCenterPortal = ({
               /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ClockCircleOutlined, { style: { color: "rgba(255,255,255,0.45)", fontSize: 12 } }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: SECTION_LABEL_STYLE, children: "Recent" })
             ] }),
-            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px", overflowY: "auto", maxHeight: 400 }, children: recentItems.map((item, idx) => /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
               renderRow(
                 `recent-${item.resource}-${item.id}`,
@@ -1355,7 +1407,7 @@ var CommandCenterPortal = ({
               const moduleLabel = String(module.label || module.name || "");
               const tone = getModelTone(moduleKey);
               const children = navConfig.length > 0 ? sortItemsByNavConfig(module.children || [], navConfig) : module.children || [];
-              return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+              return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
                 modIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "5px 0", borderColor: "rgba(255,255,255,0.06)" } }),
                 /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 8px 2px" }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: tone.solid, fontSize: 12, display: "flex", alignItems: "center" }, children: getItemIcon(moduleKey, moduleLabel, true) }),
@@ -1366,7 +1418,7 @@ var CommandCenterPortal = ({
                   const childLabel = String(child.label || child.name || "");
                   const childTone = getModelTone(childKey);
                   const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
-                  return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                  return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
                     idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                     /* @__PURE__ */ jsxRuntime.jsxs(
                       "div",
@@ -1418,7 +1470,7 @@ var CommandCenterPortal = ({
             const moduleLabel = child.moduleLabel || "";
             const navId = `cmd-${childKey}`;
             const active = isActive(navId);
-            return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+            return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
               idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsxRuntime.jsxs(
                 "div",
@@ -1462,13 +1514,13 @@ var CommandCenterPortal = ({
           ] }),
           backendResults.length > 0 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 10px" }, children: backendResults.map((modelResult, modelIdx) => {
             const tone = getModelTone(modelResult.resource);
-            return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+            return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
               modelIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "4px 0", borderColor: "rgba(255,255,255,0.05)" } }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { style: { color: "rgba(255,255,255,0.35)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em", display: "block", padding: "4px 10px 2px" }, children: modelResult.modelLabel }),
               modelResult.records.map((record, recIdx) => {
                 const navId = `record-${modelResult.resource}-${record.id}`;
                 const active = isActive(navId);
-                return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
                   recIdx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.04)" } }),
                   /* @__PURE__ */ jsxRuntime.jsxs(
                     "div",
@@ -1550,7 +1602,7 @@ var CommandCenterPortal = ({
                 const childLabel = String(child.label || child.name || "");
                 const childTone = getModelTone(childKey);
                 const childIcon = getItemIcon(childKey, childLabel, false, child.icon);
-                return /* @__PURE__ */ jsxRuntime.jsxs(React5__default.default.Fragment, { children: [
+                return /* @__PURE__ */ jsxRuntime.jsxs(React6__default.default.Fragment, { children: [
                   idx > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "2px 0", borderColor: "rgba(255,255,255,0.05)" } }),
                   /* @__PURE__ */ jsxRuntime.jsxs(
                     "div",
@@ -1584,8 +1636,8 @@ var CommandCenterPortal = ({
     }
   ) });
 };
-var NavConfigContext = React5.createContext([]);
-var useNavConfig = () => React5.useContext(NavConfigContext);
+var NavConfigContext = React6.createContext([]);
+var useNavConfig = () => React6.useContext(NavConfigContext);
 function useNavModules() {
   const navConfig = useNavConfig();
   return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
@@ -1630,24 +1682,24 @@ var LayoutWrapper = ({
   extraUserMenuItems = [],
   navConfig = []
 }) => {
-  const [layoutMode, setLayoutMode] = React5.useState(
+  const [layoutMode, setLayoutMode] = React6.useState(
     () => localStorage.getItem("layoutMode") || "vertical"
   );
   const screens = antd.Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const { mode, setMode } = React5.useContext(ColorModeContext);
+  const { mode, setMode } = React6.useContext(ColorModeContext);
   const { token } = antd.theme.useToken();
   const { data: identity } = core.useGetIdentity();
   const { mutate: logout } = core.useLogout();
   core.useGo();
   const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
-  const [siderCollapsed, setSiderCollapsed] = React5.useState(() => localStorage.getItem("siderCollapsed") === "true");
-  const [pwdModalOpen, setPwdModalOpen] = React5.useState(false);
-  const [pwdLoading, setPwdLoading] = React5.useState(false);
+  const [siderCollapsed, setSiderCollapsed] = React6.useState(() => localStorage.getItem("siderCollapsed") === "true");
+  const [pwdModalOpen, setPwdModalOpen] = React6.useState(false);
+  const [pwdLoading, setPwdLoading] = React6.useState(false);
   const [pwdForm] = antd.Form.useForm();
-  const [drawerOpen, setDrawerOpen] = React5.useState(false);
-  const [portalOpen, setPortalOpen] = React5.useState(false);
-  React5.useEffect(() => {
+  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const [portalOpen, setPortalOpen] = React6.useState(false);
+  React6.useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
         e.preventDefault();
@@ -1833,8 +1885,8 @@ var LayoutWrapper = ({
   ] });
 };
 var PANE_TOOLBAR_HEIGHT = 28;
-var PaneNavigationContext = React5.createContext(null);
-var usePaneNavigation = () => React5.useContext(PaneNavigationContext);
+var PaneNavigationContext = React6.createContext(null);
+var usePaneNavigation = () => React6.useContext(PaneNavigationContext);
 function gt(e, t) {
   const n = getComputedStyle(e), o = parseFloat(n.fontSize);
   return t * o;
@@ -3350,19 +3402,19 @@ function Vt(e) {
   };
 }
 function Bt() {
-  const [e, t] = React5.useState({}), n = React5.useCallback(() => t({}), []);
+  const [e, t] = React6.useState({}), n = React6.useCallback(() => t({}), []);
   return [e, n];
 }
 function Le(e) {
-  const t = React5.useId();
+  const t = React6.useId();
   return `${e ?? t}`;
 }
-var q = typeof window < "u" ? React5.useLayoutEffect : React5.useEffect;
+var q = typeof window < "u" ? React6.useLayoutEffect : React6.useEffect;
 function se(e) {
-  const t = React5.useRef(e);
+  const t = React6.useRef(e);
   return q(() => {
     t.current = e;
-  }, [e]), React5.useCallback(
+  }, [e]), React6.useCallback(
     (...n) => t.current?.(...n),
     [t]
   );
@@ -3385,19 +3437,19 @@ function Ce(...e) {
   });
 }
 function Re(e) {
-  const t = React5.useRef({ ...e });
+  const t = React6.useRef({ ...e });
   return q(() => {
     for (const n in e)
       t.current[n] = e[n];
   }, [e]), t.current;
 }
-var lt = React5.createContext(null);
+var lt = React6.createContext(null);
 function Wt(e, t) {
-  const n = React5.useRef({
+  const n = React6.useRef({
     getLayout: () => ({}),
     setLayout: Ft
   });
-  React5.useImperativeHandle(t, () => n.current, []), q(() => {
+  React6.useImperativeHandle(t, () => n.current, []), q(() => {
     Object.assign(
       n.current,
       nt({ groupId: e })
@@ -3423,14 +3475,14 @@ function Ut({
   style: d,
   ...S
 }) {
-  const z = React5.useRef({
+  const z = React6.useRef({
     onLayoutChange: {},
     onLayoutChanged: {}
   }), c = se((x) => {
     W(z.current.onLayoutChange, x) || (z.current.onLayoutChange = x, s?.(x));
   }), p = se((x) => {
     W(z.current.onLayoutChanged, x) || (z.current.onLayoutChanged = x, l?.(x));
-  }), m = Le(a), v = React5.useRef(null), [b, y] = Bt(), g = React5.useRef({
+  }), m = Le(a), v = React6.useRef(null), [b, y] = Bt(), g = React6.useRef({
     lastExpandedPanelSizes: {},
     layouts: {},
     panels: [],
@@ -3464,7 +3516,7 @@ function Ut({
   ), w = Re({
     defaultLayout: n,
     disableCursor: o
-  }), G = React5.useMemo(
+  }), G = React6.useMemo(
     () => ({
       get disableCursor() {
         return !!w.disableCursor;
@@ -3516,7 +3568,7 @@ function Ut({
       }
     }),
     [M, m, y, u, w]
-  ), N = React5.useRef(null);
+  ), N = React6.useRef(null);
   return q(() => {
     const x = v.current;
     if (x === null)
@@ -3582,7 +3634,7 @@ function Ut({
     u,
     b,
     w
-  ]), React5.useEffect(() => {
+  ]), React6.useEffect(() => {
     const x = N.current;
     x && (x.mutableState.defaultLayout = n, x.mutableState.disableCursor = !!o);
   }), /* @__PURE__ */ jsxRuntime.jsx(lt.Provider, { value: G, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -3614,14 +3666,14 @@ function Ut({
 }
 Ut.displayName = "Group";
 function Me() {
-  const e = React5.useContext(lt);
+  const e = React6.useContext(lt);
   return C(
     e,
     "Group Context not found; did you render a Panel or Separator outside of a Group?"
   ), e;
 }
 function qt(e, t) {
-  const { id: n } = Me(), o = React5.useRef({
+  const { id: n } = Me(), o = React6.useRef({
     collapse: ye,
     expand: ye,
     getSize: () => ({
@@ -3631,7 +3683,7 @@ function qt(e, t) {
     isCollapsed: () => false,
     resize: ye
   });
-  React5.useImperativeHandle(t, () => o.current, []), q(() => {
+  React6.useImperativeHandle(t, () => o.current, []), q(() => {
     Object.assign(
       o.current,
       tt({ groupId: n, panelId: e })
@@ -3657,7 +3709,7 @@ function Yt({
 }) {
   const c = !!s, p = Le(s), m = Re({
     disabled: r
-  }), v = React5.useRef(null), b = Ce(v, f), {
+  }), v = React6.useRef(null), b = Ce(v, f), {
     getPanelStyles: y,
     id: g,
     orientation: P,
@@ -3705,14 +3757,14 @@ function Yt({
     N,
     M,
     m
-  ]), React5.useEffect(() => {
+  ]), React6.useEffect(() => {
     w(p, { disabled: r });
   }, [r, p, w]), qt(p, d);
   const x = () => {
     const R = y(g, p);
     if (R)
       return JSON.stringify(R);
-  }, L = React5.useSyncExternalStore(
+  }, L = React6.useSyncExternalStore(
     (R) => ze(g, R),
     x,
     x
@@ -3826,7 +3878,7 @@ function Qt({
   const s = Le(r), l = Re({
     disabled: n,
     disableDoubleClick: o
-  }), [u, h] = React5.useState({}), [d, S] = React5.useState("inactive"), [z, c] = React5.useState(false), p = React5.useRef(null), m = Ce(p, i), {
+  }), [u, h] = React6.useState({}), [d, S] = React6.useState("inactive"), [z, c] = React6.useState(false), p = React6.useRef(null), m = Ce(p, i), {
     disableCursor: v,
     id: b,
     orientation: y,
@@ -3870,7 +3922,7 @@ function Qt({
         k(), R(), L();
       };
     }
-  }, [b, s, g, l]), React5.useEffect(() => {
+  }, [b, s, g, l]), React6.useEffect(() => {
     P(s, { disabled: n, disableDoubleClick: o });
   }, [n, o, s, P]);
   let w;
@@ -3924,10 +3976,10 @@ Qt.displayName = "Separator";
 var _3 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
-  const [narrow, setNarrow] = React5.useState(
+  const [narrow, setNarrow] = React6.useState(
     () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
   );
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const handler = () => setNarrow(window.innerWidth < breakpoint);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
@@ -3950,8 +4002,8 @@ var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsxRuntime
 var VerticalActionsLayout = ({ position, onBarMount, children }) => {
   const { token } = antd.theme.useToken();
   const narrow = useIsNarrow();
-  const [drawerOpen, setDrawerOpen] = React5.useState(false);
-  const mountRef = React5.useCallback(
+  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const mountRef = React6.useCallback(
     (el) => onBarMount(el),
     [onBarMount]
   );
@@ -4280,9 +4332,9 @@ var splitRelations = (relations = []) => {
 };
 var useViewConfigurations = (modelName, viewType) => {
   const apiUrl = core.useApiUrl();
-  const [rows, setRows] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(!!modelName);
-  React5.useEffect(() => {
+  const [rows, setRows] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(!!modelName);
+  React6.useEffect(() => {
     if (!modelName) {
       setLoading(false);
       return;
@@ -4318,9 +4370,9 @@ var normalizeActionsPosition = (raw) => {
 };
 var useViewSettings = () => {
   const apiUrl = core.useApiUrl();
-  const [settings, setSettings] = React5.useState(null);
-  const [loading, setLoading] = React5.useState(true);
-  React5.useEffect(() => {
+  const [settings, setSettings] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(true);
+  React6.useEffect(() => {
     let cancelled = false;
     const fetchSettings = async () => {
       try {
@@ -4675,7 +4727,7 @@ var extractButtonLabel = (node) => {
     }
     return null;
   }
-  if (React5__default.default.isValidElement(node)) {
+  if (React6__default.default.isValidElement(node)) {
     return extractButtonLabel(node.props?.children);
   }
   return null;
@@ -4692,14 +4744,14 @@ var renderIconOnlyButtons = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React5__default.default.isValidElement(node)) return node;
+    if (!React6__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     if (componentName === "RefreshButton") return null;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     const nodeProps = node.props;
     if (fallbackLabel) {
       const label = extractButtonLabel(nodeProps?.children) || fallbackLabel;
-      const element = React5__default.default.cloneElement(node, {
+      const element = React6__default.default.cloneElement(node, {
         ...nodeProps,
         hideText: true,
         children: null
@@ -4710,7 +4762,7 @@ var renderIconOnlyButtons = (nodes) => {
     if (nodeProps?.icon) {
       const label = extractButtonLabel(nodeProps?.children);
       if (label) {
-        const element = React5__default.default.cloneElement(node, {
+        const element = React6__default.default.cloneElement(node, {
           ...nodeProps,
           children: null
         });
@@ -4718,15 +4770,15 @@ var renderIconOnlyButtons = (nodes) => {
       }
     }
     if (nodeProps?.children) {
-      const mappedChildren = React5__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React5__default.default.cloneElement(node, {
+      const mappedChildren = React6__default.default.Children.map(nodeProps.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React6__default.default.cloneElement(node, {
         ...nodeProps,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React5__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React6__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var ResponsiveHeaderButtons = ({ children }) => {
   const screens = antd.Grid.useBreakpoint();
@@ -4777,7 +4829,7 @@ var extractButtonLabel2 = (node) => {
     }
     return null;
   }
-  if (React5__default.default.isValidElement(node)) {
+  if (React6__default.default.isValidElement(node)) {
     return extractButtonLabel2(node.props?.children);
   }
   return null;
@@ -4795,12 +4847,12 @@ var renderIconOnlyButtons2 = (nodes) => {
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
     if (Array.isArray(node)) return node.map((child, childIndex) => enhanceNode(child, childIndex));
-    if (!React5__default.default.isValidElement(node)) return node;
+    if (!React6__default.default.isValidElement(node)) return node;
     const componentName = node.type?.displayName || node.type?.name;
     const fallbackLabel = componentName ? fallbackLabels[componentName] : null;
     if (fallbackLabel) {
       const label = extractButtonLabel2(node.props?.children) || fallbackLabel;
-      const element = React5__default.default.cloneElement(node, {
+      const element = React6__default.default.cloneElement(node, {
         ...node.props,
         hideText: true,
         children: null
@@ -4811,7 +4863,7 @@ var renderIconOnlyButtons2 = (nodes) => {
     if (node.props?.icon) {
       const label = extractButtonLabel2(node.props?.children);
       if (label) {
-        const element = React5__default.default.cloneElement(node, {
+        const element = React6__default.default.cloneElement(node, {
           ...node.props,
           children: null
         });
@@ -4819,15 +4871,15 @@ var renderIconOnlyButtons2 = (nodes) => {
       }
     }
     if (node.props?.children) {
-      const mappedChildren = React5__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
-      return React5__default.default.cloneElement(node, {
+      const mappedChildren = React6__default.default.Children.map(node.props.children, (child, childIndex) => enhanceNode(child, childIndex));
+      return React6__default.default.cloneElement(node, {
         ...node.props,
         children: mappedChildren
       });
     }
     return node;
   };
-  return React5__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
+  return React6__default.default.Children.map(nodes, (child, index) => enhanceNode(child, index));
 };
 var renderStandardShowHeaderButtons = ({
   listButtonProps,
@@ -4848,8 +4900,8 @@ var useActionsWrapping = (headerButtons) => {
   const isInMultiPane = Boolean(paneNav);
   const isDetailPane = Boolean(paneNav && paneNav.paneIndex > 0);
   const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
-  const [verticalBarEl, setVerticalBarEl] = React5.useState(null);
-  const [topRightEl, setTopRightEl] = React5.useState(null);
+  const [verticalBarEl, setVerticalBarEl] = React6.useState(null);
+  const [topRightEl, setTopRightEl] = React6.useState(null);
   const wrappedHeaderButtons = (ctx) => {
     const raw = typeof headerButtons === "function" ? headerButtons(ctx) : headerButtons;
     if (actionsPosition === "top-right") {
@@ -4955,7 +5007,7 @@ var StandardCreate = ({ headerButtons, ...props }) => {
   ] });
 };
 function useKeyboardShortcuts(shortcuts) {
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const handler = (e) => {
       for (const shortcut of shortcuts) {
         const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -4991,7 +5043,7 @@ var wrappedPageTitleStyle2 = {
 };
 var renderWrappedPageTitle = (title) => {
   if (title === null || title === void 0 || title === false) return title;
-  return React5__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
+  return React6__default.default.createElement("div", { style: wrappedPageTitleStyle2 }, title);
 };
 var numberFormatter = new Intl.NumberFormat(void 0, { maximumFractionDigits: 0 });
 var decimalFormatter = new Intl.NumberFormat(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -5109,8 +5161,8 @@ var getSortPriority = (columnSort, fieldKey) => {
 };
 var _TOKEN_KEY = "jm_access_token";
 function useAuthenticatedFileUrl(rawUrl) {
-  const [src, setSrc] = React5.useState("");
-  React5.useEffect(() => {
+  const [src, setSrc] = React6.useState("");
+  React6.useEffect(() => {
     if (!rawUrl) {
       setSrc("");
       return;
@@ -5571,7 +5623,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (onLabel && !isLoading && label !== void 0 && label !== null) {
       onLabel(String(label));
     }
@@ -5598,8 +5650,8 @@ var ReferenceField = ({ id, resource, onLabel }) => {
 };
 dayjs9__default.default.extend(relativeTime2__default.default);
 var _8 = window._ || ((text) => text);
-var ReactMarkdown = React5.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var QRCodeSVG = React5.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
+var ReactMarkdown = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor(totalSeconds % 3600 / 60);
@@ -5635,7 +5687,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
         }
       );
     case "read-only-markdown":
-      return /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: str }) });
     case "read-only-json": {
       let formatted = str;
       try {
@@ -5682,7 +5734,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-image-url":
       return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
     case "read-only-qrcode":
-      return /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
+      return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
       const parsed = dayjs9__default.default(str);
       if (!parsed.isValid()) return str || "-";
@@ -5756,23 +5808,23 @@ var CrosstabTable = ({
   editable
 }) => {
   const { token } = antd.theme.useToken();
-  const modelField = React5.useCallback(
+  const modelField = React6.useCallback(
     (key) => key ? allFields.find((field) => field.key === key) : void 0,
     [allFields]
   );
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
-  const seriesLabel = React5.useCallback(
+  const seriesLabel = React6.useCallback(
     (seriesKey) => {
       if (seriesKey === COUNT_KEY) return _9("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
   );
-  const recordId = React5.useCallback(
+  const recordId = React6.useCallback(
     (record) => record?.[editable?.pkField || "eid"] ?? record?.eid ?? record?.id,
     [editable?.pkField]
   );
-  const effectiveValue = React5.useCallback(
+  const effectiveValue = React6.useCallback(
     (record, fieldKey) => {
       if (fieldKey === COUNT_KEY) return 1;
       const staged = editable?.getStagedValue?.(recordId(record), fieldKey);
@@ -5783,7 +5835,7 @@ var CrosstabTable = ({
     },
     [editable, recordId]
   );
-  const summarize = React5.useCallback(
+  const summarize = React6.useCallback(
     (values) => {
       if (values.length === 0) return 0;
       switch (summaryFn) {
@@ -5811,7 +5863,7 @@ var CrosstabTable = ({
   const rowFieldDef = modelField(rowField);
   const hasColDimension = Boolean(colField);
   const hasRowDimension = Boolean(rowField);
-  const pivot = React5.useMemo(() => {
+  const pivot = React6.useMemo(() => {
     const rowLabels2 = [];
     const colLabels2 = [];
     const cellRecords2 = /* @__PURE__ */ new Map();
@@ -5831,32 +5883,32 @@ var CrosstabTable = ({
     return { rowLabels: rowLabels2, colLabels: colLabels2, cellRecords: cellRecords2 };
   }, [rows, rowFieldDef, colFieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys]);
   const { rowLabels, colLabels, cellRecords } = pivot;
-  const isAggregatedField = React5.useCallback((seriesKey) => {
+  const isAggregatedField = React6.useCallback((seriesKey) => {
     if (seriesKey === COUNT_KEY) return true;
     const field = modelField(seriesKey);
     return Boolean(field && field.type === "number" && !field.reference);
   }, [modelField]);
-  const cellAllRecords = React5.useCallback(
+  const cellAllRecords = React6.useCallback(
     (rowLabel, colLabel, seriesKey) => {
       return cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
     },
     [cellRecords]
   );
-  const contributingRecords = React5.useCallback(
+  const contributingRecords = React6.useCallback(
     (rowLabel, colLabel, seriesKey) => {
       const records = cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
       return records.filter((rec) => effectiveValue(rec, seriesKey) !== null);
     },
     [cellRecords, effectiveValue]
   );
-  const cellAggregate = React5.useCallback(
+  const cellAggregate = React6.useCallback(
     (rowLabel, colLabel, seriesKey) => {
       const values = contributingRecords(rowLabel, colLabel, seriesKey).map((rec) => effectiveValue(rec, seriesKey));
       return values.length > 0 ? summarize(values) : null;
     },
     [contributingRecords, effectiveValue, summarize]
   );
-  const seriesMaxes = React5.useMemo(() => {
+  const seriesMaxes = React6.useMemo(() => {
     return activeSeriesKeys.reduce((acc, seriesKey) => {
       let maxForSeries = 0;
       rowLabels.forEach((rowLabel) => {
@@ -5869,10 +5921,10 @@ var CrosstabTable = ({
       return acc;
     }, {});
   }, [activeSeriesKeys, rowLabels, colLabels, cellAggregate]);
-  const inputRefs = React5.useRef(/* @__PURE__ */ new Map());
+  const inputRefs = React6.useRef(/* @__PURE__ */ new Map());
   const cellAddr = (r, c) => `${r}:${c}`;
   const editableColumns = colLabels.length * activeSeriesKeys.length;
-  const focusCell = React5.useCallback((r, c) => {
+  const focusCell = React6.useCallback((r, c) => {
     if (r < 0 || c < 0 || r >= rowLabels.length || c >= editableColumns) return;
     const el = inputRefs.current.get(cellAddr(r, c));
     if (el) {
@@ -5880,7 +5932,7 @@ var CrosstabTable = ({
       el.select?.();
     }
   }, [rowLabels.length, editableColumns]);
-  const isSeriesEditable = React5.useCallback(
+  const isSeriesEditable = React6.useCallback(
     (rowLabel, colLabel, seriesKey) => {
       if (!editable || seriesKey === COUNT_KEY || !isAggregatedField(seriesKey)) return false;
       const n = contributingRecords(rowLabel, colLabel, seriesKey).length;
@@ -5890,7 +5942,7 @@ var CrosstabTable = ({
     },
     [editable, contributingRecords, summaryFn, isAggregatedField]
   );
-  const computeProration = React5.useCallback(
+  const computeProration = React6.useCallback(
     (records, seriesKey, newAggregate) => {
       const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
       const n = records.length;
@@ -5922,7 +5974,7 @@ var CrosstabTable = ({
     },
     [recordId, effectiveValue, summaryFn]
   );
-  const commitCellEdit = React5.useCallback(
+  const commitCellEdit = React6.useCallback(
     (rowLabel, colLabel, seriesKey, newAggregate) => {
       if (!editable || newAggregate === null || Number.isNaN(newAggregate)) return;
       const records = contributingRecords(rowLabel, colLabel, seriesKey);
@@ -7378,25 +7430,25 @@ var ExecutableHtml = ({
   inheritTabRowBackground = false,
   fontSizeOverride
 }) => {
-  const htmlRef = React5.useRef(null);
-  const iframeRef = React5.useRef(null);
-  const observerRef = React5.useRef(null);
-  const appendedChunksRef = React5.useRef(0);
-  const scriptIdRef = React5.useRef(0);
-  const syncHeightTimerRef = React5.useRef(null);
-  const lastSetHeightRef = React5.useRef(0);
-  const [fontFamily, setFontFamily] = React5.useState("Arial, sans-serif");
-  const [fontSize, setFontSize] = React5.useState("14px");
-  const [lineHeight, setLineHeight] = React5.useState("1.5715");
-  const [tabRowBackground, setTabRowBackground] = React5.useState("#fafafa");
-  const { mode: colorMode } = React5.useContext(ColorModeContext);
+  const htmlRef = React6.useRef(null);
+  const iframeRef = React6.useRef(null);
+  const observerRef = React6.useRef(null);
+  const appendedChunksRef = React6.useRef(0);
+  const scriptIdRef = React6.useRef(0);
+  const syncHeightTimerRef = React6.useRef(null);
+  const lastSetHeightRef = React6.useRef(0);
+  const [fontFamily, setFontFamily] = React6.useState("Arial, sans-serif");
+  const [fontSize, setFontSize] = React6.useState("14px");
+  const [lineHeight, setLineHeight] = React6.useState("1.5715");
+  const [tabRowBackground, setTabRowBackground] = React6.useState("#fafafa");
+  const { mode: colorMode } = React6.useContext(ColorModeContext);
   const isDark = colorMode === "dark";
-  React5.useRef(performance.now());
-  const instanceId = React5.useRef(Math.random().toString(36).slice(2, 6));
-  const htmlRefForEffect = React5.useRef(html);
+  React6.useRef(performance.now());
+  const instanceId = React6.useRef(Math.random().toString(36).slice(2, 6));
+  const htmlRefForEffect = React6.useRef(html);
   htmlRefForEffect.current = html;
   traceLog("ExecutableHtml", `[${instanceId.current}] mount mode=${mode} title=${title} htmlLen=${(html || "").length}`);
-  const executeScriptNodesSequentially = React5.useCallback(async (doc, scriptNodes, isCancelled) => {
+  const executeScriptNodesSequentially = React6.useCallback(async (doc, scriptNodes, isCancelled) => {
     for (const oldScript of scriptNodes) {
       if (isCancelled?.()) return;
       const newScript = doc.createElement("script");
@@ -7418,7 +7470,7 @@ var ExecutableHtml = ({
       });
     }
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (mode !== "inline") return;
     const container = htmlRef.current;
     if (!container || !html) return;
@@ -7429,7 +7481,7 @@ var ExecutableHtml = ({
       cancelled = true;
     };
   }, [html, mode, executeScriptNodesSequentially]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (mode !== "iframe") return;
     if (!inheritTypography && !inheritTabRowBackground) return;
     if (typeof window === "undefined") return;
@@ -7455,7 +7507,7 @@ var ExecutableHtml = ({
       if (resolvedBg) setTabRowBackground(resolvedBg);
     }
   }, [inheritTabRowBackground, inheritTypography, mode]);
-  const htmlShell = React5.useMemo(() => `<!doctype html>
+  const htmlShell = React6.useMemo(() => `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -7486,7 +7538,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 </head>
 <body></body>
 </html>`, [fontFamily, fontSize, lineHeight, tabRowBackground, isDark]);
-  const syncHeight = React5.useCallback(() => {
+  const syncHeight = React6.useCallback(() => {
     if (syncHeightTimerRef.current) clearTimeout(syncHeightTimerRef.current);
     syncHeightTimerRef.current = setTimeout(() => {
       syncHeightTimerRef.current = null;
@@ -7504,7 +7556,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.style.height = `${nextHeight}px`;
     }, 100);
   }, [minHeight]);
-  const appendHtmlChunk = React5.useCallback(async (chunk) => {
+  const appendHtmlChunk = React6.useCallback(async (chunk) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc || !doc.body || !chunk) return false;
     const host = doc.createElement("div");
@@ -7525,7 +7577,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
     syncHeight();
     return true;
   }, [syncHeight, executeScriptNodesSequentially]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (mode !== "iframe") return;
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -7568,7 +7620,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       iframe.removeEventListener("load", onLoad);
     };
   }, [htmlShell, resetToken, appendHtmlChunk, syncHeight, mode]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (mode !== "iframe") return;
     if (!htmlChunks || htmlChunks.length <= appendedChunksRef.current) return;
     const nextChunks = htmlChunks.slice(appendedChunksRef.current);
@@ -7580,14 +7632,14 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
       appendedChunksRef.current += appendedCount;
     })();
   }, [htmlChunks, appendHtmlChunk, mode]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
       observerRef.current = null;
       if (syncHeightTimerRef.current) clearTimeout(syncHeightTimerRef.current);
     };
   }, []);
-  const inlineHtml = React5.useMemo(
+  const inlineHtml = React6.useMemo(
     () => (html || "").replace(
       /<script\b[^>]*\bsrc=["']?[^"'>]*cdn\.plot\.ly[^"'>]*["']?[^>]*><\/script>/gi,
       ""
@@ -7671,23 +7723,23 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   const apiUrl = core.useApiUrl();
   const tone = useModelTone(model);
   const modelLabel = getModelLabel(model);
-  const [nestedModel, setNestedModel] = React5.useState(null);
-  const [activeTab, setActiveTab] = React5.useState("fields");
-  const [graphHtml, setGraphHtml] = React5.useState(null);
-  const [graphLoading, setGraphLoading] = React5.useState(false);
-  const [graphError, setGraphError] = React5.useState(null);
-  React5.useEffect(() => {
+  const [nestedModel, setNestedModel] = React6.useState(null);
+  const [activeTab, setActiveTab] = React6.useState("fields");
+  const [graphHtml, setGraphHtml] = React6.useState(null);
+  const [graphLoading, setGraphLoading] = React6.useState(false);
+  const [graphError, setGraphError] = React6.useState(null);
+  React6.useEffect(() => {
     setGraphHtml(null);
     setGraphError(null);
   }, [model.name]);
-  const findRelatedModel = React5.useCallback((name) => {
+  const findRelatedModel = React6.useCallback((name) => {
     if (!name || !allModels) return void 0;
     const lower = name.toLowerCase();
     return allModels.find(
       (m) => (m.name || "").toLowerCase() === lower || (m.resource || "").toLowerCase() === lower
     );
   }, [allModels]);
-  const loadGraph = React5.useCallback(async () => {
+  const loadGraph = React6.useCallback(async () => {
     if (graphHtml !== null || graphLoading) return;
     setGraphLoading(true);
     setGraphError(null);
@@ -7723,13 +7775,13 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       setGraphLoading(false);
     }
   }, [apiUrl, model, modelLabel, graphHtml, graphLoading, findRelatedModel]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (activeTab === "knowledge_graph") {
       loadGraph();
     }
   }, [activeTab, loadGraph]);
   const navigate = reactRouterDom.useNavigate();
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const handler = (e) => {
       if (e.data?.action === "metadata_graph_navigate" && e.data?.url) {
         onClose();
@@ -7969,7 +8021,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
 };
 var _13 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels) => {
-  const [metadataOpen, setMetadataOpen] = React5.useState(false);
+  const [metadataOpen, setMetadataOpen] = React6.useState(false);
   const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _13("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
@@ -7989,7 +8041,7 @@ var useShowEditableForm = (resource, id) => {
   });
   const record = queryResult?.data?.data;
   const recordId = record?.eid ?? record?.id ?? id;
-  useKeyboardShortcuts(React5.useMemo(() => [
+  useKeyboardShortcuts(React6.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => navigate(-1) }
   ], [formProps?.form, navigate]));
@@ -8057,7 +8109,7 @@ var renderModelHeading = ({
         paddingLeft: 10,
         paddingRight: 10
       },
-      children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, fontSize: 16, fontWeight: 700, color: tone.solid, padding: "2px 8px" }, children: title })
+      children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, fontSize: 18, fontWeight: 700, color: tone.solid, padding: "2px 8px" }, children: title })
     }
   );
 };
@@ -8198,14 +8250,14 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = core.useApiUrl();
   const go = core.useGo();
   const paneNav = usePaneNavigation();
-  const [reverseTreeData, setReverseTreeData] = React5.useState([]);
-  const [forwardTreeData, setForwardTreeData] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(true);
+  const [reverseTreeData, setReverseTreeData] = React6.useState([]);
+  const [forwardTreeData, setForwardTreeData] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(true);
   const isReverse = (rel) => {
     if (rel.relationName && rel.relationName.endsWith("_reverse")) return true;
     return !rel.otherResource;
   };
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!isActive) {
       setLoading(false);
       return;
@@ -8375,9 +8427,9 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   ] });
 };
 function usePinRecord(resource, recordId) {
-  const [pinned, setPinned] = React5.useState(null);
-  const [loading, setLoading] = React5.useState(false);
-  React5.useEffect(() => {
+  const [pinned, setPinned] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(false);
+  React6.useEffect(() => {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
@@ -8391,7 +8443,7 @@ function usePinRecord(resource, recordId) {
       cancelled = true;
     };
   }, [resource, recordId]);
-  const pin = React5.useCallback(async () => {
+  const pin = React6.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
@@ -8405,7 +8457,7 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const unpin = React5.useCallback(async () => {
+  const unpin = React6.useCallback(async () => {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
@@ -8418,7 +8470,7 @@ function usePinRecord(resource, recordId) {
       setLoading(false);
     }
   }, [resource, recordId]);
-  const toggle = React5.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
+  const toggle = React6.useCallback(() => pinned ? unpin() : pin(), [pinned, pin, unpin]);
   return { pinned, loading, pin, unpin, toggle };
 }
 async function unpinRecords(resource, recordIds) {
@@ -8434,17 +8486,17 @@ async function unpinRecords(resource, recordIds) {
 var _17 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef) => {
   const apiUrl = core.useApiUrl();
-  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
-  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React5.useState(false);
-  const actionsPrefsTouchedRef = React5.useRef(false);
-  const actionsPrefsLoadedRef = React5.useRef(false);
-  const actionsPrefsResourceRef = React5.useRef(null);
-  const markActionsPrefsTouched = React5.useCallback(() => {
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_SHOW_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React6.useState(false);
+  const actionsPrefsTouchedRef = React6.useRef(false);
+  const actionsPrefsLoadedRef = React6.useRef(false);
+  const actionsPrefsResourceRef = React6.useRef(null);
+  const markActionsPrefsTouched = React6.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React5.useCallback(async () => {
+  const saveActionsPreferences = React6.useCallback(async () => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -8467,7 +8519,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey) {
       actionsPrefsLoadedRef.current = false;
@@ -8552,7 +8604,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const resource = model.resource || model.name;
   const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const [exploreOpen, setExploreOpen] = React5.useState(false);
+  const [exploreOpen, setExploreOpen] = React6.useState(false);
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     metadataButton,
     metadataModal,
@@ -8589,7 +8641,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
     headerButtons
   };
 };
-var PrimaryShowContext = React5__default.default.createContext(null);
+var PrimaryShowContext = React6__default.default.createContext(null);
 
 // src/components/DynamicResource/utils/columnFilters.ts
 var truncateLabel = (s) => s.length > 15 ? s.substring(0, 15) + "\u2026" : s;
@@ -8812,8 +8864,8 @@ function filterFieldsByRole(fields, userRoles) {
   });
 }
 function useRoleFilteredModel(model) {
-  const userRoles = React5.useMemo(() => getCurrentUserRoles(), []);
-  return React5.useMemo(() => {
+  const userRoles = React6.useMemo(() => getCurrentUserRoles(), []);
+  return React6.useMemo(() => {
     const filtered = filterFieldsByRole(model.fields, userRoles);
     if (filtered.length === model.fields.length) return model;
     return { ...model, fields: filtered };
@@ -8824,7 +8876,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
-  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
   const modelTone = useModelTone(model);
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
   const { id: routeId } = reactRouterDom.useParams();
@@ -8832,9 +8884,9 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
   const pageTitle = record?._label ? asDisplayText(record._label, `${_19("Show")} ${modelDisplayLabel}`) : `${_19("Show")} ${modelDisplayLabel}`;
-  const saveLayoutRef = React5.useRef(() => {
+  const saveLayoutRef = React6.useRef(() => {
   });
-  const configureLayoutButtonRef = React5.useRef(null);
+  const configureLayoutButtonRef = React6.useRef(null);
   const wrappedSaveButtonProps = saveButtonProps ? {
     ...saveButtonProps,
     onClick: (e) => {
@@ -8845,7 +8897,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   const { data: canLayoutData } = core.useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
-  const [activeTabKey, setActiveTabKey] = React5.useState("details");
+  const [activeTabKey, setActiveTabKey] = React6.useState("details");
   const { tabs: items, layoutConfig } = useStandardShowTabs(
     model,
     record,
@@ -8866,12 +8918,12 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
       }
     )
   ] }) : null;
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "details");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React5.useMemo(
+  const lazyItems = React6.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -8934,7 +8986,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const resolvedResource = resourceName && allModels ? resolveResourcePath(resourceName, allModels) : resourceName;
   const referencedModel = resourceName ? findModelByName(allModels, resourceName) : void 0;
   const resolvedOptionValue = field.optionValue || referencedModel?.pkField || "eid";
-  const [loadAll, setLoadAll] = React5__default.default.useState(false);
+  const [loadAll, setLoadAll] = React6__default.default.useState(false);
   const pageSize = loadAll ? 999999 : RELATION_SELECT_DEFAULT_PAGE_SIZE;
   const { selectProps, queryResult } = antd$1.useSelect({
     resource: resolvedResource,
@@ -8951,8 +9003,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
   const normalizeSearch = (val) => String(val ?? "").toLowerCase();
-  const selectedSet = React5__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
-  const [searchValue, setSearchValue] = React5__default.default.useState("");
+  const selectedSet = React6__default.default.useMemo(() => new Set(Array.isArray(value) ? value : value !== void 0 && value !== null ? [value] : []), [value]);
+  const [searchValue, setSearchValue] = React6__default.default.useState("");
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Select,
@@ -8999,8 +9051,8 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
 var _21 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = antd.Form.useFormInstance();
-  const [uploading, setUploading] = React5.useState(false);
-  const [fileName, setFileName] = React5.useState(null);
+  const [uploading, setUploading] = React6.useState(false);
+  const [fileName, setFileName] = React6.useState(null);
   const currentDataName = antd.Form.useWatch("data_name", form);
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
@@ -9066,9 +9118,9 @@ var AsyncSelectInput = ({
   onChange
 }) => {
   const apiUrl = core.useApiUrl();
-  const [options, setOptions] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(false);
-  React5.useEffect(() => {
+  const [options, setOptions] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(false);
+  React6.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const fetchOptions = async () => {
@@ -9125,9 +9177,9 @@ var AsyncSelectInput = ({
   );
 };
 var _23 = window._ || ((text) => text);
-var ReactMarkdown2 = React5.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
-  const [activeTab, setActiveTab] = React5.useState("edit");
+  const [activeTab, setActiveTab] = React6.useState("edit");
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Tabs,
     {
@@ -9152,14 +9204,14 @@ var MarkdownEditor = ({ value = "", onChange }) => {
         {
           key: "preview",
           label: _23("Preview"),
-          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React5.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
+          children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown2, { children: value }) }) })
         }
       ]
     }
   );
 };
 var JsonEditor = ({ value = "", onChange }) => {
-  const [error, setError] = React5.useState(null);
+  const [error, setError] = React6.useState(null);
   const handleChange = (e) => {
     const raw = e.target.value;
     onChange?.(raw);
@@ -9326,7 +9378,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -9340,12 +9392,12 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const relateOtherKey = searchParams.get("relate_other_key");
   const relateTargetId = searchParams.get("relate_target_id");
   const canAutoRelate = Boolean(relateResource && relateTargetKey && relateOtherKey && relateTargetId);
-  const [createdRecord, setCreatedRecord] = React5.useState(null);
-  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [activeTabKey, setActiveTabKey] = React5.useState("main_data");
+  const [createdRecord, setCreatedRecord] = React6.useState(null);
+  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [activeTabKey, setActiveTabKey] = React6.useState("main_data");
   const isPostCreate = createdRecord !== null;
-  const relationViewTypeDefaults = React5.useMemo(
+  const relationViewTypeDefaults = React6.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -9353,11 +9405,11 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
-  const isLinkModel = React5.useMemo(() => {
+  const isLinkModel = React6.useMemo(() => {
     const fieldKeys = model.fields.map((f) => f.key);
     return fieldKeys.includes("eid_from") && fieldKeys.includes("eid_to") && searchParams.has("eid_from");
   }, [model.fields, searchParams]);
-  const [serverDefaults, setServerDefaults] = React5.useState({});
+  const [serverDefaults, setServerDefaults] = React6.useState({});
   const { formProps, saveButtonProps } = antd$1.useForm({
     resource: formResource,
     redirect: false,
@@ -9406,14 +9458,14 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       type: "success"
     })
   });
-  useKeyboardShortcuts(React5.useMemo(() => [
+  useKeyboardShortcuts(React6.useMemo(() => [
     { key: "s", ctrl: true, handler: () => {
       if (!isPostCreate) formProps?.form?.submit();
     } },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, isPostCreate, journeyCallbacks]));
-  const effectiveFields = React5.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
-  const fieldByKey = React5.useMemo(
+  const effectiveFields = React6.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const fieldByKey = React6.useMemo(
     () => new Map(effectiveFields.map((field) => [field.key, field])),
     [effectiveFields]
   );
@@ -9425,7 +9477,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
     return value;
   };
-  const normalizeFieldValue = React5.useCallback((field, rawValue) => {
+  const normalizeFieldValue = React6.useCallback((field, rawValue) => {
     if (rawValue === void 0 || rawValue === null || rawValue === "") return rawValue;
     if (field.type === "number") {
       const parsed = Number(rawValue);
@@ -9434,7 +9486,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (field.type === "boolean") return parseBooleanValue(rawValue);
     return rawValue;
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     let cancelled = false;
     const loadDefaults = async () => {
       try {
@@ -9457,7 +9509,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       cancelled = true;
     };
   }, [apiUrl, effectiveFields, formResource, normalizeFieldValue]);
-  const { initialValues, hiddenFields } = React5.useMemo(() => {
+  const { initialValues, hiddenFields } = React6.useMemo(() => {
     const defaults = {};
     const fromQuery = {};
     const hidden = [];
@@ -9498,13 +9550,13 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
   const hasConfig = configRows.length > 0;
   const configSections = groupConfigRowsBySection(configRows);
-  const { embedded, tabbed } = React5.useMemo(() => splitRelations(model.relations), [model.relations]);
-  const allRelations = React5.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
-  const configuredRelationKeys = React5.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
-  const configuredResolvedRelationKeys = React5.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
-  const configuredRelationDisplayKeys = React5.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
+  const { embedded, tabbed } = React6.useMemo(() => splitRelations(model.relations), [model.relations]);
+  const allRelations = React6.useMemo(() => [...embedded, ...tabbed], [embedded, tabbed]);
+  const configuredRelationKeys = React6.useMemo(() => buildConfiguredRelationKeys(configRows), [configRows]);
+  const configuredResolvedRelationKeys = React6.useMemo(() => buildConfiguredResolvedRelationKeys(model.relations, configRows), [model.relations, configRows]);
+  const configuredRelationDisplayKeys = React6.useMemo(() => buildConfiguredRelationDisplayKeys(model.relations, configRows), [model.relations, configRows]);
   const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const formInstance = formProps?.form;
     if (!formInstance) return;
     const untouchedDefaults = Object.fromEntries(
@@ -9513,7 +9565,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     if (Object.keys(untouchedDefaults).length === 0) return;
     formInstance.setFieldsValue(untouchedDefaults);
   }, [formProps, initialValues]);
-  const handleDone = React5.useCallback(() => {
+  const handleDone = React6.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (returnTo) {
       navigate(returnTo);
@@ -9523,7 +9575,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       navigate(-1);
     }
   }, [createdRecord, returnTo, navigate, formResource]);
-  const handleGoToEdit = React5.useCallback(() => {
+  const handleGoToEdit = React6.useCallback(() => {
     const createdId = getRecordId(createdRecord, model.fields);
     if (createdId != null) {
       go({ to: { resource: model.resource || model.name, action: "edit", id: createdId } });
@@ -9535,7 +9587,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _24("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
-  const relationTabEntries = React5.useMemo(() => {
+  const relationTabEntries = React6.useMemo(() => {
     if (!allModels) return [];
     const groups = /* @__PURE__ */ new Map();
     allRelations.forEach((rel) => {
@@ -9876,7 +9928,7 @@ var nextGridPosition = (cells) => {
 };
 var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
   const [form] = antd.Form.useForm();
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!cell || !tabId) return;
     const tab = config.tabs.find((t) => t.id === tabId);
     form.setFieldsValue({
@@ -9888,7 +9940,9 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
       min_width: cell.min_width ?? "",
       max_width: cell.max_width ?? "",
       min_height: cell.min_height ?? "",
-      max_height: cell.max_height ?? ""
+      max_height: cell.max_height ?? "",
+      chart_url: cell.chart_url ?? "",
+      chart_title: cell.chart_title ?? ""
     });
   }, [cell, tabId, config, form]);
   const handleSave = () => {
@@ -9904,7 +9958,9 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
       min_width: values.min_width || null,
       max_width: values.max_width || null,
       min_height: values.min_height || null,
-      max_height: values.max_height || null
+      max_height: values.max_height || null,
+      chart_url: values.chart_url || void 0,
+      chart_title: values.chart_title || void 0
     };
     const currentTab = config.tabs.find((t) => t.id === tabId);
     const nameUnchanged = currentTab?.name.trim().toLowerCase() === newTabName.toLowerCase();
@@ -9951,7 +10007,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Drawer,
     {
-      title: cell?.source_type !== "model" ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}` : `Configure cell: ${cell?.model ?? ""}`,
+      title: cell?.source_type === "plotly_chart" ? `Configure chart: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}` : `Configure cell: ${cell?.model ?? ""}`,
       placement: "right",
       width: 380,
       open,
@@ -9978,6 +10034,11 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
         cell?.source_type === "model" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "View" }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "view_type", label: "View type", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: VIEW_TYPE_OPTIONS }) })
+        ] }),
+        cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Chart" }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "chart_title", label: "Chart title", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "e.g. Confidence by Month" }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "chart_url", label: "Chart URL", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
         ] }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "Size" }),
         /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, children: [
@@ -10013,7 +10074,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
 };
 var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onMove, onResize, children }) => {
   const { token } = antd.theme.useToken();
-  const cellRef = React5.useRef(null);
+  const cellRef = React6.useRef(null);
   const cellStyle = {
     position: "relative",
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -10042,7 +10103,7 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
     minHeight: 32,
     position: "relative"
   };
-  const startResize = React5.useCallback((e, dir) => {
+  const startResize = React6.useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
     const el = cellRef.current;
@@ -10122,20 +10183,20 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
   ] });
 };
 var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false }) => {
-  const [maximizedCellId, setMaximizedCellId] = React5.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React5.useState(/* @__PURE__ */ new Set());
-  const [drawerCellId, setDrawerCellId] = React5.useState(null);
-  const handleMaximize = React5.useCallback((cellId) => {
+  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+  const [drawerCellId, setDrawerCellId] = React6.useState(null);
+  const handleMaximize = React6.useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
-  const handleMinimize = React5.useCallback((cellId) => {
+  const handleMinimize = React6.useCallback((cellId) => {
     setMinimizedCellIds((prev) => {
       const next = new Set(prev);
       next.has(cellId) ? next.delete(cellId) : next.add(cellId);
       return next;
     });
   }, []);
-  const handleMove = React5.useCallback((cellId, direction) => {
+  const handleMove = React6.useCallback((cellId, direction) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       const cell = tab.cells.find((c) => c.id === cellId);
@@ -10158,7 +10219,7 @@ var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isCon
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, tabId, onConfigChange]);
-  const handleResize = React5.useCallback((cellId, minWidth, minHeight) => {
+  const handleResize = React6.useCallback((cellId, minWidth, minHeight) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       return {
@@ -10175,15 +10236,15 @@ var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isCon
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, tabId, onConfigChange]);
-  const numCols = React5.useMemo(() => {
+  const numCols = React6.useMemo(() => {
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.col)) + 1;
   }, [cells]);
-  const numRows = React5.useMemo(() => {
+  const numRows = React6.useMemo(() => {
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
-  const soloRows = React5.useMemo(() => {
+  const soloRows = React6.useMemo(() => {
     const counts = /* @__PURE__ */ new Map();
     for (const c of cells) counts.set(c.row, (counts.get(c.row) ?? 0) + 1);
     const solo = /* @__PURE__ */ new Set();
@@ -10260,8 +10321,8 @@ function parseInlineStyle2(cssText) {
 }
 var _25 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
-  const [editing, setEditing] = React5.useState(false);
-  const [draft, setDraft] = React5.useState(void 0);
+  const [editing, setEditing] = React6.useState(false);
+  const [draft, setDraft] = React6.useState(void 0);
   const form = antd.Form.useFormInstance();
   const resource = field.referencePath ? field.referencePath : field.reference ? resolveResourcePath(field.reference, allModels) : "";
   const modelResource = model ? resolveResourcePath(model.resource || model.name, allModels) : void 0;
@@ -10310,11 +10371,11 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
 var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
   const { token } = antd.theme.useToken();
   const apiUrl = core.useApiUrl();
-  const [html, setHtml] = React5.useState(null);
-  const [loading, setLoading] = React5.useState(true);
-  const [error, setError] = React5.useState(null);
-  const [fetchedTitle, setFetchedTitle] = React5.useState(null);
-  React5.useEffect(() => {
+  const [html, setHtml] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(true);
+  const [error, setError] = React6.useState(null);
+  const [fetchedTitle, setFetchedTitle] = React6.useState(null);
+  React6.useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setHtml(null);
@@ -10495,7 +10556,6 @@ var SectionCellContent = ({
         borderRadius: 6,
         overflowWrap: "anywhere",
         maxWidth: "100%",
-        border: `1px solid ${token.colorBorder}`,
         ...parseInlineStyle(item.html_format)
       };
       const relationLabelStyle = {
@@ -10530,7 +10590,6 @@ var SectionCellContent = ({
       lineHeight: 1.15,
       background: valueBackground,
       borderRadius: 6,
-      border: `1px solid ${token.colorBorder}`,
       maxWidth: "100%",
       overflowWrap: "anywhere",
       textAlign: field.type === "number" && !field.reference ? "right" : "left",
@@ -10631,10 +10690,10 @@ function buildConfig(configRows, overrides) {
 function usePageSectionsConfig(configRows, resourceKey, mode) {
   const apiUrl = core.useApiUrl();
   const preferenceType = mode === "show" ? "ShowLayoutGrid" : "EditLayoutGrid";
-  const [overrides, setOverrides] = React5.useState({});
-  const [loading, setLoading] = React5.useState(true);
-  const loadedKeyRef = React5.useRef(null);
-  React5.useEffect(() => {
+  const [overrides, setOverrides] = React6.useState({});
+  const [loading, setLoading] = React6.useState(true);
+  const loadedKeyRef = React6.useRef(null);
+  React6.useEffect(() => {
     if (!resourceKey) {
       setLoading(false);
       return;
@@ -10653,17 +10712,17 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
     }).catch(() => {
     }).finally(() => setLoading(false));
   }, [apiUrl, resourceKey, preferenceType]);
-  const savedConfig = React5.useMemo(
+  const savedConfig = React6.useMemo(
     () => buildConfig(configRows, overrides),
     [configRows, overrides]
   );
-  const [isConfiguring, setIsConfiguring] = React5.useState(false);
-  const [pendingConfig, setPendingConfig] = React5.useState(null);
-  const config = React5.useMemo(
+  const [isConfiguring, setIsConfiguring] = React6.useState(false);
+  const [pendingConfig, setPendingConfig] = React6.useState(null);
+  const config = React6.useMemo(
     () => isConfiguring && pendingConfig ? pendingConfig : savedConfig,
     [isConfiguring, pendingConfig, savedConfig]
   );
-  const save = React5.useCallback((nextConfig) => {
+  const save = React6.useCallback((nextConfig) => {
     const allCells = nextConfig.tabs.flatMap((t) => t.cells);
     const nextOverrides = {};
     const cells = allCells.map((c) => {
@@ -10688,24 +10747,24 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
     }).catch(() => {
     });
   }, [apiUrl, resourceKey, preferenceType]);
-  const getSectionRows = React5.useCallback((sectionId) => {
+  const getSectionRows = React6.useCallback((sectionId) => {
     return configRows.filter((r) => (r.section_id || r.section || DETAILS_TAB_NAME) === sectionId);
   }, [configRows]);
-  const enterConfigMode = React5.useCallback(() => {
+  const enterConfigMode = React6.useCallback(() => {
     setPendingConfig(savedConfig);
     setIsConfiguring(true);
   }, [savedConfig]);
-  const cancelLayout = React5.useCallback(() => {
+  const cancelLayout = React6.useCallback(() => {
     setPendingConfig(null);
     setIsConfiguring(false);
   }, []);
-  const saveLayout = React5.useCallback(() => {
+  const saveLayout = React6.useCallback(() => {
     const toSave = pendingConfig ?? savedConfig;
     save(toSave);
     setPendingConfig(null);
     setIsConfiguring(false);
   }, [pendingConfig, savedConfig, save]);
-  const onLayoutChange = React5.useCallback((next) => {
+  const onLayoutChange = React6.useCallback((next) => {
     if (isConfiguring) setPendingConfig(next);
   }, [isConfiguring]);
   return { config, loading, save, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange };
@@ -10724,7 +10783,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-  const relationViewTypeDefaults = React5.useMemo(
+  const relationViewTypeDefaults = React6.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -10732,7 +10791,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     [viewSettings?.showViewType, viewSettings?.editViewType]
   );
   const apiUrl = core.useApiUrl();
-  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
   const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
   const valueBackground = isDarkColor2(token.colorBgBase || token.colorBgContainer) ? token.colorFillQuaternary : "#F9FFFF";
@@ -10763,7 +10822,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     })
   });
   const record = queryResult?.data?.data;
-  const editFormProps = React5.useMemo(() => {
+  const editFormProps = React6.useMemo(() => {
     if (!isFileModel(model)) return formProps;
     const originalOnFinish = formProps.onFinish;
     return {
@@ -10774,24 +10833,24 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       }
     };
   }, [formProps, model]);
-  useKeyboardShortcuts(React5.useMemo(() => [
+  useKeyboardShortcuts(React6.useMemo(() => [
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
   const pageTitle = record?._label ? asDisplayText(record._label, `${_27("Edit")} ${modelDisplayLabel}`) : `${_27("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
-  const effectiveFields = React5.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const effectiveFields = React6.useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
-  const [showRelationActions, setShowRelationActions] = React5.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
-  const [showRelationCreate, setShowRelationCreate] = React5.useState(DEFAULT_RELATION_CREATE_ACTIONS);
-  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React5.useState(false);
-  const actionsPrefsTouchedRef = React5.useRef(false);
-  const actionsPrefsLoadedRef = React5.useRef(false);
-  const actionsPrefsResourceRef = React5.useRef(null);
-  const markActionsPrefsTouched = React5.useCallback(() => {
+  const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
+  const [showRelationCreate, setShowRelationCreate] = React6.useState(DEFAULT_RELATION_CREATE_ACTIONS);
+  const [isSavingActionsPrefs, setIsSavingActionsPrefs] = React6.useState(false);
+  const actionsPrefsTouchedRef = React6.useRef(false);
+  const actionsPrefsLoadedRef = React6.useRef(false);
+  const actionsPrefsResourceRef = React6.useRef(null);
+  const markActionsPrefsTouched = React6.useCallback(() => {
     actionsPrefsTouchedRef.current = true;
   }, []);
-  const saveActionsPreferences = React5.useCallback(async () => {
+  const saveActionsPreferences = React6.useCallback(async () => {
     const resourceKey2 = resolveResourcePath(model.resource || model.name, allModelsList);
     const preferences = {
       showActions: showRelationActions,
@@ -10815,8 +10874,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsSavingActionsPrefs(false);
     }
   }, [apiUrl, allModelsList, model.name, model.resource, showRelationActions, showRelationCreate]);
-  const [isDuplicating, setIsDuplicating] = React5.useState(false);
-  const duplicateRecord = React5.useCallback(async (withRelations) => {
+  const [isDuplicating, setIsDuplicating] = React6.useState(false);
+  const duplicateRecord = React6.useCallback(async (withRelations) => {
     if (!record) return;
     setIsDuplicating(true);
     try {
@@ -10884,7 +10943,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       setIsDuplicating(false);
     }
   }, [record, model, allModelsList, apiUrl, go]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const resourceKey2 = resolveResourcePath(model.resource || model.name, allModelsList);
     if (actionsPrefsResourceRef.current !== resourceKey2) {
       actionsPrefsLoadedRef.current = false;
@@ -11164,13 +11223,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   });
   items.push(...customConfigTabs);
   items.push(...relationTabs);
-  const [activeTabKey, setActiveTabKey] = React5.useState("main_data");
-  React5.useEffect(() => {
+  const [activeTabKey, setActiveTabKey] = React6.useState("main_data");
+  React6.useEffect(() => {
     if (!items.find((item) => item.key === activeTabKey)) {
       setActiveTabKey(items[0]?.key || "main_data");
     }
   }, [activeTabKey, items]);
-  const lazyItems = React5.useMemo(
+  const lazyItems = React6.useMemo(
     () => items.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
@@ -11267,7 +11326,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const { token } = antd.theme.useToken();
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
   const modelTone = useModelTone(model);
-  const relationViewTypeDefaults = React5.useMemo(
+  const relationViewTypeDefaults = React6.useMemo(
     () => ({
       show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
       edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table"
@@ -11576,11 +11635,11 @@ var useRelatedInlineItems = ({
   pageSize = INLINE_DEFAULT_PAGE_SIZE
 }) => {
   const apiUrl = core.useApiUrl();
-  const [items, setItems] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(false);
-  const [error, setError] = React5.useState(null);
-  const [total, setTotal] = React5.useState(0);
-  React5.useEffect(() => {
+  const [items, setItems] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(false);
+  const [error, setError] = React6.useState(null);
+  const [total, setTotal] = React6.useState(0);
+  React6.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setItems([]);
@@ -11721,10 +11780,10 @@ var useRelatedGalleryRecords = ({
   allModels
 }) => {
   const apiUrl = core.useApiUrl();
-  const [records, setRecords] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(false);
-  const [error, setError] = React5.useState(null);
-  React5.useEffect(() => {
+  const [records, setRecords] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(false);
+  const [error, setError] = React6.useState(null);
+  React6.useEffect(() => {
     const recordId = record?.eid ?? record?.id;
     if (!recordId || !rel.resource || !rel.targetKey) {
       setRecords([]);
@@ -11822,10 +11881,10 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
   const go = core.useGo();
   const paneNav = usePaneNavigation();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React5.useState(1);
-  const [pageSize, setPageSize] = React5.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React6.useState(1);
+  const [pageSize, setPageSize] = React6.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items, loading, error, total } = useRelatedInlineItems({ rel, record, allowedRelatedIds, allModels, page, pageSize });
-  const handlePageChange = React5.useCallback((newPage, newPageSize) => {
+  const handlePageChange = React6.useCallback((newPage, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setPage(1);
@@ -11887,17 +11946,17 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const { token } = antd.theme.useToken();
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   const resource = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
-  const dateFieldOptions = React5.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
-  const [calendarMode, setCalendarMode] = React5.useState("month");
-  const [calendarDateField, setCalendarDateField] = React5.useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React5.useState(() => dayjs9__default.default().startOf("month"));
-  const dateFieldKeySet = React5.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
-  React5.useEffect(() => {
+  const dateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
+  const [calendarMode, setCalendarMode] = React6.useState("month");
+  const [calendarDateField, setCalendarDateField] = React6.useState(() => dateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs9__default.default().startOf("month"));
+  const dateFieldKeySet = React6.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
+  React6.useEffect(() => {
     if (calendarDateField && dateFieldKeySet.has(calendarDateField)) return;
     const fallback = dateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, dateFieldKeySet, dateFieldOptions]);
-  const calendarEntries = React5.useMemo(() => {
+  const calendarEntries = React6.useMemo(() => {
     if (!calendarDateField) return [];
     const entries = [];
     records.forEach((item) => {
@@ -11913,7 +11972,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return entries;
   }, [calendarDateField, records]);
-  const earliestDateTs = React5.useMemo(() => {
+  const earliestDateTs = React6.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -11922,8 +11981,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     return earliest;
   }, [calendarEntries]);
-  const initSignatureRef = React5.useRef("");
-  React5.useEffect(() => {
+  const initSignatureRef = React6.useRef("");
+  React6.useEffect(() => {
     const signature = `${calendarDateField}|${calendarMode}|${earliestDateTs ?? "none"}`;
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
@@ -11933,7 +11992,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     setCalendarAnchorDate(dayjs9__default.default(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
-  const entriesByDate = React5.useMemo(() => {
+  const entriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -11943,7 +12002,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     });
     return grouped;
   }, [calendarEntries]);
-  const rangeDays = React5.useMemo(() => {
+  const rangeDays = React6.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -11954,7 +12013,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const periodLabel = React5.useMemo(() => {
+  const periodLabel = React6.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -12114,9 +12173,9 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   ] });
 };
 var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) => {
-  const allModelsList = React5.useMemo(() => allModels || [], [allModels]);
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
   const tone = useModelTone(model);
-  const PrimaryShowRenderer = React5.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
   const label = getRecordDisplayLabel(record);
   const id = record?.eid ?? record?.id;
   const resource = resolveResourcePath(model.resource || model.name, allModelsList);
@@ -12206,22 +12265,22 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const location = reactRouterDom.useLocation();
   const apiUrl = core.useApiUrl();
   const { token } = antd.theme.useToken();
-  const [page, setPage] = React5.useState(1);
-  const [pageSize, setPageSize] = React5.useState(INLINE_DEFAULT_PAGE_SIZE);
+  const [page, setPage] = React6.useState(1);
+  const [pageSize, setPageSize] = React6.useState(INLINE_DEFAULT_PAGE_SIZE);
   const { items: fetchedItems, loading, error, total } = useRelatedInlineItems({ rel, record, allModels, page, pageSize });
-  const [localItems, setLocalItems] = React5.useState(null);
-  React5.useEffect(() => {
+  const [localItems, setLocalItems] = React6.useState(null);
+  React6.useEffect(() => {
     setLocalItems(null);
   }, [fetchedItems]);
   const items = localItems ?? fetchedItems;
-  const [editing, setEditing] = React5.useState(false);
-  const [saving, setSaving] = React5.useState(false);
-  const [allOptions, setAllOptions] = React5.useState([]);
-  const [optionsLoading, setOptionsLoading] = React5.useState(false);
-  const [selectedIds, setSelectedIds] = React5.useState(/* @__PURE__ */ new Set());
-  const [baselineIds, setBaselineIds] = React5.useState(/* @__PURE__ */ new Set());
-  const [searchText, setSearchText] = React5.useState("");
-  React5.useEffect(() => {
+  const [editing, setEditing] = React6.useState(false);
+  const [saving, setSaving] = React6.useState(false);
+  const [allOptions, setAllOptions] = React6.useState([]);
+  const [optionsLoading, setOptionsLoading] = React6.useState(false);
+  const [selectedIds, setSelectedIds] = React6.useState(/* @__PURE__ */ new Set());
+  const [baselineIds, setBaselineIds] = React6.useState(/* @__PURE__ */ new Set());
+  const [searchText, setSearchText] = React6.useState("");
+  React6.useEffect(() => {
     if (!editing) return;
     const snapshot = new Set(items.map((item) => Number(item.id)));
     setBaselineIds(snapshot);
@@ -12255,7 +12314,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [editing]);
-  const handleSave = React5.useCallback(async () => {
+  const handleSave = React6.useCallback(async () => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -12331,12 +12390,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSaving(false);
     }
   }, [apiUrl, allModels, allOptions, rel, record, selectedIds, baselineIds]);
-  const handleCancel = React5.useCallback(() => {
+  const handleCancel = React6.useCallback(() => {
     setEditing(false);
     setSelectedIds(new Set(baselineIds));
     setSearchText("");
   }, [baselineIds]);
-  const handleCreateNewAndRelate = React5.useCallback(() => {
+  const handleCreateNewAndRelate = React6.useCallback(() => {
     const otherKey = rel.otherKey;
     if (!otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
@@ -12492,17 +12551,17 @@ var _33 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = core.useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
-  const [saving, setSaving] = React5.useState(false);
-  const [allOptions, setAllOptions] = React5.useState([]);
-  const [optionsLoading, setOptionsLoading] = React5.useState(false);
-  const [selectedIds, setSelectedIds] = React5.useState([]);
-  const [baselineIds, setBaselineIds] = React5.useState(/* @__PURE__ */ new Set());
-  React5.useEffect(() => {
+  const [saving, setSaving] = React6.useState(false);
+  const [allOptions, setAllOptions] = React6.useState([]);
+  const [optionsLoading, setOptionsLoading] = React6.useState(false);
+  const [selectedIds, setSelectedIds] = React6.useState([]);
+  const [baselineIds, setBaselineIds] = React6.useState(/* @__PURE__ */ new Set());
+  React6.useEffect(() => {
     const ids = fetchedItems.map((item) => Number(item.id));
     setSelectedIds(ids);
     setBaselineIds(new Set(ids));
   }, [fetchedItems]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!rel.otherResource) return;
     let cancelled = false;
     const fetchOptions = async () => {
@@ -12529,7 +12588,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       cancelled = true;
     };
   }, [apiUrl, rel.otherResource]);
-  const handleChange = React5.useCallback(async (newIds) => {
+  const handleChange = React6.useCallback(async (newIds) => {
     if (!rel.otherKey || !rel.targetKey) return;
     const recordId = record?.eid ?? record?.id;
     if (recordId === void 0 || recordId === null) return;
@@ -12591,15 +12650,15 @@ var { Title: Title4 } = antd.Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
   const apiUrl = core.useApiUrl();
-  const [loading, setLoading] = React5.useState(false);
-  const [error, setError] = React5.useState(null);
-  const [groupedIds, setGroupedIds] = React5.useState(/* @__PURE__ */ new Map());
-  const [unresolvedIds, setUnresolvedIds] = React5.useState([]);
-  const polyInfo = React5.useMemo(
+  const [loading, setLoading] = React6.useState(false);
+  const [error, setError] = React6.useState(null);
+  const [groupedIds, setGroupedIds] = React6.useState(/* @__PURE__ */ new Map());
+  const [unresolvedIds, setUnresolvedIds] = React6.useState([]);
+  const polyInfo = React6.useMemo(
     () => getPolymorphicReferenceInfo(rel, relationModel, allModels),
     [rel.otherKey, rel.otherResource, relationModel, allModels]
   );
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!recordId || !rel.otherKey || !polyInfo) {
       setGroupedIds(/* @__PURE__ */ new Map());
       setUnresolvedIds([]);
@@ -12718,96 +12777,96 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     color: relatedModelTone.solid,
     margin: 0
   };
-  const chartSvgRef = React5.useRef(null);
-  const skipNextAnimationRef = React5.useRef(false);
-  const [rows, setRows] = React5.useState([]);
-  const [localSearch, setLocalSearch] = React5.useState("");
-  const [filterRules, setFilterRules] = React5.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React5.useState(true);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React5.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React5.useState(null);
-  const [columnOrder, setColumnOrder] = React5.useState(null);
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React5.useState({});
-  const [columnFiltersSelected, setColumnFiltersSelected] = React5.useState({});
-  const [columnSort, setColumnSort] = React5.useState([]);
-  const [currentViewName, setCurrentViewName] = React5.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React5.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React5.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React5.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React5.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React5.useState(false);
-  const [saveViewName, setSaveViewName] = React5.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React5.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React5.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React5.useState(false);
-  const [renameViewName, setRenameViewName] = React5.useState("");
-  const [pageSize, setPageSize] = React5.useState(10);
-  const [currentPage, setCurrentPage] = React5.useState(1);
-  const [serverTotalRows, setServerTotalRows] = React5.useState(0);
-  const [fullDataLoaded, setFullDataLoaded] = React5.useState(false);
-  const [relationRowsCapped, setRelationRowsCapped] = React5.useState(false);
-  const [loadedRowsCount, setLoadedRowsCount] = React5.useState(0);
-  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React5.useState(false);
-  const [loading, setLoading] = React5.useState(false);
-  const [error, setError] = React5.useState(null);
-  const [listVisible, setListVisible] = React5.useState(true);
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React5.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React5.useState(false);
-  const [labelCache, setLabelCache] = React5.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React5.useState(false);
-  const analyzeTouchedRef = React5.useRef(false);
-  const analyzePrefsTouchedRef = React5.useRef(false);
-  const analyzePrefsLoadedRef = React5.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React5.useState(false);
-  const analyzePrefsResourceRef = React5.useRef(null);
-  const [categoryField1, setCategoryField1] = React5.useState(null);
-  const [categoryField2, setCategoryField2] = React5.useState(void 0);
-  const [crosstabFilterFields, setCrosstabFilterFields] = React5.useState([]);
-  const [crosstabStaged, setCrosstabStaged] = React5.useState({});
-  const [chartType, setChartType] = React5.useState("area");
-  const [summaryFn, setSummaryFn] = React5.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React5.useState(null);
-  const [rankingMode, setRankingMode] = React5.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React5.useState(null);
-  const [rankingN, setRankingN] = React5.useState(10);
-  const [exportRequested, setExportRequested] = React5.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React5.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React5.useState(false);
-  const [chartAnimationKey, setChartAnimationKey] = React5.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React5.useState("enter");
-  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React5.useState(false);
-  const defaultDisplayFields = React5.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
-  const orderedColumnKeys = React5.useMemo(() => {
+  const chartSvgRef = React6.useRef(null);
+  const skipNextAnimationRef = React6.useRef(false);
+  const [rows, setRows] = React6.useState([]);
+  const [localSearch, setLocalSearch] = React6.useState("");
+  const [filterRules, setFilterRules] = React6.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React6.useState(true);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React6.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React6.useState(null);
+  const [columnOrder, setColumnOrder] = React6.useState(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React6.useState({});
+  const [columnFiltersSelected, setColumnFiltersSelected] = React6.useState({});
+  const [columnSort, setColumnSort] = React6.useState([]);
+  const [currentViewName, setCurrentViewName] = React6.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React6.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React6.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React6.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React6.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React6.useState(false);
+  const [saveViewName, setSaveViewName] = React6.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React6.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React6.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React6.useState(false);
+  const [renameViewName, setRenameViewName] = React6.useState("");
+  const [pageSize, setPageSize] = React6.useState(10);
+  const [currentPage, setCurrentPage] = React6.useState(1);
+  const [serverTotalRows, setServerTotalRows] = React6.useState(0);
+  const [fullDataLoaded, setFullDataLoaded] = React6.useState(false);
+  const [relationRowsCapped, setRelationRowsCapped] = React6.useState(false);
+  const [loadedRowsCount, setLoadedRowsCount] = React6.useState(0);
+  const [loadAllRelatedRequested, setLoadAllRelatedRequested] = React6.useState(false);
+  const [loading, setLoading] = React6.useState(false);
+  const [error, setError] = React6.useState(null);
+  const [listVisible, setListVisible] = React6.useState(true);
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
+  const [labelCache, setLabelCache] = React6.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React6.useState(false);
+  const analyzeTouchedRef = React6.useRef(false);
+  const analyzePrefsTouchedRef = React6.useRef(false);
+  const analyzePrefsLoadedRef = React6.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React6.useState(false);
+  const analyzePrefsResourceRef = React6.useRef(null);
+  const [categoryField1, setCategoryField1] = React6.useState(null);
+  const [categoryField2, setCategoryField2] = React6.useState(void 0);
+  const [crosstabFilterFields, setCrosstabFilterFields] = React6.useState([]);
+  const [crosstabStaged, setCrosstabStaged] = React6.useState({});
+  const [chartType, setChartType] = React6.useState("area");
+  const [summaryFn, setSummaryFn] = React6.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React6.useState(null);
+  const [rankingMode, setRankingMode] = React6.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React6.useState(null);
+  const [rankingN, setRankingN] = React6.useState(10);
+  const [exportRequested, setExportRequested] = React6.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React6.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React6.useState(false);
+  const [chartAnimationKey, setChartAnimationKey] = React6.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React6.useState("enter");
+  const [isTotalsDetailsFlipped, setIsTotalsDetailsFlipped] = React6.useState(false);
+  const defaultDisplayFields = React6.useMemo(() => getListViewFields(relatedModel), [relatedModel]);
+  const orderedColumnKeys = React6.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(relatedModel.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, relatedModel.fields, selectedColumnKeys]);
-  const displayFields = React5.useMemo(() => {
+  const displayFields = React6.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(relatedModel.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, orderedColumnKeys, relatedModel.fields]);
   const numericBarColor = relatedModelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
   const [form] = antd.Form.useForm();
-  const [savingAll, setSavingAll] = React5.useState(false);
-  const [hasPendingEdits, setHasPendingEdits] = React5.useState(false);
+  const [savingAll, setSavingAll] = React6.useState(false);
+  const [hasPendingEdits, setHasPendingEdits] = React6.useState(false);
   const { setWarnWhen } = core.useWarnAboutChange();
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React5.useState(false);
-  const layoutPrefsTouchedRef = React5.useRef(false);
-  const layoutPrefsLoadedRef = React5.useRef(false);
-  const layoutPrefsResourceRef = React5.useRef(null);
-  const sortIntentRef = React5.useRef(null);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React6.useState(false);
+  const layoutPrefsTouchedRef = React6.useRef(false);
+  const layoutPrefsLoadedRef = React6.useRef(false);
+  const layoutPrefsResourceRef = React6.useRef(null);
+  const sortIntentRef = React6.useRef(null);
   const { settings: viewSettings } = useViewSettings();
   const relationsMaxRowsToLoad = Math.max(0, Number(viewSettings?.relationsMaxRowsToLoad ?? 1e3));
-  const markAnalyzePrefsTouched = React5.useCallback(() => {
+  const markAnalyzePrefsTouched = React6.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React5.useCallback(() => {
+  const markLayoutPrefsTouched = React6.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const persistLayoutPreferences = React5.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React6.useCallback(async (viewName) => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
@@ -12851,7 +12910,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, layoutPreferenceType, listVisible, pageSize, selectedColumnKeys, relatedModel.name, relatedModel.resource, totalsSummaryFunctions, allModels]);
-  const persistAnalyzePreferences = React5.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React6.useCallback(async (viewName) => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -12883,13 +12942,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, relatedModel.name, relatedModel.resource, allModels]);
-  const categoricalFields = React5.useMemo(() => {
+  const categoricalFields = React6.useMemo(() => {
     return relatedModel.fields.filter((field) => isPkField(field, relatedModel) || (field.type !== "number" || field.reference));
   }, [relatedModel]);
-  const numericFields = React5.useMemo(() => {
+  const numericFields = React6.useMemo(() => {
     return relatedModel.fields.filter((field) => !isPkField(field, relatedModel) && field.type === "number" && !field.reference);
   }, [relatedModel]);
-  const resetLayoutDefaults = React5.useCallback(() => {
+  const resetLayoutDefaults = React6.useCallback(() => {
     setListVisible(true);
     setAnalyzeOpen(false);
     setIsAnalyzeVertical(false);
@@ -12899,7 +12958,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setSelectedColumnKeys(null);
     setColumnOrder(null);
   }, []);
-  const resetAnalyzeDefaults = React5.useCallback(() => {
+  const resetAnalyzeDefaults = React6.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -12910,7 +12969,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setRankingN(10);
     setCrosstabFilterFields([]);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React5.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React6.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -12926,7 +12985,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     } catch {
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const loadViewNames = React5.useCallback(async () => {
+  const loadViewNames = React6.useCallback(async () => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     setIsLoadingViewNames(true);
     try {
@@ -12971,13 +13030,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, relatedModel.name, relatedModel.resource, allModels]);
-  const openSaveViewModalFor = React5.useCallback((target) => {
+  const openSaveViewModalFor = React6.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleConfirmSaveView = React5.useCallback(async () => {
+  const handleConfirmSaveView = React6.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -13004,14 +13063,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  const handleChangeViewName = React5.useCallback(async (nextView) => {
+  const handleChangeViewName = React6.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React5.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React6.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -13023,7 +13082,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React5.useCallback((name, direction) => {
+  const moveSelectedView = React6.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -13035,7 +13094,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React5.useCallback(async () => {
+  const handleRenameView = React6.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -13062,7 +13121,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.message.error(error2 instanceof Error ? error2.message : _34("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React5.useCallback(() => {
+  const confirmDeleteView = React6.useCallback(() => {
     antd.Modal.confirm({
       title: _34(_34("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -13107,10 +13166,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, relatedModelTone) }))
     }
   ) : null;
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!viewNamesLoaded) return;
     analyzePrefsTouchedRef.current = false;
     layoutPrefsTouchedRef.current = false;
@@ -13122,7 +13181,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     resetLayoutDefaults();
     resetAnalyzeDefaults();
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -13175,7 +13234,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, relatedModel.name, relatedModel.resource, allModels]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!layoutPreferenceType) return;
     const resourceKey = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const viewKey = `${resourceKey}::${layoutPreferenceType}::${currentViewName}`;
@@ -13254,17 +13313,17 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [apiUrl, currentViewName, layoutPreferenceType, relatedModel.name, relatedModel.resource, allModels, viewNamesLoaded]);
-  const normalizeFieldValue = React5.useCallback((field, value) => {
+  const normalizeFieldValue = React6.useCallback((field, value) => {
     if (field.type === "date" && value) {
       if (typeof value?.toISOString === "function") return value.toISOString();
       if (typeof value?.format === "function") return value.format("YYYY-MM-DD");
     }
     return value;
   }, []);
-  const hasActiveFilterRules = React5.useMemo(() => {
+  const hasActiveFilterRules = React6.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const resolveRelativeDate = React5.useCallback((value, asRange) => {
+  const resolveRelativeDate = React6.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -13290,7 +13349,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return { date: target.startOf(unit) };
   }, []);
-  const getFieldValueForFilter = React5.useCallback((field, recordRow) => {
+  const getFieldValueForFilter = React6.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -13302,7 +13361,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return raw;
   }, [labelCache]);
-  const matchesRule = React5.useCallback((recordRow, rule) => {
+  const matchesRule = React6.useCallback((recordRow, rule) => {
     const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, recordRow);
@@ -13382,7 +13441,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return true;
   }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React5.useCallback((data) => {
+  const applyGlobalSearch = React6.useCallback((data) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
     return data.filter((recordRow) => {
@@ -13401,14 +13460,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, relatedModel.fields]);
-  const applyFilterRules = React5.useCallback((data) => {
+  const applyFilterRules = React6.useCallback((data) => {
     if (!hasActiveFilterRules) return data;
     return data.filter((recordRow) => filterRules.every((rule) => matchesRule(recordRow, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const filteredRows = React5.useMemo(() => {
+  const filteredRows = React6.useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
-  const columnFilteredRows = React5.useMemo(() => {
+  const columnFilteredRows = React6.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredRows;
     return filteredRows.filter(
@@ -13419,10 +13478,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       })
     );
   }, [filteredRows, columnFiltersSelected, relatedModel.fields]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!allowInlineEdit) return;
     if (form.isFieldsTouched()) return;
     const initialValues = {};
@@ -13436,7 +13495,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     form.setFieldsValue(initialValues);
   }, [allowInlineEdit, form, relatedModel.fields, filteredRows]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!allowInlineEdit) {
       setWarnWhen(false);
       return;
@@ -13444,7 +13503,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setWarnWhen(hasPendingEdits);
     return () => setWarnWhen(false);
   }, [allowInlineEdit, hasPendingEdits, setWarnWhen]);
-  const saveAllEdits = React5.useCallback(async () => {
+  const saveAllEdits = React6.useCallback(async () => {
     if (!allowInlineEdit) return;
     setSavingAll(true);
     try {
@@ -13498,7 +13557,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSavingAll(false);
     }
   }, [allowInlineEdit, apiUrl, form, normalizeFieldValue, relatedModel.fields, relatedModel.name, relatedModel.resource, allModels, rows]);
-  const handleDeleteRelationRow = React5.useCallback((row) => {
+  const handleDeleteRelationRow = React6.useCallback((row) => {
     const relationRow = row?.__relationRow;
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
@@ -13555,7 +13614,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     overflow: "visible",
     order: isAnalyzeFirst ? 1 : 2
   };
-  const getSortValue = React5.useCallback((field, recordRow) => {
+  const getSortValue = React6.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
@@ -13574,7 +13633,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React5.useCallback((field, a, b) => {
+  const compareSortValues = React6.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -13583,11 +13642,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const shouldUseFullDataMode = React5.useMemo(() => {
+  const shouldUseFullDataMode = React6.useMemo(() => {
     if (loadAllRelatedRequested) return true;
     return false;
   }, [loadAllRelatedRequested]);
-  const fetchRelatedDetailsByIds = React5.useCallback(async (ids, signal) => {
+  const fetchRelatedDetailsByIds = React6.useCallback(async (ids, signal) => {
     const uniqueIds = Array.from(new Set(ids.filter((value) => value !== void 0 && value !== null)));
     if (!rel.otherResource || uniqueIds.length === 0) return [];
     const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource, allModels);
@@ -13638,7 +13697,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const now = performance.now();
     console.log(`[JM_TRACE ${now.toFixed(1)}ms] ${label}${detail ? " | " + detail : ""}`);
   };
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!recordId || !rel.otherResource || !rel.otherKey) {
       setRows([]);
       setServerTotalRows(0);
@@ -13785,26 +13844,26 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       controller.abort();
     };
   }, [apiUrl, currentPage, pageSize, recordId, rel.label, rel.otherKey, rel.otherResource, rel.resource, rel.targetKey, allowedRelatedIds, allModels, rel.resourcePath, rel.otherResourcePath, shouldUseFullDataMode, fetchRelatedDetailsByIds, fullDataLoaded, relationsMaxRowsToLoad, rows.length]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!shouldUseFullDataMode && fullDataLoaded) {
       setFullDataLoaded(false);
     }
   }, [fullDataLoaded, shouldUseFullDataMode]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length <= 1 && analyzeOpen) {
       setAnalyzeOpen(false);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
     if (filteredRows.length > 1 && !analyzeOpen) {
       setAnalyzeOpen(true);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -13812,7 +13871,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -13820,7 +13879,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -13830,7 +13889,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const formatCategoryValue = React5.useCallback((field, recordRow) => {
+  const formatCategoryValue = React6.useCallback((field, recordRow) => {
     if (!field) return _34("All");
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -13846,14 +13905,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartTitle = React5.useMemo(() => {
+  const chartTitle = React6.useMemo(() => {
     const cat1Label = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2)?.label : null;
     const parts = [relatedModel.label || relatedModel.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, relatedModel.fields, relatedModel.label, relatedModel.name]);
-  const chartData = React5.useMemo(() => {
+  const chartData = React6.useMemo(() => {
     const data = Array.isArray(columnFilteredRows) ? columnFilteredRows : [];
     const cat1Field = categoryField1 ? relatedModel.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? relatedModel.fields.find((field) => field.key === categoryField2) : void 0;
@@ -13961,7 +14020,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     };
   }, [columnFilteredRows, categoryField1, categoryField2, relatedModel.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
   const editableCrosstab = isCrosstabView && allowInlineEdit;
-  const stageCrosstabCellEdits = React5.useCallback((updates) => {
+  const stageCrosstabCellEdits = React6.useCallback((updates) => {
     if (updates.length === 0) return;
     setCrosstabStaged((prev) => {
       const next = { ...prev };
@@ -13976,11 +14035,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     setHasPendingEdits(true);
   }, [form]);
-  const getCrosstabStagedValue = React5.useCallback((recordId2, fieldKey) => {
+  const getCrosstabStagedValue = React6.useCallback((recordId2, fieldKey) => {
     return crosstabStaged[String(recordId2)]?.[fieldKey];
   }, [crosstabStaged]);
-  const crosstabResolvedRefIdsRef = React5.useRef(/* @__PURE__ */ new Set());
-  React5.useEffect(() => {
+  const crosstabResolvedRefIdsRef = React6.useRef(/* @__PURE__ */ new Set());
+  React6.useEffect(() => {
     if (!isCrosstabView) return;
     const refFields = [categoryField1, categoryField2, ...crosstabFilterFields].filter((k) => Boolean(k)).map((k) => relatedModel.fields.find((f) => f.key === k)).filter((f) => Boolean(f && f.reference));
     if (refFields.length === 0) return;
@@ -14016,7 +14075,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       cancelled = true;
     };
   }, [isCrosstabView, categoryField1, categoryField2, crosstabFilterFields, columnFilteredRows, relatedModel.fields, allModels, apiUrl]);
-  const crosstabFilterOptions = React5.useMemo(() => {
+  const crosstabFilterOptions = React6.useMemo(() => {
     if (crosstabFilterFields.length === 0) return /* @__PURE__ */ new Map();
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     const fields = crosstabFilterFields.map((k) => relatedModel.fields.find((f) => f.key === k)).filter((f) => Boolean(f));
@@ -14186,7 +14245,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       }
     )
   ] });
-  const numericColumnMaxes = React5.useMemo(() => {
+  const numericColumnMaxes = React6.useMemo(() => {
     const maxes = {};
     const data = filteredRows || [];
     displayFields.forEach((field) => {
@@ -14200,7 +14259,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     });
     return maxes;
   }, [filteredRows, displayFields]);
-  const chartSignature = React5.useMemo(() => {
+  const chartSignature = React6.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -14213,13 +14272,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -14228,7 +14287,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const formatValueForExport = React5.useCallback((field, recordRow) => {
+  const formatValueForExport = React6.useCallback((field, recordRow) => {
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -14242,7 +14301,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!exportRequested) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -14328,31 +14387,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const exportStatsPdf = () => {
     openPdfWindow(`${relatedModel.name}-stats`, buildStatsHtml(statsSummary));
   };
-  const columnFilters = React5.useMemo(() => {
+  const columnFilters = React6.useMemo(() => {
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     return buildColumnFilterOptions({ fields: displayFields, data: filteredRows || [], rangeCount });
   }, [displayFields, filteredRows, viewSettings]);
-  const allFieldOptions = React5.useMemo(() => {
+  const allFieldOptions = React6.useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
-  const orderedSelectedColumns = React5.useMemo(() => {
+  const orderedSelectedColumns = React6.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React5.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React6.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(columnOrder && columnOrder.length > 0 ? columnOrder : keys);
   }, [columnOrder, displayFields]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const handleColumnSelectionChange = React5.useCallback((values) => {
+  const handleColumnSelectionChange = React6.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -14366,7 +14425,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React5.useCallback((key, direction) => {
+  const moveColumnOrder = React6.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -14377,18 +14436,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return base;
     });
   }, [selectedColumnKeys]);
-  const statsSummary = React5.useMemo(() => {
+  const statsSummary = React6.useMemo(() => {
     return buildStatsSummary(columnFilteredRows, displayFields, labelCache);
   }, [columnFilteredRows, displayFields, labelCache]);
   const isTotalsDetailsVariant = viewVariant === "totals-details";
-  const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React6.useCallback((field) => {
     if (isPkField(field, relatedModel)) return "count";
     return "sum";
   }, [relatedModel]);
-  const resolveTotalsSummaryFn = React5.useCallback((field) => {
+  const resolveTotalsSummaryFn = React6.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React5.useCallback((field) => {
+  const computeTotalsSummaryValue = React6.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     const rawValues = filteredRows.map((row) => row?.[field.key]);
     if (field.type === "number" && !field.reference) {
@@ -14411,7 +14470,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
     return rawValues.length;
   }, [filteredRows, resolveTotalsSummaryFn]);
-  const formatCategoricalBoxValue = React5.useCallback((field, raw) => {
+  const formatCategoricalBoxValue = React6.useCallback((field, raw) => {
     if (raw === void 0 || raw === null) return "-";
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
@@ -14424,7 +14483,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
-  const totalsDetailsCategoricalBoxes = React5.useMemo(() => {
+  const totalsDetailsCategoricalBoxes = React6.useMemo(() => {
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
       filteredRows.forEach((row) => {
@@ -14442,7 +14501,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [displayFields, filteredRows, formatCategoricalBoxValue]);
-  const totalsDetailsNumericBoxes = React5.useMemo(() => {
+  const totalsDetailsNumericBoxes = React6.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       return {
         key: field.key,
@@ -14452,10 +14511,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       };
     });
   }, [computeTotalsSummaryValue, displayFields, resolveTotalsSummaryFn]);
-  const totalsSummaryConfigFields = React5.useMemo(() => {
+  const totalsSummaryConfigFields = React6.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     setTotalsSummaryFunctions((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -14468,7 +14527,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return changed ? next : prev;
     });
   }, [getDefaultTotalsSummaryFn, totalsSummaryConfigFields]);
-  const statsNumericMaxes = React5.useMemo(() => {
+  const statsNumericMaxes = React6.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -14482,7 +14541,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (isTotalsDetailsVariant) {
       setIsTotalsDetailsFlipped(false);
     }
@@ -15745,15 +15804,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
 };
 var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
   const apiUrl = core.useApiUrl();
-  const [currentLinkRow, setCurrentLinkRow] = React5.useState(null);
-  const [currentValue, setCurrentValue] = React5.useState(null);
-  const [loadingCurrent, setLoadingCurrent] = React5.useState(true);
-  const [saving, setSaving] = React5.useState(false);
+  const [currentLinkRow, setCurrentLinkRow] = React6.useState(null);
+  const [currentValue, setCurrentValue] = React6.useState(null);
+  const [loadingCurrent, setLoadingCurrent] = React6.useState(true);
+  const [saving, setSaving] = React6.useState(false);
   const relatedResource = rel.otherResourcePath || resolveResourcePath(rel.otherResource || "", allModels);
   const linkResource = rel.resourcePath || resolveResourcePath(rel.resource, allModels);
   const relatedModel = allModels?.find((m) => m.name === rel.otherResource);
   const relatedPkField = relatedModel?.fields.find((f) => f.isPk)?.key ?? "id";
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.targetKey || !rel.otherKey) {
       setLoadingCurrent(false);
@@ -15795,7 +15854,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     filters: [],
     pagination: { current: 1, pageSize: 2e3, mode: "server" }
   });
-  const handleChange = React5.useCallback(async (newValue) => {
+  const handleChange = React6.useCallback(async (newValue) => {
     const recordId = getRecordId(record);
     if (!recordId || !rel.otherKey) return;
     setSaving(true);
@@ -15851,11 +15910,11 @@ function useMillerColumnItems({
   allModels,
   apiUrl
 }) {
-  const [branches, setBranches] = React5.useState([]);
-  const [leaves, setLeaves] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(false);
-  const [error, setError] = React5.useState(null);
-  React5.useEffect(() => {
+  const [branches, setBranches] = React6.useState([]);
+  const [leaves, setLeaves] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(false);
+  const [error, setError] = React6.useState(null);
+  React6.useEffect(() => {
     if (!parentId || !rel.resourcePath || !rel.targetKey || !rel.otherKey || !rel.otherResource) {
       setBranches([]);
       setLeaves([]);
@@ -16120,16 +16179,16 @@ var MillerBrowserLayout = ({
   const screens = antd.Grid.useBreakpoint();
   const { token } = antd.theme.useToken();
   const isDesktop = !!screens.md;
-  const columnsRef = React5.useRef(null);
+  const columnsRef = React6.useRef(null);
   const rootId = record?.eid ?? record?.id;
-  const [columns, setColumns] = React5.useState([{ parentId: rootId }]);
-  const [selectedIds, setSelectedIds] = React5.useState([null]);
-  const [detailNode, setDetailNode] = React5.useState(null);
-  const [drawerOpen, setDrawerOpen] = React5.useState(false);
-  const [containerHeight, setContainerHeight] = React5.useState(INITIAL_HEIGHT);
-  const [columnsWidth, setColumnsWidth] = React5.useState(null);
-  const [columnWidths, setColumnWidths] = React5.useState([]);
-  const [draggingDir, setDraggingDir] = React5.useState(null);
+  const [columns, setColumns] = React6.useState([{ parentId: rootId }]);
+  const [selectedIds, setSelectedIds] = React6.useState([null]);
+  const [detailNode, setDetailNode] = React6.useState(null);
+  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const [containerHeight, setContainerHeight] = React6.useState(INITIAL_HEIGHT);
+  const [columnsWidth, setColumnsWidth] = React6.useState(null);
+  const [columnWidths, setColumnWidths] = React6.useState([]);
+  const [draggingDir, setDraggingDir] = React6.useState(null);
   const DEFAULT_COL_WIDTH = 240;
   const getColWidth = (i) => columnWidths[i] ?? DEFAULT_COL_WIDTH;
   const handleResizeV = (e) => {
@@ -16611,7 +16670,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const canBulkEdit = canEditData?.can !== false;
   const { settings: viewSettings } = useViewSettings();
   viewSettings?.generalActionsButtonPosition || "top-right";
-  const [actionsBarEl, setActionsBarEl] = React5.useState(null);
+  const [actionsBarEl, setActionsBarEl] = React6.useState(null);
   const resolvedLayoutPreferenceType = layoutPreferenceType ?? "ShowLayout";
   const [searchParams] = reactRouterDom.useSearchParams();
   const selectMode = searchParams.get("select_mode") === "1";
@@ -16621,7 +16680,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const selectModeRelateOtherKey = searchParams.get("relate_other_key");
   const selectModeRelateTargetId = searchParams.get("relate_target_id");
   const selectModeReturnTo = searchParams.get("returnTo");
-  useKeyboardShortcuts(React5.useMemo(() => isEmbedded ? [] : [
+  useKeyboardShortcuts(React6.useMemo(() => isEmbedded ? [] : [
     { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) }
   ], [model.name, model.resource, go, isEmbedded]));
   const { token } = antd.theme.useToken();
@@ -16655,89 +16714,89 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
-  const calendarDateFieldOptions = React5.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
-  const [localSearch, setLocalSearch] = React5.useState("");
-  const [listVisible, setListVisible] = React5.useState(defaultListVisible ?? true);
-  const [isTdFlipped, setIsTdFlipped] = React5.useState(false);
-  const [pageSize, setPageSize] = React5.useState(10);
-  const [galleryPage, setGalleryPage] = React5.useState(1);
-  const [calendarMode, setCalendarMode] = React5.useState("month");
-  const [calendarDateField, setCalendarDateField] = React5.useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React5.useState(() => dayjs9__default.default().startOf("month"));
-  const [isAnalyzeVertical, setIsAnalyzeVertical] = React5.useState(false);
-  const [isAnalyzeFirst, setIsAnalyzeFirst] = React5.useState(false);
-  const [filterRules, setFilterRules] = React5.useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = React5.useState(isEmbedded);
-  const [layoutPrefsReady, setLayoutPrefsReady] = React5.useState(false);
-  const [columnsSelectorOpen, setColumnsSelectorOpen] = React5.useState(false);
-  const [selectedColumnKeys, setSelectedColumnKeys] = React5.useState(null);
-  const [columnOrder, setColumnOrder] = React5.useState(null);
-  const [columnFiltersSelected, setColumnFiltersSelected] = React5.useState({});
-  const [columnSort, setColumnSort] = React5.useState(
+  const calendarDateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
+  const [localSearch, setLocalSearch] = React6.useState("");
+  const [listVisible, setListVisible] = React6.useState(defaultListVisible ?? true);
+  const [isTdFlipped, setIsTdFlipped] = React6.useState(false);
+  const [pageSize, setPageSize] = React6.useState(10);
+  const [galleryPage, setGalleryPage] = React6.useState(1);
+  const [calendarMode, setCalendarMode] = React6.useState("month");
+  const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs9__default.default().startOf("month"));
+  const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
+  const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
+  const [filterRules, setFilterRules] = React6.useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = React6.useState(isEmbedded);
+  const [layoutPrefsReady, setLayoutPrefsReady] = React6.useState(false);
+  const [columnsSelectorOpen, setColumnsSelectorOpen] = React6.useState(false);
+  const [selectedColumnKeys, setSelectedColumnKeys] = React6.useState(null);
+  const [columnOrder, setColumnOrder] = React6.useState(null);
+  const [columnFiltersSelected, setColumnFiltersSelected] = React6.useState({});
+  const [columnSort, setColumnSort] = React6.useState(
     model.defaultSort ? [{ fieldKey: model.defaultSort.field, order: model.defaultSort.order === "desc" ? "descend" : "ascend" }] : []
   );
-  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React5.useState({});
-  const [currentViewName, setCurrentViewName] = React5.useState(getDefaultViewName());
-  const [selectedViewNames, setSelectedViewNames] = React5.useState([]);
-  const [availableViewNames, setAvailableViewNames] = React5.useState([]);
-  const [viewNamesLoaded, setViewNamesLoaded] = React5.useState(false);
-  const [isLoadingViewNames, setIsLoadingViewNames] = React5.useState(false);
-  const [saveViewModalOpen, setSaveViewModalOpen] = React5.useState(false);
-  const [saveViewName, setSaveViewName] = React5.useState(getDefaultViewName());
-  const [saveViewAsNew, setSaveViewAsNew] = React5.useState(false);
-  const [pendingSaveTarget, setPendingSaveTarget] = React5.useState(null);
-  const [renameViewModalOpen, setRenameViewModalOpen] = React5.useState(false);
-  const [renameViewName, setRenameViewName] = React5.useState("");
-  const [labelCache, setLabelCache] = React5.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React5.useState(isEmbedded);
-  const analyzeTouchedRef = React5.useRef(false);
-  const analyzePrefsTouchedRef = React5.useRef(false);
-  const analyzePrefsLoadedRef = React5.useRef(false);
-  const [analyzePrefsReady, setAnalyzePrefsReady] = React5.useState(false);
-  const analyzePrefsResourceRef = React5.useRef(null);
+  const [totalsSummaryFunctions, setTotalsSummaryFunctions] = React6.useState({});
+  const [currentViewName, setCurrentViewName] = React6.useState(getDefaultViewName());
+  const [selectedViewNames, setSelectedViewNames] = React6.useState([]);
+  const [availableViewNames, setAvailableViewNames] = React6.useState([]);
+  const [viewNamesLoaded, setViewNamesLoaded] = React6.useState(false);
+  const [isLoadingViewNames, setIsLoadingViewNames] = React6.useState(false);
+  const [saveViewModalOpen, setSaveViewModalOpen] = React6.useState(false);
+  const [saveViewName, setSaveViewName] = React6.useState(getDefaultViewName());
+  const [saveViewAsNew, setSaveViewAsNew] = React6.useState(false);
+  const [pendingSaveTarget, setPendingSaveTarget] = React6.useState(null);
+  const [renameViewModalOpen, setRenameViewModalOpen] = React6.useState(false);
+  const [renameViewName, setRenameViewName] = React6.useState("");
+  const [labelCache, setLabelCache] = React6.useState({});
+  const [analyzeOpen, setAnalyzeOpen] = React6.useState(isEmbedded);
+  const analyzeTouchedRef = React6.useRef(false);
+  const analyzePrefsTouchedRef = React6.useRef(false);
+  const analyzePrefsLoadedRef = React6.useRef(false);
+  const [analyzePrefsReady, setAnalyzePrefsReady] = React6.useState(false);
+  const analyzePrefsResourceRef = React6.useRef(null);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-  const defaultDisplayFields = React5.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
-  const orderedColumnKeys = React5.useMemo(() => {
+  const defaultDisplayFields = React6.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
+  const orderedColumnKeys = React6.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return null;
     const order = columnOrder && columnOrder.length > 0 ? columnOrder : selectedColumnKeys;
     const selectedSet = new Set(selectedColumnKeys);
     const availableKeys = new Set(model.fields.map((field) => field.key));
     return order.filter((key) => selectedSet.has(key) && availableKeys.has(key));
   }, [columnOrder, model.fields, selectedColumnKeys]);
-  const displayFields = React5.useMemo(() => {
+  const displayFields = React6.useMemo(() => {
     if (!orderedColumnKeys) return defaultDisplayFields;
     const fieldMap = new Map(model.fields.map((field) => [field.key, field]));
     return orderedColumnKeys.map((key) => fieldMap.get(key)).filter((field) => Boolean(field));
   }, [defaultDisplayFields, model.fields, orderedColumnKeys]);
   const useLocalSearch = true;
-  const [categoryField1, setCategoryField1] = React5.useState(null);
-  const [categoryField2, setCategoryField2] = React5.useState(void 0);
-  const [crosstabFilterFields, setCrosstabFilterFields] = React5.useState([]);
-  const [crosstabStaged, setCrosstabStaged] = React5.useState({});
-  const [crosstabSaving, setCrosstabSaving] = React5.useState(false);
-  const [chartType, setChartType] = React5.useState("area");
-  const [summaryFn, setSummaryFn] = React5.useState("sum");
-  const [selectedSeriesKeys, setSelectedSeriesKeys] = React5.useState(null);
-  const [rankingMode, setRankingMode] = React5.useState("none");
-  const [rankingFieldKey, setRankingFieldKey] = React5.useState(null);
-  const [rankingN, setRankingN] = React5.useState(10);
-  const [exportRequested, setExportRequested] = React5.useState(false);
-  const [isStatsFlipped, setIsStatsFlipped] = React5.useState(false);
-  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React5.useState(false);
-  const chartSvgRef = React5.useRef(null);
-  const [chartAnimationKey, setChartAnimationKey] = React5.useState(0);
-  const [chartAnimationStage, setChartAnimationStage] = React5.useState("enter");
-  const skipNextAnimationRef = React5.useRef(false);
-  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React5.useState(false);
-  const layoutPrefsTouchedRef = React5.useRef(false);
-  const layoutPrefsLoadedRef = React5.useRef(false);
-  const layoutPrefsResourceRef = React5.useRef(null);
-  const sortIntentRef = React5.useRef(null);
-  const prevViewNameForResetRef = React5.useRef(null);
-  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React5.useState([]);
-  const bulkSelectedRowsMapRef = React5.useRef(/* @__PURE__ */ new Map());
-  const [selectModeAssociating, setSelectModeAssociating] = React5.useState(false);
-  const handleAssociateSelected = React5.useCallback(async () => {
+  const [categoryField1, setCategoryField1] = React6.useState(null);
+  const [categoryField2, setCategoryField2] = React6.useState(void 0);
+  const [crosstabFilterFields, setCrosstabFilterFields] = React6.useState([]);
+  const [crosstabStaged, setCrosstabStaged] = React6.useState({});
+  const [crosstabSaving, setCrosstabSaving] = React6.useState(false);
+  const [chartType, setChartType] = React6.useState("area");
+  const [summaryFn, setSummaryFn] = React6.useState("sum");
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = React6.useState(null);
+  const [rankingMode, setRankingMode] = React6.useState("none");
+  const [rankingFieldKey, setRankingFieldKey] = React6.useState(null);
+  const [rankingN, setRankingN] = React6.useState(10);
+  const [exportRequested, setExportRequested] = React6.useState(false);
+  const [isStatsFlipped, setIsStatsFlipped] = React6.useState(false);
+  const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = React6.useState(false);
+  const chartSvgRef = React6.useRef(null);
+  const [chartAnimationKey, setChartAnimationKey] = React6.useState(0);
+  const [chartAnimationStage, setChartAnimationStage] = React6.useState("enter");
+  const skipNextAnimationRef = React6.useRef(false);
+  const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = React6.useState(false);
+  const layoutPrefsTouchedRef = React6.useRef(false);
+  const layoutPrefsLoadedRef = React6.useRef(false);
+  const layoutPrefsResourceRef = React6.useRef(null);
+  const sortIntentRef = React6.useRef(null);
+  const prevViewNameForResetRef = React6.useRef(null);
+  const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React6.useState([]);
+  const bulkSelectedRowsMapRef = React6.useRef(/* @__PURE__ */ new Map());
+  const [selectModeAssociating, setSelectModeAssociating] = React6.useState(false);
+  const handleAssociateSelected = React6.useCallback(async () => {
     if (!selectModeRelateResource || !selectModeRelateTargetKey || !selectModeRelateTargetId) return;
     if (!selectModeFk && !selectModeRelateOtherKey) return;
     setSelectModeAssociating(true);
@@ -16772,18 +16831,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectModeAssociating(false);
     }
   }, [apiUrl, bulkSelectedRowKeys, selectModeFk, selectModeRelateResource, selectModeRelateTargetKey, selectModeRelateOtherKey, selectModeRelateTargetId, selectModeReturnTo, navigate]);
-  const [bulkActionModalOpen, setBulkActionModalOpen] = React5.useState(false);
-  const [bulkActionsToApply, setBulkActionsToApply] = React5.useState([]);
-  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React5.useState(null);
-  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React5.useState(null);
-  const [isBulkExecuting, setIsBulkExecuting] = React5.useState(false);
-  const [selectAllFilteredPending, setSelectAllFilteredPending] = React5.useState(false);
-  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React5.useState(false);
-  const handleReferenceLabel = React5.useCallback((resource, id, label) => {
+  const [bulkActionModalOpen, setBulkActionModalOpen] = React6.useState(false);
+  const [bulkActionsToApply, setBulkActionsToApply] = React6.useState([]);
+  const [bulkChangeFieldKey, setBulkChangeFieldKey] = React6.useState(null);
+  const [bulkChangeFieldValue, setBulkChangeFieldValue] = React6.useState(null);
+  const [isBulkExecuting, setIsBulkExecuting] = React6.useState(false);
+  const [selectAllFilteredPending, setSelectAllFilteredPending] = React6.useState(false);
+  const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = React6.useState(false);
+  const handleReferenceLabel = React6.useCallback((resource, id, label) => {
     const key = `${resource}:${id}`;
     setLabelCache((prev) => prev[key] === label ? prev : { ...prev, [key]: label });
   }, []);
-  const tableFilters = React5.useMemo(() => {
+  const tableFilters = React6.useMemo(() => {
     if (!filter) return [];
     if (filter.value === void 0 || filter.value === null) return [];
     return [filter];
@@ -16808,16 +16867,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [{ field: searchField.key, operator: "contains", value }];
     }
   });
-  const [allRowsData, setAllRowsData] = React5.useState([]);
-  const [isAllRowsLoading, setIsAllRowsLoading] = React5.useState(false);
-  const [allRowsError, setAllRowsError] = React5.useState(null);
-  const lastAllRowsSignature = React5.useRef("");
-  const [allRowsLoaded, setAllRowsLoaded] = React5.useState(false);
+  const [allRowsData, setAllRowsData] = React6.useState([]);
+  const [isAllRowsLoading, setIsAllRowsLoading] = React6.useState(false);
+  const [allRowsError, setAllRowsError] = React6.useState(null);
+  const lastAllRowsSignature = React6.useRef("");
+  const [allRowsLoaded, setAllRowsLoaded] = React6.useState(false);
   const isRelationView = !!filter;
-  const hasActiveFilterRules = React5.useMemo(() => {
+  const hasActiveFilterRules = React6.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const getFieldValueForFilter = React5.useCallback((field, record) => {
+  const getFieldValueForFilter = React6.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return raw;
     if (field.reference) {
@@ -16829,7 +16888,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return raw;
   }, [labelCache]);
-  const getSortValue = React5.useCallback((field, record) => {
+  const getSortValue = React6.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
     if (isPkField(field, model) && record?._label) return record._label;
@@ -16851,7 +16910,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
   }, [labelCache]);
-  const compareSortValues = React5.useCallback((field, a, b) => {
+  const compareSortValues = React6.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
     if (aVal === null && bVal === null) return 0;
@@ -16860,7 +16919,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const resolveRelativeDate = React5.useCallback((value, asRange) => {
+  const resolveRelativeDate = React6.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
@@ -16886,7 +16945,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { date: target.startOf(unit) };
   }, []);
-  const matchesRule = React5.useCallback((record, rule) => {
+  const matchesRule = React6.useCallback((record, rule) => {
     const field = model.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
     const rawValue = getFieldValueForFilter(field, record);
@@ -16966,7 +17025,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return true;
   }, [getFieldValueForFilter, model.fields, resolveRelativeDate]);
-  const applyGlobalSearch = React5.useCallback((rows) => {
+  const applyGlobalSearch = React6.useCallback((rows) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((record) => {
@@ -16985,11 +17044,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return candidates.some((value) => value !== void 0 && value !== null && String(value).toLowerCase().includes(query));
     });
   }, [labelCache, localSearch, model.fields, useLocalSearch]);
-  const applyFilterRules = React5.useCallback((rows) => {
+  const applyFilterRules = React6.useCallback((rows) => {
     if (!hasActiveFilterRules) return rows;
     return rows.filter((record) => filterRules.every((rule) => matchesRule(record, rule)));
   }, [filterRules, hasActiveFilterRules, matchesRule]);
-  const allRows = React5.useMemo(() => {
+  const allRows = React6.useMemo(() => {
     const data = allRowsData || [];
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
@@ -17010,12 +17069,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
-  const filteredDataSource = React5.useMemo(() => {
+  const filteredDataSource = React6.useMemo(() => {
     if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const baseRows = allRows || [];
     return applyFilterRules(applyGlobalSearch(baseRows));
   }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
-  const columnFilteredDataSource = React5.useMemo(() => {
+  const columnFilteredDataSource = React6.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredDataSource;
     return filteredDataSource.filter(
@@ -17026,41 +17085,41 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       })
     );
   }, [filteredDataSource, columnFiltersSelected, model.fields]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
-  const columnFilters = React5.useMemo(() => {
+  const columnFilters = React6.useMemo(() => {
     const data = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
   }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
-  const allFieldOptions = React5.useMemo(() => {
+  const allFieldOptions = React6.useMemo(() => {
     return model.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [model.fields]);
-  const orderedSelectedColumns = React5.useMemo(() => {
+  const orderedSelectedColumns = React6.useMemo(() => {
     if (!selectedColumnKeys || selectedColumnKeys.length === 0) return [];
     return orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : selectedColumnKeys;
   }, [orderedColumnKeys, selectedColumnKeys]);
-  const syncColumnsSelectionToDisplay = React5.useCallback(() => {
+  const syncColumnsSelectionToDisplay = React6.useCallback(() => {
     const keys = displayFields.map((field) => field.key);
     if (keys.length === 0) return;
     setSelectedColumnKeys(keys);
     setColumnOrder(orderedColumnKeys && orderedColumnKeys.length > 0 ? orderedColumnKeys : keys);
   }, [displayFields, orderedColumnKeys]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (selectedColumnKeys !== null) return;
     const defaults = defaultDisplayFields.map((field) => field.key);
     if (defaults.length === 0) return;
     setSelectedColumnKeys(defaults);
     setColumnOrder(defaults);
   }, [defaultDisplayFields, selectedColumnKeys]);
-  const markAnalyzePrefsTouched = React5.useCallback(() => {
+  const markAnalyzePrefsTouched = React6.useCallback(() => {
     analyzePrefsTouchedRef.current = true;
   }, []);
-  const markLayoutPrefsTouched = React5.useCallback(() => {
+  const markLayoutPrefsTouched = React6.useCallback(() => {
     layoutPrefsTouchedRef.current = true;
   }, []);
-  const handleColumnSelectionChange = React5.useCallback((values) => {
+  const handleColumnSelectionChange = React6.useCallback((values) => {
     markLayoutPrefsTouched();
     if (!values || values.length === 0) {
       setSelectedColumnKeys(null);
@@ -17074,7 +17133,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return [...baseOrder, ...missing];
     });
   }, [markLayoutPrefsTouched]);
-  const moveColumnOrder = React5.useCallback((key, direction) => {
+  const moveColumnOrder = React6.useCallback((key, direction) => {
     setColumnOrder((prev) => {
       const base = prev && prev.length > 0 ? [...prev] : selectedColumnKeys ? [...selectedColumnKeys] : [];
       const index = base.indexOf(key);
@@ -17085,7 +17144,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return base;
     });
   }, [selectedColumnKeys]);
-  const handleTablePageChange = React5.useCallback((page, newPageSize) => {
+  const handleTablePageChange = React6.useCallback((page, newPageSize) => {
     if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setGalleryPage(1);
@@ -17095,7 +17154,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       pagination.onChange(page, newPageSize ?? pageSize);
     }
   }, [pageSize, tableProps.pagination]);
-  const tablePagination = React5.useMemo(() => {
+  const tablePagination = React6.useMemo(() => {
     if (!isClientFiltering) {
       if (!tableProps.pagination || typeof tableProps.pagination !== "object") return tableProps.pagination;
       return {
@@ -17116,23 +17175,23 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleTablePageChange
     };
   }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
-  const categoricalFields = React5.useMemo(() => {
+  const categoricalFields = React6.useMemo(() => {
     return model.fields.filter((field) => isPkField(field, model) || (field.type !== "number" || field.reference));
   }, [model.fields]);
-  const numericFields = React5.useMemo(() => {
+  const numericFields = React6.useMemo(() => {
     return model.fields.filter((field) => !isPkField(field, model) && field.type === "number" && !field.reference);
   }, [model.fields]);
-  const hasActiveRangeColumnFilter = React5.useMemo(() => {
+  const hasActiveRangeColumnFilter = React6.useMemo(() => {
     return Object.values(columnFiltersSelected).some(
       (vals) => vals.some((v) => v.startsWith("__range__:"))
     );
   }, [columnFiltersSelected]);
-  const shouldLoadAllRows = React5.useMemo(() => {
+  const shouldLoadAllRows = React6.useMemo(() => {
     return Boolean(
       localSearch.trim().length > 0 || hasActiveFilterRules || analyzeOpen || exportRequested || isTotalsDetailsView || isCrosstabView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
     );
   }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, localSearch]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!categoryField1 && categoricalFields.length > 0) {
       setCategoryField1(categoricalFields[0].key);
     }
@@ -17140,7 +17199,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setCategoryField2(categoricalFields[1].key);
     }
   }, [categoricalFields, categoryField1, categoryField2]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (selectedSeriesKeys !== null) return;
     if (numericFields.length > 0) {
       setSelectedSeriesKeys(numericFields.map((field) => field.key));
@@ -17148,7 +17207,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setSelectedSeriesKeys(["__count__"]);
     }
   }, [numericFields, selectedSeriesKeys]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (numericFields.length === 0) {
       if (rankingFieldKey !== null) setRankingFieldKey(null);
       if (rankingMode !== "none") setRankingMode("none");
@@ -17158,7 +17217,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setRankingFieldKey(numericFields[0].key);
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
-  const resetLayoutDefaults = React5.useCallback(() => {
+  const resetLayoutDefaults = React6.useCallback(() => {
     setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(isEmbedded);
     setIsAnalyzeVertical(false);
@@ -17169,7 +17228,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setColumnOrder(null);
     setTotalsSummaryFunctions({});
   }, [isEmbedded, defaultListVisible]);
-  const resetAnalyzeDefaults = React5.useCallback(() => {
+  const resetAnalyzeDefaults = React6.useCallback(() => {
     setCategoryField1(categoricalFields[0]?.key ?? null);
     setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
     setChartType("area");
@@ -17180,7 +17239,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setRankingN(10);
     setCrosstabFilterFields([]);
   }, [categoricalFields, numericFields]);
-  const persistCurrentViewNames = React5.useCallback(async (nextSelected, nextCurrent) => {
+  const persistCurrentViewNames = React6.useCallback(async (nextSelected, nextCurrent) => {
     try {
       const resourceKey = prefsKey;
       await authenticatedFetch(`${apiUrl}/views/preferences/view`, {
@@ -17196,7 +17255,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     } catch {
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const loadViewNames = React5.useCallback(async () => {
+  const loadViewNames = React6.useCallback(async () => {
     const resourceKey = prefsKey;
     setIsLoadingViewNames(true);
     try {
@@ -17241,20 +17300,20 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsLoadingViewNames(false);
     }
   }, [apiUrl, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const openSaveViewModalFor = React5.useCallback((target) => {
+  const openSaveViewModalFor = React6.useCallback((target) => {
     setSaveViewName(currentViewName || getDefaultViewName());
     setSaveViewAsNew(false);
     setPendingSaveTarget(target);
     setSaveViewModalOpen(true);
   }, [currentViewName]);
-  const handleChangeViewName = React5.useCallback(async (nextView) => {
+  const handleChangeViewName = React6.useCallback(async (nextView) => {
     const resolvedName = normalizeViewName(nextView);
     setCurrentViewName(resolvedName);
     setSaveViewName(resolvedName);
     const nextSelected = selectedViewNames.length > 0 ? selectedViewNames : [resolvedName];
     await persistCurrentViewNames(nextSelected, resolvedName);
   }, [persistCurrentViewNames, selectedViewNames]);
-  const updateSelectedViewNames = React5.useCallback(async (nextSelected) => {
+  const updateSelectedViewNames = React6.useCallback(async (nextSelected) => {
     if (nextSelected.length === 0) {
       nextSelected = [getDefaultViewName()];
     }
@@ -17266,7 +17325,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     await persistCurrentViewNames(nextSelected, nextCurrent);
   }, [currentViewName, persistCurrentViewNames]);
-  const moveSelectedView = React5.useCallback((name, direction) => {
+  const moveSelectedView = React6.useCallback((name, direction) => {
     setSelectedViewNames((prev) => {
       const idx = prev.indexOf(name);
       if (idx < 0) return prev;
@@ -17278,7 +17337,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return next;
     });
   }, [currentViewName, persistCurrentViewNames]);
-  const handleRenameView = React5.useCallback(async () => {
+  const handleRenameView = React6.useCallback(async () => {
     const newName = normalizeViewName(renameViewName);
     if (!newName || newName === currentViewName) {
       setRenameViewModalOpen(false);
@@ -17305,7 +17364,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.message.error(error instanceof Error ? error.message : _36("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
-  const confirmDeleteView = React5.useCallback(() => {
+  const confirmDeleteView = React6.useCallback(() => {
     antd.Modal.confirm({
       title: _36(_36("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
@@ -17330,7 +17389,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     });
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, loadViewNames]);
-  const persistLayoutPreferences = React5.useCallback(async (viewName) => {
+  const persistLayoutPreferences = React6.useCallback(async (viewName) => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
@@ -17374,7 +17433,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingLayoutPrefs(false);
     }
   }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const persistAnalyzePreferences = React5.useCallback(async (viewName) => {
+  const persistAnalyzePreferences = React6.useCallback(async (viewName) => {
     const resourceKey = prefsKey;
     const resolvedViewName = normalizeViewName(viewName);
     const preferences = {
@@ -17406,7 +17465,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setIsSavingAnalyzePrefs(false);
     }
   }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const handleConfirmSaveView = React5.useCallback(async () => {
+  const handleConfirmSaveView = React6.useCallback(async () => {
     if (!pendingSaveTarget) return;
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
@@ -17433,10 +17492,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     await persistCurrentViewNames(nextSelected, viewName);
     await loadViewNames();
   }, [availableViewNames, currentViewName, loadViewNames, pendingSaveTarget, persistAnalyzePreferences, persistCurrentViewNames, persistLayoutPreferences, saveViewAsNew, saveViewName, selectedViewNames]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     loadViewNames();
   }, [loadViewNames]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!viewNamesLoaded) return;
     const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
     prevViewNameForResetRef.current = currentViewName;
@@ -17453,7 +17512,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       resetAnalyzeDefaults();
     }
   }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${currentViewName}`;
     if (analyzePrefsResourceRef.current !== viewKey) {
@@ -17506,7 +17565,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!resolvedLayoutPreferenceType) return;
     const resourceKey = prefsKey;
     const viewKey = `${resourceKey}::${resolvedLayoutPreferenceType}::${currentViewName}`;
@@ -17591,7 +17650,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [apiUrl, currentViewName, resolvedLayoutPreferenceType, model.name, model.resource, allModels, preferencesResourceOverride]);
-  const fetchAllRows = React5.useCallback(async () => {
+  const fetchAllRows = React6.useCallback(async () => {
     setIsAllRowsLoading(true);
     setAllRowsError(null);
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
@@ -17627,7 +17686,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAllRowsLoaded(true);
     }
   }, [activeFilters, apiUrl, model.name, model.resource, tableFilters, allModels]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!shouldLoadAllRows) return;
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
     const signature = JSON.stringify({
@@ -17642,7 +17701,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     lastAllRowsSignature.current = signature;
     fetchAllRows();
   }, [activeFilters, analyzeOpen, exportRequested, fetchAllRows, model.name, shouldLoadAllRows, tableFilters]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!allRowsLoaded) return;
     if (analyzeTouchedRef.current) return;
     if (isTotalsDetailsView) return;
@@ -17652,7 +17711,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setAnalyzeOpen(true);
     }
   }, [allRows?.length, allRowsLoaded, isTotalsDetailsView]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!hasActiveFilterRules || isClientFiltering) return;
     const resolveServerDate = (val, forRange) => {
       if (val?.mode === "relative") {
@@ -17715,7 +17774,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const combined = [...tableFilters, ...serverFilters];
     setFilters(combined, "replace");
   }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
-  const formatCategoryValue = React5.useCallback((field, record) => {
+  const formatCategoryValue = React6.useCallback((field, record) => {
     if (!field) return _36("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
@@ -17733,7 +17792,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  const chartData = React5.useMemo(() => {
+  const chartData = React6.useMemo(() => {
     const data = Array.isArray(columnFilteredDataSource) ? columnFilteredDataSource : [];
     const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : void 0;
     const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : void 0;
@@ -17840,7 +17899,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     };
   }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
   const crosstabBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
-  const stageCrosstabCellEdits = React5.useCallback((updates) => {
+  const stageCrosstabCellEdits = React6.useCallback((updates) => {
     if (updates.length === 0) return;
     setCrosstabStaged((prev) => {
       const next = { ...prev };
@@ -17851,11 +17910,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return next;
     });
   }, []);
-  const getCrosstabStagedValue = React5.useCallback((recordId, fieldKey) => {
+  const getCrosstabStagedValue = React6.useCallback((recordId, fieldKey) => {
     return crosstabStaged[String(recordId)]?.[fieldKey];
   }, [crosstabStaged]);
   const crosstabHasPendingEdits = Object.keys(crosstabStaged).length > 0;
-  const saveCrosstabEdits = React5.useCallback(async () => {
+  const saveCrosstabEdits = React6.useCallback(async () => {
     const entries = Object.entries(crosstabStaged);
     if (entries.length === 0) return;
     setCrosstabSaving(true);
@@ -17878,8 +17937,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setCrosstabSaving(false);
     }
   }, [crosstabStaged, apiUrl, allModels, model.resource, model.name, invalidate]);
-  const crosstabResolvedRefIdsRef = React5.useRef(/* @__PURE__ */ new Set());
-  React5.useEffect(() => {
+  const crosstabResolvedRefIdsRef = React6.useRef(/* @__PURE__ */ new Set());
+  React6.useEffect(() => {
     if (!isCrosstabView) return;
     const refFields = [categoryField1, categoryField2, ...crosstabFilterFields].filter((k) => Boolean(k)).map((k) => model.fields.find((f) => f.key === k)).filter((f) => Boolean(f && f.reference));
     if (refFields.length === 0) return;
@@ -17914,7 +17973,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       cancelled = true;
     };
   }, [isCrosstabView, categoryField1, categoryField2, crosstabFilterFields, allRowsData, columnFilteredDataSource, model.fields, allModels, apiUrl, handleReferenceLabel]);
-  const crosstabFilterOptions = React5.useMemo(() => {
+  const crosstabFilterOptions = React6.useMemo(() => {
     if (crosstabFilterFields.length === 0) return /* @__PURE__ */ new Map();
     const data = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
@@ -18086,7 +18145,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     )
   ] });
-  const chartSignature = React5.useMemo(() => {
+  const chartSignature = React6.useMemo(() => {
     return JSON.stringify({
       chartType,
       summaryFn,
@@ -18099,10 +18158,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       groups: chartData.groups
     });
   }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-  const statsSummary = React5.useMemo(() => {
+  const statsSummary = React6.useMemo(() => {
     return buildStatsSummary(columnFilteredDataSource, displayFields, labelCache);
   }, [columnFilteredDataSource, displayFields, labelCache]);
-  const tdCategoricalBoxes = React5.useMemo(() => {
+  const tdCategoricalBoxes = React6.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type !== "number" || Boolean(field.reference)).map((field) => {
       const counts = /* @__PURE__ */ new Map();
@@ -18139,14 +18198,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       };
     });
   }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
-  const getDefaultTotalsSummaryFn = React5.useCallback((field) => {
+  const getDefaultTotalsSummaryFn = React6.useCallback((field) => {
     if (isPkField(field, model) || isReferenceField(field)) return "count";
     return "sum";
   }, []);
-  const resolveTotalsSummaryFn = React5.useCallback((field) => {
+  const resolveTotalsSummaryFn = React6.useCallback((field) => {
     return totalsSummaryFunctions[field.key] || getDefaultTotalsSummaryFn(field);
   }, [getDefaultTotalsSummaryFn, totalsSummaryFunctions]);
-  const computeTotalsSummaryValue = React5.useCallback((field) => {
+  const computeTotalsSummaryValue = React6.useCallback((field) => {
     const fn = resolveTotalsSummaryFn(field);
     if (field.type === "number" && !field.reference) {
       const values = (allRows || []).map((row) => Number(row?.[field.key])).filter((v) => !Number.isNaN(v) && Number.isFinite(v));
@@ -18175,7 +18234,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (fn === "distinct") return new Set(rawValues.map((v) => String(v ?? "-"))).size;
     return rawValues.length;
   }, [allRows, resolveTotalsSummaryFn]);
-  const getSummaryFunctionDisplayText = React5.useCallback((fn) => {
+  const getSummaryFunctionDisplayText = React6.useCallback((fn) => {
     if (!fn) return "";
     const labels = {
       sum: _36("Sum"),
@@ -18188,7 +18247,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     };
     return labels[fn] || fn;
   }, []);
-  const tdNumericBoxes = React5.useMemo(() => {
+  const tdNumericBoxes = React6.useMemo(() => {
     if (!isTotalsDetailsView) return [];
     return displayFields.filter((field) => field.type === "number" && !field.reference).map((field) => {
       const summaryFnVal = resolveTotalsSummaryFn(field);
@@ -18197,7 +18256,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return { key: field.key, label, value, summaryFn: summaryFnVal };
     });
   }, [isTotalsDetailsView, displayFields, resolveTotalsSummaryFn, computeTotalsSummaryValue]);
-  const totalsSummaryConfigFields = React5.useMemo(() => {
+  const totalsSummaryConfigFields = React6.useMemo(() => {
     return displayFields.filter((field) => field.type === "number" && !field.reference);
   }, [displayFields]);
   const renderDynamicListTotalsBoxes = () => {
@@ -18262,7 +18321,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       ) })
     ] }) });
   };
-  const numericColumnMaxes = React5.useMemo(() => {
+  const numericColumnMaxes = React6.useMemo(() => {
     const maxes = {};
     const rows = allRows || [];
     displayFields.forEach((field) => {
@@ -18276,7 +18335,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return maxes;
   }, [allRows, displayFields]);
-  const statsNumericMaxes = React5.useMemo(() => {
+  const statsNumericMaxes = React6.useMemo(() => {
     const stats = statsSummary.numericStats;
     const maxAbs = (values) => {
       const absValues = values.filter((val) => typeof val === "number").map((val) => Math.abs(val));
@@ -18290,13 +18349,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       stddev: maxAbs(stats.map((row) => row.stddev))
     };
   }, [statsSummary.numericStats]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!analyzeOpen) return;
     skipNextAnimationRef.current = true;
     setChartAnimationStage("enter");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!analyzeOpen) return;
     if (skipNextAnimationRef.current) {
       skipNextAnimationRef.current = false;
@@ -18305,17 +18364,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setChartAnimationStage("update");
     setChartAnimationKey((key) => key + 1);
   }, [analyzeOpen, chartSignature]);
-  const fieldByKey = React5.useMemo(() => {
+  const fieldByKey = React6.useMemo(() => {
     return new Map(model.fields.map((field) => [field.key, field]));
   }, [model.fields]);
-  const chartTitle = React5.useMemo(() => {
+  const chartTitle = React6.useMemo(() => {
     const cat1Label = categoryField1 ? fieldByKey.get(categoryField1)?.label : "All";
     const cat2Label = categoryField2 ? fieldByKey.get(categoryField2)?.label : null;
     const parts = [model.label || model.name, cat1Label];
     if (cat2Label) parts.push(cat2Label);
     return parts.filter(Boolean).join(" \u2022 ");
   }, [categoryField1, categoryField2, fieldByKey, model.label, model.name]);
-  const formatValueForExport = React5.useCallback((field, record) => {
+  const formatValueForExport = React6.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "";
     if (field.reference) {
@@ -18331,7 +18390,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.type === "time") return formatTimeValue(raw);
     return String(raw);
   }, [labelCache]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!exportRequested || isAllRowsLoading) return;
     const escapeCsv = (value) => {
       if (value.includes('"') || value.includes(",") || value.includes("\n")) {
@@ -18444,11 +18503,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return { resource: null, id: null, isLinkRow: false };
   };
-  const clearBulkSelection = React5.useCallback(() => {
+  const clearBulkSelection = React6.useCallback(() => {
     setBulkSelectedRowKeys([]);
     bulkSelectedRowsMapRef.current.clear();
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!selectAllFilteredPending || !allRowsLoaded) return;
     setSelectAllFilteredPending(false);
     const keys = filteredDataSource.map((r) => getRowKey(r));
@@ -18456,7 +18515,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     filteredDataSource.forEach((r) => bulkSelectedRowsMapRef.current.set(getRowKey(r), r));
     setBulkSelectedRowKeys(keys);
   }, [selectAllFilteredPending, allRowsLoaded, filteredDataSource]);
-  const handleSelectAllFiltered = React5.useCallback(() => {
+  const handleSelectAllFiltered = React6.useCallback(() => {
     if (!allRowsLoaded) {
       setSelectAllFilteredPending(true);
       fetchAllRows();
@@ -18467,7 +18526,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setBulkSelectedRowKeys(keys);
     }
   }, [allRowsLoaded, fetchAllRows, filteredDataSource]);
-  const executeBulkActions = React5.useCallback(async () => {
+  const executeBulkActions = React6.useCallback(async () => {
     const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
     if (records.length === 0) return;
     const resource = resolveResourcePath(model.resource || model.name, allModels);
@@ -18579,9 +18638,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
   };
   const isEmptyTable = (filteredDataSource?.length ?? 0) === 0;
-  const getRowKeyRef = React5.useRef(getRowKey);
+  const getRowKeyRef = React6.useRef(getRowKey);
   getRowKeyRef.current = getRowKey;
-  const handleBulkRowSelectionChange = React5.useCallback(
+  const handleBulkRowSelectionChange = React6.useCallback(
     (newKeys, newRowsOnPage) => {
       const currentPageData = isClientFiltering ? filteredDataSource : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
       const currentPageKeys = new Set(currentPageData.map((r) => String(getRowKeyRef.current(r))));
@@ -18610,7 +18669,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     ]
   };
   const filteredTotalCount = isClientFiltering ? filteredDataSource.length : typeof tableProps.pagination === "object" ? tableProps.pagination?.total ?? filteredDataSource.length : filteredDataSource.length;
-  const bulkActionsAvailable = React5.useMemo(() => {
+  const bulkActionsAvailable = React6.useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
       opts.push({ label: _36("Change field value"), value: "__change_field__" });
@@ -19040,7 +19099,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
   };
   const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize ? tablePagination.pageSize : 10;
-  const handleGalleryPageChange = React5.useCallback((page, nextPageSize) => {
+  const handleGalleryPageChange = React6.useCallback((page, nextPageSize) => {
     setGalleryPage(page);
     if (nextPageSize && nextPageSize !== pageSize) {
       setPageSize(nextPageSize);
@@ -19058,19 +19117,19 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   }, [isClientFiltering, pageSize, tableProps]);
   const serverCurrentPage = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.current || 1) : 1;
   const serverTotal = !isClientFiltering && typeof tableProps.pagination === "object" ? Number(tableProps.pagination.total || 0) : 0;
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (isClientFiltering) return;
     if (Number.isFinite(serverCurrentPage) && serverCurrentPage > 0 && serverCurrentPage !== galleryPage) {
       setGalleryPage(serverCurrentPage);
     }
   }, [galleryPage, isClientFiltering, serverCurrentPage]);
-  const galleryRows = React5.useMemo(() => {
+  const galleryRows = React6.useMemo(() => {
     if (!isGalleryView) return [];
     if (!isClientFiltering) return filteredDataSource;
     const start = (galleryPage - 1) * galleryPageSize;
     return filteredDataSource.slice(start, start + galleryPageSize);
   }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
-  const galleryPaginationProps = React5.useMemo(() => {
+  const galleryPaginationProps = React6.useMemo(() => {
     if (!isGalleryView) return void 0;
     if (!isClientFiltering) {
       return {
@@ -19095,17 +19154,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleGalleryPageChange
     };
   }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
-  const calendarDateFieldKeySet = React5.useMemo(
+  const calendarDateFieldKeySet = React6.useMemo(
     () => new Set(calendarDateFieldOptions.map((field) => field.key)),
     [calendarDateFieldOptions]
   );
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     if (!isCalendarView) return;
     if (calendarDateField && calendarDateFieldKeySet.has(calendarDateField)) return;
     const fallback = calendarDateFieldOptions[0]?.key || "";
     if (fallback !== calendarDateField) setCalendarDateField(fallback);
   }, [calendarDateField, calendarDateFieldKeySet, calendarDateFieldOptions, isCalendarView]);
-  const calendarEntries = React5.useMemo(() => {
+  const calendarEntries = React6.useMemo(() => {
     if (!isCalendarView || !calendarDateField) return [];
     const entries = [];
     filteredDataSource.forEach((record) => {
@@ -19123,7 +19182,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return entries;
   }, [calendarDateField, filteredDataSource, isCalendarView]);
-  const calendarEarliestDateTs = React5.useMemo(() => {
+  const calendarEarliestDateTs = React6.useMemo(() => {
     if (calendarEntries.length === 0) return null;
     let earliest = calendarEntries[0].date.valueOf();
     for (let index = 1; index < calendarEntries.length; index += 1) {
@@ -19132,8 +19191,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     return earliest;
   }, [calendarEntries]);
-  const calendarInitSignatureRef = React5.useRef("");
-  React5.useEffect(() => {
+  const calendarInitSignatureRef = React6.useRef("");
+  React6.useEffect(() => {
     if (!isCalendarView) return;
     const signature = `${calendarDateField}|${calendarMode}|${calendarEarliestDateTs ?? "none"}`;
     if (calendarInitSignatureRef.current === signature) return;
@@ -19144,7 +19203,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     }
     setCalendarAnchorDate(dayjs9__default.default(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
-  const calendarEntriesByDate = React5.useMemo(() => {
+  const calendarEntriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
     calendarEntries.forEach((entry) => {
       const key = entry.date.format("YYYY-MM-DD");
@@ -19154,7 +19213,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     });
     return grouped;
   }, [calendarEntries]);
-  const calendarRangeDays = React5.useMemo(() => {
+  const calendarRangeDays = React6.useMemo(() => {
     const current = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
       const start2 = current.startOf("week");
@@ -19165,7 +19224,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
-  const calendarPeriodLabel = React5.useMemo(() => {
+  const calendarPeriodLabel = React6.useMemo(() => {
     if (calendarMode === "week") {
       const weekStart = calendarAnchorDate.startOf("week");
       const weekEnd = weekStart.endOf("week");
@@ -20354,8 +20413,8 @@ var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 var COLLAPSED_SIZE = 10;
 var FakeRouteProvider = ({ model, id, children }) => {
-  const existingRouteContext = React5.useContext(reactRouterDom.UNSAFE_RouteContext);
-  const fakeRouteContext = React5.useMemo(() => ({
+  const existingRouteContext = React6.useContext(reactRouterDom.UNSAFE_RouteContext);
+  const fakeRouteContext = React6.useMemo(() => ({
     ...existingRouteContext,
     matches: [
       ...existingRouteContext.matches,
@@ -20475,9 +20534,9 @@ var ResizeHandle = () => {
   );
 };
 var MultiPaneLayout = ({ children }) => {
-  const containerRef = React5.useRef(null);
-  const [panelHeight, setPanelHeight] = React5.useState("100vh");
-  React5.useLayoutEffect(() => {
+  const containerRef = React6.useRef(null);
+  const [panelHeight, setPanelHeight] = React6.useState("100vh");
+  React6.useLayoutEffect(() => {
     const measure = () => {
       if (!containerRef.current) return;
       const top = containerRef.current.getBoundingClientRect().top;
@@ -20489,13 +20548,13 @@ var MultiPaneLayout = ({ children }) => {
   }, []);
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams();
   const allModels = useAllModels();
-  const PrimaryShowRenderer = React5.useContext(PrimaryShowContext);
+  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
   const { token } = antd.theme.useToken();
-  const panes = React5.useMemo(() => parsePanes(searchParams), [searchParams]);
-  const groupRef = React5.useRef(null);
-  const pendingLayoutRef = React5.useRef(null);
-  const prevPaneCountRef = React5.useRef(0);
-  React5.useEffect(() => {
+  const panes = React6.useMemo(() => parsePanes(searchParams), [searchParams]);
+  const groupRef = React6.useRef(null);
+  const pendingLayoutRef = React6.useRef(null);
+  const prevPaneCountRef = React6.useRef(0);
+  React6.useEffect(() => {
     const newCount = panes.length;
     const prevCount = prevPaneCountRef.current;
     if (!pendingLayoutRef.current || !groupRef.current) {
@@ -20522,7 +20581,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     return () => cancelAnimationFrame(frameId);
   }, [panes.length]);
-  const openDetail = React5.useCallback(
+  const openDetail = React6.useCallback(
     (fromPaneIndex, resource, id) => {
       if (groupRef.current) {
         pendingLayoutRef.current = { ...groupRef.current.getLayout() };
@@ -20542,7 +20601,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [allModels, setSearchParams]
   );
-  const closePane = React5.useCallback(
+  const closePane = React6.useCallback(
     (fromArrayIndex) => {
       setSearchParams(
         (prev) => {
@@ -20554,7 +20613,7 @@ var MultiPaneLayout = ({ children }) => {
     },
     [setSearchParams]
   );
-  const minimizePane = React5.useCallback((panelId) => {
+  const minimizePane = React6.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const currentSize = layout[panelId] ?? COLLAPSED_SIZE;
@@ -20569,7 +20628,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const maximizePane = React5.useCallback((panelId) => {
+  const maximizePane = React6.useCallback((panelId) => {
     if (!groupRef.current) return;
     const layout = groupRef.current.getLayout();
     const panelIds = Object.keys(layout);
@@ -20581,7 +20640,7 @@ var MultiPaneLayout = ({ children }) => {
     });
     groupRef.current.setLayout(newLayout);
   }, []);
-  const listPaneContext = React5.useMemo(
+  const listPaneContext = React6.useMemo(
     () => ({
       isInMultiPane: true,
       paneIndex: 0,
@@ -20589,7 +20648,7 @@ var MultiPaneLayout = ({ children }) => {
     }),
     [openDetail]
   );
-  const detailPaneContexts = React5.useMemo(
+  const detailPaneContexts = React6.useMemo(
     () => panes.map((_43, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
@@ -20597,7 +20656,7 @@ var MultiPaneLayout = ({ children }) => {
     })),
     [panes, openDetail]
   );
-  const panelChildren = React5.useMemo(() => {
+  const panelChildren = React6.useMemo(() => {
     const result = [
       /* @__PURE__ */ jsxRuntime.jsx(Yt, { id: LIST_PANEL_ID, minSize: 10, style: { overflow: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(PaneNavigationContext.Provider, { value: listPaneContext, children }) }, "master-list")
     ];
@@ -20728,8 +20787,8 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
 };
 var instanceCounter = 0;
 var InlinePlotlyHtml = ({ html, style }) => {
-  const containerRef = React5.useRef(null);
-  const instanceIdRef = React5.useRef("");
+  const containerRef = React6.useRef(null);
+  const instanceIdRef = React6.useRef("");
   if (!instanceIdRef.current) {
     instanceCounter += 1;
     instanceIdRef.current = `iph-${instanceCounter}-${Date.now()}`;
@@ -20755,7 +20814,7 @@ var InlinePlotlyHtml = ({ html, style }) => {
     /((?:reduceCardWidth|increaseCardWidth|optimizeCardSizeInViewPort|maximizeCardSize|minimizeCardSize|flipCard)\()(\d+)\)/g,
     (match, func, suffix) => `${func}'${suffix}-${instanceId}')`
   );
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const scripts = Array.from(container.querySelectorAll("script"));
@@ -21019,15 +21078,15 @@ var ColorModeContextProvider = ({
     "(prefers-color-scheme: dark)"
   ).matches;
   const systemPreference = isSystemPreferenceDark ? "dark" : "light";
-  const [mode, setMode] = React5.useState(
+  const [mode, setMode] = React6.useState(
     colorModeFromLocalStorage === "dark" || colorModeFromLocalStorage === "light" ? colorModeFromLocalStorage : systemPreference
   );
-  const initializedFromServer = React5.useRef(false);
-  const [schemaVersion, setSchemaVersion] = React5.useState(0);
-  React5.useEffect(() => {
+  const initializedFromServer = React6.useRef(false);
+  const [schemaVersion, setSchemaVersion] = React6.useState(0);
+  React6.useEffect(() => {
     return onColorSchemaChange(() => setSchemaVersion((v) => v + 1));
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
@@ -21048,12 +21107,12 @@ var ColorModeContextProvider = ({
       cancelled = true;
     };
   }, []);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     window.localStorage.setItem("colorMode", mode);
     document.body.classList.toggle("jm-dark", mode === "dark");
     document.body.classList.toggle("jm-light", mode === "light");
   }, [mode]);
-  const saveToServer = React5.useCallback(async (newMode) => {
+  const saveToServer = React6.useCallback(async (newMode) => {
     try {
       await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`, {
         method: "POST",
@@ -21063,7 +21122,7 @@ var ColorModeContextProvider = ({
     } catch (_e3) {
     }
   }, []);
-  const setColorMode = React5.useCallback((newMode) => {
+  const setColorMode = React6.useCallback((newMode) => {
     setMode(newMode);
     void saveToServer(newMode);
   }, [saveToServer]);
@@ -21079,7 +21138,7 @@ var ColorModeContextProvider = ({
     }
   ) });
 };
-var ResourceContext = React5.createContext({
+var ResourceContext = React6.createContext({
   allResources: [],
   allSystemModels: []
 });
@@ -21185,10 +21244,10 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
 };
 function useDashboardConfig() {
   const apiUrl = core.useApiUrl();
-  const [config, setConfig] = React5.useState(null);
-  const [enabled, setEnabled] = React5.useState(false);
-  const [loading, setLoading] = React5.useState(true);
-  const load = React5.useCallback(async () => {
+  const [config, setConfig] = React6.useState(null);
+  const [enabled, setEnabled] = React6.useState(false);
+  const [loading, setLoading] = React6.useState(true);
+  const load = React6.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${apiUrl}/dashboard/config`);
@@ -21206,10 +21265,10 @@ function useDashboardConfig() {
       setLoading(false);
     }
   }, [apiUrl]);
-  React5.useEffect(() => {
+  React6.useEffect(() => {
     load();
   }, [load]);
-  const save = React5.useCallback(async (next) => {
+  const save = React6.useCallback(async (next) => {
     setConfig(next);
     try {
       await authenticatedFetch(`${apiUrl}/dashboard/config`, {
@@ -21222,10 +21281,52 @@ function useDashboardConfig() {
   }, [apiUrl]);
   return { config, enabled, loading, save, reload: load };
 }
+var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
+  const [chartHtml, setChartHtml] = React6.useState("");
+  const [loading, setLoading] = React6.useState(true);
+  const [error, setError] = React6.useState("");
+  const fetchChart = React6.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const apiUrl = typeof API_URL3 === "string" ? API_URL3 : "";
+      const fullUrl = chartUrl.startsWith("http") ? chartUrl : `${apiUrl}${chartUrl}`;
+      const sep = fullUrl.includes("?") ? "&" : "?";
+      const lang = (() => {
+        try {
+          return (localStorage.getItem("locale") || navigator.language || "en").split("-")[0].toLowerCase();
+        } catch {
+          return "en";
+        }
+      })();
+      const res = await authenticatedFetch(`${fullUrl}${sep}lang=${encodeURIComponent(lang)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setChartHtml(data.chart_html || "");
+    } catch (e) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [chartUrl]);
+  React6.useEffect(() => {
+    fetchChart();
+  }, [fetchChart, refreshNonce]);
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) });
+  }
+  if (error) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: `Chart error: ${error}`, style: { padding: 20 }, image: antd.Empty.PRESENTED_IMAGE_SIMPLE });
+  }
+  if (!chartHtml) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No chart data", style: { padding: 20 }, image: antd.Empty.PRESENTED_IMAGE_SIMPLE });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" } });
+};
 var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
-  const cellRef = React5.useRef(null);
+  const cellRef = React6.useRef(null);
   const cellStyle = {
     position: "relative",
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -21254,11 +21355,13 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     minHeight: 32,
     position: "relative"
   };
+  const isPlotlyChart = cell.source_type === "plotly_chart";
   const resource = model?.resource || cell.model;
   const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
-  const cellTitle = isModelLike ? model?.label || cell.model : cell.section_name || cell.model;
+  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name || cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
-  const startResize = React5.useCallback((e, dir) => {
+  const [chartRefreshNonce, setChartRefreshNonce] = React6.useState(0);
+  const startResize = React6.useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
     const el = cellRef.current;
@@ -21411,7 +21514,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) })
       ] })
     ] }),
-    !isMinimized && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: model ? /* @__PURE__ */ jsxRuntime.jsx(
+    !isMinimized && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsxRuntime.jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce }) : model ? /* @__PURE__ */ jsxRuntime.jsx(
       DynamicList,
       {
         model,
@@ -21434,11 +21537,11 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
 };
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
   const cells = tab.cells;
-  const numCols = React5.useMemo(() => {
+  const numCols = React6.useMemo(() => {
     if (!cells.length) return 2;
     return Math.max(...cells.map((c) => c.col)) + 1;
   }, [cells]);
-  const numRows = React5.useMemo(() => {
+  const numRows = React6.useMemo(() => {
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
@@ -21484,13 +21587,13 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
 var ViewsGrid = ({ config, allModels, onConfigChange }) => {
   const { data: canLayoutData } = core.useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
-  const [maximizedCellId, setMaximizedCellId] = React5.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React5.useState(/* @__PURE__ */ new Set());
-  const [drawerSelection, setDrawerSelection] = React5.useState(null);
-  const handleMaximize = React5.useCallback((cellId) => {
+  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+  const [drawerSelection, setDrawerSelection] = React6.useState(null);
+  const handleMaximize = React6.useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
-  const handleMinimize = React5.useCallback((cellId) => {
+  const handleMinimize = React6.useCallback((cellId) => {
     setMinimizedCellIds((prev) => {
       const next = new Set(prev);
       if (next.has(cellId)) {
@@ -21501,14 +21604,14 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
       return next;
     });
   }, []);
-  const handleOpenDrawer = React5.useCallback((tabId, cell) => {
+  const handleOpenDrawer = React6.useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
-  const handleSaveConfig = React5.useCallback((nextConfig) => {
+  const handleSaveConfig = React6.useCallback((nextConfig) => {
     onConfigChange(nextConfig);
     setDrawerSelection(null);
   }, [onConfigChange]);
-  const handleMoveCell = React5.useCallback((tabId, cellId, direction) => {
+  const handleMoveCell = React6.useCallback((tabId, cellId, direction) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       const cell = tab.cells.find((c) => c.id === cellId);
@@ -21529,7 +21632,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, onConfigChange]);
-  const handleResizeCell = React5.useCallback((tabId, cellId, minWidth, minHeight) => {
+  const handleResizeCell = React6.useCallback((tabId, cellId, minWidth, minHeight) => {
     const nextTabs = config.tabs.map((tab) => {
       if (tab.id !== tabId) return tab;
       return {
@@ -21546,7 +21649,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
     });
     onConfigChange({ ...config, tabs: nextTabs });
   }, [config, onConfigChange]);
-  const tabItems = React5.useMemo(
+  const tabItems = React6.useMemo(
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: tab.name,
@@ -21626,7 +21729,7 @@ function relativeTime3(iso) {
 var RecentActivityPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
-  const [days, setDays] = React5.useState(30);
+  const [days, setDays] = React6.useState(30);
   const { data, loading, reload } = useRecentActivity(days);
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
@@ -21734,9 +21837,9 @@ var RecentActivityPanel = () => {
 };
 var { Text: AntText, Title: AntTitle } = antd.Typography;
 function usePinnedRecords() {
-  const [groups, setGroups] = React5.useState([]);
-  const [loading, setLoading] = React5.useState(true);
-  const load = React5.useCallback(async () => {
+  const [groups, setGroups] = React6.useState([]);
+  const [loading, setLoading] = React6.useState(true);
+  const load = React6.useCallback(async () => {
     setLoading(true);
     try {
       const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
@@ -21749,7 +21852,7 @@ function usePinnedRecords() {
       setLoading(false);
     }
   }, []);
-  React5__default.default.useEffect(() => {
+  React6__default.default.useEffect(() => {
     load();
   }, [load]);
   return { groups, loading, reload: load };
@@ -21758,9 +21861,9 @@ var PinnedRecordsPanel = () => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
   const { groups, loading, reload } = usePinnedRecords();
-  const [unpinning, setUnpinning] = React5.useState(/* @__PURE__ */ new Set());
+  const [unpinning, setUnpinning] = React6.useState(/* @__PURE__ */ new Set());
   const visibleGroups = groups.filter((g) => findModelByName(allModels, g.resource));
-  const handleUnpin = React5.useCallback(async (resource, recordId) => {
+  const handleUnpin = React6.useCallback(async (resource, recordId) => {
     const key = `${resource}:${recordId}`;
     setUnpinning((prev) => new Set(prev).add(key));
     try {

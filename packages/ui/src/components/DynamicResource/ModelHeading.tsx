@@ -30,7 +30,7 @@ export const renderModelHeading = ({
                 paddingRight: 10,
             }}
         >
-            <div style={{ minWidth: 0, fontSize: 16, fontWeight: 700, color: tone.solid, padding: "2px 8px" }}>
+            <div style={{ minWidth: 0, fontSize: 18, fontWeight: 700, color: tone.solid, padding: "2px 8px" }}>
                 {title}
             </div>
         </div>

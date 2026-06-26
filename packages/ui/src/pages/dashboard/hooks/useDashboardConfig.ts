@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useApiUrl } from "@refinedev/core";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 
-export type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom";
+export type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom" | "plotly_chart";
 
 export interface DashboardCell {
     id: string;
@@ -19,6 +19,10 @@ export interface DashboardCell {
     // For source_type "field" and "relation" cells (show/edit page sections)
     section_name?: string;
     section_id?: string;
+    // For source_type "plotly_chart": the API endpoint returning { chart_html: string }
+    chart_url?: string;
+    // For source_type "plotly_chart": human-readable chart title
+    chart_title?: string;
 }
 
 export interface DashboardTab {

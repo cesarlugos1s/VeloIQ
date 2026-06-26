@@ -28,12 +28,23 @@ _LEGACY_CONFIG_RELATIVE = Path("config") / "views_configuration.json"
     help="Models or named queries to remove from the dashboard.",
 )
 @click.option(
+    "--chart-url", default=None, metavar="URL",
+    help="Add the model as a Plotly chart cell pointed at this API endpoint. "
+         "Implies source_type='plotly_chart'.",
+)
+@click.option(
+    "--chart-title", default=None, metavar="TITLE",
+    help="Human-readable title for --chart-url cell(s).",
+)
+@click.option(
     "--project-root", default=None,
     help="Project root directory (default: auto-detected from CWD).",
 )
 def add_dashboard(
     models: tuple[str, ...],
     remove_models: tuple[str, ...],
+    chart_url: Optional[str],
+    chart_title: Optional[str],
     project_root: Optional[str],
 ) -> None:
     """Add or remove models and named queries from the app dashboard.
@@ -104,6 +115,21 @@ def add_dashboard(
             added.append(m)
             continue
 
+        # Chart cell flow (when --chart-url is provided).
+        if chart_url is not None:
+            # Use "dashboard" as the module for chart cells — they aren't tied
+            # to any host-app module folder.
+            title = chart_title or m
+            _add_model_to_dashboard(
+                dashboard, m, "dashboard",
+                source_type="plotly_chart",
+                chart_url=chart_url,
+                chart_title=title,
+            )
+            existing_models.add(m)
+            added.append(m)
+            continue
+
         # Regular model flow.
         module = _detect_module(m, modules_dir)
         resolved = _resolve_model_name(m, modules_dir)
@@ -153,8 +179,10 @@ def _add_model_to_dashboard(
     model: str,
     module: str,
     source_type: str = "model",
+    chart_url: Optional[str] = None,
+    chart_title: Optional[str] = None,
 ) -> None:
-    """Insert model or named query into the correct tab (by module), creating the tab if needed."""
+    """Insert model, named query, or chart cell into the correct tab (by module), creating the tab if needed."""
     tabs: list[dict] = dashboard.setdefault("tabs", [])
     # Find existing tab for this module — match by stored module key or display name.
     display = _module_display_name(module)
@@ -181,7 +209,7 @@ def _add_model_to_dashboard(
     else:
         row, col = 0, 0
 
-    cells.append({
+    cell: dict = {
         "id": str(uuid.uuid4()),
         "model": model,
         "source_type": source_type,
@@ -193,7 +221,12 @@ def _add_model_to_dashboard(
         "max_width": None,
         "min_height": None,
         "max_height": None,
-    })
+    }
+    if chart_url is not None:
+        cell["chart_url"] = chart_url
+    if chart_title is not None:
+        cell["chart_title"] = chart_title
+    cells.append(cell)
 
 
 def _remove_model_from_dashboard(dashboard: dict, model: str) -> None:

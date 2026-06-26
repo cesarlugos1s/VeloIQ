@@ -184,7 +184,6 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                 borderRadius: 6,
                 overflowWrap: "anywhere",
                 maxWidth: "100%",
-                border: `1px solid ${token.colorBorder}`,
                 ...parseInlineStyle(item.html_format),
             };
             const relationLabelStyle: React.CSSProperties = {
@@ -224,7 +223,6 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
             lineHeight: 1.15,
             background: valueBackground,
             borderRadius: 6,
-            border: `1px solid ${token.colorBorder}`,
             maxWidth: "100%",
             overflowWrap: "anywhere",
             textAlign: field.type === "number" && !field.reference ? "right" : "left",

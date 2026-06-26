@@ -159,6 +159,12 @@ export const setColorSchemas = (schemas: {
                 const darkBgElements = `rgb(${shade(r, 0.11)}, ${shade(g, 0.11)}, ${shade(b, 0.11)})`;
                 const darkBgHover = `rgb(${shade(r, 0.16)}, ${shade(g, 0.16)}, ${shade(b, 0.16)})`;
 
+                // Inverted sidebar/header: background + computed readable text
+                const sidebarLightBg = hex;
+                const sidebarLightText = isDarkColor(hex) ? "#ffffff" : "#0f172a";
+                const sidebarDarkBg = lightBgElements;
+                const sidebarDarkText = "#0f172a";  // lightBgElements is always light
+
                 styleEl.innerHTML = `
                     /* --- LIGHT MODE OVERRIDES --- */
                     body.jm-light .ant-layout,
@@ -172,7 +178,31 @@ export const setColorSchemas = (schemas: {
                     body.jm-light .ant-menu,
                     body.jm-light .ant-menu-submenu,
                     body.jm-light .ant-menu-submenu-title,
-                    body.jm-light .ant-layout-header,
+                    body.jm-light .ant-layout-header {
+                        background-color: ${sidebarLightBg} !important;
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider *,
+                    body.jm-light .ant-layout-header * {
+                        color: ${sidebarLightText} !important;
+                    }
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-light .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-light .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected,
+                    body.jm-light .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover,
+                    body.jm-light .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup {
+                        background-color: ${sidebarLightBg} !important;
+                    }
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarLightText} !important;
+                    }
                     body.jm-light .ant-card,
                     body.jm-light .ant-table-wrapper .ant-table,
                     body.jm-light .ant-table-thead > tr > th,
@@ -202,7 +232,31 @@ export const setColorSchemas = (schemas: {
                     body.jm-dark .ant-menu,
                     body.jm-dark .ant-menu-submenu,
                     body.jm-dark .ant-menu-submenu-title,
-                    body.jm-dark .ant-layout-header,
+                    body.jm-dark .ant-layout-header {
+                        background-color: ${sidebarDarkBg} !important;
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider *,
+                    body.jm-dark .ant-layout-header * {
+                        color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-sider .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-sider .ant-menu-item:hover *,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected,
+                    body.jm-dark .ant-layout-header .ant-menu-item-selected *,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover,
+                    body.jm-dark .ant-layout-header .ant-menu-item:hover * {
+                        color: revert !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup {
+                        background-color: ${sidebarDarkBg} !important;
+                    }
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
+                        color: ${sidebarDarkText} !important;
+                    }
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,
                     body.jm-dark .ant-table-thead > tr > th,

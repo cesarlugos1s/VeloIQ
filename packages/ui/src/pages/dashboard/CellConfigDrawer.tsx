@@ -45,6 +45,8 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
             max_width: cell.max_width ?? "",
             min_height: cell.min_height ?? "",
             max_height: cell.max_height ?? "",
+            chart_url: cell.chart_url ?? "",
+            chart_title: cell.chart_title ?? "",
         });
     }, [cell, tabId, config, form]);
 
@@ -63,6 +65,8 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
             max_width: values.max_width || null,
             min_height: values.min_height || null,
             max_height: values.max_height || null,
+            chart_url: values.chart_url || undefined,
+            chart_title: values.chart_title || undefined,
         };
 
         const currentTab = config.tabs.find((t) => t.id === tabId);
@@ -124,9 +128,11 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
 
     return (
         <Drawer
-            title={cell?.source_type !== "model"
-                ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}`
-                : `Configure cell: ${cell?.model ?? ""}`}
+            title={cell?.source_type === "plotly_chart"
+                ? `Configure chart: ${cell?.chart_title ?? cell?.model ?? ""}`
+                : cell?.source_type !== "model"
+                    ? `Configure section: ${cell?.section_name ?? cell?.model ?? ""}`
+                    : `Configure cell: ${cell?.model ?? ""}`}
             placement="right"
             width={380}
             open={open}
@@ -163,6 +169,18 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
                         <Divider orientation="left">View</Divider>
                         <Form.Item name="view_type" label="View type">
                             <Select options={VIEW_TYPE_OPTIONS} />
+                        </Form.Item>
+                    </>
+                )}
+
+                {cell?.source_type === "plotly_chart" && (
+                    <>
+                        <Divider orientation="left">Chart</Divider>
+                        <Form.Item name="chart_title" label="Chart title">
+                            <Input placeholder="e.g. Confidence by Month" />
+                        </Form.Item>
+                        <Form.Item name="chart_url" label="Chart URL">
+                            <Input placeholder="/api/nl-answers-confidence-by-month-chart" />
                         </Form.Item>
                     </>
                 )}

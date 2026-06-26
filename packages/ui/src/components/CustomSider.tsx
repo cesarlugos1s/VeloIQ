@@ -63,7 +63,7 @@ export const CustomSider: React.FC<{
                     padding: isModule ? "3px 8px" : "2px 8px",
                     borderRadius: 8,
                     background: "transparent",
-                    color: tone.text,
+                    color: "inherit",
                     fontWeight: 400,
                 }}
             >

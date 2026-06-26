@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCan } from "@refinedev/core";
-import { Tabs, Tooltip, Button, theme, Empty } from "antd";
+import { Tabs, Tooltip, Button, theme, Empty, Spin } from "antd";
 import {
     SettingOutlined,
     FullscreenOutlined,
@@ -16,6 +16,9 @@ import type { ModelDef } from "../../components/DynamicResource/types";
 import { DynamicList } from "../../components/DynamicResource";
 import { findModelByName } from "../../components/DynamicResource/utils/model";
 import { getModelTone } from "../../utils/modelTone";
+import { InlinePlotlyHtml } from "../../components/InlinePlotlyHtml";
+import { authenticatedFetch } from "../../utils/authenticatedFetch";
+import { API_URL } from "../../providers/constants";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 import { CellConfigDrawer } from "./CellConfigDrawer";
 
@@ -29,6 +32,53 @@ interface CellSelection {
     cell: DashboardCell;
     tabId: string;
 }
+
+// ---------------------------------------------------------------------------
+// Plotly chart cell content — fetches server-rendered chart HTML
+// ---------------------------------------------------------------------------
+
+const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number }> = ({ chartUrl, refreshNonce }) => {
+    const [chartHtml, setChartHtml] = useState<string>("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    const fetchChart = useCallback(async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const apiUrl = typeof API_URL === "string" ? API_URL : "";
+            // chartUrl may be absolute (/api/...) or relative — prepend API_URL base if needed
+            const fullUrl = chartUrl.startsWith("http") ? chartUrl : `${apiUrl}${chartUrl}`;
+            const sep = fullUrl.includes("?") ? "&" : "?";
+            const lang = (() => {
+                try {
+                    return (localStorage.getItem("locale") || navigator.language || "en").split("-")[0].toLowerCase();
+                } catch { return "en"; }
+            })();
+            const res = await authenticatedFetch(`${fullUrl}${sep}lang=${encodeURIComponent(lang)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setChartHtml(data.chart_html || "");
+        } catch (e: any) {
+            setError(e?.message ?? String(e));
+        } finally {
+            setLoading(false);
+        }
+    }, [chartUrl]);
+
+    useEffect(() => { fetchChart(); }, [fetchChart, refreshNonce]);
+
+    if (loading) {
+        return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }}><Spin /></div>;
+    }
+    if (error) {
+        return <Empty description={`Chart error: ${error}`} style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    }
+    if (!chartHtml) {
+        return <Empty description="No chart data" style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    }
+    return <InlinePlotlyHtml html={chartHtml} style={{ padding: 8, height: "100%", overflow: "auto" }} />;
+};
 
 // ---------------------------------------------------------------------------
 // Single grid cell
@@ -80,12 +130,18 @@ const DashboardGridCell: React.FC<{
         position: "relative",
     };
 
+    const isPlotlyChart = cell.source_type === "plotly_chart";
     const resource = model?.resource || cell.model;
     const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
-    const cellTitle = isModelLike
-        ? (model?.label || cell.model)
-        : (cell.section_name || cell.model);
+    const cellTitle = isPlotlyChart
+        ? (cell.chart_title || cell.model)
+        : isModelLike
+            ? (model?.label || cell.model)
+            : (cell.section_name || cell.model);
     const tone = (isModelLike && model) ? getModelTone(model) : null;
+
+    // Refresh nonce for plotly chart cells — incrementing triggers re-fetch
+    const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
 
     // Resize via pointer drag on bottom / right / corner handles.
     const startResize = useCallback((
@@ -234,7 +290,9 @@ const DashboardGridCell: React.FC<{
             </div>
             {!isMinimized && (
                 <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
-                    {model ? (
+                    {isPlotlyChart && cell.chart_url ? (
+                        <PlotlyChartContent chartUrl={cell.chart_url} refreshNonce={chartRefreshNonce} />
+                    ) : model ? (
                         <DynamicList
                             key={`${resource}-${cell.view_type ?? ''}`}
                             model={model}
