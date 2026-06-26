@@ -1204,13 +1204,23 @@ class _SPAFiles(StaticFiles):
 
 
 def _mount_frontend(app: FastAPI, cfg: VeloIQConfig) -> None:
-    """Serve the host app's built frontend dist/ at / for production deployments."""
+    """Serve the host app's built frontend dist/ at / for production deployments.
+
+    Uses Starlette's ``default`` router fallback so that explicit mounts like
+    ``/admin`` and ``/veloiq-studio`` take precedence over the SPA catch-all.
+    """
     if cfg.serve_frontend is None:
         return
     dist = Path(cfg.serve_frontend)
     if not dist.exists():
         return
-    app.mount("/", _SPAFiles(directory=str(dist), html=True), name="frontend")
+    # Serve static assets (JS/CSS/...) at /assets/ and / (SPA fallback).
+    # Assets must be served by a regular mount so they're direct files.
+    assets_dir = dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend_assets")
+    # The SPA fallback only kicks in when no explicit route or mount matches.
+    app.router.default = _SPAFiles(directory=str(dist), html=True)
     print(f"  🌐 Frontend: / → {dist}")
 
 
