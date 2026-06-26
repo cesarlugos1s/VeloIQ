@@ -56,6 +56,29 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.0
+
+- **Convention-based page overrides for all page types** — drop a `custom_show.tsx`,
+  `custom_edit.tsx`, `custom_create.tsx`, or `custom_list.tsx` into a model's page directory,
+  run `veloiq generate`, and the custom component replaces the default page at runtime.
+  Extensions can now declare `edit_overrides`, `create_overrides`, and `list_overrides`.
+- **Literal type → dropdowns** — `Literal["a", "b"]` annotations on model fields are
+  auto-detected and rendered as enumerated dropdown selects in generated forms.
+- **Bulk-read API** — `POST /api/_meta/bulk-read` returns fully-serialized records by ID array.
+- **Configurable model titles** — declare `titleFields` on any model to control how records
+  are labeled throughout the UI (breadcrumbs, relation chips, list rows).
+- **`veloiq import-schema`** — import an existing database schema into VeloIQ modules with
+  foreign keys, types, and defaults preserved.
+- **Security** — removed `VELOIQ_AUTH_DISABLED` escape hatch; authentication and RBAC are
+  always enforced. New apps must run `veloiq migrate` to seed the admin user.
+- **Crosstab chart renderer** — backend-rendered crosstab charts with Plotly 3D/bubble fixes.
+- **Studio** — model-name dropdowns, searchable combo-boxes, IQVigilant hardening nudges.
+- **Fixes** — list search uses `contains` for partial-text matching; `DynamicResource` guards
+  against non-array dataSource; solo page sections span full grid width; CLI `veloiq run` works
+  from repo root; i18n locale override honored in `main.tsx`.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.8.5
 
 - **New** — Dev-mode auto-migration: when `VELOIQ_DEV=1`, the framework detects missing columns

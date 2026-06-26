@@ -4,32 +4,104 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
-## [Unreleased]
+## [0.9.0] — 2026-06-26
 
 ### Features
 
-- **UI — `DynamicShow` `beforeTabs` slot** — `DynamicShow` accepts an optional
-  `beforeTabs?: React.ReactNode` prop, rendered between the sticky standard header
-  (breadcrumbs, title, action buttons) and the form tabs. Lets a custom show page place
-  content (e.g. an NL conversation panel) above the Details / relation tabs while keeping
-  the standard header chrome.
+- **Convention-based page overrides for all page types** — drop a
+  `custom_show.tsx`, `custom_edit.tsx`, `custom_create.tsx`, or `custom_list.tsx`
+  into a model's subdirectory under `pages/<module>/<Model>/` and re-run
+  `veloiq generate`. The generator detects the file, registers it in
+  `extensions.gen.tsx` under the corresponding resource key, and `App.tsx`
+  renders the custom component instead of the default `Dynamic*` page at
+  runtime. Extensions can now declare `edit_overrides`, `create_overrides`,
+  and `list_overrides` in their manifest alongside the existing
+  `show_overrides`.
+
+- **Literal type → dropdowns** — the API-schema generator now detects
+  `Literal["a", "b"]` type annotations on SQLModel fields and emits them as
+  enumerated dropdown selects in the generated form. Fields with
+  `Field(default=...)` also now pre-populate the Create form with the
+  declared default value.
+
+- **`DynamicShow` `beforeTabs` slot** — `DynamicShow` accepts an optional
+  `beforeTabs?: React.ReactNode` prop rendered between the sticky header
+  (breadcrumbs, title, action buttons) and the form tabs. Allows custom show
+  pages to place content (e.g. an NL conversation panel) above the Details /
+  relation tabs while keeping the standard header chrome.
+
+- **Bulk-read API** — `POST /api/_meta/bulk-read` accepts a JSON array of
+  record IDs and returns the full serialized representation for each.
+  Serialization flows through the ORM model so relations resolve correctly.
+
+- **Configurable model title fields** (`titleFields`) — models can declare
+  which fields compose their display title (e.g. `first_name` + `last_name`),
+  with `{model_name}` and `{pk}` tokens supported. Falls back to
+  `dc_title`/`__str__` before the first string field.
+
+- **`veloiq import-schema`** — new CLI command with a guided Studio UI that
+  imports an existing database schema into VeloIQ module stubs, preserving
+  foreign keys, column types, and defaults.
+
+- **Crosstab chart backend renderer** — backend-rendered crosstab charts with
+  fixes for 3D and bubble column resolution in Plotly.
 
 ### Fixes
 
-- **UI — inline Plotly charts in backend-rendered HTML** — `ExecutableHtml` now strips the
-  `<script src="…cdn.plot.ly…">` tag when rendering inline (non-iframe) HTML. Re-inserting and
-  awaiting that external script in the sequential script runner was fragile: a slow or blocked
-  CDN stalled the runner so the inline Plotly init script never executed, and charts reserved
-  their space but did not draw. The sanitized inline init script loads Plotly itself.
+- **Security — removed auth-disable escape hatches** — `VELOIQ_AUTH_DISABLED`
+  and `auth_enabled=False` are no longer accepted. All authentication,
+  role-based access control, and admin guards are always active. New apps must
+  run `veloiq migrate` to seed the admin user before first start.
 
-### Docs
+- **UI — inline Plotly charts** — `ExecutableHtml` strips the external Plotly
+  CDN `<script>` tag when rendering inline HTML. The sanitized inline init
+  script loads Plotly itself, fixing the race where a slow CDN stalled the
+  sequential script runner and charts reserved space but never drew.
 
-- **i18n — clarified request-locale behavior** — the docs previously stated the active locale
-  was set automatically from `Accept-Language` by framework middleware. There is no such
-  middleware: `_()` resolves against the locale set via `set_request_locale()` and falls back to
-  `i18n_default_locale` when none is set. `configuration-reference.md` and `module-authoring.md`
-  now document setting the locale per request, including the `StreamingResponse` caveat (set it
-  in the async handler, not inside the body generator).
+- **DynamicResource non-array dataSource** — `filteredDataSource`,
+  `columnFilters`, crosstab data derivation, and `currentPageData` now guard
+  with `Array.isArray()` instead of `|| []`, preventing `TypeError: X.map is
+  not a function` on List, Show, Analyze, and crosstab pages.
+
+- **List page search** — uses the `contains` operator so partial text matches
+  work in the default list filter, not just exact-prefix matches.
+
+- **Import-schema multi-FK disambiguation** — junction/link models with
+  multiple foreign keys are now ordered correctly during import.
+
+- **Solo sections in configured pages** — now span the full grid width instead
+  of being constrained to a single column.
+
+- **CLI — `veloiq run`** — works from the repository root, not just the
+  `backend/` subdirectory.
+
+- **i18n — `main.tsx` locale override** — scaffolded `main.tsx` now honors
+  the `?lang=` query parameter and `localStorage` locale override.
+
+- **NLP — entity title resolution** — entity titles are resolved via
+  `build_model_str_label` and PK columns are properly renamed.
+
+### Documentation
+
+- **i18n request-locale behavior** — clarified that the active locale is set
+  per-request via `set_request_locale()`, not automatically from
+  `Accept-Language` headers. Documented the `StreamingResponse` caveat.
+
+- **`import-schema`, `add-field` view types, and `bulk-read`** — new
+  documentation pages for schema import, extended field view types, and the
+  bulk-read endpoint.
+
+### Studio
+
+- Model-name dropdowns, searchable combo-box selectors, and token-expiry
+  handling in the Studio UI.
+- Build Frontend advisory note split into two paragraphs with per-link support.
+- IQVigilant production-hardening nudges at five framework touchpoints plus
+  advisory when installed-but-disabled.
+- JuiceMantics (Commerce Optimization AI) brand promoted across the website,
+  Studio, and CLI.
+- IQVigilant URL corrected from `iqvigilant.dev` to `iqvigilant.ai` in all
+  touchpoints.
 
 ---
 
