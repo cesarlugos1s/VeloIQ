@@ -147,6 +147,23 @@ def create_veloiq_app(
 
     # ── SQLAdmin ──────────────────────────────────────────────────────────────
     from sqladmin import Admin
+
+    # Override get_object_identifier in the template globals so it uses
+    # Python attribute names instead of physical DB column names.
+    # (SQLModel sa_column aliasing means physical column names like 'cw_eid'
+    # differ from model attributes like 'id' or 'eid').
+    def _get_object_identifier(obj):
+        from sqlalchemy import inspect as _sqa_inspect
+        mapper = _sqa_inspect(type(obj))
+        pk_cols_physical = {c.name for c in mapper.primary_key}
+        values = []
+        for prop in mapper.column_attrs:
+            if prop.columns[0].name in pk_cols_physical:
+                values.append(str(getattr(obj, prop.key)))
+        return ";".join(values) if values else "?"
+
+    # Will be applied after Admin creates templates (see below)
+    _admin_get_object_identifier_patch = _get_object_identifier
     from starlette.middleware.sessions import SessionMiddleware
     from veloiq_framework.auth.sqladmin_auth import VeloIQAdminAuth
     app.add_middleware(SessionMiddleware, secret_key=cfg.auth_secret)
@@ -159,6 +176,8 @@ def create_veloiq_app(
     if cfg.admin_templates_dir and Path(cfg.admin_templates_dir).exists():
         admin_kwargs["templates_dir"] = str(cfg.admin_templates_dir)
     admin = Admin(app, engine, **admin_kwargs)
+    # Fix template get_object_identifier to use Python attr names
+    admin.templates.env.globals["get_object_identifier"] = _admin_get_object_identifier_patch
 
     # ── Auth admin views ──────────────────────────────────────────────────────
     from veloiq_framework.auth.admin import AUTH_ADMIN_VIEWS

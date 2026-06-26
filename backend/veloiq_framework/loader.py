@@ -291,11 +291,17 @@ def load_modules(
                     # non-column attributes that would crash sort_query).
                     mapper = class_mapper(model_cls)
                     real_columns = [p.key for p in mapper.column_attrs]
+                    # Use Python attr names for default sort, not physical DB col names.
+                    # column_default_sort expects a list of (column_name, is_desc) tuples.
+                    pk_attrs = [(p.key, False) for p in mapper.column_attrs if p.columns[0].primary_key]
 
                     view = ModelViewMeta(
                         f"{model_cls.__name__}Admin",
                         (ModelView,),
-                        {"column_sortable_list": real_columns},
+                        {
+                            "column_sortable_list": real_columns,
+                            "column_default_sort": pk_attrs,
+                        },
                         model=model_cls,
                     )
                     admin.add_view(view)
