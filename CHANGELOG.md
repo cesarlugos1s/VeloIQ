@@ -4,6 +4,51 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.9.1] — 2026-06-26
+
+### Fixes
+
+- **Search input text invisible in header** — when `plain_color_base_hex` is
+  configured in `veloiq.toml`, the framework injects CSS overrides that force
+  all header elements to a single text color. The search `Input` has its own
+  background from the Ant Design theme, causing the text to match the background
+  in both light and dark modes. Fixed with two layers: (1) CSS wildcard selectors
+  now exclude `input`, `textarea`, `.ant-input`, and similar form elements via
+  `:not()` so they keep their native theme colors, and (2) `GlobalSearch` sets
+  `color: token.colorText` directly on the `Input` as a runtime guard.
+
+- **SQLAdmin NLChat/DbConnector/NLAnswer list crash** — models that use
+  `sa_column=Column("jm_eid", primary_key=True)` with a Python attribute name
+  different from the DB column name (e.g. `eid` → `jm_eid`) crashed SQLAdmin
+  list/detail pages with `AttributeError: 'NLChat' object has no attribute
+  'jm_eid'`. The existing fix only patched Jinja2 template globals; the internal
+  `_build_url_for` method called `get_object_identifier` via a module-level
+  `from X import Y` binding that was not updated. Now monkey-patched across all
+  six SQLAdmin modules that import the function by name.
+
+- **SQLAdmin auto-sort crash** — auto-generated admin views that reference a
+  sort column defined only as a `column_property` (not a real table column)
+  no longer crash on list pages. Sort columns are now restricted to real
+  SQLAlchemy `Column` objects.
+
+- **Admin SPA blank page** — the admin single-page application fallback route
+  now uses `router.default` instead of `mount` for the static file handler,
+  preventing blank pages in certain deployment configurations.
+
+### Improvements
+
+- **Visual polish** — inverted menu header/sidebar
+  colors for better contrast, switched the default theme color to teal
+  (`#1e708a`), reduced field borders to single lines, and increased page title
+  sizes.
+
+### Documentation
+
+- **`import-schema` tutorial** — added TUI/Studio alternatives for every CLI
+  step; revised to use CLI/TUI/Studio commands instead of manual edits.
+
+---
+
 ## [0.9.0] — 2026-06-26
 
 ### Features

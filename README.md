@@ -56,6 +56,24 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.1
+
+- **Fix** — Search input text is now visible in the top bar in both light and dark
+  modes when `plain_color_base_hex` is configured. CSS wildcard selectors exclude
+  form inputs via `:not()`, and `GlobalSearch` applies `token.colorText` directly.
+- **Fix** — SQLAdmin list/detail pages no longer crash for models with `sa_column`
+  aliasing (e.g. `jm_eid` / `eid`). The `get_object_identifier` patch now covers
+  all six SQLAdmin modules that import the function by name.
+- **Fix** — SQLAdmin auto-sort no longer crashes on columns defined as
+  `column_property`; sort is restricted to real table columns.
+- **Fix** — Admin SPA fallback route uses `router.default` instead of `mount`,
+  preventing blank pages in certain deployments.
+- **Improvement** — Visual polish: inverted menu header/sidebar colors, default
+  theme color switched to teal (`#1e708a`), single field borders, larger page titles.
+- **Docs** — `import-schema` tutorial expanded with TUI/Studio alternatives for every step.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.0
 
 - **Convention-based page overrides for all page types** — drop a `custom_show.tsx`,
