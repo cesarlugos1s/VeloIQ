@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { AutoComplete, Input, Typography, Space, Spin } from "antd";
+import { AutoComplete, Input, Typography, Space, Spin, theme } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useMenu } from "@refinedev/core";
@@ -48,6 +48,7 @@ export const GlobalSearch: React.FC = () => {
     const navigate = useNavigate();
     const [searchText, setSearchText] = useState("");
     const { results: backendResults, searching, search, clear } = useRecordSearch();
+    const { token } = theme.useToken();
 
     const searchableResources = useMemo(() => flattenMenuItems(menuItems), [menuItems]);
 
@@ -162,7 +163,7 @@ export const GlobalSearch: React.FC = () => {
                     }
                     allowClear
                     size="small"
-                    style={!focused ? { paddingInline: 2 } : undefined}
+                    style={!focused ? { paddingInline: 2, color: token.colorText } : { color: token.colorText }}
                 />
             </AutoComplete>
         </div>

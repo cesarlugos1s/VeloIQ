@@ -182,8 +182,8 @@ export const setColorSchemas = (schemas: {
                         background-color: ${sidebarLightBg} !important;
                         color: ${sidebarLightText} !important;
                     }
-                    body.jm-light .ant-layout-sider *,
-                    body.jm-light .ant-layout-header * {
+                    body.jm-light .ant-layout-sider *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input),
+                    body.jm-light .ant-layout-header *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input) {
                         color: ${sidebarLightText} !important;
                     }
                     body.jm-light .ant-layout-sider .ant-menu-item-selected,
@@ -236,8 +236,8 @@ export const setColorSchemas = (schemas: {
                         background-color: ${sidebarDarkBg} !important;
                         color: ${sidebarDarkText} !important;
                     }
-                    body.jm-dark .ant-layout-sider *,
-                    body.jm-dark .ant-layout-header * {
+                    body.jm-dark .ant-layout-sider *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input),
+                    body.jm-dark .ant-layout-header *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input) {
                         color: ${sidebarDarkText} !important;
                     }
                     body.jm-dark .ant-layout-sider .ant-menu-item-selected,

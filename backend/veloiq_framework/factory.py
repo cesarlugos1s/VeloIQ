@@ -148,11 +148,15 @@ def create_veloiq_app(
     # ── SQLAdmin ──────────────────────────────────────────────────────────────
     from sqladmin import Admin
 
-    # Override get_object_identifier in the template globals so it uses
-    # Python attribute names instead of physical DB column names.
-    # (SQLModel sa_column aliasing means physical column names like 'cw_eid'
-    # differ from model attributes like 'id' or 'eid').
-    def _get_object_identifier(obj):
+    # Monkey-patch get_object_identifier to use ORM attribute names (Column.key)
+    # instead of physical DB column names (Column.name).
+    # SQLModel sa_column aliasing means physical column names like 'jm_eid'
+    # differ from model attributes like 'eid'; without this patch SQLAdmin's
+    # _build_url_for and list views crash with AttributeError.
+    # We must patch every module that imports get_object_identifier by name,
+    # because `from X import Y` creates a local binding that our helpers.py
+    # patch can't reach.
+    def _patched_get_object_identifier(obj):
         from sqlalchemy import inspect as _sqa_inspect
         mapper = _sqa_inspect(type(obj))
         pk_cols_physical = {c.name for c in mapper.primary_key}
@@ -160,10 +164,24 @@ def create_veloiq_app(
         for prop in mapper.column_attrs:
             if prop.columns[0].name in pk_cols_physical:
                 values.append(str(getattr(obj, prop.key)))
+        if len(values) == 1:
+            return values[0]
         return ";".join(values) if values else "?"
+    import sqladmin.helpers as _sqladmin_helpers
+    import sqladmin.models as _sqladmin_models
+    import sqladmin.application as _sqladmin_application
+    import sqladmin.forms as _sqladmin_forms
+    import sqladmin.fields as _sqladmin_fields
+    import sqladmin.ajax as _sqladmin_ajax
+    _sqladmin_helpers.get_object_identifier = _patched_get_object_identifier
+    _sqladmin_models.get_object_identifier = _patched_get_object_identifier
+    _sqladmin_application.get_object_identifier = _patched_get_object_identifier
+    _sqladmin_forms.get_object_identifier = _patched_get_object_identifier
+    _sqladmin_fields.get_object_identifier = _patched_get_object_identifier
+    _sqladmin_ajax.get_object_identifier = _patched_get_object_identifier
 
-    # Will be applied after Admin creates templates (see below)
-    _admin_get_object_identifier_patch = _get_object_identifier
+    # Also override in template globals (Jinja2 templates use their own copy)
+    _admin_get_object_identifier_patch = _patched_get_object_identifier
     from starlette.middleware.sessions import SessionMiddleware
     from veloiq_framework.auth.sqladmin_auth import VeloIQAdminAuth
     app.add_middleware(SessionMiddleware, secret_key=cfg.auth_secret)

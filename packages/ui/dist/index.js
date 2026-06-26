@@ -184,8 +184,8 @@ var setColorSchemas = (schemas) => {
                         background-color: ${sidebarLightBg} !important;
                         color: ${sidebarLightText} !important;
                     }
-                    body.jm-light .ant-layout-sider *,
-                    body.jm-light .ant-layout-header * {
+                    body.jm-light .ant-layout-sider *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input),
+                    body.jm-light .ant-layout-header *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input) {
                         color: ${sidebarLightText} !important;
                     }
                     body.jm-light .ant-layout-sider .ant-menu-item-selected,
@@ -238,8 +238,8 @@ var setColorSchemas = (schemas) => {
                         background-color: ${sidebarDarkBg} !important;
                         color: ${sidebarDarkText} !important;
                     }
-                    body.jm-dark .ant-layout-sider *,
-                    body.jm-dark .ant-layout-header * {
+                    body.jm-dark .ant-layout-sider *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input),
+                    body.jm-dark .ant-layout-header *:not(input):not(textarea):not(.ant-input):not(.ant-select-selector):not(.ant-select-selection-item):not(.ant-select-selection-search-input) {
                         color: ${sidebarDarkText} !important;
                     }
                     body.jm-dark .ant-layout-sider .ant-menu-item-selected,
@@ -810,6 +810,7 @@ var GlobalSearch = () => {
   const navigate = reactRouterDom.useNavigate();
   const [searchText, setSearchText] = React6.useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
+  const { token } = antd.theme.useToken();
   const searchableResources = React6.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
   const resourceResults = React6.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
@@ -899,7 +900,7 @@ var GlobalSearch = () => {
           suffix: !focused ? /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 9 }, children: "\u2303K" }) : void 0,
           allowClear: true,
           size: "small",
-          style: !focused ? { paddingInline: 2 } : void 0
+          style: !focused ? { paddingInline: 2, color: token.colorText } : { color: token.colorText }
         }
       )
     }
