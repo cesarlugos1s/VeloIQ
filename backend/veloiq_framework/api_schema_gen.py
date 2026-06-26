@@ -1293,6 +1293,9 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     imports: list[tuple[str, str, str]] = []
     route_entries: list[tuple[str, str]] = []   # (path, import_name)
     show_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
+    edit_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
+    create_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
+    list_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
     menu_entries: list[dict] = []
     icon_names: set[str] = set()
 
@@ -1326,21 +1329,28 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             imports.append((import_name, import_path, export))
             route_entries.append((path, import_name))
 
-        # Show-page overrides → imports + (resource → component) entries.
-        for override in (getattr(ext, "show_overrides", None) or []):
-            resource = override.get("resource")
-            component = override.get("component")
-            source = override.get("source", "")
-            export = override.get("export", "default")
-            if not resource or not component or not source:
-                continue
-            mod_rel = source[:-4] if source.endswith(".tsx") else (
-                source[:-3] if source.endswith(".ts") else source
-            )
-            import_path = f"./pages/{ext.name}/{mod_rel}"
-            import_name = f"{ext.name}_{component}"
-            imports.append((import_name, import_path, export))
-            show_override_entries.append((resource, import_name))
+        # Page overrides (show / edit / create / list) → imports + resource→component entries.
+        _EXT_OVERRIDE_MAP = {
+            "show":   show_override_entries,
+            "edit":   edit_override_entries,
+            "create": create_override_entries,
+            "list":   list_override_entries,
+        }
+        for override_attr, entries_list in _EXT_OVERRIDE_MAP.items():
+            for override in (getattr(ext, f"{override_attr}_overrides", None) or []):
+                resource = override.get("resource")
+                component = override.get("component")
+                source = override.get("source", "")
+                export = override.get("export", "default")
+                if not resource or not component or not source:
+                    continue
+                mod_rel = source[:-4] if source.endswith(".tsx") else (
+                    source[:-3] if source.endswith(".ts") else source
+                )
+                import_path = f"./pages/{ext.name}/{mod_rel}"
+                import_name = f"{ext.name}_{component}"
+                imports.append((import_name, import_path, export))
+                entries_list.append((resource, import_name))
 
         # User-menu items.
         for item in (getattr(ext, "user_menu_items", None) or []):
@@ -1355,9 +1365,16 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
                 icon_names.add("SettingOutlined")
             menu_entries.append(item)
 
-    # ── Scan app module pages for custom_show.tsx overrides ────────────────────
-    # Each subdirectory under pages/<module>/<ModelName>/custom_show.tsx is
-    # registered as a show override keyed by the model's API resource.
+    # ── Scan app module pages for custom_*.tsx overrides ────────────────────
+    # Each subdirectory under pages/<module>/<ModelName>/custom_<type>.tsx is
+    # registered as a page override keyed by the model's API resource.
+    _PAGE_TYPES = ["show", "edit", "create", "list"]
+    _OVERRIDE_MAP = {
+        "show":   show_override_entries,
+        "edit":   edit_override_entries,
+        "create": create_override_entries,
+        "list":   list_override_entries,
+    }
     if pages_dir.exists():
         for mod_dir in sorted(pages_dir.iterdir()):
             if not mod_dir.is_dir() or mod_dir.name.startswith(".") or mod_dir.name.startswith("iqvigilant"):
@@ -1365,26 +1382,26 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             for model_dir in sorted(mod_dir.iterdir()):
                 if not model_dir.is_dir():
                     continue
-                custom_show_file = model_dir / "custom_show.tsx"
-                if not custom_show_file.exists():
-                    continue
                 model_name = model_dir.name
-                # Try to find the model's resource key in the generated schema.
+                # Resolve the resource key once per model directory.
                 module_gen_file = pages_dir / mod_dir.name / f"{mod_dir.name}Schema.gen.ts"
                 resource_key = ""
                 if module_gen_file.exists():
                     content = module_gen_file.read_text()
-                    # Look for: name: "ModelName", ... resource: "cw_modelname"
-                    # Find name match for our model
                     m = re.search(rf'name:\s*"{model_name}"[^}}]*resource:\s*"([^"]+)"', content)
                     if m:
                         resource_key = m.group(1)
-                if resource_key:
-                    import_path = f"./pages/{mod_dir.name}/{model_name}/custom_show"
-                    import_name = f"{mod_dir.name}_{model_name}_custom_show"
+                if not resource_key:
+                    continue
+                for page_type in _PAGE_TYPES:
+                    custom_file = model_dir / f"custom_{page_type}.tsx"
+                    if not custom_file.exists():
+                        continue
+                    import_path = f"./pages/{mod_dir.name}/{model_name}/custom_{page_type}"
+                    import_name = f"{mod_dir.name}_{model_name}_custom_{page_type}"
                     imports.append((import_name, import_path, "default"))
-                    show_override_entries.append((resource_key, import_name))
-                    print(f"  📄 Custom show override: {resource_key} → {import_name}")
+                    _OVERRIDE_MAP[page_type].append((resource_key, import_name))
+                    print(f"  📄 Custom {page_type} override: {resource_key} → {import_name}")
 
     # ── Emit extensions.gen.tsx ───────────────────────────────────────────────
     lines: list[str] = [
@@ -1469,21 +1486,33 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
 
     lines += ["];", ""]
 
-    # Per-resource Show-page overrides → map consumed by the host App.tsx.
-    lines += [
-        "// Resource → custom Show component. The host App.tsx renders the mapped",
-        "// component at /{resource}/show/:id instead of the default DynamicShow.",
-        "export const extensionShowComponents: Record<string, React.ComponentType<any>> = {",
+    # Per-resource page overrides → maps consumed by the host App.tsx.
+    _OVERRIDE_DECLARATIONS = [
+        ("show",   show_override_entries,   "DynamicShow",   "/{resource}/show/:id"),
+        ("edit",   edit_override_entries,   "DynamicEdit",   "/{resource}/edit/:id"),
+        ("create", create_override_entries, "DynamicCreate", "/{resource}/create"),
+        ("list",   list_override_entries,   "DynamicList",   "/{resource}"),
     ]
-    for resource, import_name in show_override_entries:
-        lines.append(f'  "{resource}": {import_name},')
-    lines += ["};", ""]
+    for page_type, entries, dynamic_name, route_path in _OVERRIDE_DECLARATIONS:
+        cap = page_type.capitalize()
+        lines += [
+            f"// Resource → custom {cap} component. The host App.tsx renders the mapped",
+            f"// component at {route_path} instead of the default {dynamic_name}.",
+            f"export const extension{cap}Components: Record<string, React.ComponentType<any>> = {{",
+        ]
+        for resource, import_name in entries:
+            lines.append(f'  "{resource}": {import_name},')
+        lines += ["};", ""]
 
     out_file = frontend_src / "extensions.gen.tsx"
     out_file.write_text("\n".join(lines))
+    total_overrides = (
+        len(show_override_entries) + len(edit_override_entries)
+        + len(create_override_entries) + len(list_override_entries)
+    )
     print(
         f"  📦 extensions.gen.tsx updated ({len(route_entries)} route(s), "
-        f"{len(menu_entries)} menu item(s), {len(show_override_entries)} show override(s))"
+        f"{len(menu_entries)} menu item(s), {total_overrides} page override(s))"
     )
 
 

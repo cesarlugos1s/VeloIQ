@@ -113,6 +113,15 @@ class VeloIQExtension:
     #: mapped component at ``/{resource}/show/:id`` instead of ``DynamicShow``.
     show_overrides: list = []
 
+    #: Per-resource Edit-page overrides (same format as :attr:`show_overrides`).
+    edit_overrides: list = []
+
+    #: Per-resource Create-page overrides (same format as :attr:`show_overrides`).
+    create_overrides: list = []
+
+    #: Per-resource List-page overrides (same format as :attr:`show_overrides`).
+    list_overrides: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
