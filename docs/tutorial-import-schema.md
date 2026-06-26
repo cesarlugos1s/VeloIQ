@@ -55,6 +55,12 @@ cd music-store
 veloiq import-schema --url sqlite:///backend/chinook.db --module chinook --tables all
 ```
 
+> **Also via TUI/Studio** — run `veloiq explore`, press `i` for Import Schema,
+> and follow the interactive wizard (database type, connection, table picker).
+> Or open the **Import Schema** form in VeloIQ Studio's Command Panel.  All
+> three paths call the same command and produce identical output; the
+> `--tables all` flag used here skips the table picker for brevity.
+
 ### What happens during import
 
 The command runs through four phases — you'll see output like:
@@ -104,6 +110,9 @@ The command runs through four phases — you'll see output like:
 veloiq generate       # regenerate api.py + frontend TypeScript schemas
 veloiq db upgrade     # apply the Alembic migration
 ```
+
+> **Also via TUI/Studio** — press `g` in `veloiq explore` to run `veloiq generate`
+> without leaving the TUI.  VeloIQ Studio runs generate automatically after an import.
 
 ---
 
@@ -226,6 +235,10 @@ This creates a ready-to-edit React component, registers it in
 `custom_pages.ts`, and patches `App.tsx` with the routing — the same as for
 hand-written models.  Run `veloiq generate` and the Album Show page renders
 your custom component.
+
+> **Also via TUI/Studio** — in `veloiq explore`, navigate to the Album model
+> and press `p` to pick the page type interactively.  Or use the **Scaffold
+> Page** card in VeloIQ Studio.  All three paths produce the same result.
 
 ### Add a custom endpoint
 
