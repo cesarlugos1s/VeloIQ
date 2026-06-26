@@ -200,6 +200,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/quickstart.md](docs/quickstart.md) | Run the sample app in five minutes and explore RBAC, ReBAC, Miller columns, and the analysis UI |
 | [docs/getting-started.md](docs/getting-started.md) | Install the CLI, scaffold your first project, and understand the key concepts |
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
+| [docs/tutorial-import-schema.md](docs/tutorial-import-schema.md) | Import an existing database into VeloIQ models — no models to write by hand |
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, frontend schema customisation, and extension package authoring |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |
 | [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — extension packages (IQVigilant, VantageIQ), licensing architecture, and the full feature set |
