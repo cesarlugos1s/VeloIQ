@@ -177,7 +177,7 @@ def _migrate_vite_config(root: Path, dry_run: bool) -> bool:
 _UI_PACKAGE = "@juicemantics/veloiq-ui"
 # Fallback when the framework distribution version cannot be resolved. Keep in
 # sync with packages/ui/package.json (framework + UI ship in lockstep).
-_FALLBACK_UI_VERSION = "0.8.5"
+_FALLBACK_UI_VERSION = "0.9.2"
 
 
 def _current_ui_version() -> str:

@@ -4,6 +4,19 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ---
 
+## [0.9.2] — 2026-06-26
+
+### Fixes
+
+- **Scaffold pinned old UI version** — `veloiq new` was copying a scaffold
+  template that pinned `@juicemantics/veloiq-ui` to `^0.8.4`, causing new
+  apps to miss the menu color inversion feature introduced in v0.9.0. The
+  scaffold now pins `^0.9.0` so new apps get the inverted menu
+  header/sidebar contrast by default. Also bumped the `_FALLBACK_UI_VERSION`
+  in `migrate.py` to stay in sync.
+
+---
+
 ## [0.9.1] — 2026-06-26
 
 ### Fixes
