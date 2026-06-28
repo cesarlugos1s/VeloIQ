@@ -52,6 +52,54 @@ def auth(admin_token):
     return {"Authorization": f"Bearer {admin_token}"}
 
 
+@pytest.fixture(scope="session")
+def manager_token(client, auth):
+    """Token for a user with the Manager role (CRUD, no delete)."""
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alice_test", "password": "alice123",
+            "email": "alice@test.com", "role_names": ["Manager"],
+        },
+        headers=auth,
+    )
+    resp = client.post(
+        "/auth/login",
+        json={"username": "alice_test", "password": "alice123"},
+    )
+    assert resp.status_code == 200, f"Manager login failed: {resp.text}"
+    return resp.json()["access_token"]
+
+
+@pytest.fixture(scope="session")
+def manager_auth(manager_token):
+    return {"Authorization": f"Bearer {manager_token}"}
+
+
+@pytest.fixture(scope="session")
+def viewer_token(client, auth):
+    """Token for a user with the Viewer role (read-only)."""
+    client.post(
+        "/auth/register",
+        json={
+            "username": "carol_test", "password": "carol123",
+            "email": "carol@test.com", "role_names": ["Viewer"],
+        },
+        headers=auth,
+    )
+    resp = client.post(
+        "/auth/login",
+        json={"username": "carol_test", "password": "carol123"},
+    )
+    assert resp.status_code == 200, f"Viewer login failed: {resp.text}"
+    return resp.json()["access_token"]
+
+
+@pytest.fixture(scope="session")
+def viewer_auth(viewer_token):
+    return {"Authorization": f"Bearer {viewer_token}"}
+
+
 # ---------------------------------------------------------------------------
 # Terminal summary — lets any test register extra paths to display at the end
 # ---------------------------------------------------------------------------
