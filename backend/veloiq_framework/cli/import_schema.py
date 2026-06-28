@@ -478,6 +478,11 @@ def _scaffold_from_schema(
             need_fk = pair_fk_count.get(frozenset((table, ref_table)), 0) > 1
             fk_expr = f"[{src_cls}.{col_name}]"
 
+            # Self-referential FK (e.g. Task.parent_task_id → Task.id) must always
+            # carry explicit foreign_keys AND remote_side because SQLAlchemy cannot
+            # infer the relationship direction when both ends are on the same table.
+            is_self_ref = (table == ref_table)
+
             src_info = _find_model_info(project_root, src_cls)
             tgt_info = _find_model_info(project_root, tgt_cls)
             if not src_info or not tgt_info:
@@ -494,7 +499,18 @@ def _scaffold_from_schema(
             tgt_text = src_text if same_file else tgt_file.read_text(encoding="utf-8")
 
             # Source side: Optional["TgtClass"] = jm_relationship(...)
-            if need_fk:
+            if is_self_ref:
+                remote_side_expr = "[" + tgt_cls + ".id]"
+                rel_line = (
+                    f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
+                    f'        back_populates="{back_name}",\n'
+                    f'        sa_relationship_kwargs={{\n'
+                    f'            "foreign_keys": "{fk_expr}",\n'
+                    f'            "remote_side": "{remote_side_expr}",\n'
+                    f'        }},\n'
+                    f'    )'
+                )
+            elif need_fk:
                 rel_line = (
                     f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
                     f'        back_populates="{back_name}",\n'
@@ -519,7 +535,14 @@ def _scaffold_from_schema(
                 tgt_text = src_file.read_text(encoding="utf-8")
 
             # Target side: List["SrcClass"] = jm_relationship(...)
-            if need_fk:
+            if is_self_ref:
+                back_line = (
+                    f'    {back_name}: List["{src_class}"] = jm_relationship(\n'
+                    f'        back_populates="{attr_name}",\n'
+                    f'        sa_relationship_kwargs={{"foreign_keys": "{fk_expr}"}},\n'
+                    f'    )'
+                )
+            elif need_fk:
                 back_line = (
                     f'    {back_name}: List["{src_class}"] = jm_relationship(\n'
                     f'        back_populates="{attr_name}",\n'

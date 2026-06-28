@@ -269,15 +269,6 @@ def test_relationships_generated(tmp_path):
     assert 'tasks: List["Task"]' in models
 
 
-@pytest.mark.xfail(
-    reason=(
-        "import-schema does not add ``remote_side`` for self-referential FKs; "
-        "SQLAlchemy cannot infer the relationship direction on ``Task.parent_task`` "
-        "without it.  The hand-written models use explicit ``sa_relationship_kwargs`` "
-        "with ``foreign_keys`` and ``remote_side`` to avoid this."
-    ),
-    strict=True,
-)
 def test_configure_mappers_succeeds(tmp_path):
     """Generated models are importable and pass configure_mappers + create_all."""
     source_db = tmp_path / "taskmanager.db"
