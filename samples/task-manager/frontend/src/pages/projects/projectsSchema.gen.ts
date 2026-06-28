@@ -10,9 +10,9 @@ export const projectsModelsGen: ModelDef[] = [
     description: "A container for related tasks with an owner and a lifecycle status.",
     fields: [
       { key: "name", label: "Name", type: "string", required: true, description: "Project name" },
-      { key: "description", label: "Description", type: "string", description: "Goals, scope, and background" },
+      { key: "description", label: "Description", type: "string", default: null, description: "Goals, scope, and background" },
       { key: "status", label: "Status", type: "string", default: "active", options: [{ label: "planning", value: "planning" }, { label: "active", value: "active" }, { label: "on_hold", value: "on_hold" }, { label: "completed", value: "completed" }, { label: "archived", value: "archived" }], description: "Current lifecycle phase" },
-      { key: "owner_id", label: "Owner Id", type: "number", reference: "team_member" },
+      { key: "owner_id", label: "Owner Id", type: "number", reference: "team_member", default: null },
       { key: "created_at", label: "Created At", type: "datetime" },
       { key: "updated_at", label: "Updated At", type: "datetime" },
     ],
