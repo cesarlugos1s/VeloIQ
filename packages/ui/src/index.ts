@@ -29,6 +29,8 @@ export {
     useShowActionsPreferences,
     useStandardShowTabs,
     buildShowTabFormOptions,
+    useDataDetailLevel,
+    DataDetailSlider,
 } from "./components/DynamicResource";
 
 export type {
@@ -39,6 +41,7 @@ export type {
     ViewConfigRow,
     BulkActionDef,
     MillerLeafConfig,
+    DataDetailLevelState,
 } from "./components/DynamicResource";
 
 // ── Providers ──────────────────────────────────────────────────────────────

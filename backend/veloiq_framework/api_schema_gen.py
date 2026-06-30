@@ -1298,6 +1298,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     list_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
     menu_entries: list[dict] = []
     icon_names: set[str] = set()
+    global_component_entries: list[tuple[str, str, str, str]] = []  # (import_name, export_name, import_path, export)
 
     for ext in extensions:
         comp_dir = ext.resolved_frontend_components_dir()
@@ -1351,6 +1352,23 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
                 import_name = f"{ext.name}_{component}"
                 imports.append((import_name, import_path, export))
                 entries_list.append((resource, import_name))
+
+        # Global components — rendered by the host App.tsx outside route hierarchy.
+        global_component_entries: list[tuple[str, str, str, str]] = []  # (import_name, export_name, import_path, export)
+        for gc in (getattr(ext, "global_components", None) or []):
+            component = gc.get("component")
+            source = gc.get("source", "")
+            export = gc.get("export", "default")
+            export_name = gc.get("export_name")
+            if not component or not source or not export_name:
+                continue
+            mod_rel = source[:-4] if source.endswith(".tsx") else (
+                source[:-3] if source.endswith(".ts") else source
+            )
+            import_path = f"./pages/{ext.name}/{mod_rel}"
+            import_name = f"{ext.name}_{component}"
+            imports.append((import_name, import_path, export))
+            global_component_entries.append((import_name, export_name, import_path, export))
 
         # User-menu items.
         for item in (getattr(ext, "user_menu_items", None) or []):
@@ -1503,6 +1521,54 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         for resource, import_name in entries:
             lines.append(f'  "{resource}": {import_name},')
         lines += ["};", ""]
+
+    # ── Global components (e.g. sticky banners) ────────────────────────────
+    if global_component_entries:
+        lines.append("// Global components rendered by the host App.tsx outside the route hierarchy.")
+        lines.append("// Each export is a React component (or null if no extension provides one).")
+        for import_name, export_name, _import_path, _export in global_component_entries:
+            lines.append(
+                f"export const {export_name}: React.ComponentType | null = {import_name};"
+            )
+        lines.append("")
+
+    # ── Alert-aware resources set ──────────────────────────────────────────
+    # Read (or create) the host app's alert-aware-resources.json config file.
+    alert_aware_json = frontend_src / "alert-aware-resources.json"
+    alert_aware_resources: list[str] = []
+    if not alert_aware_json.exists():
+        alert_aware_json.write_text(
+            "// Resources whose List pages display related Exception Alerts.\n"
+            "// Add resource names here (e.g. \"proveedor\", \"contrato\").\n"
+            "// See: IQVigilant Exception Alert Reporting.\n"
+            "[]\n"
+        )
+    try:
+        import json
+        alert_aware_resources = json.loads(alert_aware_json.read_text())
+    except Exception:
+        pass
+
+    # Export the Set from extensions.gen.tsx so host App.tsx can use it as-is.
+    if alert_aware_resources:
+        escaped = [f'"{r}"' for r in alert_aware_resources]
+        lines.append(
+            f"// Resources whose List pages display related Exception Alerts "
+            f"(from alert-aware-resources.json)."
+        )
+        lines.append(
+            "export const exceptionAlertAwareResources: Set<string> = "
+            f"new Set([{', '.join(escaped)}]);"
+        )
+    else:
+        lines.append(
+            "// Resources whose List pages display related Exception Alerts "
+            "(from alert-aware-resources.json)."
+        )
+        lines.append(
+            "export const exceptionAlertAwareResources: Set<string> = new Set();"
+        )
+    lines.append("")
 
     out_file = frontend_src / "extensions.gen.tsx"
     out_file.write_text("\n".join(lines))

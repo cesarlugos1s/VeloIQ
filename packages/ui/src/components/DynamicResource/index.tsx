@@ -4280,3 +4280,6 @@ export { DynamicCreate } from "./pages/DynamicCreate";
 export { DynamicEdit } from "./pages/DynamicEdit";
 export { useStandardShowTabs } from "./hooks/useStandardShowTabs";
 export { renderRelationBlock } from "./relations/renderRelationBlock";
+export { useDataDetailLevel } from "./hooks/useDataDetailLevel";
+export { DataDetailSlider } from "./DataDetailSlider";
+export type { DataDetailLevelState } from "./hooks/useDataDetailLevel";

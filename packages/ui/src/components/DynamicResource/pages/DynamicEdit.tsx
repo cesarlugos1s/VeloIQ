@@ -47,6 +47,8 @@ import { renderRelationBlock } from "../../DynamicResource";
 import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
 import { SectionCellContent } from "../SectionCellContent";
 import { usePageSectionsConfig } from "../hooks/usePageSectionsConfig";
+import { useDataDetailLevel } from "../hooks/useDataDetailLevel";
+import { DataDetailSlider } from "../DataDetailSlider";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const requiredMark = (field: FieldDef) =>
@@ -83,6 +85,8 @@ export const DynamicEdit: React.FC<{
         }),
         [viewSettings?.showViewType, viewSettings?.editViewType],
     );
+    const allRelForDetail = model.relations || [];
+    const dataDetailLevelState = useDataDetailLevel(allRelForDetail, "edit", relationViewTypeDefaults);
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
     const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
@@ -299,7 +303,12 @@ export const DynamicEdit: React.FC<{
             cancelled = true;
         };
     }, [apiUrl, allModelsList, model.name, model.resource]);
-    const { embedded, tabbed } = splitRelations(model.relations);
+    const appliedRels = dataDetailLevelState.applyToRelations(model.relations || []);
+    const derivedModel = useMemo(
+        () => ({ ...model, relations: appliedRels }),
+        [model, appliedRels],
+    );
+    const { embedded, tabbed } = splitRelations(appliedRels);
     const labelStyle: React.CSSProperties = {
         fontSize: token.fontSize,
         fontWeight: 400,
@@ -479,7 +488,7 @@ export const DynamicEdit: React.FC<{
                                     <SectionCellContent
                                         sectionName={cell.section_name ?? ""}
                                         sectionRows={getSectionRows(cell.id)}
-                                        model={model}
+                                            model={derivedModel}
                                         record={record}
                                         allModels={allModelsList}
                                         mode="edit"
@@ -539,7 +548,7 @@ export const DynamicEdit: React.FC<{
                         <SectionCellContent
                             sectionName={cell.section_name ?? ""}
                             sectionRows={getSectionRows(cell.id)}
-                            model={model}
+                            model={derivedModel}
                             record={record}
                             allModels={allModelsList}
                             mode="edit"
@@ -578,6 +587,7 @@ export const DynamicEdit: React.FC<{
     );
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
+            <DataDetailSlider detailState={dataDetailLevelState} />
             {extraHeaderButtons}
             {editMetadataButton}
             {editMetadataModal}

@@ -437,7 +437,7 @@ def create_crud_router(
         return value
 
     # Fields that must never be overwritten by a client update.
-    _READONLY_FIELDS = {"created_at", "creation_date"}
+    _READONLY_FIELDS = {"created_at", "creation_date", "modification_date"}
 
     def _apply_update(record_id, payload, session, user: dict):
         user_roles = user.get("roles", []) if user else []

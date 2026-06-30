@@ -357,7 +357,7 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         "/veloiq-studio",
         "/i18n/",
     )
-    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio")
+    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace")
 
     # In production SPA mode only these prefixes require a JWT; everything else
     # (React Router paths, static assets) is served as HTML/JS and the React app
@@ -1218,6 +1218,36 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                 data["eid"] = data.get(pk_col.name)
             items.append(data)
         return {"items": items}
+
+    # --- Dev trace sink (Data Detail Level diagnostics) ---
+    # Accepts POSTed trace lines from the frontend and appends them to
+    # /tmp/veloiq_ddl_trace.log so they can be inspected without a browser.
+    _TRACE_FILE = _Path("/tmp/veloiq_ddl_trace.log")
+
+    @core_api.post("/debug/ddl-trace")
+    async def ddl_trace(request: Request):
+        from datetime import datetime as _dt
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        lines = body.get("lines") if isinstance(body, dict) else None
+        ts = _dt.now().strftime("%H:%M:%S.%f")[:-3]
+        with _TRACE_FILE.open("a", encoding="utf-8") as fh:
+            if isinstance(lines, list):
+                for ln in lines:
+                    fh.write(f"[{ts}] {ln}\n")
+            else:
+                fh.write(f"[{ts}] {body}\n")
+        return {"ok": True}
+
+    @core_api.delete("/debug/ddl-trace")
+    async def ddl_trace_clear():
+        try:
+            _TRACE_FILE.write_text("", encoding="utf-8")
+        except Exception:
+            pass
+        return {"ok": True}
 
     # Mount all core data API endpoints under /api so they match API_URL="/api"
     # used by the frontend (both dev proxy and production same-origin).

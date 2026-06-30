@@ -5,6 +5,7 @@ import { setColorSchemas } from "../../../utils/modelTone";
 import type { FieldDef, ModelDef, RelationDef, ViewConfigRow, RelationViewType } from "../types";
 import { resolveResourcePath } from "./model";
 import { getRelationLabel } from "./i18n";
+import { ddlTrace } from "./ddlTrace";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -477,14 +478,26 @@ export const normalizeFieldViewType = (raw: string): string => {
 
 export const applyRelationViewOverride = (rel: RelationDef, item: ViewConfigRow, mode: "show" | "edit") => {
     const rawVid = getConfigVid(item, mode);
-    const vid = normalizeRelationViewType(rawVid);
+    const trimmed = String(rawVid || "").trim();
+    if (!trimmed) return rel;
+    const vid = normalizeRelationViewType(trimmed);
     if (vid) {
+        // If the original relation has a data-detail-level override that differs
+        // from the config's view type, keep the slider-chosen value.
+        const _DDL_TYPES = new Set(["csv","list","crosstab","totals-details","table",
+            "editable-csv","editable-list","editable-crosstab","editable-table"]);
+        const orig = mode === "show" ? (rel as any).showViewType : (rel as any).editViewType;
+        const relKey = rel.relationName || rel.resource || rel.label || "?";
+        if (orig && orig !== vid && _DDL_TYPES.has(orig)) {
+            ddlTrace("applyRelationViewOverride KEEP-SLIDER", { relKey, mode, orig, configVid: vid, fromCsv: (rel as any).showViewTypeFromCsv });
+            return rel;
+        }
+        ddlTrace("applyRelationViewOverride APPLY-CONFIG", { relKey, mode, orig: orig ?? null, configVid: vid });
         return mode === "show"
             ? { ...rel, showViewType: vid as RelationViewType, showViewTypeFromCsv: true }
             : { ...rel, editViewType: vid as RelationViewType, editViewTypeFromCsv: true };
     }
-    const trimmed = String(rawVid || "").trim();
-    if (!trimmed) return rel;
+    ddlTrace("applyRelationViewOverride CUSTOM-PAGE", { relKey: rel.relationName || rel.resource || rel.label || "?", mode, trimmed });
     return mode === "show"
         ? { ...rel, showViewType: "primary" as RelationViewType, showViewTypeFromCsv: true, showCustomPageName: trimmed }
         : { ...rel, editViewType: "primary" as RelationViewType, editViewTypeFromCsv: true, editCustomPageName: trimmed };

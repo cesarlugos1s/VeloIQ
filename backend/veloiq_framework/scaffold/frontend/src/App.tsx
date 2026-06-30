@@ -30,12 +30,19 @@ import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
-import { extensionRoutes, extensionUserMenuItems, extensionShowComponents } from "./extensions.gen";
+import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources } from "./extensions.gen";
 import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
 
 // Render helpers — check for app-level custom page overrides first, then
-// extension overrides, then fall back to the Dynamic component.
-const _renderList   = (resource: string, model: any, allModels: any[]) => { const C = customListComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicList key={resource} model={model} allModels={allModels} />; };
+// extension alert-aware wrapper, then fall back to the Dynamic component.
+const _renderList   = (resource: string, model: any, allModels: any[]) => {
+    const C = customListComponents[resource];
+    if (C) return <C model={model} allModels={allModels} />;
+    if (exceptionAlertAwareResources && exceptionAlertAwareResources.has(resource) && exceptionAlertListWrapperComponent) {
+        return createElement(exceptionAlertListWrapperComponent, { resource, model, allModels });
+    }
+    return <DynamicList key={resource} model={model} allModels={allModels} />;
+};
 const _renderShow   = (resource: string, model: any, allModels: any[]) => { const C = customShowComponents[resource];   return C ? <C /> : <DynamicShow model={model} allModels={allModels} />; };
 const _renderCreate = (resource: string, model: any, allModels: any[]) => { const C = customCreateComponents[resource]; return C ? <C model={model} allModels={allModels} /> : <DynamicCreate model={model} allModels={allModels} />; };
 const _renderEdit   = (resource: string, model: any, allModels: any[]) => { const C = customEditComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicEdit model={model} allModels={allModels} />; };
@@ -90,6 +97,7 @@ export default function App() {
                                                 <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems}>
                                                     <Outlet />
                                                 </LayoutWrapper>
+                                                {exceptionAlertBannerComponent && createElement(exceptionAlertBannerComponent)}
                                             </Authenticated>
                                         }
                                     >

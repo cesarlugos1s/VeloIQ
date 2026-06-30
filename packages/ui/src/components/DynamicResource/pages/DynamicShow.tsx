@@ -16,6 +16,7 @@ import { useShowActionsPreferences } from "../hooks/useShowActionsPreferences";
 import { ShowFooterButtons } from "../ShowFooterButtons";
 import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
+import { DataDetailSlider } from "../DataDetailSlider";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -53,7 +54,8 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
 
     const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
     const [activeTabKey, setActiveTabKey] = useState("details");
-    const { tabs: items, layoutConfig } = useStandardShowTabs(
+
+    const { tabs: items, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
         model,
         record,
         allModelsList,
@@ -111,6 +113,15 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         );
     }
 
+    const headerButtonsWithSlider = dataDetailLevelState?.isActive
+        ? (args: { defaultButtons: React.ReactNode }) => (
+            <>
+                <DataDetailSlider detailState={dataDetailLevelState} />
+                {headerButtons(args)}
+            </>
+          )
+        : headerButtons;
+
     return (
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
@@ -122,7 +133,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                     actionLabel: _("Show"),
                     moduleLabel: model.module ? getModuleLabel(model.module) : undefined,
                 }))}
-                headerButtons={headerButtons}
+                headerButtons={headerButtonsWithSlider}
             >
                 {beforeTabs}
                 <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />

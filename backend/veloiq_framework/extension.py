@@ -122,6 +122,18 @@ class VeloIQExtension:
     #: Per-resource List-page overrides (same format as :attr:`show_overrides`).
     list_overrides: list = []
 
+    #: ``global_components`` — components the host App.tsx renders globally
+    #: (outside the route hierarchy, e.g. sticky banners).  Each entry is a
+    #: dict::
+    #:
+    #:     {
+    #:         "component": "AlertBanner",      # import name
+    #:         "source": "AlertBanner.tsx",     # file under frontend_components_dir
+    #:         "export": "default",             # "default" or a named export
+    #:         "export_name": "exceptionAlertBannerComponent",  # TS variable name
+    #:     }
+    global_components: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:

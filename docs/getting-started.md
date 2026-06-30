@@ -374,6 +374,58 @@ veloiq db upgrade
 If your app was scaffolded recently (its `App.tsx` already imports
 `./extensions.gen`), step 4 is a no-op and the upgrade is just steps 1–3, 5, 6.
 
+## Adaptive Detail Pages
+
+When VeloIQ generates Show and Edit pages for a model, each related model appears with
+a **view type** (e.g. `csv`, `list`, `crosstab`, `totals-details`, `table`).  To let users
+quickly change how much detail they see at once, every dynamic page provides a
+**Data Detail Level** control in the right-panel header.
+
+### Levels
+
+| Level | Label      | Show page    | Edit page        |
+|-------|-----------|--------------|------------------|
+| **0** | Minimal   | `csv`        | `editable-csv`   |
+| **1** | Compact   | `list`       | `editable-list`  |
+| **2** | Summary   | `crosstab`   | `editable-crosstab` |
+| **3** | Expandable | `totals-details` | `editable-table` |
+| **4** | Expanded  | `table`      | `editable-table` |
+
+The control appears as a bar of discrete points.  Dragging left reduces detail;
+dragging right increases it.  The slider initialises at the lowest view-type
+level currently in use by the page's relations.
+
+### How it works
+
+- **Reducing the level** — every relation whose current view type is *higher*
+  than the slider moves down to the slider's level.  Relations already at or
+  below the slider level stay unchanged.
+
+- **Increasing the level** — every relation whose current view type is *lower*
+  than the slider moves up to the slider's level.  Relations already at or
+  above stay where they are.
+
+- **Editable view types** (edit pages) follow the same scaling logic but map to
+  their `editable-*` counterparts.
+
+- View types **not in the scalable set** (`miller`, `primary`, `tree`,
+  `tree-details`, `gallery`, `calendar`) are left untouched — the slider skips
+  them.
+
+### Configurable pages
+
+When a page has a custom view configuration (via `views` JSON), only the sections
+that inherit from the dynamic-page rendering respond to the Data Detail Level.
+Explicitly configured sections keep their exact layout.
+
+### Fallback for non-M2M relations
+
+Some editable view types (`editable-csv`, `editable-list`) only have semantics
+for many-to-many relations.  For one-to-many relations the framework falls
+through to the closest supported editable rendering — typically a full table
+via `DynamicList`.  The slider still works; the visual difference is that
+low-detail levels show a compact table rather than an inline CSV or list.
+
 ## Next steps
 
 - [Tutorial: Build a Task Manager](./tutorial-task-manager.md) — step-by-step guide covering relations, custom endpoints, and the full dev loop in ~15 minutes

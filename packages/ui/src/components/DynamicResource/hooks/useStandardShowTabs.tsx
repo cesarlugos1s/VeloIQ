@@ -36,6 +36,8 @@ import {
     getTabDisplayLabel,
 } from "../relations/helpers";
 import { renderRelationBlock } from "../../DynamicResource";
+import type { DataDetailLevelState } from "./useDataDetailLevel";
+import { useDataDetailLevel } from "./useDataDetailLevel";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const requiredMark = (field: FieldDef) =>
@@ -59,6 +61,7 @@ export const useStandardShowTabs = (
         effectiveFields?: FieldDef[];
     },
     overrideConfigRows?: ViewConfigRow[],
+    dataDetailLevelState?: DataDetailLevelState,
 ) => {
     if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
     applyI18nLabelsToModel(model);
@@ -82,7 +85,18 @@ export const useStandardShowTabs = (
         ? token.colorFillQuaternary
         : "#F9FFFF";
 
-    const { embedded, tabbed } = splitRelations(model.relations);
+    const internalDetailLevelState = useDataDetailLevel(
+        model.relations || [],
+        "show",
+        relationViewTypeDefaults,
+    );
+    const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
+    const relations = effectiveDetailState.applyToRelations(model.relations || []);
+    const derivedModel: ModelDef = useMemo(
+        () => ({ ...model, relations }),
+        [model, relations],
+    );
+    const { embedded, tabbed } = splitRelations(relations);
     const labelStyle: React.CSSProperties = {
         fontSize: token.fontSize,
         fontWeight: 400,
@@ -230,7 +244,7 @@ export const useStandardShowTabs = (
                                 <SectionCellContent
                                     sectionName={cell.section_name ?? ""}
                                     sectionRows={getSectionRows(cell.id)}
-                                    model={model}
+                                    model={derivedModel}
                                     record={record}
                                     allModels={allModels}
                                     mode="show"
@@ -328,7 +342,7 @@ export const useStandardShowTabs = (
                         <SectionCellContent
                             sectionName={cell.section_name ?? ""}
                             sectionRows={getSectionRows(cell.id)}
-                            model={model}
+                            model={derivedModel}
                             record={record}
                             allModels={allModels}
                             mode="show"
@@ -408,5 +422,5 @@ export const useStandardShowTabs = (
         });
     items.push(...namedQueryTabs);
 
-    return { tabs: items, layoutConfig };
+    return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState };
 };

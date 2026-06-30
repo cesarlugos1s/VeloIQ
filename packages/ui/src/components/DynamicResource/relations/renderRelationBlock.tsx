@@ -14,6 +14,7 @@ import {
     isInlineRelationViewType,
     usesTableRelationBehavior,
 } from "./helpers";
+import { ddlTrace } from "../utils/ddlTrace";
 import { RelatedObjectsInlineValues } from "./RelatedObjectsInlineValues";
 import { RelatedObjectsCalendar } from "./RelatedObjectsCalendar";
 import { RelatedObjectsPrimaryView } from "./RelatedObjectsPrimaryView";
@@ -59,6 +60,7 @@ export const renderRelationBlock = ({
     fieldLayoutStyle?: React.CSSProperties;
 }) => {
     const viewType = getRelationViewType(rel, mode, relationViewTypeDefaults);
+    ddlTrace("renderRelationBlock viewType", { rel: rel.relationName || rel.resource || "?", mode, viewType, relShowVT: (rel as any).showViewType ?? null, relEditVT: (rel as any).editViewType ?? null, defaults: relationViewTypeDefaults, m2m: !!(relatedModel && rel.otherResource && rel.otherKey), hasRelatedModel: !!relatedModel, hasOtherResource: !!rel.otherResource, hasOtherKey: !!rel.otherKey });
     const parentModel = findModelByName(allModels, parentResource);
     const relationTone = getModelTone(relatedModel || relationModel || rel.resource);
     const usesTableBehavior = usesTableRelationBehavior(viewType);
@@ -137,16 +139,19 @@ export const renderRelationBlock = ({
     }
 
     if (viewType === "editable-csv" || viewType === "read-and-edit-csv") {
-        return (
-            <div style={{ marginBottom: 0 }}>
-                <div style={resolvedLayoutStyle}>
-                    {showLabel && <div style={resolvedLabelStyle}>{relationLabel}</div>}
-                    <div style={resolvedValueStyle}>
-                        <RelatedObjectsEditableCsv rel={rel} record={record} allModels={allModels} />
+        if (rel.otherResource && rel.otherKey) {
+            return (
+                <div style={{ marginBottom: 0 }}>
+                    <div style={resolvedLayoutStyle}>
+                        {showLabel && <div style={resolvedLabelStyle}>{relationLabel}</div>}
+                        <div style={resolvedValueStyle}>
+                            <RelatedObjectsEditableCsv rel={rel} record={record} allModels={allModels} />
+                        </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        }
+        // Non-M2M: fall through to DynamicList (content) as the closest editable fallback
     }
 
     if (viewType === "read-and-edit-list") {
@@ -171,13 +176,15 @@ export const renderRelationBlock = ({
         );
     }
 
-    if (isInlineListView && !polymorphicInfo) {
+    // Skip inline for "editable-csv" — it falls through to DynamicList (content)
+    // as the closest editable fallback for non-M2M relations.
+    if (isInlineListView && !polymorphicInfo && viewType !== "editable-csv") {
         return (
             <div style={{ marginBottom: 0 }}>
                 <div style={resolvedLayoutStyle}>
                     {showLabel && <div style={resolvedLabelStyle}>{relationLabel}</div>}
                     <div style={resolvedValueStyle}>
-                        <RelatedObjectsInlineValues rel={rel} record={record} viewType={viewType as "list" | "csv"} allModels={allModels} />
+                        <RelatedObjectsInlineValues rel={rel} record={record} viewType={(viewType === "read-and-edit-csv" || viewType === "csv") ? "csv" : "list"} allModels={allModels} />
                     </div>
                 </div>
             </div>
@@ -270,7 +277,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
         />
     );
 
@@ -286,7 +293,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
         />
     ) : polymorphicInfo ? (
         <PolymorphicRelatedObjectsTable
@@ -327,7 +334,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? "table" : undefined)}
+            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
         />
     );
 
@@ -352,25 +359,28 @@ export const renderRelationBlock = ({
         );
     }
 
-    if (viewType === "editable-list" && rel.otherResource && rel.otherKey) {
-        return (
-            <Card
-                key={rel.resource}
-                size="small"
-                title={title}
-                variant="borderless"
-                style={{ marginBottom: 16, boxShadow: `0 8px 20px -16px ${relationTone.shadow}` }}
-                styles={{
-                    header: {
-                        background: "transparent",
-                        color: relationTone.text,
-                    },
-                    body: { paddingTop: 8 },
-                }}
-            >
-                <RelatedObjectsEditableList rel={rel} record={record} allModels={allModels} />
-            </Card>
-        );
+    if (viewType === "editable-list") {
+        if (rel.otherResource && rel.otherKey) {
+            return (
+                <Card
+                    key={rel.resource}
+                    size="small"
+                    title={title}
+                    variant="borderless"
+                    style={{ marginBottom: 16, boxShadow: `0 8px 20px -16px ${relationTone.shadow}` }}
+                    styles={{
+                        header: {
+                            background: "transparent",
+                            color: relationTone.text,
+                        },
+                        body: { paddingTop: 8 },
+                    }}
+                >
+                    <RelatedObjectsEditableList rel={rel} record={record} allModels={allModels} />
+                </Card>
+            );
+        }
+        // Non-M2M: fall through to DynamicList (content) as the closest editable fallback
     }
 
     if (shouldShowRelatedObjects) {
