@@ -218,6 +218,9 @@ import {
     getRecordDisplayLabel,
     isPkField,
     isReferenceField,
+    getNavigableRelations,
+    getRecordId,
+    type NavigableRelation,
 } from "./utils/model";
 
 
@@ -287,6 +290,28 @@ export const DynamicList: React.FC<{
     const selectModeRelateOtherKey = searchParams.get("relate_other_key");
     const selectModeRelateTargetId = searchParams.get("relate_target_id");
     const selectModeReturnTo = searchParams.get("returnTo");
+
+    // --- Pre-filter from URL params (?field__in=id1,id2) for navigate-to-related ---
+    const urlPreFilters = useMemo(() => {
+        const preFilters: Array<{ field: string; operator: "eq"; value: any }> = [];
+        for (const [key, value] of searchParams.entries()) {
+            if (key.endsWith("__in")) {
+                const field = key.slice(0, -4);  // strip __in suffix
+                const values = String(value).split(",").map((v) => v.trim()).filter(Boolean);
+                if (values.length > 0) {
+                    // Use the full key (field__in) as the field name with eq operator
+                    // so the backend receives ?field__in=1,2,3 which is handled by _build_where_clauses
+                    preFilters.push({
+                        field: key,     // e.g. "project_id__in"
+                        operator: "eq" as const,
+                        value: values.join(","),
+                    });
+                }
+            }
+        }
+        return preFilters;
+    }, [searchParams]);
+
     // Keyboard shortcuts: Ctrl+N to create new record
     useKeyboardShortcuts(useMemo(() => isEmbedded ? [] : [
         { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) },
@@ -469,6 +494,7 @@ export const DynamicList: React.FC<{
     const [bulkActionModalOpen, setBulkActionModalOpen] = useState(false);
     const [bulkActionsToApply, setBulkActionsToApply] = useState<string[]>([]);
     const [bulkChangeFieldKey, setBulkChangeFieldKey] = useState<string | null>(null);
+    const [navigateToRelation, setNavigateToRelation] = useState<NavigableRelation | null>(null);
     const [bulkChangeFieldValue, setBulkChangeFieldValue] = useState<any>(null);
     const [isBulkExecuting, setIsBulkExecuting] = useState(false);
     const [selectAllFilteredPending, setSelectAllFilteredPending] = useState(false);
@@ -482,10 +508,12 @@ export const DynamicList: React.FC<{
     }, []);
 
     const tableFilters = useMemo(() => {
-        if (!filter) return [];
-        if (filter.value === undefined || filter.value === null) return [];
-        return [filter];
-    }, [filter?.field, filter?.operator, filter?.value]);
+        const result = [...urlPreFilters];
+        if (filter && filter.value !== undefined && filter.value !== null) {
+            result.push(filter);
+        }
+        return result;
+    }, [filter?.field, filter?.operator, filter?.value, urlPreFilters]);
 
     const { tableProps, searchFormProps, filters: activeFilters, setFilters } = useTable({
         resource: resourceIdentifier,
@@ -2322,8 +2350,47 @@ export const DynamicList: React.FC<{
         }
     }, [allRowsLoaded, fetchAllRows, filteredDataSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const executeNavigateToRelated = useCallback(() => {
+        if (!navigateToRelation) return;
+        const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
+        if (records.length === 0) return;
+
+        const targetResource = resolveResourcePath(navigateToRelation.targetResource, allModels);
+        let filterIds: (string | number)[] = [];
+
+        if (navigateToRelation.isForward) {
+            // Forward relation: FK is on target model. Filter target by source IDs.
+            filterIds = records.map((r: any) => {
+                const pk = model.pkField || getRecordId(r);
+                return r[pk] ?? r.id ?? r.eid;
+            }).filter((v: any) => v !== undefined && v !== null);
+        } else {
+            // Reverse FK: FK is on source model. Extract FK values from selected records.
+            const sourceKey = navigateToRelation.sourceValueKey || navigateToRelation.filterKey;
+            filterIds = records.map((r: any) => r[sourceKey])
+                .filter((v: any) => v !== undefined && v !== null);
+        }
+
+        if (filterIds.length === 0) return;
+
+        const params = new URLSearchParams();
+        params.append(navigateToRelation.filterKey + "__in", filterIds.join(","));
+        const targetUrl = `/${targetResource}?${params.toString()}`;
+
+        // Store href for right-click support
+        (window as any).__veloiq_nav_href = targetUrl;
+
+        // Clear selection and navigate
+        clearBulkSelection();
+        setBulkActionsToApply([]);
+        setNavigateToRelation(null);
+        navigate(targetUrl);
+    }, [navigateToRelation, bulkSelectedRowKeys, bulkSelectedRowsMapRef, model, allModels, clearBulkSelection, navigate]);
+
     const executeBulkActions = useCallback(async () => {
         const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
+
+
         if (records.length === 0) return;
 
         const resource = resolveResourcePath(model.resource || model.name, allModels);
@@ -2502,6 +2569,7 @@ export const DynamicList: React.FC<{
         }
         // Export selected rows as CSV — no special permission needed (read-only)
         opts.push({ label: _("Export selected (CSV)"), value: "__export_csv__" });
+        opts.push({ label: _("Navigate to related"), value: "__navigate_to_related__" });
         // Bulk clone/duplicate requires create permission (reuse edit as proxy since useCan
         // doesn't distinguish create easily here; always shown if user can edit)
         if (canBulkEdit) {
@@ -2524,6 +2592,61 @@ export const DynamicList: React.FC<{
     const bulkChangeField = bulkChangeFieldKey
         ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null
         : null;
+
+    // --- Pre-filter banner: shown when the list is filtered via "Navigate to related" ---
+    const preFilterBanner = urlPreFilters.length > 0 ? (() => {
+        const filterLabels: string[] = [];
+        for (const pf of urlPreFilters) {
+            const fieldName = String(pf.field).replace(/_in$/, "");
+            // Try to resolve a human-readable label: check if this field
+            // is a known relation FK or the model's PK
+            const relationDef = (model.relations || []).find(
+                (r) => (r.targetKey || r.otherKey) === fieldName
+            );
+            const fieldDef = model.fields.find((f) => f.key === fieldName);
+            if (relationDef) {
+                const relLabel = relationDef.label || relationDef.relationName || fieldName;
+                filterLabels.push(relLabel);
+            } else if (fieldDef && fieldDef.reference) {
+                // Reverse FK: field references another model
+                const refModel = allModels.find(
+                    (m) => (m.resource || m.name).toLowerCase() === (fieldDef.reference || "").toLowerCase()
+                );
+                const modelLabel = refModel?.label || refModel?.name || fieldDef.reference || fieldName;
+                filterLabels.push(modelLabel);
+            } else if (fieldDef) {
+                filterLabels.push(fieldDef.label || fieldName);
+            } else {
+                filterLabels.push(fieldName);
+            }
+        }
+        const filterDescription = filterLabels.join(", ");
+        return (
+            <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
+                padding: "6px 12px", marginBottom: 8, borderRadius: 6,
+                background: token.colorPrimaryBg, border: `1px solid ${token.colorPrimaryBorder}`,
+            }}>
+                <span style={{ color: token.colorPrimaryText, fontSize: 13 }}>
+                    {_("Filtered by: {relation}").replace("{relation}", filterDescription)}
+                </span>
+                <Button
+                    size="small"
+                    onClick={() => {
+                        // Remove __in params from URL, keep everything else
+                        const newParams = new URLSearchParams(searchParams);
+                        for (const key of Array.from(newParams.keys())) {
+                            if (key.endsWith("__in")) newParams.delete(key);
+                        }
+                        const newSearch = newParams.toString();
+                        navigate({ search: newSearch ? `?${newSearch}` : "" }, { replace: true });
+                    }}
+                >
+                    {_("Clear filter")}
+                </Button>
+            </div>
+        );
+    })() : null;
 
     const selectModeBanner = selectMode ? (
         <div style={{
@@ -2589,6 +2712,9 @@ export const DynamicList: React.FC<{
                             setBulkChangeFieldKey(null);
                             setBulkChangeFieldValue(null);
                         }
+                        if (!values.includes("__navigate_to_related__")) {
+                            setNavigateToRelation(null);
+                        }
                     }}
                     options={bulkActionsAvailable}
                 />
@@ -2653,11 +2779,50 @@ export const DynamicList: React.FC<{
                     )}
                 </>
             )}
+            {bulkActionsToApply.includes("__navigate_to_related__") && (() => {
+                const navRelations = getNavigableRelations(model, allModels || []);
+                return (
+                    <Select
+                        size="small"
+                        placeholder={_("Select relation")}
+                        style={{ minWidth: 220 }}
+                        showSearch
+                        value={navigateToRelation ? `${navigateToRelation.targetResource}|${navigateToRelation.filterKey}` : undefined}
+                        onChange={(val) => {
+                            const selected = navRelations.find(
+                                (r) => `${r.targetResource}|${r.filterKey}` === val
+                            );
+                            setNavigateToRelation(selected || null);
+                        }}
+                        filterOption={(input, option) => {
+                            if (!option?.label) return false;
+                            const searchLower = String(input).toLowerCase();
+                            const labelLower = String(option.label).toLowerCase();
+                            const navRel = navRelations.find(
+                                (r) => `${r.targetResource}|${r.filterKey}` === option?.value
+                            );
+                            const modelLabelLower = (navRel?.modelLabel || "").toLowerCase();
+                            return labelLower.includes(searchLower) || modelLabelLower.includes(searchLower);
+                        }}
+                        options={navRelations.map((r) => ({
+                            label: `${r.label} → ${r.modelLabel}`,
+                            value: `${r.targetResource}|${r.filterKey}`,
+                        }))}
+                        allowClear
+                    />
+                );
+            })()}
             <Button
                 type="primary"
                 size="small"
                 disabled={bulkActionsToApply.length === 0}
-                onClick={() => setBulkActionModalOpen(true)}
+                onClick={() => {
+                    if (bulkActionsToApply.includes("__navigate_to_related__") && navigateToRelation) {
+                        executeNavigateToRelated();
+                    } else {
+                        setBulkActionModalOpen(true);
+                    }
+                }}
             >
                 {_("Apply")}
             </Button>
@@ -3730,6 +3895,7 @@ export const DynamicList: React.FC<{
                         crosstabBodyNode
                     ) : (
                         <>
+                        {!selectMode && preFilterBanner}
                         {selectModeBanner}
                         {!selectMode && bulkActionsToolbar}
                         {renderDynamicListTotalsBoxes()}

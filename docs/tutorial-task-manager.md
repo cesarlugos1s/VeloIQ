@@ -872,8 +872,12 @@ interactive graph visualising all the relations connected to that record.  Click
 any node to navigate directly to that record.
 
 **Bulk actions** — tick the checkboxes on one or more rows in any list.  A
-bulk-action toolbar appears at the bottom with bulk edit, bulk delete, and CSV
-export.
+bulk-action toolbar appears with bulk edit, bulk delete, CSV export, and
+**Navigate to related** — select a relation from the dropdown (searchable by
+relation name or target model name) to jump to the related model's list page,
+automatically filtered to show only the records connected to your selection.
+Works with both forward and reverse relations and supports recursive
+list-to-list navigation.
 
 ---
 

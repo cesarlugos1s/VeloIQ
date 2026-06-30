@@ -2,6 +2,23 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.3] — 2026-06-30
+
+### Features
+
+- **Navigate to related** — a new bulk action on every list page. Select one or
+  more rows, then choose a relation from the dropdown (with search/filter by
+  relation name or target model name) to navigate to the related model's list
+  page, automatically filtered to show only records connected to your selection.
+  Works with both forward (ONETOMANY) and reverse (FK reference) relations,
+  supports recursive list-to-list navigation, and includes a pre-filter banner
+  with a "Clear filter" button and right-click browser-native
+  "open in new tab/window" support via standard hyperlink URLs.
+- **Backend `__in` query operator** — the CRUD list endpoint now supports
+  `?field__in=1,2,3` for comma-separated IN-clause filtering on any column.
+
+---
+
 ---
 
 ## [0.9.2] — 2026-06-26

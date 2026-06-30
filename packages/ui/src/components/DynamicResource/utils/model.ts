@@ -134,3 +134,106 @@ export const getRecordDisplayLabel = (record: any) => {
     const id = record.eid ?? record.id;
     return id !== undefined && id !== null ? String(id) : "-";
 };
+
+
+
+/** A relation that can be navigated to from a list page via the
+ *  "Navigate to related" bulk action.  Aggregated from both
+ *  RelationDef entries (forward ONETOMANY/MANYTOMANY) and FK
+ *  reference fields (reverse navigation to parent models). */
+export interface NavigableRelation {
+    /** Target model resource name for the list page URL. */
+    targetResource: string;
+    /** Column on the TARGET model to filter by (PK for reverse, FK for forward). */
+    filterKey: string;
+    /** For reverse FK relations: the FK column on the SOURCE model to extract values from. */
+    sourceValueKey?: string;
+    /** Whether the FK is on the target model (forward) or source model (reverse). */
+    isForward: boolean;
+    /** i18n-translated label for the relation. */
+    label: string;
+    /** i18n-translated label for the target model. */
+    modelLabel: string;
+}
+
+
+/**
+ * Collect all navigable relations from a model.
+ * Includes both forward ONETOMANY/MANYTOMANY relations (from model.relations)
+ * and reverse FK references (from model.fields with reference attribute).
+ */
+export const getNavigableRelations = (
+    model: ModelDef,
+    allModels: ModelDef[],
+): NavigableRelation[] => {
+    const relations: NavigableRelation[] = [];
+    const addedKeys = new Set<string>();
+
+    // 1. Forward relations from model.relations (ONETOMANY, MANYTOMANY)
+    if (model.relations) {
+        for (const rel of model.relations) {
+            // Only include non-recursive relations (recursive self-ref handled separately)
+            if (rel.isRecursive && rel.resource === (model.resource || model.name)) {
+                continue;
+            }
+
+            const targetResource = rel.otherResourcePath ||
+                rel.otherResource ||
+                rel.resourcePath ||
+                rel.resource;
+            if (!targetResource) continue;
+
+            const targetModel = findModelByName(allModels, targetResource);
+            if (!targetModel) continue;
+
+            // For forward ONETOMANY: filterKey is the FK on the child =
+            // target model (e.g. project_id on Task)
+            const filterKey = rel.targetKey || rel.otherKey;
+            if (!filterKey) continue;
+
+            const uniqueKey = targetResource + '|' + filterKey;
+            if (addedKeys.has(uniqueKey)) continue;
+            addedKeys.add(uniqueKey);
+
+            relations.push({
+                targetResource,
+                filterKey,
+                isForward: true,
+                label: rel.label || rel.relationName || targetResource,
+                modelLabel: targetModel.label || targetModel.name,
+            });
+        }
+    }
+
+    // 2. Reverse FK references from model.fields (navigate to parent model)
+    if (model.fields) {
+        for (const field of model.fields) {
+            if (!field.reference) continue;
+            // Skip self-referential FKs (already handled or not useful for reverse)
+            if (field.reference === (model.resource || model.name)) continue;
+            // Skip if the reference is the same as a forward relation target
+            const targetResource = field.referencePath || field.reference;
+            if (!targetResource) continue;
+
+            const targetModel = findModelByName(allModels, targetResource);
+            if (!targetModel) continue;
+
+            // For reverse FK: filterKey is the PK on the target (parent) model
+            const filterKey = targetModel.pkField || 'id';
+            const uniqueKey = targetResource + '|' + filterKey + '|reverse';
+            if (addedKeys.has(uniqueKey)) continue;
+            addedKeys.add(uniqueKey);
+
+            relations.push({
+                targetResource,
+                filterKey,
+                sourceValueKey: field.key,
+                isForward: false,
+                label: targetModel.label || targetModel.name,
+                modelLabel: targetModel.label || targetModel.name,
+            });
+        }
+    }
+
+    return relations;
+};

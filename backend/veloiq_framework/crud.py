@@ -187,8 +187,9 @@ def _coerce_filter_value(value: str, col_type: Any) -> Any:
 def _build_where_clauses(model_class: type, query_params) -> list:
     """Return SQLAlchemy WHERE clauses for any query params that match column names.
 
-    Supports two forms:
+    Supports:
     - ``?field=value``        → exact equality (``WHERE field = value``)
+    - ``?field__in=1,2,3``    → IN clause (``WHERE field IN (1, 2, 3)``)
     - ``?field__ilike=value`` → case-insensitive contains (``WHERE field ILIKE '%value%'``)
     - ``?field_like=value``   → case-insensitive contains (short form, same as __ilike)
     - ``?field_ne=value``     → not equal
@@ -221,6 +222,17 @@ def _build_where_clauses(model_class: type, query_params) -> list:
     clauses = []
     for key, value in query_params.items():
         if key.startswith("_") or value is None or value == "":
+            continue
+
+        # Handle __in operator (comma-separated values)
+        if key.endswith("__in"):
+            base = key[:-4]
+            if base in filter_map:
+                attr_key, col_type = filter_map[base]
+                raw_values = [v.strip() for v in str(value).split(",") if v.strip()]
+                if raw_values:
+                    coerced = [_coerce_filter_value(v, col_type) for v in raw_values]
+                    clauses.append(getattr(model_class, attr_key).in_(coerced))
             continue
 
         # Handle operators

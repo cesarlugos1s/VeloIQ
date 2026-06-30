@@ -56,6 +56,15 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.3
+
+- **Navigate to related** — select rows on any list page, pick a relation from
+  the dropdown, and jump to the related model's filtered list. Supports forward
+  and reverse relations, recursive multi-hop navigation, and browser-native
+  right-click "open in new tab".
+- **Backend `__in` operator** — `?field__in=1,2,3` IN-clause filtering on any
+  column in list endpoints.
+
 ## What's New in v0.9.1
 
 - **Fix** — Search input text is now visible in the top bar in both light and dark
