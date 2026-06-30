@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import { setCurrentDataDetailLevelState } from "./DataDetailLevelStore";
+import React, { useEffect, useMemo } from "react";
 import { useCan } from "@refinedev/core";
 import { Form, Skeleton, theme } from "antd";
 import dayjs from "dayjs";
@@ -91,7 +92,9 @@ export const useStandardShowTabs = (
         relationViewTypeDefaults,
     );
     const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
+    setCurrentDataDetailLevelState(effectiveDetailState);
     const relations = effectiveDetailState.applyToRelations(model.relations || []);
+    console.log("[useStandardShowTabs] level:", effectiveDetailState.dataDetailLevel, "first rel showViewType:", relations[0]?.showViewType, "first rel defaultListVisible:", (relations[0] as any)?.defaultListVisible);
     const derivedModel: ModelDef = useMemo(
         () => ({ ...model, relations }),
         [model, relations],
@@ -421,6 +424,11 @@ export const useStandardShowTabs = (
             }];
         });
     items.push(...namedQueryTabs);
+
+    // Reset stored detail level on unmount so other pages don't see a stale slider
+    useEffect(() => {
+        return () => { setCurrentDataDetailLevelState(undefined); };
+    }, []);
 
     return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState };
 };

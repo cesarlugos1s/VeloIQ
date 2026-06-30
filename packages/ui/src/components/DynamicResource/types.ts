@@ -64,6 +64,8 @@ export interface RelationDef {
     editViewTypeFromCsv?: boolean;
     showCustomPageName?: string;
     editCustomPageName?: string;
+    /** When false, the list table is hidden by default (only the Analyze panel shows). Controlled by DataDetail slider level. */
+    defaultListVisible?: boolean;
     showTab?: string;
     editTab?: string;
     description?: string;

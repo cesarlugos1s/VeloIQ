@@ -106,10 +106,10 @@ declare const ExecutableHtml: React__default.FC<ExecutableHtmlProps>;
 
 /**
  * Renders Plotly HTML inline (no iframe) by:
- * 1. Stripping Plotly CDN <script> tags (Plotly.js is loaded globally once)
+ * 1. Stripping Plotly CDN <script> tags (loaded dynamically below)
  * 2. Making card button IDs unique per instance to avoid DOM ID conflicts
  * 3. Injecting the remaining HTML via dangerouslySetInnerHTML
- * 4. Executing any inline <script> tags after render
+ * 4. Ensuring Plotly is loaded before executing inline <script> tags
  */
 declare const InlinePlotlyHtml: React__default.FC<{
     html: string;
@@ -179,6 +179,8 @@ interface RelationDef {
     editViewTypeFromCsv?: boolean;
     showCustomPageName?: string;
     editCustomPageName?: string;
+    /** When false, the list table is hidden by default (only the Analyze panel shows). Controlled by DataDetail slider level. */
+    defaultListVisible?: boolean;
     showTab?: string;
     editTab?: string;
     description?: string;
@@ -345,13 +347,40 @@ declare const DynamicEdit: React__default.FC<{
     idOverride?: string;
 }>;
 
+interface DataDetailLevelState {
+    dataDetailLevel: number;
+    setDataDetailLevel: (level: number) => void;
+    levelLabels: string[];
+    levelTooltips: string[];
+    applyToRelations: (relations: RelationDef[]) => RelationDef[];
+    getEffectiveViewType: (rel: RelationDef, mode: "show" | "edit", defaults: {
+        show: RelationViewType;
+        edit: RelationViewType;
+    }) => RelationViewType;
+    isActive: boolean;
+}
+declare function useDataDetailLevel(relations: RelationDef[], mode: "show" | "edit", relationViewTypeDefaults: {
+    show: RelationViewType;
+    edit: RelationViewType;
+}): DataDetailLevelState;
+
 declare const useStandardShowTabs: (model: ModelDef | undefined, record: any, allModels: ModelDef[], actionsState?: {
     showActions: boolean;
     showCreate: boolean;
 }, editForm?: {
     formProps?: any;
     effectiveFields?: FieldDef[];
-}, overrideConfigRows?: ViewConfigRow[]) => {
+}, overrideConfigRows?: ViewConfigRow[], dataDetailLevelState?: DataDetailLevelState) => {
+    tabs: never[];
+    layoutConfig: {
+        isConfiguring: boolean;
+        enterConfigMode: () => void;
+        saveLayout: () => void;
+        cancelLayout: () => void;
+        hasConfig: boolean;
+    };
+    dataDetailLevelState?: undefined;
+} | {
     tabs: {
         key: string;
         label: React__default.ReactNode;
@@ -364,6 +393,7 @@ declare const useStandardShowTabs: (model: ModelDef | undefined, record: any, al
         cancelLayout: () => void;
         hasConfig: boolean;
     };
+    dataDetailLevelState: DataDetailLevelState;
 };
 
 declare const renderRelationBlock: ({ rel, relationModel, relatedModel, record, mode, parentResource, allModels, showLabel, showActions, showCreate, relationViewTypeDefaults, labelStyle, valueStyle, fieldLayoutStyle, }: {
@@ -385,6 +415,10 @@ declare const renderRelationBlock: ({ rel, relationModel, relatedModel, record, 
     valueStyle?: React__default.CSSProperties;
     fieldLayoutStyle?: React__default.CSSProperties;
 }) => react_jsx_runtime.JSX.Element;
+
+declare const DataDetailSlider: React__default.FC<{
+    detailState: DataDetailLevelState | undefined;
+}>;
 
 declare const DynamicList: React__default.FC<{
     model: ModelDef;
@@ -654,4 +688,4 @@ declare const getModelTone: (modelLike?: string | {
 
 declare const authSystemModels: ModelDef[];
 
-export { API_URL, AllModelsProvider, AuthenticatedImage, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, NavConfigContext, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };
+export { API_URL, AllModelsProvider, AuthenticatedImage, type BulkActionDef, type CellSourceType, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, type CommandCenterPortalProps, CustomSider, type DashboardCell, type DashboardConfig, DashboardPage, type DashboardTab, type DataDetailLevelState, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, type FieldDef, GlobalSearch, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, type LayoutWrapperProps, LoginPage, type LoginPageProps, type MillerLeafConfig, type ModelDef, ModelHeading, type ModelSearchResult, MultiPaneLayout, type NavConfig, NavConfigContext, type NavConfigEntry, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, type PrimaryShowRendererProps, type RecentActivityData, type RecentActivityGroup, RecentActivityPanel, type RecentRecord, type RecordResult, ReferenceField, type RelationDef, ResourceContext, type ResourceDef, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, type UseRecordSearchReturn, type ViewConfigRow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useShowActionsPreferences, useShowEditableForm, useStandardShowTabs };

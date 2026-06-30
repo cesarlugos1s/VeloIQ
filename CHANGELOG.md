@@ -6,6 +6,41 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [0.9.2] — 2026-06-26
 
+### Features
+
+- **Adaptive Detail slider expanded to 7 levels** — the Data Detail Level slider
+  on show and edit pages grew from 5 to 7 levels with two new modes and a redesigned
+  behaviour for custom pages:
+
+  | Level | Label | Behaviour |
+  |---|---|---|
+  | 0 | Original | Restores each relation to its originally configured view type — no slider overrides applied |
+  | 1 | Minimal | All relations forced to CSV view — ideal for quick summary scanning |
+  | 2 | Compact | All relations forced to List view — good for rapid browsing |
+  | 3 | Summary | Relations shown as Crosstab — designed for trend analysis |
+  | 4 | Expandable | Totals-Details view — expand from summaries down to individual records |
+  | 5 | Expanded | Full Tables — suited for heavy editing and deep-dive exploration |
+  | 6 | Analyze | List view with the Analyze (chart) panel open by default — dashboard-style overviews |
+
+  Each level now has a descriptive tooltip in English and Spanish.
+
+- **Adaptive Detail slider now appears on custom pages** — a new
+  `DataDetailLevelContext` (React context) and `DataDetailLevelStore` (module-level
+  singleton) carry the slider state from `useStandardShowTabs` (which owns the state) to
+  `StandardShow` / `StandardEdit` (which render the slider). Custom pages that wrap
+  their content in `StandardShow` or `StandardEdit` automatically inherit the slider
+  without any per-page code changes.
+
+- **Level 6 "Analyze" controls list table visibility** — relations at level 6 open the
+  Analyze panel by default and hide the list table. A new `defaultListVisible` property
+  on `RelationDef` controls this behaviour, and `RelatedObjectsTable` polls the
+  module-level store to react to level changes even when rendered inside a cached Ant
+  Design tab pane.
+
+- **`applyToRelations` no longer mutates input** — the function that applies slider
+  overrides to relation definitions now returns fresh copies instead of mutating the
+  originals, preventing stale overrides from leaking between renders.
+
 ### Fixes
 
 - **Scaffold pinned old UI version** — `veloiq new` was copying a scaffold

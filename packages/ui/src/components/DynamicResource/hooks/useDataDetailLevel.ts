@@ -20,33 +20,37 @@ function isScalable(vt: RelationViewType, mode: "show" | "edit"): boolean {
 }
 
 const SHOW_VIEW_LEVELS: Record<string, number> = {
-    "csv": 0, "read-and-edit-csv": 0,
-    "list": 1, "read-and-edit-list": 1,
-    "crosstab": 2, "totals-details": 3, "table": 4,
+    "csv": 1, "read-and-edit-csv": 1,
+    "list": 2, "read-and-edit-list": 2,
+    "crosstab": 3, "totals-details": 4, "table": 5,
 };
 const EDIT_VIEW_LEVELS: Record<string, number> = {
-    "editable-csv": 0, "editable-list": 1,
-    "editable-crosstab": 2, "editable-table": 3,
+    "editable-csv": 1, "editable-list": 2,
+    "editable-crosstab": 3, "editable-table": 4,
 };
 
 const LEVEL_TO_SHOW: Record<number, RelationViewType> = {
-    0: "csv", 1: "list", 2: "crosstab", 3: "totals-details", 4: "table",
+    0: "csv", 1: "csv", 2: "list", 3: "crosstab", 4: "totals-details", 5: "table", 6: "list",
 };
 const LEVEL_TO_EDIT: Record<number, RelationViewType> = {
-    0: "editable-csv", 1: "editable-list", 2: "editable-crosstab",
-    3: "editable-table", 4: "editable-table",
+    0: "editable-table", 1: "editable-csv", 2: "editable-list", 3: "editable-crosstab",
+    4: "editable-table", 5: "editable-table", 6: "editable-table",
 };
 
 export const DATA_DETAIL_LEVEL_LABELS = [
+    _("Original"),
     _("Minimal"), _("Compact"), _("Summary"), _("Expandable"), _("Expanded"),
+    _("Analyze"),
 ];
 
 export const DATA_DETAIL_LEVEL_TOOLTIPS = [
+    _("Shows each relation using its original configured view type with no slider overrides applied."),
     _("Sets all relations to CSV view. Great for summary quick reading."),
     _("Sets all relations to List view. Great for quick reading."),
     _("Sets relations to Crosstab. Great for analyzing trends."),
     _("Sets relations to Totals-Details. Great for going from summaries to details."),
     _("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
+    _("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews."),
 ];
 
 function getViewTypeLevel(viewType: RelationViewType, mode: "show" | "edit"): number {
@@ -55,7 +59,7 @@ function getViewTypeLevel(viewType: RelationViewType, mode: "show" | "edit"): nu
 }
 
 function levelToViewType(level: number, mode: "show" | "edit"): RelationViewType {
-    const safe = Math.max(0, Math.min(4, Math.round(level)));
+    const safe = Math.max(0, Math.min(6, Math.round(level)));
     const map = mode === "show" ? LEVEL_TO_SHOW : LEVEL_TO_EDIT;
     return map[safe] ?? (mode === "show" ? "totals-details" : "editable-table");
 }
@@ -80,10 +84,10 @@ export function useDataDetailLevel(
 ): DataDetailLevelState {
     const initialLevel = useMemo(() => {
         if (!relations || relations.length === 0) {
-            ddlTrace("initialLevel: no relations -> 4");
-            return 4;
+            ddlTrace("initialLevel: no relations -> 0");
+            return 0;
         }
-        let minLevel = 4;
+        let minLevel = 6;
         const traceRows: { rel: string; vt: string; scalable: boolean; lvl: number }[] = [];
         for (const rel of relations) {
             const vt = getRelationViewType(rel, mode, relationViewTypeDefaults);
@@ -102,6 +106,7 @@ export function useDataDetailLevel(
     const prevLevelRef = useRef(dataDetailLevel);
     const showOverridesRef = useRef<Record<string, RelationViewType>>({});
     const editOverridesRef = useRef<Record<string, RelationViewType>>({});
+    const listVisibleOverridesRef = useRef<Record<string, boolean>>({});
     const [, forceRender] = useState(0);
     const hasScalableRels = relations.some((r) => {
         const vt = getRelationViewType(r, mode, relationViewTypeDefaults);
@@ -111,12 +116,53 @@ export function useDataDetailLevel(
 
     const setDataDetailLevel = useCallback(
         (newLevel: number) => {
-            const clamped = Math.max(0, Math.min(4, Math.round(newLevel)));
+            const clamped = Math.max(0, Math.min(6, Math.round(newLevel)));
             const prevLevel = prevLevelRef.current;
             if (clamped === prevLevel) {
                     ddlTrace("setDataDetailLevel noop (clamped===prev)", { clamped });
                 return;
             }
+            // Level 0 (Original): clear all overrides — show original configured view types
+            if (clamped === 0) {
+                showOverridesRef.current = {};
+                editOverridesRef.current = {};
+                listVisibleOverridesRef.current = {};
+                prevLevelRef.current = 0;
+                setDataDetailLevelState(0);
+                forceRender((n) => n + 1);
+                return;
+            }
+            
+            // Level 6 (Analyze): list view with chart/analyze panel open by default
+            if (clamped === 6) {
+                const nextShow: Record<string, RelationViewType> = {};
+                const nextListVisible: Record<string, boolean> = {};
+                for (const rel of relations) {
+                    const relKey = rel.relationName || rel.resource || rel.label;
+                    if (!relKey) continue;
+                    const showVT: RelationViewType =
+                        showOverridesRef.current[relKey] ??
+                        rel.showViewType ??
+                        getRelationViewType(rel, "show", relationViewTypeDefaults);
+                    if (isScalable(showVT, "show")) {
+                        nextShow[relKey] = "table";
+                        nextListVisible[relKey] = false;
+                    }
+                }
+                showOverridesRef.current = nextShow;
+                editOverridesRef.current = {};
+                listVisibleOverridesRef.current = nextListVisible;
+                prevLevelRef.current = 6;
+                setDataDetailLevelState(6);
+                forceRender((n) => n + 1);
+                return;
+            }
+            
+            // For levels 1-5: clear analyze-only overrides
+            listVisibleOverridesRef.current = {};
+            // When coming from Original (0) or Analyze (6), force-apply target level
+            // to ALL scalable relations so the slider is deterministic.
+            const forceApply = prevLevel === 0 || prevLevel === 6;
             const isReducing = clamped < prevLevel;
             ddlTrace("setDataDetailLevel", { from: prevLevel, to: clamped, isReducing });
             const nextShow: Record<string, RelationViewType> = {};
@@ -136,17 +182,15 @@ export function useDataDetailLevel(
                     const lvl = getViewTypeLevel(showVT, "show");
                     let decision = "noop";
                     let applied: RelationViewType | null = null;
-                    if (isReducing && lvl > clamped) {
+                    if (forceApply) {
+                        nextShow[relKey] = levelToViewType(clamped, "show");
+                        decision = "force"; applied = nextShow[relKey];
+                    } else if (isReducing && lvl > clamped) {
                         nextShow[relKey] = levelToViewType(clamped, "show");
                         decision = "reduce"; applied = nextShow[relKey];
                     } else if (!isReducing && lvl < clamped) {
                         nextShow[relKey] = levelToViewType(clamped, "show");
                         decision = "increase"; applied = nextShow[relKey];
-                    } else if (showOverridesRef.current[relKey]) {
-                        nextShow[relKey] = showOverridesRef.current[relKey];
-                        decision = "keep-override"; applied = nextShow[relKey];
-                    } else {
-                        decision = "keep-original";
                     }
                     traceShow.push({ rel: relKey, showVT, lvl, decision, applied });
                 }
@@ -158,11 +202,9 @@ export function useDataDetailLevel(
                     getRelationViewType(rel, "edit", relationViewTypeDefaults);
                 if (isScalable(editVT, "edit")) {
                     const lvl = getViewTypeLevel(editVT, "edit");
-                    if (isReducing && lvl > clamped)
+                    if (forceApply) {
                         nextEdit[relKey] = levelToViewType(clamped, "edit");
-                    else if (!isReducing && lvl < clamped)
-                        nextEdit[relKey] = levelToViewType(clamped, "edit");
-                    else if (editOverridesRef.current[relKey])
+                    } else if (isReducing && lvl > clamped)
                         nextEdit[relKey] = editOverridesRef.current[relKey];
                 }
             }
@@ -181,15 +223,31 @@ export function useDataDetailLevel(
 
     const applyToRelations = useCallback(
         (rels: RelationDef[]): RelationDef[] => {
-            for (const rel of rels) {
+            // Level 0: restore original view types by returning clean copies
+            if (dataDetailLevel === 0) {
+                return rels.map((rel) => {
+                    const copy = { ...rel };
+                    // Remove any override properties so the original schema values are used
+                    delete (copy as any).showViewType;
+                    delete (copy as any).editViewType;
+                    delete (copy as any).defaultListVisible;
+                    return copy;
+                });
+            }
+            // Levels 1-6: apply overrides via fresh copies (don't mutate originals)
+            console.log("[DataDetail] applyToRelations level:", dataDetailLevel, "first rel defaultListVisible:", rels[0] ? listVisibleOverridesRef.current[rels[0].relationName || rels[0].resource || rels[0].label] : "no rels");
+            return rels.map((rel) => {
                 const relKey = rel.relationName || rel.resource || rel.label;
-                if (!relKey) continue;
+                if (!relKey) return { ...rel };
                 const showOverride = showOverridesRef.current[relKey];
                 const editOverride = editOverridesRef.current[relKey];
-                if (showOverride) (rel as any).showViewType = showOverride;
-                if (editOverride) (rel as any).editViewType = editOverride;
-            }
-            return rels;
+                const listVisibleOverride = listVisibleOverridesRef.current[relKey];
+                const copy = { ...rel };
+                if (showOverride) (copy as any).showViewType = showOverride;
+                if (editOverride) (copy as any).editViewType = editOverride;
+                (copy as any).defaultListVisible = listVisibleOverride ?? undefined;
+                return copy;
+            });
         },
         [dataDetailLevel],
     );

@@ -18,6 +18,9 @@ import { useViewSettings } from "./DynamicResource/utils/viewConfig";
 import { ResponsiveHeaderButtons } from "./DynamicResource/utils/buttons";
 import { usePaneNavigation, PANE_TOOLBAR_HEIGHT } from "../contexts/PaneNavigationContext";
 
+import { DataDetailSlider } from "./DynamicResource/DataDetailSlider";
+import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
+
 const wrappedPageTitleStyle: React.CSSProperties = {
     width: "100%",
     maxWidth: "100%",
@@ -199,9 +202,18 @@ const useActionsWrapping = (headerButtons: any) => {
 };
 
 export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) => {
+    const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
+    const headerButtonsWithSlider: (args: { defaultButtons: React.ReactNode }) => React.ReactNode = detailState?.isActive && effectiveHeaderButtons
+        ? (args: { defaultButtons: React.ReactNode }) => (
+            <>
+                <DataDetailSlider detailState={detailState} />
+                {(effectiveHeaderButtons as any)(args)}
+            </>
+          )
+        : effectiveHeaderButtons as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(effectiveHeaderButtons);
+        useActionsWrapping(headerButtonsWithSlider);
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
@@ -216,10 +228,19 @@ export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) =
 };
 
 export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) => {
+    const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons =
         headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons));
+    const headerButtonsWithSlider: (args: { defaultButtons: React.ReactNode }) => React.ReactNode = detailState?.isActive && effectiveHeaderButtons
+        ? (args: { defaultButtons: React.ReactNode }) => (
+            <>
+                <DataDetailSlider detailState={detailState} />
+                {(effectiveHeaderButtons as any)(args)}
+            </>
+          )
+        : effectiveHeaderButtons as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(effectiveHeaderButtons);
+        useActionsWrapping(headerButtonsWithSlider);
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}

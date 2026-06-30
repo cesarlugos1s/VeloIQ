@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "configs": {
+    "Task:list": {
+      "model": "Task",
+      "view_type": "list",
+      "sections": [
+        {
+          "name": "T1",
+          "entries": []
+        }
+      ],
+      "tabs": []
+    },
+    "Project:show": {
+      "model": "Project",
+      "view_type": "show",
+      "sections": [],
+      "tabs": []
+    }
+  }
+}

@@ -19,7 +19,7 @@ export const DataDetailSlider: React.FC<{
     const currentLabel = levelLabels[dataDetailLevel] ?? "";
 
     const marks: Record<number, React.ReactNode> = {};
-    for (let i = 0; i <= 4; i++) {
+    for (let i = 0; i <= 6; i++) {
         marks[i] = (
             <Tooltip title={levelTooltips[i]}>
                 <span>{levelLabels[i]}</span>
@@ -28,13 +28,13 @@ export const DataDetailSlider: React.FC<{
     }
 
     const popoverContent = (
-        <div style={{ width: 360, padding: "8px 4px" }}>
+        <div style={{ width: 580, padding: "8px 4px" }}>
             <div style={{ marginBottom: 8 }}>
                 <Text strong>{_("Data Detail Level")}</Text>
             </div>
             <Slider
                 min={0}
-                max={4}
+                max={6}
                 step={1}
                 value={dataDetailLevel}
                 onChange={(val) => setDataDetailLevel(val)}

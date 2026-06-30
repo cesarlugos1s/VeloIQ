@@ -302,6 +302,19 @@ export const RelatedObjectsTable: React.FC<{
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [listVisible, setListVisible] = useState(true);
+
+    // React to DataDetail slider level 6 (Analyze) — hide table via polling
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const lvl = (window as any).__veloiq_dataDetailLevel;
+            if (lvl === 6) {
+                setListVisible(false);
+            } else if (lvl !== 6 && !listVisible) {
+                setListVisible(true);
+            }
+        }, 200);
+        return () => clearInterval(interval);
+    }, [listVisible]);
     const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
     const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});

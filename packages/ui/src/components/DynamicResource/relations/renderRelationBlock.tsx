@@ -59,6 +59,7 @@ export const renderRelationBlock = ({
     valueStyle?: React.CSSProperties;
     fieldLayoutStyle?: React.CSSProperties;
 }) => {
+    console.log("[renderRelationBlock] rel:", (rel as any).relationName || rel.resource || rel.label, "showViewType:", (rel as any).showViewType, "defaultListVisible:", (rel as any).defaultListVisible, "mode:", mode);
     const viewType = getRelationViewType(rel, mode, relationViewTypeDefaults);
     ddlTrace("renderRelationBlock viewType", { rel: rel.relationName || rel.resource || "?", mode, viewType, relShowVT: (rel as any).showViewType ?? null, relEditVT: (rel as any).editViewType ?? null, defaults: relationViewTypeDefaults, m2m: !!(relatedModel && rel.otherResource && rel.otherKey), hasRelatedModel: !!relatedModel, hasOtherResource: !!rel.otherResource, hasOtherKey: !!rel.otherKey });
     const parentModel = findModelByName(allModels, parentResource);
@@ -218,6 +219,7 @@ export const renderRelationBlock = ({
             <div key={rel.resource} style={{ marginTop: 12 }}>
                 {showLabel && <div style={{ ...resolvedLabelStyle, marginBottom: 6 }}>{relationLabel}</div>}
                 <DynamicList
+                key={`${(rel as any).relationName || rel.resource || "dl"}-ddl-${(window as any).__veloiq_dataDetailLevel ?? 0}`}
                     model={relationModel}
                     allModels={allModels}
                     filter={{ field: rel.targetKey, operator: "eq", value: getRecordId(record) }}
@@ -227,6 +229,7 @@ export const renderRelationBlock = ({
                     showCreate={showCreateButton}
                     layoutPreferenceType={layoutPreferenceType}
                     listViewType="calendar"
+                    defaultListVisible={rel.defaultListVisible}
                 />
             </div>
         );
@@ -269,6 +272,7 @@ export const renderRelationBlock = ({
         />
     ) : (
         <DynamicList
+                key={`${(rel as any).relationName || rel.resource || "dl"}-ddl-${(window as any).__veloiq_dataDetailLevel ?? 0}`}
             model={relationModel}
             allModels={allModels}
             filter={{ field: rel.targetKey, operator: "eq", value: getRecordId(record) }}
@@ -278,6 +282,7 @@ export const renderRelationBlock = ({
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
             listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+                    defaultListVisible={rel.defaultListVisible}
         />
     );
 
@@ -285,6 +290,7 @@ export const renderRelationBlock = ({
         recursiveFallback
     ) : rel.isRecursive ? (
         <DynamicList
+                key={`${(rel as any).relationName || rel.resource || "dl"}-ddl-${(window as any).__veloiq_dataDetailLevel ?? 0}`}
             model={relationModel}
             allModels={allModels}
             filter={{ field: rel.targetKey, operator: "eq", value: getRecordId(record) }}
@@ -294,6 +300,7 @@ export const renderRelationBlock = ({
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
             listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+                    defaultListVisible={rel.defaultListVisible}
         />
     ) : polymorphicInfo ? (
         <PolymorphicRelatedObjectsTable
@@ -326,6 +333,7 @@ export const renderRelationBlock = ({
         />
     ) : (
         <DynamicList
+                key={`${(rel as any).relationName || rel.resource || "dl"}-ddl-${(window as any).__veloiq_dataDetailLevel ?? 0}`}
             model={relationModel}
             allModels={allModels}
             filter={{ field: rel.targetKey, operator: "eq", value: getRecordId(record) }}
@@ -335,6 +343,7 @@ export const renderRelationBlock = ({
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
             listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+                    defaultListVisible={rel.defaultListVisible}
         />
     );
 
