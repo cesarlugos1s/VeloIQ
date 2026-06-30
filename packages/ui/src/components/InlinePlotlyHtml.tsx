@@ -2,12 +2,34 @@ import React, { useEffect, useRef } from "react";
 
 let instanceCounter = 0;
 
+// Global Plotly loader — avoids duplicate <script> tags across component instances.
+let _plotlyLoadPromise: Promise<void> | null = null;
+const ensurePlotly = (): Promise<void> => {
+    if ((window as any).Plotly) return Promise.resolve();
+    if (_plotlyLoadPromise) return _plotlyLoadPromise;
+    _plotlyLoadPromise = new Promise<void>((resolve) => {
+        const existing = document.querySelector('script[data-jm-plotly-loader="1"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve());
+            return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.plot.ly/plotly-3.1.2.min.js';
+        s.async = true;
+        s.setAttribute('data-jm-plotly-loader', '1');
+        s.onload = () => resolve();
+        s.onerror = () => resolve(); // don't block forever on CDN failure
+        document.head.appendChild(s);
+    });
+    return _plotlyLoadPromise;
+};
+
 /**
  * Renders Plotly HTML inline (no iframe) by:
- * 1. Stripping Plotly CDN <script> tags (Plotly.js is loaded globally once)
+ * 1. Stripping Plotly CDN <script> tags (loaded dynamically below)
  * 2. Making card button IDs unique per instance to avoid DOM ID conflicts
  * 3. Injecting the remaining HTML via dangerouslySetInnerHTML
- * 4. Executing any inline <script> tags after render
+ * 4. Ensuring Plotly is loaded before executing inline <script> tags
  */
 export const InlinePlotlyHtml: React.FC<{
     html: string;
@@ -65,16 +87,30 @@ export const InlinePlotlyHtml: React.FC<{
         const container = containerRef.current;
         if (!container) return;
 
-        // Find and execute any inline <script> tags in the injected HTML
         const scripts = Array.from(container.querySelectorAll("script"));
-        for (const oldScript of scripts) {
-            const newScript = document.createElement("script");
-            Array.from(oldScript.attributes).forEach((attr) => {
-                newScript.setAttribute(attr.name, attr.value);
-            });
-            newScript.text = oldScript.text || "";
-            oldScript.parentNode?.replaceChild(newScript, oldScript);
+        const needsPlotly = scripts.some(
+            (s) => (s.text || "").includes("Plotly")
+        );
+
+        const executeScripts = () => {
+            for (const oldScript of scripts) {
+                const newScript = document.createElement("script");
+                Array.from(oldScript.attributes).forEach((attr) => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                newScript.text = oldScript.text || "";
+                oldScript.parentNode?.replaceChild(newScript, oldScript);
+            }
+        };
+
+        if (!needsPlotly) {
+            executeScripts();
+            return;
         }
+
+        // Plotly scripts need the library loaded first.
+        // Load it once globally, then execute all scripts.
+        ensurePlotly().then(executeScripts);
     }, [html, instanceId]);
 
     return (
