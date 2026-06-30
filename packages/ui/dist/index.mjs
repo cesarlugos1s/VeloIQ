@@ -9055,10 +9055,6 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
       ] })
     ] });
   }
-  const headerButtonsWithSlider = dataDetailLevelState?.isActive ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(DataDetailSlider, { detailState: dataDetailLevelState }),
-    headerButtons(args)
-  ] }) : headerButtons;
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxs(
@@ -9071,7 +9067,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
           actionLabel: _20("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
-        headerButtons: headerButtonsWithSlider,
+        headerButtons,
         children: [
           beforeTabs,
           /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
@@ -11148,6 +11144,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   );
   const allRelForDetail = model.relations || [];
   const dataDetailLevelState = useDataDetailLevel(allRelForDetail, "edit", relationViewTypeDefaults);
+  setCurrentDataDetailLevelState(dataDetailLevelState);
   const apiUrl = useApiUrl();
   const allModelsList = useMemo(() => allModels || [], [allModels]);
   const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
@@ -11600,7 +11597,6 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     [activeTabKey, items]
   );
   const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(DataDetailSlider, { detailState: dataDetailLevelState }),
     extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,

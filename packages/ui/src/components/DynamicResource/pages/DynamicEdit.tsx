@@ -48,7 +48,7 @@ import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
 import { SectionCellContent } from "../SectionCellContent";
 import { usePageSectionsConfig } from "../hooks/usePageSectionsConfig";
 import { useDataDetailLevel } from "../hooks/useDataDetailLevel";
-import { DataDetailSlider } from "../DataDetailSlider";
+import { setCurrentDataDetailLevelState } from "../hooks/DataDetailLevelStore";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const requiredMark = (field: FieldDef) =>
@@ -87,6 +87,7 @@ export const DynamicEdit: React.FC<{
     );
     const allRelForDetail = model.relations || [];
     const dataDetailLevelState = useDataDetailLevel(allRelForDetail, "edit", relationViewTypeDefaults);
+    setCurrentDataDetailLevelState(dataDetailLevelState);
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
     const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
@@ -587,7 +588,6 @@ export const DynamicEdit: React.FC<{
     );
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
-            <DataDetailSlider detailState={dataDetailLevelState} />
             {extraHeaderButtons}
             {editMetadataButton}
             {editMetadataModal}

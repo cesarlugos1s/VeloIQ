@@ -16,7 +16,6 @@ import { useShowActionsPreferences } from "../hooks/useShowActionsPreferences";
 import { ShowFooterButtons } from "../ShowFooterButtons";
 import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
-import { DataDetailSlider } from "../DataDetailSlider";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -113,15 +112,6 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         );
     }
 
-    const headerButtonsWithSlider = dataDetailLevelState?.isActive
-        ? (args: { defaultButtons: React.ReactNode }) => (
-            <>
-                <DataDetailSlider detailState={dataDetailLevelState} />
-                {headerButtons(args)}
-            </>
-          )
-        : headerButtons;
-
     return (
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
@@ -133,7 +123,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                     actionLabel: _("Show"),
                     moduleLabel: model.module ? getModuleLabel(model.module) : undefined,
                 }))}
-                headerButtons={headerButtonsWithSlider}
+                headerButtons={headerButtons}
             >
                 {beforeTabs}
                 <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
