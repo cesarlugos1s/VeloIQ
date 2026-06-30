@@ -930,7 +930,7 @@ export const DynamicList: React.FC<{
             if (lvl === 6) {
                 console.log("[DynamicList poll] -> HIDING table");
                 setListVisible(false);
-            } else if (lvl !== 6 && !listVisible && defaultListVisible === undefined) {
+            } else if (lvl !== 6 && !listVisible && defaultListVisible === undefined && !isTotalsDetailsView) {
                 console.log("[DynamicList poll] -> SHOWING table");
                 setListVisible(true);
             }
@@ -3899,7 +3899,7 @@ export const DynamicList: React.FC<{
                     )}
                     </div>
                 )}
-                {analyzeOpen && !isEmptyTable && analyzePrefsReady && (
+                {analyzeOpen && !isEmptyTable && analyzePrefsReady && (!isTotalsDetailsView || isTdFlipped) && (
                     <div style={analyzeContainerStyle}>
                         <Card
                             size="small"

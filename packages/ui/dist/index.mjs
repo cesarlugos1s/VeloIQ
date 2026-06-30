@@ -17638,7 +17638,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (lvl === 6) {
         console.log("[DynamicList poll] -> HIDING table");
         setListVisible(false);
-      } else if (lvl !== 6 && !listVisible && defaultListVisible === void 0) {
+      } else if (lvl !== 6 && !listVisible && defaultListVisible === void 0 && !isTotalsDetailsView) {
         console.log("[DynamicList poll] -> SHOWING table");
         setListVisible(true);
       }
@@ -20408,7 +20408,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           }
         )
       ] }) }),
-      analyzeOpen && !isEmptyTable && analyzePrefsReady && /* @__PURE__ */ jsx("div", { style: analyzeContainerStyle, children: /* @__PURE__ */ jsx(
+      analyzeOpen && !isEmptyTable && analyzePrefsReady && (!isTotalsDetailsView || isTdFlipped) && /* @__PURE__ */ jsx("div", { style: analyzeContainerStyle, children: /* @__PURE__ */ jsx(
         Card,
         {
           size: "small",
