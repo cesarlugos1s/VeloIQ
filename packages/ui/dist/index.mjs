@@ -10686,7 +10686,7 @@ var SectionCellContent = ({
         showLabel: showLabel2,
         labelStyle: relationLabelStyle,
         valueStyle: relationValueStyle,
-        fieldLayoutStyle: { display: "flex", flexDirection: "column", gap: 2 }
+        fieldLayoutStyle: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }
       }) }, `${item.name}-${item.row}-${item.column}-${index}`);
     }
     const field = resolveFieldFromConfig(model, item);
@@ -10705,12 +10705,12 @@ var SectionCellContent = ({
     };
     if (mode === "edit") {
       const editable2 = isAttributeValueEditable(item, "edit");
-      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: [
-        showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: [
+      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
+        showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: [
           field.label,
           requiredMark2(field)
         ] }),
-        /* @__PURE__ */ jsx("div", { style: valueStyle, children: editable2 ? /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx("div", { style: { ...valueStyle, flex: "1 0 200px" }, children: editable2 ? /* @__PURE__ */ jsx(
           Form.Item,
           {
             name: field.key,
@@ -10725,12 +10725,12 @@ var SectionCellContent = ({
     }
     const editable = Boolean(formProps) && isAttributeValueEditable(item, "show");
     const forceReadOnly = Boolean(formProps) && Boolean(item.read_only_in_edit);
-    return /* @__PURE__ */ jsx(VisibilityGate, { condition: item.visibility_condition, children: /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: [
-      showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }, children: [
+    return /* @__PURE__ */ jsx(VisibilityGate, { condition: item.visibility_condition, children: /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
+      showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: [
         field.label,
         requiredMark2(field)
       ] }),
-      /* @__PURE__ */ jsx("div", { style: valueStyle, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })
+      /* @__PURE__ */ jsx("div", { style: { ...valueStyle, flex: "1 0 200px" }, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })
     ] }) }) }, `${item.name}-${item.row}-${item.column}`);
   };
   return /* @__PURE__ */ jsxs("div", { style: { padding: "4px 6px" }, children: [

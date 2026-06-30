@@ -209,7 +209,7 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                         showLabel,
                         labelStyle: relationLabelStyle,
                         valueStyle: relationValueStyle,
-                        fieldLayoutStyle: { display: "flex", flexDirection: "column", gap: 2 },
+                        fieldLayoutStyle: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" },
                     })}
                 </div>
             );
@@ -234,13 +234,13 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
             const editable = isAttributeValueEditable(item, "edit");
             return (
                 <div key={`${field.key}-${index}`} style={{ marginBottom: 4 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
                         {showLabel && (
-                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
+                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
                                 {field.label}{requiredMark(field)}
                             </div>
                         )}
-                        <div style={valueStyle}>
+                        <div style={{ ...valueStyle, flex: "1 0 200px" }}>
                             {editable ? (
                                 <Form.Item
                                     name={field.key}
@@ -272,13 +272,13 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         return (
             <VisibilityGate key={`${item.name}-${item.row}-${item.column}`} condition={item.visibility_condition}>
                 <div style={{ marginBottom: 4 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
                         {showLabel && (
-                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4 }}>
+                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
                                 {field.label}{requiredMark(field)}
                             </div>
                         )}
-                        <div style={valueStyle}>
+                        <div style={{ ...valueStyle, flex: "1 0 200px" }}>
                             {(editable || forceReadOnly)
                                 ? renderShowEditableInput(field, forceReadOnly)
                                 : renderFieldValue(field, record, allModels)}
