@@ -113,6 +113,23 @@ export interface BulkActionDef {
     onExecuteOne: (record: any) => Promise<void>;
 }
 
+/**
+ * Represents a related-model list page appended below the current DynamicList.
+ * Created via the "Append related list" bulk action.
+ */
+export interface AppendedListDef {
+    /** Unique identifier for this appended list instance. */
+    id: string;
+    /** The resource name of the related model to display. */
+    modelResource: string;
+    /** The filter key (e.g., "proveedor_id") used to filter the related list. */
+    filterKey: string;
+    /** The row IDs from the parent list that drive the filter. */
+    filterIds: (string | number)[];
+    /** The id of the parent list (used for nesting / removal). */
+    parentListId: string | null;
+}
+
 export interface ViewConfigRow {
     view_type: string;
     subject_name: string;

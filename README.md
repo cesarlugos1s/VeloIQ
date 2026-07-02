@@ -61,7 +61,19 @@ class Project(TimestampedModel, table=True):
 - **Navigate to related** — select rows on any list page, pick a relation from
   the dropdown, and jump to the related model's filtered list. Supports forward
   and reverse relations, recursive multi-hop navigation, and browser-native
-  right-click "open in new tab".
+  right-click "open in new tab". The first relation is auto-selected for
+  immediate navigation.
+- **Append related list** — stack filtered related-model lists directly below
+  the current list page instead of navigating away. Each appended list is a
+  fully-functional DynamicList with its own search, sort, filter, multi-select,
+  and bulk actions — and can itself append further lists, enabling a multi-level
+  drill-down workflow without leaving the page.
+- **Right-click context menu** — right-click any row on a list page to open a
+  context menu with the same bulk actions available in the multi-select toolbar
+  (change field value, export CSV, navigate/append related, clone, pin/unpin,
+  delete), plus **Open show page**, **Open in new tab**, and **Open in new
+  window**. The context menu adapts its contrast automatically to light and dark
+  themes.
 - **Backend `__in` operator** — `?field__in=1,2,3` IN-clause filtering on any
   column in list endpoints.
 
@@ -160,7 +172,9 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 **Frontend** — React · Refine · Ant Design
 - `@juicemantics/veloiq-ui` React component library — schema-driven CRUD pages with no boilerplate
 - Powered by **Refine** for data fetching and state management, and **Ant Design** for the component system
-- **Side panels** — click any list row to open a detail panel beside the list; drag the divider to resize; minimize, maximize, or pop out to a full page
+- **Side panels** — left-click any list row to open a detail panel beside the list; drag the divider to resize; minimize, maximize, or pop out to a full page
+- **Right-click context menu** — right-click any list row to access bulk actions (change field value, export CSV, navigate/append related, clone, pin/unpin, delete) plus Open show page, Open in new tab, and Open in new window — with theme-aware contrast
+- **Stacked related lists** — use "Append related list" to open filtered related-model list pages directly below the current one; each appended list is fully functional and can itself append further lists, enabling multi-level drill-down without leaving the page
 - **Miller columns tree view** — hierarchical parent/child data renders as an interactive multi-column browser, auto-detected from self-referential model relationships
 - **Relations explorer** — an interactive graph on any record's Show page that visualises all connected records; click any node to navigate directly to it
 - **Analysis charts** — distribution and summary charts appear automatically on relation tables with more than one row; toggle per view, preference saved

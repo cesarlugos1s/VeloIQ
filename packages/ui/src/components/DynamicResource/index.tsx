@@ -44,9 +44,10 @@ import {
     Switch,
     Pagination,
     Upload,
+    Menu,
     message
 } from "antd";
-import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, BarChartOutlined, DownloadOutlined, FilePdfOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, FilePdfOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { HierarchyView } from "../HierarchyView";
@@ -143,9 +144,9 @@ export { ModelHeading };
 import { useShowActionsPreferences } from "./hooks/useShowActionsPreferences";
 export { useShowActionsPreferences };
 
-import type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig } from "./types";
+import type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig, AppendedListDef } from "./types";
 import { PrimaryShowContext } from "./types";
-export type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig };
+export type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig, AppendedListDef };
 export { PrimaryShowContext };
 import {
     DETAILS_TAB_NAME,
@@ -498,6 +499,16 @@ export const DynamicList: React.FC<{
     const [bulkChangeFieldValue, setBulkChangeFieldValue] = useState<any>(null);
     const [isBulkExecuting, setIsBulkExecuting] = useState(false);
     const [selectAllFilteredPending, setSelectAllFilteredPending] = useState(false);
+
+    // --- Row right-click context menu state ---
+    const [rowContextMenuVisible, setRowContextMenuVisible] = useState(false);
+    const [rowContextMenuPosition, setRowContextMenuPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const [rowContextMenuRecord, setRowContextMenuRecord] = useState<any>(null);
+    const [rowContextMenuIsMulti, setRowContextMenuIsMulti] = useState(false);
+
+    // --- Appended related lists (stacked below the current list) ---
+    const [appendedLists, setAppendedLists] = useState<AppendedListDef[]>([]);
+    const [appendRelationRecord, setAppendRelationRecord] = useState<NavigableRelation | null>(null);
     // Becomes true the first time the user opens any column-filter dropdown, which triggers
     // fetchAllRows so the dropdown shows distinct values from ALL rows, not just the current page.
     const [columnFilterDropdownEverOpened, setColumnFilterDropdownEverOpened] = useState(false);
@@ -2491,6 +2502,69 @@ export const DynamicList: React.FC<{
         }
     }, [bulkSelectedRowKeys, bulkActionsToApply, bulkChangeFieldKey, bulkChangeFieldValue, bulkActions, apiUrl, model.name, model.resource, allModels, displayFields, formatValueForExport, clearBulkSelection, invalidate]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // --- Row right-click handler: shows context menu with bulk actions ---
+    const handleRowRightClick = (record: any, event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        // For right-click, only suppress the context menu on truly interactive
+        // elements (checkbox, action buttons, selects) — NOT on regular cell
+        // content like links or text, so the user can right-click anywhere on the row.
+        const shouldSuppressContextMenu = (target: EventTarget | null) => {
+            if (!(target instanceof HTMLElement)) return false;
+            return Boolean(
+                target.closest(
+                    ".ant-checkbox,.ant-switch,.ant-select,.ant-picker,.ant-pagination,.ant-btn,button:not(a button),input,select,textarea"
+                )
+            );
+        };
+        if (shouldSuppressContextMenu(event.target)) return;
+        const { resource, id } = getTargetInfo(record);
+        if (!resource || id === undefined || id === null) return;
+        const isMulti = bulkSelectedRowKeys.length > 1;
+        setRowContextMenuRecord(record);
+        setRowContextMenuIsMulti(isMulti);
+        setRowContextMenuPosition({ x: event.clientX, y: event.clientY });
+        setRowContextMenuVisible(true);
+    };
+
+    // --- Handle a context menu item click ---
+    const handleContextMenuClick = ({ key }: { key: string }) => {
+        setRowContextMenuVisible(false);
+        const record = rowContextMenuRecord;
+        if (!record) return;
+
+        // Navigation actions
+        if (key === '__open_show__' || key === '__open_new_tab__' || key === '__open_new_window__') {
+            const { resource, id } = getTargetInfo(record);
+            if (!resource || id === undefined || id === null) return;
+            const showUrl = `/${resource}/show/${id}`;
+            if (key === '__open_show__') {
+                if (paneNav?.isInMultiPane) {
+                    paneNav.openDetail(resource, id);
+                } else {
+                    go({ to: { resource, action: "show", id } });
+                }
+            } else if (key === '__open_new_tab__') {
+                window.open(showUrl, '_blank');
+            } else if (key === '__open_new_window__') {
+                window.open(showUrl, '_blank', 'noopener,noreferrer');
+            }
+            return;
+        }
+
+        // Bulk actions: if row is part of a multi-selection, use existing selection.
+        // Otherwise, temporarily select just this row, apply action, then clean up.
+        const isMulti = rowContextMenuIsMulti && bulkSelectedRowKeys.length > 1;
+        if (!isMulti) {
+            const rowKey = getRowKey(record);
+            bulkSelectedRowsMapRef.current.clear();
+            bulkSelectedRowsMapRef.current.set(rowKey, record);
+            setBulkSelectedRowKeys([rowKey]);
+        }
+        // Trigger the existing bulk-action execution pipeline.
+        // Setting bulkActionsToApply kicks off executeBulkActions via its useEffect.
+        setBulkActionsToApply([key]);
+    };
+
     const shouldIgnoreRowClick = (target: EventTarget | null) => {
         if (!(target instanceof HTMLElement)) return false;
         return Boolean(
@@ -2570,6 +2644,8 @@ export const DynamicList: React.FC<{
         // Export selected rows as CSV — no special permission needed (read-only)
         opts.push({ label: _("Export selected (CSV)"), value: "__export_csv__" });
         opts.push({ label: _("Navigate to related"), value: "__navigate_to_related__" });
+        // Append related list below the current one (stacked)
+        opts.push({ label: _("Append related list"), value: "__append_related_list__" });
         // Bulk clone/duplicate requires create permission (reuse edit as proxy since useCan
         // doesn't distinguish create easily here; always shown if user can edit)
         if (canBulkEdit) {
@@ -2714,6 +2790,21 @@ export const DynamicList: React.FC<{
                         }
                         if (!values.includes("__navigate_to_related__")) {
                             setNavigateToRelation(null);
+                        } else if (!navigateToRelation) {
+                            // Auto-select the first navigable relation when this action is chosen
+                            const navRels = getNavigableRelations(model, allModels || []);
+                            if (navRels.length > 0) {
+                                setNavigateToRelation(navRels[0]);
+                            }
+                        }
+                        if (!values.includes("__append_related_list__")) {
+                            setAppendRelationRecord(null);
+                        } else if (!appendRelationRecord) {
+                            // Auto-select the first navigable relation when this action is chosen
+                            const navRels = getNavigableRelations(model, allModels || []);
+                            if (navRels.length > 0) {
+                                setAppendRelationRecord(navRels[0]);
+                            }
                         }
                     }}
                     options={bulkActionsAvailable}
@@ -2779,20 +2870,26 @@ export const DynamicList: React.FC<{
                     )}
                 </>
             )}
-            {bulkActionsToApply.includes("__navigate_to_related__") && (() => {
+            {(bulkActionsToApply.includes("__navigate_to_related__") || bulkActionsToApply.includes("__append_related_list__")) && (() => {
                 const navRelations = getNavigableRelations(model, allModels || []);
+                const isAppend = bulkActionsToApply.includes("__append_related_list__");
+                const currentRelation = isAppend ? appendRelationRecord : navigateToRelation;
                 return (
                     <Select
                         size="small"
-                        placeholder={_("Select relation")}
+                        placeholder={isAppend ? _("Select relation to append") : _("Select relation")}
                         style={{ minWidth: 220 }}
                         showSearch
-                        value={navigateToRelation ? `${navigateToRelation.targetResource}|${navigateToRelation.filterKey}` : undefined}
+                        value={currentRelation ? `${currentRelation.targetResource}|${currentRelation.filterKey}` : undefined}
                         onChange={(val) => {
                             const selected = navRelations.find(
                                 (r) => `${r.targetResource}|${r.filterKey}` === val
                             );
-                            setNavigateToRelation(selected || null);
+                            if (isAppend) {
+                                setAppendRelationRecord(selected || null);
+                            } else {
+                                setNavigateToRelation(selected || null);
+                            }
                         }}
                         filterOption={(input, option) => {
                             if (!option?.label) return false;
@@ -2817,7 +2914,33 @@ export const DynamicList: React.FC<{
                 size="small"
                 disabled={bulkActionsToApply.length === 0}
                 onClick={() => {
-                    if (bulkActionsToApply.includes("__navigate_to_related__") && navigateToRelation) {
+                    if (bulkActionsToApply.includes("__append_related_list__") && appendRelationRecord) {
+                        // Append related list below the current one
+                        const records = bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean);
+                        if (records.length === 0) return;
+                        let filterIds: (string | number)[] = [];
+                        if (appendRelationRecord.isForward) {
+                            filterIds = records.map((r: any) => {
+                                const pk = model.pkField || getRecordId(r);
+                                return r[pk] ?? r.id ?? r.eid;
+                            }).filter((v: any) => v !== undefined && v !== null);
+                        } else {
+                            const sourceKey = appendRelationRecord.sourceValueKey || appendRelationRecord.filterKey;
+                            filterIds = records.map((r: any) => r[sourceKey]).filter((v: any) => v !== undefined && v !== null);
+                        }
+                        if (filterIds.length === 0) return;
+                        const newEntry: AppendedListDef = {
+                            id: `${appendRelationRecord.targetResource}-${Date.now()}`,
+                            modelResource: appendRelationRecord.targetResource,
+                            filterKey: appendRelationRecord.filterKey,
+                            filterIds,
+                            parentListId: null,
+                        };
+                        setAppendedLists((prev) => [...prev, newEntry]);
+                        clearBulkSelection();
+                        setBulkActionsToApply([]);
+                        setAppendRelationRecord(null);
+                    } else if (bulkActionsToApply.includes("__navigate_to_related__") && navigateToRelation) {
                         executeNavigateToRelated();
                     } else {
                         setBulkActionModalOpen(true);
@@ -3899,6 +4022,60 @@ export const DynamicList: React.FC<{
                         {selectModeBanner}
                         {!selectMode && bulkActionsToolbar}
                         {renderDynamicListTotalsBoxes()}
+                        {/* --- Row right-click context menu --- */}
+                        {rowContextMenuVisible && (
+                            <div
+                                style={{
+                                    position: "fixed",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100vw",
+                                    height: "100vh",
+                                    zIndex: 1050,
+                                }}
+                                onClick={() => setRowContextMenuVisible(false)}
+                                onContextMenu={(e) => { e.preventDefault(); setRowContextMenuVisible(false); }}
+                            >
+                                <div
+                                    style={{
+                                        position: "fixed",
+                                        top: rowContextMenuPosition.y,
+                                        left: rowContextMenuPosition.x,
+                                        zIndex: 1051,
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                >
+                                    <Card
+                                        size="small"
+                                        styles={{ body: { padding: 4, background: token.colorBgElevated } }}
+                                        style={{
+                                            boxShadow: token.boxShadowSecondary,
+                                            borderRadius: token.borderRadiusLG,
+                                            minWidth: 220,
+                                            background: token.colorBgElevated,
+                                            borderColor: token.colorBorderSecondary,
+                                        }}
+                                    >
+                                        <Menu
+                                            style={{ border: 'none', background: 'transparent' }}
+                                            selectable={false}
+                                            onClick={handleContextMenuClick}
+                                            items={[
+                                                { key: "__open_show__", label: _("Open show page"), icon: <EyeOutlined /> },
+                                                { key: "__open_new_tab__", label: _("Open in new tab"), icon: <LinkOutlined /> },
+                                                { key: "__open_new_window__", label: _("Open in new window"), icon: <LinkOutlined /> },
+                                                { type: "divider" as const },
+                                                ...(bulkActionsAvailable ?? []).map((action: any) => ({
+                                                    key: action.value,
+                                                    label: _(action.label),
+                                                })),
+                                            ]}
+                                        />
+                                    </Card>
+                                </div>
+                            </div>
+                        )}
                         {(!isTotalsDetailsView || isTdFlipped) && <Table
                             {...tableProps}
                             className={isEmptyTable ? "compact-empty-table" : undefined}
@@ -3913,6 +4090,7 @@ export const DynamicList: React.FC<{
                                 const { resource, id } = getTargetInfo(record);
                                 return {
                                     onClick: (event) => handleRowClick(record, event),
+                                    onContextMenu: (event) => handleRowRightClick(record, event),
                                     style: { cursor: resource && id !== undefined && id !== null ? "pointer" : "default" },
                                 };
                             }}
@@ -4397,9 +4575,47 @@ export const DynamicList: React.FC<{
         </>
     );
 
+    // --- Render appended related-model lists stacked below the current one ---
+    const appendedListsNodes = useMemo(() => {
+        if (appendedLists.length === 0) return null;
+        return appendedLists.map((entry) => {
+            const relatedModel = findModelByName(allModels, entry.modelResource);
+            if (!relatedModel) return null;
+            const filterParam: Record<string, string> = {};
+            filterParam[entry.filterKey + "__in"] = entry.filterIds.join(",");
+            return (
+                <div key={entry.id} style={{ marginTop: 24, borderTop: `2px solid ${token.colorBorderSecondary}`, paddingTop: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <Typography.Title level={5} style={{ margin: 0 }}>
+                            {relatedModel.label || relatedModel.name}
+                            <Typography.Text type="secondary" style={{ fontSize: 13, marginLeft: 8 }}>
+                                ({_("filtered by")} {entry.filterIds.length} {_("rows")})
+                            </Typography.Text>
+                        </Typography.Title>
+                        <Button
+                            size="small"
+                            icon={<CloseOutlined />}
+                            onClick={() => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id))}
+                        >
+                            {_("Remove")}
+                        </Button>
+                    </div>
+                    <DynamicList
+                        model={relatedModel}
+                        allModels={allModels}
+                        filter={filterParam}
+                        isEmbedded={true}
+                        showCreate={false}
+                    />
+                </div>
+            );
+        });
+    }, [appendedLists, allModels, token.colorBorderSecondary]);
+
     if (isEmbedded) return (
         <>
             {listContent}
+            {appendedListsNodes}
             {bulkConfirmationModal}
         </>
     );
@@ -4429,6 +4645,7 @@ export const DynamicList: React.FC<{
                         headerButtons={() => null}
                     >
                         {listContent}
+                        {appendedListsNodes}
                     </List>
                 </VerticalActionsLayout>
             ) : (
@@ -4438,6 +4655,7 @@ export const DynamicList: React.FC<{
                     headerButtons={renderListHeaderButtons}
                 >
                     {listContent}
+                    {appendedListsNodes}
                 </StandardList>
             )}
         </div>
