@@ -19244,6 +19244,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setBulkSelectedRowKeys([rowKey]);
     }
     setBulkActionsToApply([key]);
+    if (key === "__navigate_to_related__") {
+      const navRels = getNavigableRelations(model, allModels || []);
+      if (navRels.length > 0 && !navigateToRelation) {
+        setNavigateToRelation(navRels[0]);
+      }
+    } else if (key === "__append_related_list__") {
+      const navRels = getNavigableRelations(model, allModels || []);
+      if (navRels.length > 0 && !appendRelationRecord) {
+        setAppendRelationRecord(navRels[0]);
+      }
+    }
   };
   const shouldIgnoreRowClick = (target) => {
     if (!(target instanceof HTMLElement)) return false;
@@ -20603,71 +20614,93 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         selectModeBanner,
         !selectMode && bulkActionsToolbar,
         renderDynamicListTotalsBoxes(),
-        rowContextMenuVisible && /* @__PURE__ */ jsxRuntime.jsx(
-          "div",
-          {
-            style: {
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              zIndex: 1050
-            },
-            onClick: () => setRowContextMenuVisible(false),
-            onContextMenu: (e) => {
-              e.preventDefault();
-              setRowContextMenuVisible(false);
-            },
-            children: /* @__PURE__ */ jsxRuntime.jsx(
+        rowContextMenuVisible && reactDom.createPortal(
+          /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
+                                    body.jm-light .veloiq-ctx-menu.ant-card,
+                                    body.jm-dark  .veloiq-ctx-menu.ant-card {
+                                        background-color: revert !important;
+                                    }
+                                    body.jm-light .veloiq-ctx-menu .ant-menu,
+                                    body.jm-dark  .veloiq-ctx-menu .ant-menu {
+                                        background-color: revert !important;
+                                        color: revert !important;
+                                    }
+                                    body.jm-light .veloiq-ctx-menu .ant-menu-item,
+                                    body.jm-dark  .veloiq-ctx-menu .ant-menu-item {
+                                        color: revert !important;
+                                    }
+                                ` }),
+            /* @__PURE__ */ jsxRuntime.jsx(
               "div",
               {
                 style: {
                   position: "fixed",
-                  top: rowContextMenuPosition.y,
-                  left: rowContextMenuPosition.x,
-                  zIndex: 1051
+                  top: 0,
+                  left: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  zIndex: 1050
                 },
-                onClick: (e) => e.stopPropagation(),
+                onClick: () => setRowContextMenuVisible(false),
                 onContextMenu: (e) => {
                   e.preventDefault();
-                  e.stopPropagation();
+                  setRowContextMenuVisible(false);
                 },
                 children: /* @__PURE__ */ jsxRuntime.jsx(
-                  antd.Card,
+                  "div",
                   {
-                    size: "small",
-                    styles: { body: { padding: 4, background: token.colorBgElevated } },
+                    className: "veloiq-ctx-menu",
                     style: {
-                      boxShadow: token.boxShadowSecondary,
-                      borderRadius: token.borderRadiusLG,
-                      minWidth: 220,
-                      background: token.colorBgElevated,
-                      borderColor: token.colorBorderSecondary
+                      position: "fixed",
+                      top: rowContextMenuPosition.y,
+                      left: rowContextMenuPosition.x,
+                      zIndex: 1051
+                    },
+                    onClick: (e) => e.stopPropagation(),
+                    onContextMenu: (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                     },
                     children: /* @__PURE__ */ jsxRuntime.jsx(
-                      antd.Menu,
+                      antd.Card,
                       {
-                        style: { border: "none", background: "transparent" },
-                        selectable: false,
-                        onClick: handleContextMenuClick,
-                        items: [
-                          { key: "__open_show__", label: _39("Open show page"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) },
-                          { key: "__open_new_tab__", label: _39("Open in new tab"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
-                          { key: "__open_new_window__", label: _39("Open in new window"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
-                          { type: "divider" },
-                          ...(bulkActionsAvailable ?? []).map((action) => ({
-                            key: action.value,
-                            label: _39(action.label)
-                          }))
-                        ]
+                        size: "small",
+                        styles: { body: { padding: 4 } },
+                        style: {
+                          boxShadow: token.boxShadowSecondary,
+                          borderRadius: token.borderRadiusLG,
+                          minWidth: 220,
+                          borderColor: token.colorBorderSecondary
+                        },
+                        children: /* @__PURE__ */ jsxRuntime.jsx(
+                          antd.Menu,
+                          {
+                            style: {
+                              border: "none"
+                            },
+                            selectable: false,
+                            onClick: handleContextMenuClick,
+                            items: [
+                              { key: "__open_show__", label: _39("Open show page"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) },
+                              { key: "__open_new_tab__", label: _39("Open in new tab"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
+                              { key: "__open_new_window__", label: _39("Open in new window"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
+                              { type: "divider" },
+                              ...(bulkActionsAvailable ?? []).map((action) => ({
+                                key: action.value,
+                                label: _39(action.label)
+                              }))
+                            ]
+                          }
+                        )
                       }
                     )
                   }
                 )
               }
             )
-          }
+          ] }),
+          document.body
         ),
         (!isTotalsDetailsView || isTdFlipped) && /* @__PURE__ */ jsxRuntime.jsxs(
           antd.Table,
@@ -21200,7 +21233,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}),
               onClick: () => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id)),
-              children: _39("Remove")
+              children: _39("Take this list out")
             }
           )
         ] }),

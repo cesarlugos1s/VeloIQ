@@ -2563,6 +2563,20 @@ export const DynamicList: React.FC<{
         // Trigger the existing bulk-action execution pipeline.
         // Setting bulkActionsToApply kicks off executeBulkActions via its useEffect.
         setBulkActionsToApply([key]);
+
+        // Auto-select the first navigable relation when "Navigate to related"
+        // or "Append related list" is chosen via the context menu.
+        if (key === '__navigate_to_related__') {
+            const navRels = getNavigableRelations(model, allModels || []);
+            if (navRels.length > 0 && !navigateToRelation) {
+                setNavigateToRelation(navRels[0]);
+            }
+        } else if (key === '__append_related_list__') {
+            const navRels = getNavigableRelations(model, allModels || []);
+            if (navRels.length > 0 && !appendRelationRecord) {
+                setAppendRelationRecord(navRels[0]);
+            }
+        }
     };
 
     const shouldIgnoreRowClick = (target: EventTarget | null) => {
@@ -4023,8 +4037,24 @@ export const DynamicList: React.FC<{
                         {!selectMode && bulkActionsToolbar}
                         {renderDynamicListTotalsBoxes()}
                         {/* --- Row right-click context menu --- */}
-                        {rowContextMenuVisible && (
-                            <div
+                        {rowContextMenuVisible && createPortal(
+                            <>
+                                <style>{`
+                                    body.jm-light .veloiq-ctx-menu.ant-card,
+                                    body.jm-dark  .veloiq-ctx-menu.ant-card {
+                                        background-color: revert !important;
+                                    }
+                                    body.jm-light .veloiq-ctx-menu .ant-menu,
+                                    body.jm-dark  .veloiq-ctx-menu .ant-menu {
+                                        background-color: revert !important;
+                                        color: revert !important;
+                                    }
+                                    body.jm-light .veloiq-ctx-menu .ant-menu-item,
+                                    body.jm-dark  .veloiq-ctx-menu .ant-menu-item {
+                                        color: revert !important;
+                                    }
+                                `}</style>
+                                <div
                                 style={{
                                     position: "fixed",
                                     top: 0,
@@ -4037,6 +4067,7 @@ export const DynamicList: React.FC<{
                                 onContextMenu={(e) => { e.preventDefault(); setRowContextMenuVisible(false); }}
                             >
                                 <div
+                                    className="veloiq-ctx-menu"
                                     style={{
                                         position: "fixed",
                                         top: rowContextMenuPosition.y,
@@ -4048,17 +4079,18 @@ export const DynamicList: React.FC<{
                                 >
                                     <Card
                                         size="small"
-                                        styles={{ body: { padding: 4, background: token.colorBgElevated } }}
+                                        styles={{ body: { padding: 4 } }}
                                         style={{
                                             boxShadow: token.boxShadowSecondary,
                                             borderRadius: token.borderRadiusLG,
                                             minWidth: 220,
-                                            background: token.colorBgElevated,
                                             borderColor: token.colorBorderSecondary,
                                         }}
                                     >
                                         <Menu
-                                            style={{ border: 'none', background: 'transparent' }}
+                                            style={{
+                                                border: 'none',
+                                            }}
                                             selectable={false}
                                             onClick={handleContextMenuClick}
                                             items={[
@@ -4075,6 +4107,8 @@ export const DynamicList: React.FC<{
                                     </Card>
                                 </div>
                             </div>
+                            </>,
+                            document.body
                         )}
                         {(!isTotalsDetailsView || isTdFlipped) && <Table
                             {...tableProps}
@@ -4597,7 +4631,7 @@ export const DynamicList: React.FC<{
                             icon={<CloseOutlined />}
                             onClick={() => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id))}
                         >
-                            {_("Remove")}
+                            {_("Take this list out")}
                         </Button>
                     </div>
                     <DynamicList
