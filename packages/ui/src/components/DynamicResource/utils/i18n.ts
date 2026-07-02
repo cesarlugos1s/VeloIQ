@@ -1,6 +1,13 @@
 import type { FieldDef, RelationDef, ModelDef } from "../types";
 
-const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
+// i18n helper — resolved at CALL time so window._ is always current.
+// window._ is injected by the host app's main.tsx (loadLocale) at page load;
+// capturing it at module-load time (the old form) froze the identity fallback
+// in place before translations were available, so no UI text translated.
+const _ = (text: string): string => {
+    const t = (window as any)._;
+    return typeof t === "function" ? (t(text) as string) : text;
+};
 
 export const asDisplayText = (value: any, fallback = ""): string => {
     if (value === null || value === undefined) return fallback;
@@ -19,32 +26,37 @@ export const translateText = (key: string, fallback?: string): string => {
     return asDisplayText(translated, fallback ?? safeKey);
 };
 
+// Module name → English source label. Translated lazily at call time inside
+// getModuleLabel so the active locale's catalog is used. (The old form
+// pre-translated these at module load with the identity fallback, freezing
+// them to English before window._ was populated.)
 const MODULE_LABEL_OVERRIDES: Record<string, string> = {
-    pim: _("Items"),
-    bsim: _("Business"),
+    pim: "Items",
+    bsim: "Business",
     cusim: "Cusim",
     venim: "Venim",
     vendeals: "Vendeals",
-    dismdm: _("Master Data"),
-    prices: _("Prices"),
-    pricing: _("Pricing"),
-    inventory: _("Inventory"),
-    supply: _("Supply"),
-    supplychain: _("Supply Chain"),
-    catman: _("Category Management"),
-    conflictresolution: _("Resolution"),
-    planscope: _("Plan Scope"),
-    alloplan: _("Allocations"),
-    pricingstrategy: _("Pricing Strategy"),
-    catim: _("Catalog"),
-    nlp: _("Natural Language"),
-    dbquery: _("DB Query"),
+    dismdm: "Master Data",
+    prices: "Prices",
+    pricing: "Pricing",
+    inventory: "Inventory",
+    supply: "Supply",
+    supplychain: "Supply Chain",
+    catman: "Category Management",
+    conflictresolution: "Resolution",
+    planscope: "Plan Scope",
+    alloplan: "Allocations",
+    pricingstrategy: "Pricing Strategy",
+    catim: "Catalog",
+    nlp: "Natural Language",
+    dbquery: "DB Query",
 };
 
 export const getModuleLabel = (moduleName?: string) => {
     if (!moduleName) return "";
     const key = moduleName.toLowerCase();
-    if (MODULE_LABEL_OVERRIDES[key]) return MODULE_LABEL_OVERRIDES[key];
+    const override = MODULE_LABEL_OVERRIDES[key];
+    if (override) return translateText(override, override);
     return translateText(moduleName, moduleName);
 };
 

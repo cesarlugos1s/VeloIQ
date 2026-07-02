@@ -1,4 +1,5 @@
 import type { ModelDef } from "../components/DynamicResource/types";
+import { translateText } from "../components/DynamicResource/utils/i18n";
 
 export interface ResourceDef {
     name: string;
@@ -14,6 +15,17 @@ export interface ResourceDef {
         icon?: React.ReactNode;
     };
 }
+
+// Title-case each word of a slug-style module name so the result matches the
+// humanized msgids used in the PO catalogs (e.g. "exception_alert" →
+// "Exception Alert", "vigilant_process" → "Vigilant Process"). Hosts can still
+// override the displayed label via the `moduleLabel` option.
+const humanizeModuleName = (moduleName: string): string => {
+    const words = String(moduleName || "").replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean);
+    return words
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+};
 
 /**
  * Convert a module's ModelDef array into Refine resource definitions.
@@ -32,7 +44,14 @@ export function generateResources(
 ): ResourceDef[] {
     const { icon, hideRelations = true, moduleLabel } = options;
     const parentKey = `module:${moduleName}`;
-    const parentLabel = moduleLabel || moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
+    // Humanize the default module label (e.g. "exception_alert" → "Exception
+    // Alert") so it matches the humanized msgids used in the PO catalogs, then
+    // translate it via the active locale. An explicit `moduleLabel` (provided
+    // by the host App.tsx, already translated) is used as-is.
+    const humanized = humanizeModuleName(moduleName);
+    const parentLabel = moduleLabel
+        ? moduleLabel
+        : translateText(humanized, humanized);
 
     const parentEntry: ResourceDef = {
         name: parentKey,
@@ -68,7 +87,9 @@ export function generateResources(
             show: `/${resource}/show/:id`,
             meta: {
                 canDelete: true,
-                label: model.label || model.name,
+                // Translate the model's display label via the active locale's
+                // catalog (call-time), falling back to the raw label.
+                label: translateText(model.label || model.name, model.label || model.name),
                 hide: Boolean(model.hideInMenu) || isRelation,
                 parent: parentKey,
                 icon,

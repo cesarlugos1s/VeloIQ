@@ -9,7 +9,11 @@ import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 
 const API_URL = "/api";
-const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
+// i18n helper — resolved at CALL time so window._ is always current.
+const _ = (text: string): string => {
+    const t = (window as any)._;
+    return typeof t === "function" ? (t(text) as string) : text;
+};
 
 export const CustomSider: React.FC<{
     collapsed?: boolean;
@@ -50,7 +54,23 @@ export const CustomSider: React.FC<{
     };
 
     const renderLabel = (item: any, depth: number, hasChildren: boolean) => {
-        const label = String(item?.label || item?.name || item?.key || "");
+        const rawLabel = String(item?.label || item?.name || item?.key || "");
+        // Translate at call time. If no exact translation exists and the label
+        // looks like a raw slug (contains _ or -), retry with a humanized
+        // version so "exception_alert" → "Exception Alert" can match the PO
+        // catalog. Already-translated labels (no _/-) are never re-humanized,
+        // so accented output like "Alerta de Excepción" is preserved verbatim.
+        let label = _(rawLabel);
+        if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
+            const humanized = rawLabel.replace(/[_-]+/g, " ").trim()
+                .split(/\s+/).filter(Boolean)
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(" ");
+            if (humanized && humanized !== rawLabel) {
+                const humanizedLabel = _(humanized);
+                if (humanizedLabel !== humanized) label = humanizedLabel;
+            }
+        }
         const isModule = depth === 0 || hasChildren;
         const tone = isModule
             ? getModelTone(`module:${item?.key || label}`)
