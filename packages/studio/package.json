@@ -1,6 +1,6 @@
 {
   "name": "@juicemantics/veloiq-studio",
-  "version": "0.8.0",
+  "version": "0.9.3",
   "private": true,
   "scripts": {
     "dev": "vite",

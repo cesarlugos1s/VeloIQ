@@ -2,10 +2,28 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
-## [0.9.3] — 2026-06-30
+## [0.9.3] — 2026-07-03
 
 ### Features
 
+- **Expanded database engine support** — the framework now ships first-class
+  support for **12 database engines**: SQLite, PostgreSQL, MySQL, MariaDB,
+  SQL Server, Oracle, Snowflake, DuckDB, ClickHouse, BigQuery, DB2, and
+  Informix.  All 12 appear in the TUI selector, the CLI `--help` text, the
+  Schema Browser dropdowns, and the documentation.  Any other SQLAlchemy
+  dialect is accepted via a custom value (press `Enter` on the *DB type* field
+  in the TUI, or pass `--url` on the CLI).  Driver hints now cover every
+  supported engine.
+- **Oracle driver updated to `oracledb`** — the obsolete `cx_Oracle` driver
+  is replaced by `python-oracledb` (package `oracledb`).  This fixes macOS
+  compatibility and aligns with Oracle's current recommendation.  The
+  `veloiq new`, `veloiq configure-db`, `veloiq import-schema` commands, the
+  TUI, and the Studio all generate `oracle+oracledb://...` URLs automatically.
+- **`veloiq configure-db` and `veloiq new` auto-resolve drivers** — passing
+  a bare dialect name (`--db-type oracle`, `--db-type mssql`) now
+  automatically expands to the full dialect+driver form
+  (`oracle+oracledb`, `mssql+pyodbc`) and adds the ODBC query parameter
+  for MSSQL.  Previously only `import-schema` did this.
 - **Navigate to related** — a new bulk action on every list page. Select one or
   more rows, then choose a relation from the dropdown (with search/filter by
   relation name or target model name) to navigate to the related model's list
@@ -14,10 +32,48 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   supports recursive list-to-list navigation, and includes a pre-filter banner
   with a "Clear filter" button and right-click browser-native
   "open in new tab/window" support via standard hyperlink URLs.
+- **Append related list** — stack filtered related-model list pages directly
+  below the current one; each appended list is fully functional and can
+  itself append further lists, enabling multi-level drill-down without
+  leaving the page.
+- **Right-click context menu** — right-click any list row to access bulk
+  actions (change field value, export CSV, navigate/append related, clone,
+  pin/unpin, delete) plus *Open show page*, *Open in new tab*, and *Open in
+  new window* — with theme-aware contrast.
 - **Backend `__in` query operator** — the CRUD list endpoint now supports
   `?field__in=1,2,3` for comma-separated IN-clause filtering on any column.
 
----
+### Fixes
+
+- **Self-referential relationships via `add-relation`** — calling
+  `veloiq add-relation Habitacion Habitacion` now correctly generates
+  `sa_relationship_kwargs={"foreign_keys": "...", "remote_side": "..."}`
+  on the many-to-one side, fixing the ORM mapper error *"both of the same
+  direction ONETOMANY"*.
+- **Self-referential disambiguation patches sibling models** — when a
+  self-referential FK is added, the disambiguation logic now correctly finds
+  the owning class for every existing relationship in the file (not just the
+  source/target class), preventing *"Could not determine join condition"*
+  errors on unrelated models.
+- **Studio Model Detail prefill** — navigating between models in the Schema
+  Browser no longer shows stale values in the Add Field / Add Relation /
+  Scaffold Page cards.  Each card now carries a `key` tied to the model's
+  resource so React re-mounts it with the correct prefill.
+- **Scaffold `extensions.gen.tsx` exports** — added missing
+  `exceptionAlertBannerComponent`, `exceptionAlertListWrapperComponent`, and
+  `exceptionAlertAwareResources` exports to the scaffold template, fixing
+  `veloiq build` failures on newly created apps.
+
+### Documentation
+
+- **Database support tables** — the README, website, `getting-started.md`,
+  and `cli-tools.md` now list all 12 supported engines with driver
+  installation commands.
+- **Custom dialect examples** — the TUI, Studio, and CLI help texts now
+  include concrete examples of custom dialect+driver strings (e.g.
+  `cockroachdb+psycopg2`).
+- **Self-referential relation examples** — the `add-relation` CLI docs now
+  include self-referential FK examples.
 
 ---
 
