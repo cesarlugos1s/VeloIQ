@@ -18,10 +18,15 @@ _DRIVER_HINTS: dict[str, str] = {
     "mysql":      "pip install pymysql",
     "mariadb":    "pip install pymysql",
     "mssql":      "pip install pyodbc",
-    "oracle":     "pip install cx_oracle",
+    "oracle":     "pip install oracledb",
+    "snowflake":  "pip install snowflake-sqlalchemy",
+    "duckdb":     "pip install duckdb-engine",
+    "clickhouse": "pip install clickhouse-sqlalchemy",
+    "bigquery":   "pip install pybigquery",
 }
 
-_DB_TYPES = ["sqlite", "postgresql", "mysql", "mariadb", "mssql", "oracle"]
+_DB_TYPES = ["sqlite", "postgresql", "mysql", "mariadb", "mssql", "oracle",
+              "snowflake", "duckdb", "clickhouse", "bigquery"]
 
 _DEFAULT_PORTS: dict[str, str] = {
     "postgresql": "5432",
@@ -29,6 +34,8 @@ _DEFAULT_PORTS: dict[str, str] = {
     "mariadb":    "3306",
     "mssql":      "1433",
     "oracle":     "1521",
+    "snowflake":  "443",
+    "clickhouse": "8123",
 }
 
 # Tables the framework owns — hide from the picker
@@ -795,7 +802,7 @@ def _build_url(db_type: str, host: str, port: str, user: str, password: str, dbn
             "?driver=ODBC+Driver+17+for+SQL+Server"
         )
     if db_type == "oracle":
-        return f"oracle+cx_oracle://{usr}:{pwd}@{host}:{port}/{dbname}"
+        return f"oracle+oracledb://{usr}:{pwd}@{host}:{port}/{dbname}"
     return f"{db_type}://{usr}:{pwd}@{host}:{port}/{dbname}"
 
 

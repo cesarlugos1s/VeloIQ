@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import Terminal from "./Terminal";
 
-type DbType = "postgresql" | "mysql" | "mariadb" | "sqlite" | "mssql";
+type DbType = "postgresql" | "mysql" | "mariadb" | "sqlite" | "mssql" | "oracle" | "snowflake" | "duckdb" | "clickhouse" | "bigquery";
 
 interface ConnFields {
   host: string;
@@ -19,6 +19,11 @@ const DEFAULT_PORTS: Record<DbType, string> = {
   mariadb: "3306",
   sqlite: "",
   mssql: "1433",
+  oracle: "1521",
+  snowflake: "443",
+  duckdb: "",
+  clickhouse: "8123",
+  bigquery: "",
 };
 
 const DRIVERS: Record<DbType, string> = {
@@ -27,6 +32,11 @@ const DRIVERS: Record<DbType, string> = {
   mariadb: "mariadb+pymysql",
   sqlite: "sqlite",
   mssql: "mssql+pyodbc",
+  oracle: "oracle+oracledb",
+  snowflake: "snowflake",
+  duckdb: "duckdb",
+  clickhouse: "clickhouse",
+  bigquery: "bigquery",
 };
 
 function buildUrl(dbType: DbType, conn: ConnFields): string {
@@ -207,7 +217,23 @@ export default function ImportSchemaCard({ modules, onSuccess }: Props) {
             <option value="mariadb">MariaDB</option>
             <option value="sqlite">SQLite</option>
             <option value="mssql">SQL Server (MSSQL)</option>
+            <option value="oracle">Oracle</option>
+            <option value="snowflake">Snowflake</option>
+            <option value="duckdb">DuckDB</option>
+            <option value="clickhouse">ClickHouse</option>
+            <option value="bigquery">BigQuery</option>
           </select>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, marginBottom: 6 }}>
+          Need a database not listed here? Use the CLI with any{" "}
+          <a href="https://docs.sqlalchemy.org/en/20/dialects/" target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>
+            SQLAlchemy dialect
+          </a>{" "}
+          (examples below).  Install the matching driver first, then pass the full URL via <code style={{ fontSize: 11 }}>--url</code>:
+          <br />
+          <code style={{ fontSize: 11 }}>pip install sqlalchemy-cockroachdb</code>
+          <br />
+          <code style={{ fontSize: 11 }}>veloiq import-schema --url cockroachdb+psycopg2://user:pass@host:26257/mydb</code>
         </div>
 
         {dbType === "sqlite" ? (

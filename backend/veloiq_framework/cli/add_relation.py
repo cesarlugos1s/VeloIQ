@@ -108,9 +108,12 @@ def _add_fk_relation(
     # When both models are in the same file, work on a single text buffer
     tgt_text = src_text if same_file else tgt_file.read_text(encoding="utf-8")
 
+    is_self_ref = src_class == tgt_class
+    # Self-referential FK must always carry explicit foreign_keys AND remote_side.
+    # Without remote_side SQLAlchemy cannot tell which direction is the "one" side.
     existing_src_to_tgt = _class_has_fk_to(src_text, src_class, tgt_table)
-    existing_tgt_to_src = _class_has_fk_to(tgt_text, tgt_class, src_table)
-    need_disambig = existing_src_to_tgt or existing_tgt_to_src
+    existing_tgt_to_src = _class_has_fk_to(tgt_text, tgt_class, src_table) if not is_self_ref else False
+    need_disambig = is_self_ref or existing_src_to_tgt or existing_tgt_to_src
     fk_expr = f"[{src_class}.{fk_col}]"
 
     added_src = False
@@ -122,7 +125,15 @@ def _add_fk_relation(
         else:
             fk_line = f'    {fk_col}: Optional[int] = Field(default=None, foreign_key="{tgt_table}.id")'
 
-        if need_disambig:
+        if is_self_ref:
+            rel_line = (
+                f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
+                f'        back_populates="{back_name}",\n'
+                f'        sa_relationship_kwargs={{"foreign_keys": "{fk_expr}",'
+                f' "remote_side": "{tgt_class}.id"}},\n'
+                f'    )'
+            )
+        elif need_disambig:
             rel_line = (
                 f'    {attr_name}: Optional["{tgt_class}"] = jm_relationship(\n'
                 f'        back_populates="{back_name}",\n'
@@ -401,33 +412,57 @@ def _patch_existing_rels_for_disambig(
     return src_text, tgt_text
 
 
+def _find_owning_class(text: str, attr_match: re.Match) -> str:
+    """Return the PascalCase class name that owns the matched attribute line."""
+    pos = attr_match.start()
+    prefix = text[:pos]
+    m = re.search(r'^class\s+(\w+)\s*\(', prefix, re.M)
+    # Take the last class definition before the attribute (reverse search)
+    last = None
+    for m in re.finditer(r'^class\s+(\w+)\s*\(', prefix, re.M):
+        last = m
+    return last.group(1) if last else "Unknown"
+
+
 def _patch_same_file_disambig(
     text: str,
     src_class: str, tgt_class: str,
     src_table: str, tgt_table: str,
 ) -> str:
     """Like _patch_existing_rels_for_disambig but for a single file containing both models."""
-    for ra in re.findall(
+    # Optional["TgtClass"] — FK is on the owning class: [OwningClass.{attr}_id]
+    for m in re.finditer(
         rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
         text, re.M,
     ):
-        text = _patch_rel_foreign_keys(text, ra, f"[{src_class}.{ra}_id]")
-    for ra in re.findall(
+        ra = m.group(1)
+        owner = _find_owning_class(text, m)
+        fk = f"[{owner}.{ra}_id]"
+        text = _patch_rel_foreign_keys(text, ra, fk)
+    # List["TgtClass"] — FK is on the target class: [TgtClass.{bp}_id]
+    for m in re.finditer(
         rf'^\s+(\w+)\s*:\s*List\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
         text, re.M,
     ):
+        ra = m.group(1)
         bp = _find_back_populates(text, ra)
         if bp:
             text = _patch_rel_foreign_keys(text, ra, f"[{tgt_class}.{bp}_id]")
-    for ra in re.findall(
+    # Optional["SrcClass"] — FK is on the owning class: [OwningClass.{attr}_id]
+    for m in re.finditer(
         rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
         text, re.M,
     ):
-        text = _patch_rel_foreign_keys(text, ra, f"[{tgt_class}.{ra}_id]")
-    for ra in re.findall(
+        ra = m.group(1)
+        owner = _find_owning_class(text, m)
+        fk = f"[{owner}.{ra}_id]"
+        text = _patch_rel_foreign_keys(text, ra, fk)
+    # List["SrcClass"] — FK is on the source class: [SrcClass.{bp}_id]
+    for m in re.finditer(
         rf'^\s+(\w+)\s*:\s*List\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
         text, re.M,
     ):
+        ra = m.group(1)
         bp = _find_back_populates(text, ra)
         if bp:
             text = _patch_rel_foreign_keys(text, ra, f"[{src_class}.{bp}_id]")

@@ -397,6 +397,12 @@ veloiq add-relation Task Tag --type many-to-many
 
 # Many-to-many with custom attr names
 veloiq add-relation Task Tag --type many-to-many --attr tags --back-attr tasks
+
+# Self-referential FK — model references itself (e.g. parent/child hierarchy)
+veloiq add-relation Task Task --attr parent --back-attr subtasks
+
+# Nullable self-ref (requires --optional explicitly)
+veloiq add-relation Task Task --attr parent --back-attr children --optional
 ```
 
 **What gets written — FK (many-to-one):**
@@ -465,7 +471,27 @@ veloiq import-schema [options]
 | PostgreSQL | `pip install psycopg2-binary` |
 | MySQL / MariaDB | `pip install pymysql` |
 | MSSQL | `pip install pyodbc` |
-| Oracle | `pip install cx_oracle` |
+| Oracle | `pip install oracledb` |
+| Snowflake | `pip install snowflake-sqlalchemy` |
+| DuckDB | `pip install duckdb-engine` |
+| ClickHouse | `pip install clickhouse-sqlalchemy` |
+| BigQuery | `pip install pybigquery` |
+
+> 💡 **Any SQLAlchemy dialect is supported** — if your database isn't listed above,
+> install its driver and pass the full connection URL via `--url`.  The interactive
+> wizard also lets you type a custom dialect: press `Enter` on the *DB type* prompt
+> instead of picking from the list.
+>
+> ```bash
+> # CockroachDB (PostgreSQL-compatible)
+> veloiq import-schema --url cockroachdb+psycopg2://user:pass@host:26257/mydb
+>
+> # Redshift (PostgreSQL-compatible)
+> veloiq import-schema --url redshift+psycopg2://user:pass@host:5439/mydb
+>
+> # Any dialect+driver form works — as long as the driver is installed
+> veloiq import-schema --url databricks+connector://token@host/http_path
+> ```
 
 ### Examples
 

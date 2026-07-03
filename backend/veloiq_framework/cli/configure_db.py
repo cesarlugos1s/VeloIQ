@@ -11,9 +11,11 @@ import click
 @click.option("--db-type", default="sqlite",
               help="Database engine / SQLAlchemy dialect (default: sqlite). "
                    "Common: sqlite, postgresql, mysql, mariadb, mssql, oracle, "
-                   "db2, informix. Any SQLAlchemy dialect string is accepted "
+                   "snowflake, duckdb, clickhouse, bigquery, db2, informix. "
+                   "Use any dialect+driver form, e.g. cockroachdb+psycopg2. "
                    "(the matching driver must be installed; sqlite & postgresql "
-                   "ship by default, db2/informix need ibm-db-sa/IfxAlchemy).")
+                   "ship by default, mysql/mariadb need pymysql, mssql needs pyodbc, "
+                   "oracle needs oracledb, db2 needs ibm-db-sa, informix needs IfxAlchemy).")
 @click.option("--db-host", default=None, help="Database host (default: localhost).")
 @click.option("--db-port", default=None, type=int, help="Database port.")
 @click.option("--db-name", default=None, help="Database name.")
@@ -101,6 +103,34 @@ def configure_db(db_type, db_host, db_port, db_name, db_user, db_password, db_ur
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Map base dialect → default SQLAlchemy dialect+driver form.
+# SQLite & PostgreSQL drivers ship with the framework; every other engine needs
+# its driver installed (pymysql, pyodbc, oracledb, ibm-db-sa, IfxAlchemy).
+_DIALECT_DRIVER_MAP = {
+    "postgresql": "postgresql+psycopg2",
+    "mysql":      "mysql+pymysql",
+    "mariadb":    "mariadb+pymysql",
+    "mssql":      "mssql+pyodbc",
+    "oracle":     "oracle+oracledb",
+    "snowflake":  "snowflake",
+    "duckdb":     "duckdb",
+    "clickhouse": "clickhouse",
+    "bigquery":   "bigquery",
+}
+
+
+def _resolve_dialect_driver(db_type: str) -> str:
+    """Expand a bare dialect name to its default dialect+driver form.
+
+    ``postgresql`` → ``postgresql+psycopg2``, ``oracle`` → ``oracle+oracledb``, etc.
+    Already-qualified forms (e.g. ``postgresql+asyncpg``) are returned unchanged.
+    """
+    db_type = db_type.lower()
+    if "+" in db_type:
+        return db_type
+    return _DIALECT_DRIVER_MAP.get(db_type, db_type)
+
+
 def _build_database_url(db_type: str, host: str | None, port: int | None,
                         name: str | None, user: str | None, password: str | None) -> str:
     """Build a DATABASE_URL from individual components."""
@@ -120,6 +150,8 @@ def _build_database_url(db_type: str, host: str | None, port: int | None,
         "mariadb": 3306,
         "mssql": 1433,
         "oracle": 1521,
+        "snowflake": 443,
+        "clickhouse": 8123,
         "db2": 50000,
         "informix": 9088,
     }
@@ -128,8 +160,18 @@ def _build_database_url(db_type: str, host: str | None, port: int | None,
     base_dialect = db_type.split("+", 1)[0]
     port = port or default_ports.get(base_dialect, 5432)
 
+    # Resolve bare dialect names to their default dialect+driver form
+    # so that `--db-type oracle` produces `oracle+oracledb://...` etc.
+    resolved = _resolve_dialect_driver(db_type)
+
     pw_part = f":{password}" if password else ""
-    return f"{db_type}://{user}{pw_part}@{host}:{port}/{name}"
+    url = f"{resolved}://{user}{pw_part}@{host}:{port}/{name}"
+
+    # MSSQL needs the ODBC driver query parameter
+    if resolved.startswith("mssql"):
+        url += "?driver=ODBC+Driver+17+for+SQL+Server"
+
+    return url
 
 
 def _find_project_root() -> Path | None:

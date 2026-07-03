@@ -64,7 +64,11 @@ veloiq new my-app --db-type postgresql --db-user myuser --db-password secret
 | `mysql` | 3306 | `pip install pymysql` |
 | `mariadb` | 3306 | `pip install pymysql` |
 | `mssql` | 1433 | `pip install pyodbc` |
-| `oracle` | 1521 | `pip install cx_Oracle` |
+| `oracle` | 1521 | `pip install oracledb` |
+| `snowflake` | 443 | `pip install snowflake-sqlalchemy` |
+| `duckdb` | — | `pip install duckdb-engine` |
+| `clickhouse` | 8123 | `pip install clickhouse-sqlalchemy` |
+| `bigquery` | — | `pip install pybigquery` |
 | `db2` | 50000 | `pip install ibm-db-sa` |
 | `informix` | 9088 | `pip install IfxAlchemy` |
 
@@ -72,6 +76,9 @@ Only **SQLite** and **PostgreSQL** drivers ship with the framework; every other
 engine needs its driver installed into the project's environment.  Any other
 SQLAlchemy dialect string (e.g. `postgresql+asyncpg`, `cockroachdb`) is accepted
 too, as long as the matching driver is installed.
+Both the interactive TUI and the Studio command panel let you type a custom
+dialect: press `Enter` on the *DB type* field instead of picking from the list,
+or pass the full URL with `--url` / `--db-url`.
 
 Or edit `backend/.env` after creation:
 
@@ -300,8 +307,9 @@ credentials, and ports without leaving the terminal.  Every field shows its
 default as a dim hint (e.g. admin user `admin`, DB user `veloiq`), so you can
 see exactly what you'll get before pressing **c** to create.  The **DB type**
 field is a selector you cycle with **←/→** or **Space** through the supported
-engines (`sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2`,
-`informix`); press **Enter** on it to type any other SQLAlchemy dialect.  When
+engines (`sqlite`, `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`,
+`snowflake`, `duckdb`, `clickhouse`, `bigquery`, `db2`, `informix`); press
+**Enter** on it to type any other SQLAlchemy dialect (e.g. `cockroachdb`).  When
 SQLite is selected the host/port/user/password fields dim out, since they aren't
 used.
 

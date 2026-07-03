@@ -401,7 +401,7 @@ All three commands are also launchable from the TUI.
   `informix`, and any other SQLAlchemy dialect string (e.g. `postgresql+asyncpg`)
 - `dialect+driver` forms resolve the default port from the base dialect
 - SQLite and PostgreSQL drivers ship with the framework; other engines require their
-  driver (`pymysql`, `pyodbc`, `cx_Oracle`, `ibm-db-sa`, `IfxAlchemy`)
+  driver (`pymysql`, `pyodbc`, `oracledb`, `ibm-db-sa`, `IfxAlchemy`)
 
 ### Fixes
 

@@ -1601,11 +1601,14 @@ def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
     # `type: choice` fields are cycled with ←/→ or space; press Enter on a
     # choice field to type a custom value (any SQLAlchemy dialect string).
     # SQLite & PostgreSQL drivers ship with the framework; the others need
-    # their driver installed (pymysql, pyodbc, cx_Oracle, …).
+    # their driver installed (pymysql, pyodbc, oracledb,
+    # snowflake-sqlalchemy, duckdb-engine, clickhouse-sqlalchemy, …).
     DB_CHOICES = ["sqlite", "postgresql", "mysql", "mariadb", "mssql", "oracle",
+                  "snowflake", "duckdb", "clickhouse", "bigquery",
                   "db2", "informix"]
     DB_DEFAULT_PORTS = {"postgresql": "5432", "mysql": "3306", "mariadb": "3306",
-                        "mssql": "1433", "oracle": "1521", "db2": "50000",
+                        "mssql": "1433", "oracle": "1521", "snowflake": "443",
+                        "clickhouse": "8123", "db2": "50000",
                         "informix": "9088"}
     DB_CONN_KEYS = {"db_host", "db_port", "db_name", "db_user", "db_password"}
 
@@ -1699,11 +1702,13 @@ def _create_app_interactive(stdscr) -> Optional[tuple[str, str]]:
         r += 1
         _w(r, 2, "Dim values are defaults — fields left blank use them.", curses.A_DIM)
         r += 1
+        _w(r, 2, "Want a DB not in the list? Press Enter on 'DB type', then type e.g. cockroachdb", curses.A_DIM)
+        r += 1
         _w(r, 2, "Press 'c' to create the project, or 'q' to quit.", curses.color_pair(_C_WARN))
 
         # Footer
         _w(max_y - 1, 0,
-           "  ↑↓/jk move   ←→/Space cycle DB type (Enter = custom)   c create   q quit",
+           "  ↑↓/jk move   ←→/Space cycle DB type   Enter DB type = type custom dialect   c create   q quit",
            curses.color_pair(_C_WARN))
 
         stdscr.refresh()

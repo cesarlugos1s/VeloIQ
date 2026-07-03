@@ -620,18 +620,21 @@ function ModelDetail({ model, mod, allModelInfos, allModels, allResources, devMo
         <>
           <div className="vs-section-title" style={{ marginTop: 28 }}>Add Field</div>
           <CommandCard
+            key={`add-field-${model.resource}`}
             def={addFieldDef(allResources)}
             prefill={{ resource: model.resource }}
             onSuccess={onSuccess}
           />
           <div className="vs-section-title" style={{ marginTop: 20 }}>Add Relation</div>
           <CommandCard
+            key={`add-relation-${model.resource}`}
             def={addRelationDef(allModels)}
             prefill={{ model: model.name }}
             onSuccess={onSuccess}
           />
           <div className="vs-section-title" style={{ marginTop: 20 }}>Scaffold Page</div>
           <CommandCard
+            key={`scaffold-${model.resource}`}
             def={scaffoldPageDef(allResources)}
             prefill={{ resource: model.resource }}
             onSuccess={onSuccess}
