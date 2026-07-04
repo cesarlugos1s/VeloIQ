@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "assignments": {
+    "Task:edit": {
+      "template": "standard_single_column",
+      "parameters": {}
+    },
+    "Project:show": {
+      "template": "standard_single_column",
+      "parameters": {}
+    },
+    "Task:show": {
+      "template": "standard_single_column",
+      "parameters": {}
+    }
+  }
+}

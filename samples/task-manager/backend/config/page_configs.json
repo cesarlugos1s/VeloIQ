@@ -12,8 +12,20 @@
       ],
       "tabs": []
     },
+    "Task:edit": {
+      "model": "Task",
+      "view_type": "edit",
+      "sections": [],
+      "tabs": []
+    },
     "Project:show": {
       "model": "Project",
+      "view_type": "show",
+      "sections": [],
+      "tabs": []
+    },
+    "Task:show": {
+      "model": "Task",
       "view_type": "show",
       "sections": [],
       "tabs": []

@@ -10344,7 +10344,7 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
   }, [onResize]);
   const handleBase = { position: "absolute", zIndex: 10 };
   const btnStyle = { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 };
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { ref: cellRef, style: cellStyle, className: "jm-section-cell", children: [
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { ref: cellRef, style: cellStyle, className: `jm-section-cell ${cell.section_css_class || ""}`.trim(), children: [
     isConfiguring && /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
                     .jm-section-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }
                     .jm-section-cell:hover .jm-cell-actions { opacity: 1; }
@@ -10877,7 +10877,8 @@ function buildCells(configRows, tabName, overrides) {
       min_height: ov?.min_height ?? null,
       max_height: ov?.max_height ?? null,
       section_name: sectionName,
-      section_id: sectionId
+      section_id: sectionId,
+      section_css_class: firstRow?.section_css_class ?? null
     });
   }
   return cells;
