@@ -109,7 +109,7 @@ const SectionCell: React.FC<{
     const btnStyle: React.CSSProperties = { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 };
 
     return (
-        <div ref={cellRef} style={cellStyle} className="jm-section-cell">
+        <div ref={cellRef} style={cellStyle} className={`jm-section-cell ${cell.section_css_class || ''}`.trim()}>
             {isConfiguring && (
                 <style>{`
                     .jm-section-cell .jm-cell-actions { opacity: 0; transition: opacity 0.15s; }

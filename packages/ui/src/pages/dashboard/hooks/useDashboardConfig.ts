@@ -19,6 +19,7 @@ export interface DashboardCell {
     // For source_type "field" and "relation" cells (show/edit page sections)
     section_name?: string;
     section_id?: string;
+    section_css_class?: string | null;
     // For source_type "plotly_chart": the API endpoint returning { chart_html: string }
     chart_url?: string;
     // For source_type "plotly_chart": human-readable chart title

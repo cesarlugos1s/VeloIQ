@@ -705,6 +705,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                         "section_id": s.get("id"),
                         "section_grid_row": s.get("grid_row", 1),
                         "section_grid_col": s.get("grid_col", 1),
+                        "section_css_class": s.get("css_class"),
                         "tab_name": tab_name,
                         "vid": vt_val,
                         "show_vid": vt_val if form == "show" else None,

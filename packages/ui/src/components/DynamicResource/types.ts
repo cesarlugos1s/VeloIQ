@@ -141,6 +141,7 @@ export interface ViewConfigRow {
     section_grid_row?: number | null;
     section_grid_col?: number | null;
     tab_name?: string | null;
+    section_css_class?: string | null;
     vid?: string;
     show_vid?: string;
     edit_vid?: string;

@@ -36,6 +36,7 @@ function buildCells(
             max_height: ov?.max_height ?? null,
             section_name: sectionName,
             section_id: sectionId,
+            section_css_class: firstRow?.section_css_class ?? null,
         });
     }
     return cells;
