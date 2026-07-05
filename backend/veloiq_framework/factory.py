@@ -720,7 +720,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig) -> None:
                         "name": key,
                     })
 
-        for vt, form in (("show", "show"), ("edit", "edit")):
+        for vt, form in (("show", "show"), ("edit", "edit"), ("list", "list"), ("create", "create")):
             cfg = configs.get(f"{model_name}:{vt}")
             if not cfg:
                 continue

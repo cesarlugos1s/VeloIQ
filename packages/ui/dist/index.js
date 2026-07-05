@@ -5191,16 +5191,57 @@ var StandardEdit = ({ headerButtons, ...props }) => {
 var StandardList = ({ headerButtons, ...props }) => {
   const effectiveHeaderButtons = headerButtons;
   const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons);
+  const resource = props.resource;
+  const [listSections, setListSections] = React6.useState(null);
+  const [cfgLoading, setCfgLoading] = React6.useState(false);
+  React6.useEffect(() => {
+    if (!resource) {
+      setListSections(null);
+      return;
+    }
+    setCfgLoading(true);
+    fetch(`/api/views/configurations/${resource}`).then((r) => r.ok ? r.json() : []).then((rows) => {
+      const listRows = (rows || []).filter((r) => r.form_type === "list");
+      if (listRows.length === 0) {
+        setListSections(null);
+        return;
+      }
+      const map = /* @__PURE__ */ new Map();
+      for (const r of listRows) {
+        const sid = r.section_id || "_default_";
+        if (!map.has(sid)) {
+          map.set(sid, { id: sid, name: r.section || "", grid_row: r.section_grid_row || 1, css_class: r.section_css_class || "" });
+        }
+      }
+      setListSections(Array.from(map.values()).sort((a, b) => a.grid_row - b.grid_row));
+    }).catch(() => setListSections(null)).finally(() => setCfgLoading(false));
+  }, [resource]);
+  const { Title: ATitle } = antd.Typography;
+  const renderList = () => /* @__PURE__ */ jsxRuntime.jsx(
+    antd$1.List,
+    {
+      ...props,
+      breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+      headerButtons: effectiveHeaderButtons ? wrappedHeaderButtons : void 0
+    }
+  );
   return /* @__PURE__ */ jsxRuntime.jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
-    /* @__PURE__ */ jsxRuntime.jsx(
-      antd$1.List,
+    cfgLoading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true, paragraph: { rows: 8 }, style: { padding: 24 } }) : listSections ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "0 16px" }, children: listSections.map((sec) => /* @__PURE__ */ jsxRuntime.jsxs(
+      "div",
       {
-        ...props,
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
-        headerButtons: effectiveHeaderButtons ? wrappedHeaderButtons : void 0
-      }
-    )
+        className: sec.css_class ? `jm-section-cell ${sec.css_class}` : "jm-section-cell",
+        style: { marginBottom: 16, padding: 16, border: "1px solid #f0f0f0", borderRadius: 8 },
+        children: [
+          sec.name && /* @__PURE__ */ jsxRuntime.jsxs(ATitle, { level: 5, style: { margin: "0 0 8px 0", color: "#1677ff" }, children: [
+            /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { marginRight: 6 } }),
+            sec.name
+          ] }),
+          renderList()
+        ]
+      },
+      sec.id
+    )) }) : renderList()
   ] });
 };
 var StandardCreate = ({ headerButtons, ...props }) => {

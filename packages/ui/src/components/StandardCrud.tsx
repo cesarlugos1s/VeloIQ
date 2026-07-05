@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
     Show,
@@ -12,7 +12,8 @@ import {
     RefreshButton,
 } from "@refinedev/antd";
 import type { ShowProps, EditProps, CreateProps, ListProps } from "@refinedev/antd";
-import { Tooltip, theme } from "antd";
+import { Tooltip, theme, Skeleton, Typography } from "antd";
+import { FileTextOutlined } from "@ant-design/icons";
 import { ActionsButtonStack, VerticalActionsLayout } from "./DynamicResource/utils/verticalActionsBar";
 import { useViewSettings } from "./DynamicResource/utils/viewConfig";
 import { ResponsiveHeaderButtons } from "./DynamicResource/utils/buttons";
@@ -257,14 +258,68 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
     const effectiveHeaderButtons = headerButtons;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
         useActionsWrapping(effectiveHeaderButtons);
+
+    // ── Page config support (IQVigilant templates for list views) ──
+    const resource = (props as any).resource;
+    const [listSections, setListSections] = useState<any[] | null>(null);
+    const [cfgLoading, setCfgLoading] = useState(false);
+
+    useEffect(() => {
+        if (!resource) { setListSections(null); return; }
+        setCfgLoading(true);
+        fetch(`/api/views/configurations/${resource}`)
+            .then((r) => r.ok ? r.json() : [])
+            .then((rows: any[]) => {
+                const listRows = (rows || []).filter((r: any) => r.form_type === "list");
+                if (listRows.length === 0) { setListSections(null); return; }
+                const map = new Map<string, any>();
+                for (const r of listRows) {
+                    const sid = r.section_id || "_default_";
+                    if (!map.has(sid)) {
+                        map.set(sid, { id: sid, name: r.section || "", grid_row: r.section_grid_row || 1, css_class: r.section_css_class || "" });
+                    }
+                }
+                setListSections(Array.from(map.values()).sort((a, b) => a.grid_row - b.grid_row));
+            })
+            .catch(() => setListSections(null))
+            .finally(() => setCfgLoading(false));
+    }, [resource]);
+
+    const { Title: ATitle } = Typography;
+
+    const renderList = () => (
+        <List
+            {...props}
+            breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
+            headerButtons={effectiveHeaderButtons ? wrappedHeaderButtons : undefined}
+        />
+    );
+
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
-            <List
-                {...props}
-                breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
-                headerButtons={effectiveHeaderButtons ? wrappedHeaderButtons : undefined}
-            />
+            {cfgLoading ? (
+                <Skeleton active paragraph={{ rows: 8 }} style={{ padding: 24 }} />
+            ) : listSections ? (
+                <div style={{ padding: "0 16px" }}>
+                    {listSections.map((sec) => (
+                        <div key={sec.id}
+                            className={sec.css_class ? `jm-section-cell ${sec.css_class}` : "jm-section-cell"}
+                            style={{ marginBottom: 16, padding: 16, border: "1px solid #f0f0f0", borderRadius: 8 }}
+                        >
+                            {sec.name && (
+                                <ATitle level={5} style={{ margin: "0 0 8px 0", color: "#1677ff" }}>
+                                    <FileTextOutlined style={{ marginRight: 6 }} />
+                                    {sec.name}
+                                </ATitle>
+                            )}
+                            {renderList()}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                renderList()
+            )}
         </VerticalActionsLayout>
     );
 };
