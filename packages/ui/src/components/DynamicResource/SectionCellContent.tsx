@@ -289,9 +289,12 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         );
     };
 
+    const htmlSnippet = sectionRows[0]?.section_html_snippet || null;
+
     return (
         <div style={{ padding: "4px 6px" }}>
             <Title level={5} style={{ margin: "0 0 4px 0", color: "#1677ff" }}>{_(sectionName)}</Title>
+            {htmlSnippet && <div dangerouslySetInnerHTML={{ __html: htmlSnippet }} />}
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                 <tbody>
                     {Array.from({ length: maxRow }).map((_, rowIndex) => (
