@@ -4571,8 +4571,9 @@ var filterConfigRowsForMode = (rows, mode) => {
   const allowedTypes = mode === "show" ? /* @__PURE__ */ new Set(["attributes", "details", "show"]) : /* @__PURE__ */ new Set(["main", "edit", "attributes"]);
   const filtered = rows.filter(
     (row) => (
-      // Custom-tab rows are always included — form_type doesn't gate them
-      !!row.tab_name || allowedTypes.has((row.form_type || "").trim().toLowerCase())
+      // Only include rows whose form_type matches the current mode.
+      // Rows without form_type (legacy / manually authored) are included.
+      allowedTypes.has((row.form_type || "").trim().toLowerCase()) || !row.tab_name && !row.form_type
     )
   );
   return filtered.length > 0 ? filtered : rows;
