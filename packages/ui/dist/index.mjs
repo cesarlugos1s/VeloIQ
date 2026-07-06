@@ -21480,7 +21480,13 @@ var MultiPaneLayout = ({ children }) => {
     const measure = () => {
       if (!containerRef.current) return;
       const top = containerRef.current.getBoundingClientRect().top;
-      setPanelHeight(`${window.innerHeight - top}px`);
+      const parent = containerRef.current.parentElement;
+      let padBottom = 0;
+      if (parent) {
+        const style = window.getComputedStyle(parent);
+        padBottom = parseFloat(style.paddingBottom) || 0;
+      }
+      setPanelHeight(`${window.innerHeight - top - padBottom}px`);
     };
     measure();
     window.addEventListener("resize", measure);

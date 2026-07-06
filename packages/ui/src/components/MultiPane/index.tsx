@@ -172,7 +172,16 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
         const measure = () => {
             if (!containerRef.current) return;
             const top = containerRef.current.getBoundingClientRect().top;
-            setPanelHeight(`${window.innerHeight - top}px`);
+            // Subtract parent's padding-bottom so the panel fits within the
+            // viewport precisely — otherwise the parent's bottom padding pushes
+            // content past the visible area, forcing an unnecessary scrollbar.
+            const parent = containerRef.current.parentElement;
+            let padBottom = 0;
+            if (parent) {
+                const style = window.getComputedStyle(parent);
+                padBottom = parseFloat(style.paddingBottom) || 0;
+            }
+            setPanelHeight(`${window.innerHeight - top - padBottom}px`);
         };
         measure();
         window.addEventListener("resize", measure);
