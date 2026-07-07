@@ -1535,7 +1535,7 @@ export const DynamicList: React.FC<{
                     }
                     return [{
                         field: fieldKey,
-                        operator: op,
+                        operator: op!,
                         value: rule.value,
                     }];
                 }
@@ -1562,7 +1562,7 @@ export const DynamicList: React.FC<{
                 return [];
             });
         const combined = [...tableFilters, ...serverFilters];
-        setFilters(combined, "replace");
+        setFilters(combined as any, "replace");
     }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
 
     const formatCategoryValue = useCallback((field: FieldDef | undefined, record: any) => {
@@ -2699,7 +2699,7 @@ export const DynamicList: React.FC<{
                 filterLabels.push(relLabel);
             } else if (fieldDef && fieldDef.reference) {
                 // Reverse FK: field references another model
-                const refModel = allModels.find(
+                const refModel = allModels?.find(
                     (m) => (m.resource || m.name).toLowerCase() === (fieldDef.reference || "").toLowerCase()
                 );
                 const modelLabel = refModel?.label || refModel?.name || fieldDef.reference || fieldName;

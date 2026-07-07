@@ -19386,7 +19386,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         const relLabel = relationDef.label || relationDef.relationName || fieldName;
         filterLabels.push(relLabel);
       } else if (fieldDef && fieldDef.reference) {
-        const refModel = allModels.find(
+        const refModel = allModels?.find(
           (m) => (m.resource || m.name).toLowerCase() === (fieldDef.reference || "").toLowerCase()
         );
         const modelLabel = refModel?.label || refModel?.name || fieldDef.reference || fieldName;
@@ -21527,14 +21527,27 @@ var MultiPaneLayout = ({ children }) => {
   const groupRef = React6.useRef(null);
   const pendingLayoutRef = React6.useRef(null);
   const prevPaneCountRef = React6.useRef(0);
+  const defaultLayout = React6.useMemo(() => {
+    if (panes.length === 0) return void 0;
+    let layout = { [LIST_PANEL_ID]: 100 };
+    for (let i = 0; i < panes.length; i++) {
+      const donorId = i === 0 ? LIST_PANEL_ID : detailPanelId(i - 1);
+      const donorSize = layout[donorId] ?? 100;
+      layout = {
+        ...layout,
+        [donorId]: donorSize * 0.2,
+        [detailPanelId(i)]: donorSize * 0.8
+      };
+    }
+    return layout;
+  }, [panes.length]);
   React6.useEffect(() => {
     const newCount = panes.length;
     const prevCount = prevPaneCountRef.current;
-    if (!pendingLayoutRef.current || !groupRef.current) {
-      pendingLayoutRef.current = null;
+    if (!pendingLayoutRef.current) {
       return;
     }
-    if (newCount <= prevCount) {
+    if (!groupRef.current || newCount <= prevCount) {
       pendingLayoutRef.current = null;
       return;
     }
@@ -21676,6 +21689,7 @@ var MultiPaneLayout = ({ children }) => {
     Ut,
     {
       orientation: "horizontal",
+      defaultLayout,
       groupRef,
       style: { flex: 1, height: "100%" },
       children: panelChildren

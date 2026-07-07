@@ -205,25 +205,42 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
     const prevPaneCountRef = useRef(0);
 
     // -----------------------------------------------------------------------
-    // After a new panel is added, apply the 80/20 split imperatively.
-    // requestAnimationFrame ensures the new Panel has registered itself with
-    // the Group (panel registration happens in a child useEffect, which runs
-    // before rAF fires).
+    // defaultLayout: the initial layout when the PanelGroup mounts (page
+    // refresh / initial load from URL).  We simulate the same sequential
+    // 80/20 cascading splits that interactive navigation would produce.
+    // -----------------------------------------------------------------------
+    const defaultLayout = useMemo(() => {
+        if (panes.length === 0) return undefined;
+        let layout: { [id: string]: number } = { [LIST_PANEL_ID]: 100 };
+        for (let i = 0; i < panes.length; i++) {
+            const donorId = i === 0 ? LIST_PANEL_ID : detailPanelId(i - 1);
+            const donorSize = layout[donorId] ?? 100;
+            layout = {
+                ...layout,
+                [donorId]: donorSize * 0.2,
+                [detailPanelId(i)]: donorSize * 0.8,
+            };
+        }
+        return layout;
+    }, [panes.length]);
+
+    // -----------------------------------------------------------------------
+    // When a new panel is added interactively (via openDetail), apply the
+    // 80/20 split imperatively.  requestAnimationFrame ensures the new Panel
+    // has registered itself with the Group before we call setLayout.
     // -----------------------------------------------------------------------
     useEffect(() => {
         const newCount = panes.length;
         const prevCount = prevPaneCountRef.current;
 
-        // On page refresh the groupRef isn't available yet on first run,
-        // and pendingLayoutRef is null (not a new panel being added interactively).
-        // Don't advance prevPaneCountRef in that case so the next render can
-        // fall through to the 80/20 split logic.
-        if (!pendingLayoutRef.current || !groupRef.current) {
-            pendingLayoutRef.current = null;
+        // Only handle interactive navigation (pendingLayoutRef was set by
+        // openDetail just before the URL changed).  Page-refresh layouts are
+        // handled declaratively via defaultLayout.
+        if (!pendingLayoutRef.current) {
             return;
         }
 
-        if (newCount <= prevCount) {
+        if (!groupRef.current || newCount <= prevCount) {
             pendingLayoutRef.current = null;
             return;
         }
@@ -399,6 +416,7 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
         <div ref={containerRef} className="jm-full-width-page" style={{ overflow: "hidden", height: panelHeight }}>
             <PanelGroup
                 orientation="horizontal"
+                defaultLayout={defaultLayout}
                 groupRef={groupRef}
                 style={{ flex: 1, height: "100%" }}
             >
