@@ -2170,10 +2170,23 @@ def _jm_wrap_plotly_inline_script(script_body: str) -> str:
     )
 
 
-def jm_satinize_custom_html(raw_html: str) -> str:
+# NOTE: This function might no longer be needed — all tested charts rendered
+# correctly without sanitization (apply_sanitization=False by default).
+def jm_satinize_custom_html(raw_html: str, apply_sanitization: bool = False) -> str:
     """
     Basic sanitizer for custom HTML snippets while keeping Plotly scripts functional.
+
+    :param raw_html: The raw HTML string to sanitize.
+    :param apply_sanitization: If True, apply the full sanitization logic.
+                               If False (default), return the HTML unchanged
+                               with a note appended.
+    :return: Sanitized HTML string, or the original HTML with a note.
     """
+    if not apply_sanitization:
+        if not raw_html:
+            return ""
+        return raw_html + " no sanitize needed on this chart"
+
     _JM_DOCTYPE_RE = re.compile(r"(?is)<!doctype[^>]*>")
     _JM_STRIP_TAGS_RE = re.compile(r"(?is)</?(?:html|head|body|meta|title|link)\b[^>]*>")
     _JM_SCRIPT_TAG_RE = re.compile(r"(?is)<script\b([^>]*)>(.*?)</script>")

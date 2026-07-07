@@ -295,10 +295,21 @@ def load_modules(
                     # column_default_sort expects a list of (column_name, is_desc) tuples.
                     pk_attrs = [(p.key, False) for p in mapper.column_attrs if p.columns[0].primary_key]
 
+                    # Build column_list: primary key(s) + best title field(s).
+                    # Uses the same resolution priority as build_model_str_label:
+                    #  1. __veloiq_ui__["titleFields"] if configured
+                    #  2. first non-PK, non-infra String column
+                    #  3. first non-PK, non-infra column of any type
+                    #  4. empty (PK-only fallback)
+                    pk_keys = [p.key for p in mapper.column_attrs if p.columns[0].primary_key]
+                    title_keys = _model_title_field_keys(model_cls, mapper)
+                    column_list = pk_keys + title_keys
+
                     view = ModelViewMeta(
                         f"{model_cls.__name__}Admin",
                         (ModelView,),
                         {
+                            "column_list": column_list,
                             "column_sortable_list": real_columns,
                             "column_default_sort": pk_attrs,
                         },
@@ -535,6 +546,52 @@ def _load_extension_modules(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def _model_title_field_keys(model_cls: type, mapper) -> list[str]:
+    """Determine which column keys best represent a model's record title for
+    admin list display.
+
+    Resolution order (mirrors :func:`veloiq_framework.models.build_model_str_label`
+    class-level logic, without needing an instance):
+
+    1. ``__veloiq_ui__[\"titleFields\"]`` developer-configured fields,
+       filtered to real mapper column keys (special tokens like
+       ``__model_name__`` / ``__pk__`` are skipped).
+    2. First non-PK, non-infrastructure ``String``-typed column.
+    3. First non-PK, non-infrastructure column of any type.
+    4. Empty list (PK-only fallback).
+    """
+    from veloiq_framework.models import _INFRA_TITLE_FIELDS, get_pk_field_name
+    from sqlalchemy import String
+
+    pk_name = get_pk_field_name(model_cls)
+
+    # 1. Developer-configured titleFields (class-level, no instance needed).
+    ui_meta = getattr(model_cls, "__veloiq_ui__", None) or {}
+    title_fields = ui_meta.get("titleFields") if isinstance(ui_meta, dict) else None
+    if title_fields:
+        real_keys = {p.key for p in mapper.column_attrs}
+        real_title_fields = [
+            f for f in title_fields
+            if f in real_keys and f != pk_name and f not in _INFRA_TITLE_FIELDS
+        ]
+        if real_title_fields:
+            return real_title_fields
+
+    # 2. First non-PK, non-infra String column.
+    for p in mapper.column_attrs:
+        if p.key == pk_name or p.key in _INFRA_TITLE_FIELDS:
+            continue
+        if isinstance(p.columns[0].type, String):
+            return [p.key]
+
+    # 3. First non-PK, non-infra column of any type.
+    for p in mapper.column_attrs:
+        if p.key == pk_name or p.key in _INFRA_TITLE_FIELDS:
+            continue
+        return [p.key]
+
+    return []
 
 def _path_to_module(path: Path) -> str | None:
     """Convert a filesystem path to a dotted module name using sys.path."""
