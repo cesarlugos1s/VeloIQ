@@ -7,6 +7,7 @@ import { ColorModeContext } from "../contexts/ColorModeContext";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
+import { useLicensePool } from "../hooks/useLicensePool";
 
 const API_URL = "/api";
 // i18n helper — resolved at CALL time so window._ is always current.
@@ -26,6 +27,32 @@ export const CustomSider: React.FC<{
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
+    const { isModuleLicensed } = useLicensePool();
+
+    // ── License-aware menu filtering ──────────────────────────────────────
+    // Only show modules whose license is active (or in grace period).
+    // Modules not in any licensed group AND the "access_control" module
+    // are always shown.  This filters in one pass — children of filtered
+    // modules are automatically removed.
+    const extractModuleName = (item: any): string | null => {
+        let key = String(item?.key ?? item?.name ?? "");
+        if (key.startsWith("/")) key = key.slice(1);
+        if (key.startsWith("module:")) return key.slice("module:".length);
+        return null;
+    };
+
+    const licensedMenuItems = useMemo(
+        () => {
+            if (!Array.isArray(menuItems)) return [];
+            return menuItems.filter((item) => {
+                const moduleName = extractModuleName(item);
+                if (moduleName === null) return true; // resource item — keep
+                if (moduleName === "access_control") return true; // always show
+                return isModuleLicensed(moduleName);
+            });
+        },
+        [menuItems, isModuleLicensed],
+    );
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -108,8 +135,8 @@ export const CustomSider: React.FC<{
     };
 
     const sortedMenuItems = useMemo(
-        () => navConfig.length > 0 ? sortItemsByNavConfig(menuItems, navConfig) : menuItems,
-        [menuItems, navConfig],
+        () => navConfig.length > 0 ? sortItemsByNavConfig(licensedMenuItems, navConfig) : licensedMenuItems,
+        [licensedMenuItems, navConfig],
     );
     // Inject journey entries under their module before transforming.
     const withJourneys = useMemo(

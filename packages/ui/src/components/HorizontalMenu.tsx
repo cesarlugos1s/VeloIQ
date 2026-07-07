@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useMemo } from "react";
 import { useMenu, useGo } from "@refinedev/core";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import { Menu } from "antd";
@@ -7,6 +7,7 @@ import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
+import { useLicensePool } from "../hooks/useLicensePool";
 
 // i18n helper — resolved at CALL time so window._ is always current.
 const _ = (text: string): string => {
@@ -19,6 +20,28 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
+    const { isModuleLicensed } = useLicensePool();
+
+    // ── License-aware menu filtering ──────────────────────────────────────
+    const extractModuleName = (item: any): string | null => {
+        let key = String(item?.key ?? item?.name ?? "");
+        if (key.startsWith("/")) key = key.slice(1);
+        if (key.startsWith("module:")) return key.slice("module:".length);
+        return null;
+    };
+
+    const licensedMenuItems = useMemo(
+        () => {
+            if (!Array.isArray(menuItems)) return [];
+            return menuItems.filter((item) => {
+                const moduleName = extractModuleName(item);
+                if (moduleName === null) return true; // resource item
+                if (moduleName === "access_control") return true; // always show
+                return isModuleLicensed(moduleName);
+            });
+        },
+        [menuItems, isModuleLicensed],
+    );
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -99,7 +122,7 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
         });
     };
 
-    const items = transformItems(injectJourneyMenuItems(menuItems, journeysByModule));
+    const items = transformItems(injectJourneyMenuItems(licensedMenuItems, journeysByModule));
 
     return (
         <Menu

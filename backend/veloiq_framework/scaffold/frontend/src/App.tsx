@@ -25,6 +25,7 @@ import {
     ColorModeContextProvider,
     authSystemModels,
     DashboardPage,
+    LicenseGate,
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
@@ -103,7 +104,9 @@ export default function App() {
                                     >
                                         <Route path="/dashboard" element={<DashboardPage />} />
                                         {extensionRoutes.map((r) => (
-                                            <Route key={r.path} path={r.path} element={r.element} />
+                                            <Route key={r.path} path={r.path} element={
+                                                <LicenseGate module={r.module}>{r.element}</LicenseGate>
+                                            } />
                                         ))}
                                         {allSystemModels.map((model) => {
                                             const resource = (model as any).resource || model.name;

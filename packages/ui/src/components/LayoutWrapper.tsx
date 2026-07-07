@@ -18,6 +18,7 @@ import { ColorModeContext } from "../contexts/ColorModeContext";
 import { NavConfigContext } from "../contexts/NavConfigContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
+import { useLicensePool } from "../hooks/useLicensePool";
 
 const API_URL = "/api";
 
@@ -66,6 +67,27 @@ const DefaultLogo: React.FC<{
 const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
+    const { isModuleLicensed } = useLicensePool();
+
+    const extractModuleName = (item: any): string | null => {
+        let key = String(item?.key ?? item?.name ?? "");
+        if (key.startsWith("/")) key = key.slice(1);
+        if (key.startsWith("module:")) return key.slice("module:".length);
+        return null;
+    };
+
+    const licensedMenuItems = React.useMemo(
+        () => {
+            if (!Array.isArray(menuItems)) return [];
+            return menuItems.filter((item) => {
+                const moduleName = extractModuleName(item);
+                if (moduleName === null) return true;
+                if (moduleName === "access_control") return true;
+                return isModuleLicensed(moduleName);
+            });
+        },
+        [menuItems, isModuleLicensed],
+    );
 
     const transformItems = (items: any[]): any[] => {
         if (!Array.isArray(items)) return [];
@@ -82,7 +104,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <Menu
             mode="inline"
             selectedKeys={[selectedKey]}
-            items={transformItems(menuItems)}
+            items={transformItems(licensedMenuItems)}
             style={{ borderRight: "none" }}
         />
     );
@@ -113,6 +135,32 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     const [pwdForm] = Form.useForm();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [portalOpen, setPortalOpen] = useState(false);
+    const { isModuleLicensed } = useLicensePool();
+
+    // ── License-aware filtering of extension user-menu items ──────────────
+    // Recursively walks the menu tree and removes items whose ``module``
+    // field references an unlicensed module.  Items without a ``module``
+    // field (including all built-in items and pre-existing extension items)
+    // are kept unconditionally — fully backwards compatible.
+    const filterMenuItemsByLicense = React.useCallback(
+        (items: any[]): any[] => {
+            if (!Array.isArray(items)) return [];
+            return items
+                .filter((item) => {
+                    if (typeof item !== "object" || item === null) return true;
+                    // Only filter leaf items with an explicit ``module`` field.
+                    if (!item.module) return true;
+                    return isModuleLicensed(item.module);
+                })
+                .map((item) => {
+                    if (Array.isArray(item.children)) {
+                        return { ...item, children: filterMenuItemsByLicense(item.children) };
+                    }
+                    return item;
+                });
+        },
+        [isModuleLicensed],
+    );
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -153,7 +201,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
 
     const userItems = [
         { key: "change-password", label: "Change Password", icon: <LockOutlined />, onClick: () => setPwdModalOpen(true) },
-        ...extraUserMenuItems,
+        ...filterMenuItemsByLicense(extraUserMenuItems),
         { type: "divider" as const },
         { key: "logout", label: "Logout", icon: <LogoutOutlined />, danger: true, onClick: () => logout() },
     ];

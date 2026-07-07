@@ -1,6 +1,7 @@
 // ── Core components ────────────────────────────────────────────────────────
 export { LayoutWrapper } from "./components/LayoutWrapper";
 export type { LayoutWrapperProps } from "./components/LayoutWrapper";
+export { LicenseGate } from "./components/LicenseGate";
 export { CommandCenterPortal } from "./components/CommandCenterPortal";
 export type { CommandCenterPortalProps } from "./components/CommandCenterPortal";
 
@@ -73,6 +74,8 @@ export type { RecentActivityData, RecentActivityGroup, RecentRecord } from "./pa
 export { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 export { useRecordSearch } from "./hooks/useRecordSearch";
 export type { RecordResult, ModelSearchResult, UseRecordSearchReturn } from "./hooks/useRecordSearch";
+export { useLicensePool } from "./hooks/useLicensePool";
+export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 export { generateResources } from "./utils/generateResources";

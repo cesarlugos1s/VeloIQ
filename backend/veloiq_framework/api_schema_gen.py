@@ -1291,7 +1291,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
 
     # (import_name, import_path, export) tuples for the generated imports.
     imports: list[tuple[str, str, str]] = []
-    route_entries: list[tuple[str, str]] = []   # (path, import_name)
+    route_entries: list[tuple[str, str, str | None]] = []   # (path, import_name, module)
     show_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
     edit_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
     create_override_entries: list[tuple[str, str]] = []  # (resource, import_name)
@@ -1328,7 +1328,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             import_path = f"./pages/{ext.name}/{mod_rel}"
             import_name = f"{ext.name}_{component}"
             imports.append((import_name, import_path, export))
-            route_entries.append((path, import_name))
+            route_entries.append((path, import_name, route.get("module")))
 
         # Page overrides (show / edit / create / list) → imports + resource→component entries.
         _EXT_OVERRIDE_MAP = {
@@ -1442,17 +1442,18 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
 
     lines += [
         "",
-        "export interface ExtensionRoute { path: string; element: React.ReactNode; }",
+        "export interface ExtensionRoute { path: string; element: React.ReactNode; module?: string; }",
         "export const extensionRoutes: ExtensionRoute[] = [",
     ]
-    for path, import_name in route_entries:
-        lines.append(f'  {{ path: "{path}", element: createElement({import_name}) }},')
+    for path, import_name, mod in route_entries:
+        mod_part = f', module: "{mod}"' if mod else ""
+        lines.append(f'  {{ path: "{path}", element: createElement({import_name}){mod_part} }},')
     lines += [
         "];",
         "",
         ("export interface ExtensionUserMenuItem { key: string; label: string; "
          "icon?: React.ReactNode; onClick?: () => void; type?: \"group\"; "
-         "children?: ExtensionUserMenuItem[]; }"),
+         "children?: ExtensionUserMenuItem[]; module?: string; }"),
         "export const extensionUserMenuItems: ExtensionUserMenuItem[] = [",
     ]
 
@@ -1461,10 +1462,12 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         label = menu_item["label"].replace('"', '\\"')
         route = menu_item["route"]
         icon = menu_item.get("icon")
+        mod = menu_item.get("module")
         icon_expr = f"createElement({icon})" if icon else "undefined"
+        mod_expr = f', module: "{mod}"' if mod else ""
         return (
             f'{{ key: "{key}", label: "{label}", icon: {icon_expr}, '
-            f'onClick: () => {{ window.location.assign("{route}"); }} }}'
+            f'onClick: () => {{ window.location.assign("{route}"); }}{mod_expr} }}'
         )
 
     ungrouped_items = [it for it in menu_entries if not it.get("group")]

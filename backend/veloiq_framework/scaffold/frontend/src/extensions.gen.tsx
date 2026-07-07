@@ -4,10 +4,10 @@
 
 import type React from "react";
 
-export interface ExtensionRoute { path: string; element: React.ReactNode; }
+export interface ExtensionRoute { path: string; element: React.ReactNode; module?: string; }
 export const extensionRoutes: ExtensionRoute[] = [];
 
-export interface ExtensionUserMenuItem { key: string; label: string; icon?: React.ReactNode; onClick: () => void; }
+export interface ExtensionUserMenuItem { key: string; label: string; icon?: React.ReactNode; onClick: () => void; module?: string; }
 export const extensionUserMenuItems: ExtensionUserMenuItem[] = [];
 
 export interface ExtensionShowComponent { resource: string; Component: React.ComponentType<{ idOverride?: string }>; }
