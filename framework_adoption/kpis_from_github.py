@@ -62,6 +62,111 @@ def pct_change(current, previous):
 def trend_icon(current, previous):
     return "📈" if current >= previous else "📉"
 
+def load_csv_history(filepath):
+    """Read the CSV history once and return structured data for all consumers.
+
+    Returns a dict with:
+      - existing_dates : set[str]          – dates already recorded (for dedup)
+      - dates_ordered  : list[str]          – dates in row order (for week grouping)
+      - clone_daily    : list[int]          – daily Total_Clones values
+      - pypi_daily     : list[int]          – daily PyPI_Day values
+    Returns None when the file does not exist.
+    """
+    if not os.path.exists(filepath):
+        return None
+
+    result = {
+        "existing_dates": set(),
+        "dates_ordered": [],
+        "clone_daily": [],
+        "pypi_daily": [],
+    }
+    with open(filepath, mode="r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        next(reader, None)  # skip header
+        for row in reader:
+            if not row:
+                continue
+            try:
+                result["existing_dates"].add(row[0])      # Date
+                result["dates_ordered"].append(row[0])     # Date
+                result["clone_daily"].append(int(row[3])) # Total_Clones
+                result["pypi_daily"].append(int(row[6]))  # PyPI_Day
+            except (ValueError, IndexError):
+                pass
+    return result
+
+def weekly_avg_excluding_outliers(dates, daily_values):
+    """Compute the average weekly value, replacing outlier weeks with the
+    mean of the non-outlier weeks.
+
+    Groups daily values into ISO weeks, sums each week, then detects outlier
+    weeks (abnormally high totals).  Detection adapts to sample size:
+
+      • n ≥ 10 weeks  →  IQR method:  weeks > Q3 + 1.5×IQR are outliers
+      • n < 10 weeks  →  Z‑score:     weeks > μ + 0.5σ are outliers
+
+    Outlier weeks are replaced with the average of the non-outlier weeks so
+    they still contribute but don't distort the average. If every week is an
+    outlier, no replacement is performed (plain average is returned).
+
+    Returns (average_weekly_value, outlier_weeks_count, total_weeks).
+    Falls back to a simple average when fewer than 3 weeks of data exist.
+    """
+    if len(dates) < 14:          # fewer than 2 weeks of daily data
+        avg_daily = sum(daily_values) / len(daily_values) if daily_values else 0
+        return round(avg_daily * 7), 0, 0
+
+    # Group daily values by ISO week
+    weeks = {}
+    for d, v in zip(dates, daily_values):
+        iso_year, iso_week, _ = date.fromisoformat(d).isocalendar()
+        key = (iso_year, iso_week)
+        weeks[key] = weeks.get(key, 0) + v
+
+    weekly_sums = list(weeks.values())
+    total_weeks = len(weekly_sums)
+    if total_weeks < 3:
+        avg_daily = sum(daily_values) / len(daily_values) if daily_values else 0
+        return round(avg_daily * 7), 0, total_weeks
+
+    sorted_sums = sorted(weekly_sums)
+    n = len(sorted_sums)
+
+    # ── Outlier detection ──────────────────────────────────────────────────
+    if n >= 10:
+        q1 = sorted_sums[n // 4]
+        q3 = sorted_sums[3 * n // 4]
+        iqr = q3 - q1
+        upper_bound = q3 + 1.5 * iqr if iqr > 0 else q3 * 2
+    else:
+        mean = sum(weekly_sums) / n
+        variance = sum((x - mean) ** 2 for x in weekly_sums) / (n - 1) if n > 1 else 0
+        stdev = variance ** 0.5
+        upper_bound = mean + 0.5 * stdev if stdev > 0 else mean * 2
+    # ────────────────────────────────────────────────────────────────────────
+
+    # Split into outliers and non-outliers
+    outlier_totals = []
+    non_outlier_totals = []
+    for key, total in weeks.items():
+        if total > upper_bound:
+            outlier_totals.append(total)
+        else:
+            non_outlier_totals.append(total)
+
+    outlier_count = len(outlier_totals)
+    if outlier_count == 0 or outlier_count == total_weeks:
+        # Nothing to replace, or everything is an outlier → plain average
+        avg_weekly = round(sum(weekly_sums) / total_weeks)
+    else:
+        replacement = round(sum(non_outlier_totals) / len(non_outlier_totals))
+        adjusted = non_outlier_totals + [replacement] * outlier_count
+        avg_weekly = round(sum(adjusted) / total_weeks)
+
+    return avg_weekly, outlier_count, total_weeks
+
+
 def main():
     if not GITHUB_TOKEN:
         print("❌ Error: GITHUB_TOKEN environment variable not set.")
@@ -111,21 +216,37 @@ def main():
     pypi_week  = (pypi_data or {}).get("data", {}).get("last_week", 0)
     pypi_month = (pypi_data or {}).get("data", {}).get("last_month", 0)
 
-    # Split 14-day clone window into two 7-day halves for WoW
+    # Split 14-day clone window: this week (last 7 days)
     today = date.today()
     seven_days_ago = today - timedelta(days=7)
     clones_this_week = sum(
         c["count"] for c in clones_data.get("clones", [])
         if date.fromisoformat(c["timestamp"].split("T")[0]) >= seven_days_ago
     )
-    clones_prev_week = sum(
-        c["count"] for c in clones_data.get("clones", [])
-        if date.fromisoformat(c["timestamp"].split("T")[0]) < seven_days_ago
-    )
 
-    # Estimated previous week PyPI: (last_month - last_week) spread over 23 days → 7-day equivalent
-    remaining_days = pypi_month - pypi_week
-    pypi_prev_week_est = round(remaining_days / 23 * 7) if pypi_month > pypi_week else 0
+    # ── Historical averages from CSV (all previous weeks) ────────────────────────
+    # Load CSV history once to compute the average of all prior weeks, which gives a
+    # fairer baseline than comparing against a single prior week.
+    csv_history   = load_csv_history(OUTPUT_FILE)
+    existing_dates = csv_history["existing_dates"] if csv_history else set()
+
+    clones_avg_prev = 0
+    pypi_avg_prev   = 0
+    clone_outliers = pypi_outliers = clone_total_wks = pypi_total_wks = 0
+
+    if csv_history and csv_history["clone_daily"]:
+        clones_avg_prev, clone_outliers, clone_total_wks = weekly_avg_excluding_outliers(
+            csv_history["dates_ordered"], csv_history["clone_daily"])
+    if csv_history and csv_history["pypi_daily"]:
+        pypi_avg_prev, pypi_outliers, pypi_total_wks = weekly_avg_excluding_outliers(
+            csv_history["dates_ordered"], csv_history["pypi_daily"])
+
+    # Fallback: if no CSV history exists, use the prior 7 days from the 14-day window
+    if clones_avg_prev == 0:
+        clones_avg_prev = sum(
+            c["count"] for c in clones_data.get("clones", [])
+            if date.fromisoformat(c["timestamp"].split("T")[0]) < seven_days_ago
+        )
 
     # ── Computed KPIs ─────────────────────────────────────────────────────────
     ratio_terminal    = round(uni_clones / uni_views, 2)       if uni_views  > 0 else 0
@@ -134,8 +255,8 @@ def main():
     clone_pypi_conv   = round(pypi_week / uni_clones * 100, 1) if uni_clones > 0 else 0
     pypi_monthly_avg  = round(pypi_month / 4, 1)               if pypi_month > 0 else 0
     pypi_accel        = round((pypi_week - pypi_monthly_avg) / pypi_monthly_avg * 100, 1) if pypi_monthly_avg > 0 else 0
-    clone_wow_str     = pct_change(clones_this_week, clones_prev_week)
-    pypi_wow_str      = pct_change(pypi_week, pypi_prev_week_est)
+    clone_wow_str     = pct_change(clones_this_week, clones_avg_prev)
+    pypi_wow_str      = pct_change(pypi_week, pypi_avg_prev)
 
     # ══════════════════════════════════════════════════════════════════════════
     # RAW DATA
@@ -148,7 +269,8 @@ def main():
     print(f"  GitHub › Total Clones (14d)        : {tot_clones}")
     print(f"  GitHub › Unique Cloners (14d)      : {uni_clones}")
     print(f"  GitHub › Clones This Week          : {clones_this_week}")
-    print(f"  GitHub › Clones Previous Week      : {clones_prev_week}")
+    clone_avg_label = f"Clones Avg Prior Weeks (outliers replaced)"
+    print(f"  GitHub › {clone_avg_label:<39}: {clones_avg_prev}  (from {clone_total_wks} prior weeks, {clone_outliers} outlier{'s' if clone_outliers != 1 else ''} replaced with non-outlier mean)" if clone_total_wks else f"  GitHub › Clones Avg Previous Weeks    : {clones_avg_prev}")
     print(f"  GitHub › Stars                     : {stars}")
     print(f"  GitHub › Forks                     : {forks}")
     print(f"  GitHub › Open Issues               : {open_issues}")
@@ -202,41 +324,39 @@ def main():
     else:
         vl_status, vl_interp = "🔴 POOR",  "Users are cloning once and not returning. Likely still in exploration phase."
 
-    if clones_prev_week == 0:
-        cw_status, cw_interp = "⚪ —", "No prior week data in the 14-day window to compare against."
-    elif clones_this_week >= clones_prev_week * 1.5:
+    if clones_avg_prev == 0:
+        cw_status, cw_interp = "⚪ —", "No historical data available to compare against (first run?)."
+    elif clones_this_week >= clones_avg_prev * 1.5:
         cw_status, cw_interp = "🟢 GREAT", "Possible external mention, blog post, or viral effect this week."
-    elif clones_this_week >= clones_prev_week * 1.2:
-        cw_status, cw_interp = "🟢 GOOD",  "Clone activity is clearly picking up week over week."
-    elif clones_this_week >= clones_prev_week * 0.8:
-        cw_status, cw_interp = "🟡 STEADY","Consistent clone activity with no significant spike or drop."
+    elif clones_this_week >= clones_avg_prev * 1.2:
+        cw_status, cw_interp = "🟢 GOOD",  "Clone activity is clearly picking up vs historical average."
+    elif clones_this_week >= clones_avg_prev * 0.5:
+        cw_status, cw_interp = "🟡 STEADY","Consistent clone activity — within normal range of the historical weekly average."
     else:
-        cw_status, cw_interp = "🔴 POOR",  "Fewer clones this week than last. Check if a recent change reduced interest."
+        cw_status, cw_interp = "🔴 POOR",  "Well below the historical weekly average. Check if a recent change reduced interest."
 
-    if pypi_prev_week_est == 0:
-        pw_status, pw_interp = "⚪ —", "No prior week estimate available (monthly data too low to extrapolate)."
-    elif pypi_week >= pypi_prev_week_est * 1.5:
+    if pypi_avg_prev == 0:
+        pw_status, pw_interp = "⚪ —", "No historical PyPI data available to compare against (first run?)."
+    elif pypi_week >= pypi_avg_prev * 1.5:
         pw_status, pw_interp = "🟢 GREAT", "Install activity is spiking. More teams are adopting the package."
-    elif pypi_week >= pypi_prev_week_est * 1.2:
-        pw_status, pw_interp = "🟢 GOOD",  "Pip installs are meaningfully up week over week."
-    elif pypi_week >= pypi_prev_week_est * 0.8:
-        pw_status, pw_interp = "🟡 STEADY","Consistent install activity with no significant change."
+    elif pypi_week >= pypi_avg_prev * 1.2:
+        pw_status, pw_interp = "🟢 GOOD",  "Pip installs are meaningfully up vs historical average."
+    elif pypi_week >= pypi_avg_prev * 0.5:
+        pw_status, pw_interp = "🟡 STEADY","Consistent install activity — within normal range of the historical weekly average."
     else:
-        pw_status, pw_interp = "🔴 POOR",  "Fewer pip installs this week than the prior estimated week."
+        pw_status, pw_interp = "🔴 POOR",  "Well below the historical weekly average. Check if recent changes affected installs."
 
     accel_sign = "+" if pypi_accel >= 0 else ""
     if pypi_monthly_avg == 0:
         ac_status, ac_interp = "⚪ —", "No monthly baseline available to compare against."
-    elif pypi_accel >= 20:
+    elif pypi_accel >= 50:
         ac_status, ac_interp = "🟢 GREAT", "This week is well above the monthly average. Strong momentum."
-    elif pypi_accel >= 5:
+    elif pypi_accel >= 20:
         ac_status, ac_interp = "🟢 GOOD",  "This week is outpacing the monthly average. Positive trend."
-    elif pypi_accel >= -10:
-        ac_status, ac_interp = "🟡 STEADY","Install rate is roughly in line with the monthly average."
     elif pypi_accel >= -50:
-        ac_status, ac_interp = "🔴 POOR",  "This week is meaningfully below the monthly average."
+        ac_status, ac_interp = "🟡 STEADY","Install rate is within normal range of the monthly average."
     else:
-        ac_status, ac_interp = "🔴 POOR",  "Installs are well below the monthly average. Could be a seasonal dip or a drop-off."
+        ac_status, ac_interp = "🔴 POOR",  "Well below the monthly average. Check if recent changes affected installs."
 
     if open_issues == 0:
         is_status, is_interp = "🔴 POOR",  "No public engagement yet, or issues are being handled privately."
@@ -270,13 +390,13 @@ def main():
 
     print(f"\n  ── GROWTH VELOCITY ────────────────────────────────────────────────────")
     kpi_block("📊", "Clone WoW Growth",
-        f"{clone_wow_str}  ({clones_prev_week} → {clones_this_week} clones)",
+        f"{clone_wow_str}  (avg prev: {clones_avg_prev} → this wk: {clones_this_week} clones)",
         cw_status, cw_interp,
-        "Clone volume last 7 days vs. the 7 days before — both from GitHub's 14-day traffic window.")
-    kpi_block("📦", "PyPI WoW Growth (est.)",
-        f"{pypi_wow_str}  ({pypi_prev_week_est} → {pypi_week} installs)",
+        "This week's clone volume vs. the average weekly clones from all prior weeks (high-outlier weeks replaced with non-outlier mean).")
+    kpi_block("📦", "PyPI WoW Growth",
+        f"{pypi_wow_str}  (avg prev: {pypi_avg_prev} → this wk: {pypi_week} installs)",
         pw_status, pw_interp,
-        "Last week's pip installs vs. estimated prior week: (last_month − last_week) ÷ 23 × 7.")
+        "This week's pip installs vs. the average weekly installs from all prior weeks (high-outlier weeks replaced with non-outlier mean).")
     kpi_block("⚡", "PyPI Acceleration",
         f"{accel_sign}{pypi_accel}%  (this wk: {pypi_week} | monthly avg: {pypi_monthly_avg}/wk)",
         ac_status, ac_interp,
@@ -310,14 +430,7 @@ def main():
             history[d] = {"clones": 0, "unique_cloners": 0, "views": v["count"], "unique_visitors": v["uniques"]}
 
     file_exists = os.path.exists(OUTPUT_FILE)
-    existing_dates = set()
-    if file_exists:
-        with open(OUTPUT_FILE, mode="r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader, None)
-            for row in reader:
-                if row:
-                    existing_dates.add(row[0])
+    # existing_dates already populated by load_csv_history() above — reuse it
 
     rows_added = 0
     with open(OUTPUT_FILE, mode="a", newline="", encoding="utf-8") as f:
