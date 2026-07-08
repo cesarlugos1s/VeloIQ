@@ -9,8 +9,12 @@
       "template": "standard_single_column",
       "parameters": {}
     },
+    "TeamMember:show": {
+      "template": "test_resolve_styling",
+      "parameters": {}
+    },
     "Task:show": {
-      "template": "standard_single_column",
+      "template": "test_resolve_styling",
       "parameters": {}
     }
   }

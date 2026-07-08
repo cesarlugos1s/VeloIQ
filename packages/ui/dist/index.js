@@ -5376,7 +5376,7 @@ var StandardList = ({ headerButtons, ...props }) => {
     cfgLoading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true, paragraph: { rows: 8 }, style: { padding: 24 } }) : listSections ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "0 16px" }, children: listSections.map((sec) => /* @__PURE__ */ jsxRuntime.jsxs(
       "div",
       {
-        className: sec.css_class ? `jm-section-cell ${sec.css_class}` : "jm-section-cell",
+        className: sec.section_css_class ? `jm-section-cell ${sec.section_css_class}` : "jm-section-cell",
         style: { marginBottom: 16, padding: 16, border: "1px solid #f0f0f0", borderRadius: 8 },
         children: [
           sec.name && /* @__PURE__ */ jsxRuntime.jsxs(ATitle, { level: 5, style: { margin: "0 0 8px 0", color: "#1677ff" }, children: [

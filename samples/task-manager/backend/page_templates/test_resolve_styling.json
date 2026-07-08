@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "name": "Resolve HTML Test",
+  "description": "",
+  "applicable_view_types": [
+    "show"
+  ],
+  "parameters": [],
+  "tabs": [
+    {
+      "name": "Details",
+      "sections": [
+        {
+          "id": "s1",
+          "name": "HTML Sec",
+          "grid_row": 1,
+          "grid_col": 1,
+          "html_snippet": "<div class='banner'>B</div>",
+          "entries": [
+            {
+              "kind": "page_title",
+              "show_label": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
