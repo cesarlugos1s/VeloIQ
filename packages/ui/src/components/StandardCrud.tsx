@@ -304,7 +304,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
                 <div style={{ padding: "0 16px" }}>
                     {listSections.map((sec) => (
                         <div key={sec.id}
-                            className={sec.css_class ? `jm-section-cell ${sec.css_class}` : "jm-section-cell"}
+                            className={sec.section_css_class ? `jm-section-cell ${sec.section_css_class}` : "jm-section-cell"}
                             style={{ marginBottom: 16, padding: 16, border: "1px solid #f0f0f0", borderRadius: 8 }}
                         >
                             {sec.name && (
