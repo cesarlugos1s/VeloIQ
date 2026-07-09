@@ -167,6 +167,28 @@ same guidance, so you can uncomment and edit the ones you want to change. Apps
 that enable an extension (e.g. `iqvigilant`) get the same settings on the
 extension's pages automatically — they render through the host's `DynamicResource`.
 
+### System Configuration console
+
+When the IQVigilant extension is installed, a **System Configuration** page is
+available in the user dropdown menu under **Configurations → General Configuration**.
+This page provides an interactive UI for editing application-wide settings without
+manually editing configuration files:
+
+- **Logging** — `log_up_to_relevance` (controls log verbosity)
+- **Appearance** — `modules_color_schema`, `models_color_schema`, `plain_color_base_hex`
+  (includes a color swatch preview and preset palette)
+- **Views & Layout** — all `[views]` table keys listed above, grouped into
+  *View types*, *Gallery images*, *Table limits*, and *Actions & tabs*
+
+The page reads from both `jm_config.ini` ([logging], [views]) and
+`veloiq.toml` ([views]). When you save, each file is updated atomically and
+for `veloiq.toml` keys not yet present, descriptive comments are inserted
+automatically.
+
+> **Permission required:** Access to the System Configuration page requires the
+> `CONFIGURE_LAYOUT` permission in the user's role. The built-in `Admin` and
+> `Manager` roles include this by default.
+
 ### CORS
 
 | Field | Env var | Default | Description |
