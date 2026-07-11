@@ -1,0 +1,100 @@
+
+    "ask_to_answer_query_requests_via_llm_tool": {
+        "description": "\n    Use this tool to answer requests from a database name. This\n    function allows to generate and execute SQL queries to extract relevant information based on a given query request.\n    The responses are streamed back to the user, providing both the final SQL query used\n    and its interpreted answer based on the database's contents.\n\n    inputs:\n    database_asks: A string containing the natural language ask to be answered.\n    database_name: A string containing the name of the database. Please provide a valid database name.\n\n    :return: answer_content, as returned by _run function.\n    ",
+        "start_node": "step_1_ask_to_answer_query_requests_via_llm_tool",
+        "nodes": {
+            "step_1_ask_to_answer_query_requests_via_llm_tool": {
+                "id": "step_1_ask_to_answer_query_requests_via_llm_tool",
+                "tool": "ask_to_answer_query_requests_via_llm_tool",
+                "purpose": "Execute ask_to_answer_query_requests_via_llm_tool",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 10800,
+            "output_tokens": 1237
+        }
+    }
+,
+
+    "GET__task": {
+        "description": "GET /task",
+        "start_node": "step_1_GET__task",
+        "nodes": {
+            "step_1_GET__task": {
+                "id": "step_1_GET__task",
+                "tool": "GET__task",
+                "purpose": "Execute GET__task",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 10797,
+            "output_tokens": 1061
+        }
+    }
+,
+
+    "submit_final_answer": {
+        "description": "ALWAYS call this tool to return the final answer.",
+        "start_node": "step_1_submit_final_answer",
+        "nodes": {
+            "step_1_submit_final_answer": {
+                "id": "step_1_submit_final_answer",
+                "tool": "submit_final_answer",
+                "purpose": "Execute submit_final_answer",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 10797,
+            "output_tokens": 1006
+        }
+    }
+,
+
+    "GET__task__by-project__project_id": {
+        "description": "GET /task/by-project/{project_id}",
+        "start_node": "step_1_GET__project",
+        "nodes": {
+            "step_1_GET__project": {
+                "id": "step_1_GET__project",
+                "tool": "GET__project",
+                "purpose": "Execute GET__project",
+                "transitions": {
+                    "default": "step_2_GET__task__by-project__project_id",
+                    "paths": [],
+                    "default_param_mappings": [
+                        {
+                            "from_param": "project_id",
+                            "to_param": "project_id",
+                            "from_step": "step_1_GET__project"
+                        }
+                    ]
+                }
+            },
+            "step_2_GET__task__by-project__project_id": {
+                "id": "step_2_GET__task__by-project__project_id",
+                "tool": "GET__task__by-project__project_id",
+                "purpose": "Execute GET__task__by-project__project_id",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 10803,
+            "output_tokens": 940
+        }
+    }
+,
