@@ -12,6 +12,9 @@ export const extensionUserMenuItems: ExtensionUserMenuItem[] = [];
 
 export interface ExtensionShowComponent { resource: string; Component: React.ComponentType<{ idOverride?: string }>; }
 export const extensionShowComponents: Record<string, React.ComponentType<{ idOverride?: string }>> = {};
+export const extensionEditComponents: Record<string, React.ComponentType<any>> = {};
+export const extensionCreateComponents: Record<string, React.ComponentType<any>> = {};
+export const extensionListComponents: Record<string, React.ComponentType<any>> = {};
 
 // Exception-alert extension hooks (populated by veloiq generate when an exception-alert extension is enabled)
 export const exceptionAlertBannerComponent: React.ComponentType<{ resource: string }> | null = null;

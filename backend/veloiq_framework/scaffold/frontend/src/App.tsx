@@ -31,22 +31,52 @@ import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
-import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources } from "./extensions.gen";
+import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, extensionEditComponents, extensionCreateComponents, extensionListComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources } from "./extensions.gen";
 import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
 
 // Render helpers — check for app-level custom page overrides first, then
-// extension alert-aware wrapper, then fall back to the Dynamic component.
+// extension-provided page overrides (e.g. an extension's own Show component),
+// then extension alert-aware wrapper, then fall back to the Dynamic component.
+//
+// These direct-URL routes (registered below at /{resource}/show/:id etc.) are
+// exactly what a fresh full-page load hits -- e.g. right-click "Open in new
+// tab" on a list row, which does a plain window.open() rather than in-app
+// SPA navigation. In-app pane navigation goes through PrimaryShowRenderer
+// instead, which already checks extensionShowComponents -- these helpers
+// hadn't, so a resource with only an extension-provided custom page (no
+// app-level override in custom_pages.ts) silently rendered the generic
+// Dynamic component whenever its page was opened via a fresh page load.
 const _renderList   = (resource: string, model: any, allModels: any[]) => {
     const C = customListComponents[resource];
     if (C) return <C model={model} allModels={allModels} />;
     if (exceptionAlertAwareResources && exceptionAlertAwareResources.has(resource) && exceptionAlertListWrapperComponent) {
         return createElement(exceptionAlertListWrapperComponent, { resource, model, allModels });
     }
+    const ExtList = extensionListComponents[resource];
+    if (ExtList) return <ExtList model={model} allModels={allModels} />;
     return <DynamicList key={resource} model={model} allModels={allModels} />;
 };
-const _renderShow   = (resource: string, model: any, allModels: any[]) => { const C = customShowComponents[resource];   return C ? <C /> : <DynamicShow model={model} allModels={allModels} />; };
-const _renderCreate = (resource: string, model: any, allModels: any[]) => { const C = customCreateComponents[resource]; return C ? <C model={model} allModels={allModels} /> : <DynamicCreate model={model} allModels={allModels} />; };
-const _renderEdit   = (resource: string, model: any, allModels: any[]) => { const C = customEditComponents[resource];   return C ? <C model={model} allModels={allModels} /> : <DynamicEdit model={model} allModels={allModels} />; };
+const _renderShow   = (resource: string, model: any, allModels: any[]) => {
+    const C = customShowComponents[resource];
+    if (C) return <C />;
+    const ExtShow = extensionShowComponents[resource];
+    if (ExtShow) return <ExtShow />;
+    return <DynamicShow model={model} allModels={allModels} />;
+};
+const _renderCreate = (resource: string, model: any, allModels: any[]) => {
+    const C = customCreateComponents[resource];
+    if (C) return <C model={model} allModels={allModels} />;
+    const ExtCreate = extensionCreateComponents[resource];
+    if (ExtCreate) return <ExtCreate model={model} allModels={allModels} />;
+    return <DynamicCreate model={model} allModels={allModels} />;
+};
+const _renderEdit   = (resource: string, model: any, allModels: any[]) => {
+    const C = customEditComponents[resource];
+    if (C) return <C model={model} allModels={allModels} />;
+    const ExtEdit = extensionEditComponents[resource];
+    if (ExtEdit) return <ExtEdit model={model} allModels={allModels} />;
+    return <DynamicEdit model={model} allModels={allModels} />;
+};
 
 // Stable reference prevents PrimaryShowContext churn on re-renders.
 const PrimaryShowRenderer = ({ model, id, allModels }: PrimaryShowRendererProps) => {
