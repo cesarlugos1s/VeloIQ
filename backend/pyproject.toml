@@ -39,6 +39,16 @@ dependencies = [
     "itsdangerous>=2.0",
     "typing-extensions>=4.9",
     "tomli>=2.0; python_version < '3.11'",
+    # utils/data_mgmt_utils.py and utils/views_utils.py import these
+    # unconditionally at module level (dateparser for date normalization,
+    # plotly for jm_log-adjacent chart rendering) — both utils modules are
+    # core, always-imported helpers (jm_log in particular is used for all
+    # logging per convention), not analytics-extra features, so these need
+    # to be installed unconditionally too. Confirmed via a live crash:
+    # ModuleNotFoundError for both in a host app that only installed the
+    # base package (no [analytics] extra).
+    "dateparser>=1.0",
+    "plotly>=5.0",
 ]
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
@@ -59,7 +69,6 @@ ai = [
 analytics = [
     "pandas>=2.0",
     "numpy>=1.24",
-    "plotly>=5.0",
     "statsmodels>=0.14",
 ]
 all = ["veloiq-framework[postgres,ai,analytics]"]
