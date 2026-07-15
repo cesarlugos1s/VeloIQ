@@ -5,6 +5,7 @@ import curses
 import json
 import re
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -103,6 +104,17 @@ class AppData:
 # ── Project discovery ─────────────────────────────────────────────────────────
 
 def _find_project_root() -> Optional[Path]:
+    # PyInstaller onedir builds put the bundled project one level deeper, at
+    # <_MEIPASS>/app/modules rather than anywhere reachable by walking up
+    # from cwd — Studio's /api/schema 503'd with "Project root not found" in
+    # every packaged exe as a result, confirmed via a live crash. _MEIPASS is
+    # only set when frozen, so this never affects normal dev-mode behavior.
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass is not None:
+        frozen_root = Path(meipass)
+        if (frozen_root / "app" / "modules").exists():
+            return frozen_root
+
     cwd = Path.cwd().resolve()
     for directory in [cwd, *cwd.parents]:
         if (directory / "backend" / "app" / "modules").exists():
