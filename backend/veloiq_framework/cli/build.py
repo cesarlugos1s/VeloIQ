@@ -1,4 +1,5 @@
 """veloiq build — build the host app frontend for production."""
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -34,7 +35,12 @@ def build(frontend_dir):
         raise SystemExit(1)
 
     click.echo(f"🔨 Building frontend: {fdir}")
-    result = subprocess.run(["npm", "run", "build"], cwd=str(fdir))
+    # bare "npm" resolves to npm.cmd on Windows, which subprocess can't
+    # execute without shell=True — shutil.which finds the real executable
+    # (npm.cmd/npm.exe) on every platform. Confirmed via a live crash:
+    # FileNotFoundError: [WinError 2] The system cannot find the file specified.
+    npm = shutil.which("npm") or "npm"
+    result = subprocess.run([npm, "run", "build"], cwd=str(fdir))
     if result.returncode != 0:
         raise SystemExit(result.returncode)
 

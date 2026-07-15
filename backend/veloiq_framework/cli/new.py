@@ -121,8 +121,15 @@ def new(app_name: str, title: str | None, port: int, frontend_port: int,
         click.echo("\n📦 Installing frontend dependencies (npm install) …")
         click.echo(f"   Directory: {frontend_dir}\n")
         try:
+            # bare "npm" resolves to npm.cmd on Windows, which subprocess
+            # can't execute without shell=True — shutil.which finds the
+            # real executable (npm.cmd/npm.exe) on every platform.
+            # Confirmed via a live crash: FileNotFoundError: [WinError 2]
+            # The system cannot find the file specified, even with Node.js
+            # correctly installed and on PATH.
+            npm = shutil.which("npm") or "npm"
             result = subprocess.run(
-                ["npm", "install"],
+                [npm, "install"],
                 cwd=str(frontend_dir),
                 capture_output=True,
                 text=True,
