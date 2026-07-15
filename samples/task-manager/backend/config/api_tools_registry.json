@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-07-11T01:24:09.494203+00:00",
+  "updated_at": "2026-07-14T14:28:25.247186+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -5430,6 +5430,170 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "GET__executions-savings-chart": {
+      "http_method": "GET",
+      "path": "/executions-savings-chart",
+      "summary": "GET /executions-savings-chart",
+      "description": "Monthly usage/savings Plotly chart (HTML) for the Executions Usage & Savings page.\n\nAggregates all four token-stamped execution modes (native SVO/SRO,\ndeterministic plan, hybrid, workflow agent) side by side, in two stacked\nsubplots (tokens, then estimated monetary value).\n\nOptional ``start_date``/``end_date`` (ISO date strings) filter the execution\ndata to a date range.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "start_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "end_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-14T14:28:25.246387+00:00",
+      "status": "active"
+    },
+    "GET__executions-savings-by-plan-chart": {
+      "http_method": "GET",
+      "path": "/executions-savings-by-plan-chart",
+      "summary": "GET /executions-savings-by-plan-chart",
+      "description": "Per-plan (or per-bucket, for plan-less methods) usage/savings Plotly chart (HTML).\n\nSame metrics/traces as the monthly chart, summarised by ``executed_plan_name``\nwhere present, falling back to the bucket's display label for methods that\ndon't register a plan (native SVO/SRO, workflow agent).\n\nOptional ``start_date``/``end_date`` (ISO date strings) filter the execution\ndata to a date range.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "start_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "end_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-14T14:28:25.246387+00:00",
+      "status": "active"
+    },
+    "GET__executions-savings-by-method-chart": {
+      "http_method": "GET",
+      "path": "/executions-savings-by-method-chart",
+      "summary": "GET /executions-savings-by-method-chart",
+      "description": "Per-answering-method breakdown usage/savings Plotly chart (HTML).\n\nOne category row per bucket (native SVO/SRO, deterministic plan, hybrid,\nworkflow agent), aggregated across the whole filtered date range -- a\ndirect side-by-side comparison of how much each answering method uses vs\nsaves, independent of when it ran.\n\nOptional ``start_date``/``end_date`` (ISO date strings) filter the execution\ndata to a date range.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "start_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "end_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-14T14:28:25.246387+00:00",
+      "status": "active"
+    },
+    "GET__executions-savings-summary": {
+      "http_method": "GET",
+      "path": "/executions-savings-summary",
+      "summary": "GET /executions-savings-summary",
+      "description": "KPI summary for the Executions Usage & Savings dashboard cards.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "start_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "end_date",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-14T14:28:25.246387+00:00",
+      "status": "active"
+    },
     "GET__deterministic-plans-savings-summary": {
       "http_method": "GET",
       "path": "/deterministic-plans-savings-summary",
@@ -6723,7 +6887,7 @@
       "http_method": "GET",
       "path": "/ai-vigilance/summary",
       "summary": "GET /ai-vigilance/summary",
-      "description": "Return a combined KPI summary from all three vigilance sources.",
+      "description": "Return a combined KPI summary from all four vigilance sources.",
       "parameters": {
         "path": [],
         "query": [
