@@ -19,6 +19,7 @@ The returned ``app`` is a standard FastAPI instance — you can add your own
 routes, middleware, or dependencies on top.
 """
 import os
+import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -1223,8 +1224,11 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
 
     # --- Dev trace sink (Data Detail Level diagnostics) ---
     # Accepts POSTed trace lines from the frontend and appends them to
-    # /tmp/veloiq_ddl_trace.log so they can be inspected without a browser.
-    _TRACE_FILE = _Path("/tmp/veloiq_ddl_trace.log")
+    # veloiq_ddl_trace.log (in the OS temp dir) so they can be inspected
+    # without a browser. Hardcoding "/tmp" broke this on Windows, where
+    # that path doesn't exist -- tempfile.gettempdir() resolves correctly
+    # on every platform.
+    _TRACE_FILE = _Path(tempfile.gettempdir()) / "veloiq_ddl_trace.log"
 
     @core_api.post("/debug/ddl-trace")
     async def ddl_trace(request: Request):
