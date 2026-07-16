@@ -29,6 +29,7 @@ export {
     useShowEditableForm,
     useShowActionsPreferences,
     useStandardShowTabs,
+    useStandardEditTabs,
     buildShowTabFormOptions,
     useDataDetailLevel,
     DataDetailSlider,

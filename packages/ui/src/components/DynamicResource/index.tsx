@@ -4715,6 +4715,7 @@ export { DynamicShow } from "./pages/DynamicShow";
 export { DynamicCreate } from "./pages/DynamicCreate";
 export { DynamicEdit } from "./pages/DynamicEdit";
 export { useStandardShowTabs } from "./hooks/useStandardShowTabs";
+export { useStandardEditTabs } from "./hooks/useStandardEditTabs";
 export { renderRelationBlock } from "./relations/renderRelationBlock";
 export { useDataDetailLevel } from "./hooks/useDataDetailLevel";
 export { DataDetailSlider } from "./DataDetailSlider";

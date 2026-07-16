@@ -3,56 +3,24 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiUrl, useCan, useGo } from "@refinedev/core";
 import { useForm, DeleteButton } from "@refinedev/antd";
 import { StandardEdit } from "../../StandardCrud";
-import { Button, Divider, Form, Input, Popover, Skeleton, Switch, Tabs, Tooltip, message, theme } from "antd";
+import { Button, Divider, Popover, Switch, Tabs, Tooltip, message } from "antd";
 import { AppstoreOutlined, CopyOutlined, EyeOutlined, SaveFilled, SaveOutlined, SettingOutlined, ApartmentOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { useKeyboardShortcuts } from "../../../hooks/useKeyboardShortcuts";
-import { useModelTone, getModelTone, type ModelTone } from "../../../utils/modelTone";
+import { useModelTone } from "../../../utils/modelTone";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
-import type { FieldDef, ModelDef, ViewConfigRow } from "../types";
+import type { ModelDef } from "../types";
 import { asDisplayText, applyI18nLabelsToModel, applyI18nLabelsToModels, getModuleLabel } from "../utils/i18n";
 import { useRoleFilteredModel } from "../utils/roleAccess";
-import { renderWrappedPageTitle, parseInlineStyle } from "../utils/formatting";
-import { isDarkColor, toneScopeStyle, ToneSharedStyles, renderToneTabLabel } from "../utils/colors";
+import { renderWrappedPageTitle } from "../utils/formatting";
+import { toneScopeStyle, ToneSharedStyles } from "../utils/colors";
 import { renderIconOnlyButtons } from "../utils/buttons";
-import { resolveResourcePath, findModelByName, isFileModel, getRecordId } from "../utils/model";
-import {
-    DETAILS_TAB_NAME,
-    splitRelations,
-    useViewConfigurations,
-    useViewSettings,
-    filterConfigRowsForMode,
-    synthesizeConfigRows,
-    buildConfiguredRelationKeys,
-    buildConfiguredResolvedRelationKeys,
-    buildConfiguredRelationDisplayKeys,
-    isRelationConfiguredForDetails,
-    normalizeRelationViewType,
-    applyRelationViewOverride,
-    applyRelationFieldOverrides,
-} from "../utils/viewConfig";
-import { renderInput } from "../fields/renderInput";
-import { renderFieldValue } from "../fields/renderFieldValue";
-import {
-    DEFAULT_EDIT_RELATION_ROW_ACTIONS,
-    DEFAULT_RELATION_CREATE_ACTIONS,
-    isReverseRelation,
-    getRelationViewType,
-    getRelationTabName,
-    getTabDisplayLabel,
-} from "../relations/helpers";
+import { resolveResourcePath, isFileModel, getRecordId } from "../utils/model";
+import { DEFAULT_EDIT_RELATION_ROW_ACTIONS, DEFAULT_RELATION_CREATE_ACTIONS } from "../relations/helpers";
 import { useMetadataModal } from "../hooks/useMetadataModal";
 import { renderModelHeading } from "../ModelHeading";
-import { renderRelationBlock } from "../../DynamicResource";
-import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
-import { SectionCellContent } from "../SectionCellContent";
-import { usePageSectionsConfig } from "../hooks/usePageSectionsConfig";
-import { useDataDetailLevel } from "../hooks/useDataDetailLevel";
-import { setCurrentDataDetailLevelState } from "../hooks/DataDetailLevelStore";
+import { useStandardEditTabs } from "../hooks/useStandardEditTabs";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
-const requiredMark = (field: FieldDef) =>
-    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 export interface JourneyCallbacks {
     onSave: (record: any) => void;
@@ -75,29 +43,9 @@ export const DynamicEdit: React.FC<{
     const { id: routeId } = useParams();
     const effectiveId = idOverride ?? routeId;
     const [searchParams] = useSearchParams();
-    const { token } = theme.useToken();
     const modelTone = useModelTone(model);
-    const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
-    const relationViewTypeDefaults = useMemo(
-        () => ({
-            show: normalizeRelationViewType(viewSettings?.showViewType || "") || "totals-details",
-            edit: normalizeRelationViewType(viewSettings?.editViewType || "") || "editable-table",
-        }),
-        [viewSettings?.showViewType, viewSettings?.editViewType],
-    );
-    const allRelForDetail = model.relations || [];
-    const dataDetailLevelState = useDataDetailLevel(allRelForDetail, "edit", relationViewTypeDefaults);
-    setCurrentDataDetailLevelState(dataDetailLevelState);
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
-    const { rows: editConfigRows, loading: editConfigLoading } = useViewConfigurations(model.name, "AutomaticEntityForm");
-    const { rows: fallbackConfigRows, loading: fallbackConfigLoading } = useViewConfigurations(model.name, "PrimaryView");
-    const valueBackground = isDarkColor(token.colorBgBase || token.colorBgContainer)
-        ? token.colorFillQuaternary
-        : "#F9FFFF";
-    const labelBackground = isDarkColor(token.colorBgBase || token.colorBgContainer)
-        ? "transparent"
-        : "#ffffff";
     const disableRedirect = searchParams.get("inline") === "1"
         || searchParams.get("redirect") === "false"
         || searchParams.get("redirect") === "0";
@@ -150,7 +98,6 @@ export const DynamicEdit: React.FC<{
         ? asDisplayText(record._label, `${_("Edit")} ${modelDisplayLabel}`)
         : `${_("Edit")} ${modelDisplayLabel}`;
     const recordId = getRecordId(record, model.fields);
-    const effectiveFields = useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
     const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
     const [showRelationActions, setShowRelationActions] = useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
     const [showRelationCreate, setShowRelationCreate] = useState(DEFAULT_RELATION_CREATE_ACTIONS);
@@ -304,42 +251,14 @@ export const DynamicEdit: React.FC<{
             cancelled = true;
         };
     }, [apiUrl, allModelsList, model.name, model.resource]);
-    const appliedRels = dataDetailLevelState.applyToRelations(model.relations || []);
-    const derivedModel = useMemo(
-        () => ({ ...model, relations: appliedRels }),
-        [model, appliedRels],
+    const { tabs: items, layoutConfig } = useStandardEditTabs(
+        model,
+        record,
+        allModelsList,
+        { showActions: showRelationActions, showCreate: showRelationCreate },
+        editFormProps,
     );
-    const { embedded, tabbed } = splitRelations(appliedRels);
-    const labelStyle: React.CSSProperties = {
-        fontSize: token.fontSize,
-        fontWeight: 400,
-        color: token.colorTextSecondary,
-        margin: 0,
-        lineHeight: 1.0,
-    };
-    const rawConfigRows = filterConfigRowsForMode(
-        editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
-        "edit"
-    );
-    const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "edit");
-    const hasConfig = configRows.length > 0;
-    const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
-    const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);
-    const configuredRelationDisplayKeys = buildConfiguredRelationDisplayKeys(model.relations, configRows);
-    const hasConfiguredDetailRelations = configuredResolvedRelationKeys.size > 0 || configuredRelationKeys.size > 0;
-    const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
-
-    // Custom tab names from page config
-    const customTabNames = Array.from(new Set(
-        configRows.filter(r => !!r.tab_name).map(r => r.tab_name as string)
-    ));
-
-    const resourceKey = resolveResourcePath(model.resource || model.name, allModelsList);
-    const { config: pageConfig, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange } = usePageSectionsConfig(
-        configRows,
-        resourceKey,
-        "edit",
-    );
+    const { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig } = layoutConfig;
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
     const canConfigureLayout = canLayoutData?.can !== false;
     const actionsSettingsContent = (
@@ -395,183 +314,6 @@ export const DynamicEdit: React.FC<{
             </Button>
         </div>
     );
-
-    const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
-    const relationTabGroups = new Map<string, { nodes: React.ReactNode[]; tone: ModelTone }>();
-    const allRelations = [...embedded, ...tabbed];
-    if (record && allModels) {
-        allRelations.forEach((rel) => {
-            if (!addTabsForNonConfiguredRelations && !isReverseRelation(rel)) return;
-            const relationModel = findModelByName(allModels, rel.resource);
-            if (!relationModel) return;
-            const relatedModel = rel.otherResource ? findModelByName(allModels, rel.otherResource) : undefined;
-            const fallbackTab = isReverseRelation(rel) ? DETAILS_TAB_NAME : (rel.relationName || rel.label);
-            const tabName = getRelationTabName(rel, "edit", fallbackTab);
-            const resolvedTabName = tabName === DETAILS_TAB_NAME && !isReverseRelation(rel)
-                ? (rel.relationName || rel.label || rel.resource || DETAILS_TAB_NAME)
-                : tabName;
-            if (hasConfiguredDetailRelations && isRelationConfiguredForDetails(rel, configuredResolvedRelationKeys, configuredRelationKeys, configuredRelationDisplayKeys)) return;
-            if (resolvedTabName === DETAILS_TAB_NAME) return;
-            const tone = getModelTone(relatedModel || relationModel || rel.resource);
-            const existing = relationTabGroups.get(resolvedTabName);
-            const nodes = existing?.nodes || [];
-            nodes.push(renderRelationBlock({
-                rel,
-                relationModel,
-                relatedModel,
-                record,
-                mode: "edit",
-                parentResource: model.name,
-                allModels,
-                showActions: showRelationActions,
-                showCreate: showRelationCreate,
-                relationViewTypeDefaults,
-            }));
-            relationTabGroups.set(resolvedTabName, { nodes, tone: existing?.tone || tone });
-        });
-    }
-
-    const relationTabs = Array.from(relationTabGroups.entries()).map(([tabName, group]) => ({
-        key: tabName,
-        label: renderToneTabLabel(getTabDisplayLabel(tabName), group.tone),
-        children: <div>{group.nodes}</div>,
-    }));
-
-    const items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> = [
-        {
-            key: "main_data",
-            label: renderToneTabLabel(_("Details"), modelTone),
-            children: (
-                <div style={{ paddingBottom: 2 }}>
-                    {configLoading && (
-                        <Skeleton active paragraph={{ rows: 6 }} />
-                    )}
-                    {!configLoading && !hasConfig && (
-                    <Form {...editFormProps} size="small">
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 0 }}>
-                            {effectiveFields.filter(f => !f.isPk).map((field) => (
-                                <div
-                                    key={field.key}
-                                    style={{
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        alignItems: "flex-start",
-                                        gap: "4px 6px",
-                                    }}
-                                >
-                                    <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}{requiredMark(field)}</span>
-                                    <div style={{ flex: "1 0 200px", padding: "2px 4px", lineHeight: 1.15, overflowWrap: "anywhere", background: valueBackground, borderRadius: 6 }}>
-                                        <Form.Item
-                                            name={field.key}
-                                            rules={field.required && !field.formula ? [{ required: true }] : []}
-                                            valuePropName={field.type === 'boolean' ? 'checked' : undefined}
-                                            getValueProps={(val) => (field.type === 'date' || field.type === 'datetime') && val ? { value: dayjs(val) } : field.type === 'time' && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }}
-                                            style={{ margin: 0 }}
-                                        >
-                                            {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId)}
-                                        </Form.Item>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Form>
-                    )}
-                    {!configLoading && hasConfig && (() => {
-                        const detailsTab = pageConfig.tabs.find((t) => t.id === "details");
-                        if (!detailsTab) return null;
-                        return (
-                        <Form {...editFormProps} size="small" style={{ position: "relative" }}>
-                            <SectionsGrid
-                                cells={detailsTab.cells}
-                                config={pageConfig}
-                                tabId="details"
-                                renderContent={(cell) => (
-                                    <SectionCellContent
-                                        sectionName={cell.section_name ?? ""}
-                                        sectionRows={getSectionRows(cell.id)}
-                                            model={derivedModel}
-                                        record={record}
-                                        allModels={allModelsList}
-                                        mode="edit"
-                                        showRelationActions={showRelationActions}
-                                        showRelationCreate={showRelationCreate}
-                                        relationViewTypeDefaults={relationViewTypeDefaults}
-                                    />
-                                )}
-                                onConfigChange={onLayoutChange}
-                                isConfiguring={isConfiguring && canConfigureLayout}
-                            />
-                        </Form>
-                        );
-                    })()}
-                    {!configLoading && record && allModels && !hasConfiguredDetailRelations && (
-                        <div style={{ marginTop: 8 }}>
-                            {[...embedded, ...tabbed]
-                                .filter(rel => {
-                                    const fallbackTab = isReverseRelation(rel) ? DETAILS_TAB_NAME : (rel.relationName || rel.label);
-                                    return getRelationTabName(rel, "edit", fallbackTab) === DETAILS_TAB_NAME;
-                                })
-                                .map(rel => {
-                                    const relationModel = findModelByName(allModels, rel.resource);
-                                    if (!relationModel) return null;
-                                    const relatedModel = rel.otherResource ? findModelByName(allModels, rel.otherResource) : undefined;
-                                    return renderRelationBlock({
-                                        rel,
-                                        relationModel,
-                                        relatedModel,
-                                        record,
-                                        mode: "edit",
-                                        parentResource: model.name,
-                                        allModels,
-                                        showActions: showRelationActions,
-                                        showCreate: showRelationCreate,
-                                        relationViewTypeDefaults,
-                                    });
-                                })}
-                        </div>
-                    )}
-                </div>
-            )
-        },
-    ];
-
-    // Custom config tabs (from page config tab_name)
-    const customConfigTabs = customTabNames.map(tabName => {
-        const tabId = `tab::${tabName}`;
-        const tabCells = pageConfig.tabs.find((t) => t.id === tabId)?.cells ?? [];
-        const tabChildren = (
-            <Form {...editFormProps} size="small" style={{ position: "relative" }}>
-                <SectionsGrid
-                    cells={tabCells}
-                    config={pageConfig}
-                    tabId={tabId}
-                    renderContent={(cell) => (
-                        <SectionCellContent
-                            sectionName={cell.section_name ?? ""}
-                            sectionRows={getSectionRows(cell.id)}
-                            model={derivedModel}
-                            record={record}
-                            allModels={allModelsList}
-                            mode="edit"
-                            showRelationActions={showRelationActions}
-                            showRelationCreate={showRelationCreate}
-                            relationViewTypeDefaults={relationViewTypeDefaults}
-                        />
-                    )}
-                    onConfigChange={onLayoutChange}
-                    isConfiguring={isConfiguring}
-                />
-            </Form>
-        );
-        return {
-            key: `custom-tab::${tabName}`,
-            label: renderToneTabLabel(_(tabName), modelTone),
-            children: tabChildren,
-        };
-    });
-
-    items.push(...customConfigTabs);
-    items.push(...relationTabs);
 
     const [activeTabKey, setActiveTabKey] = useState("main_data");
     useEffect(() => {
