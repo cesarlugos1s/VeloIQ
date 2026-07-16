@@ -689,6 +689,26 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
         configs = data.get("configs", {})
         rows: list[dict] = []
 
+        def _to_snake(s: str) -> str:
+            import re as _re
+            s1 = _re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', s)
+            return _re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+        def _find_cfg(vt: str):
+            # Exact match first (configs may be keyed however the config tool wrote
+            # them), then fall back to a snake_case-normalized match on the model
+            # part — the frontend passes model.name (e.g. "ServiceRequest") while
+            # configs are typically keyed by resource slug (e.g. "service_request").
+            exact = configs.get(f"{model_name}:{vt}")
+            if exact:
+                return exact
+            needle = _to_snake(model_name)
+            for key, cfg in configs.items():
+                parts = key.rsplit(":", 1)
+                if len(parts) == 2 and parts[1] == vt and _to_snake(parts[0]) == needle:
+                    return cfg
+            return None
+
         def _emit(sections: list, form: str, tab_name):
             for s in sections or []:
                 for e in s.get("entries", []) or []:
@@ -723,7 +743,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
                     })
 
         for vt, form in (("show", "show"), ("edit", "edit"), ("list", "list"), ("create", "create")):
-            cfg = configs.get(f"{model_name}:{vt}")
+            cfg = _find_cfg(vt)
             if not cfg:
                 continue
             _emit(cfg.get("sections", []), form, None)
