@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Form, Input, Typography, theme } from "antd";
 import dayjs from "dayjs";
 import type { FieldDef, ModelDef, ViewConfigRow, VisibilityCondition } from "./types";
@@ -289,12 +289,32 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         );
     };
 
-    const htmlSnippet = sectionRows[0]?.section_html_snippet || null;
+    // Parse html_snippet: extract <style> blocks to render as real <style> elements
+    // (browsers ignore <style> tags inside <body> when served via dangerouslySetInnerHTML).
+    // The remaining HTML is rendered via dangerouslySetInnerHTML as usual.
+    const rawSnippet = sectionRows[0]?.section_html_snippet || null;
+    const parsedSnippet = useMemo(() => {
+        if (!rawSnippet) return { css: "", html: "" };
+        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+        let css = "";
+        const matches: string[] = [];
+        let match;
+        while ((match = styleRegex.exec(rawSnippet)) !== null) {
+            css += match[1] + "\n";
+            matches.push(match[0]);
+        }
+        let html = rawSnippet;
+        for (const fullTag of matches) {
+            html = html.replace(fullTag, "");
+        }
+        return { css, html };
+    }, [rawSnippet]);
 
     return (
         <div style={{ padding: "4px 6px" }}>
             <Title level={5} style={{ margin: "0 0 4px 0", color: "#1677ff" }}>{_(sectionName)}</Title>
-            {htmlSnippet && <div dangerouslySetInnerHTML={{ __html: htmlSnippet }} />}
+            {parsedSnippet.css && <style dangerouslySetInnerHTML={{ __html: parsedSnippet.css }} />}
+            {parsedSnippet.html && <div dangerouslySetInnerHTML={{ __html: parsedSnippet.html }} />}
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                 <tbody>
                     {Array.from({ length: maxRow }).map((_, rowIndex) => (
