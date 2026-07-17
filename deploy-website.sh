@@ -21,6 +21,7 @@ cp /tmp/veloiq-website-deploy/index.html .
 cp /tmp/veloiq-website-deploy/showcase.html .
 cp /tmp/veloiq-website-deploy/pricing.html .
 cp /tmp/veloiq-website-deploy/contact.html .
+cp /tmp/veloiq-website-deploy/solutions.html .
 cp /tmp/veloiq-website-deploy/styles.css .
 find /tmp/veloiq-website-deploy -maxdepth 1 \
   \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) \
@@ -30,7 +31,7 @@ rm -rf showcase-assets
 cp -r /tmp/veloiq-website-deploy/showcase-assets .
 
 # Stage only website files
-git add index.html showcase.html pricing.html contact.html styles.css showcase-assets
+git add index.html showcase.html pricing.html contact.html solutions.html styles.css showcase-assets
 find . -maxdepth 1 \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) -exec git add {} \;
 
 # Commit only if there are changes
