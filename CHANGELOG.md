@@ -2,6 +2,52 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.5] — 2026-07-18
+
+### Features
+
+- **Online Retail extension pattern** — the framework now documents a
+  standard architecture for adding e-commerce capabilities to existing
+  vertical applications.  New modules (online_store, shopping_cart,
+  orders, payments, customers) follow the GoodRelations Product →
+  Individual → Offering model separation with Schema.org structured
+  data support.
+
+- **Payment gateway abstraction** — `PaymentGateway` ABC with Stripe
+  and PayPal adapters.  Authorize/capture/refund with a unified
+  `GatewayResult` return type.  Adding a new gateway requires only a
+  single adapter class.
+
+- **Segment-aware pricing and promotions** — `customer_segment` field
+  on `ProductPrice` and `ActivePromotion` models supports per-segment
+  pricing without a loyalty app.  `loyalty_only` flag gates promotions
+  behind future loyalty integration.  DateTime-precise effective
+  windows per ARTS ODM.
+
+- **JuiceMantics webhook integration** — `/webhooks/juicemantics/price-update`
+  and `/webhooks/juicemantics/promo-update` endpoints receive pricing
+  and promotion pushes from the JuiceMantics merchandising engine.
+  GS1 GTIN/GLN identifiers resolve to internal product/store IDs.
+
+### Standards
+
+- **Schema.org** — Product, Offer, PriceSpecification structured data
+  on the customer-facing storefront for SEO and marketplace syndication.
+- **GoodRelations** — Product (abstract SKU) → Individual (physical
+  item) → Offering (business promise per store) model separation.
+- **UNSPSC** — Product category classification taxonomy.
+- **ARTS ODM** — RetailPrice and RetailPriceModifier mapping for
+  datetime-precise price/promotion windows.
+- **GS1** — GTIN product identifiers, GLN store location identifiers,
+  EPCIS inventory events.
+
+### Website
+
+- **Omnichannel Retail solutions card** — updated to reflect Online
+  Commerce capabilities (Shopping Cart, Online Payments, Schema.org).
+- **Omnichannel Retail website** — hero, standards badges, module
+  cards, and standards table updated with e-commerce features.
+
 ## [0.9.4] — 2026-07-17
 
 ### Features

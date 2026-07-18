@@ -56,30 +56,18 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.9.4
+## What's New in v0.9.5
 
-- **License-aware menu filtering** — the navigation sidebar automatically hides
-  modules whose licenses have expired or aren't entitled for the current tenant.
-  Fully transparent to end users; works with the built-in licensing resolver or
-  custom entitlement providers.
-- **`useStandardEditTabs` hook** — extension and custom Edit pages can now call
-  `useStandardEditTabs(resource, record)` to get the same tab definitions
-  (Details, Relations, Configurations, Timeline) that `DynamicEdit` uses, and
-  mix in custom tabs without duplicating boilerplate.
-- **Growth KPIs — historical comparison with outlier replacement** — the KPI
-  comparison engine now compares against the historical mean instead of only a
-  fixed target, with automatic outlier detection and relaxed thresholds for
-  more stable KPI signals.
-- **`section_html_snippet` + `section_css_class`** — Show-page sections can
-  now ship self-contained HTML snippets with scoped CSS via config.  Per-section
-  CSS class overrides flow through the factory pipeline into `StandardCrud`
-  without touching frontend code.
-- **PyInstaller & Windows compatibility** — the CLI resolves the project root
-  from `sys._MEIPASS` inside PyInstaller onedir bundles, and `veloiq new` /
-  `veloiq build` find `npm` via `shutil.which` for out-of-the-box Windows support.
-- **Business Applications hub** — a new [solutions page](https://veloiq.dev/solutions.html)
-  organises VeloIQ-powered apps by vertical, with GA4 tracking and polished
-  branding across the site.
+- **Online Retail extension pattern** — documented architecture for adding
+  e-commerce to VeloIQ vertical apps. New modules: online_store, shopping_cart,
+  orders, payments, customers — all following GoodRelations/Schema.org standards.
+- **Payment gateway abstraction** — unified `PaymentGateway` ABC with Stripe and
+  PayPal adapters. Authorize/capture/refund. Add a new gateway in one adapter class.
+- **Segment-aware pricing** — `customer_segment` on prices and promotions supports
+  per-segment discounts without a loyalty app. Webhook integration with the
+  JuiceMantics merchandising engine via GS1 GTIN/GLN identifiers.
+- **Omnichannel Retail website** — expanded to showcase Online Commerce capabilities:
+  shopping cart, checkout, payment processing, and Schema.org structured data.
 
 ## What's New in v0.9.1
 
