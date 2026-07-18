@@ -56,26 +56,30 @@ class Project(TimestampedModel, table=True):
 
 ---
 
-## What's New in v0.9.3
+## What's New in v0.9.4
 
-- **Navigate to related** — select rows on any list page, pick a relation from
-  the dropdown, and jump to the related model's filtered list. Supports forward
-  and reverse relations, recursive multi-hop navigation, and browser-native
-  right-click "open in new tab". The first relation is auto-selected for
-  immediate navigation.
-- **Append related list** — stack filtered related-model lists directly below
-  the current list page instead of navigating away. Each appended list is a
-  fully-functional DynamicList with its own search, sort, filter, multi-select,
-  and bulk actions — and can itself append further lists, enabling a multi-level
-  drill-down workflow without leaving the page.
-- **Right-click context menu** — right-click any row on a list page to open a
-  context menu with the same bulk actions available in the multi-select toolbar
-  (change field value, export CSV, navigate/append related, clone, pin/unpin,
-  delete), plus **Open show page**, **Open in new tab**, and **Open in new
-  window**. The context menu adapts its contrast automatically to light and dark
-  themes.
-- **Backend `__in` operator** — `?field__in=1,2,3` IN-clause filtering on any
-  column in list endpoints.
+- **License-aware menu filtering** — the navigation sidebar automatically hides
+  modules whose licenses have expired or aren't entitled for the current tenant.
+  Fully transparent to end users; works with the built-in licensing resolver or
+  custom entitlement providers.
+- **`useStandardEditTabs` hook** — extension and custom Edit pages can now call
+  `useStandardEditTabs(resource, record)` to get the same tab definitions
+  (Details, Relations, Configurations, Timeline) that `DynamicEdit` uses, and
+  mix in custom tabs without duplicating boilerplate.
+- **Growth KPIs — historical comparison with outlier replacement** — the KPI
+  comparison engine now compares against the historical mean instead of only a
+  fixed target, with automatic outlier detection and relaxed thresholds for
+  more stable KPI signals.
+- **`section_html_snippet` + `section_css_class`** — Show-page sections can
+  now ship self-contained HTML snippets with scoped CSS via config.  Per-section
+  CSS class overrides flow through the factory pipeline into `StandardCrud`
+  without touching frontend code.
+- **PyInstaller & Windows compatibility** — the CLI resolves the project root
+  from `sys._MEIPASS` inside PyInstaller onedir bundles, and `veloiq new` /
+  `veloiq build` find `npm` via `shutil.which` for out-of-the-box Windows support.
+- **Business Applications hub** — a new [solutions page](https://veloiq.dev/solutions.html)
+  organises VeloIQ-powered apps by vertical, with GA4 tracking and polished
+  branding across the site.
 
 ## What's New in v0.9.1
 

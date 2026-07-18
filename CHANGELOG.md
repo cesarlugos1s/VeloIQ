@@ -2,6 +2,135 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.4] — 2026-07-17
+
+### Features
+
+- **License-aware menu filtering** — the navigation sidebar now automatically hides
+  modules whose license has expired or is not entitled for the current tenant.
+  The module disappears from the nav and its routes become inaccessible — fully
+  transparent to end users.  Works with the built-in licensing resolver and
+  custom entitlement providers.  Applies only when the licensing system has been
+  activated; the framework never filters unlicensed modules by default.
+
+- **`useStandardEditTabs` hook** — the tab-generation logic from `DynamicEdit`
+  has been extracted into a reusable hook.  Extension and custom Edit pages can
+  call `useStandardEditTabs(resource, record)` to obtain the same tab
+  definitions (Details, Relations, Configurations, Timeline, etc.) that
+  `DynamicEdit` uses, then mix in their own custom tabs without duplicating the
+  standard set.
+
+- **`section_html_snippet` rendering** — `SectionCellContent` now renders the
+  `html_snippet` field from section configs on Show pages.  Embedded `<style>`
+  blocks are extracted and injected into the document head, letting page-config
+  sections ship self-contained rich HTML snippets with scoped CSS.
+
+- **`section_css_class` pipeline** — page config templates gain a
+  `section_css_class` property that flows through the factory and into
+  `StandardCrud`, allowing per-section CSS class overrides directly from
+  configuration without touching frontend code.
+
+- **Growth KPIs — historical comparison with outlier replacement** — the KPI
+  comparison engine now compares current-period values against the historical
+  mean (instead of only a fixed target), with automatic outlier detection and
+  replacement.  Thresholds are relaxed by default, producing more stable KPI
+  signals in noisy data.
+
+- **Custom HTML sanitization control** — `jm_satinize_custom_html` now accepts
+  an `apply_sanitization` parameter, giving callers explicit control over
+  whether HTML sanitization is applied.  The SQLAdmin `column_list` also uses
+  title resolution for improved readability in the back-office.
+
+- **Business Applications hub** — a new `solutions.html` page showcases
+  VeloIQ-powered applications organised by vertical (Retail & Distribution,
+  Supply Chain, Financial Services, Government & Public Sector, Healthcare
+  & Life Sciences, and Education), with nav links across all website pages.
+
+### Fixes
+
+- **`view_configurations` endpoint** — the `/views/configurations` endpoint
+  now supports `list` and `create` view types in addition to `show` and
+  `edit`, and resolves a case-mismatch issue in configuration lookups.
+
+- **PyInstaller onedir compatibility** — the framework now resolves the
+  project root from `sys._MEIPASS` when running inside a PyInstaller onedir
+  bundle, so the CLI and runtime work correctly in packaged desktop
+  distributions.
+
+- **Windows compatibility** — `veloiq new` and `veloiq build` now resolve
+  `npm` via `shutil.which` instead of relying on POSIX path assumptions,
+  making the CLI work out-of-the-box on Windows.
+
+- **Core dependency declarations** — `dateparser` and `plotly` are now
+  declared as unconditional core dependencies, fixing `ModuleNotFoundError`
+  crashes in host apps that only installed the base package.
+
+- **Scaffold extension registry** — generated apps now check extension
+  Show/Edit/Create/List registries before falling back to `Dynamic*` pages,
+  preventing custom extension overrides from being silently ignored.
+
+- **`section_css_class` vs `css_class`** — `StandardCrud.tsx` now reads the
+  correct `section_css_class` property (not the deprecated `css_class`),
+  matching the factory pipeline behaviour.
+
+- **MultiPane panel sizing on refresh** — replaced the fragile imperative
+  resize effect with `PanelGroup`'s declarative `defaultLayout` prop, so
+  panel sizes persist correctly across page refreshes.  Also fixed DTS build
+  errors (non-null assertions, optional chaining on `allModels`, type cast
+  for `setFilters`).
+
+- **MultiPaneLayout scrollbar** — the layout no longer renders an unnecessary
+  vertical scrollbar when all content fits within the viewport.
+
+- **Duplicate relation blocks** — when a Show and Edit page share the same
+  custom tab configuration, relation blocks are no longer rendered twice.
+
+- **`/debug/ddl-trace` sink path** — the debug endpoint now writes DDL trace
+  output to a `tempfile`-managed sink instead of a hardcoded `/tmp` path,
+  avoiding cross-platform permission issues.
+
+- **SectionCellContent `<style>` blocks** — `<style>` blocks embedded in
+  `html_snippet` fields are now parsed and extracted by `SectionCellContent`,
+  preventing them from being rendered as visible text inside the section body.
+
+### Website
+
+- **Google Analytics 4 tracking** — all website pages now include GA4
+  measurement tags (G-FV2WK2VW5K).
+
+- **Answers Showcase nav link** — the Answers Showcase navigation link now
+  appears on all website pages.
+
+- **Trademark and branding polish** — VeloIQ now includes the ™ symbol
+  across all pages, and app names carry the "VeloIQ" prefix on the
+  solutions hub.
+
+- **Solutions page styling** — compact layout with 3 solution cards per row,
+  reduced whitespace, and smaller cards.  The hero CTA buttons were removed
+  in favour of a CTA band at the bottom; copy refinements across the page.
+
+- **JuiceMantics on Solutions page** — JuiceMantics moved from the index
+  page to the Solutions hub as the first card under Retail & Distribution.
+  Private GitHub repo links were removed from the hub.
+
+- **iqvigilant showcase link** — corrected the iqvigilant showcase URL from
+  `.dev` to `.ai` across all website pages.
+
+### Documentation
+
+- **System Configuration console** — a new section in the configuration
+  reference covers the System Configuration console, its available settings,
+  and how to override them via environment variables.
+
+### Sample App
+
+- **Business rules and journey configuration** — the task-manager sample app
+  now ships with fully populated business rules, journey instances, journey
+  configurations, and an updated API tools registry, providing realistic
+  fixture data for testing and demonstration purposes.
+
+---
+
 ## [0.9.3] — 2026-07-03
 
 ### Features

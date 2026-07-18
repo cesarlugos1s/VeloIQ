@@ -10998,10 +10998,27 @@ var SectionCellContent = ({
       /* @__PURE__ */ jsx("div", { style: { ...valueStyle, flex: "1 0 200px" }, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })
     ] }) }) }, `${item.name}-${item.row}-${item.column}`);
   };
-  const htmlSnippet = sectionRows[0]?.section_html_snippet || null;
+  const rawSnippet = sectionRows[0]?.section_html_snippet || null;
+  const parsedSnippet = useMemo(() => {
+    if (!rawSnippet) return { css: "", html: "" };
+    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    let css = "";
+    const matches = [];
+    let match;
+    while ((match = styleRegex.exec(rawSnippet)) !== null) {
+      css += match[1] + "\n";
+      matches.push(match[0]);
+    }
+    let html = rawSnippet;
+    for (const fullTag of matches) {
+      html = html.replace(fullTag, "");
+    }
+    return { css, html };
+  }, [rawSnippet]);
   return /* @__PURE__ */ jsxs("div", { style: { padding: "4px 6px" }, children: [
     /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _29(sectionName) }),
-    htmlSnippet && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: htmlSnippet } }),
+    parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
+    parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
     /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_48, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_49, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
