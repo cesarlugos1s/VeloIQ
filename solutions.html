@@ -22,6 +22,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Compact layout for Solutions page */
+    .section { padding: 36px 0; }
+    .section-header { margin-bottom: 24px; }
+    .solutions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; max-width: 800px; margin: 0 auto; }
+    .solutions-grid.wide { max-width: 1100px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .sol-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .sol-card-full { max-width: 800px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .sol-card-side { display: flex; align-items: stretch; flex-wrap: wrap; }
+    .sol-card-left { padding: 22px 24px; display: flex; align-items: center; justify-content: center; min-width: 160px; flex: 0 0 auto; }
+    .sol-card-right { padding: 18px 22px 20px; flex: 3; min-width: 260px; }
+    .sol-card-top { padding: 16px 20px; text-align: center; }
+    .sol-card-body { padding: 14px 18px 18px; }
+    .sol-card h3 { font-size: 0.92rem; font-weight: 700; color: #fafafa; }
+    .sol-card h4 { font-size: 0.88rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+    .sol-card p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+    .sol-card .sub { font-size: 0.7rem; color: var(--text-dim); }
+    .sol-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .sol-badge { padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 500; }
+    .sol-badge.accent { background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent); }
+    .sol-badge.muted { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-muted); }
+    .sol-btn { font-size: 0.74rem; padding: 6px 14px; }
+    @media (max-width: 768px) {
+      .solutions-grid, .solutions-grid.wide { grid-template-columns: 1fr; }
+    }
+  </style>
+
 </head>
 <body>
 
@@ -44,7 +71,7 @@
 </nav>
 
 <!-- Solutions Hero -->
-<section class="section" style="text-align:center;padding-bottom:48px">
+<section class="section" style="text-align:center;padding-top:24px;padding-bottom:16px">
   <div class="container">
     <div class="hero-badge">
       <span class="dot"></span>
@@ -66,70 +93,70 @@
 <!-- App Cards by Category -->
 
 <!-- 🏬 Retail & Distribution -->
-<section class="section" style="padding-top:16px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#7c3aed">Retail &amp; Distribution</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:24px;max-width:800px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:800px;margin:0 auto">
 
 <!-- JuiceMantics -->
 <div style="background:var(--bg-card);border:1px solid var(--accent-border);border-radius:12px;overflow:hidden;margin-bottom:24px">
-  <div style="background:rgba(124,58,237,0.06);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">🧃</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">Juice<span style="color:#7c3aed">Mantics</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">Commerce Optimization AI</div>
+  <div style="background:rgba(124,58,237,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🧃</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">Juice<span style="color:#7c3aed">Mantics</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Commerce Optimization AI</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#7c3aed;font-weight:500">GMROI Optimization</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Supply Chain</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Price &amp; Promo</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Assortment</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">End-to-end commercial optimization for Retail, Wholesale, and Manufacturing. Supply chain, pricing, promotions, assortment variety, and market revenue growth — AI-powered, no code required.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">End-to-end commercial optimization for Retail, Wholesale, and Manufacturing. Supply chain, pricing, promotions, assortment variety, and market revenue growth — AI-powered, no code required.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://www.juicemantics.com/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#7c3aed" target="_blank">Visit Site →</a>
+      <a href="https://www.juicemantics.com/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#7c3aed" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
 
 <!-- B2B Wholesale Matrix -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(124,58,237,0.06);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">📦</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ B2B Wholesale <span style="color:#7c3aed">Matrix</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">Wholesale Distribution CRM</div>
+  <div style="background:rgba(124,58,237,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">📦</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ B2B Wholesale <span style="color:#7c3aed">Matrix</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Wholesale Distribution CRM</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#7c3aed;font-weight:500">ARTS ODM</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">GS1 EPCIS</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">SCOR</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">Accounts, product catalog, tier pricing, purchase orders, shipments, and commissions. ARTS ODM / GS1 / SCOR-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Accounts, product catalog, tier pricing, purchase orders, shipments, and commissions. ARTS ODM / GS1 / SCOR-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/b2b-wholesale-matrix/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#7c3aed" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/b2b-wholesale-matrix/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#7c3aed" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
 
 <!-- Omnichannel Retail -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(234,88,12,0.05);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">🏪</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ Omnichannel <span style="color:#ea580c">Retail</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">Inventory & Sentiment Tracking</div>
+  <div style="background:rgba(234,88,12,0.05);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🏪</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ Omnichannel <span style="color:#ea580c">Retail</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Inventory & Sentiment Tracking</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#ea580c;font-weight:500">ARTS ODM</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">GS1</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">NPS/CSAT</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">Stores, inventory, shrinkage, customer sentiment, sales, foot traffic. ARTS ODM / GS1 / NRF-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Stores, inventory, shrinkage, customer sentiment, sales, foot traffic. ARTS ODM / GS1 / NRF-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/omnichannel-retail/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#ea580c" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/omnichannel-retail/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#ea580c" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
@@ -139,30 +166,30 @@
 </section>
 
 <!-- 🏥 Healthcare -->
-<section class="section" style="padding-top:32px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#0891b2">Healthcare</span>
     </div>
     <!-- MedPulse -->
     <div style="max-width:800px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       <div style="display:flex;align-items:stretch;flex-wrap:wrap">
-        <div style="background:#0f1a1e;padding:28px 32px;display:flex;align-items:center;justify-content:center;min-width:200px;flex:1">
+        <div style="background:#0f1a1e;padding:20px 24px;display:flex;align-items:center;justify-content:center;min-width:150px;flex:0 0 auto">
           <div style="text-align:center">
-            <div style="font-size:2rem;margin-bottom:8px">🏥</div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fafafa">VeloIQ™ Med<span style="color:#0891b2">Pulse</span></div>
-            <div style="font-size:0.75rem;color:#8b8b93;margin-top:4px">Clinic & Service Coordinator</div>
+            <div style="font-size:1.5rem;margin-bottom:4px">🏥</div>
+            <div style="font-size:0.98rem;font-weight:700;color:#fafafa">VeloIQ™ Med<span style="color:#0891b2">Pulse</span></div>
+            <div style="font-size:0.7rem;color:var(--text-dim)">Clinic & Service Coordinator</div>
           </div>
         </div>
-        <div style="padding:24px 28px;flex:3;min-width:280px">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <div style="padding:18px 22px;flex:3;min-width:240px">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
             <span style="background:rgba(8,145,178,0.1);border:1px solid rgba(8,145,178,0.25);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:#0891b2;font-weight:500">HL7 FHIR R4</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">SNOMED CT</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">ICD-11</span>
           </div>
-          <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.55;margin-bottom:16px">FHIR R4-native clinic operations — patients, practitioners, appointments, encounters, observations, prescriptions, and locations. 5 pre-configured NL dashboards for clinical and operational analytics.</p>
+          <p style="font-size:0.81rem;color:var(--text-muted);line-height:1.5;margin-bottom:8px">FHIR R4-native clinic operations — patients, practitioners, appointments, encounters, observations, prescriptions, and locations. 5 pre-configured NL dashboards for clinical and operational analytics.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a href="https://cesarlugos1s.github.io/medpulse/" class="btn-primary" style="font-size:0.82rem;padding:8px 18px" target="_blank">Visit Site →</a>
+            <a href="https://cesarlugos1s.github.io/medpulse/" class="btn-primary" style="font-size:0.78rem;padding:6px 14px" target="_blank">Visit Site →</a>
           </div>
         </div>
       </div>
@@ -171,49 +198,49 @@
 </section>
 
 <!-- 💰 Finance & Compliance -->
-<section class="section" style="padding-top:32px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#d4a236">Finance &amp; Compliance</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:24px;max-width:800px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:800px;margin:0 auto">
 
 <!-- Sovereign Vault -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(212,162,54,0.08);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">🏦</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ Sovereign <span style="color:#d4a236">Vault</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">AML Auditing & Compliance</div>
+  <div style="background:rgba(212,162,54,0.08);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🏦</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ Sovereign <span style="color:#d4a236">Vault</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">AML Auditing & Compliance</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(212,162,54,0.1);border:1px solid rgba(212,162,54,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#d4a236;font-weight:500">ISO 20022</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">ACAMS</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">FinCEN</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">KYC, transaction monitoring, case management, SAR filing, approval chains, immutable audit trail. ISO 20022 / ACAMS-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">KYC, transaction monitoring, case management, SAR filing, approval chains, immutable audit trail. ISO 20022 / ACAMS-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/sovereign-vault/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/sovereign-vault/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
 
 <!-- Sovereign Guard -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(220,38,38,0.06);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">🛡️</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ Sovereign <span style="color:#dc2626">Guard</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">CISO Security Operations</div>
+  <div style="background:rgba(220,38,38,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🛡️</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ Sovereign <span style="color:#dc2626">Guard</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">CISO Security Operations</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#dc2626;font-weight:500">ISO 27001</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">NIST CSF 2.0</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">SOC 2</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">Vendor risk, access governance, asset inventory, control testing, findings, incident response. ISO 27001 / NIST CSF / SOC 2-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Vendor risk, access governance, asset inventory, control testing, findings, incident response. ISO 27001 / NIST CSF / SOC 2-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/sovereign-guard/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#dc2626" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/sovereign-guard/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#dc2626" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
@@ -223,29 +250,29 @@
 </section>
 
 <!-- 📈 Sales & RevOps -->
-<section class="section" style="padding-top:16px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#16a34a">Sales &amp; RevOps</span>
     </div>
     <div style="max-width:800px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       <div style="display:flex;align-items:stretch;flex-wrap:wrap">
-        <div style="background:rgba(22,163,74,0.06);padding:28px 32px;display:flex;align-items:center;justify-content:center;min-width:200px;flex:1">
+        <div style="background:rgba(22,163,74,0.06);padding:20px 24px;display:flex;align-items:center;justify-content:center;min-width:150px;flex:0 0 auto">
           <div style="text-align:center">
-            <div style="font-size:2rem;margin-bottom:8px">📈</div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fafafa">VeloIQ™ RevOps <span style="color:#16a34a">Matrix</span></div>
-            <div style="font-size:0.75rem;color:#8b8b93;margin-top:4px">Sales CRM & Commissions</div>
+            <div style="font-size:1.5rem;margin-bottom:4px">📈</div>
+            <div style="font-size:0.98rem;font-weight:700;color:#fafafa">VeloIQ™ RevOps <span style="color:#16a34a">Matrix</span></div>
+            <div style="font-size:0.7rem;color:var(--text-dim)">Sales CRM & Commissions</div>
           </div>
         </div>
-        <div style="padding:24px 28px;flex:3;min-width:280px">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <div style="padding:18px 22px;flex:3;min-width:240px">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
             <span style="background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.25);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:#16a34a;font-weight:500">Salesforce Cloud</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">ASC 606</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">IFRS 15</span>
           </div>
-          <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.55;margin-bottom:16px">Lead-to-revenue CRM with Kanban pipeline, ASC 606-compliant commission plans, tiered payouts, and revenue recognition. 5 NL dashboards for pipeline health and sales performance.</p>
+          <p style="font-size:0.81rem;color:var(--text-muted);line-height:1.5;margin-bottom:8px">Lead-to-revenue CRM with Kanban pipeline, ASC 606-compliant commission plans, tiered payouts, and revenue recognition. 5 NL dashboards for pipeline health and sales performance.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a href="https://cesarlugos1s.github.io/revops-matrix/" class="btn-primary" style="font-size:0.82rem;padding:8px 18px;background:#16a34a" target="_blank">Visit Site →</a>
+            <a href="https://cesarlugos1s.github.io/revops-matrix/" class="btn-primary" style="font-size:0.78rem;padding:6px 14px;background:#16a34a" target="_blank">Visit Site →</a>
           </div>
         </div>
       </div>
@@ -256,29 +283,29 @@
 
 
 <!-- 🏭 Manufacturing -->
-<section class="section" style="padding-top:16px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#f97316">Manufacturing</span>
     </div>
     <div style="max-width:800px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       <div style="display:flex;align-items:stretch;flex-wrap:wrap">
-        <div style="background:rgba(249,115,22,0.05);padding:28px 32px;display:flex;align-items:center;justify-content:center;min-width:200px;flex:1">
+        <div style="background:rgba(249,115,22,0.05);padding:20px 24px;display:flex;align-items:center;justify-content:center;min-width:150px;flex:0 0 auto">
           <div style="text-align:center">
-            <div style="font-size:2rem;margin-bottom:8px">🏭</div>
-            <div style="font-size:1.1rem;font-weight:700;color:#fafafa">VeloIQ™ Industry 4.0 <span style="color:#f97316">MES</span></div>
-            <div style="font-size:0.75rem;color:#8b8b93;margin-top:4px">Manufacturing Execution System</div>
+            <div style="font-size:1.5rem;margin-bottom:4px">🏭</div>
+            <div style="font-size:0.98rem;font-weight:700;color:#fafafa">VeloIQ™ Industry 4.0 <span style="color:#f97316">MES</span></div>
+            <div style="font-size:0.7rem;color:var(--text-dim)">Manufacturing Execution System</div>
           </div>
         </div>
-        <div style="padding:24px 28px;flex:3;min-width:280px">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <div style="padding:18px 22px;flex:3;min-width:240px">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
             <span style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:#f97316;font-weight:500">ISA-95</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">OPC-UA</span>
             <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.72rem;color:var(--text-muted)">OEE</span>
           </div>
-          <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.55;margin-bottom:16px">Production lines, work orders (Kanban), quality inspections, defect logging, maintenance scheduling, OEE monitoring, safety incidents. ISA-95 / OPC-UA-aligned.</p>
+          <p style="font-size:0.81rem;color:var(--text-muted);line-height:1.5;margin-bottom:8px">Production lines, work orders (Kanban), quality inspections, defect logging, maintenance scheduling, OEE monitoring, safety incidents. ISA-95 / OPC-UA-aligned.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a href="https://cesarlugos1s.github.io/industry-4-mes/" class="btn-primary" style="font-size:0.82rem;padding:8px 18px;background:#f97316" target="_blank">Visit Site →</a>
+            <a href="https://cesarlugos1s.github.io/industry-4-mes/" class="btn-primary" style="font-size:0.78rem;padding:6px 14px;background:#f97316" target="_blank">Visit Site →</a>
           </div>
         </div>
       </div>
@@ -287,49 +314,49 @@
 </section>
 
 <!-- 📢 Marketing & Support -->
-<section class="section" style="padding-top:16px">
+<section class="section" style="padding-top:8px">
   <div class="container">
-    <div class="section-header" style="margin-bottom:40px">
+    <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#2563eb">Marketing &amp; Support</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:24px;max-width:800px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:800px;margin:0 auto">
 
 <!-- ROAS Maximizer -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(37,99,235,0.06);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">📢</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ ROAS <span style="color:#2563eb">Maximizer</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">Ad Performance & ROAS Optimization</div>
+  <div style="background:rgba(37,99,235,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">📢</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ ROAS <span style="color:#2563eb">Maximizer</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Ad Performance & ROAS Optimization</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#2563eb;font-weight:500">IAB Tech Lab</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Google Ads</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Meta Ads</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">Campaigns, ad creatives, channels, performance metrics, audience segments, automated optimization rules. IAB / Google Ads / Meta Ads-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Campaigns, ad creatives, channels, performance metrics, audience segments, automated optimization rules. IAB / Google Ads / Meta Ads-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/roas-maximizer/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#2563eb" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/roas-maximizer/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#2563eb" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
 
 <!-- Zero-Seat Helpdesk -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-  <div style="background:rgba(14,165,233,0.06);padding:22px 24px;text-align:center">
-    <div style="font-size:1.6rem;margin-bottom:4px">🎫</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#fafafa">VeloIQ™ Zero-Seat <span style="color:#0ea5e9">Helpdesk</span></div>
-    <div style="font-size:0.73rem;color:var(--text-dim);margin-top:3px">ITIL 4 Support Management</div>
+  <div style="background:rgba(14,165,233,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🎫</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ Zero-Seat <span style="color:#0ea5e9">Helpdesk</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">ITIL 4 Support Management</div>
   </div>
-  <div style="padding:18px 22px 22px">
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
       <span style="background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#0ea5e9;font-weight:500">ITIL 4</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">ITSM</span>
       <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">KCS</span>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px">Tickets (Kanban), SLA management, knowledge base, support teams, escalations, analytics. ITIL 4 / ITSM / KCS-aligned.</p>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Tickets (Kanban), SLA management, knowledge base, support teams, escalations, analytics. ITIL 4 / ITSM / KCS-aligned.</p>
     <div style="display:flex;gap:8px">
-      <a href="https://cesarlugos1s.github.io/zero-seat-helpdesk/" class="btn-primary" style="font-size:0.78rem;padding:7px 14px;background:#0ea5e9" target="_blank">Visit Site →</a>
+      <a href="https://cesarlugos1s.github.io/zero-seat-helpdesk/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#0ea5e9" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
@@ -383,10 +410,10 @@
 </section>
 
 <!-- CTA Band -->
-<section class="cta-band" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:64px 0;text-align:center;margin:0">
+<section class="cta-band" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:40px 0;text-align:center;margin:0">
   <div class="container">
-    <h3 style="font-size:1.5rem;font-weight:700;margin-bottom:10px;letter-spacing:-0.02em">Ready to deploy a vertical application?</h3>
-    <p style="font-size:0.95rem;color:var(--text-muted);margin-bottom:28px">Every app is free, MIT-licensed at the VeloIQ™ layer, and ready to run on your infrastructure. Get in touch to discuss deployment, customization, or building your own vertical.</p>
+    <h3 style="font-size:1.25rem;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Ready to deploy a vertical application?</h3>
+    <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:20px">Every app is free, MIT-licensed at the VeloIQ™ layer, and ready to run on your infrastructure. Get in touch to discuss deployment, customization, or building your own vertical.</p>
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
       <a href="contact.html" class="btn-primary">Contact Us →</a>
       <a href="index.html" class="btn-secondary">Visit VeloIQ™ →</a>
