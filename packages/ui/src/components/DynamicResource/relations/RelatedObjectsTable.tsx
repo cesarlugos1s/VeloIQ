@@ -918,7 +918,7 @@ export const RelatedObjectsTable: React.FC<{
             return labelCache[cacheKey] || raw;
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || raw;
+            return field.options.find((option) => option && option.value === raw)?.label || raw;
         }
         return raw;
     }, [labelCache]);
@@ -1204,7 +1204,7 @@ export const RelatedObjectsTable: React.FC<{
             return labelCache[cacheKey] ?? raw;
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label ?? raw;
+            return field.options.find((option) => option && option.value === raw)?.label ?? raw;
         }
         if (field.type === "date") {
             const parsed = new Date(raw);
@@ -1506,7 +1506,7 @@ export const RelatedObjectsTable: React.FC<{
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);
@@ -1908,7 +1908,7 @@ export const RelatedObjectsTable: React.FC<{
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);
@@ -2110,7 +2110,7 @@ export const RelatedObjectsTable: React.FC<{
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);

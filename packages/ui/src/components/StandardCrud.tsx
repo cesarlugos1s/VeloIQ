@@ -18,6 +18,7 @@ import { ActionsButtonStack, VerticalActionsLayout } from "./DynamicResource/uti
 import { useViewSettings } from "./DynamicResource/utils/viewConfig";
 import { ResponsiveHeaderButtons } from "./DynamicResource/utils/buttons";
 import { usePaneNavigation, PANE_TOOLBAR_HEIGHT } from "../contexts/PaneNavigationContext";
+import { authenticatedFetch } from "../utils/authenticatedFetch";
 
 import { DataDetailSlider } from "./DynamicResource/DataDetailSlider";
 import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
@@ -267,7 +268,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
     useEffect(() => {
         if (!resource) { setListSections(null); return; }
         setCfgLoading(true);
-        fetch(`/api/views/configurations/${resource}`)
+        authenticatedFetch(`/api/views/configurations/${resource}`)
             .then((r) => r.ok ? r.json() : [])
             .then((rows: any[]) => {
                 const listRows = (rows || []).filter((r: any) => r.form_type === "list");

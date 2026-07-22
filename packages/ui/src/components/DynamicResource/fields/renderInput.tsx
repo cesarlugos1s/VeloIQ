@@ -12,7 +12,10 @@ const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((te
 const ReactMarkdown = lazy(() => import("react-markdown").then((m) => ({ default: m.default })));
 
 const MarkdownEditor: React.FC<{ value?: string; onChange?: (v: string) => void }> = ({ value = "", onChange }) => {
-    const [activeTab, setActiveTab] = useState<string>("edit");
+    // Preview shown first -- markdown fields are read most often and edited
+    // occasionally, so land on the rendered view; the user switches to Edit
+    // to change the content.
+    const [activeTab, setActiveTab] = useState<string>("preview");
     return (
         <Tabs
             activeKey={activeTab}
@@ -20,6 +23,17 @@ const MarkdownEditor: React.FC<{ value?: string; onChange?: (v: string) => void 
             size="small"
             style={{ marginBottom: 0 }}
             items={[
+                {
+                    key: "preview",
+                    label: _("Preview"),
+                    children: (
+                        <div style={{ minHeight: 60, padding: "4px 0" }}>
+                            <Suspense fallback={<Skeleton.Input active size="small" style={{ width: 200 }} />}>
+                                <ReactMarkdown>{value}</ReactMarkdown>
+                            </Suspense>
+                        </div>
+                    ),
+                },
                 {
                     key: "edit",
                     label: _("Edit"),
@@ -30,17 +44,6 @@ const MarkdownEditor: React.FC<{ value?: string; onChange?: (v: string) => void 
                             autoSize={{ minRows: 3, maxRows: 18 }}
                             style={{ resize: "vertical" }}
                         />
-                    ),
-                },
-                {
-                    key: "preview",
-                    label: _("Preview"),
-                    children: (
-                        <div style={{ minHeight: 60, padding: "4px 0" }}>
-                            <Suspense fallback={<Skeleton.Input active size="small" style={{ width: 200 }} />}>
-                                <ReactMarkdown>{value}</ReactMarkdown>
-                            </Suspense>
-                        </div>
                     ),
                 },
             ]}

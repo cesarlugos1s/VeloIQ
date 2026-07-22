@@ -26,7 +26,7 @@ export const RelatedObjectPreview: React.FC<{ resource: string; id: number; mode
                                 {field.reference && record?.[field.key] && hasReferenceModel(field.reference, allModels) ? (
                                     <ReferenceField id={record[field.key]} resource={resolveResourcePath(field.referencePath || field.reference, allModels)} />
                                 ) : field.options && record?.[field.key] ? (
-                                    field.options.find((option) => option.value === record[field.key])?.label || record[field.key]
+                                    field.options.find((option) => option && option.value === record[field.key])?.label || record[field.key]
                                 ) : (
                                     record?.[field.key] ?? "-"
                                 )}

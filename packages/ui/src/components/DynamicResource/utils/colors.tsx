@@ -149,6 +149,7 @@ export const getFieldValueColors = (field: FieldDef) => {
     if (cached) return cached;
     const map: Record<string, string> = {};
     field.options.forEach((option, index) => {
+        if (!option) return;
         map[String(option.value)] = VALUE_TAG_COLORS[index % VALUE_TAG_COLORS.length];
     });
     fieldValueColorCache.set(field, map);
@@ -165,7 +166,7 @@ export const getFallbackColor = (value: string) => {
 
 export const renderOptionTag = (field: FieldDef, rawValue: any) => {
     if (rawValue === null || rawValue === undefined) return "-";
-    const option = field.options?.find((entry) => entry.value === rawValue);
+    const option = field.options?.find((entry) => entry && entry.value === rawValue);
     const label = option?.label ?? String(rawValue);
     const colorMap = getFieldValueColors(field);
     const color = colorMap[String(rawValue)] || getFallbackColor(label);

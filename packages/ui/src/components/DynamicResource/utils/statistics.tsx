@@ -129,7 +129,12 @@ export const buildStatsSummary = (
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            // Guard the predicate itself, not just the .find() result -- a
+            // null/undefined entry in field.options (seen from some
+            // dynamically-built option lists) throws inside the predicate
+            // before .find() ever gets to return, which an `?.label` on the
+            // outside doesn't protect against.
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);

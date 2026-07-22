@@ -28,7 +28,7 @@ export const RelationSelect = ({ field, value, onChange, allModels, multiple, se
         pagination: { current: 1, pageSize, mode: "server" }
     });
     const filteredOptions = excludeId !== undefined && excludeId !== null
-        ? (selectProps.options ?? []).filter((opt) => String(opt.value) !== String(excludeId))
+        ? (selectProps.options ?? []).filter((opt) => opt && String(opt.value) !== String(excludeId))
         : selectProps.options;
     const serverTotal = queryResult?.data?.total ?? 0;
     const loadedCount = filteredOptions?.length ?? 0;

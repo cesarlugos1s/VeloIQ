@@ -566,7 +566,7 @@ export const DynamicList: React.FC<{
             return labelCache[cacheKey] || raw;
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || raw;
+            return field.options.find((option) => option && option.value === raw)?.label || raw;
         }
         return raw;
     }, [labelCache]);
@@ -580,7 +580,7 @@ export const DynamicList: React.FC<{
             return labelCache[cacheKey] ?? raw;
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label ?? raw;
+            return field.options.find((option) => option && option.value === raw)?.label ?? raw;
         }
         if (field.type === "date" || field.type === "datetime") {
             const parsed = new Date(raw);
@@ -1575,7 +1575,7 @@ export const DynamicList: React.FC<{
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);
@@ -1976,7 +1976,11 @@ export const DynamicList: React.FC<{
                             const cacheKey = `${field.reference}:${raw}`;
                             label = labelCache[cacheKey] || String(raw);
                         } else if (field.options) {
-                            label = field.options.find((o) => o.value === raw)?.label || String(raw);
+                            // Guard the predicate, not just the .find() result --
+                            // see the identical fix in statistics.tsx's
+                            // formatCategoricalValue for why an outer `?.label`
+                            // alone doesn't protect against a null entry.
+                            label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
                         } else if (field.type === "boolean") {
                             label = raw ? _("Yes") : _("No");
                         } else if (field.type === "date") {
@@ -2199,7 +2203,7 @@ export const DynamicList: React.FC<{
             return labelCache[cacheKey] || String(raw);
         }
         if (field.options) {
-            return field.options.find((option) => option.value === raw)?.label || String(raw);
+            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
         }
         if (field.type === "boolean") return raw ? _("Yes") : _("No");
         if (field.type === "date") return formatDateValue(raw);
@@ -2986,7 +2990,7 @@ export const DynamicList: React.FC<{
             </p>
             <ul style={{ paddingLeft: 20, marginBottom: 8 }}>
                 {bulkActionsToApply.map((actionKey) => {
-                    const label = bulkActionsAvailable.find((a) => a.value === actionKey)?.label ?? actionKey;
+                    const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
                     const extra = actionKey === "__change_field__" && bulkChangeField
                         ? ` → ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}`
                         : "";

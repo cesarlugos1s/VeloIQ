@@ -5319,7 +5319,7 @@ var StandardList = ({ headerButtons, ...props }) => {
       return;
     }
     setCfgLoading(true);
-    fetch(`/api/views/configurations/${resource}`).then((r) => r.ok ? r.json() : []).then((rows) => {
+    authenticatedFetch(`/api/views/configurations/${resource}`).then((r) => r.ok ? r.json() : []).then((rows) => {
       const listRows = (rows || []).filter((r) => r.form_type === "list");
       if (listRows.length === 0) {
         setListSections(null);
@@ -5725,7 +5725,7 @@ var buildStatsSummary = (rows, fields, labelCache) => {
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _10("Yes") : _10("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -5956,6 +5956,7 @@ var getFieldValueColors = (field) => {
   if (cached) return cached;
   const map = {};
   field.options.forEach((option, index) => {
+    if (!option) return;
     map[String(option.value)] = VALUE_TAG_COLORS[index % VALUE_TAG_COLORS.length];
   });
   fieldValueColorCache.set(field, map);
@@ -5970,7 +5971,7 @@ var getFallbackColor = (value) => {
 };
 var renderOptionTag = (field, rawValue) => {
   if (rawValue === null || rawValue === void 0) return "-";
-  const option = field.options?.find((entry) => entry.value === rawValue);
+  const option = field.options?.find((entry) => entry && entry.value === rawValue);
   const label = option?.label ?? String(rawValue);
   const colorMap = getFieldValueColors(field);
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
@@ -8611,7 +8612,7 @@ var RelatedObjectPreview = ({ resource, id, model, allModels, fallbackLabel }) =
       overlayInnerStyle: { width: 720 },
       title: /* @__PURE__ */ jsx("div", { style: { width: "100%" }, children: previewFields.map((field) => /* @__PURE__ */ jsxs("div", { style: { display: "grid", gridTemplateColumns: "180px 1fr", columnGap: 8 }, children: [
         /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: field.label }),
-        /* @__PURE__ */ jsx("span", { style: { whiteSpace: "normal", overflowWrap: "anywhere", wordBreak: "break-word" }, children: field.reference && record?.[field.key] && hasReferenceModel(field.reference, allModels) ? /* @__PURE__ */ jsx(ReferenceField, { id: record[field.key], resource: resolveResourcePath(field.referencePath || field.reference, allModels) }) : field.options && record?.[field.key] ? field.options.find((option) => option.value === record[field.key])?.label || record[field.key] : record?.[field.key] ?? "-" })
+        /* @__PURE__ */ jsx("span", { style: { whiteSpace: "normal", overflowWrap: "anywhere", wordBreak: "break-word" }, children: field.reference && record?.[field.key] && hasReferenceModel(field.reference, allModels) ? /* @__PURE__ */ jsx(ReferenceField, { id: record[field.key], resource: resolveResourcePath(field.referencePath || field.reference, allModels) }) : field.options && record?.[field.key] ? field.options.find((option) => option && option.value === record[field.key])?.label || record[field.key] : record?.[field.key] ?? "-" })
       ] }, field.key)) }),
       children: /* @__PURE__ */ jsx("span", { children: label })
     }
@@ -9370,7 +9371,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
     debounce: 500,
     pagination: { current: 1, pageSize, mode: "server" }
   });
-  const filteredOptions = excludeId !== void 0 && excludeId !== null ? (selectProps.options ?? []).filter((opt) => String(opt.value) !== String(excludeId)) : selectProps.options;
+  const filteredOptions = excludeId !== void 0 && excludeId !== null ? (selectProps.options ?? []).filter((opt) => opt && String(opt.value) !== String(excludeId)) : selectProps.options;
   const serverTotal = queryResult?.data?.total ?? 0;
   const loadedCount = filteredOptions?.length ?? 0;
   const isCapped = !loadAll && serverTotal > loadedCount && loadedCount > 0;
@@ -9551,7 +9552,7 @@ var AsyncSelectInput = ({
 var _26 = window._ || ((text) => text);
 var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
-  const [activeTab, setActiveTab] = useState("edit");
+  const [activeTab, setActiveTab] = useState("preview");
   return /* @__PURE__ */ jsx(
     Tabs,
     {
@@ -9560,6 +9561,11 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       size: "small",
       style: { marginBottom: 0 },
       items: [
+        {
+          key: "preview",
+          label: _26("Preview"),
+          children: /* @__PURE__ */ jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown2, { children: value }) }) })
+        },
         {
           key: "edit",
           label: _26("Edit"),
@@ -9572,11 +9578,6 @@ var MarkdownEditor = ({ value = "", onChange }) => {
               style: { resize: "vertical" }
             }
           )
-        },
-        {
-          key: "preview",
-          label: _26("Preview"),
-          children: /* @__PURE__ */ jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown2, { children: value }) }) })
         }
       ]
     }
@@ -14075,7 +14076,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return labelCache[cacheKey] || raw;
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || raw;
+      return field.options.find((option) => option && option.value === raw)?.label || raw;
     }
     return raw;
   }, [labelCache]);
@@ -14341,7 +14342,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return labelCache[cacheKey] ?? raw;
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label ?? raw;
+      return field.options.find((option) => option && option.value === raw)?.label ?? raw;
     }
     if (field.type === "date") {
       const parsed = new Date(raw);
@@ -14617,7 +14618,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _39("Yes") : _39("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -15013,7 +15014,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _39("Yes") : _39("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -15195,7 +15196,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _39("Yes") : _39("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -17643,7 +17644,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return labelCache[cacheKey] || raw;
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || raw;
+      return field.options.find((option) => option && option.value === raw)?.label || raw;
     }
     return raw;
   }, [labelCache]);
@@ -17656,7 +17657,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return labelCache[cacheKey] ?? raw;
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label ?? raw;
+      return field.options.find((option) => option && option.value === raw)?.label ?? raw;
     }
     if (field.type === "date" || field.type === "datetime") {
       const parsed = new Date(raw);
@@ -18561,7 +18562,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _41("Yes") : _41("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -18950,7 +18951,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             const cacheKey = `${field.reference}:${raw}`;
             label = labelCache[cacheKey] || String(raw);
           } else if (field.options) {
-            label = field.options.find((o) => o.value === raw)?.label || String(raw);
+            label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
           } else if (field.type === "boolean") {
             label = raw ? _41("Yes") : _41("No");
           } else if (field.type === "date") {
@@ -19159,7 +19160,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return labelCache[cacheKey] || String(raw);
     }
     if (field.options) {
-      return field.options.find((option) => option.value === raw)?.label || String(raw);
+      return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
     if (field.type === "boolean") return raw ? _41("Yes") : _41("No");
     if (field.type === "date") return formatDateValue(raw);
@@ -19855,7 +19856,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       children: [
         /* @__PURE__ */ jsx("p", { children: _41("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
         /* @__PURE__ */ jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
-          const label = bulkActionsAvailable.find((a) => a.value === actionKey)?.label ?? actionKey;
+          const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
           return /* @__PURE__ */ jsxs("li", { children: [
             label,
