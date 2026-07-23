@@ -445,17 +445,40 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
 
     @app.get("/i18n/{locale}.json")
     def i18n_catalog(locale: str):
-        """Serve the translation catalogue for *locale* as a JSON dict."""
+        """Serve the translation catalogue for *locale* as a JSON dict.
+
+        Merges two sources: the frontend's built static catalogue (all
+        strings wrapped in ``_()`` in TSX — only present once ``veloiq
+        build`` has run) and the backend PO catalogue (strings wrapped in
+        ``_()`` in Python). This route is an explicit FastAPI route, so in
+        production (``cfg.serve_frontend`` set) it always wins over the
+        frontend dist's own ``i18n/{locale}.json`` static file, which is
+        only reachable via the SPA fallback (``app.router.default``) and
+        therefore never matched here — without this merge the static
+        catalogue would be unreachable and only backend strings would
+        translate.
+        """
+        import json
         from fastapi.responses import JSONResponse
         from veloiq_framework.utils.i18n_utils import (
             _resolve_po_file,
             _load_po_catalog_cached,
         )
+
+        catalog: dict = {}
+        if cfg.serve_frontend is not None:
+            static_catalog_file = Path(cfg.serve_frontend) / "i18n" / f"{locale}.json"
+            if static_catalog_file.exists():
+                try:
+                    catalog.update(json.loads(static_catalog_file.read_text(encoding="utf-8")))
+                except (json.JSONDecodeError, OSError):
+                    pass
+
         po_file = _resolve_po_file(locale)
-        if po_file is None:
-            return JSONResponse({})
-        mtime = int(po_file.stat().st_mtime_ns)
-        catalog = _load_po_catalog_cached(str(po_file), mtime)
+        if po_file is not None:
+            mtime = int(po_file.stat().st_mtime_ns)
+            catalog.update(_load_po_catalog_cached(str(po_file), mtime))
+
         return JSONResponse(catalog)
 
     # Auth endpoints (login, me, register, CRUD for user/role/tenant). The
