@@ -7,6 +7,46 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Runs before the module bundle loads, and loads the catalogue
+      // SYNCHRONOUSLY (deliberately, via a blocking XHR — not fetch()).
+      // Bundled modules (notably @juicemantics/veloiq-ui) don't only read
+      // window._ lazily at render time: many call it once at their own
+      // top-level evaluation time to build plain arrays/objects of already-
+      // translated strings (e.g. `var LABELS = [_30("Original"), ...]`).
+      // Those bake in whatever window._ returns at that instant, forever —
+      // no later catalogue update can reach them. A `<script type="module">`
+      // is always deferred until after the document is parsed, so as long
+      // as this plain, synchronous script (which runs immediately, in
+      // document order) finishes populating the catalogue before that
+      // point, every module-load-time call and every render-time call sees
+      // the real translations, regardless of when each one runs.
+      window.__i18nCatalog = {};
+      window._ = function (text) {
+        return (window.__i18nCatalog && window.__i18nCatalog[text]) || text;
+      };
+      (function () {
+        try {
+          var urlLang = new URLSearchParams(window.location.search).get("lang");
+          if (urlLang) localStorage.setItem("locale", urlLang.split("-")[0].toLowerCase());
+        } catch (e) { /* storage/URL unavailable */ }
+        var lang = "";
+        try { lang = (localStorage.getItem("locale") || "").split("-")[0].toLowerCase(); } catch (e) { /* ignore */ }
+        if (!lang) lang = (navigator.language || "en").split("-")[0].toLowerCase();
+        var urls = lang !== "en" ? ["/i18n/" + lang + ".json", "/i18n/en.json"] : ["/i18n/en.json"];
+        for (var i = 0; i < urls.length; i++) {
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", urls[i], false); // synchronous — see comment above
+            xhr.send(null);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              Object.assign(window.__i18nCatalog, JSON.parse(xhr.responseText));
+              break;
+            }
+          } catch (e) { /* try next URL */ }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

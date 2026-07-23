@@ -2,6 +2,49 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.6] — 2026-07-23
+
+### Fixes
+
+- **`/i18n/{locale}.json` served backend-only translations** — the route
+  always won over the frontend dist's own `i18n/{locale}.json` static file,
+  which is only reachable via the SPA fallback router and therefore never
+  matched once the explicit route existed. In production (`serve_frontend`
+  set) this made the frontend's built translation catalog completely
+  unreachable — only backend PO-catalog strings ever translated, no matter
+  what the frontend catalog contained. The route now merges both sources
+  before responding.
+
+- **New apps' scaffold shipped the same translation catalogue race** —
+  `veloiq new`'s generated `frontend/index.html`/`main.tsx` loaded the
+  catalogue asynchronously and assigned `window._` only after that
+  resolved, but `@juicemantics/veloiq-ui` captures `window._` once at its
+  own module-load time — which happens before that async load could ever
+  finish, since `main.tsx` imports `App` (and everything it depends on)
+  synchronously at the top of the file. The catalogue now loads with a
+  deliberately synchronous `XMLHttpRequest` directly in `index.html`,
+  before the module bundle is even requested.
+
+- **`field.options` null-guard crashes (`@juicemantics/veloiq-ui`)** —
+  several `DynamicResource` components read a field's `options` array with
+  an unguarded predicate/callback (`option.value`, `option.label`); a
+  `null`/`undefined` element in that array threw inside the callback
+  instead of being caught by the surrounding optional-chaining, crashing
+  the whole Show/List page. Guarded every consumer found: `statistics.tsx`
+  (`buildStatsSummary`), `index.tsx` (column stats + bulk action labels),
+  `colors.tsx` (`renderOptionTag` + `getFieldValueColors`),
+  `RelatedObjectsTable.tsx`, `RelatedObjectPreview.tsx`, `RelationSelect.tsx`.
+
+- **List-view page-config fetch always 401'd (`@juicemantics/veloiq-ui`)** —
+  `StandardCrud.tsx` used a raw, unauthenticated `fetch()` against an
+  endpoint that requires auth.
+
+### Improvements
+
+- **Markdown fields show Preview first** — `MarkdownEditor`'s tab order
+  now defaults to Preview, then Edit, since markdown fields are read far
+  more often than they're edited.
+
 ## [0.9.5] — 2026-07-18
 
 ### Features

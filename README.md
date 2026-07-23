@@ -56,6 +56,23 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.6
+
+- **Fix** — `/i18n/{locale}.json` now serves the merged frontend + backend
+  translation catalog instead of backend-only; frontend translations work
+  again in production deployments that set `serve_frontend`.
+- **Fix** — `veloiq new`'s generated app no longer ships the same
+  translation-catalogue race: the scaffold's `index.html` now loads it
+  synchronously, before the frontend bundle even starts evaluating.
+- **Fix** — `field.options` consumers across `DynamicResource` (stats,
+  colors, related-object views, relation selects) no longer crash the
+  whole Show/List page on a stray `null`/`undefined` option.
+- **Fix** — list-view page-config fetch in `StandardCrud` now sends auth
+  instead of always 401ing.
+- **Improvement** — Markdown fields default to the Preview tab first.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.5
 
 - **Online Retail extension pattern** — documented architecture for adding
