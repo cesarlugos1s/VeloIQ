@@ -333,9 +333,41 @@ Reference auth tables in foreign keys as `"veloiq_user.id"`, `"veloiq_role.id"`,
 | POST | `/{resource}` | Create |
 | PUT | `/{resource}/{id}` | Full update |
 | DELETE | `/{resource}/{id}` | Delete |
+| POST | `/{resource}/import-csv` | CSV import (`?dry_run=true\|false`) |
+| GET | `/{resource}/export-csv` | CSV export (respects list filters) |
 
 Responses include an `eid` field (alias for `id`) for frontend compatibility.
 List responses set `x-total-count` and `content-range` headers for Refine pagination.
+
+### CSV import/export (zero-config, every model)
+
+`import-csv` requires an **exact** header match against the model's fields (no fuzzy matching —
+that's a licensed IQVigilant capability, see below) and validates each row through its own
+isolated `Session`, so one bad row never sinks the batch. The primary key column is optional in
+the file — rows are always inserted, never upserted, at this tier. `dry_run=true` validates and
+rolls back every row without committing, returning the same report shape as a real import:
+`{inserted, updated, errors: [{row, message}], total_rows, sample_rows}`.
+
+`export-csv` applies the same filtering as the list route (not a separate unfiltered dump) and
+streams every matching row with raw FK IDs — an export round-trips straight back through import.
+Named-query routers (`create_query_router`) get a matching `export-csv` (headers are each field's
+`key`, not `label`); there is no import counterpart for named queries.
+
+Override the generic loader for a specific model from that module's `factory.py`:
+
+```python
+def register_import_loaders() -> None:
+    from veloiq_framework.import_registry import register_import_loader
+    from .models import Order
+    register_import_loader(Order, lambda row, session: (1, 0))  # (added, updated)
+```
+
+Discovered the same way as `register_*_events()` — no separate wiring. If no loader is
+registered, `import-csv` falls back to the generic path above.
+
+Licensed extensions (e.g. IQVigilant's Data Import Workbench) build AI/fuzzy column mapping,
+FK-lookup resolution, upsert-by-PK, and progress-tracked bulk loads on top of this same
+infrastructure — this OSS tier deliberately stays simple.
 
 ---
 

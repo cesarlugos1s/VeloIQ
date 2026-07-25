@@ -127,7 +127,8 @@
         <h3>Backend, Done</h3>
         <p>
           FastAPI application factory with CORS, JWT auth middleware, and RBAC built in.
-          Automatic CRUD routers, module auto-loading, SQLAdmin back-office at
+          Automatic CRUD routers — with zero-config CSV import/export on every
+          model — module auto-loading, SQLAdmin back-office at
           <code style="color:#a5b4fc;font-size:0.8rem">/admin/</code>,
           and Alembic migrations — all wired up from one function call.
         </p>
@@ -306,6 +307,13 @@
             <div>
               <div class="cap-title">Bulk actions, column config, dark mode</div>
               <div class="cap-desc">Select rows for bulk edit, delete, or CSV export. Show/hide/reorder columns. Light and dark mode with keyboard shortcuts.</div>
+            </div>
+          </li>
+          <li>
+            <span class="cap-check">✓</span>
+            <div>
+              <div class="cap-title">CSV import/export, no setup</div>
+              <div class="cap-desc">Every model gets Import and Export buttons out of the box — dry-run preview before committing, per-row error isolation so one bad row never sinks the batch, and export that respects the current view's filters.</div>
             </div>
           </li>
         </ul>
