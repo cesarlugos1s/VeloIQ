@@ -56,6 +56,25 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.7
+
+- **New** — Zero-config CSV import/export on every model. Every generated
+  `api.py` now exposes `POST {prefix}/import-csv?dry_run=true|false` and
+  `GET {prefix}/export-csv` with no per-model setup: exact-header
+  validation, a dry-run preview, per-row session isolation so one bad row
+  never sinks the batch, and export that respects the current list view's
+  filters so it round-trips straight back through import.
+- **New** — `register_import_loaders()` override hook lets a module plug in
+  custom upsert logic for a specific model instead of the generic
+  insert-only path — discovered the same way as `register_*_events()`.
+- **New** — `@juicemantics/veloiq-ui`'s `DynamicList` gets matching
+  **Import** and **Export** buttons automatically; a new `SampleRowsTable`
+  component renders the dry-run preview and is exported for reuse.
+- **Docs** — CSV import/export reference in
+  [docs/module-authoring.md](docs/module-authoring.md#csv-import--export--the-basic-tier).
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.6
 
 - **Fix** — `/i18n/{locale}.json` now serves the merged frontend + backend

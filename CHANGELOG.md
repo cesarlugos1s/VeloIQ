@@ -2,7 +2,7 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
-## [Unreleased]
+## [0.9.7] — 2026-07-25
 
 ### New
 
