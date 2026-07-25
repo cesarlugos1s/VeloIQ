@@ -28,15 +28,17 @@ Extend or override any route after calling ``create_crud_router``::
         ...
 """
 import base64
+import csv
+import io
 import math
 from typing import Any, Type, TypeVar
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlmodel import Session, SQLModel, func, select
 
-from veloiq_framework.db import get_session
+from veloiq_framework.db import get_engine, get_session
 from veloiq_framework.models import get_pk_field_name, build_model_str_label
 
 T = TypeVar("T", bound=SQLModel)
@@ -298,6 +300,24 @@ def _sanitize(value: Any) -> Any:
     return value
 
 
+def _concise_error_message(exc: Exception, max_len: int = 300) -> str:
+    """Return a short, single-line message for a per-row import error.
+
+    SQLAlchemy wraps DBAPI errors (e.g. a psycopg2 UniqueViolation) in a
+    ``StatementError`` whose default ``str()`` appends the full parameterized
+    SQL statement and every bound parameter value — accurate, but unreadable
+    when a CSV import reports one of these per failed row. ``exc.orig`` is
+    the original DBAPI exception with just the database's own message, which
+    is what's actually useful here.
+    """
+    orig = getattr(exc, "orig", None)
+    message = str(orig) if orig is not None else str(exc)
+    message = " ".join(message.split())  # collapse embedded newlines/whitespace
+    if len(message) > max_len:
+        message = message[: max_len - 1] + "…"
+    return message
+
+
 def _to_dict(obj: SQLModel) -> dict:
     if obj is None:
         return {}
@@ -389,6 +409,230 @@ def create_crud_router(
                 "x-total-count": str(total),
                 "content-range": f"items {_start}-{min(_end, total)}/{total}",
             },
+        )
+
+    # ── Import from CSV / Export to CSV ─────────────────────────────────────────
+    # NOTE: these must be registered before the "/{record_id}" routes below —
+    # FastAPI/Starlette matches routes in registration order, and an untyped
+    # "/{record_id}" path pattern greedily matches any single path segment
+    # (type coercion to pk_type happens after matching, not during route
+    # selection), so a static path registered afterward would be permanently
+    # shadowed and return a 422 instead of ever being reached.
+
+    # Fields never required/accepted as input columns for the generic "Basic"
+    # path: the PK, plus any column that is structurally server-managed (has
+    # a server_default and/or onupdate set) — detected generically rather
+    # than by guessing name conventions, since different apps/models name
+    # these fields differently (created_at/updated_at, creation_date/
+    # modification_date, ...).
+    #
+    # Computed lazily (memoized on first request) rather than here at
+    # router-construction time: accessing mapper.column_attrs forces
+    # SQLAlchemy to fully configure every mapper in the app, which can fail
+    # with "One or more mappers failed to initialize" if create_crud_router()
+    # runs (as it does, from generated api.py) before every module defining
+    # a relationship target has been imported yet. By the time a real HTTP
+    # request arrives, app startup (and configure_mappers()) has completed.
+    _readonly_import_fields_cache: list = [None]
+
+    def _get_readonly_import_fields() -> set[str]:
+        if _readonly_import_fields_cache[0] is None:
+            from sqlalchemy import inspect as _sa_inspect
+            managed: set[str] = set()
+            try:
+                mapper = _sa_inspect(model_class)
+                for col_attr in mapper.column_attrs:
+                    col = col_attr.columns[0]
+                    if col.server_default is not None or col.server_onupdate is not None or col.onupdate is not None:
+                        managed.add(col_attr.key)
+            except Exception:
+                pass
+            _readonly_import_fields_cache[0] = {pk_field} | managed
+        return _readonly_import_fields_cache[0]
+
+    @router.post("/import-csv", summary=f"Import {tablename} from CSV")
+    def import_csv(
+        request: Request,
+        file: UploadFile = File(...),
+        dry_run: bool = Query(False, description="Validate without committing to the database."),
+        session: Session = Depends(get_session),
+    ):
+        """Import rows from an uploaded CSV file.
+
+        If a custom loader is registered for *model_class* (see
+        ``veloiq_framework.import_registry``), every row is delegated to it instead
+        of the generic path below — this is the hook host apps/extensions use to
+        plug in business-key/FK-by-name resolution instead of a plain insert.
+
+        Otherwise (the OSS "Basic" path): the CSV header must match the model's
+        field names exactly (no fuzzy matching, no relation-name resolution — a
+        foreign key column is only accepted as a raw id value under its own exact
+        column name). Rows are validated via Pydantic/SQLModel and inserted in a
+        single batch. ``dry_run=true`` validates and reports without committing.
+        """
+        _check_model_permissions(request, model_class, "POST")
+        user = getattr(request.state, "user", None) or {}
+        user_roles = user.get("roles", [])
+
+        raw = file.file.read()
+        try:
+            text = raw.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = raw.decode("latin-1")
+        reader = csv.DictReader(io.StringIO(text))
+        if reader.fieldnames is None:
+            raise HTTPException(status_code=422, detail="CSV file has no header row")
+
+        from veloiq_framework.import_registry import get_import_loader
+        loader_fn = get_import_loader(model_class)
+
+        errors: list[dict] = []
+        total_rows = 0
+
+        if loader_fn is not None:
+            inserted = 0
+            updated = 0
+            for i, row in enumerate(reader, start=1):
+                total_rows += 1
+                try:
+                    added, upd = loader_fn(row, session)
+                    inserted += added
+                    updated += upd
+                except Exception as exc:
+                    errors.append({"row": i, "message": str(exc)})
+            if dry_run:
+                session.rollback()
+            else:
+                session.commit()
+            return {"inserted": inserted, "updated": updated, "errors": errors, "total_rows": total_rows}
+
+        # Basic OSS path: exact header match required, except the PK and any
+        # server-managed columns, which are *optional* — present when
+        # re-importing a file this same route exported (round-trip, where
+        # the PK header is always included), absent for a fresh insert file.
+        # They are never *required* headers, but a header matching any real
+        # model field (readonly or not) is accepted; only genuinely unknown
+        # column names are rejected.
+        all_fields = set(model_class.model_fields.keys())
+        required_fields = all_fields - _get_readonly_import_fields()
+        file_fields = set(reader.fieldnames)
+        missing = required_fields - file_fields
+        unexpected = file_fields - all_fields
+        if missing or unexpected:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"CSV headers must match model fields exactly (the primary key and any "
+                    f"server-managed columns are optional). Required: {sorted(required_fields)}. "
+                    f"Missing: {sorted(missing)}. Unexpected: {sorted(unexpected)}."
+                ),
+            )
+
+        # Each row is committed (or, for dry_run, flushed then rolled back) in
+        # its own short-lived session — not one batch add_all()+commit() on
+        # the shared request session — so a duplicate-key or other DB-level
+        # constraint violation on one row can't crash or roll back any other
+        # valid row; it's just reported per-row, same as a validation error.
+        # (An earlier version used session.begin_nested() SAVEPOINTs on the
+        # shared session instead; that doesn't reliably roll back on SQLite —
+        # a released savepoint survives session.rollback() there, a known
+        # pysqlite driver quirk — so this uses fully separate sessions per
+        # row instead, which behaves correctly on every backend.)
+        # Using flush() (not just Pydantic validation) also means dry_run
+        # actually catches real DB constraint violations — e.g. re-importing
+        # a row whose PK already exists — while still persisting nothing.
+        # A small sample of successfully-processed rows' final coerced values
+        # (including any DB-assigned default, e.g. an autoincrement PK) is
+        # returned alongside the errors — enough to sanity-check that dates/
+        # numbers/FKs coerced the way you'd expect, without the response
+        # ballooning for large files (the CSV the user just uploaded already
+        # has every row; echoing all of them back adds little beyond that).
+        _SAMPLE_ROW_LIMIT = 10
+        sample_rows: list[dict] = []
+
+        inserted = 0
+        engine = get_engine()
+        for i, row in enumerate(reader, start=1):
+            total_rows += 1
+            filtered = _filter_write_payload(dict(row), model_class, user_roles)
+            coerced = {k: _coerce_value(k, v) for k, v in filtered.items()}
+            # An empty PK column (e.g. a fresh-insert file that kept the
+            # header but left the value blank) should let the DB generate
+            # the value, not be passed through as an empty string.
+            if coerced.get(pk_field) in (None, ""):
+                coerced.pop(pk_field, None)
+            try:
+                obj = model_class.model_validate(coerced)
+            except Exception as exc:
+                errors.append({"row": i, "message": _concise_error_message(exc)})
+                continue
+
+            with Session(engine) as row_session:
+                try:
+                    row_session.add(obj)
+                    row_session.flush()
+                    # Capture the sample before commit/rollback — reading
+                    # attributes off a rolled-back or detached object risks
+                    # DetachedInstanceError; right after flush() every column
+                    # (including DB-assigned defaults) is populated and safe.
+                    if len(sample_rows) < _SAMPLE_ROW_LIMIT:
+                        sample_rows.append(_sanitize(obj.model_dump()))
+                    if dry_run:
+                        row_session.rollback()
+                    else:
+                        row_session.commit()
+                    inserted += 1
+                except Exception as exc:
+                    row_session.rollback()
+                    errors.append({"row": i, "message": _concise_error_message(exc)})
+
+        return {
+            "inserted": inserted,
+            "updated": 0,
+            "errors": errors,
+            "total_rows": total_rows,
+            "sample_rows": sample_rows,
+        }
+
+    @router.get("/export-csv", summary=f"Export {tablename} to CSV")
+    def export_csv(request: Request, session: Session = Depends(get_session)):
+        """Stream every row matching the request's filters as a CSV file.
+
+        Headers are the exact model field names (round-trips with ``import-csv``
+        above). Respects the same query-param filters and ReBAC rules as the list
+        endpoint, unlike the client-side "quick export" of currently-loaded rows.
+        """
+        _check_model_permissions(request, model_class, "GET")
+        user = getattr(request.state, "user", None) or {}
+        user_roles = user.get("roles", [])
+        where_clauses = _build_where_clauses(model_class, request.query_params)
+        rebac_clause = _build_rebac_clause(model_class, user, session)
+        stmt = select(model_class)
+        for clause in where_clauses:
+            stmt = stmt.where(clause)
+        if rebac_clause is not None:
+            stmt = stmt.where(rebac_clause)
+        rows = session.exec(stmt).all()
+        fieldnames = list(model_class.model_fields.keys())
+
+        def _generate():
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate(0)
+            for row in rows:
+                data = _filter_read_fields(row.model_dump(), model_class, user_roles)
+                writer.writerow({k: data.get(k, "") for k in fieldnames})
+                yield buf.getvalue()
+                buf.seek(0)
+                buf.truncate(0)
+
+        return StreamingResponse(
+            _generate(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{tablename}.csv"'},
         )
 
     # ── Get one ───────────────────────────────────────────────────────────────

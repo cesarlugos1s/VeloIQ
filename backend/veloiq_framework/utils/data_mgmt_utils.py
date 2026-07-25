@@ -2831,3 +2831,205 @@ def jm_summarize_df(df, group_cols=None, sum_cols=None, mean_cols=None, exclude_
             summarized_df = df.agg(agg_dict).to_frame().T
 
     return summarized_df
+
+
+# ---------------------------------------------------------------------------
+# Generic import/export helpers
+#
+# These are generalized ports of logic originally written for JuiceMantics'
+# dataload module (best_text_match_for_dataload / match_file_columns_to_fields /
+# prepare_input_file_for_dataload). They live here — not wired into the OSS
+# "Basic" CSV import/export routes in crud.py, which require exact header
+# matches — because both IQVigilant's "Smart" import/export module and
+# JuiceMantics' own dataload module need this logic, and duplicating it in
+# both places would defeat the point of a shared framework utils module.
+# ---------------------------------------------------------------------------
+
+
+def best_text_match_for_generic(text_to_evaluate: str, candidates: list, threshold: int = 70):
+    """Fuzzy-match *text_to_evaluate* against *candidates*, returning the best hit.
+
+    :param text_to_evaluate: The text to find a match for (e.g. an expected
+        model field name).
+    :param candidates: Candidate strings to match against (e.g. CSV column
+        headers).
+    :param threshold: Minimum match score (0-100) to accept a match.
+    :return: ``(match_found, best_match_text, match_probability)``.
+    :rtype: tuple[bool, str | None, int]
+    """
+    from fuzzywuzzy import fuzz
+    from fuzzywuzzy import process as fuzz_process
+
+    best_match_text = None
+    match_probability = 0
+    match_found = False
+
+    text_to_evaluate = text_to_evaluate.strip()
+    if candidates and text_to_evaluate:
+        matches = fuzz_process.extract(text_to_evaluate, candidates, scorer=fuzz.ratio)
+        if matches:
+            best_match_text, match_probability = max(matches, key=lambda item: item[1])
+        if match_probability < threshold:
+            best_match_text = None
+            match_probability = 0
+        else:
+            match_found = True
+
+    return match_found, best_match_text, match_probability
+
+
+def match_columns_to_fields(file_columns: list, expected_fields: list, threshold: int = 70) -> dict:
+    """Match file column headers to expected field names.
+
+    Two-phase matching, same algorithm as JuiceMantics' dataload column
+    mapper: (1) fuzzy name matching claims the best-scoring available column
+    per expected field; (2) any expected field still unmatched is assigned to
+    a remaining unclaimed column in file order (``match_scores`` gets ``-1``
+    as a sentinel meaning "matched by position, not by name").
+
+    :param file_columns: Column headers found in the uploaded file.
+    :param expected_fields: The target model/entity's expected field names.
+    :param threshold: Minimum fuzzy-match score (0-100) to accept a name match.
+    :return: A dict with ``expected_fields``, ``matched_columns``,
+        ``match_scores``, ``file_columns``, and ``constant_values`` (empty
+        strings, for the caller to fill in for fields with no match at all) —
+        the same shape a mapping-preview UI (like IQVigilant's Smart Import)
+        can render directly for user review/confirmation.
+    """
+    matched_columns = []
+    match_scores = []
+
+    used_file_columns: set = set()
+    for field_name in expected_fields:
+        available = [c for c in file_columns if c not in used_file_columns]
+        found, best_match, score = best_text_match_for_generic(field_name, available, threshold)
+        if found and best_match:
+            matched_columns.append(best_match)
+            match_scores.append(score)
+            used_file_columns.add(best_match)
+        else:
+            matched_columns.append("")
+            match_scores.append(0)
+
+    remaining_file_columns = [c for c in file_columns if c not in used_file_columns]
+    remaining_idx = 0
+    for i, col in enumerate(matched_columns):
+        if col == "" and remaining_idx < len(remaining_file_columns):
+            matched_columns[i] = remaining_file_columns[remaining_idx]
+            match_scores[i] = -1
+            remaining_idx += 1
+
+    return {
+        "expected_fields": expected_fields,
+        "matched_columns": matched_columns,
+        "match_scores": match_scores,
+        "file_columns": file_columns,
+        "constant_values": ["" for _ in expected_fields],
+    }
+
+
+def convert_spreadsheet_to_csv(file_path: str) -> str:
+    """Convert an Excel file to CSV, if needed; otherwise return the path unchanged.
+
+    Detection is by file extension (``.xls``/``.xlsx``), matching JuiceMantics'
+    dataload behavior. Primary conversion path is pandas (every cell read as
+    ``str``, no header assumed — header handling is left to the caller);
+    falls back to shelling out to LibreOffice (``soffice --headless
+    --convert-to csv``) if pandas/xlrd fails, e.g. for older/malformed
+    ``.xls`` files pandas can't parse directly.
+
+    :param file_path: Path to the source file.
+    :return: Path to a CSV file (the original path if no conversion was
+        needed, otherwise a sibling ``.csv`` file).
+    """
+    file_extension = os.path.splitext(str(file_path))[1].lower()
+    if file_extension not in (".xls", ".xlsx"):
+        return str(file_path)
+
+    csv_file_path = os.path.splitext(str(file_path))[0] + ".csv"
+
+    def _convert_with_soffice(src_path: str, target_csv_path: str) -> bool:
+        import shutil
+        import subprocess
+
+        soffice_cmd = shutil.which("soffice") or shutil.which("libreoffice")
+        if not soffice_cmd:
+            return False
+
+        output_dir = os.path.dirname(target_csv_path) or "."
+        cmd = [soffice_cmd, "--headless", "--convert-to", "csv", src_path, "--outdir", output_dir]
+        completed = subprocess.run(cmd, capture_output=True, text=True)
+        if completed.returncode != 0:
+            jm_log(1, f"LibreOffice conversion failed: {completed.stderr or completed.stdout}")
+            return False
+
+        generated_csv_path = os.path.splitext(src_path)[0] + ".csv"
+        if generated_csv_path != target_csv_path and os.path.exists(generated_csv_path):
+            try:
+                os.replace(generated_csv_path, target_csv_path)
+            except Exception:
+                pass
+
+        return os.path.exists(target_csv_path)
+
+    try:
+        read_excel_kwargs = {"dtype": str, "header": None}
+        if file_extension == ".xls":
+            read_excel_kwargs["engine"] = "xlrd"
+        df = pd.read_excel(str(file_path), **read_excel_kwargs)
+        df.to_csv(csv_file_path, index=False, header=False, encoding="utf-8")
+        return csv_file_path
+    except Exception as ex:
+        if _convert_with_soffice(str(file_path), csv_file_path):
+            jm_log(1, f"Converted Excel to CSV via LibreOffice fallback: {csv_file_path}")
+            return csv_file_path
+        raise ex
+
+
+def build_progress_counter_update(
+    obj,
+    *,
+    processing_row: int = None,
+    total_added_rows: int = None,
+    total_updated_rows: int = None,
+    total_rows_with_errors: int = None,
+    status: str = None,
+    **extra,
+) -> None:
+    """Apply progress-counter values to any object exposing the matching attributes.
+
+    Deliberately model-agnostic: JuiceMantics' ``Processexec`` and IQVigilant's
+    ``Vigilantprocessexec`` are separate model classes in separate repos, but
+    both expose the same counter attribute names (mirrored by design) — this
+    helper just ``setattr``s whichever of them the caller passes and *obj*
+    actually has, so one implementation serves both.
+
+    :param obj: The process-execution row to update (any object exposing a
+        subset of the counter attributes below).
+    :param processing_row: Row currently being processed.
+    :param total_added_rows: Cumulative count of inserted rows.
+    :param total_updated_rows: Cumulative count of updated rows.
+    :param total_rows_with_errors: Cumulative count of rows that errored.
+    :param status: New status string (e.g. ``"Started"``, ``"Completed"``).
+    :param extra: Any additional attribute=value pairs to set the same way
+        (e.g. ``total_rows=``, ``processing_time=``), for callers whose
+        counter model has a few extra fields beyond the common set above.
+    """
+    values = {
+        "processing_row": processing_row,
+        "total_added_rows": total_added_rows,
+        "total_updated_rows": total_updated_rows,
+        "total_rows_with_errors": total_rows_with_errors,
+        "status": status,
+        **extra,
+    }
+    # JuiceMantics' Processexec carries a legacy typo'd column ("procesing_row",
+    # one "s") that IQVigilant's Vigilantprocessexec fixed to "processing_row" —
+    # try both spellings so callers don't need to know which one their model uses.
+    _ATTR_ALIASES = {"processing_row": ("processing_row", "procesing_row")}
+    for attr, value in values.items():
+        if value is None:
+            continue
+        for candidate in _ATTR_ALIASES.get(attr, (attr,)):
+            if hasattr(obj, candidate):
+                setattr(obj, candidate, value)

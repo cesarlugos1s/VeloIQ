@@ -71,7 +71,9 @@ def load_factory_events(modules_dir: Path) -> None:
             try:
                 factory_mod = importlib.import_module(module_path)
                 for attr_name in dir(factory_mod):
-                    if attr_name.startswith("register_") and attr_name.endswith("_events"):
+                    if (attr_name.startswith("register_") and attr_name.endswith("_events")) or (
+                        attr_name in ("register_import_loaders", "register_system_config")
+                    ):
                         fn = getattr(factory_mod, attr_name)
                         if callable(fn):
                             fn()
@@ -399,7 +401,9 @@ def _load_extension_modules(
             try:
                 factory_mod = importlib.import_module(dotted)
                 for attr_name in dir(factory_mod):
-                    if attr_name.startswith("register_") and attr_name.endswith("_events"):
+                    if (attr_name.startswith("register_") and attr_name.endswith("_events")) or (
+                        attr_name in ("register_import_loaders", "register_system_config")
+                    ):
                         fn = getattr(factory_mod, attr_name)
                         if callable(fn):
                             fn()

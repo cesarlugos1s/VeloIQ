@@ -47,7 +47,7 @@ import {
     Menu,
     message
 } from "antd";
-import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, FilePdfOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, FilePdfOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { HierarchyView } from "../HierarchyView";
@@ -134,6 +134,9 @@ import { AnalysisChart } from "./analysis/AnalysisChart";
 import { CrosstabTable } from "./analysis/CrosstabTable";
 import { PolymorphicRelatedObjectsTable, RelatedObjectsTable } from "./relations/RelatedObjectsTable";
 import { MetadataModal } from "./MetadataModal";
+import { ImportCsvModal } from "./ImportCsvModal";
+import { SampleRowsTable } from "./SampleRowsTable";
+export { SampleRowsTable };
 import { useMetadataModal } from "./hooks/useMetadataModal";
 import { useShowEditableForm } from "./hooks/useShowEditableForm";
 import { buildShowTabFormOptions } from "./hooks/buildShowTabFormOptions";
@@ -433,6 +436,8 @@ export const DynamicList: React.FC<{
     const [rankingMode, setRankingMode] = useState<"none" | "top" | "bottom">("none");
     const [rankingFieldKey, setRankingFieldKey] = useState<string | null>(null);
     const [rankingN, setRankingN] = useState<number>(10);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
     const [exportRequested, setExportRequested] = useState(false);
     const [isStatsFlipped, setIsStatsFlipped] = useState(false);
     const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = useState(false);
@@ -2212,6 +2217,11 @@ export const DynamicList: React.FC<{
         return String(raw);
     }, [labelCache]);
 
+    // Client-side "as shown" export — resolves FK values to their human labels
+    // and formats dates/booleans/options the same way the table displays them,
+    // exporting only whatever rows are currently loaded/filtered on screen.
+    // Deliberately does NOT round-trip with Import CSV (which needs raw FK ids
+    // under exact model field names) — see the server-side export above for that.
     useEffect(() => {
         if (!exportRequested || isAllRowsLoading) return;
         const escapeCsv = (value: string) => {
@@ -3044,13 +3054,66 @@ export const DynamicList: React.FC<{
         </Tooltip>
     );
 
+    // Streams the full server-side filtered dataset (exact field-name headers,
+    // raw FK ids) — round-trips with Import CSV below, unlike a client-side
+    // dump of whatever rows happen to be loaded in the browser.
+    const handleExport = useCallback(async () => {
+        setExportLoading(true);
+        try {
+            const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
+            const response = await authenticatedFetch(`${apiUrl}/${resourcePath}/export-csv`);
+            if (!response.ok) {
+                message.error(_("Export failed."));
+                return;
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${resourcePath}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } finally {
+            setExportLoading(false);
+        }
+    }, [apiUrl, model, allModels]);
+
     const exportButton = !isEmbedded ? (
-        <Tooltip title={_("Export CSV")}>
+        <Tooltip title={_("Export to CSV (raw values, re-importable)")}>
             <Button
                 size="small"
                 icon={<DownloadOutlined />}
+                onClick={handleExport}
+                loading={exportLoading}
+            />
+        </Tooltip>
+    ) : null;
+
+    // "As shown" export — same icon family as exportButton above but
+    // EyeOutlined instead of DownloadOutlined, so the two are visually
+    // distinguishable at a glance, not just by tooltip text. CameraOutlined
+    // (not EyeOutlined) specifically to avoid colliding with the "View"/
+    // "Open show page" button elsewhere on this page, which already uses
+    // EyeOutlined for a completely different action.
+    const quickExportButton = !isEmbedded ? (
+        <Tooltip title={_("Export to CSV (as shown on screen)")}>
+            <Button
+                size="small"
+                icon={<CameraOutlined />}
                 onClick={() => setExportRequested(true)}
                 loading={exportRequested && isAllRowsLoading}
+            />
+        </Tooltip>
+    ) : null;
+
+    const importButton = !isEmbedded && !model.isNamedQuery ? (
+        <Tooltip title={_("Import CSV")}>
+            <Button
+                size="small"
+                icon={<UploadOutlined />}
+                onClick={() => setImportModalOpen(true)}
             />
         </Tooltip>
     ) : null;
@@ -3212,14 +3275,31 @@ export const DynamicList: React.FC<{
             {associateExistingFkButton}
             {createRelationButton}
             {createNewAndRelateButton}
-            <Tooltip title={_("Export CSV")}>
+            <Tooltip title={_("Export to CSV (raw values, re-importable)")}>
                 <Button
                     size="small"
                     icon={<DownloadOutlined />}
+                    onClick={handleExport}
+                    loading={exportLoading}
+                />
+            </Tooltip>
+            <Tooltip title={_("Export to CSV (as shown on screen)")}>
+                <Button
+                    size="small"
+                    icon={<CameraOutlined />}
                     onClick={() => setExportRequested(true)}
                     loading={exportRequested && isAllRowsLoading}
                 />
             </Tooltip>
+            {!model.isNamedQuery && (
+                <Tooltip title={_("Import CSV")}>
+                    <Button
+                        size="small"
+                        icon={<UploadOutlined />}
+                        onClick={() => setImportModalOpen(true)}
+                    />
+                </Tooltip>
+            )}
         </div>
     ) : null;
 
@@ -4666,6 +4746,8 @@ export const DynamicList: React.FC<{
             {columnsToggleButton}
             {listToggleButton}
             {exportButton}
+            {quickExportButton}
+            {importButton}
             {/* Named queries have no create endpoint — suppress the Create button. */}
             {!model.isNamedQuery && renderIconOnlyButtons(defaultButtons)}
         </>
@@ -4675,6 +4757,15 @@ export const DynamicList: React.FC<{
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             {bulkConfirmationModal}
+            {!model.isNamedQuery && (
+                <ImportCsvModal
+                    open={importModalOpen}
+                    onClose={() => setImportModalOpen(false)}
+                    apiUrl={apiUrl}
+                    resourcePath={resourceIdentifier}
+                    onImported={() => invalidate({ resource: model.resource || model.name, invalidates: ["list"] })}
+                />
+            )}
             {isRelationView ? (
                 <VerticalActionsLayout position="top-right" onBarMount={setActionsBarEl}>
                     <List

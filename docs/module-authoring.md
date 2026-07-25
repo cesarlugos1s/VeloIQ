@@ -356,11 +356,87 @@ router = create_crud_router(Order)
 | POST | `/order` | Create |
 | PUT | `/order/{id}` | Full update |
 | DELETE | `/order/{id}` | Delete |
+| POST | `/order/import-csv` | CSV import (`?dry_run=true\|false`) |
+| GET | `/order/export-csv` | CSV export (respects list filters) |
 
 Response headers `x-total-count` and `content-range` are set on list responses
 to support the Refine data provider pagination convention.
 
 **Do not edit `api.py`.**  It is overwritten by `veloiq generate`.
+
+### CSV import & export — the "Basic" tier
+
+Every generated `api.py` also gets zero-config CSV import/export, with no
+setup required beyond the model itself:
+
+- **`GET {prefix}/export-csv`** — streams every row matching the current
+  list view's filters (same `_build_where_clauses`/ReBAC filtering as the
+  list route — it is not a separate, unfiltered dump) as CSV. The header
+  row is the model's exact field names; foreign keys are exported as raw
+  IDs, never resolved labels, so the file round-trips straight back through
+  import.
+- **`POST {prefix}/import-csv?dry_run=true|false`** — requires an **exact**
+  header match against the model's fields (no fuzzy matching, no column
+  reordering tolerance — this tier is deliberately simple). The primary key
+  column is optional in the file: present-and-matching rows are still
+  inserted as new rows (no upsert-by-PK at this tier). `dry_run=true`
+  validates and rolls back every row without committing, returning the same
+  report shape used for the real import so the frontend has one code path
+  for preview and commit. Each row is inserted through its own isolated
+  `Session`, so one bad row (a type-coercion failure, a FK violation, a
+  unique-constraint clash) never aborts the rows around it — it's recorded
+  as a per-row error and the batch continues.
+
+Response shape for both `dry_run=true` and `dry_run=false`:
+
+```json
+{
+  "inserted": 2,
+  "updated": 0,
+  "errors": [ { "row": 14, "message": "..." } ],
+  "total_rows": 601,
+  "sample_rows": [ { "id": 1000, "name": "..." } ]
+}
+```
+
+The `@juicemantics/veloiq-ui` `DynamicList` header ships matching **Import**
+and **Export** buttons that call these routes directly — no extra
+configuration needed on a model to get them.
+
+**Overriding the loader for a specific model.**  A module (host app or
+extension) can register a custom row-loader that replaces the generic
+validate-and-insert path — e.g. to preserve hand-written upsert/business
+logic for a model instead of the framework's default insert-only behaviour.
+Add to the module's `factory.py`:
+
+```python
+def register_import_loaders() -> None:
+    from veloiq_framework.import_registry import register_import_loader
+    from .models import Order
+
+    def _load_order(row: dict, session) -> tuple[int, int]:
+        # return (added, updated) counts for this one row
+        ...
+
+    register_import_loader(Order, _load_order)
+```
+
+`register_import_loaders()` is discovered the same way as
+`register_*_events()` — no separate wiring needed. If no loader is
+registered for a model, `import-csv` falls back to the generic path
+described above.
+
+**Named queries** (`create_query_router`) get the same `GET
+{prefix}/export-csv` route (headers are each field's `key`, not its
+display `label`) — there is no import counterpart for named queries, since
+a query has no single owning table to insert into.
+
+**Need more than this?**  This tier is deliberately simple: exact headers,
+insert-only, raw FK IDs, no AI. Column-mapping, fuzzy matching, foreign-key
+resolution by lookup field, dry-run-with-suggested-fixes, and
+progress-tracked bulk loads for large files are a licensed IQVigilant
+capability — see [open-core.md](open-core.md) and IQVigilant's own docs for
+the "Data Import Workbench".
 
 ### Framework meta endpoint — `POST /api/_meta/bulk-read`
 

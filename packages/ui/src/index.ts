@@ -33,6 +33,7 @@ export {
     buildShowTabFormOptions,
     useDataDetailLevel,
     DataDetailSlider,
+    SampleRowsTable,
 } from "./components/DynamicResource";
 
 export type {

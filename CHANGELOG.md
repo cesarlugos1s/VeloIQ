@@ -2,6 +2,35 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [Unreleased]
+
+### New
+
+- **Zero-config CSV import/export ("Basic" tier)** — every `create_crud_router`
+  generated `api.py` now exposes `POST {prefix}/import-csv?dry_run=true|false`
+  and `GET {prefix}/export-csv` with no per-model setup. Import requires an
+  exact header match against the model's fields (no fuzzy matching at this
+  tier), validates and inserts each row in its own isolated `Session` so one
+  bad row never sinks the batch, and supports a `dry_run` preview that
+  validates and rolls back without committing. Export streams every row
+  matching the current list view's filters (same filtering as the list
+  route) with raw FK IDs, so an export round-trips straight back through
+  import. Named-query routers (`create_query_router`) get the matching
+  `export-csv` route. See
+  [docs/module-authoring.md](docs/module-authoring.md#csv-import--export--the-basic-tier)
+  for the full reference, including the `register_import_loaders()` override
+  hook for models that need custom upsert logic instead of the generic
+  insert-only path.
+- **`@juicemantics/veloiq-ui`** — `DynamicList` header gains **Import** and
+  **Export** buttons wired to the new routes automatically; a
+  `SampleRowsTable` component is now exported for anything that needs to
+  render a preview table from an array of records.
+- Licensed extensions (e.g. IQVigilant) can build a richer import experience
+  — AI/fuzzy column mapping, FK resolution, dry-run-with-suggested-fixes,
+  progress-tracked bulk loads — on top of this same infrastructure; the
+  "Basic" tier documented here deliberately stays simple (exact headers,
+  insert-only, no AI).
+
 ## [0.9.6] — 2026-07-23
 
 ### Fixes

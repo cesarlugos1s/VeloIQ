@@ -12,12 +12,14 @@ CRUD router (``x-total-count``, ``content-range``, ``eid`` alias).
 """
 from __future__ import annotations
 
+import csv
+import io
 import math
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlmodel import Session, func, select
 
 from veloiq_framework.crud import (
@@ -168,6 +170,56 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
                 "x-total-count": str(total),
                 "content-range": f"items {_start}-{min(_end, total)}/{total}",
             },
+        )
+
+    # ------------------------------------------------------------------
+    # GET /export-csv — export all matching rows to CSV
+    # ------------------------------------------------------------------
+    # NOTE: must be registered before "/{record_id}" below — an untyped path
+    # pattern like "/{record_id}" greedily matches any single path segment at
+    # the routing layer (type coercion happens after matching, not during
+    # route selection), so a static path registered afterward would be
+    # permanently shadowed.
+
+    @router.get("/export-csv", summary=f"Export {q.name} to CSV")
+    def export_csv(request: Request, session: Session = Depends(get_session)):
+        """Stream every row matching the request's filters as a CSV file.
+
+        Headers are each field's stable ``key`` (not the presentation
+        ``label``, which may contain spaces/punctuation) — consistent with the
+        model export's exact-field-name convention, so the file stays a clean
+        machine-readable dump even though named queries have no import
+        counterpart to round-trip with.
+        """
+        _rbac_check(request)
+        user = getattr(request.state, "user", None) or {}
+
+        base_stmt = q.query_factory(session, user)
+        for clause in _build_query_filters(request.query_params):
+            base_stmt = base_stmt.where(clause)
+        stmt = _apply_sort(base_stmt, None, None)
+        rows = session.execute(stmt).all()
+
+        fieldnames = [f.key for f in q.fields]
+
+        def _generate():
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate(0)
+            for row in rows:
+                data = _row_to_dict(row)
+                writer.writerow({k: data.get(k, "") for k in fieldnames})
+                yield buf.getvalue()
+                buf.seek(0)
+                buf.truncate(0)
+
+        return StreamingResponse(
+            _generate(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{q.name}.csv"'},
         )
 
     # ------------------------------------------------------------------

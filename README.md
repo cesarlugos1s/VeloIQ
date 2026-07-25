@@ -167,6 +167,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 **Backend** — FastAPI · SQLModel · SQLAdmin · Alembic
 - FastAPI application factory with CORS, JWT auth middleware, and RBAC built in
 - Automatic CRUD router generation (`create_crud_router`) — list, get, create, update, delete
+- Zero-config CSV import/export on every model (`import-csv`/`export-csv`) — exact-header validation, dry-run preview, per-row error isolation, and export respects the current list view's filters
 - Module auto-loader — drop a `models.py` in `app/modules/<name>/` and it's live
 - SQLAdmin back-office at `/admin/` with zero configuration
 - Alembic migrations pre-wired and managed by `veloiq db upgrade`
