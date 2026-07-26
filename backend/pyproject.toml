@@ -49,6 +49,21 @@ dependencies = [
     # base package (no [analytics] extra).
     "dateparser>=1.0",
     "plotly>=5.0",
+    # Same story as dateparser/plotly above, found the same way (a host app
+    # installing only the base package hit ModuleNotFoundError at import
+    # time): data_mgmt_utils.py does `from numpy.char import isnumeric`
+    # unconditionally (numpy was previously only under [analytics], moved
+    # here instead of duplicated there), and views_utils.py does
+    # `import requests` unconditionally (never declared anywhere before).
+    "numpy>=1.24",
+    "requests>=2.28",
+    # Same story again: views_utils.py does `import pandas` unconditionally
+    # (previously only under [analytics], moved here instead of duplicated
+    # there). Confirmed via a full import sweep of every iqvigilant module
+    # against a base-only install: 29 modules failed on this one alone.
+    # statsmodels stays analytics-only -- its one call site already guards
+    # the import in a try/except (seasonal_decompose = None on failure).
+    "pandas>=2.0",
 ]
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
@@ -67,8 +82,6 @@ ai = [
     "langgraph>=0.1",
 ]
 analytics = [
-    "pandas>=2.0",
-    "numpy>=1.24",
     "statsmodels>=0.14",
 ]
 all = ["veloiq-framework[postgres,ai,analytics]"]
