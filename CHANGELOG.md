@@ -31,6 +31,21 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   "Basic" tier documented here deliberately stays simple (exact headers,
   insert-only, no AI).
 
+### Fixes
+
+- **`numpy`, `pandas`, and `requests` moved to core dependencies** —
+  `utils/data_mgmt_utils.py` and `utils/views_utils.py` import all three
+  unconditionally at module level (both utils modules are core,
+  always-imported helpers; `jm_log` in particular is used for all logging
+  per convention), but `numpy`/`pandas` previously lived only under the
+  `[analytics]` extra and `requests` was never declared anywhere. A host
+  app installing only the base package hit `ModuleNotFoundError` the
+  moment any module reached one of these utils — confirmed via a full
+  import sweep of every module in a licensed extension against a
+  base-only install: `pandas` alone broke 29 of them. `statsmodels` stays
+  `[analytics]`-only since its one call site already guards the import in
+  a `try`/`except`.
+
 ## [0.9.6] — 2026-07-23
 
 ### Fixes
