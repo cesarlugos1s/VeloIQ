@@ -56,8 +56,11 @@ const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number }> =
         setError("");
         try {
             const apiUrl = typeof API_URL === "string" ? API_URL : "";
-            // chartUrl may be absolute (/api/...) or relative — prepend API_URL base if needed
-            const fullUrl = chartUrl.startsWith("http") ? chartUrl : `${apiUrl}${chartUrl}`;
+            // chartUrl may be absolute (/api/...) or relative — prepend API_URL base if needed,
+            // but avoid double-prefixing when chartUrl already starts with the API base
+            // (some seeded chart registries store the /api-prefixed path directly).
+            const chartPath = apiUrl && chartUrl.startsWith(`${apiUrl}/`) ? chartUrl.slice(apiUrl.length) : chartUrl;
+            const fullUrl = chartPath.startsWith("http") ? chartPath : `${apiUrl}${chartPath}`;
             const sep = fullUrl.includes("?") ? "&" : "?";
             const lang = (() => {
                 try {

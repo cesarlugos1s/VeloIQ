@@ -22809,7 +22809,8 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
     setError("");
     try {
       const apiUrl = typeof API_URL2 === "string" ? API_URL2 : "";
-      const fullUrl = chartUrl.startsWith("http") ? chartUrl : `${apiUrl}${chartUrl}`;
+      const chartPath = apiUrl && chartUrl.startsWith(`${apiUrl}/`) ? chartUrl.slice(apiUrl.length) : chartUrl;
+      const fullUrl = chartPath.startsWith("http") ? chartPath : `${apiUrl}${chartPath}`;
       const sep = fullUrl.includes("?") ? "&" : "?";
       const lang = (() => {
         try {
