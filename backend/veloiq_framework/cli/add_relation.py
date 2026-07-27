@@ -229,6 +229,16 @@ def _add_many_to_many(
 ) -> None:
     link_class = f"{src_class}{tgt_class}Link"
     link_table = f"{src_table}_{tgt_table}_link"
+    # Self-referential many-to-many (source and target are the same table): using
+    # f"{src_table}_id" for both columns would collide into a single column, which
+    # can't represent a self-referential relation and silently drops half the link
+    # table's primary key. Disambiguate with a "related_" prefix on the target side,
+    # and add explicit primaryjoin/secondaryjoin so SQLAlchemy can tell which column
+    # is which side of the relationship — mirroring the remote_side disambiguation
+    # _add_fk_relation already does for self-referential fk relations.
+    is_self_ref = src_table == tgt_table
+    src_col = f"{src_table}_id"
+    tgt_col = f"related_{tgt_table}_id" if is_self_ref else f"{tgt_table}_id"
 
     src_text = src_file.read_text(encoding="utf-8")
 
@@ -238,20 +248,28 @@ def _add_many_to_many(
         link_block = (
             f"\n\nclass {link_class}(SQLModel, table=True):\n"
             f'    __tablename__ = "{link_table}"\n'
-            f'    {src_table}_id: Optional[int] = Field(default=None, foreign_key="{src_table}.id", primary_key=True)\n'
-            f'    {tgt_table}_id: Optional[int] = Field(default=None, foreign_key="{tgt_table}.id", primary_key=True)\n'
+            f'    {src_col}: Optional[int] = Field(default=None, foreign_key="{src_table}.id", primary_key=True)\n'
+            f'    {tgt_col}: Optional[int] = Field(default=None, foreign_key="{tgt_table}.id", primary_key=True)\n'
         )
 
         kwargs = _cardinality_kwargs(min_items, max_items)
         kwargs.append(f'back_populates="{back_name}"')
         kwargs.append(f"link_model={link_class}")
+        if is_self_ref:
+            kwargs.append(
+                'sa_relationship_kwargs={'
+                f'"primaryjoin": "{src_class}.id=={link_class}.{src_col}", '
+                f'"secondaryjoin": "{tgt_class}.id=={link_class}.{tgt_col}"'
+                '}'
+            )
         rel_line = f'    {attr_name}: List["{tgt_class}"] = jm_relationship({", ".join(kwargs)})'
 
         src_text = _ensure_optional_import(src_text)
         src_text = _ensure_list_import(src_text)
         src_text = _ensure_sqlmodel_import(src_text)
         src_text = _ensure_jm_relationship_import(src_text)
-        src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
+        if not is_self_ref:
+            src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
         src_text = _insert_before_class(src_text, src_class, link_block)
         src_text = _insert_after_last_relationship(src_text, src_class, rel_line)
         src_file.write_text(src_text, encoding="utf-8")
@@ -268,6 +286,13 @@ def _add_many_to_many(
             kwargs = _cardinality_kwargs(min_items, max_items)
             kwargs.append(f'back_populates="{attr_name}"')
             kwargs.append(f"link_model={link_class}")
+            if is_self_ref:
+                kwargs.append(
+                    'sa_relationship_kwargs={'
+                    f'"primaryjoin": "{tgt_class}.id=={link_class}.{tgt_col}", '
+                    f'"secondaryjoin": "{src_class}.id=={link_class}.{src_col}"'
+                    '}'
+                )
             back_line = f'    {back_name}: List["{src_class}"] = jm_relationship({", ".join(kwargs)})'
 
             tgt_text = _ensure_list_import(tgt_text)

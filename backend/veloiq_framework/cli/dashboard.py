@@ -314,7 +314,24 @@ def _resolve_model_name(name: str, modules_dir: Path) -> str:
     if not models_file.exists():
         return name
     tables = re.findall(r'__tablename__\s*=\s*["\']([^"\']+)["\']', models_file.read_text(encoding="utf-8"))
-    return tables[0] if tables else name
+    if not tables:
+        return name
+    # Prefer the table whose name matches the module slug most closely (exact match,
+    # then singular/plural match, then startswith) over blindly taking tables[0] — a
+    # module's models.py often defines more than one table (a many-to-many relation's
+    # link class, added by `add-relation`, is inserted textually *before* the model
+    # it's attached to), so "first table in the file" silently picks the wrong one
+    # whenever the module's primary model isn't the first class defined.
+    for t in tables:
+        if t.lower() == name.lower():
+            return t
+    for t in tables:
+        if t.lower() == name.lower() + "s" or name.lower() == t.lower() + "s":
+            return t
+    for t in tables:
+        if t.lower().startswith(name.lower()) or name.lower().startswith(t.lower()):
+            return t
+    return tables[0]
 
 
 def _module_display_name(module: str) -> str:

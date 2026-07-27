@@ -129,7 +129,7 @@ def _create_module(mod_dir: Path, project_root: Path, ctx: dict, slug: str) -> N
     _write(mod_dir / "models.py", _NEW_MODELS_PY.format(**ctx))
     _write(mod_dir / "custom_api.py", _CUSTOM_API_PY.format(**ctx))
 
-    _update_nav_config(project_root, slug, ctx["ModelClass"], label)
+    _update_nav_config(project_root, slug, ctx["ModelClass"], label, ctx["table_name"])
 
     click.echo(click.style(f"\n✅  Model '{ctx['ModelClass']}' created in new module '{slug}'.", fg="green"))
 
@@ -147,7 +147,7 @@ def _append_to_module(mod_dir: Path, project_root: Path, ctx: dict, slug: str) -
         text = text.rstrip() + _APPEND_CLASS.format(**ctx)
         models_file.write_text(text, encoding="utf-8")
 
-    _update_nav_config(project_root, slug, ctx["ModelClass"], slug.replace("_", " ").title())
+    _update_nav_config(project_root, slug, ctx["ModelClass"], slug.replace("_", " ").title(), ctx["table_name"])
 
     try:
         rel = models_file.relative_to(mod_dir.parent.parent.parent.parent)
@@ -173,7 +173,7 @@ def _maybe_generate(project_root: Path) -> None:
 
 # ── Navigation config ──────────────────────────────────────────────────────────
 
-def _update_nav_config(root: Path, slug: str, model_class: str, label: str) -> None:
+def _update_nav_config(root: Path, slug: str, model_class: str, label: str, table_name: str) -> None:
     import json
     nav_file = root / "frontend" / "src" / "navigation.config.json"
     if not nav_file.exists():
@@ -196,10 +196,16 @@ def _update_nav_config(root: Path, slug: str, model_class: str, label: str) -> N
             "sequence": next_seq,
             "type": "module",
         })
-    if slug not in existing_keys:
+    # Keyed by the model's own table/resource name, not the module slug — they
+    # only coincide when a module has exactly one model whose singular table
+    # name equals its (often pluralized) module slug. Keying by slug instead
+    # produces a dead-link duplicate nav entry (pointing at a resource that
+    # doesn't exist) whenever they differ, alongside the correct resource-keyed
+    # entry that `veloiq generate` adds later from allModels.gen.ts.
+    if table_name not in existing_keys:
         model_label = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", model_class)
         new_entries.append({
-            "key": slug,
+            "key": table_name,
             "label": model_label,
             "icon": _guess_icon(model_label),
             "sequence": next_seq + 1,
@@ -265,11 +271,24 @@ def _write(path: Path, content: str) -> None:
 
 
 def _to_pascal(name: str) -> str:
-    """Convert any casing to PascalCase."""
-    # Split on underscores, hyphens, spaces, or existing camel boundaries
+    """Convert any casing to PascalCase.
+
+    MODEL_NAME is documented as already being PascalCase (e.g. "Invoice",
+    "TeamMember"), so this is mostly a normalization safety net for
+    snake_case/kebab-case/space-case input — but it must not mangle
+    well-formed PascalCase input that contains an acronym. Two camel-boundary
+    passes are needed (mirroring _to_snake below): the first splits an
+    ordinary lower->upper transition (teamMember -> team_Member); the second
+    splits an acronym run followed by a capitalized word (VIPClient ->
+    VIP_Client). Without the second pass, "VIPClient" falls through as a
+    single part and str.capitalize() lowercases everything but the first
+    letter, mangling it into "Vipclient" — so parts are rejoined by
+    upper-casing only their first character, not full capitalize().
+    """
     parts = re.sub(r'([a-z])([A-Z])', r'\1_\2', name)
+    parts = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', parts)
     parts = re.sub(r'[^a-zA-Z0-9]+', '_', parts)
-    return "".join(p.capitalize() for p in parts.split("_") if p)
+    return "".join(p[:1].upper() + p[1:] for p in parts.split("_") if p)
 
 
 def _to_snake(name: str) -> str:
