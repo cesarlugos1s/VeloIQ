@@ -94,7 +94,6 @@ export const useStandardShowTabs = (
     const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
     setCurrentDataDetailLevelState(effectiveDetailState);
     const relations = effectiveDetailState.applyToRelations(model.relations || []);
-    console.log("[useStandardShowTabs] level:", effectiveDetailState.dataDetailLevel, "first rel showViewType:", relations[0]?.showViewType, "first rel defaultListVisible:", (relations[0] as any)?.defaultListVisible);
     const derivedModel: ModelDef = useMemo(
         () => ({ ...model, relations }),
         [model, relations],

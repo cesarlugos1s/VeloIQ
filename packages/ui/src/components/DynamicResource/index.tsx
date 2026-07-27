@@ -970,17 +970,13 @@ export const DynamicList: React.FC<{
     useEffect(() => {
         const interval = setInterval(() => {
             const lvl = (window as any).__veloiq_dataDetailLevel;
-            console.log("[DynamicList poll] model:", model.name, "lvl:", lvl, "listVisible:", listVisible, "defaultListVisible:", defaultListVisible);
             if (lvl === 6) {
-                console.log("[DynamicList poll] -> HIDING table");
                 setListVisible(false);
             } else if (lvl !== 6 && !listVisible && defaultListVisible === undefined && !isTotalsDetailsView) {
-                console.log("[DynamicList poll] -> SHOWING table");
                 setListVisible(true);
             }
         }, 200);
-        console.log("[DynamicList] polling started for", model.name);
-        return () => { console.log("[DynamicList] polling stopped for", model.name); clearInterval(interval); };
+        return () => { clearInterval(interval); };
     }, [listVisible, defaultListVisible]);
 
     const resetAnalyzeDefaults = useCallback(() => {

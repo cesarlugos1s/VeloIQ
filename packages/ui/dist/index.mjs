@@ -11621,7 +11621,6 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
           return copy;
         });
       }
-      console.log("[DataDetail] applyToRelations level:", dataDetailLevel, "first rel defaultListVisible:", rels[0] ? listVisibleOverridesRef.current[rels[0].relationName || rels[0].resource || rels[0].label] : "no rels");
       return rels.map((rel) => {
         const relKey = rel.relationName || rel.resource || rel.label;
         if (!relKey) return { ...rel };
@@ -12289,7 +12288,6 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
   const relations = effectiveDetailState.applyToRelations(model.relations || []);
-  console.log("[useStandardShowTabs] level:", effectiveDetailState.dataDetailLevel, "first rel showViewType:", relations[0]?.showViewType, "first rel defaultListVisible:", relations[0]?.defaultListVisible);
   const derivedModel = useMemo(
     () => ({ ...model, relations }),
     [model, relations]
@@ -17342,7 +17340,6 @@ var renderRelationBlock = ({
   valueStyle,
   fieldLayoutStyle
 }) => {
-  console.log("[renderRelationBlock] rel:", rel.relationName || rel.resource || rel.label, "showViewType:", rel.showViewType, "defaultListVisible:", rel.defaultListVisible, "mode:", mode);
   const viewType = getRelationViewType(rel, mode, relationViewTypeDefaults);
   ddlTrace("renderRelationBlock viewType", { rel: rel.relationName || rel.resource || "?", mode, viewType, relShowVT: rel.showViewType ?? null, relEditVT: rel.editViewType ?? null, defaults: relationViewTypeDefaults, m2m: !!(relatedModel && rel.otherResource && rel.otherKey), hasRelatedModel: !!relatedModel, hasOtherResource: !!rel.otherResource, hasOtherKey: !!rel.otherKey });
   const parentModel = findModelByName(allModels, parentResource);
@@ -18245,18 +18242,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   useEffect(() => {
     const interval = setInterval(() => {
       const lvl = window.__veloiq_dataDetailLevel;
-      console.log("[DynamicList poll] model:", model.name, "lvl:", lvl, "listVisible:", listVisible, "defaultListVisible:", defaultListVisible);
       if (lvl === 6) {
-        console.log("[DynamicList poll] -> HIDING table");
         setListVisible(false);
       } else if (lvl !== 6 && !listVisible && defaultListVisible === void 0 && !isTotalsDetailsView) {
-        console.log("[DynamicList poll] -> SHOWING table");
         setListVisible(true);
       }
     }, 200);
-    console.log("[DynamicList] polling started for", model.name);
     return () => {
-      console.log("[DynamicList] polling stopped for", model.name);
       clearInterval(interval);
     };
   }, [listVisible, defaultListVisible]);

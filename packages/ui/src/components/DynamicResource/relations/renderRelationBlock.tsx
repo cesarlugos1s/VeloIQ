@@ -59,7 +59,6 @@ export const renderRelationBlock = ({
     valueStyle?: React.CSSProperties;
     fieldLayoutStyle?: React.CSSProperties;
 }) => {
-    console.log("[renderRelationBlock] rel:", (rel as any).relationName || rel.resource || rel.label, "showViewType:", (rel as any).showViewType, "defaultListVisible:", (rel as any).defaultListVisible, "mode:", mode);
     const viewType = getRelationViewType(rel, mode, relationViewTypeDefaults);
     ddlTrace("renderRelationBlock viewType", { rel: rel.relationName || rel.resource || "?", mode, viewType, relShowVT: (rel as any).showViewType ?? null, relEditVT: (rel as any).editViewType ?? null, defaults: relationViewTypeDefaults, m2m: !!(relatedModel && rel.otherResource && rel.otherKey), hasRelatedModel: !!relatedModel, hasOtherResource: !!rel.otherResource, hasOtherKey: !!rel.otherKey });
     const parentModel = findModelByName(allModels, parentResource);

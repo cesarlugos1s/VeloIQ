@@ -235,7 +235,6 @@ export function useDataDetailLevel(
                 });
             }
             // Levels 1-6: apply overrides via fresh copies (don't mutate originals)
-            console.log("[DataDetail] applyToRelations level:", dataDetailLevel, "first rel defaultListVisible:", rels[0] ? listVisibleOverridesRef.current[rels[0].relationName || rels[0].resource || rels[0].label] : "no rels");
             return rels.map((rel) => {
                 const relKey = rel.relationName || rel.resource || rel.label;
                 if (!relKey) return { ...rel };
