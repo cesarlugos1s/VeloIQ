@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useCan } from "@refinedev/core";
 import { Button, Spin, Tabs } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
-import { StandardShow } from "../../StandardCrud";
+import { StandardShow, renderStandardShowHeaderButtons } from "../../StandardCrud";
 import { useModelTone } from "../../../utils/modelTone";
 import type { ModelDef } from "../types";
 import { asDisplayText, applyI18nLabelsToModel, applyI18nLabelsToModels, getModuleLabel } from "../utils/i18n";
@@ -19,7 +19,7 @@ import { useRoleFilteredModel } from "../utils/roleAccess";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs }) => {
+export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
@@ -52,6 +52,32 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
     const canConfigureLayout = canLayoutData?.can !== false;
 
     const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
+    // extraHeaderButtons is a render-prop (not a plain value) because, unlike
+    // DynamicList's extraHeaderButtons, it needs `record` -- which isn't
+    // resolved until useShowEditableForm() above returns. Guarded on `record`
+    // so callers never receive a call with an undefined/loading record.
+    // Renders first, mirroring DynamicList's extraHeaderButtons placement
+    // ahead of its own default buttons (renderListHeaderButtons).
+    //
+    // IMPORTANT: StandardShow's `headerButtons` prop is a render-prop FUNCTION
+    // (StandardCrud.tsx's StandardShow calls `effectiveHeaderButtons(args)`,
+    // defaulting to `renderStandardShowHeaderButtons` when unset) -- not a
+    // plain ReactNode value like DynamicList's `extraHeaderButtons`. Passing a
+    // plain JSX value here breaks that contract (StandardShow tries to CALL
+    // it and throws "... is not a function"). So `combinedHeaderButtons` must
+    // stay a function with the same signature, only wrapping when
+    // `extraHeaderButtons` is actually provided -- otherwise passing
+    // `headerButtons` straight through, unchanged, preserves the exact
+    // pre-existing behavior (including the framework's own default when
+    // `headerButtons` is undefined).
+    const combinedHeaderButtons = extraHeaderButtons
+        ? (args: any) => (
+            <>
+                {record ? extraHeaderButtons(record) : null}
+                {(headerButtons ?? renderStandardShowHeaderButtons)(args)}
+            </>
+          )
+        : headerButtons;
     const [activeTabKey, setActiveTabKey] = useState("details");
 
     const { tabs: items, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
@@ -123,7 +149,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                     actionLabel: _("Show"),
                     moduleLabel: model.module ? getModuleLabel(model.module) : undefined,
                 }))}
-                headerButtons={headerButtons}
+                headerButtons={combinedHeaderButtons}
             >
                 {beforeTabs}
                 <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />

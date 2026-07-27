@@ -1299,6 +1299,8 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     menu_entries: list[dict] = []
     icon_names: set[str] = set()
     global_component_entries: list[tuple[str, str, str, str]] = []  # (import_name, export_name, import_path, export)
+    list_header_button_export_names: list[str] = []
+    show_header_button_export_names: list[str] = []
 
     for ext in extensions:
         comp_dir = ext.resolved_frontend_components_dir()
@@ -1369,6 +1371,18 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             import_name = f"{ext.name}_{component}"
             imports.append((import_name, import_path, export))
             global_component_entries.append((import_name, export_name, import_path, export))
+
+        # List/Show header-button components — each entry must reference an
+        # export_name already declared in this same extension's global_components
+        # (silently skipped otherwise, so a typo can't emit a reference to an
+        # undefined TS identifier).
+        _declared_export_names = {gc.get("export_name") for gc in (getattr(ext, "global_components", None) or [])}
+        for export_name in (getattr(ext, "list_header_button_components", None) or []):
+            if export_name in _declared_export_names:
+                list_header_button_export_names.append(export_name)
+        for export_name in (getattr(ext, "show_header_button_components", None) or []):
+            if export_name in _declared_export_names:
+                show_header_button_export_names.append(export_name)
 
         # User-menu items.
         for item in (getattr(ext, "user_menu_items", None) or []):
@@ -1535,6 +1549,33 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             )
         lines.append("")
 
+    # ── Global list/show header-button components ──────────────────────────
+    # Any extension can register components here (via list_header_button_components
+    # / show_header_button_components, each an export_name from global_components)
+    # to have them rendered as extra header buttons on EVERY resource's default
+    # DynamicList/DynamicShow page — no per-resource wiring needed. The host
+    # App.tsx consumes these two arrays inside its VELOIQ:GLOBAL_LIST_HEADER_BUTTONS
+    # / VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS marker blocks (see _ensure_app_tsx_header_button_wiring).
+    lines.append(
+        "// Components rendered as extra header buttons on every resource's default "
+        "DynamicList page (see list_header_button_components in extension manifests)."
+    )
+    lines.append(
+        "export const globalListHeaderButtonComponents: "
+        "React.ComponentType<{ resource: string; model: any; allModels: any[] }>[] = ["
+        + ", ".join(list_header_button_export_names) + "];"
+    )
+    lines.append(
+        "// Components rendered as extra header buttons on every resource's default "
+        "DynamicShow page (see show_header_button_components in extension manifests)."
+    )
+    lines.append(
+        "export const globalShowHeaderButtonComponents: "
+        "React.ComponentType<{ resource: string; model: any; record: any; allModels: any[] }>[] = ["
+        + ", ".join(show_header_button_export_names) + "];"
+    )
+    lines.append("")
+
     # ── Alert-aware resources set ──────────────────────────────────────────
     # Read (or create) the host app's alert-aware-resources.json config file.
     alert_aware_json = frontend_src / "alert-aware-resources.json"
@@ -1583,6 +1624,141 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         f"  📦 extensions.gen.tsx updated ({len(route_entries)} route(s), "
         f"{len(menu_entries)} menu item(s), {total_overrides} page override(s))"
     )
+
+    _ensure_app_tsx_header_button_wiring(frontend_src)
+
+
+# Anchors the generate-time App.tsx patch below into the exact literal fallback
+# lines the scaffold template ships (see scaffold/frontend/src/App.tsx) --
+# tolerant of extra whitespace/props a host may have added, but not of the
+# tag being renamed or restructured entirely.
+_APP_TSX_LIST_MARKER = "VELOIQ:GLOBAL_LIST_HEADER_BUTTONS:START"
+_APP_TSX_SHOW_MARKER = "VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS:START"
+_APP_TSX_DYNAMIC_LIST_RE = re.compile(r"<DynamicList\b((?:(?!/>).)*?)/>", re.DOTALL)
+_APP_TSX_DYNAMIC_SHOW_RE = re.compile(r"<DynamicShow\b((?:(?!/>).)*?)/>", re.DOTALL)
+# Exception Alert's own List-page wrapper (AlertAwareListWrapper) pre-empts the
+# default <DynamicList> fallback entirely for any resource in a host's
+# alert-aware-resources.json -- which, on a host that uses Exception Alerts
+# heavily, can be every resource. Without this, list_header_button_components
+# would silently never render for those resources at all.
+_APP_TSX_ALERT_WRAPPER_RE = re.compile(
+    r"(createElement\(exceptionAlertListWrapperComponent,\s*\{)((?:(?!\}\)).)*?)(\}\))", re.DOTALL
+)
+
+
+def _ensure_app_tsx_header_button_wiring(frontend_src: Path) -> None:
+    """One-time, idempotent patch so an EXISTING host app's own ``App.tsx``
+    (scaffolded before this framework version, and possibly hand-customized
+    since) picks up ``globalListHeaderButtonComponents`` /
+    ``globalShowHeaderButtonComponents`` -- the same wiring a brand-new
+    ``veloiq new`` app gets from the scaffold template directly.
+
+    Detects readiness via the ``VELOIQ:GLOBAL_LIST_HEADER_BUTTONS`` /
+    ``VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS`` marker comments (same
+    content-sniff-before-mutate idiom the `migrate` command's existing steps
+    use — there is no scaffold-version stamp to key off). Safe to run on every
+    `generate`: a no-op once the markers are present. Never raises -- prints a
+    warning and leaves the file untouched if the known anchor lines
+    (the literal ``<DynamicList .../>`` / ``<DynamicShow .../>`` fallback
+    tags) can't be found, e.g. because a host already restructured that part
+    of ``App.tsx`` beyond recognition; the host then needs the one-time
+    manual wiring documented in ``docs/module-authoring.md``.
+    """
+    import shutil
+
+    app_tsx = frontend_src / "App.tsx"
+    if not app_tsx.exists():
+        return
+    content = app_tsx.read_text()
+    original_content = content
+
+    # Step A: wire extraHeaderButtons into Exception Alert's own List-page
+    # wrapper (AlertAwareListWrapper), which pre-empts the default <DynamicList>
+    # fallback entirely for any resource in alert-aware-resources.json -- on a
+    # host that uses Exception Alerts heavily this can be EVERY resource, so
+    # this must be able to run even on a host that already has the markers
+    # from an older version of this function (hence: NOT gated behind the
+    # marker check below, and independently idempotent via its own
+    # "already has extraHeaderButtons" check).
+    def _add_alert_wrapper_prop(match: re.Match) -> str:
+        inner = match.group(2)
+        if "extraHeaderButtons" in inner:
+            return match.group(0)  # already customized — don't clobber
+        return (
+            match.group(1) + inner.rstrip().rstrip(",")
+            + ", extraHeaderButtons: _globalListHeaderButtons(resource, model, allModels) "
+            + match.group(3)
+        )
+    content = _APP_TSX_ALERT_WRAPPER_RE.sub(_add_alert_wrapper_prop, content, count=1)
+
+    # Step B: the main marker-gated wiring (import extension, helper functions,
+    # default DynamicList/DynamicShow fallback props) -- skip entirely once
+    # both markers are present, since that part is fully idempotent already.
+    if _APP_TSX_LIST_MARKER not in content or _APP_TSX_SHOW_MARKER not in content:
+        # B1) Extend the "./extensions.gen" import with the two new arrays.
+        import_re = re.compile(r'(import\s*\{[^}]*\})(\s*from\s*"\./extensions\.gen";)')
+        m = import_re.search(content)
+        if not m:
+            print("  ⚠️  Could not find the \"./extensions.gen\" import in App.tsx — "
+                  "skipping automatic global-list/show-header-button wiring. "
+                  "See docs/module-authoring.md for the one-time manual steps.")
+        else:
+            new_names = [n for n in ("globalListHeaderButtonComponents", "globalShowHeaderButtonComponents") if n not in content]
+            if new_names:
+                import_block = m.group(1)
+                # Insert before the closing "}" of the import's named-import list.
+                patched_import = import_block[:-1].rstrip() + ", " + ", ".join(new_names) + " }"
+                content = content[:m.start(1)] + patched_import + m.group(2) + content[m.end():]
+
+            # B2) Insert the marker-delimited helper functions once, right
+            #     before the first render helper (`const _renderList`).
+            if _APP_TSX_LIST_MARKER not in content:
+                helper_block = (
+                    f"// {_APP_TSX_LIST_MARKER} — regenerated by `veloiq generate`, do not hand-edit\n"
+                    "const _globalListHeaderButtons = (resource: string, model: any, allModels: any[]) => (\n"
+                    "    <>{globalListHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, allModels }))}</>\n"
+                    ");\n"
+                    f"// VELOIQ:GLOBAL_LIST_HEADER_BUTTONS:END\n"
+                    f"// {_APP_TSX_SHOW_MARKER} — regenerated by `veloiq generate`, do not hand-edit\n"
+                    "const _globalShowHeaderButtons = (resource: string, model: any, allModels: any[]) => (record: any) => (\n"
+                    "    <>{globalShowHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, record, allModels }))}</>\n"
+                    ");\n"
+                    "// VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS:END\n\n"
+                )
+                anchor = re.search(r"const _renderList\b", content)
+                if not anchor:
+                    print("  ⚠️  Could not find `_renderList` in App.tsx — skipping automatic "
+                          "global-list/show-header-button wiring. See docs/module-authoring.md "
+                          "for the one-time manual steps.")
+                else:
+                    content = content[:anchor.start()] + helper_block + content[anchor.start():]
+
+            # B3) Wire extraHeaderButtons into the default DynamicList/DynamicShow
+            #     fallback tags, only where not already present.
+            def _add_prop(match: re.Match, prop: str) -> str:
+                inner = match.group(1)
+                if prop.split("=")[0] in inner:
+                    return match.group(0)  # host already customized this prop — don't clobber
+                return match.group(0)[:-2] + f" {prop} />"
+
+            content = _APP_TSX_DYNAMIC_LIST_RE.sub(
+                lambda m: _add_prop(m, "extraHeaderButtons={_globalListHeaderButtons(resource, model, allModels)}"),
+                content, count=1,
+            )
+            content = _APP_TSX_DYNAMIC_SHOW_RE.sub(
+                lambda m: _add_prop(m, "extraHeaderButtons={_globalShowHeaderButtons(resource, model, allModels)}"),
+                content, count=2,  # _renderShow's fallback + PrimaryShowRenderer's fallback
+            )
+
+    if content == original_content:
+        return  # already fully wired (or nothing could be matched — warnings already printed above)
+
+    bak = app_tsx.with_suffix(".tsx.bak")
+    shutil.copy(app_tsx, bak)
+    app_tsx.write_text(content)
+    print("  🔌 App.tsx updated: wired globalListHeaderButtonComponents / "
+          "globalShowHeaderButtonComponents into DynamicList/DynamicShow/"
+          f"AlertAwareListWrapper (original backed up → {bak.name})")
 
 
 def _guess_modules_dir(cwd: Path) -> Path:

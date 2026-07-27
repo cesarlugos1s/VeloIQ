@@ -747,6 +747,25 @@ For module screens that cannot be expressed as schema-driven CRUD (e.g. a drag-a
 
 Modules whose screens are standard CRUD do not need any static bundles — the host app's existing `DynamicList`, `DynamicShow`, `DynamicCreate`, and `DynamicEdit` components render them from the schema files.
 
+### Adding buttons to every resource's default List/Show page
+
+`global_components` (above) renders a component once, outside the route hierarchy (e.g. a sticky banner). To instead render a component as an extra header button on **every** resource's default `DynamicList`/`DynamicShow` page (skipped for resources with a `list_overrides`/`show_overrides` entry or another extension's override), declare it under `global_components` as usual and then reference its `export_name` in one or both of:
+
+```python
+class ExtensionManifest(VeloIQExtension):
+    ...
+    global_components = [
+        {"component": "MyButton", "source": "MyButton.tsx", "export": "default",
+         "export_name": "myExtListButton"},
+    ]
+    list_header_button_components = ["myExtListButton"]   # receives { resource, model, allModels }
+    show_header_button_components = ["myExtListButton"]   # receives { resource, model, record, allModels }
+```
+
+`veloiq generate` collects these across all enabled extensions into `globalListHeaderButtonComponents` / `globalShowHeaderButtonComponents` (`extensions.gen.tsx`), and wires them into the host's `App.tsx` automatically — including for apps generated before this framework version, via a one-time, idempotent patch keyed on the `VELOIQ:GLOBAL_LIST_HEADER_BUTTONS` / `VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS` marker comments it inserts into `_renderList`/`_renderShow`/`PrimaryShowRenderer`. No host code needs to be written for the common case.
+
+If `generate` prints a warning that it couldn't locate the expected anchors (only happens when a host has already restructured that part of `App.tsx` beyond recognition), wire it in by hand once: import `globalListHeaderButtonComponents`/`globalShowHeaderButtonComponents` from `./extensions.gen`, and pass `extraHeaderButtons={globalListHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, allModels }))}` to your `<DynamicList>` fallback, and `extraHeaderButtons={(record) => globalShowHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, record, allModels }))}` to your `<DynamicShow>` fallback(s) — note `DynamicShow`'s prop is a render-prop (a function of `record`), since `record` isn't resolved until `DynamicShow` fetches it internally, unlike `DynamicList`'s plain-value `extraHeaderButtons`.
+
 ### License enforcement in extension modules
 
 An extension's own modules carry license enforcement through the extension's own license module.  The host app's modules are never affected.

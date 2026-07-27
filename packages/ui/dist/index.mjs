@@ -9493,7 +9493,7 @@ function useRoleFilteredModel(model) {
   }, [model, userRoles]);
 }
 var _23 = window._ || ((text) => text);
-var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs }) => {
+var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -9518,6 +9518,10 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
+  const combinedHeaderButtons = extraHeaderButtons ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
+    record ? extraHeaderButtons(record) : null,
+    (headerButtons ?? renderStandardShowHeaderButtons)(args)
+  ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = useState("details");
   const { tabs: items, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
     model,
@@ -9581,7 +9585,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
           actionLabel: _23("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
-        headerButtons,
+        headerButtons: combinedHeaderButtons,
         children: [
           beforeTabs,
           /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),

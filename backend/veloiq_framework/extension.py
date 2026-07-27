@@ -134,6 +134,26 @@ class VeloIQExtension:
     #:     }
     global_components: list = []
 
+    #: ``list_header_button_components`` — ``export_name`` strings (each must
+    #: already be declared in this manifest's ``global_components``) to render
+    #: as extra header buttons on the DEFAULT ``DynamicList`` page of EVERY
+    #: resource in the host app (i.e. any resource not covered by a
+    #: ``list_overrides`` entry or another extension's list override).
+    #: ``veloiq generate`` collects these across all enabled extensions and
+    #: emits a ``globalListHeaderButtonComponents`` array in
+    #: ``extensions.gen.tsx``; the host App.tsx wires it into ``DynamicList``'s
+    #: ``extraHeaderButtons`` prop automatically (no host code to write) — see
+    #: the ``VELOIQ:GLOBAL_LIST_HEADER_BUTTONS`` marker block it maintains
+    #: there. Each referenced component receives ``{ resource, model, allModels }``.
+    list_header_button_components: list = []
+
+    #: ``show_header_button_components`` — same idea as
+    #: :attr:`list_header_button_components`, but for the DEFAULT ``DynamicShow``
+    #: page of every resource, wired into ``DynamicShow``'s ``extraHeaderButtons``
+    #: prop via the ``VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS`` marker block. Each
+    #: referenced component receives ``{ resource, model, record, allModels }``.
+    show_header_button_components: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
