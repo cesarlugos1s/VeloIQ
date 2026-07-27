@@ -26,6 +26,15 @@ interface Props {
     config: DashboardConfig;
     allModels: ModelDef[];
     onConfigChange: (next: DashboardConfig) => void;
+    /** Extension point (see list_header_button_components in the VeloIQ
+     * extension manifest contract): rendered inside each model-backed cell's
+     * own toolbar. Signature intentionally matches that extension point's
+     * per-component call signature so the same generated helper can be
+     * passed straight through. */
+    cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
+    /** Extension point (see dashboard_tab_header_components in the VeloIQ
+     * extension manifest contract): rendered next to each tab's name. */
+    tabExtraActions?: (tab: DashboardTab, allModels: ModelDef[]) => React.ReactNode;
 }
 
 interface CellSelection {
@@ -95,7 +104,8 @@ const DashboardGridCell: React.FC<{
     onMinimize: () => void;
     onResize: (minWidth: string | null, minHeight: string | null) => void;
     onMove: (direction: "left" | "right" | "up" | "down") => void;
-}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
+    cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
+}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
@@ -263,6 +273,7 @@ const DashboardGridCell: React.FC<{
                 </Tooltip>
                 </>
                 )}
+                {isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null}
                 {isModelLike || cell.source_type === "relation" ? (
                     <Tooltip title="Open full page">
                         <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
@@ -334,7 +345,8 @@ const DashboardTabContent: React.FC<{
     onConfigure: (cell: DashboardCell) => void;
     onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
     onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
-}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
+    cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
+}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
     const cells = tab.cells;
 
     const numCols = useMemo(() => {
@@ -391,6 +403,7 @@ const DashboardTabContent: React.FC<{
                         onMinimize={() => onMinimize(cell.id)}
                         onResize={(w, h) => onResize(cell.id, w, h)}
                         onMove={(dir) => onMove(cell.id, dir)}
+                        cellExtraActions={cellExtraActions}
                     />
                 </div>
             ))}
@@ -402,7 +415,7 @@ const DashboardTabContent: React.FC<{
 // ViewsGrid — the reusable top-level component
 // ---------------------------------------------------------------------------
 
-export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }) => {
+export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, cellExtraActions, tabExtraActions }) => {
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
     const canConfigureLayout = canLayoutData?.can !== false;
 
@@ -474,7 +487,12 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
     const tabItems = useMemo(() =>
         config.tabs.map((tab) => ({
             key: tab.id,
-            label: tab.name,
+            label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    {tab.name}
+                    {tabExtraActions ? tabExtraActions(tab, allModels) : null}
+                </span>
+            ),
             children: (
                 <DashboardTabContent
                     tab={tab}
@@ -487,10 +505,11 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange }
                     onConfigure={(cell) => handleOpenDrawer(tab.id, cell)}
                     onResize={(cellId, w, h) => handleResizeCell(tab.id, cellId, w, h)}
                     onMove={(cellId, dir) => handleMoveCell(tab.id, cellId, dir)}
+                    cellExtraActions={cellExtraActions}
                 />
             ),
         })),
-        [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
+        [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
     );
 
     if (!config.tabs.length) {

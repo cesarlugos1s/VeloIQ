@@ -154,6 +154,16 @@ class VeloIQExtension:
     #: referenced component receives ``{ resource, model, record, allModels }``.
     show_header_button_components: list = []
 
+    #: ``dashboard_tab_header_components`` — ``export_name`` strings (each must
+    #: already be declared in this manifest's ``global_components``) to render
+    #: once per Dashboard tab, in that tab's label area. Unlike
+    #: :attr:`list_header_button_components`/:attr:`show_header_button_components`
+    #: (every resource in the app), this targets the single, well-known
+    #: Dashboard page, so it's wired by patching the host App.tsx's one literal
+    #: ``<DashboardPage />`` tag rather than a per-resource marker. Each
+    #: referenced component receives ``{ tab, allModels }``.
+    dashboard_tab_header_components: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:

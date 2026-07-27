@@ -766,6 +766,24 @@ class ExtensionManifest(VeloIQExtension):
 
 If `generate` prints a warning that it couldn't locate the expected anchors (only happens when a host has already restructured that part of `App.tsx` beyond recognition), wire it in by hand once: import `globalListHeaderButtonComponents`/`globalShowHeaderButtonComponents` from `./extensions.gen`, and pass `extraHeaderButtons={globalListHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, allModels }))}` to your `<DynamicList>` fallback, and `extraHeaderButtons={(record) => globalShowHeaderButtonComponents.map((C, i) => createElement(C, { key: i, resource, model, record, allModels }))}` to your `<DynamicShow>` fallback(s) — note `DynamicShow`'s prop is a render-prop (a function of `record`), since `record` isn't resolved until `DynamicShow` fetches it internally, unlike `DynamicList`'s plain-value `extraHeaderButtons`.
 
+### Adding buttons to a Dashboard model cell or tab
+
+The Dashboard's "Models Grid" tab is a different case from the section above: instead of every resource's own List/Show page, a model-backed **cell** there embeds `DynamicList` (`isEmbedded`), and several cells are grouped into a **tab**. Two extension points cover this:
+
+```python
+class ExtensionManifest(VeloIQExtension):
+    ...
+    # Reuses the SAME export_name already declared for list_header_button_components
+    # above -- a Dashboard cell's own toolbar and a resource's List page header
+    # take an identical { resource, model, allModels } call signature, so one
+    # registered component serves both with no extra code.
+    list_header_button_components = ["myExtListButton"]
+
+    dashboard_tab_header_components = ["myExtTabButton"]  # receives { tab, allModels }
+```
+
+`veloiq generate` emits `globalDashboardTabHeaderComponents` (`extensions.gen.tsx`) and wires both into the host's one `<DashboardPage />` route tag as `cellExtraActions`/`tabExtraActions` props — again idempotently, keyed on the `VELOIQ:GLOBAL_DASHBOARD_TAB_HEADER` marker comment, and independent of whether the List/Show marker blocks above are already present. `cellExtraActions` renders inside each model-backed cell's own toolbar (next to its move/configure/maximize buttons); `tabExtraActions` renders next to each tab's name in the tab strip. Because both locations are visually tight, a component registered here should render as a small icon that opens a floating `Popover` (see `useShowActionsPreferences.tsx`'s Actions gear for the established pattern in this codebase) rather than expanding inline — an inline-expanding panel would blow out a ~32px cell toolbar or the tab strip, and a plain absolutely-positioned `<div>` would get clipped by the cell's own `overflow: hidden`. `Popover` renders through a portal and auto-flips to stay on screen, avoiding both problems.
+
 ### License enforcement in extension modules
 
 An extension's own modules carry license enforcement through the extension's own license module.  The host app's modules are never affected.

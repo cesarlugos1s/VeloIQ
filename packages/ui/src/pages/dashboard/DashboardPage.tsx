@@ -17,7 +17,17 @@ const ComingSoon: React.FC<{ label: string }> = ({ label }) => (
     </div>
 );
 
-export const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+    /** Extension point (see list_header_button_components in the VeloIQ
+     * extension manifest contract): rendered inside each Models-Grid tab's
+     * model-backed cell toolbar. */
+    cellExtraActions?: (resource: string, model: any, allModels: any[]) => React.ReactNode;
+    /** Extension point (see dashboard_tab_header_components in the VeloIQ
+     * extension manifest contract): rendered next to each tab's name. */
+    tabExtraActions?: (tab: any, allModels: any[]) => React.ReactNode;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ cellExtraActions, tabExtraActions }) => {
     const { token } = theme.useToken();
     const allModels = useAllModels();
     const { config, enabled, loading, save } = useDashboardConfig();
@@ -57,6 +67,8 @@ export const DashboardPage: React.FC = () => {
                         config={config}
                         allModels={allModels}
                         onConfigChange={save}
+                        cellExtraActions={cellExtraActions}
+                        tabExtraActions={tabExtraActions}
                     />
                 </div>
             ),

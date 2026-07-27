@@ -22869,7 +22869,7 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
   }
   return /* @__PURE__ */ jsxRuntime.jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" } });
 };
-var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove }) => {
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
   const cellRef = React6.useRef(null);
@@ -23037,6 +23037,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
             }
           ) })
         ] }),
+        isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null,
         isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open full page", children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMaximized ? "Restore" : "Maximize", children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
@@ -23081,7 +23082,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     ) })
   ] });
 };
-var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove }) => {
+var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
   const cells = tab.cells;
   const numCols = React6.useMemo(() => {
     if (!cells.length) return 2;
@@ -23123,14 +23124,15 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
           onMaximize: () => onMaximize(cell.id),
           onMinimize: () => onMinimize(cell.id),
           onResize: (w, h) => onResize(cell.id, w, h),
-          onMove: (dir) => onMove(cell.id, dir)
+          onMove: (dir) => onMove(cell.id, dir),
+          cellExtraActions
         }
       )
     },
     cell.id
   )) });
 };
-var ViewsGrid = ({ config, allModels, onConfigChange }) => {
+var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtraActions }) => {
   const { data: canLayoutData } = core.useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
   const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
@@ -23198,7 +23200,10 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
   const tabItems = React6.useMemo(
     () => config.tabs.map((tab) => ({
       key: tab.id,
-      label: tab.name,
+      label: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        tab.name,
+        tabExtraActions ? tabExtraActions(tab, allModels) : null
+      ] }),
       children: /* @__PURE__ */ jsxRuntime.jsx(
         DashboardTabContent,
         {
@@ -23211,11 +23216,12 @@ var ViewsGrid = ({ config, allModels, onConfigChange }) => {
           onMinimize: handleMinimize,
           onConfigure: (cell) => handleOpenDrawer(tab.id, cell),
           onResize: (cellId, w, h) => handleResizeCell(tab.id, cellId, w, h),
-          onMove: (cellId, dir) => handleMoveCell(tab.id, cellId, dir)
+          onMove: (cellId, dir) => handleMoveCell(tab.id, cellId, dir),
+          cellExtraActions
         }
       )
     })),
-    [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell]
+    [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
   );
   if (!config.tabs.length) {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No tabs configured. Run veloiq add-dashboard to add models.", style: { padding: 48 } });
@@ -23536,7 +23542,7 @@ var PinnedRecordsPanel = () => {
 };
 var { Text: Text4 } = antd.Typography;
 var _48 = window._ || ((text) => text);
-var DashboardPage = () => {
+var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const { token } = antd.theme.useToken();
   const allModels = useAllModels();
   const { config, enabled, loading, save } = useDashboardConfig();
@@ -23570,7 +23576,9 @@ var DashboardPage = () => {
         {
           config,
           allModels,
-          onConfigChange: save
+          onConfigChange: save,
+          cellExtraActions,
+          tabExtraActions
         }
       ) })
     },
