@@ -8095,6 +8095,9 @@ var ExecutableHtml = ({
     if (mode !== "inline") return;
     const container = htmlRef.current;
     if (!container || !html) return;
+    const openTags = (html.match(/<script\b/gi) || []).length;
+    const closeTags = (html.match(/<\/script>/gi) || []).length;
+    if (openTags !== closeTags) return;
     const scripts = Array.from(container.querySelectorAll("script"));
     let cancelled = false;
     void executeScriptNodesSequentially(document, scripts, () => cancelled);
@@ -22318,6 +22321,9 @@ var InlinePlotlyHtml = ({ html, style }) => {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const openTags = (cleanedHtml.match(/<script\b/gi) || []).length;
+    const closeTags = (cleanedHtml.match(/<\/script>/gi) || []).length;
+    if (openTags !== closeTags) return;
     const scripts = Array.from(container.querySelectorAll("script"));
     const needsPlotly = scripts.some(
       (s) => (s.text || "").includes("Plotly")

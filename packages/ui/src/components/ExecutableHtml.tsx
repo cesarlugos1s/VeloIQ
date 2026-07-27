@@ -191,6 +191,13 @@ export const ExecutableHtml: React.FC<ExecutableHtmlProps> = ({
         if (mode !== "inline") return;
         const container = htmlRef.current;
         if (!container || !html) return;
+        // `html` may be a partial, still-streaming string. An unclosed <script>
+        // tag makes the parser consume to end-of-input as that script's
+        // (syntactically incomplete) text — executing it throws a real
+        // SyntaxError instead of no-op'ing. Wait for a later, complete chunk.
+        const openTags = (html.match(/<script\b/gi) || []).length;
+        const closeTags = (html.match(/<\/script>/gi) || []).length;
+        if (openTags !== closeTags) return;
         const scripts = Array.from(container.querySelectorAll("script"));
         let cancelled = false;
         void executeScriptNodesSequentially(document, scripts, () => cancelled);

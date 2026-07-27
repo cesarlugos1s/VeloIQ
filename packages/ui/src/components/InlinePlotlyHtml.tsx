@@ -87,6 +87,19 @@ export const InlinePlotlyHtml: React.FC<{
         const container = containerRef.current;
         if (!container) return;
 
+        // `html` can be a partial, still-streaming string (see NLChatShow/
+        // NLSentenceShow, which append chunks as they arrive). Setting
+        // dangerouslySetInnerHTML with an unclosed <script> tag makes the
+        // browser's HTML parser consume everything to end-of-input as that
+        // script's (syntactically incomplete) text content — executing it
+        // then throws a real SyntaxError ("Unexpected end of input") instead
+        // of quietly no-op'ing. Skip this pass entirely when a <script> is
+        // still open; a later chunk that closes it will re-trigger this
+        // effect and execute the complete script correctly.
+        const openTags = (cleanedHtml.match(/<script\b/gi) || []).length;
+        const closeTags = (cleanedHtml.match(/<\/script>/gi) || []).length;
+        if (openTags !== closeTags) return;
+
         const scripts = Array.from(container.querySelectorAll("script"));
         const needsPlotly = scripts.some(
             (s) => (s.text || "").includes("Plotly")
