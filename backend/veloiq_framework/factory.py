@@ -207,7 +207,7 @@ def create_veloiq_app(
     load_modules(app, admin, cfg, extensions=extensions)
 
     # ── Table creation & seeding (after all modules + extensions loaded) ──────
-    if cfg.create_tables_on_startup:
+    if cfg.create_tables_on_startup and not _alembic_owns_schema(engine):
         # Ensure auth tables are registered before create_all
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
         _create_tables_safe(engine)
@@ -226,6 +226,40 @@ def create_veloiq_app(
     _mount_frontend(app, cfg)
 
     return app
+
+
+# ---------------------------------------------------------------------------
+# Alembic ownership check
+# ---------------------------------------------------------------------------
+
+def _alembic_owns_schema(engine) -> bool:
+    """True once Alembic has started tracking *this specific database*.
+
+    ``_create_tables_safe``/``_sync_schema`` below create/alter tables
+    directly from SQLModel metadata, entirely outside Alembic's tracking.
+    If a table gets created this way before ``veloiq db migrate`` ever runs
+    for it, the next autogenerate diffs against a DB that already has the
+    table — so it only records the *remaining* diff (e.g. a constraint added
+    later), never the original ``CREATE TABLE``. Any later ``alembic upgrade
+    head`` against a genuinely fresh database then fails, since that
+    ``CREATE TABLE`` was silently lost from migration history.
+
+    Detected via the presence of Alembic's own ``alembic_version`` table
+    (created by the first-ever ``veloiq db upgrade`` against a database) —
+    not by looking for ``alembic.ini`` on disk, since ephemeral test/dev
+    databases that intentionally never run migrations (e.g. this framework's
+    own test suite) must keep the old auto-create-on-boot convenience.
+    Set ``VELOIQ_FORCE_AUTO_SCHEMA=1`` to opt back into the old behavior
+    unconditionally.
+    """
+    import os
+    if os.environ.get("VELOIQ_FORCE_AUTO_SCHEMA", "").lower() in ("1", "true", "yes"):
+        return False
+    from sqlalchemy import inspect as _sa_inspect
+    try:
+        return "alembic_version" in _sa_inspect(engine).get_table_names()
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------

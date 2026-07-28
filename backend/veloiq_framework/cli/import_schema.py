@@ -340,7 +340,7 @@ def _scaffold_from_schema(
                 f'from fastapi import APIRouter\nrouter = APIRouter()\n', encoding="utf-8"
             )
             _update_nav_config(project_root, module_name, cls,
-                               module_name.replace("_", " ").title())
+                               module_name.replace("_", " ").title(), ctx["table_name"])
             click.echo(f"\n🧩 Created module '{module_name}' with model '{cls}'")
         else:
             mf = mod_dir / "models.py"

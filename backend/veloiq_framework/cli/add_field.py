@@ -330,15 +330,32 @@ def _insert_field(text: str, model_id: str, field_line: str) -> str:
     needle = model_id.lower()
     lines = text.splitlines(keepends=True)
 
-    # Find the class
+    # Find the class: direct class-name match first. This only matches when
+    # model_id is spelled exactly like the class (e.g. "SmartEndpoint") — a
+    # snake_case/table-name argument (e.g. "smart_endpoint", as the CLI's own
+    # help text says is accepted) never matches a PascalCase class line even
+    # case-insensitively, since the underscore makes the strings literally
+    # different. Mirrors _find_models_file's dual resolution so a table-name
+    # argument doesn't fall through to the blind end-of-file append below,
+    # which silently attaches the field to whichever class is last in the
+    # file instead of the one actually requested.
     class_start = -1
     for i, ln in enumerate(lines):
         if re.match(rf'\s*class\s+{re.escape(model_id)}\s*\(', ln, re.I):
             class_start = i
             break
-        # Also match by tablename comment/variable in the block
-        if class_start >= 0 and re.search(rf'__tablename__.*["\']({re.escape(needle)})["\']', ln):
-            break
+
+    if class_start < 0:
+        # Fallback: resolve by __tablename__ within each class block.
+        current_class_start = -1
+        for i, ln in enumerate(lines):
+            if re.match(r'\s*class\s+\w+\s*\(', ln):
+                current_class_start = i
+            if current_class_start >= 0 and re.search(
+                rf'__tablename__\s*=\s*["\']({re.escape(needle)})["\']', ln
+            ):
+                class_start = current_class_start
+                break
 
     if class_start < 0:
         # Fallback: append at end of file

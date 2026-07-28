@@ -388,7 +388,7 @@ def _parse_model_block(block, module_name, search_set, dashboard_models, dashboa
         is_named_query="isNamedQuery: true" in block,
         in_dashboard=resource in dashboard_models,
         dashboard_tab=dashboard_tabs.get(resource),
-        in_search=name.lower() in search_set,
+        in_search=resource in search_set,
         description=model_desc,
         title_fields=title_fields,
     )
@@ -442,7 +442,7 @@ def _scan_models_minimal(mod_dir, module_name, search_set, dashboard_models, das
             resource=resource, pk_field="id", module_name=module_name,
             in_dashboard=resource in dashboard_models,
             dashboard_tab=dashboard_tabs.get(resource),
-            in_search=name.lower() in search_set,
+            in_search=resource in search_set,
             title_fields=_parse_titlefields_py(block),
         ))
     return models
