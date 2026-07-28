@@ -136,8 +136,12 @@ def add_field(model, field_name, field_type, optional, default_val, description,
 
     text = models_py.read_text(encoding="utf-8")
 
-    # Guard: field already exists
-    if re.search(rf'^\s+{re.escape(field_name)}\s*:', text, re.M):
+    # Guard: field already exists on *this* class. Scoped to the target
+    # class's own body -- a module's models.py commonly holds several
+    # classes, and two unrelated classes legitimately sharing a field name
+    # (e.g. both have their own `performed_by`) is normal, not a conflict.
+    class_body = _class_body_text(text, model)
+    if re.search(rf'^\s+{re.escape(field_name)}\s*:', class_body, re.M):
         click.echo(click.style(f"⚠️   Field '{field_name}' already exists in {models_py.name}.", fg="yellow"))
         return
 
@@ -325,37 +329,58 @@ def _load_env(backend_dir: Path) -> None:
             return
 
 
-def _insert_field(text: str, model_id: str, field_line: str) -> str:
-    """Insert field_line just before the first relationship or at end of class body."""
-    needle = model_id.lower()
-    lines = text.splitlines(keepends=True)
+def _find_class_start(lines: list[str], model_id: str) -> int:
+    """Resolve model_id (PascalCase class name or snake_case table name) to the
+    line index of its `class X(...)` declaration, or -1 if not found.
 
-    # Find the class: direct class-name match first. This only matches when
-    # model_id is spelled exactly like the class (e.g. "SmartEndpoint") — a
-    # snake_case/table-name argument (e.g. "smart_endpoint", as the CLI's own
-    # help text says is accepted) never matches a PascalCase class line even
-    # case-insensitively, since the underscore makes the strings literally
-    # different. Mirrors _find_models_file's dual resolution so a table-name
-    # argument doesn't fall through to the blind end-of-file append below,
-    # which silently attaches the field to whichever class is last in the
-    # file instead of the one actually requested.
-    class_start = -1
+    Direct class-name match first. This only matches when model_id is spelled
+    exactly like the class (e.g. "SmartEndpoint") — a snake_case/table-name
+    argument (e.g. "smart_endpoint", as the CLI's own help text says is
+    accepted) never matches a PascalCase class line even case-insensitively,
+    since the underscore makes the strings literally different. Falls back to
+    resolving by __tablename__ within each class block, mirroring
+    _find_models_file's dual resolution.
+    """
     for i, ln in enumerate(lines):
         if re.match(rf'\s*class\s+{re.escape(model_id)}\s*\(', ln, re.I):
-            class_start = i
-            break
+            return i
 
+    needle = model_id.lower()
+    current_class_start = -1
+    for i, ln in enumerate(lines):
+        if re.match(r'\s*class\s+\w+\s*\(', ln):
+            current_class_start = i
+        if current_class_start >= 0 and re.search(
+            rf'__tablename__\s*=\s*["\']({re.escape(needle)})["\']', ln
+        ):
+            return current_class_start
+    return -1
+
+
+def _class_body_text(text: str, model_id: str) -> str:
+    """Return just the target class's body text (from its `class` line up to
+    the next top-level `class` line or EOF), so callers can check for
+    already-existing fields without false-matching a same-named field on a
+    different class in the same models.py file. Falls back to the whole file
+    if the class can't be resolved (matches _insert_field's own fallback, so
+    the pre-insert guard stays consistent with where the field will land).
+    """
+    lines = text.splitlines(keepends=True)
+    class_start = _find_class_start(lines, model_id)
     if class_start < 0:
-        # Fallback: resolve by __tablename__ within each class block.
-        current_class_start = -1
-        for i, ln in enumerate(lines):
-            if re.match(r'\s*class\s+\w+\s*\(', ln):
-                current_class_start = i
-            if current_class_start >= 0 and re.search(
-                rf'__tablename__\s*=\s*["\']({re.escape(needle)})["\']', ln
-            ):
-                class_start = current_class_start
-                break
+        return text
+    end = len(lines)
+    for i in range(class_start + 1, len(lines)):
+        if re.match(r'^class\s', lines[i]):
+            end = i
+            break
+    return "".join(lines[class_start:end])
+
+
+def _insert_field(text: str, model_id: str, field_line: str) -> str:
+    """Insert field_line just before the first relationship or at end of class body."""
+    lines = text.splitlines(keepends=True)
+    class_start = _find_class_start(lines, model_id)
 
     if class_start < 0:
         # Fallback: append at end of file
