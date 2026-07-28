@@ -392,7 +392,7 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         "/veloiq-studio",
         "/i18n/",
     )
-    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace")
+    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace", *cfg.auth_exempt_paths)
 
     # In production SPA mode only these prefixes require a JWT; everything else
     # (React Router paths, static assets) is served as HTML/JS and the React app
@@ -437,6 +437,11 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         path = request.url.path
+        # Host-app-declared exemptions bypass auth unconditionally, in both
+        # SPA/production and dev mode — checked first since the SPA branch
+        # below only consults _spa_protected, never _auth_exempt.
+        if any(path.startswith(p) for p in cfg.auth_exempt_paths):
+            return await call_next(request)
         if cfg.serve_frontend is not None:
             if not any(path.startswith(p) for p in _spa_protected):
                 return await call_next(request)

@@ -77,6 +77,13 @@ class VeloIQConfig:
     auth_token_expire_minutes: int = field(
         default_factory=lambda: int(os.environ.get("AUTH_TOKEN_EXPIRE_MINUTES", "10080"))
     )
+    # Path prefixes a host app wants reachable without a JWT, in addition to
+    # the framework's own hardcoded exemptions (e.g. "/auth/login", "/docs").
+    # Matched with str.startswith() against request.url.path, same as the
+    # framework's internal exempt lists. Needed for host-app endpoints that
+    # must be callable before the caller has a token — self-service signup,
+    # or a payment gateway's webhook receiver calling in from outside.
+    auth_exempt_paths: tuple[str, ...] = field(default_factory=tuple)
 
     # ── Initial admin seed credentials ───────────────────────────────────────
     # Used only during first startup to seed the default admin user.
