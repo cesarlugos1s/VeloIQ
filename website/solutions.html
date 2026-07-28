@@ -26,7 +26,7 @@
     /* Compact layout for Solutions page */
     .section { padding: 36px 0; }
     .section-header { margin-bottom: 24px; }
-    .solutions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 0 auto; }
+    .solutions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 0 auto; }
     .solutions-grid.wide { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     .sol-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .sol-card-full { max-width: 800px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -93,7 +93,7 @@
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#7c3aed">Retail, Distribution &amp; Food Service</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:0 auto">
+    <div class="solutions-grid">
 
 <!-- JuiceMantics -->
 <div style="background:var(--bg-card);border:1px solid var(--accent-border);border-radius:12px;overflow:hidden;margin-bottom:24px">
@@ -161,6 +161,25 @@
   </div>
 </div>
 
+<!-- VIP Concierge -->
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="background:rgba(219,39,119,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">💎</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ VIP <span style="color:#db2777">Concierge</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Luxury Clienteling &amp; Experiential Commerce</div>
+  </div>
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      <span style="background:rgba(219,39,119,0.1);border:1px solid rgba(219,39,119,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#db2777;font-weight:500">ARTS ODM</span>
+      <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">GS1</span>
+    </div>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">VIP client CRM, personal styling sessions, VIP inventory allocation, exclusive event orchestration, and loyalty tiers across the boutique network. ARTS ODM / GS1-aligned.</p>
+    <div style="display:flex;gap:8px">
+      <a href="https://cesarlugos1s.github.io/vip-concierge/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#db2777" target="_blank">Visit Site →</a>
+    </div>
+  </div>
+</div>
+
     </div>
   </div>
 </section>
@@ -203,7 +222,7 @@
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#d4a236">Finance &amp; Compliance</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:0 auto">
+    <div class="solutions-grid">
 
 <!-- Sovereign Vault -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
@@ -241,6 +260,43 @@
     <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Vendor risk, access governance, asset inventory, control testing, findings, incident response. ISO 27001 / NIST CSF / SOC 2-aligned.</p>
     <div style="display:flex;gap:8px">
       <a href="https://cesarlugos1s.github.io/sovereign-guard/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#dc2626" target="_blank">Visit Site →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Branch Sentinel -->
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="background:rgba(67,56,202,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">🏧</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ Branch <span style="color:#4338ca">Sentinel</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Decentralized Branch &amp; Intelligent Endpoint Host</div>
+  </div>
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      <span style="background:rgba(67,56,202,0.1);border:1px solid rgba(67,56,202,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#4338ca;font-weight:500">ISO 8583</span>
+      <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">BACnet</span>
+    </div>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Smart ATM/ITM endpoint fleet monitoring, facility IoT devices, smart safe &amp; vault tracking, teller workforce scheduling, and digital signage across the branch network. ISO 8583 / BACnet-aligned.</p>
+    <div style="display:flex;gap:8px">
+      <a href="https://cesarlugos1s.github.io/branch-sentinel/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#4338ca" target="_blank">Visit Site →</a>
+    </div>
+  </div>
+</div>
+
+<!-- DealFlow Vault -->
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="background:rgba(15,118,110,0.06);padding:16px 20px;text-align:center">
+    <div style="font-size:1.3rem;margin-bottom:2px">💼</div>
+    <div style="font-size:0.95rem;font-weight:700;color:#fafafa">VeloIQ™ DealFlow <span style="color:#0f766e">Vault</span></div>
+    <div style="font-size:0.68rem;color:var(--text-dim)">Investment Banking &amp; M&amp;A Data Room Host</div>
+  </div>
+  <div style="padding:14px 18px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      <span style="background:rgba(15,118,110,0.1);border:1px solid rgba(15,118,110,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#0f766e;font-weight:500">ISO 31000</span>
+    </div>
+    <p style="font-size:0.79rem;color:var(--text-muted);line-height:1.48;margin-bottom:8px">Deal pipeline tracking, a virtual data room with access-controlled documents, ISO 31000 risk assessment, and compliance/audit trails for M&amp;A deal teams. ISO 31000-aligned.</p>
+    <div style="display:flex;gap:8px">
+      <a href="https://cesarlugos1s.github.io/dealflow-vault/" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#0f766e" target="_blank">Visit Site →</a>
     </div>
   </div>
 </div>
@@ -319,7 +375,7 @@
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#2563eb">Marketing &amp; Support</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:0 auto">
+    <div class="solutions-grid">
 
 <!-- ROAS Maximizer -->
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
@@ -371,7 +427,7 @@
     <div class="section-header">
       <span class="section-tag">Common Capabilities</span>
       <h2>Every vertical app is <span class="highlight">AI-ready</span> on day one</h2>
-      <p>All 9 applications ship with IQVigilant pre-configured — no integration work, no API keys to wire, no model training. The AI console is running the moment you <code>veloiq run</code>.</p>
+      <p>All 12 applications ship with IQVigilant pre-configured — no integration work, no API keys to wire, no model training. The AI console is running the moment you <code>veloiq run</code>.</p>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;max-width:900px;margin:0 auto">
