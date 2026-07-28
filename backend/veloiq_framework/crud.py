@@ -156,6 +156,14 @@ def _build_rebac_clause(model_class: type, user: dict | None, session):
     filter_fn = getattr(model_class, "__rebac_filter__", None)
     if filter_fn is None:
         return None
+    if user and "Admin" in user.get("roles", []):
+        # Admin bypasses row-level ReBAC entirely, same as it already
+        # implicitly bypasses model_access restrictions (which only ever
+        # list roles to *restrict* — Admin is never named, so it keeps full
+        # access by default). Without this, the admin console couldn't
+        # browse any @rebac-protected model's rows at all for oversight/
+        # support, since Admin doesn't "own" arbitrary users' data.
+        return None
     if not user:
         from sqlalchemy import false
         return false()
@@ -366,6 +374,9 @@ def create_crud_router(
         """
         filter_fn = getattr(model_class, "__rebac_filter__", None)
         if filter_fn is None:
+            return session.get(model_class, record_id)
+        if user and "Admin" in user.get("roles", []):
+            # See the matching bypass in _build_rebac_clause() above for why.
             return session.get(model_class, record_id)
         if not user:
             return None
