@@ -1141,14 +1141,18 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     # and runtime never diverge.
     enabled = read_enabled_extensions(frontend_src)
     extensions = discover_extensions(enabled)
-    if not extensions:
-        return
 
     pages_dir = frontend_src / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)
 
     # Deliver page components, routes, and user-menu items (independent of schemas).
+    # Always run — even with zero extensions installed — so extensions.gen.tsx
+    # keeps exporting everything the host App.tsx statically imports, and the
+    # App.tsx wiring check (_ensure_app_tsx_header_button_wiring) still runs.
     _sync_extension_frontend(extensions, frontend_src)
+
+    if not extensions:
+        return
 
     ext_modules: list[str] = []          # module names added from extensions
     ext_module_label_map: dict[str, str] = {}  # module_name → extension name label
@@ -1357,7 +1361,6 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
                 entries_list.append((resource, import_name))
 
         # Global components — rendered by the host App.tsx outside route hierarchy.
-        global_component_entries: list[tuple[str, str, str, str]] = []  # (import_name, export_name, import_path, export)
         for gc in (getattr(ext, "global_components", None) or []):
             component = gc.get("component")
             source = gc.get("source", "")
@@ -1544,14 +1547,30 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         lines += ["};", ""]
 
     # ── Global components (e.g. sticky banners) ────────────────────────────
-    if global_component_entries:
-        lines.append("// Global components rendered by the host App.tsx outside the route hierarchy.")
-        lines.append("// Each export is a React component (or null if no extension provides one).")
-        for import_name, export_name, _import_path, _export in global_component_entries:
-            lines.append(
-                f"export const {export_name}: React.ComponentType | null = {import_name};"
-            )
-        lines.append("")
+    # These two are well-known conventions (see extension.py's global_components
+    # docstring) that the host App.tsx statically imports regardless of whether
+    # any extension providing them is installed — so they must always be
+    # exported, defaulting to null when no extension declares that export_name.
+    _WELL_KNOWN_GLOBAL_COMPONENTS = {
+        "exceptionAlertBannerComponent": "React.ComponentType<{ resource: string }> | null",
+        "exceptionAlertListWrapperComponent": (
+            "React.ComponentType<{ resource: string; children: React.ReactNode }> | null"
+        ),
+    }
+    global_by_export_name = {
+        export_name: import_name
+        for import_name, export_name, _import_path, _export in global_component_entries
+    }
+    lines.append("// Global components rendered by the host App.tsx outside the route hierarchy.")
+    lines.append("// Each export is a React component (or null if no extension provides one).")
+    for export_name, ts_type in _WELL_KNOWN_GLOBAL_COMPONENTS.items():
+        value = global_by_export_name.get(export_name, "null")
+        lines.append(f"export const {export_name}: {ts_type} = {value};")
+    for export_name, import_name in global_by_export_name.items():
+        if export_name in _WELL_KNOWN_GLOBAL_COMPONENTS:
+            continue
+        lines.append(f"export const {export_name}: React.ComponentType | null = {import_name};")
+    lines.append("")
 
     # ── Global list/show header-button components ──────────────────────────
     # Any extension can register components here (via list_header_button_components

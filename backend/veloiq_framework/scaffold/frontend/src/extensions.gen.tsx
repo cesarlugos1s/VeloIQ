@@ -20,3 +20,13 @@ export const extensionListComponents: Record<string, React.ComponentType<any>> =
 export const exceptionAlertBannerComponent: React.ComponentType<{ resource: string }> | null = null;
 export const exceptionAlertListWrapperComponent: React.ComponentType<{ resource: string; children: React.ReactNode }> | null = null;
 export const exceptionAlertAwareResources: Set<string> = new Set();
+
+// Components rendered as extra header buttons on every resource's default
+// DynamicList page (see list_header_button_components in extension manifests).
+export const globalListHeaderButtonComponents: React.ComponentType<{ resource: string; model: any; allModels: any[] }>[] = [];
+// Components rendered as extra header buttons on every resource's default
+// DynamicShow page (see show_header_button_components in extension manifests).
+export const globalShowHeaderButtonComponents: React.ComponentType<{ resource: string; model: any; record: any; allModels: any[] }>[] = [];
+// Component rendered once per Dashboard tab, in that tab's label area
+// (see dashboard_tab_header_components in extension manifests).
+export const globalDashboardTabHeaderComponents: React.ComponentType<{ tab: any; allModels: any[] }>[] = [];
