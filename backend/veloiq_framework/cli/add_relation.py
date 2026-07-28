@@ -270,7 +270,19 @@ def _add_many_to_many(
         src_text = _ensure_jm_relationship_import(src_text)
         if not is_self_ref:
             src_text = _ensure_type_checking_import(src_text, tgt_module, tgt_class)
-        src_text = _insert_before_class(src_text, src_class, link_block)
+
+        # The link class must precede BOTH src_class and tgt_class in the file when
+        # they live in the same module: link_model= is evaluated eagerly (not a lazy
+        # string annotation), so whichever class is defined first can't reference it
+        # unless the link class sits above it too. Anchor on whichever of the two
+        # classes appears earliest, not unconditionally on src_class.
+        anchor_class = src_class
+        if src_file.resolve() == tgt_file.resolve() and not is_self_ref:
+            src_m = re.search(rf'^class\s+{re.escape(src_class)}\s*\(', src_text, re.M | re.I)
+            tgt_m = re.search(rf'^class\s+{re.escape(tgt_class)}\s*\(', src_text, re.M | re.I)
+            if src_m and tgt_m and tgt_m.start() < src_m.start():
+                anchor_class = tgt_class
+        src_text = _insert_before_class(src_text, anchor_class, link_block)
         src_text = _insert_after_last_relationship(src_text, src_class, rel_line)
         src_file.write_text(src_text, encoding="utf-8")
 
