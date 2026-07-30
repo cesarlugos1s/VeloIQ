@@ -56,6 +56,29 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.8
+
+- **New** — Three new extension points: header buttons on every List/Show
+  page (`list_header_button_components`/`show_header_button_components`)
+  and per-tab Dashboard headers (`dashboard_tab_header_components`), all
+  auto-wired into `App.tsx` by `veloiq generate`.
+- **New** — `auth_exempt_paths` config lets host apps declare extra
+  endpoint prefixes reachable without a JWT (signup, inbound webhooks).
+- **New** — Admin now bypasses row-level ReBAC filtering, matching its
+  existing `model_access` behavior.
+- **Fix** — Several `veloiq add-relation`/`add-model`/`add-field` CLI bugs:
+  self-referential many-to-many columns, acronym-leading model names
+  (`VIPClient`), link-class file ordering, snake_case table matching, and a
+  duplicate-field false positive.
+- **Fix** — Auto-schema-sync now stops once Alembic owns a database,
+  preventing `alembic upgrade head` from losing the original `CREATE TABLE`
+  on a fresh install.
+- **Fix** — `@juicemantics/veloiq-ui`: dashboard chart double-`/api`
+  prefixing, a streamed-`<script>` crash in `NLChatShow`, and leftover
+  debug console logging.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.7
 
 - **New** — Zero-config CSV import/export on every model. Every generated

@@ -2,6 +2,85 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.8] — 2026-07-29
+
+### New
+
+- **Extension points: header buttons and Dashboard tab headers** — extensions
+  can now register components to render as extra header buttons on every
+  resource's default `DynamicList`/`DynamicShow` page via
+  `list_header_button_components`/`show_header_button_components`, and as
+  per-tab headers on Dashboard cells via `dashboard_tab_header_components`.
+  `veloiq generate` wires all three into a host app's `App.tsx`
+  (marker-delimited, idempotent) and patches the alert-aware list wrapper so
+  alert-aware resources don't lose the extra buttons. `DynamicShow` gains a
+  matching `extraHeaderButtons` render-prop, and `DashboardPage`/`ViewsGrid`
+  thread `cellExtraActions`/`tabExtraActions` down to
+  `DashboardGridCell`/`DashboardTabContent`. Frontend extension sync now
+  always runs — even with zero installed extensions — so the well-known
+  exports a host `App.tsx` statically imports
+  (`exceptionAlertBannerComponent`, `exceptionAlertListWrapperComponent`)
+  default to `null` instead of going missing.
+- **`auth_exempt_paths` config** — host apps can declare additional endpoint
+  path prefixes that are reachable without a JWT (self-service signup, an
+  inbound payment-gateway webhook), matched the same `startswith` way as the
+  framework's own hardcoded exemptions, in both dev and production mode.
+- **Admin bypasses row-level ReBAC filtering** — `model_access` restrictions
+  already leave Admin with full access by default since they only ever list
+  roles to *restrict*; `@rebac`'s row-level filtering now gets the same
+  bypass, restoring Admin's ability to browse any ReBAC-protected model's
+  rows for oversight/support.
+
+### Fixes
+
+- **CLI: self-referential many-to-many relations** — `add-relation`
+  generated a link table with a collapsed/duplicate column name and no
+  `primaryjoin`/`secondaryjoin` disambiguation whenever source and target
+  model were the same (e.g. `ProductHierarchy.subhierarchies`); now
+  disambiguates with a `related_` prefix and explicit join conditions.
+- **CLI: acronym-leading model names** — `add-model`'s `_to_pascal` mangled
+  names like `VIPClient` into `Vipclient`; now shares the same
+  acronym-boundary split `_to_snake` already used. `_update_nav_config` also
+  now keys a model's nav entry by its own resource name instead of the
+  module slug, fixing stale duplicate nav entries.
+- **CLI: `dashboard.py` model-name resolution** — no longer picks a
+  many-to-many link table's name over the intended model when
+  `add-relation` inserted the link class earlier in the same `models.py`.
+- **CLI: many-to-many link-class ordering** — `add-relation` now anchors the
+  new link class before whichever of the source/target classes appears
+  first in the file, fixing a `NameError` at import time when the target
+  model was defined earlier.
+- **CLI: `add-field` table-name matching** — snake_case table names (which
+  the CLI's own help text says are accepted) no longer silently fall
+  through to a blind end-of-file append; matched by class the same way
+  PascalCase names are.
+- **CLI: `add-field`'s duplicate-field guard** — scoped to the target class
+  instead of the whole file, so two unrelated classes sharing a field name
+  (e.g. both having `performed_by`) no longer false-positive block the
+  second one.
+- **CLI: `veloiq check` search-enrollment hint** — compared a squashed
+  lowercase class name against `config/search.json`'s snake_case table
+  names, flagging every multi-word model as "not enrolled" even when it was.
+- **`factory.py`: auto-schema-sync now gated behind Alembic ownership** —
+  once a database has an `alembic_version` table, `_create_tables_safe()`/
+  `_sync_schema()` stop creating/altering tables directly from SQLModel
+  metadata, so a later `alembic upgrade head` against a fresh database
+  can't lose the original `CREATE TABLE` to a partial autogenerate diff.
+  `VELOIQ_FORCE_AUTO_SCHEMA=1` opts back into the old behavior.
+- **`@juicemantics/veloiq-ui`: dashboard Plotly `chart_url` double `/api`
+  prefixing** — `ViewsGrid`'s `PlotlyChartContent` now strips a leading API
+  base the same way `NLAnalyticalQueriesReporting` already did, fixing
+  seeded dashboard cells whose `chart_url` was already API-prefixed.
+- **`@juicemantics/veloiq-ui`: streamed `<script>` tags no longer throw** —
+  `InlinePlotlyHtml`/`ExecutableHtml`'s inline-script re-execution now
+  checks that `<script>`/`</script>` tags are balanced before touching any
+  script node, fixing an uncaught `SyntaxError` (and a resulting
+  "not defined" cascade) when a streaming HTML chunk boundary landed inside
+  a script tag, e.g. `NLChatShow` rendering a chart card mid-stream.
+- **`@juicemantics/veloiq-ui`: removed leftover debug `console.log`s** —
+  `DynamicList` polling, `DataDetail`, `useStandardShowTabs`, and
+  `renderRelationBlock` were logging unguarded on every render/poll tick.
+
 ## [0.9.7] — 2026-07-25
 
 ### New
