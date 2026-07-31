@@ -21,6 +21,8 @@ import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { API_URL } from "../../providers/constants";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 import { CellConfigDrawer } from "./CellConfigDrawer";
+import { DashboardCellHelp } from "../../components/Help/DashboardCellHelp";
+import { DashboardTabHelp } from "../../components/Help/DashboardTabHelp";
 
 interface Props {
     config: DashboardConfig;
@@ -277,6 +279,7 @@ const DashboardGridCell: React.FC<{
                 </>
                 )}
                 {isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null}
+                {isModelLike && resource ? <DashboardCellHelp resource={resource} /> : null}
                 {isModelLike || cell.source_type === "relation" ? (
                     <Tooltip title="Open full page">
                         <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
@@ -494,6 +497,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     {tab.name}
                     {tabExtraActions ? tabExtraActions(tab, allModels) : null}
+                    <DashboardTabHelp tabId={tab.id} />
                 </span>
             ),
             children: (

@@ -46,6 +46,7 @@ import {
     getTabDisplayLabel,
 } from "../relations/helpers";
 import { renderRelationBlock } from "../../DynamicResource";
+import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
@@ -66,6 +67,7 @@ export const DynamicCreate: React.FC<{
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
+    useSetHelpPageKey(`${model.resource || model.name}:create`);
     const navigate = useNavigate();
     const go = useGo();
     const [searchParams] = useSearchParams();

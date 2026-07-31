@@ -24,6 +24,7 @@ import {
     PrimaryShowContext,
     ColorModeContextProvider,
     authSystemModels,
+    helpSystemModels,
     DashboardPage,
     LicenseGate,
 } from "@juicemantics/veloiq-ui";
@@ -31,7 +32,7 @@ import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
-import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, extensionEditComponents, extensionCreateComponents, extensionListComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources, globalListHeaderButtonComponents, globalShowHeaderButtonComponents, globalDashboardTabHeaderComponents } from "./extensions.gen";
+import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, extensionEditComponents, extensionCreateComponents, extensionListComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources, globalListHeaderButtonComponents, globalShowHeaderButtonComponents, globalListHeaderButtonHelp, globalShowHeaderButtonHelp, globalDashboardTabHeaderComponents } from "./extensions.gen";
 import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
 
 // Render helpers — check for app-level custom page overrides first, then
@@ -112,13 +113,14 @@ const queryClient = new QueryClient();
 // Stable references — these are derived from static imports so they never
 // need to change at runtime. Defined outside the component to guarantee they
 // are created exactly once and share a single identity across all renders.
-const allModels = [...allSystemModels, ...authSystemModels];
+const allModels = [...allSystemModels, ...authSystemModels, ...helpSystemModels];
 const resources = [
     { name: "dashboard", list: "/dashboard", meta: { label: "Dashboard", canDelete: false } },
     ...allModuleRegistrations.flatMap(({ moduleName, models }) =>
         generateResources(models, moduleName)
     ),
     ...generateResources(authSystemModels, "access_control", { moduleLabel: "Access Control" }),
+    ...generateResources(helpSystemModels, "help", { moduleLabel: "Help" }),
 ];
 
 export default function App() {
@@ -143,7 +145,7 @@ export default function App() {
                                     <Route
                                         element={
                                             <Authenticated key="auth" redirectOnFail="/login">
-                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems}>
+                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems} helpButtonTexts={{ list: globalListHeaderButtonHelp, show: globalShowHeaderButtonHelp }}>
                                                     <Outlet />
                                                 </LayoutWrapper>
                                                 {exceptionAlertBannerComponent && createElement(exceptionAlertBannerComponent)}
@@ -176,6 +178,22 @@ export default function App() {
                                             );
                                         })}
                                         {authSystemModels.map((model) => (
+                                            <Route key={model.name} path={`/${model.resource || model.name}`}>
+                                                <Route index element={
+                                                    <MultiPaneLayout>
+                                                        <DynamicList key={model.resource || model.name} model={model} allModels={allModels} />
+                                                    </MultiPaneLayout>
+                                                } />
+                                                <Route path="create" element={<DynamicCreate model={model} allModels={allModels} />} />
+                                                <Route path="edit/:id" element={<DynamicEdit model={model} allModels={allModels} />} />
+                                                <Route path="show/:id" element={
+                                                    <MultiPaneLayout>
+                                                        <DynamicShow model={model} allModels={allModels} />
+                                                    </MultiPaneLayout>
+                                                } />
+                                            </Route>
+                                        ))}
+                                        {helpSystemModels.map((model) => (
                                             <Route key={model.name} path={`/${model.resource || model.name}`}>
                                                 <Route index element={
                                                     <MultiPaneLayout>

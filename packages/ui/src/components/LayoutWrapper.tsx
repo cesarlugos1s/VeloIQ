@@ -14,8 +14,11 @@ import { HorizontalMenu } from "./HorizontalMenu";
 import { CustomSider } from "./CustomSider";
 import { GlobalSearch } from "./GlobalSearch";
 import { CommandCenterPortal } from "./CommandCenterPortal";
+import { HelpButton } from "./Help/HelpButton";
+import { HelpDrawer } from "./Help/HelpDrawer";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import { NavConfigContext } from "../contexts/NavConfigContext";
+import { HelpContext } from "../contexts/HelpContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
 import { useLicensePool } from "../hooks/useLicensePool";
@@ -37,6 +40,8 @@ export interface LayoutWrapperProps {
     }>;
     /** Navigation config loaded from navigation.config.json — drives icons and sort order. */
     navConfig?: NavConfig;
+    /** Extension-contributed Help text for list/show header buttons, from extensions.gen.tsx. */
+    helpButtonTexts?: { list?: (string | null)[]; show?: (string | null)[] };
 }
 
 const DefaultLogo: React.FC<{
@@ -111,7 +116,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
-    children, logo, appTitle, extraUserMenuItems = [], navConfig = [],
+    children, logo, appTitle, extraUserMenuItems = [], navConfig = [], helpButtonTexts,
 }) => {
     const [layoutMode, setLayoutMode] = useState<"vertical" | "horizontal">(() =>
         (localStorage.getItem("layoutMode") as "vertical" | "horizontal") || "vertical"
@@ -135,6 +140,13 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     const [pwdForm] = Form.useForm();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [portalOpen, setPortalOpen] = useState(false);
+    const [helpOpen, setHelpOpen] = useState(false);
+    const [helpPageKey, setHelpPageKeyState] = useState<string | null>(null);
+    const [helpRecordId, setHelpRecordId] = useState<string | number | null>(null);
+    const setHelpPageKey = React.useCallback((key: string | null, recordId: string | number | null = null) => {
+        setHelpPageKeyState(key);
+        setHelpRecordId(recordId);
+    }, []);
     const { isModuleLicensed } = useLicensePool();
 
     // ── License-aware filtering of extension user-menu items ──────────────
@@ -260,6 +272,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                             type="text"
                         />
                     </Tooltip>
+                    <HelpButton onClick={() => setHelpOpen((prev) => !prev)} />
                 </Space.Compact>
                 <Tooltip title={mode === "dark" ? "Light mode" : "Dark mode"}>
                     <Switch checkedChildren="🌜" unCheckedChildren="🌞" checked={mode === "dark"}
@@ -282,6 +295,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
 
     return (
         <NavConfigContext.Provider value={navConfig}>
+        <HelpContext.Provider value={{ pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }}>
             <ThemedLayoutV2
                 key={layoutMode}
                 Title={({ collapsed }) => <DefaultLogo logo={logo} appTitle={appTitle} collapsed={collapsed} />}
@@ -295,6 +309,12 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                 open={portalOpen}
                 onClose={() => setPortalOpen(false)}
                 navConfig={navConfig}
+            />
+
+            <HelpDrawer
+                open={helpOpen}
+                onClose={() => setHelpOpen(false)}
+                helpButtonTexts={helpButtonTexts}
             />
 
             <Drawer title={<DefaultLogo logo={logo} appTitle={appTitle} isHeader />}
@@ -330,6 +350,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                     </Form.Item>
                 </Form>
             </Modal>
+        </HelpContext.Provider>
         </NavConfigContext.Provider>
     );
 };

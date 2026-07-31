@@ -9,6 +9,9 @@ export { MultiPaneLayout } from "./components/MultiPane";
 export { StandardShow, StandardList } from "./components/StandardCrud";
 export { HierarchyView } from "./components/HierarchyView";
 export { GlobalSearch } from "./components/GlobalSearch";
+export { HelpButton } from "./components/Help/HelpButton";
+export { HelpDrawer } from "./components/Help/HelpDrawer";
+export type { HelpDrawerProps } from "./components/Help/HelpDrawer";
 export { CustomSider } from "./components/CustomSider";
 export { HorizontalMenu } from "./components/HorizontalMenu";
 export { ExecutableHtml } from "./components/ExecutableHtml";
@@ -60,6 +63,8 @@ export { ColorModeContextProvider } from "./contexts/color-mode";
 export { PaneNavigationContext, usePaneNavigation } from "./contexts/PaneNavigationContext";
 export { ResourceContext } from "./contexts/ResourceContext";
 export { NavConfigContext, useNavConfig, useNavModules } from "./contexts/NavConfigContext";
+export { HelpContext, useSetHelpPageKey } from "./contexts/HelpContext";
+export type { HelpContextValue } from "./contexts/HelpContext";
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 export { LoginPage } from "./pages/auth/LoginPage";
@@ -90,3 +95,6 @@ export type { NavConfigEntry, NavConfig } from "./utils/navConfig";
 
 // ── Auth models ────────────────────────────────────────────────────────────
 export { authSystemModels } from "./models/authModels";
+
+// ── Help models ────────────────────────────────────────────────────────────
+export { helpSystemModels } from "./models/helpModels";

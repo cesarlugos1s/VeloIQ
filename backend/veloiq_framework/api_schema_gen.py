@@ -1142,6 +1142,12 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     enabled = read_enabled_extensions(frontend_src)
     extensions = discover_extensions(enabled)
 
+    # Built-in "Help Content" Configurations menu entry — not a real
+    # installed extension, just fed through the same user_menu_items
+    # aggregation every other extension's Configurations entry uses.
+    from veloiq_framework.help.menu import get_help_menu_manifest
+    extensions = extensions + [get_help_menu_manifest()]
+
     pages_dir = frontend_src / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1306,6 +1312,9 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     list_header_button_export_names: list[str] = []
     show_header_button_export_names: list[str] = []
     dashboard_tab_header_export_names: list[str] = []
+    # export_name -> optional help_text, for the Help drawer to append under a
+    # page's own curated content (see global_components' optional "help_text" key).
+    global_component_help_text: dict[str, str] = {}
 
     for ext in extensions:
         comp_dir = ext.resolved_frontend_components_dir()
@@ -1375,6 +1384,8 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
             import_name = f"{ext.name}_{component}"
             imports.append((import_name, import_path, export))
             global_component_entries.append((import_name, export_name, import_path, export))
+            if gc.get("help_text"):
+                global_component_help_text[export_name] = gc["help_text"]
 
         # List/Show header-button components — each entry must reference an
         # export_name already declared in this same extension's global_components
@@ -1596,6 +1607,28 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         "export const globalShowHeaderButtonComponents: "
         "React.ComponentType<{ resource: string; model: any; record: any; allModels: any[] }>[] = ["
         + ", ".join(show_header_button_export_names) + "];"
+    )
+    # Parallel, same-order help_text arrays — consumed by the Help drawer
+    # (LayoutWrapper's helpButtonTexts prop) to append extension-authored
+    # blurbs under a page's own curated content. json.dumps handles quoting/
+    # escaping and emits `null` for entries with no help_text declared.
+    # (Local import: a later `import json` further down in this same function
+    # makes the name local to the whole function scope, so the module-level
+    # import isn't visible here without this.)
+    import json
+    list_header_button_help = [global_component_help_text.get(n) for n in list_header_button_export_names]
+    show_header_button_help = [global_component_help_text.get(n) for n in show_header_button_export_names]
+    lines.append(
+        "// Optional help text for each entry in globalListHeaderButtonComponents, same order."
+    )
+    lines.append(
+        f"export const globalListHeaderButtonHelp: (string | null)[] = {json.dumps(list_header_button_help)};"
+    )
+    lines.append(
+        "// Optional help text for each entry in globalShowHeaderButtonComponents, same order."
+    )
+    lines.append(
+        f"export const globalShowHeaderButtonHelp: (string | null)[] = {json.dumps(show_header_button_help)};"
     )
     lines.append(
         "// Component rendered once per Dashboard tab, in that tab's label area "

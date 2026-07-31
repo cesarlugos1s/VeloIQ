@@ -170,6 +170,35 @@ class Document(TimestampedModel, table=True):
 After changing any model annotations run `veloiq generate` to update the API and
 frontend schemas.
 
+## Contextual help
+
+Every List/Show/Create/Edit page automatically shows a "Help" drawer (top-right
+of the app shell, non-modal), and the Dashboard page, each Dashboard cell, and
+each Dashboard tab get their own small Help affordance too (the Dashboard cell/
+tab ones are compact Popovers, not the main drawer, since many render at once).
+Content is authored per page in the `veloiq_help_document` model (`page_key` =
+`"<resource>:list"`, `"<resource>:show"`, `"<resource>:edit"`,
+`"<resource>:create"`, `"<resource>:dashboard-cell"`, the fixed
+`"_dashboard:main"`, or `"dashboard-tab:<tab id>"`), editable via its own
+auto-generated admin page (username menu → Configurations → Help Content).
+
+Some features also get a runnable action button (a `veloiq_help_action` row —
+`action_key` from a fixed catalog like `create_new`, `go_to_edit`,
+`pin_to_dashboard`, `export_csv`) that executes the same thing clicking the
+real button would. Only safe, single-target actions are in the catalog —
+Delete, Save, Duplicate, and settings-style panels are deliberately excluded
+and stay description-only.
+
+Every page already starts with a generic page-type template (covering shared
+mechanics: view switching, bulk row actions, right-panel navigation, field
+types, save/cancel) auto-seeded on first boot — so no page ever opens to an
+empty drawer. When personalizing a specific page's doc, add only what's
+actually specific to that page (its fields, its business meaning, any custom
+actions) — don't rewrite the generic bullets. Use the document's related
+"Actions" list (`veloiq_help_action` rows) for anything that should render as
+a clickable button; never embed action buttons inline in the markdown body.
+See `llms.txt` for the exact authoring contract for code assistants.
+
 ## Environment variables
 
 See `.env.example` for all available variables. Copy it to `.env` before running:

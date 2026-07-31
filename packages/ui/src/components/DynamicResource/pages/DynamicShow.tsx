@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useCan } from "@refinedev/core";
 import { Button, Spin, Tabs } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
@@ -16,6 +16,7 @@ import { useShowActionsPreferences } from "../hooks/useShowActionsPreferences";
 import { ShowFooterButtons } from "../ShowFooterButtons";
 import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
+import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -28,6 +29,11 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
     const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
     const { id: routeId } = useParams();
     const id = idOverride ?? routeId;
+    const [searchParams] = useSearchParams();
+    // MultiPane detail panes render via PrimaryShowRenderer without `embedded`
+    // set, so each still counts as "the show page" for help purposes; only the
+    // Miller-column browser's nested preview (embedded=true) is excluded.
+    useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : (id ?? null));
     const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
     const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
 
@@ -51,7 +57,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
     const canConfigureLayout = canLayoutData?.can !== false;
 
-    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef);
+    const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef, searchParams.get("explore") === "1");
     // extraHeaderButtons is a render-prop (not a plain value) because, unlike
     // DynamicList's extraHeaderButtons, it needs `record` -- which isn't
     // resolved until useShowEditableForm() above returns. Guarded on `record`

@@ -210,11 +210,14 @@ def create_veloiq_app(
     if cfg.create_tables_on_startup and not _alembic_owns_schema(engine):
         # Ensure auth tables are registered before create_all
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
+        from veloiq_framework.help import models as _help_models  # noqa: F401
         _create_tables_safe(engine)
         _sync_schema(engine)
     from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
     seed_roles(engine, cfg.roles)
     seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
+    from veloiq_framework.help.seed import seed_help_documents
+    seed_help_documents(engine)
 
     # ── Core endpoints ────────────────────────────────────────────────────────
     _register_core_endpoints(app, engine, cfg, extensions=extensions)
@@ -530,6 +533,13 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     app.include_router(_auth_router)
     app.include_router(_auth_crud_router, prefix="/api")
 
+    # Built-in contextual-help CRUD (generic create_crud_router — no
+    # field-stripping needed the way auth's hand-written router requires).
+    from veloiq_framework.crud import create_crud_router
+    from veloiq_framework.help.models import HelpDocument, HelpAction
+    app.include_router(create_crud_router(HelpDocument), prefix="/api")
+    app.include_router(create_crud_router(HelpAction), prefix="/api")
+
     # All data API endpoints live under /api so the frontend's API_URL="/api"
     # works in production without any Vite proxy path-rewriting.
     core_api = _APIRouter()
@@ -538,6 +548,29 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     # The frontend reads these endpoints on every page load.  When not configured
     # by the application, return safe empty defaults so the frontend uses its
     # built-in defaults rather than logging repeated 404s.
+
+    @core_api.get("/help-documents/by-page/{page_key}")
+    async def get_help_document_by_page(page_key: str):
+        """Return the curated help content for one page_key, or found=False."""
+        from sqlmodel import Session as _SMSession, select as _sm_select
+        from veloiq_framework.help.models import HelpDocument as _HelpDoc, HelpAction as _HelpAction
+        with _SMSession(engine) as session:
+            doc = session.exec(
+                _sm_select(_HelpDoc).where(_HelpDoc.page_key == page_key)
+            ).first()
+            if doc is None:
+                return {"found": False}
+            actions = session.exec(
+                _sm_select(_HelpAction)
+                .where(_HelpAction.document_id == doc.id)
+                .order_by(_HelpAction.order)
+            ).all()
+            return {
+                "found": True,
+                "title": doc.title,
+                "body": doc.body,
+                "actions": [{"label": a.label, "action_key": a.action_key} for a in actions],
+            }
 
     @core_api.get("/config/search")
     async def config_search():

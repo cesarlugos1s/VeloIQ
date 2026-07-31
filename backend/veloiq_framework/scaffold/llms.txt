@@ -1,0 +1,37 @@
+# Help-document authoring contract
+
+This app's "Help" drawer (top-right of the app shell) reads curated markdown
+from the `veloiq_help_document` model. When creating or editing rows there
+for this app:
+
+1. One `page_key` per page: `"<resource>:list"`, `"<resource>:show"`,
+   `"<resource>:edit"`, `"<resource>:create"`, `"<resource>:dashboard-cell"`
+   (e.g. `"task:list"`). Two special keys don't follow the resource
+   convention: `"_dashboard:main"` (the Dashboard page itself, seeded once)
+   and `"dashboard-tab:<tab id>"` (one per Dashboard tab — NOT auto-seeded,
+   since tabs are an arbitrary frontend grouping the backend can't enumerate;
+   write these by hand only for tabs that need it).
+
+2. Every page already has a generic page-type template auto-seeded on first
+   boot, covering shared mechanics:
+   - list: view switching, multi-row bulk actions, opening a record into a
+     side panel vs. a new tab
+   - show: related-record navigation into side panels, panel toolbar
+     (close/minimize/maximize/pop-out)
+   - edit: field types, inline related-list editing, save/cancel semantics
+   - create: required fields, defaults/prefill, linking or inline-creating
+     related records
+   - dashboard-cell: how a Dashboard cell mirrors its resource's List page
+
+   Write ONLY what is specific to this page's own model — its fields, what
+   the record represents, any non-obvious business rule. Do not restate the
+   generic mechanics above; keep or trim the seeded bullets as fits, but
+   don't re-explain how right panels or bulk actions work in general.
+
+3. Keep each doc under ~150 words. This is a quick-reference drawer, not a
+   manual.
+
+4. Do not embed action buttons in the markdown body. If a feature should
+   render as a clickable button, add a row to the document's related
+   "Actions" list (`veloiq_help_action`: `label`, `action_key` from the
+   fixed catalog, `order`) instead.

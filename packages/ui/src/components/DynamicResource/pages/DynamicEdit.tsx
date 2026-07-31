@@ -19,6 +19,7 @@ import { DEFAULT_EDIT_RELATION_ROW_ACTIONS, DEFAULT_RELATION_CREATE_ACTIONS } fr
 import { useMetadataModal } from "../hooks/useMetadataModal";
 import { renderModelHeading } from "../ModelHeading";
 import { useStandardEditTabs } from "../hooks/useStandardEditTabs";
+import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -42,6 +43,7 @@ export const DynamicEdit: React.FC<{
     const navigate = useNavigate();
     const { id: routeId } = useParams();
     const effectiveId = idOverride ?? routeId;
+    useSetHelpPageKey(`${model.resource || model.name}:edit`, effectiveId ?? null);
     const [searchParams] = useSearchParams();
     const modelTone = useModelTone(model);
     const apiUrl = useApiUrl();

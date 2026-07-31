@@ -21,6 +21,9 @@ export const useShowActionsPreferences = (
     saveButtonProps?: any,
     configureLayoutButtonRef?: { current: React.ReactNode },
     saveLayoutRef?: { current: () => void },
+    // Lets a Help action (?explore=1) force the Explore modal open — a plain
+    // initial-state read, not a rewire of the button's own toggle behavior.
+    initialExploreOpen = false,
 ) => {
     const apiUrl = useApiUrl();
     const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -146,7 +149,13 @@ export const useShowActionsPreferences = (
     const { pinned, loading: pinLoading, toggle: togglePin } = usePinRecord(resource, recordId);
 
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
-    const [exploreOpen, setExploreOpen] = useState(false);
+    const [exploreOpen, setExploreOpen] = useState(initialExploreOpen);
+    // Covers a Help action clicked while already on this Show page (URL
+    // changes via history push, no remount) — the useState initializer above
+    // only covers a fresh mount. Same fix as useMetadataModal.
+    useEffect(() => {
+        if (initialExploreOpen) setExploreOpen(true);
+    }, [initialExploreOpen]);
 
     const headerButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>

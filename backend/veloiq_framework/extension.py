@@ -131,6 +131,11 @@ class VeloIQExtension:
     #:         "source": "AlertBanner.tsx",     # file under frontend_components_dir
     #:         "export": "default",             # "default" or a named export
     #:         "export_name": "exceptionAlertBannerComponent",  # TS variable name
+    #:         "help_text": "...",              # optional — markdown blurb shown in the
+    #:                                          # Help drawer for pages using this button
+    #:                                          # (only meaningful when this export_name
+    #:                                          # is also listed in list_header_button_components
+    #:                                          # or show_header_button_components below)
     #:     }
     global_components: list = []
 

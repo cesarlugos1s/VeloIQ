@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef, useContext } from "react";
 import { createPortal } from "react-dom";
 import { usePaneNavigation } from "../../contexts/PaneNavigationContext";
+import { useSetHelpPageKey } from "../../contexts/HelpContext";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { useShow, useOne, useGo, useApiUrl, useWarnAboutChange, useInvalidate, useCan } from "@refinedev/core";
 import {
@@ -273,6 +274,10 @@ export const DynamicList: React.FC<{
     const apiUrl = useApiUrl();
     // Stable resource identifier used by useTable, useCan, etc.
     const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
+    // Only the standalone List route owns the page-level Help key — embedded
+    // uses (relation lists, dashboard cells) must not hijack the help drawer
+    // from whatever page they're embedded in.
+    useSetHelpPageKey(isEmbedded ? null : `${resourceIdentifier}:list`);
     // Separate key used exclusively for preferences load/save, allowing dashboard cells
     // to maintain independent preferences from the standalone list page.
     const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
@@ -346,8 +351,12 @@ export const DynamicList: React.FC<{
     const modelDefaultListViewType = String(model.listViewType || "").toLowerCase();
     const defaultListViewType = String(modelDefaultListViewType || viewSettings?.listViewType || "table").toLowerCase();
     const fileListViewType = String(viewSettings?.fileListViewType || "").toLowerCase();
+    // Read-only override via ?view_type= — lets a Help action button ("switch
+    // to gallery view") change the rendered view without any other state.
+    // Falls through to the existing resolution unchanged when absent.
+    const urlViewType = searchParams.get("view_type");
     const resolvedListViewType = String(
-        listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
+        urlViewType || listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
     ).toLowerCase();
     const isGalleryView = resolvedListViewType === "gallery";
     const isCalendarView = resolvedListViewType === "calendar";
@@ -377,7 +386,16 @@ export const DynamicList: React.FC<{
     }>>([]);
     const [filtersCollapsed, setFiltersCollapsed] = useState(isEmbedded);
     const [layoutPrefsReady, setLayoutPrefsReady] = useState(false);
-    const [columnsSelectorOpen, setColumnsSelectorOpen] = useState(false);
+    // Force-opened by a Help action (?view_config=1) — a plain read, not a
+    // rewire of the existing toggle button, so a Help click can't accidentally
+    // close an already-open panel.
+    const [columnsSelectorOpen, setColumnsSelectorOpen] = useState(() => searchParams.get("view_config") === "1");
+    // The lazy initializer above only fires on first mount — this effect
+    // handles a Help action clicked while already on this page (same
+    // component, URL updated via history push, no remount).
+    useEffect(() => {
+        if (searchParams.get("view_config") === "1") setColumnsSelectorOpen(true);
+    }, [searchParams]);
     const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[] | null>(null);
     const [columnOrder, setColumnOrder] = useState<string[] | null>(null);
     const [columnFiltersSelected, setColumnFiltersSelected] = useState<Record<string, string[]>>({});
@@ -405,7 +423,7 @@ export const DynamicList: React.FC<{
     const analyzePrefsLoadedRef = useRef(false);
     const [analyzePrefsReady, setAnalyzePrefsReady] = useState(false);
     const analyzePrefsResourceRef = useRef<string | null>(null);
-    const { metadataButton, metadataModal } = useMetadataModal(model, allModels);
+    const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
 
     const defaultDisplayFields = useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
     const orderedColumnKeys = useMemo(() => {
@@ -436,7 +454,11 @@ export const DynamicList: React.FC<{
     const [rankingMode, setRankingMode] = useState<"none" | "top" | "bottom">("none");
     const [rankingFieldKey, setRankingFieldKey] = useState<string | null>(null);
     const [rankingN, setRankingN] = useState<number>(10);
-    const [importModalOpen, setImportModalOpen] = useState(false);
+    // Force-opened by a Help action (?import=1), same pattern as columnsSelectorOpen above.
+    const [importModalOpen, setImportModalOpen] = useState(() => searchParams.get("import") === "1");
+    useEffect(() => {
+        if (searchParams.get("import") === "1") setImportModalOpen(true);
+    }, [searchParams]);
     const [exportLoading, setExportLoading] = useState(false);
     const [exportRequested, setExportRequested] = useState(false);
     const [isStatsFlipped, setIsStatsFlipped] = useState(false);

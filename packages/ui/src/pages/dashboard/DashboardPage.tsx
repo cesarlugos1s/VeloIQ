@@ -6,6 +6,8 @@ import { useDashboardConfig } from "./hooks/useDashboardConfig";
 import { ViewsGrid } from "./ViewsGrid";
 import { RecentActivityPanel } from "./RecentActivityPanel";
 import { PinnedRecordsPanel } from "./PinnedRecordsPanel";
+import { useSetHelpPageKey } from "../../contexts/HelpContext";
+import { DASHBOARD_MAIN_PAGE_KEY } from "../../components/Help/HelpButton";
 
 const { Text } = Typography;
 
@@ -28,6 +30,7 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ cellExtraActions, tabExtraActions }) => {
+    useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
     const { token } = theme.useToken();
     const allModels = useAllModels();
     const { config, enabled, loading, save } = useDashboardConfig();
