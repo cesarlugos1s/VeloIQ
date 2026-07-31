@@ -52,8 +52,16 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
             link: { label: "iqvigilant.ai", href: "https://iqvigilant.ai" },
           },
           {
+            text: "VeloIQ also offers Governance, Compliance & Audit; Integrations, Assets & Event Pipelines; and DevOps & Automated Infrastructure as Enterprise Extension Packages.",
+            link: { label: "veloiq.dev/enterprise-extensions", href: "https://veloiq.dev/enterprise-extensions.html" },
+          },
+          {
             text: "Need a ready-to-use commercial app? JuiceMantics delivers Supply Chain, Price, Promotion, Assortment & Variety, and Revenue Growth optimization for Retail, Wholesale, and Manufacturing — built on VeloIQ + IQVigilant.",
             link: { label: "juicemantics.com", href: "https://www.juicemantics.com" },
+          },
+          {
+            text: "VeloIQ also offers ready-to-run business applications for Retail, Distribution & Food Service, Manufacturing, Environmental Health & Safety, Logistics and Supply Chain, Healthcare, Real Estate & PropTech, Finance & Compliance, Sales & RevOps, Marketing & Support, and Human Resources.",
+            link: { label: "veloiq.dev/solutions", href: "https://veloiq.dev/solutions.html" },
           },
         ],
       },

@@ -96,14 +96,22 @@ def list_extensions():
         click.echo(click.style(
             "\n  IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
             "  Querying, a WYSIWYG Page Builder, and User Journeys — zero code\n"
-            "  changes required.  pip install iqvigilant  ·  iqvigilant.ai",
+            "  changes required.  pip install iqvigilant  ·  iqvigilant.ai\n"
+            "  + 3 more Enterprise Extension Packages — Governance, Compliance &\n"
+            "  Audit; Integrations, Assets & Event Pipelines; DevOps & Automated\n"
+            "  Infrastructure.  veloiq.dev/enterprise-extensions",
             dim=True,
         ))
         click.echo(click.style(
             "\n  JuiceMantics is a ready-to-use optimization engine for Retail,\n"
             "  Wholesale, and Manufacturing — Supply Chain, Price, Promotion,\n"
             "  Assortment & Variety, and Market Revenue Growth, built on VeloIQ\n"
-            "  + IQVigilant.  juicemantics.com",
+            "  + IQVigilant.  juicemantics.com\n"
+            "  + 10 industries covered — Retail, Distribution & Food Service,\n"
+            "  Manufacturing, Environmental Health & Safety, Logistics and Supply\n"
+            "  Chain, Healthcare, Real Estate & PropTech, Finance & Compliance,\n"
+            "  Sales & RevOps, Marketing & Support, Human Resources.\n"
+            "  veloiq.dev/solutions.html",
             dim=True,
         ))
         return

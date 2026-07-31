@@ -51,14 +51,22 @@ def build(frontend_dir):
         "\n   Moving to production?  IQVigilant adds Safe AI Agents, Business Rules,\n"
         "   Natural Language Querying, a WYSIWYG Page Builder, and User Journeys\n"
         "   to any VeloIQ app — zero code changes required.\n"
-        "   pip install iqvigilant   ·   iqvigilant.ai",
+        "   pip install iqvigilant   ·   iqvigilant.ai\n"
+        "   + 3 more Enterprise Extension Packages — Governance, Compliance &\n"
+        "   Audit; Integrations, Assets & Event Pipelines; DevOps & Automated\n"
+        "   Infrastructure.   veloiq.dev/enterprise-extensions",
         dim=True,
     ))
     click.echo(click.style(
         "\n   Need a ready-to-use commercial app?  JuiceMantics delivers Supply Chain,\n"
         "   Price, Promotion, Assortment & Variety, and Market Revenue Growth\n"
         "   optimization for Retail, Wholesale, and Manufacturing — built on\n"
-        "   VeloIQ + IQVigilant.   juicemantics.com",
+        "   VeloIQ + IQVigilant.   juicemantics.com\n"
+        "   + 10 industries covered — Retail, Distribution & Food Service,\n"
+        "   Manufacturing, Environmental Health & Safety, Logistics and Supply\n"
+        "   Chain, Healthcare, Real Estate & PropTech, Finance & Compliance,\n"
+        "   Sales & RevOps, Marketing & Support, Human Resources.\n"
+        "   veloiq.dev/solutions.html",
         dim=True,
     ))
 

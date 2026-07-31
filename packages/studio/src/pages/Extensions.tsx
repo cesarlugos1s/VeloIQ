@@ -168,12 +168,39 @@ export default function Extensions({ devMode, onSuccess }: Props) {
           <strong>JuiceMantics</strong> is a production-ready optimization engine for{" "}
           <strong>Retail, Wholesale, and Manufacturing</strong> — built on VeloIQ + IQVigilant.
           Covers Supply Chain, Price, Promotion, Assortment &amp; Variety, and Market Revenue
-          Growth optimization out of the box.
+          Growth optimization out of the box. VeloIQ also offers ready-to-run business
+          applications across <strong>10 industries</strong> — Retail, Distribution &amp; Food
+          Service, Manufacturing, Environmental Health &amp; Safety, Logistics and Supply Chain,
+          Healthcare, Real Estate &amp; PropTech, Finance &amp; Compliance, Sales &amp; RevOps,
+          Marketing &amp; Support, and Human Resources.
         </div>
         <div className="vs-advisory-cmd">
           <a href="https://www.juicemantics.com" target="_blank" rel="noreferrer"
              style={{ color: "var(--accent)", textDecoration: "none" }}>
             juicemantics.com →
+          </a>
+          <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
+          <a href="https://veloiq.dev/solutions.html" target="_blank" rel="noreferrer"
+             style={{ color: "var(--accent)", textDecoration: "none" }}>
+            veloiq.dev/solutions →
+          </a>
+        </div>
+      </div>
+
+      <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="vs-advisory-title">Enterprise Extension Packages</div>
+        <div className="vs-advisory-body">
+          <strong>IQVigilant</strong> is the first of <strong>4 Enterprise Extension Packages</strong>{" "}
+          VeloIQ offers. The other 3 add <strong>Governance, Compliance &amp; Audit</strong>{" "}
+          (audited models, advanced REBAC, SSO/IAM, hardened multi-tenancy),{" "}
+          <strong>Integrations, Assets &amp; Event Pipelines</strong> (media storage, webhooks,
+          background job queues), and <strong>DevOps &amp; Automated Infrastructure</strong>{" "}
+          (one-click cloud deployment).
+        </div>
+        <div className="vs-advisory-cmd">
+          <a href="https://veloiq.dev/enterprise-extensions.html" target="_blank" rel="noreferrer"
+             style={{ color: "var(--accent)", textDecoration: "none" }}>
+            veloiq.dev/enterprise-extensions →
           </a>
         </div>
       </div>
