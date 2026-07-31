@@ -784,6 +784,23 @@ class ExtensionManifest(VeloIQExtension):
 
 `veloiq generate` emits `globalDashboardTabHeaderComponents` (`extensions.gen.tsx`) and wires both into the host's one `<DashboardPage />` route tag as `cellExtraActions`/`tabExtraActions` props — again idempotently, keyed on the `VELOIQ:GLOBAL_DASHBOARD_TAB_HEADER` marker comment, and independent of whether the List/Show marker blocks above are already present. `cellExtraActions` renders inside each model-backed cell's own toolbar (next to its move/configure/maximize buttons); `tabExtraActions` renders next to each tab's name in the tab strip. Because both locations are visually tight, a component registered here should render as a small icon that opens a floating `Popover` (see `useShowActionsPreferences.tsx`'s Actions gear for the established pattern in this codebase) rather than expanding inline — an inline-expanding panel would blow out a ~32px cell toolbar or the tab strip, and a plain absolutely-positioned `<div>` would get clipped by the cell's own `overflow: hidden`. `Popover` renders through a portal and auto-flips to stay on screen, avoiding both problems.
 
+### Adding help text for extension-contributed buttons
+
+A button registered via `list_header_button_components`/`show_header_button_components` (above) can also supply help text shown in the framework's Contextual Help drawer (see [docs/contextual-help.md](contextual-help.md)), by adding an optional `help_text` key to the same `global_components` entry:
+
+```python
+class ExtensionManifest(VeloIQExtension):
+    ...
+    global_components = [
+        {"component": "MyButton", "source": "MyButton.tsx", "export": "default",
+         "export_name": "myExtListButton",
+         "help_text": "Runs a custom bulk-export job for this resource."},
+    ]
+    list_header_button_components = ["myExtListButton"]
+```
+
+`veloiq generate` collects these into parallel `globalListHeaderButtonHelp`/`globalShowHeaderButtonHelp` arrays (`extensions.gen.tsx`) and threads them through the host's `App.tsx` → `LayoutWrapper`'s `helpButtonTexts` prop. The Help drawer appends any non-null entries under the page's own curated content — this is the only place an extension author needs to write this text; no admin-page curation is involved.
+
 ### License enforcement in extension modules
 
 An extension's own modules carry license enforcement through the extension's own license module.  The host app's modules are never affected.

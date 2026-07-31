@@ -232,6 +232,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
 - **Analysis charts** — distribution and summary charts appear automatically on relation tables with more than one row; toggle per view, preference saved
 - **Column configuration** — show, hide, and reorder columns in any list or relation table; preferences saved per user
 - **Bulk actions** — select multiple rows for bulk edit, bulk delete, or CSV export
+- **Contextual Help** — a non-modal Help drawer on every List/Show/Edit/Create page and the Dashboard (with small popovers per Dashboard cell/tab), auto-seeded with a starting template per page type, editable by any permissioned user, with runnable action buttons (Create New, Pin to Dashboard, Export CSV, and more) for the unambiguous ones
 - Inline sorting, filtering, and global search — all configurable, no code required
 - Light and dark mode, keyboard shortcuts, and responsive layout out of the box
 
@@ -295,6 +296,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
 | [docs/tutorial-import-schema.md](docs/tutorial-import-schema.md) | Import an existing database into VeloIQ models — no models to write by hand |
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, frontend schema customisation, and extension package authoring |
+| [docs/contextual-help.md](docs/contextual-help.md) | The in-app Help drawer — page_key convention, the runnable action-button catalog, editing content, and the extension authoring hook |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |
 | [docs/open-core.md](docs/open-core.md) | Free MIT tier vs Pro/Enterprise — extension packages (IQVigilant, VantageIQ), licensing architecture, and the full feature set |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes and version history |
