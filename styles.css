@@ -206,7 +206,7 @@ nav {
 .pricing-hero h1 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 16px; }
 .pricing-hero p { color: var(--text-muted); max-width: 480px; margin: 0 auto; font-size: 1.05rem; }
 
-.pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 64px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 64px; }
 .pricing-card {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 40px; position: relative;
@@ -239,10 +239,12 @@ nav {
 .plan-cta-btn.secondary { border: 1px solid var(--border); color: var(--text); }
 .plan-cta-btn.secondary:hover { border-color: var(--text-muted); background: var(--bg-elevated); }
 
-.pro-detail { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px; }
+.pro-detail { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px; margin-bottom: 32px; }
 .pro-detail h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
 .pro-detail .sub { margin-bottom: 40px; }
 .pro-categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.pro-categories.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.pro-categories.cols-4 { grid-template-columns: repeat(4, 1fr); }
 .pro-cat h4 { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
 .pro-cat ul { list-style: none; }
 .pro-cat li { font-size: 0.875rem; color: var(--text-muted); padding: 6px 0; border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: flex-start; }
@@ -366,7 +368,7 @@ footer { border-top: 1px solid var(--border-subtle); padding: 44px 0; }
   .capabilities { grid-template-columns: 1fr; gap: 32px; }
   .demo-wrap { padding: 48px 24px; }
   .pricing-grid { grid-template-columns: 1fr; }
-  .pro-categories { grid-template-columns: 1fr; gap: 24px; }
+  .pro-categories, .pro-categories.cols-2, .pro-categories.cols-4 { grid-template-columns: 1fr; gap: 24px; }
   .contact-grid { grid-template-columns: 1fr; gap: 40px; }
   .form-row { grid-template-columns: 1fr; }
   .nav-links { display: none; }
