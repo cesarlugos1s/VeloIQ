@@ -17,6 +17,7 @@ except ImportError:
 
 # Import framework auth models so their tables are always included
 import veloiq_framework.auth.models  # noqa: F401
+import veloiq_framework.help.models  # noqa: F401
 
 # Auto-discover and import all app module models so autogenerate can detect them.
 _modules_dir = Path(__file__).parent.parent / "app" / "modules"
@@ -34,6 +35,26 @@ if _modules_dir.exists():
                 importlib.import_module(f"app.modules.{_mod_dir.name}.models")
             except Exception as _e:
                 print(f"  ⚠️  alembic env: could not import app.modules.{_mod_dir.name}.models: {_e}")
+
+# --- Extension model discovery ---
+# The block above only scans the host app's own app/modules/ — extension
+# packages (like iqvigilant) register their models dynamically at app
+# runtime, which autogenerate never sees. Import them explicitly here.
+try:
+    import iqvigilant.modules as _iqv_modules_pkg
+    _iqv_modules_dir = Path(_iqv_modules_pkg.__file__).parent
+    for _mod_dir in sorted(_iqv_modules_dir.iterdir()):
+        if (
+            _mod_dir.is_dir()
+            and not _mod_dir.name.startswith("__")
+            and (_mod_dir / "models.py").exists()
+        ):
+            try:
+                importlib.import_module(f"iqvigilant.modules.{_mod_dir.name}.models")
+            except Exception as _e:
+                print(f"  ⚠️  alembic env: could not import iqvigilant.modules.{_mod_dir.name}.models: {_e}")
+except ImportError:
+    pass
 
 config = context.config
 
