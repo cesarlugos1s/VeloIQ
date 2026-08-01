@@ -56,6 +56,20 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.9
+
+- **New** — Framework-wide contextual Help drawer on every List/Show/
+  Edit/Create page and the Dashboard (page + cells/tabs), curated markdown
+  auto-seeded with generic per-page templates, 10 runnable action buttons,
+  and an extension hook for `help_text` on contributed header buttons.
+- **New** — Enterprise Extension Packages upsell across the CLI, VeloIQ
+  Studio, and the website, plus a restructured 3-card pricing page.
+- **Fix** — Scaffolded `alembic/env.py` now auto-discovers an installed
+  extension package's models (e.g. IQVigilant), so autogenerate no longer
+  silently misses its tables.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.8
 
 - **New** — Three new extension points: header buttons on every List/Show

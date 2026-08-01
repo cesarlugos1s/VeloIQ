@@ -2,6 +2,43 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.9] — 2026-07-31
+
+### New
+
+- **Framework-wide contextual Help drawer** — a non-modal Help drawer on
+  every List/Show/Edit/Create page, the Dashboard page, and each Dashboard
+  cell/tab. Content is curated markdown (`veloiq_help_document`/
+  `veloiq_help_action`), auto-seeded with generic per-page-type templates on
+  first boot so no page opens empty, and editable via its own
+  auto-generated admin page under the username dropdown's Configurations
+  menu. Ships with 10 runnable `action_key`s (create_new, export_csv,
+  open_import, open_metadata, open_view_config, go_to_list/show/edit,
+  pin_to_dashboard, open_explore), each with an i18n description shown as a
+  button tooltip — destructive/live-form-state actions (Delete, Save,
+  Duplicate) and the Actions-preferences gear are deliberately excluded and
+  stay description-only. Dashboard cells/tabs use small self-contained
+  Popovers instead of the shared drawer, since many render concurrently.
+  Extension-contributed header buttons can add `help_text` to their
+  manifest entry, surfaced under the page's own curated content.
+- **Enterprise Extension Packages upsell** — the CLI (`build`, `check`,
+  `list-extensions`), VeloIQ Studio (Command Panel, Extensions page), and
+  the website now surface IQVigilant plus three new Enterprise Extension
+  Packages (Governance/Compliance/Audit, Integrations/Assets/Event
+  Pipelines, DevOps/Automated Infrastructure). The pricing page is
+  restructured into three cards (Free / IQVigilant / Enterprise Extension
+  Packages).
+
+### Fixes
+
+- **Alembic scaffold: auto-discover extension-package models for
+  autogenerate** — extension packages (e.g. IQVigilant) register their
+  models dynamically at app runtime, which autogenerate previously never
+  saw since it only scanned the host app's own `app/modules/`. The
+  scaffolded `alembic/env.py` now also imports an installed extension's
+  `modules/*/models.py` files, so migrations generated against a host app
+  with an extension installed no longer silently miss its tables.
+
 ## [0.9.8] — 2026-07-29
 
 ### New
