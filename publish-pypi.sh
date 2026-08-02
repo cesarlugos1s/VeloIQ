@@ -19,6 +19,19 @@ if [ "$PY_VERSION" != "$NPM_VERSION" ]; then
   exit 1
 fi
 
+# The scaffold templates shipped in this Python package (backend/veloiq_framework/scaffold/)
+# assume whatever APIs exist in @juicemantics/veloiq-ui@$NPM_VERSION. If that exact version
+# hasn't actually been published to npm yet, new apps built from this pypi release will fail
+# at `veloiq build` with "X is not exported by ...veloiq-ui/dist/index.mjs" — the version
+# strings matching locally is not enough proof that npm has it. Verify the real registry state.
+echo "Checking npm registry for @juicemantics/veloiq-ui@$NPM_VERSION..."
+if ! npm view "@juicemantics/veloiq-ui@$NPM_VERSION" version >/dev/null 2>&1; then
+  echo ""
+  echo "ERROR: @juicemantics/veloiq-ui@$NPM_VERSION is not published to npm yet."
+  echo "Run ./publish-npm.sh first, then re-run this script."
+  exit 1
+fi
+
 echo ""
 echo "Publishing veloiq-framework $PY_VERSION to PyPI..."
 echo ""
