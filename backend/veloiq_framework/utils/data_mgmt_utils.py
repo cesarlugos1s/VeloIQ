@@ -1042,7 +1042,11 @@ def jm_log(relevance, *args, **kwargs):
 
     # 1. Get Config (Assume global or fast access)
     jm_config = jm_obtain_config()
-    log_up_to_relevance = int(jm_config.get('logging', 'log_up_to_relevance'))
+    # A logging function must never be what crashes the app -- fall back to the
+    # packaged default (2) if [logging] is somehow still missing (e.g. a
+    # transient config-resolution race during uvicorn --reload's parent-process
+    # import pass), rather than raising configparser.NoSectionError.
+    log_up_to_relevance = int(jm_config.get('logging', 'log_up_to_relevance', fallback='2'))
 
     if relevance <= log_up_to_relevance:
 
