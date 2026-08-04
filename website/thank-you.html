@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FV2WK2VW5K"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FV2WK2VW5K');
+
+    var params = new URLSearchParams(window.location.search);
+    gtag('event', 'generate_lead', {
+      interest: params.get('interest') || 'unspecified'
+    });
+  </script>
+  <script src="analytics.js" defer></script>
+
+  <title>Thank You — VeloIQ™</title>
+  <meta name="description" content="Thanks for reaching out to the VeloIQ™ team — we'll respond within one business day.">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
+    <div class="nav-links">
+      <a href="index.html#features">Features</a>
+      <a href="showcase.html">Showcase</a>
+      <a href="solutions.html">Solutions</a>
+      <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="enterprise-extensions.html">Enterprise Extensions</a>
+      <a href="https://iqvigilant.ai/" target="_blank">Safe Enterprise AI</a>
+      <a href="https://iqvigilant.ai/showcase.html" target="_blank">Answers Showcase ↗</a>
+      <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+      <a href="contact.html" class="nav-cta">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Thank You Hero -->
+<div class="contact-hero">
+  <div class="container">
+    <span class="section-tag">Message Sent</span>
+    <h1>Thanks — we'll be<br>in touch shortly</h1>
+    <p>
+      We respond within one business day. In the meantime, feel free to explore
+      the docs or browse what VeloIQ™ can build.
+    </p>
+    <div class="hero-actions" style="margin-top:24px">
+      <a href="https://github.com/cesarlugos1s/veloiq/blob/main/docs/quickstart.md" class="btn-secondary" target="_blank">
+        Quick Start Guide →
+      </a>
+      <a href="index.html" class="btn-secondary">
+        Back to Home →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">Velo<span class="accent">IQ</span>™</span>
+      <div class="footer-links">
+        <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+        <a href="https://pypi.org/project/veloiq-framework/" target="_blank">PyPI</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="index.html">Home</a>
+      </div>
+      <span class="footer-copy">© 2026 JuiceMantics · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

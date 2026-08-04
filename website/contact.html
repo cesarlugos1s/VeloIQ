@@ -12,6 +12,7 @@
     gtag('js', new Date());
     gtag('config', 'G-FV2WK2VW5K');
   </script>
+  <script src="analytics.js" defer></script>
 
   <title>Contact — VeloIQ™</title>
   <meta name="description" content="Get in touch with the VeloIQ™ team. Questions about the Pro tier, enterprise licensing, or custom development.">
@@ -103,6 +104,7 @@
 
     <!-- Right: form -->
     <form class="contact-form" action="https://formspree.io/f/xlgvgawa" method="POST">
+      <input type="hidden" name="_next" value="thank-you.html">
       <div class="form-row">
         <div class="form-group">
           <label for="name">Name</label>
@@ -140,6 +142,13 @@
 
   </div>
 </div>
+
+<script>
+  document.querySelector('.contact-form').addEventListener('submit', function () {
+    var interest = document.getElementById('interest').value || 'unspecified';
+    this.querySelector('input[name="_next"]').value = 'thank-you.html?interest=' + encodeURIComponent(interest);
+  });
+</script>
 
 <!-- Footer -->
 <footer>
