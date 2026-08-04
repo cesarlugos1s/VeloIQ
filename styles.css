@@ -329,6 +329,8 @@ footer { border-top: 1px solid var(--border-subtle); padding: 44px 0; }
   cursor: zoom-in; overflow: hidden;
 }
 .ui-shot .shot-frame img { display: block; width: 100%; }
+.ui-shot .shot-frame video { display: block; width: 100%; }
+.ui-shot .shot-frame.video-frame { cursor: default; }
 .ui-shot .shot-body { padding: 20px 22px 22px; }
 .ui-shot .shot-tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 .ui-shot h4 { font-size: 1.05rem; font-weight: 600; margin: 6px 0 8px; }
