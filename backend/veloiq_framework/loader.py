@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,22 @@ if TYPE_CHECKING:
     from fastapi import FastAPI
     from sqladmin import Admin
     from veloiq_framework.config import VeloIQConfig
+
+
+def _print_load_failure(label: str, exc: Exception) -> None:
+    """Print a module/factory load failure with its full traceback.
+
+    The one-line ``FAILED: {exc}`` these call sites used to print gives
+    only the exception's str() -- for something like a bare
+    configparser.NoSectionError raised deep in a shared logging helper,
+    that's not enough to tell which call site actually raised it. Same
+    lesson already learned once for this exact class of bug (see
+    NLSentence_actions_execution.py's chart-pivot exception handling in
+    IQVigilant): a bare log-and-swallow with no traceback makes an
+    intermittent, hard-to-reproduce failure effectively undebuggable.
+    """
+    print(f"  ❌ {label} FAILED: {exc}")
+    traceback.print_exc()
 
 
 def _iter_sqlmodel_subclasses(base_cls: type) -> list[type]:
@@ -79,7 +96,7 @@ def load_factory_events(modules_dir: Path) -> None:
                             fn()
                             print(f"  ✅ Factory: {folder.name}.{attr_name}()")
             except Exception as exc:
-                print(f"  ❌ Factory {module_path} FAILED: {exc}")
+                _print_load_failure(f"Factory {module_path}", exc)
 
 
 def load_modules(
@@ -179,9 +196,9 @@ def load_modules(
                     print(f"  ✅ {sub}: {folder_name}")
             except ModuleNotFoundError as exc:
                 if dotted not in str(exc):
-                    print(f"  ❌ {folder_name}/{sub} FAILED: {exc}")
+                    _print_load_failure(f"{folder_name}/{sub}", exc)
             except Exception as exc:
-                print(f"  ❌ {folder_name}/{sub} CRASHED: {exc}")
+                _print_load_failure(f"{folder_name}/{sub} CRASHED", exc)
 
     # Inject all loaded model classes so SQLAlchemy string expressions resolve.
     count = _inject_model_classes(module_prefix)
