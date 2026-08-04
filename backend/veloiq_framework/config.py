@@ -107,7 +107,17 @@ class VeloIQConfig:
     # Path to the built frontend dist/ directory (e.g. Path("../frontend/dist")).
     # When set and the directory exists, FastAPI serves it at / — no separate
     # Vite dev server needed.  Leave None during development (use npm run dev).
-    serve_frontend: Path | None = None
+    # Defaults from VELOIQ_SERVE_FRONTEND, which `veloiq run` sets automatically
+    # when it finds a built frontend/dist/ next to the app it's starting — see
+    # cli/run.py. Apps that construct VeloIQConfig with an explicit
+    # serve_frontend=... always take precedence over the env var.
+    serve_frontend: Path | None = field(
+        default_factory=lambda: (
+            Path(os.environ["VELOIQ_SERVE_FRONTEND"])
+            if os.environ.get("VELOIQ_SERVE_FRONTEND")
+            else None
+        )
+    )
 
     # ── Role presets ──────────────────────────────────────────────────────────
     # Developer-defined roles seeded to the DB on startup.  Defaults to the

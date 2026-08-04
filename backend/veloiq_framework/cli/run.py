@@ -28,8 +28,9 @@ def run(host, port, no_reload, app_path, env_file):
     _load_env(env_file)
 
     # Determine the ASGI app path
+    frontend_dist = None
     if app_path is None:
-        app_path, cwd = _detect_app_path()
+        app_path, cwd, frontend_dist = _detect_app_path()
     else:
         cwd = None
 
@@ -37,8 +38,19 @@ def run(host, port, no_reload, app_path, env_file):
     if not no_reload:
         cmd.extend(["--reload", "--reload-delay", "2"])
 
+    env = os.environ.copy()
+    if frontend_dist is not None:
+        # `veloiq build` prints "Run `veloiq run` — the app UI is now served
+        # at /" — VeloIQConfig.serve_frontend defaults from this env var, so
+        # setting it here (rather than requiring every host app to wire
+        # serve_frontend=... by hand) is what actually makes that promise
+        # true, for both `veloiq run` and any other command that shells out
+        # to uvicorn the same way.
+        env["VELOIQ_SERVE_FRONTEND"] = str(frontend_dist)
+        click.echo(f"  📦 Serving built frontend from {frontend_dist}")
+
     click.echo(f"🚀 Starting VeloIQ server: {app_path} on {host}:{port}")
-    result = subprocess.run(cmd, cwd=cwd)
+    result = subprocess.run(cmd, cwd=cwd, env=env)
     raise SystemExit(result.returncode)
 
 
@@ -58,14 +70,24 @@ def _load_env(env_file: str) -> None:
         pass
 
 
-def _detect_app_path() -> tuple[str, str | None]:
-    """Return (import_path, cwd) for the most likely ASGI app in the current project."""
+def _detect_app_path() -> tuple[str, str | None, Path | None]:
+    """Return (import_path, cwd, frontend_dist) for the most likely ASGI app
+    in the current project. frontend_dist is the built frontend/dist/
+    directory *if it exists* — i.e. `npm run build` / `veloiq build` has
+    already been run — so that a build followed by `veloiq run` serves the
+    production UI at / without any extra host-app wiring.
+    """
     candidates = [
-        ("app/main.py", "app.main:app", None),
-        ("backend/app/main.py", "app.main:app", "backend"),
-        ("main.py", "main:app", None),
+        ("app/main.py", "app.main:app", None, Path("../frontend/dist")),
+        ("backend/app/main.py", "app.main:app", "backend", Path("frontend/dist")),
+        ("main.py", "main:app", None, None),
     ]
-    for file_path, import_path, cwd in candidates:
+    for file_path, import_path, cwd, dist_rel in candidates:
         if Path(file_path).exists():
-            return import_path, cwd
-    return "app.main:app", None
+            frontend_dist = None
+            if dist_rel is not None:
+                candidate_dist = (Path.cwd() / dist_rel).resolve()
+                if candidate_dist.is_dir():
+                    frontend_dist = candidate_dist
+            return import_path, cwd, frontend_dist
+    return "app.main:app", None, None
