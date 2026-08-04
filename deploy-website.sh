@@ -24,6 +24,7 @@ cp /tmp/veloiq-website-deploy/contact.html .
 cp /tmp/veloiq-website-deploy/thank-you.html .
 cp /tmp/veloiq-website-deploy/solutions.html .
 cp /tmp/veloiq-website-deploy/enterprise-extensions.html .
+cp /tmp/veloiq-website-deploy/enterprise-extensions-showcase.html .
 cp /tmp/veloiq-website-deploy/styles.css .
 cp /tmp/veloiq-website-deploy/analytics.js .
 find /tmp/veloiq-website-deploy -maxdepth 1 \
@@ -32,9 +33,12 @@ find /tmp/veloiq-website-deploy -maxdepth 1 \
 # Showcase image assets (organized subdirectory)
 rm -rf showcase-assets
 cp -r /tmp/veloiq-website-deploy/showcase-assets .
+# Enterprise Extensions showcase videos/posters (organized subdirectory)
+rm -rf enterprise-extensions-assets
+cp -r /tmp/veloiq-website-deploy/enterprise-extensions-assets .
 
 # Stage only website files
-git add index.html showcase.html pricing.html contact.html thank-you.html solutions.html enterprise-extensions.html styles.css analytics.js showcase-assets
+git add index.html showcase.html pricing.html contact.html thank-you.html solutions.html enterprise-extensions.html enterprise-extensions-showcase.html styles.css analytics.js showcase-assets enterprise-extensions-assets
 find . -maxdepth 1 \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.webp" -o -name "*.svg" \) -exec git add {} \;
 
 # Commit only if there are changes
