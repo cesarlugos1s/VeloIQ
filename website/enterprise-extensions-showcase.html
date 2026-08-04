@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FV2WK2VW5K"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FV2WK2VW5K');
+  </script>
+  <script src="analytics.js" defer></script>
+
+  <title>Enterprise Extensions Showcase — VeloIQ™</title>
+  <meta name="description" content="Watch the 3 Enterprise Extension Packages for VeloIQ™ in action: Governance/Compliance/Audit, Integrations/Assets/Event Pipelines, and DevOps/Automated Infrastructure — real app, real screens.">
+  <meta property="og:title" content="VeloIQ™ Enterprise Extensions Showcase">
+  <meta property="og:description" content="Real screen recordings of each Enterprise Extension Package module, running against a live VeloIQ™ app.">
+  <meta property="og:url" content="https://veloiq.dev/enterprise-extensions-showcase.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
+    <div class="nav-links">
+      <a href="index.html#features">Features</a>
+      <a href="showcase.html">Showcase</a>
+      <a href="solutions.html">Solutions</a>
+      <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="enterprise-extensions.html">Enterprise Extensions</a>
+      <a href="https://iqvigilant.ai/" target="_blank">Safe Enterprise AI</a>
+      <a href="https://iqvigilant.ai/showcase.html" target="_blank">Answers Showcase ↗</a>
+      <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+      <a href="contact.html" class="nav-cta">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="showcase-hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      4 videos &nbsp;·&nbsp; Real app, real screens &nbsp;·&nbsp; Nothing staged
+    </div>
+    <h1>Enterprise Extensions, <span class="highlight">in action</span></h1>
+    <p>
+      Every clip below is a real browser driving a real running VeloIQ™ app — no mockups,
+      no slides. Pick a module group and watch it work.
+    </p>
+  </div>
+</section>
+
+<!-- Section sub-nav -->
+<div class="subnav">
+  <div class="subnav-inner">
+    <a href="#governance">Governance, Compliance &amp; Audit</a>
+    <a href="#integrations">Integrations, Assets &amp; Event Pipelines</a>
+    <a href="#devops">DevOps &amp; Automated Infrastructure</a>
+  </div>
+</div>
+
+<!-- Governance, Compliance & Audit -->
+<section class="showcase-section" id="governance">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Governance, Compliance &amp; Audit</span>
+      <h2>Meet compliance requirements without slowing teams down</h2>
+      <p>Tamper-evident audit trails, hardened schema-per-tenant multi-tenancy, a Zanzibar-style permission graph with field masking, and SSO with just-in-time provisioning.</p>
+    </div>
+    <div class="gallery one">
+      <figure class="ui-shot">
+        <div class="shot-frame video-frame">
+          <video controls preload="metadata" poster="enterprise-extensions-assets/posters/governance-compliance-audit.jpg">
+            <source src="enterprise-extensions-assets/videos/governance-compliance-audit.mp4" type="video/mp4">
+          </video>
+        </div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">4 modules · ~2 min</span>
+          <h4>Audit Trail · Multi-Tenancy · ReBAC &amp; Masking · SSO</h4>
+          <p>A real revision history drawer, a live-provisioned Postgres tenant schema, a permission graph evaluating a real access check, and a full OIDC round-trip through an identity provider.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Integrations, Assets & Event Pipelines -->
+<section class="showcase-section" id="integrations">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Integrations, Assets &amp; Event Pipelines</span>
+      <h2>Connect VeloIQ™ to the rest of your stack</h2>
+      <p>A durable background job queue, direct-to-storage file uploads, and HMAC-signed webhook delivery with automatic retry and a dead-letter queue.</p>
+    </div>
+    <div class="gallery one">
+      <figure class="ui-shot">
+        <div class="shot-frame video-frame">
+          <video controls preload="metadata" poster="enterprise-extensions-assets/posters/integrations-assets-event-pipelines.jpg">
+            <source src="enterprise-extensions-assets/videos/integrations-assets-event-pipelines.mp4" type="video/mp4">
+          </video>
+        </div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">3 modules · ~2 min</span>
+          <h4>Job Queue · File Storage &amp; MAM · Webhooks</h4>
+          <p>A real background worker processing jobs live, a file uploaded straight to S3-compatible storage via a presigned URL, and a webhook delivery landing with a real 200 on the first attempt.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- DevOps & Automated Infrastructure -->
+<section class="showcase-section" id="devops">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">DevOps &amp; Automated Infrastructure</span>
+      <h2>Ship to production without hand-rolling infrastructure</h2>
+      <p>Generate a provider-ready Dockerfile and deployment manifest from your app's own build output — reviewed before anything ever touches a real cloud account.</p>
+    </div>
+    <div class="gallery">
+      <figure class="ui-shot">
+        <div class="shot-frame video-frame">
+          <video controls preload="metadata" poster="enterprise-extensions-assets/posters/devops-automated-infrastructure-aws.jpg">
+            <source src="enterprise-extensions-assets/videos/devops-automated-infrastructure-aws.mp4" type="video/mp4">
+          </video>
+        </div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">AWS · ~40 sec</span>
+          <h4>One-Click Deployment — AWS</h4>
+          <p>Generate &amp; Preview builds a real ECS task definition for the target, safely — zero cloud calls until Deploy is explicitly confirmed.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <div class="shot-frame video-frame">
+          <video controls preload="metadata" poster="enterprise-extensions-assets/posters/devops-automated-infrastructure-ibm.jpg">
+            <source src="enterprise-extensions-assets/videos/devops-automated-infrastructure-ibm.mp4" type="video/mp4">
+          </video>
+        </div>
+        <figcaption class="shot-body">
+          <span class="shot-tag">IBM Cloud · ~40 sec</span>
+          <h4>One-Click Deployment — IBM Cloud</h4>
+          <p>The same Generate &amp; Preview flow targets IBM Cloud Code Engine — a real manifest with cpu, memory, and scale-to-zero settings, reviewed the same way.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Band -->
+<section class="cta-band" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:40px 0;text-align:center;margin:0">
+  <div class="container">
+    <h3 style="font-size:1.25rem;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Want the full feature breakdown?</h3>
+    <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:20px">See what's included in each Enterprise Extension Package, or get in touch to discuss your deployment.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a href="enterprise-extensions.html" class="btn-primary">See All Packages →</a>
+      <a href="contact.html" class="btn-secondary">Contact Sales →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">Velo<span class="accent">IQ</span>™</span>
+      <div class="footer-links">
+        <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
+        <a href="https://pypi.org/project/veloiq-framework/" target="_blank">PyPI</a>
+        <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="solutions.html">Solutions</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <span class="footer-copy">© 2026 JuiceMantics · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
