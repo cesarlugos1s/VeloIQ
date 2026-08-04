@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-07-14T14:28:25.247186+00:00",
+  "updated_at": "2026-08-02T17:44:57.106901+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -40,6 +40,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_action_implements_mechanism_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_action_implements_mechanism_relation/import-csv",
+      "summary": "Import jm_action_implements_mechanism_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_action_implements_mechanism_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_action_implements_mechanism_relation/export-csv",
+      "summary": "Export jm_action_implements_mechanism_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_action_implements_mechanism_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_action_implements_mechanism_relation/{record_id}",
@@ -49,7 +106,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -108,7 +165,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -145,7 +202,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -182,7 +239,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -240,6 +297,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_action__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_action/import-csv",
+      "summary": "Import jm_action from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_action__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_action/export-csv",
+      "summary": "Export jm_action to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_action__record_id": {
       "http_method": "GET",
       "path": "/jm_action/{record_id}",
@@ -249,7 +363,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -308,7 +422,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -345,7 +459,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -382,7 +496,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -604,6 +718,417 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "GET__jm_dataimportmapping": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping",
+      "summary": "List jm_dataimportmapping",
+      "description": "GET /jm_dataimportmapping",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "_start",
+            "type": "int",
+            "required": false,
+            "default": 0
+          },
+          {
+            "name": "_end",
+            "type": "int",
+            "required": false,
+            "default": 25
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_dataimportmapping__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_dataimportmapping/import-csv",
+      "summary": "Import jm_dataimportmapping from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_dataimportmapping__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping/export-csv",
+      "summary": "Export jm_dataimportmapping to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_dataimportmapping__record_id": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Get jm_dataimportmapping",
+      "description": "GET /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_dataimportmapping": {
+      "http_method": "POST",
+      "path": "/jm_dataimportmapping",
+      "summary": "Create jm_dataimportmapping",
+      "description": "POST /jm_dataimportmapping",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "PUT__jm_dataimportmapping__record_id": {
+      "http_method": "PUT",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Update jm_dataimportmapping",
+      "description": "PUT /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "PATCH__jm_dataimportmapping__record_id": {
+      "http_method": "PATCH",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Partial update jm_dataimportmapping",
+      "description": "PATCH /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "DELETE__jm_dataimportmapping__record_id": {
+      "http_method": "DELETE",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Delete jm_dataimportmapping",
+      "description": "DELETE /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__data-import-export__models": {
+      "http_method": "GET",
+      "path": "/data-import-export/models",
+      "summary": "GET /data-import-export/models",
+      "description": "Return every registered model (host app + extensions) for the model picker.\n\nSame introspection pattern as ``business_rules``'s ``/models`` endpoint —\nwalks ``SQLModel.__subclasses__()`` rather than relying on the frontend's\ngenerated ``allModels.gen.ts``, since this component is bundled with the\nextension and has no access to any one host app's generated schema files\nat build time.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__data-import-export__analyze": {
+      "http_method": "POST",
+      "path": "/data-import-export/analyze",
+      "summary": "POST /data-import-export/analyze",
+      "description": "Upload a source file and return a suggested column mapping.\n\nConverts Excel to CSV automatically if needed. Not yet persisted — the\ncaller reviews/edits the suggestion and posts the confirmed version to\n``POST /data-import-export/mappings``.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "target_model",
+            "type": "str",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "file",
+            "type": "UploadFile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "use_ai",
+            "type": "bool",
+            "required": false,
+            "default": true
+          },
+          {
+            "name": "use_fuzzy",
+            "type": "bool",
+            "required": false,
+            "default": true
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__data-import-export__mappings": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings",
+      "summary": "POST /data-import-export/mappings",
+      "description": "Persist a user-confirmed column mapping.\n\nBody: ``{\"target_model_name\", \"source_filename\", \"source_temp_path\",\n\"column_mappings\", \"ai_suggested\"}`` — ``column_mappings`` is a list of\n``{\"csv_column\", \"target_field\", \"kind\": \"direct\"|\"fk_lookup\",\n\"lookup_model\", \"lookup_field\"}`` entries.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__data-import-export__mappings__mapping_eid__dry-run": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings/{mapping_eid}/dry-run",
+      "summary": "POST /data-import-export/mappings/{mapping_eid}/dry-run",
+      "description": "Pre-scan rows against the confirmed mapping without writing to the DB.\n\nScans up to the configurable ``dry_run_prescan_row_limit`` (default\n1000) rows, applies FK lookups, and validates each row with a real\nflush() (rolled back per row, nothing persisted) — not just Pydantic\nvalidation — so this actually catches DB-level constraint violations\n(e.g. re-importing a row whose PK already exists) instead of reporting\nevery row as valid regardless of what would really happen on a real run.\nReturns per-row errors, a small sample of the rows that would load, and\na valid-row count — the same shape the OSS Basic import's ``dry_run=true``\nreports, so the frontend can render both with one component.",
+      "parameters": {
+        "path": [
+          {
+            "name": "mapping_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__data-import-export__mappings__mapping_eid__run": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings/{mapping_eid}/run",
+      "summary": "POST /data-import-export/mappings/{mapping_eid}/run",
+      "description": "Kick off the confirmed mapping's bulk load, tracked via Vigilantprocessexec.\n\nCreates a ``Vigilantprocesstype`` (\"Data Import\") with no linked\n``Exceptiondef`` — a verified safe no-op for the existing\n``vigilant_process`` before_flush hook — and a linked\n``Vigilantprocessexec`` whose ``eid`` the frontend polls (reusing the\nexisting, unmodified ``VigilantProcessExecProgressPanel``).",
+      "parameters": {
+        "path": [
+          {
+            "name": "mapping_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiondef_applicable_actions_relation": {
       "http_method": "GET",
       "path": "/jm_exceptiondef_applicable_actions_relation",
@@ -641,6 +1166,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_exceptiondef_applicable_actions_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_exceptiondef_applicable_actions_relation/import-csv",
+      "summary": "Import jm_exceptiondef_applicable_actions_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_exceptiondef_applicable_actions_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_exceptiondef_applicable_actions_relation/export-csv",
+      "summary": "Export jm_exceptiondef_applicable_actions_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiondef_applicable_actions_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptiondef_applicable_actions_relation/{record_id}",
@@ -650,7 +1232,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -709,7 +1291,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -746,7 +1328,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -783,7 +1365,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -841,6 +1423,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_applied_actions_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_applied_actions_relation/import-csv",
+      "summary": "Import jm_applied_actions_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_applied_actions_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_applied_actions_relation/export-csv",
+      "summary": "Export jm_applied_actions_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_applied_actions_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_applied_actions_relation/{record_id}",
@@ -850,7 +1489,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -909,7 +1548,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -946,7 +1585,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -983,7 +1622,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1041,6 +1680,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_alert_applies_to_object_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_alert_applies_to_object_relation/import-csv",
+      "summary": "Import jm_alert_applies_to_object_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_alert_applies_to_object_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_alert_applies_to_object_relation/export-csv",
+      "summary": "Export jm_alert_applies_to_object_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_alert_applies_to_object_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_alert_applies_to_object_relation/{record_id}",
@@ -1050,7 +1746,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1109,7 +1805,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1146,7 +1842,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1183,7 +1879,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1241,6 +1937,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_exceptiontype__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_exceptiontype/import-csv",
+      "summary": "Import jm_exceptiontype from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_exceptiontype__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_exceptiontype/export-csv",
+      "summary": "Export jm_exceptiontype to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiontype__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptiontype/{record_id}",
@@ -1250,7 +2003,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1309,7 +2062,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1346,7 +2099,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1383,7 +2136,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1441,6 +2194,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_exceptionalert__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_exceptionalert/import-csv",
+      "summary": "Import jm_exceptionalert from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_exceptionalert__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_exceptionalert/export-csv",
+      "summary": "Export jm_exceptionalert to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptionalert__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptionalert/{record_id}",
@@ -1450,7 +2260,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1509,7 +2319,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1546,7 +2356,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1583,7 +2393,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1641,6 +2451,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_exceptiondef__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_exceptiondef/import-csv",
+      "summary": "Import jm_exceptiondef from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_exceptiondef__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_exceptiondef/export-csv",
+      "summary": "Export jm_exceptiondef to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiondef__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptiondef/{record_id}",
@@ -1650,7 +2517,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1709,7 +2576,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1746,7 +2613,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -1783,7 +2650,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2284,7 +3151,7 @@
         "path": [
           {
             "name": "key_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2342,6 +3209,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_results_in_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_results_in_relation/import-csv",
+      "summary": "Import jm_results_in_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_results_in_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_results_in_relation/export-csv",
+      "summary": "Export jm_results_in_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_results_in_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_results_in_relation/{record_id}",
@@ -2351,7 +3275,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2410,7 +3334,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2447,7 +3371,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2484,7 +3408,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2542,6 +3466,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_mechanism_is_defined_using_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_mechanism_is_defined_using_relation/import-csv",
+      "summary": "Import jm_mechanism_is_defined_using_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_mechanism_is_defined_using_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_mechanism_is_defined_using_relation/export-csv",
+      "summary": "Export jm_mechanism_is_defined_using_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_mechanism_is_defined_using_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_mechanism_is_defined_using_relation/{record_id}",
@@ -2551,7 +3532,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2610,7 +3591,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2647,7 +3628,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2684,7 +3665,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2742,6 +3723,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_mechanismresult__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_mechanismresult/import-csv",
+      "summary": "Import jm_mechanismresult from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_mechanismresult__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_mechanismresult/export-csv",
+      "summary": "Export jm_mechanismresult to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_mechanismresult__record_id": {
       "http_method": "GET",
       "path": "/jm_mechanismresult/{record_id}",
@@ -2751,7 +3789,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2810,7 +3848,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2847,7 +3885,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2884,7 +3922,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -2942,6 +3980,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_mechanism__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_mechanism/import-csv",
+      "summary": "Import jm_mechanism from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_mechanism__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_mechanism/export-csv",
+      "summary": "Export jm_mechanism to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_mechanism__record_id": {
       "http_method": "GET",
       "path": "/jm_mechanism/{record_id}",
@@ -2951,7 +4046,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3010,7 +4105,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3047,7 +4142,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3084,7 +4179,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3114,7 +4209,7 @@
         "path": [
           {
             "name": "mechanism_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3142,7 +4237,7 @@
         "path": [
           {
             "name": "mechanism_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3170,7 +4265,7 @@
         "path": [
           {
             "name": "mechanism_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3226,6 +4321,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_nlchat__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_nlchat/import-csv",
+      "summary": "Import jm_nlchat from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_nlchat__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_nlchat/export-csv",
+      "summary": "Export jm_nlchat to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_nlchat__record_id": {
       "http_method": "GET",
       "path": "/jm_nlchat/{record_id}",
@@ -3235,7 +4387,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3294,7 +4446,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3331,7 +4483,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3368,7 +4520,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3426,6 +4578,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_nlsentence__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_nlsentence/import-csv",
+      "summary": "Import jm_nlsentence from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_nlsentence__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_nlsentence/export-csv",
+      "summary": "Export jm_nlsentence to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_nlsentence__record_id": {
       "http_method": "GET",
       "path": "/jm_nlsentence/{record_id}",
@@ -3435,7 +4644,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3494,7 +4703,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3531,7 +4740,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3568,7 +4777,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3626,6 +4835,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_dbconnector__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_dbconnector/import-csv",
+      "summary": "Import jm_dbconnector from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_dbconnector__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_dbconnector/export-csv",
+      "summary": "Export jm_dbconnector to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_dbconnector__record_id": {
       "http_method": "GET",
       "path": "/jm_dbconnector/{record_id}",
@@ -3635,7 +4901,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3694,7 +4960,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3731,7 +4997,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3768,7 +5034,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3826,6 +5092,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_nlanswer__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_nlanswer/import-csv",
+      "summary": "Import jm_nlanswer from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_nlanswer__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_nlanswer/export-csv",
+      "summary": "Export jm_nlanswer to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_nlanswer__record_id": {
       "http_method": "GET",
       "path": "/jm_nlanswer/{record_id}",
@@ -3835,7 +5158,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3894,7 +5217,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3931,7 +5254,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -3968,7 +5291,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4026,6 +5349,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_has_nl_sentence_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_has_nl_sentence_relation/import-csv",
+      "summary": "Import jm_has_nl_sentence_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_has_nl_sentence_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_has_nl_sentence_relation/export-csv",
+      "summary": "Export jm_has_nl_sentence_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_has_nl_sentence_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_has_nl_sentence_relation/{record_id}",
@@ -4035,7 +5415,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4094,7 +5474,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4131,7 +5511,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4168,7 +5548,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4226,6 +5606,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_is_interpreted_as_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_is_interpreted_as_relation/import-csv",
+      "summary": "Import jm_is_interpreted_as_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_is_interpreted_as_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_is_interpreted_as_relation/export-csv",
+      "summary": "Export jm_is_interpreted_as_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_is_interpreted_as_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_is_interpreted_as_relation/{record_id}",
@@ -4235,7 +5672,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4294,7 +5731,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4331,7 +5768,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4368,7 +5805,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4426,6 +5863,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_connects_via_db_connection_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_connects_via_db_connection_relation/import-csv",
+      "summary": "Import jm_connects_via_db_connection_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_connects_via_db_connection_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_connects_via_db_connection_relation/export-csv",
+      "summary": "Export jm_connects_via_db_connection_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_connects_via_db_connection_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_connects_via_db_connection_relation/{record_id}",
@@ -4435,7 +5929,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4494,7 +5988,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4531,7 +6025,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4568,7 +6062,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4598,7 +6092,7 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4633,7 +6127,7 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4668,7 +6162,7 @@
         "path": [
           {
             "name": "nl_sentence_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4700,6 +6194,41 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "GET__nlsentence__nl_sentence_eid__chart": {
+      "http_method": "GET",
+      "path": "/nlsentence/{nl_sentence_eid}/chart",
+      "summary": "GET /nlsentence/{nl_sentence_eid}/chart",
+      "description": "Render a single NLSentence's results as a dashboard chart tile.\n\nThin adapter over ``get_nlsentence_custom_view_content`` that returns the\n``{\"chart_html\": ...}`` shape the framework's Dashboard ``plotly_chart``\ncell type (``PlotlyChartContent`` in ``ViewsGrid.tsx``) expects, so any\nNLSentence — not just the fixed set of named reporting endpoints below —\ncan be embedded as a dashboard tile via ``veloiq add-dashboard --chart-url``.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_sentence_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "PATCH__nlchat__nl_chat_eid__sync_nlsentence_settings": {
       "http_method": "PATCH",
       "path": "/nlchat/{nl_chat_eid}/sync_nlsentence_settings",
@@ -4709,7 +6238,7 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4744,7 +6273,7 @@
         "path": [
           {
             "name": "nl_sentence_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4779,12 +6308,12 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           },
           {
             "name": "nl_sentence_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4819,7 +6348,7 @@
         "path": [
           {
             "name": "nl_sentence_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4847,7 +6376,7 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4875,7 +6404,7 @@
         "path": [
           {
             "name": "nl_chat_eid",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -4899,6 +6428,151 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__nlchat__nl_chat_eid__suggested-sentences": {
+      "http_method": "GET",
+      "path": "/nlchat/{nl_chat_eid}/suggested-sentences",
+      "summary": "GET /nlchat/{nl_chat_eid}/suggested-sentences",
+      "description": "Suggested sentences for the NLChat right-side panel (Pattern A).\n\nRegenerated fresh on every call (no caching) — the panel calls this once\nper expand. Returns ``llm_available: False`` when no LLM is configured, so\nthe frontend can show its \"LLM required\" message instead of an empty list.\nLicensing (Natural Language must be active) is enforced both here (the\ngenerator no-ops when unlicensed) and, for free, by the framework's\nper-module license dependency wrapping every route in this module.\n\n``lang`` is the frontend's current UI locale (same ``?lang=`` convention as\n``custom_content``/``custom_content/stream``) — suggestions are generated in\nthat language, falling back to English when it isn't a supported NLP locale.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_chat_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__suggested-sentences__model__resource": {
+      "http_method": "GET",
+      "path": "/suggested-sentences/model/{resource}",
+      "summary": "GET /suggested-sentences/model/{resource}",
+      "description": "Suggested sentences for a host model's default List page (Stage 2).\n\n``resource`` is the model's table/resource name (matches ``ModelDef.resource``\non the frontend, resolved here via ``jm_obtain_model_by_name`` — the same\ndynamic-model-by-name pattern ``data_import_export`` already uses, since\nthis route must work for ANY host model IQVigilant doesn't import by name).\nSame licensing/LLM-availability/locale handling as the NLChat panel above.",
+      "parameters": {
+        "path": [
+          {
+            "name": "resource",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__suggested-sentences__object__resource__pk": {
+      "http_method": "GET",
+      "path": "/suggested-sentences/object/{resource}/{pk}",
+      "summary": "GET /suggested-sentences/object/{resource}/{pk}",
+      "description": "Suggested sentences for one specific object on a host model's default\nShow page (Stage 2) — the object-scoped counterpart of the List-page\nendpoint above. ``pk`` arrives as a string (the frontend's ``ModelDef``\nprimary key resolution doesn't guarantee numeric) and is coerced to ``int``\nwhen possible, since every model in this codebase keys on an integer\n``eid``/``id``.",
+      "parameters": {
+        "path": [
+          {
+            "name": "resource",
+            "type": "str",
+            "required": true
+          },
+          {
+            "name": "pk",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__suggested-sentences__dashboard-tab": {
+      "http_method": "GET",
+      "path": "/suggested-sentences/dashboard-tab",
+      "summary": "GET /suggested-sentences/dashboard-tab",
+      "description": "Suggested sentences for a Dashboard tab's chrome (Stage 4), scoped to\nthe SET of models present across the tab's cells.\n\n``models`` is a comma-separated list of resource/table names (the tab's\ncells' ``model`` values -- resolved to Refine resources on the frontend,\nsince which models belong to a tab is pure per-user-preferences runtime\nstate, not something resolvable at codegen time). Unresolvable names are\nsilently skipped (not a 404) since a tab may reference a model that no\nlonger exists without breaking the whole suggestion request. Same\nlicensing/LLM-availability/locale handling as the other suggested-sentences\nendpoints above.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "models",
+            "type": "str",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
     "GET__agentic-tools": {
@@ -7021,7 +8695,7 @@
         "path": [
           {
             "name": "connector_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7572,6 +9246,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_vigilant_has_process_type_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_vigilant_has_process_type_relation/import-csv",
+      "summary": "Import jm_vigilant_has_process_type_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_vigilant_has_process_type_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_vigilant_has_process_type_relation/export-csv",
+      "summary": "Export jm_vigilant_has_process_type_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilant_has_process_type_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilant_has_process_type_relation/{record_id}",
@@ -7581,7 +9312,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7640,7 +9371,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7677,7 +9408,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7714,7 +9445,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7772,6 +9503,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_vigilant_process_executes_based_on_relation__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_vigilant_process_executes_based_on_relation/import-csv",
+      "summary": "Import jm_vigilant_process_executes_based_on_relation from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_vigilant_process_executes_based_on_relation__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_vigilant_process_executes_based_on_relation/export-csv",
+      "summary": "Export jm_vigilant_process_executes_based_on_relation to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilant_process_executes_based_on_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilant_process_executes_based_on_relation/{record_id}",
@@ -7781,7 +9569,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7840,7 +9628,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7877,7 +9665,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7914,7 +9702,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -7972,6 +9760,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_vigilantprocesstype__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_vigilantprocesstype/import-csv",
+      "summary": "Import jm_vigilantprocesstype from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_vigilantprocesstype__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_vigilantprocesstype/export-csv",
+      "summary": "Export jm_vigilantprocesstype to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilantprocesstype__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilantprocesstype/{record_id}",
@@ -7981,7 +9826,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8040,7 +9885,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8077,7 +9922,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8114,7 +9959,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8172,6 +10017,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__jm_vigilantprocessexec__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_vigilantprocessexec/import-csv",
+      "summary": "Import jm_vigilantprocessexec from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__jm_vigilantprocessexec__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_vigilantprocessexec/export-csv",
+      "summary": "Export jm_vigilantprocessexec to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilantprocessexec__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilantprocessexec/{record_id}",
@@ -8181,7 +10083,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8240,7 +10142,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8277,7 +10179,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8314,7 +10216,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8372,6 +10274,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__project__import-csv": {
+      "http_method": "POST",
+      "path": "/project/import-csv",
+      "summary": "Import project from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.projects",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__project__export-csv": {
+      "http_method": "GET",
+      "path": "/project/export-csv",
+      "summary": "Export project to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.projects",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__project__record_id": {
       "http_method": "GET",
       "path": "/project/{record_id}",
@@ -8381,7 +10340,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8440,7 +10399,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8477,7 +10436,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8514,7 +10473,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8574,6 +10533,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__task__import-csv": {
+      "http_method": "POST",
+      "path": "/task/import-csv",
+      "summary": "Import task from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.tasks",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__task__export-csv": {
+      "http_method": "GET",
+      "path": "/task/export-csv",
+      "summary": "Export task to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.tasks",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__task__record_id": {
       "http_method": "GET",
       "path": "/task/{record_id}",
@@ -8583,7 +10599,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8642,7 +10658,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8679,7 +10695,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8716,7 +10732,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8746,7 +10762,7 @@
         "path": [
           {
             "name": "task_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8776,7 +10792,7 @@
         "path": [
           {
             "name": "project_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8834,6 +10850,63 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__team_member__import-csv": {
+      "http_method": "POST",
+      "path": "/team_member/import-csv",
+      "summary": "Import team_member from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.team",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__team_member__export-csv": {
+      "http_method": "GET",
+      "path": "/team_member/export-csv",
+      "summary": "Export team_member to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "app.modules.team",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
     "GET__team_member__record_id": {
       "http_method": "GET",
       "path": "/team_member/{record_id}",
@@ -8843,7 +10916,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8902,7 +10975,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8939,7 +11012,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
@@ -8976,7 +11049,7 @@
         "path": [
           {
             "name": "record_id",
-            "type": "str",
+            "type": "int",
             "required": true
           }
         ],
