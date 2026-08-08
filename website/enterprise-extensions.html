@@ -14,10 +14,10 @@
   </script>
   <script src="analytics.js" defer></script>
 
-  <title>Enterprise Extension Packages — VeloIQ™</title>
-  <meta name="description" content="4 Enterprise Extension Packages for VeloIQ™: IQVigilant, Governance/Compliance/Audit, Integrations/Assets/Event Pipelines, and DevOps/Automated Infrastructure.">
-  <meta property="og:title" content="VeloIQ™ Enterprise Extension Packages">
-  <meta property="og:description" content="IQVigilant plus 3 more extension packages: Governance & Audit, Integrations & Event Pipelines, and DevOps & Automated Infrastructure.">
+  <title>IQVigilant Enterprise Governance — VeloIQ™</title>
+  <meta name="description" content="IQVigilant Enterprise Governance for VeloIQ™: Governance/Compliance/Audit and DevOps/Automated Infrastructure, site-licensed.">
+  <meta property="og:title" content="VeloIQ™ IQVigilant Enterprise Governance">
+  <meta property="og:description" content="Governance, Compliance & Audit plus DevOps & Automated Infrastructure — site-licensed for teams operating at enterprise scale.">
   <meta property="og:url" content="https://veloiq.dev/enterprise-extensions.html">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,18 +39,20 @@
 <nav>
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
-    <div class="nav-links">
+    <div class="nav-links" onclick="document.querySelector('nav').classList.remove('nav-open')">
       <a href="index.html#features">Features</a>
       <a href="showcase.html">Showcase</a>
       <a href="solutions.html">Solutions</a>
       <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
       <a href="pricing.html">Pricing</a>
-      <a href="enterprise-extensions.html">Enterprise Extensions</a>
+      <a href="enterprise-extensions.html">Enterprise Governance</a>
+      <a href="advanced-development.html">Advanced Development</a>
       <a href="https://iqvigilant.ai/" target="_blank">Safe Enterprise AI</a>
       <a href="https://iqvigilant.ai/showcase.html" target="_blank">Answers Showcase ↗</a>
       <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
-      <a href="contact.html" class="nav-cta">Get Started</a>
     </div>
+    <a href="contact.html" class="nav-cta">Get Started</a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var n=document.querySelector('nav'); n.classList.toggle('nav-open'); this.setAttribute('aria-expanded', n.classList.contains('nav-open'))">☰</button>
   </div>
 </nav>
 
@@ -59,9 +61,9 @@
   <div class="container">
     <div class="hero-badge">
       <span class="dot"></span>
-      4 Enterprise Extension Packages &nbsp;·&nbsp; Built on VeloIQ™
+      IQVigilant Enterprise Governance &nbsp;·&nbsp; Built on VeloIQ™
     </div>
-    <h1 style="font-size:clamp(2rem,4.5vw,3rem);font-weight:700;line-height:1.15;letter-spacing:-0.03em;max-width:820px;margin:0 auto 12px">Enterprise-grade <span class="highlight">extension packages</span> for teams that need more</h1>
+    <h1 style="font-size:clamp(2rem,4.5vw,3rem);font-weight:700;line-height:1.15;letter-spacing:-0.03em;max-width:820px;margin:0 auto 12px">Enterprise-grade <span class="highlight">governance &amp; deployment</span> for teams that need more</h1>
     <a href="enterprise-extensions-showcase.html" class="btn-primary" style="margin-top:8px;display:inline-block">▶ Watch the Showcase →</a>
   </div>
 </section>
@@ -78,14 +80,11 @@
       <div class="ext-flagship-body">
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;justify-content:center">
           <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:#7c3aed;font-weight:500">Safe AI Agents</span>
-          <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">Business Rules</span>
           <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">NL Querying</span>
-          <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">WYSIWYG Page Builder</span>
-          <span style="background:var(--bg-elevated);border:1px solid var(--border);padding:3px 10px;border-radius:999px;font-size:0.7rem;color:var(--text-muted)">User Journeys</span>
         </div>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:8px;text-align:center">
-          Adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder,
-          and User Journeys to any VeloIQ app — zero code changes required.
+          Adds Safe AI Agents and Natural Language Querying &amp; Charting to any VeloIQ app —
+          zero code changes required.
         </p>
         <div style="display:flex;gap:8px;justify-content:center">
           <a href="https://iqvigilant.ai" class="btn-primary" style="font-size:0.76rem;padding:6px 12px;background:#7c3aed" target="_blank">Visit iqvigilant.ai →</a>
@@ -128,30 +127,19 @@
   </div>
 </section>
 
-<!-- Integrations, Assets & Event Pipelines -->
+<!-- Advanced Development cross-sell -->
 <section class="section">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
-      <span class="section-tag">Integrations, Assets &amp; Event Pipelines</span>
-      <h2>Connect VeloIQ™ to the rest of your stack</h2>
-      <a href="enterprise-extensions-showcase.html#integrations" style="font-size:0.82rem;color:var(--accent)">▶ Watch this in action →</a>
-    </div>
-    <div class="ext-grid">
-      <div class="feature-card">
-        <span class="feature-icon">🗂️</span>
-        <h3>File Storage &amp; Media Asset Management</h3>
-        <p>S3-backed file storage with a Media Manager UI for uploading, organizing, and attaching assets to any model.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🔗</span>
-        <h3>Webhooks &amp; Event Delivery Engine</h3>
-        <p>Subscribe external systems to model events. Auto-retries and an Admin Dashboard UI for monitoring delivery status.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">⚙️</span>
-        <h3>Background Job Queue &amp; Real-time Scaling</h3>
-        <p>Production Worker CLI, Task Dashboard, and Dead Letter Queue for background jobs; Scaled Multi-Node Server-Sent Events via Redis/NATS for real-time updates across instances.</p>
-      </div>
+      <span class="section-tag">Looking for Integrations, Assets &amp; Event Pipelines?</span>
+      <h2>File Storage, Webhooks, and the Job Queue moved to Advanced Development</h2>
+      <p style="font-size:0.88rem;color:var(--text-muted);max-width:640px">
+        File Storage &amp; Media Asset Management, Webhooks &amp; Event Delivery, and the
+        Background Job Queue &amp; Real-Time Scaling engine now live in
+        <strong>VeloIQ Advanced Development</strong> — a separate, per-application-licensed
+        extension package alongside Page Builder, Journeys, Business Rules, and Data Import.
+      </p>
+      <a href="advanced-development.html" class="btn-primary" style="margin-top:8px;display:inline-block">Explore Advanced Development →</a>
     </div>
   </div>
 </section>
