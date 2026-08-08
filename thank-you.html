@@ -33,7 +33,7 @@
 <nav>
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">Velo<span class="accent">IQ</span>™</a>
-    <div class="nav-links">
+    <div class="nav-links" onclick="document.querySelector('nav').classList.remove('nav-open')">
       <a href="index.html#features">Features</a>
       <a href="showcase.html">Showcase</a>
       <a href="solutions.html">Solutions</a>
@@ -44,8 +44,9 @@
       <a href="https://iqvigilant.ai/" target="_blank">Safe Enterprise AI</a>
       <a href="https://iqvigilant.ai/showcase.html" target="_blank">Answers Showcase ↗</a>
       <a href="https://github.com/cesarlugos1s/veloiq" target="_blank">GitHub</a>
-      <a href="contact.html" class="nav-cta">Get Started</a>
     </div>
+    <a href="contact.html" class="nav-cta">Get Started</a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var n=document.querySelector('nav'); n.classList.toggle('nav-open'); this.setAttribute('aria-expanded', n.classList.contains('nav-open'))">☰</button>
   </div>
 </nav>
 
