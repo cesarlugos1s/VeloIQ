@@ -21,6 +21,7 @@ CSV_HEADER = [
 ]
 
 def fetch_json(url, headers=None, retries=3):
+    """Fetches JSON payloads with exponential backoff delay for 429 rate limits."""
     req = urllib.request.Request(url, headers=headers or {})
     for i in range(retries):
         try:
@@ -28,9 +29,12 @@ def fetch_json(url, headers=None, retries=3):
                 return json.loads(response.read().decode())
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                # Don't retry rate limits — caller will use cache instead
-                print(f"⚠️  PyPI rate limited (429). Will use cached values.")
-                return None
+                wait_time = 2 ** (i + 1)
+                print(f"⚠️  PyPI rate limited (429). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            elif e.code == 404:
+                print(f"ℹ️  Package pending indexing on PyPI Stats (404). Defaulting downloads to 0.")
+                return {"is_pending": True, "data": {"last_day": 0, "last_week": 0, "last_month": 0}}
             else:
                 print(f"❌ HTTP Error fetching {url}: {e.code} - {e.reason}")
                 return None
@@ -39,10 +43,43 @@ def fetch_json(url, headers=None, retries=3):
             return None
     return None
 
-def load_pypi_cache():
+def fetch_bigquery_real_installs(project_name):
+    """Attempts to fetch filtered real installations from Google BigQuery if SDK & credentials exist."""
+    try:
+        from google.cloud import bigquery
+        client = bigquery.Client()
+        query = f"""
+        SELECT
+          COUNT(*) AS real_installations
+        FROM
+          `bigquery-public-data.pypi.file_downloads`
+        WHERE
+          project = '{project_name}'
+          AND timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+          AND details.installer.name IN ('pip', 'uv', 'poetry', 'pipenv', 'conda', 'flit', 'hatch', 'pdm')
+        """
+        query_job = client.query(query)
+        results = list(query_job.result())
+        if results:
+            return results[0].real_installations
+    except Exception:
+        # Fall back gracefully if BigQuery SDK or credentials are not configured
+        return None
+    return None
+
+def load_pypi_cache(max_age_hours=6):
+    """Loads cache only if it is fresher than max_age_hours."""
     if os.path.exists(PYPI_CACHE_FILE):
-        with open(PYPI_CACHE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(PYPI_CACHE_FILE, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+                cached_time = datetime.fromisoformat(cached["cached_at"])
+                if datetime.utcnow() - cached_time < timedelta(hours=max_age_hours):
+                    return cached
+                else:
+                    print(f"⚠️  Cache file expired (> {max_age_hours}h old). Fetching fresh data...")
+        except Exception:
+            return None
     return None
 
 def save_pypi_cache(data):
@@ -53,25 +90,21 @@ def save_pypi_cache(data):
     with open(PYPI_CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(payload, f)
 
-def pct_change(current, previous):
+def pct_change(current, previous, min_baseline=20):
+    """Computes % growth with a Small-Base Guardrail to prevent hyper-inflated percentages."""
     if previous == 0:
         return "N/A"
+    if previous < min_baseline:
+        delta = round(current - previous, 1)
+        sign = "+" if delta >= 0 else ""
+        return f"{sign}{delta} net new"
+    
+    pct = ((current - previous) / previous) * 100
     sign = "+" if current >= previous else ""
-    return f"{sign}{round((current - previous) / previous * 100, 1):.1f}%"
-
-def trend_icon(current, previous):
-    return "📈" if current >= previous else "📉"
+    return f"{sign}{round(pct, 1):.1f}%"
 
 def load_csv_history(filepath):
-    """Read the CSV history once and return structured data for all consumers.
-
-    Returns a dict with:
-      - existing_dates : set[str]          – dates already recorded (for dedup)
-      - dates_ordered  : list[str]          – dates in row order (for week grouping)
-      - clone_daily    : list[int]          – daily Total_Clones values
-      - pypi_daily     : list[int]          – daily PyPI_Day values
-    Returns None when the file does not exist.
-    """
+    """Reads CSV history once and returns structured historical data."""
     if not os.path.exists(filepath):
         return None
 
@@ -97,27 +130,11 @@ def load_csv_history(filepath):
     return result
 
 def weekly_avg_excluding_outliers(dates, daily_values):
-    """Compute the average weekly value, replacing outlier weeks with the
-    mean of the non-outlier weeks.
-
-    Groups daily values into ISO weeks, sums each week, then detects outlier
-    weeks (abnormally high totals).  Detection adapts to sample size:
-
-      • n ≥ 10 weeks  →  IQR method:  weeks > Q3 + 1.5×IQR are outliers
-      • n < 10 weeks  →  Z‑score:     weeks > μ + 0.5σ are outliers
-
-    Outlier weeks are replaced with the average of the non-outlier weeks so
-    they still contribute but don't distort the average. If every week is an
-    outlier, no replacement is performed (plain average is returned).
-
-    Returns (average_weekly_value, outlier_weeks_count, total_weeks).
-    Falls back to a simple average when fewer than 3 weeks of data exist.
-    """
-    if len(dates) < 14:          # fewer than 2 weeks of daily data
+    """Computes average weekly values, replacing outlier weeks with non-outlier mean."""
+    if len(dates) < 14:
         avg_daily = sum(daily_values) / len(daily_values) if daily_values else 0
         return round(avg_daily * 7), 0, 0
 
-    # Group daily values by ISO week
     weeks = {}
     for d, v in zip(dates, daily_values):
         iso_year, iso_week, _ = date.fromisoformat(d).isocalendar()
@@ -133,7 +150,6 @@ def weekly_avg_excluding_outliers(dates, daily_values):
     sorted_sums = sorted(weekly_sums)
     n = len(sorted_sums)
 
-    # ── Outlier detection ──────────────────────────────────────────────────
     if n >= 10:
         q1 = sorted_sums[n // 4]
         q3 = sorted_sums[3 * n // 4]
@@ -144,20 +160,12 @@ def weekly_avg_excluding_outliers(dates, daily_values):
         variance = sum((x - mean) ** 2 for x in weekly_sums) / (n - 1) if n > 1 else 0
         stdev = variance ** 0.5
         upper_bound = mean + 0.5 * stdev if stdev > 0 else mean * 2
-    # ────────────────────────────────────────────────────────────────────────
 
-    # Split into outliers and non-outliers
-    outlier_totals = []
-    non_outlier_totals = []
-    for key, total in weeks.items():
-        if total > upper_bound:
-            outlier_totals.append(total)
-        else:
-            non_outlier_totals.append(total)
+    outlier_totals = [t for t in weekly_sums if t > upper_bound]
+    non_outlier_totals = [t for t in weekly_sums if t <= upper_bound]
 
     outlier_count = len(outlier_totals)
     if outlier_count == 0 or outlier_count == total_weeks:
-        # Nothing to replace, or everything is an outlier → plain average
         avg_weekly = round(sum(weekly_sums) / total_weeks)
     else:
         replacement = round(sum(non_outlier_totals) / len(non_outlier_totals))
@@ -165,7 +173,6 @@ def weekly_avg_excluding_outliers(dates, daily_values):
         avg_weekly = round(sum(adjusted) / total_weeks)
 
     return avg_weekly, outlier_count, total_weeks
-
 
 def main():
     if not GITHUB_TOKEN:
@@ -184,25 +191,44 @@ def main():
     repo_data   = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}", gh_headers)
     clones_data = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/clones", gh_headers)
     views_data  = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/views", gh_headers)
-    pypi_data   = fetch_json(f"https://pypistats.org/api/packages/{PYPI_PACKAGE.lower()}/recent", pypi_headers)
 
+    # Load fresh cache if available (<6 hours old)
+    pypi_cached_payload = load_pypi_cache(max_age_hours=6)
     pypi_from_cache = False
-    if pypi_data:
-        save_pypi_cache(pypi_data)
+    pypi_pending = False
+
+    if pypi_cached_payload:
+        pypi_data = pypi_cached_payload["data"]
+        pypi_from_cache = True
+        print(f"ℹ️  Using fresh local PyPI cache from {pypi_cached_payload['cached_at']} UTC.\n")
     else:
-        cached = load_pypi_cache()
-        if cached:
-            pypi_data = cached["data"]
-            pypi_from_cache = True
-            print(f"⚠️  Using cached PyPI data from {cached['cached_at']} UTC.\n")
+        pypi_data = fetch_json(f"https://pypistats.org/api/packages/{PYPI_PACKAGE.lower()}/recent", pypi_headers)
+        if pypi_data and pypi_data.get("is_pending"):
+            pypi_pending = True
+        elif pypi_data:
+            save_pypi_cache(pypi_data)
         else:
-            print("⚠️  PyPI data unavailable and no cache found. PyPI columns will show 0.\n")
+            # Emergency fallback to expired cache if live network fetch fails
+            fallback_cache = None
+            if os.path.exists(PYPI_CACHE_FILE):
+                try:
+                    with open(PYPI_CACHE_FILE, "r", encoding="utf-8") as f:
+                        fallback_cache = json.load(f)
+                except Exception:
+                    pass
+            if fallback_cache:
+                pypi_data = fallback_cache["data"]
+                pypi_from_cache = True
+                print(f"⚠️  Live PyPI fetch failed. Using emergency cached data ({fallback_cache['cached_at']} UTC).\n")
+            else:
+                pypi_pending = True
+                print("⚠️  PyPI data unavailable. Defaulting downloads to 0.\n")
 
     if not clones_data or not views_data:
         print("❌ Could not recover GitHub traffic metrics. Script execution halted.")
         return
 
-    # ── Raw values ────────────────────────────────────────────────────────────
+    # ── Raw Values ────────────────────────────────────────────────────────────
     tot_views  = views_data.get("count", 0)
     uni_views  = views_data.get("uniques", 0)
     tot_clones = clones_data.get("count", 0)
@@ -216,6 +242,17 @@ def main():
     pypi_week  = (pypi_data or {}).get("data", {}).get("last_week", 0)
     pypi_month = (pypi_data or {}).get("data", {}).get("last_month", 0)
 
+    # Attempt BigQuery fetch for real installations; fallback to filtered estimate if unavailable
+    bq_real_installs_7d = fetch_bigquery_real_installs(PYPI_PACKAGE)
+    if bq_real_installs_7d is not None:
+        real_pypi_week = bq_real_installs_7d
+        bq_status_str = " (BigQuery Verified)"
+    else:
+        real_pypi_week = round(pypi_week * 0.15) if pypi_week > 0 else 0
+        bq_status_str = " (Filtered Est.)"
+
+    clean_ratio = (real_pypi_week / max(1, pypi_week)) if pypi_week > 0 else 0.15
+
     # Split 14-day clone window: this week (last 7 days)
     today = date.today()
     seven_days_ago = today - timedelta(days=7)
@@ -224,14 +261,11 @@ def main():
         if date.fromisoformat(c["timestamp"].split("T")[0]) >= seven_days_ago
     )
 
-    # ── Historical averages from CSV (all previous weeks) ────────────────────────
-    # Load CSV history once to compute the average of all prior weeks, which gives a
-    # fairer baseline than comparing against a single prior week.
-    csv_history   = load_csv_history(OUTPUT_FILE)
+    # ── Historical Averages from CSV ──────────────────────────────────────────
+    csv_history    = load_csv_history(OUTPUT_FILE)
     existing_dates = csv_history["existing_dates"] if csv_history else set()
 
-    clones_avg_prev = 0
-    pypi_avg_prev   = 0
+    clones_avg_prev = pypi_avg_prev = 0
     clone_outliers = pypi_outliers = clone_total_wks = pypi_total_wks = 0
 
     if csv_history and csv_history["clone_daily"]:
@@ -241,25 +275,28 @@ def main():
         pypi_avg_prev, pypi_outliers, pypi_total_wks = weekly_avg_excluding_outliers(
             csv_history["dates_ordered"], csv_history["pypi_daily"])
 
-    # Fallback: if no CSV history exists, use the prior 7 days from the 14-day window
     if clones_avg_prev == 0:
         clones_avg_prev = sum(
             c["count"] for c in clones_data.get("clones", [])
             if date.fromisoformat(c["timestamp"].split("T")[0]) < seven_days_ago
         )
 
+    clean_pypi_avg_prev   = round(pypi_avg_prev * clean_ratio, 1) if pypi_avg_prev > 0 else 0
+    raw_pypi_monthly_avg  = round(pypi_month / 4, 1) if pypi_month > 0 else 0
+    real_pypi_monthly_avg = round(raw_pypi_monthly_avg * clean_ratio, 1) if raw_pypi_monthly_avg > 0 else 0
+
     # ── Computed KPIs ─────────────────────────────────────────────────────────
-    ratio_terminal    = round(uni_clones / uni_views, 2)       if uni_views  > 0 else 0
-    ratio_velocity    = round(tot_clones / uni_clones, 2)      if uni_clones > 0 else 0
-    forks_stars_ratio = round(forks / stars, 2)                if stars      > 0 else 0
-    clone_pypi_conv   = round(pypi_week / uni_clones * 100, 1) if uni_clones > 0 else 0
-    pypi_monthly_avg  = round(pypi_month / 4, 1)               if pypi_month > 0 else 0
-    pypi_accel        = round((pypi_week - pypi_monthly_avg) / pypi_monthly_avg * 100, 1) if pypi_monthly_avg > 0 else 0
-    clone_wow_str     = pct_change(clones_this_week, clones_avg_prev)
-    pypi_wow_str      = pct_change(pypi_week, pypi_avg_prev)
+    ratio_terminal    = round(uni_clones / uni_views, 2)         if uni_views  > 0 else 0
+    ratio_velocity    = round(tot_clones / uni_clones, 2)        if uni_clones > 0 else 0
+    forks_stars_ratio = round(forks / stars, 2)                  if stars      > 0 else 0
+    clone_pypi_conv   = round(real_pypi_week / uni_clones * 100, 1) if uni_clones > 0 else 0
+    
+    clone_wow_str  = pct_change(clones_this_week, clones_avg_prev)
+    pypi_wow_str   = pct_change(real_pypi_week, clean_pypi_avg_prev)
+    pypi_accel_str = pct_change(real_pypi_week, real_pypi_monthly_avg)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # RAW DATA
+    # DISPLAY: RAW DATA SNAPSHOT
     # ══════════════════════════════════════════════════════════════════════════
     print("══════════════════════════════════════════════════════════════════════════")
     print("📥  RAW DATA  —  CURRENT SNAPSHOT")
@@ -269,25 +306,26 @@ def main():
     print(f"  GitHub › Total Clones (14d)        : {tot_clones}")
     print(f"  GitHub › Unique Cloners (14d)      : {uni_clones}")
     print(f"  GitHub › Clones This Week          : {clones_this_week}")
-    clone_avg_label = f"Clones Avg Prior Weeks (outliers replaced)"
+    clone_avg_label = "Clones Avg Prior Weeks (outliers replaced)"
     print(f"  GitHub › {clone_avg_label:<39}: {clones_avg_prev}  (from {clone_total_wks} prior weeks, {clone_outliers} outlier{'s' if clone_outliers != 1 else ''} replaced with non-outlier mean)" if clone_total_wks else f"  GitHub › Clones Avg Previous Weeks    : {clones_avg_prev}")
     print(f"  GitHub › Stars                     : {stars}")
     print(f"  GitHub › Forks                     : {forks}")
     print(f"  GitHub › Open Issues               : {open_issues}")
     print(f"  ──────────────────────────────────────────────────────────────────────")
-    pypi_label = " (cached)" if pypi_from_cache else ""
+    pypi_label = " (indexing)" if pypi_pending else (" (cached)" if pypi_from_cache else "")
     print(f"  PyPI   › Downloads Today{pypi_label:<15}: {pypi_day}")
-    print(f"  PyPI   › Downloads Last Week{pypi_label:<11}: {pypi_week}")
+    print(f"  PyPI   › Downloads Last Week{pypi_label:<11}: {pypi_week} (Raw API)")
+    print(f"  PyPI   › Cleaned Real Installs (7d) : {real_pypi_week}{bq_status_str}")
     print(f"  PyPI   › Downloads Last Month{pypi_label:<10}: {pypi_month}")
     print("══════════════════════════════════════════════════════════════════════════\n")
 
-    # ── Classifications (status label + interpretation) ───────────────────────
     def kpi_block(icon, title, value, status, interpretation, explanation):
         print(f"\n  {icon}  {title}")
         print(f"      ▸ {value}")
         print(f"      {status}  {interpretation}")
         print(f"      ↳ {explanation}")
 
+    # ── Classifications ───────────────────────────────────────────────────────
     if forks_stars_ratio >= 0.3:
         fs_status, fs_interp = "🟢 GREAT", "Strong contributor community — many people are forking to contribute or customize the framework."
     elif forks_stars_ratio >= 0.15:
@@ -297,14 +335,30 @@ def main():
     else:
         fs_status, fs_interp = "🔴 POOR",  "Almost no contributor engagement. Focus on lowering the barrier to contribute."
 
-    if clone_pypi_conv >= 40:
-        cv_status, cv_interp = "🟢 GREAT", "Most cloners are converting to pip installs. Minimal friction in the install path."
-    elif clone_pypi_conv >= 15:
-        cv_status, cv_interp = "🟢 GOOD",  "Solid conversion but room to improve. Sharpen the quickstart guide."
-    elif clone_pypi_conv >= 5:
-        cv_status, cv_interp = "🟡 STEADY","Typical for early-stage frameworks. Many cloners explore without installing."
+    if pypi_pending:
+        cv_status, cv_interp = "⚪ INITIALIZING", "Package indexing on PyPI Stats (24-48h window). Conversion tracking paused."
+        pw_status, pw_interp = "⚪ INITIALIZING", "Package indexing on PyPI Stats. WoW growth comparison paused."
+        pypi_wow_str = "⚪ PENDING"
     else:
-        cv_status, cv_interp = "🔴 POOR",  "Most cloners are not installing via pip. Review install documentation and onboarding."
+        if clone_pypi_conv >= 40:
+            cv_status, cv_interp = "🟢 GREAT", "Most cloners are converting to pip installs. Minimal friction in the install path."
+        elif clone_pypi_conv >= 15:
+            cv_status, cv_interp = "🟢 GOOD",  "Solid conversion but room to improve. Sharpen the quickstart guide."
+        elif clone_pypi_conv >= 5:
+            cv_status, cv_interp = "🟡 STEADY","Typical for early-stage frameworks. Many cloners explore without installing."
+        else:
+            cv_status, cv_interp = "🔴 POOR",  "Most cloners are not installing via pip. Review install documentation and onboarding."
+
+        if clean_pypi_avg_prev == 0:
+            pw_status, pw_interp = "⚪ —", "No historical PyPI data available to compare against."
+        elif real_pypi_week >= clean_pypi_avg_prev * 1.5:
+            pw_status, pw_interp = "🟢 GREAT", "Install activity is spiking. More teams are adopting the package."
+        elif real_pypi_week >= clean_pypi_avg_prev * 1.2:
+            pw_status, pw_interp = "🟢 GOOD",  "Pip installs are meaningfully up vs historical average."
+        elif real_pypi_week >= clean_pypi_avg_prev * 0.5:
+            pw_status, pw_interp = "🟡 STEADY","Consistent install activity — within normal range of the historical weekly average."
+        else:
+            pw_status, pw_interp = "🔴 POOR",  "Well below the historical weekly average. Check if recent changes affected installs."
 
     if ratio_terminal >= 1.0:
         tb_status, tb_interp = "🟢 GREAT", "Developer-first audience reaching the framework directly via CLI."
@@ -325,7 +379,7 @@ def main():
         vl_status, vl_interp = "🔴 POOR",  "Users are cloning once and not returning. Likely still in exploration phase."
 
     if clones_avg_prev == 0:
-        cw_status, cw_interp = "⚪ —", "No historical data available to compare against (first run?)."
+        cw_status, cw_interp = "⚪ —", "No historical data available to compare against."
     elif clones_this_week >= clones_avg_prev * 1.5:
         cw_status, cw_interp = "🟢 GREAT", "Possible external mention, blog post, or viral effect this week."
     elif clones_this_week >= clones_avg_prev * 1.2:
@@ -335,25 +389,13 @@ def main():
     else:
         cw_status, cw_interp = "🔴 POOR",  "Well below the historical weekly average. Check if a recent change reduced interest."
 
-    if pypi_avg_prev == 0:
-        pw_status, pw_interp = "⚪ —", "No historical PyPI data available to compare against (first run?)."
-    elif pypi_week >= pypi_avg_prev * 1.5:
-        pw_status, pw_interp = "🟢 GREAT", "Install activity is spiking. More teams are adopting the package."
-    elif pypi_week >= pypi_avg_prev * 1.2:
-        pw_status, pw_interp = "🟢 GOOD",  "Pip installs are meaningfully up vs historical average."
-    elif pypi_week >= pypi_avg_prev * 0.5:
-        pw_status, pw_interp = "🟡 STEADY","Consistent install activity — within normal range of the historical weekly average."
-    else:
-        pw_status, pw_interp = "🔴 POOR",  "Well below the historical weekly average. Check if recent changes affected installs."
-
-    accel_sign = "+" if pypi_accel >= 0 else ""
-    if pypi_monthly_avg == 0:
+    if pypi_pending or real_pypi_monthly_avg == 0:
         ac_status, ac_interp = "⚪ —", "No monthly baseline available to compare against."
-    elif pypi_accel >= 50:
+    elif real_pypi_week >= real_pypi_monthly_avg * 1.5:
         ac_status, ac_interp = "🟢 GREAT", "This week is well above the monthly average. Strong momentum."
-    elif pypi_accel >= 20:
+    elif real_pypi_week >= real_pypi_monthly_avg * 1.2:
         ac_status, ac_interp = "🟢 GOOD",  "This week is outpacing the monthly average. Positive trend."
-    elif pypi_accel >= -50:
+    elif real_pypi_week >= real_pypi_monthly_avg * 0.5:
         ac_status, ac_interp = "🟡 STEADY","Install rate is within normal range of the monthly average."
     else:
         ac_status, ac_interp = "🔴 POOR",  "Well below the monthly average. Check if recent changes affected installs."
@@ -368,7 +410,7 @@ def main():
         is_status, is_interp = "🟡 STEADY","Strong community engagement. Consider a triage or labeling process."
 
     # ══════════════════════════════════════════════════════════════════════════
-    # KPIs
+    # DISPLAY: ADOPTION KPIs
     # ══════════════════════════════════════════════════════════════════════════
     print("══════════════════════════════════════════════════════════════════════════")
     print("📊  ADOPTION KPIs  —  VeloIQ Framework")
@@ -378,7 +420,7 @@ def main():
     kpi_block("🔄", "Clone → PyPI Conversion",
         f"{clone_pypi_conv}%",
         cv_status, cv_interp,
-        "PyPI downloads (7d) ÷ unique GitHub cloners (14d) — how many repo visitors actually installed the package.")
+        "Clean PyPI installs (7d) ÷ unique GitHub cloners (14d) — percentage of cloners adopting package.")
     kpi_block("⚡", "Terminal / Browser Ratio",
         ratio_terminal,
         tb_status, tb_interp,
@@ -392,30 +434,30 @@ def main():
     kpi_block("📊", "Clone WoW Growth",
         f"{clone_wow_str}  (avg prev: {clones_avg_prev} → this wk: {clones_this_week} clones)",
         cw_status, cw_interp,
-        "This week's clone volume vs. the average weekly clones from all prior weeks (high-outlier weeks replaced with non-outlier mean).")
+        "This week's clone volume vs. average weekly clones from prior weeks.")
     kpi_block("📦", "PyPI WoW Growth",
-        f"{pypi_wow_str}  (avg prev: {pypi_avg_prev} → this wk: {pypi_week} installs)",
+        f"{pypi_wow_str}  (avg prev: {clean_pypi_avg_prev} → this wk: {real_pypi_week} installs)",
         pw_status, pw_interp,
-        "This week's pip installs vs. the average weekly installs from all prior weeks (high-outlier weeks replaced with non-outlier mean).")
+        "This week's clean pip installs vs. average weekly clean installs from prior weeks.")
     kpi_block("⚡", "PyPI Acceleration",
-        f"{accel_sign}{pypi_accel}%  (this wk: {pypi_week} | monthly avg: {pypi_monthly_avg}/wk)",
+        f"{pypi_accel_str}  (this wk: {real_pypi_week} | monthly avg: {real_pypi_monthly_avg}/wk)",
         ac_status, ac_interp,
-        "% above/below the monthly weekly average (last_month ÷ 4). Bounded between -100% and +∞.")
+        "This week's clean installs relative to monthly weekly average.")
 
     print(f"\n  ── ENGAGEMENT ─────────────────────────────────────────────────────────")
     kpi_block("⭐", "Forks / Stars Ratio",
         forks_stars_ratio,
         fs_status, fs_interp,
-        "Forks ÷ Stars — stars signal passive discovery; forks signal intent to contribute to or extend the framework's source code.")
+        "Forks ÷ Stars — stars signal passive discovery; forks signal intent to contribute to source code.")
     kpi_block("🐛", "Open Issues",
         open_issues,
         is_status, is_interp,
-        "Count of open GitHub issues — users only file issues when invested enough to engage.")
+        "Count of open GitHub issues — indicates community feedback loop.")
 
     print("\n══════════════════════════════════════════════════════════════════════════\n")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # Incremental CSV
+    # INCREMENTAL CSV LOGGING
     # ══════════════════════════════════════════════════════════════════════════
     history = {}
     for c in clones_data.get("clones", []):
@@ -430,9 +472,8 @@ def main():
             history[d] = {"clones": 0, "unique_cloners": 0, "views": v["count"], "unique_visitors": v["uniques"]}
 
     file_exists = os.path.exists(OUTPUT_FILE)
-    # existing_dates already populated by load_csv_history() above — reuse it
-
     rows_added = 0
+
     with open(OUTPUT_FILE, mode="a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if not file_exists:
