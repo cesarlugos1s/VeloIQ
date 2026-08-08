@@ -1,0 +1,245 @@
+# VeloIQ Advanced Development
+
+> VeloIQ Advanced Development is a pip-installable extension (`pip install advanced-development`)
+> for apps built on the [VeloIQ™ framework](https://github.com/cesarlugos1s/veloiq) (FastAPI ·
+> SQLModel / SQLAlchemy 2.0 · React · Ant Design). It adds four licensable module groups: UI
+> Configuration & Guided UX Flows (Page Builder + Journeys), Dynamic Business Rules, a Data Import
+> Engine, and Integrations, Assets & Event Pipelines (File Storage & Media, Webhooks, Background
+> Job Queue). Unlike IQVigilant (per-user) or Enterprise Governance (site license), it is licensed
+> **per application/installation** — a JWT bound to one `installation_id`, no per-user capacity
+> claim.
+
+This file is written for developer AI assistants (Claude, Cursor, Copilot). It gives the
+**exact** wiring parameters — verified against the engine source, not the marketing snippets —
+so generated integration code is correct on the first try.
+
+## Critical accuracy notes (read before generating code)
+
+- Advanced Development is **not a standalone SDK you drop into a bare FastAPI app.** It loads as a
+  VeloIQ extension. The host app must be built on `veloiq-framework` and must *explicitly opt in*.
+- Installing the wheel does **not** auto-activate it. The host enables it once via
+  `veloiq extend-package advanced_development`, which writes `[extensions].enabled` in the host's
+  `veloiq.toml`.
+- The framework discovers the package through the entry point
+  `[project.entry-points."veloiq.extensions"] advanced_development = "advanced_development.manifest:ExtensionManifest"`.
+- This package has **zero runtime dependency on IQVigilant**, by design — even though several of
+  its modules (Page Builder, Journeys, Business Rules, Data Import) originated there. Its own
+  `process_exec` module (`Processexec`/`Processtype`) replaces IQVigilant's
+  `Vigilantprocessexec`/`Vigilantprocesstype` for progress tracking; do not wire this package
+  against `iqvigilant.modules.vigilant_process`.
+- The **business_rules engine** is the one piece that wires directly onto a SQLAlchemy `Session`
+  (it installs global session-event listeners). Its rule **target models are resolved through the
+  `SQLModel` subclass registry** — plain SQLAlchemy declarative models are not discovered.
+- When emitting business-rule JSON, use the **real schema below** (`rule_id`, `definition.*`,
+  `actions: [...]`), not an abbreviated ad-hoc form.
+
+## Install & activate (host app)
+
+```bash
+pip install advanced-development
+veloiq extend-package advanced_development   # writes veloiq.toml [extensions].enabled = [..., "advanced_development"]
+veloiq generate                               # copies frontend schemas/components, regenerates routes
+veloiq run                                    # modules light up in menus, command center, search
+```
+
+`veloiq remove-package advanced_development` disables it; `veloiq list-extensions` shows
+installed-vs-enabled. Backend modules live under `advanced_development.modules.*` and are loaded
+by the framework's three-pass loader (models → custom_api/api routers → admin views).
+
+## Licensing (gates every capability)
+
+Module groups (`MODULE_GROUPS` in `modules/license/license_registry.py`) — the `module_group`
+JWT claim must match a key **exactly**:
+
+| Group | Gated modules |
+|---|---|
+| `Data Import Engine` | `data_import_export`, `process_exec` |
+| `UI Configuration & Guided UX Flows` | `pageconfig`, `journey` |
+| `Dynamic Business Rules` | `business_rules` |
+| `Integrations, Assets & Event Pipelines` | `media`, `webhooks`, `jobs` |
+
+A JWT is verified with the bundled RSA public key, scoped to the installation UUID, with
+`start_date`/`end_date`. **No numeric capacity claim** — the `installation_id` binding itself is
+the per-application enforcement (see `license_spec.py`'s docstring for why a per-user claim can't
+be enforced uniformly: the background worker and webhook-delivery paths have no per-request
+authenticated user to count). Status resolves to `active` (full), `grace_period` (read-only), or
+`blocked`. Helpers: `is_module_accessible(name)` (active or grace) and
+`is_module_write_allowed(name)` (active only).
+
+License API (`modules/license/custom_api.py`, prefix `/api/advanced-development/license`):
+`GET /installation-id`, `GET /keys`, `POST /keys`, `PATCH /keys/{id}/deactivate`.
+
+Issue keys with the JuiceMantics licensing tool (`jm_licensing` — a separate internal repository
+for RSA keygen + JWT signing).
+
+- [Pricing](pricing.html)
+
+---
+
+## Module: business_rules — transaction-aware guardrails
+
+The Dynamic Business Rules Engine: declarative formulas, inferences, action-enablers and
+constraints enforced **inside the host's own DB transaction**, on the **host's own models**.
+Cross-cutting — it is the only module driven by a global session listener rather than a router.
+**No DDL, ever — it reads and writes rows only.**
+
+### Wiring (exact parameters)
+
+Startup hook the framework loader calls automatically:
+
+```python
+# modules/business_rules/factory.py
+def register_business_rules_events() -> None:
+    get_engine_singleton().install()   # idempotent, process-wide
+```
+
+`install()` registers listeners on `sqlalchemy.orm.Session` with `propagate=True`:
+`before_flush`, `before_commit`, `after_commit`, `after_rollback`. Idempotent (guarded by an
+`_installed` flag), safe to call once at startup.
+
+`VigilantRuleEngine(...)` constructor parameters (all optional):
+
+| Param | Type | Default | Meaning |
+|---|---|---|---|
+| `config_path` | `str` | `os.getcwd()/config/business_rules/business_rules.json` | Host rule file (hot-reloaded on mtime change). |
+| `rules` | `list[dict]` | `None` | Inline rule dicts; **bypasses the file entirely** (used by tests). |
+| `packaged_fallback` | `str` | packaged `config/business_rules.sample.json` | Read-only sample used only when the host file is absent. |
+| `license_check` | `Callable[[], bool]` | `None` | Override the license gate. When `None`, consults `license_registry.is_module_accessible("business_rules")`; if the license system is unavailable, fails **open** (returns `True`). |
+
+### Execution model
+
+- `before_flush` → if licensed, hot-reload-if-changed, then forward-chain (derivation → inference
+  → action) to **quiescence** over `session.new ∪ session.dirty` filtered to registered
+  `target_model`s. Real-change quiescence; identity-keyed `create_object` idempotency keyed on
+  `(rule_id, action_index, id(parent))`; circuit breaker raises `RuntimeError` after
+  `MAX_DEPTH = 10` non-convergent passes.
+- `before_commit` → flush first, then a **read-only constraint pass** over every touched
+  in-scope object against final state.
+- `after_commit` / `after_rollback` → clear per-transaction state (held in `Session.info`).
+- **License gate**: both listeners call `_licensed()` and **no-op when unlicensed** — fails
+  *closed for the feature* (rules don't run) but *open for the host* (saves are never blocked).
+
+### Rule JSON schema (the real, parser-accurate shape)
+
+Stored at `config/business_rules/business_rules.json` (host working dir), top-level
+`{"schema_version": "...", "rules": [ ... ]}` (a bare list is also accepted). Common fields:
+`rule_id` (required), `name`, `target_model` (required), `type` ∈ `formula | inference | constraint`.
+
+```json
+{
+  "rule_id": "RULE-002", "name": "VIP Upgrade", "target_model": "Order", "type": "inference",
+  "condition": "total_amount >= 5000 and user.tier != 'VIP'",
+  "actions": [
+    { "type": "update_property", "target": "user.tier", "value": "VIP" },
+    { "type": "create_object", "model": "RewardPoints",
+      "properties": { "user": "user", "points_amount": 500, "reason": "VIP Welcome" } }
+  ]
+}
+```
+
+### Expression / condition evaluator (`expressions.py`)
+
+One self-contained, **AST-restricted** evaluator for both formulas and conditions. **Never uses
+`eval()`.** Functions (allow-list): `sum`, `min`, `max`, `len`, `count`, `abs`, `round`, `any`,
+`all`, `avg`. Operators: `+ - * / // % **`; comparisons; boolean `and or not`; ternary; list/tuple
+literals. Forbidden: subscripting `[]`, comprehensions, lambdas, method calls, keyword arguments,
+any non-allow-listed name. Validate untrusted expressions with `validate_expression(expr)`.
+
+### Authoring API (`custom_api.py`, prefix `/business-rules`)
+
+`GET /` (list), `GET /{rule_id}`, `POST /` (create), `PUT /{rule_id}`, `DELETE /{rule_id}`,
+`POST /validate` (server-side validation), `GET /models` (each model's columns + relationship
+attribute names — powers the Builder's field-path pickers). UI: **Business Rule Builder**, plus a
+**Rule Sandbox & Testing Harness** for testing rules against live/mock data before production.
+
+---
+
+## Module: journey — multi-step user-journey engine
+
+File-based (no DB tables). Config in the host working dir: definitions at
+`config/journeys/user_journey_configuration.json`, instances at
+`config/journeys/journey_instances.json`. API (router, no prefix):
+`GET|POST /journeys`, `GET|PUT|DELETE /journeys/{journey_id}`,
+`GET|POST /journey-instances`, `GET|PUT|DELETE /journey-instances/{instance_id}`.
+UIs: Journey Builder (`/journeys`), Journey Runner (`/journey-run/:journeyId`), Journey Runs
+(`/journey-results`).
+
+## Module: pageconfig — drag-and-drop WYSIWYG page builder
+
+Frontend-only capability; the backend is a minimal stub router (prefix `/pageconfig`) that exists
+for loader discovery and license enforcement. UI route `/pageconfig` (Page Configuration Tool).
+
+## Module: process_exec — progress-tracked background execution
+
+DB-backed (`Processtype`, `Processexec` SQLModel tables, `veloiq_ad_` prefix). Tracks and
+monitors long-running background processes (currently: `data_import_export` background loads).
+This is Advanced Development's own implementation — **not** a dependency on IQVigilant's
+`vigilant_process` module — kept deliberately minimal (no Exception-Alert dispatch hook, since
+nothing in this package needs it).
+
+## Module: data_import_export — AI-assisted CSV import
+
+The licensed counterpart to VeloIQ's own OSS "Basic" CSV import (every `create_crud_router`
+already exposes `POST {prefix}/import-csv` / `GET {prefix}/export-csv` with no license required —
+exact header match, insert-only, no AI). This module adds AI-or-fuzzy column mapping,
+foreign-key-lookup resolution, a real dry-run-with-upsert preview, and a progress-tracked
+background run — for any model registered in the host app, including models from other
+installed extensions.
+
+DB-backed (`DataImportMapping` SQLModel table) persists the confirmed column mapping
+(`target_model_name`, `source_temp_path`, `column_mappings_json` — a list of `{csv_column,
+target_field, kind: "direct"|"fk_lookup", lookup_model, lookup_field}`, `ai_suggested`,
+`status: Draft → Confirmed → Applied`). A confirmed run's progress is tracked via this package's
+own `process_exec` module's `Processtype`/`Processexec`.
+
+API (prefix `/api/data-import-export`): `GET /models` (every registered model for the picker),
+`POST /analyze?target_model&use_ai&use_fuzzy` (multipart file upload → suggested mapping + FK
+fields), `POST /mappings` (persist a confirmed mapping), `POST /mappings/{eid}/dry-run` (upserts
+against isolated per-row sessions, rolled back — returns `sample_added_rows`/
+`sample_updated_rows`, each independently capped), `POST /mappings/{eid}/run` (creates the
+`Processexec`, starts a background thread, returns `process_exec_eid` immediately).
+
+Unlike Basic's insert-only path, the generic loader here **upserts by primary key**. A host module
+can still override this via `veloiq_framework.import_registry.register_import_loader` for a
+specific model, same hook Basic uses.
+
+**No export route** — Basic's `export-csv` already respects the current list view's filters.
+
+## Module: jobs — background job queue & real-time scaling
+
+Durable background job queue: Worker CLI, Job Queue Dashboard (queued/running/succeeded/dead
+status, filtering/sorting/pagination), and a Dead Letter Queue with replay. Scaled Multi-Node
+Server-Sent Events (via Redis/NATS) for real-time updates across instances.
+
+## Module: media — file storage & media asset management
+
+S3-compatible file storage (AWS S3, MinIO, Cloudflare R2, DigitalOcean Spaces) with a Media
+Manager UI for uploading, organizing, and attaching assets to any model — presigned-URL uploads,
+no proxying file bytes through the app server.
+
+## Module: webhooks — webhooks & event delivery engine
+
+Subscribe external systems to model events. HMAC-signed delivery, automatic retry, a dead-letter
+queue, and an Admin Dashboard UI for monitoring delivery status.
+
+---
+
+## Conventions for generated code
+
+- New extension tables: prefix `veloiq_ad_`. Never import from the host's `app.modules.*` — the
+  extension is self-contained. Never import from `iqvigilant.*` — this package has zero
+  dependency on IQVigilant, even for modules that originated there.
+- Use `veloiq_framework` building blocks: `TimestampedModel`, `jm_relationship` (never raw
+  SQLAlchemy `relationship()` / SQLModel `Relationship`), `get_session`,
+  `auth.utils.get_current_user`, `require_role`.
+- Frontend schema files follow the three-file pattern: `{module}Schema.gen.ts` (regenerated),
+  `{module}Schema.manual.ts` (never overwritten), `{module}Schema.ts` (merged). After editing,
+  run `veloiq generate` from the host app.
+
+## Reference
+
+- Capabilities overview: [index](index.html)
+- Showcase: [showcase](showcase.html)
+- Source / packaging: [GitHub](https://github.com/cesarlugos1s/veloiq) ·
+  [VeloIQ Framework](https://github.com/cesarlugos1s/veloiq)
+- Contact: [Talk to us](contact.html)
