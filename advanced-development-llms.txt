@@ -149,8 +149,7 @@ any non-allow-listed name. Validate untrusted expressions with `validate_express
 
 `GET /` (list), `GET /{rule_id}`, `POST /` (create), `PUT /{rule_id}`, `DELETE /{rule_id}`,
 `POST /validate` (server-side validation), `GET /models` (each model's columns + relationship
-attribute names — powers the Builder's field-path pickers). UI: **Business Rule Builder**, plus a
-**Rule Sandbox & Testing Harness** for testing rules against live/mock data before production.
+attribute names — powers the Builder's field-path pickers). UI: **Business Rule Builder**.
 
 ---
 
