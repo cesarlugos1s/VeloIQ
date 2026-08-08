@@ -48,11 +48,15 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       note: {
         paragraphs: [
           {
-            text: "Moving to production? IQVigilant adds Safe AI Agents, Business Rules, Natural Language Querying, a WYSIWYG Page Builder, and User Journeys — zero code changes required.",
+            text: "Moving to production? IQVigilant adds Safe AI Agents and Natural Language Querying — zero code changes required.",
             link: { label: "iqvigilant.ai", href: "https://iqvigilant.ai" },
           },
           {
-            text: "VeloIQ also offers Governance, Compliance & Audit; Integrations, Assets & Event Pipelines; and DevOps & Automated Infrastructure as Enterprise Extension Packages.",
+            text: "Need Page Builder, Journeys, Business Rules, or Data Import? VeloIQ Advanced Development adds those, plus File Storage, Webhooks, and a Job Queue — licensed per application.",
+            link: { label: "veloiq.dev/advanced-development", href: "https://veloiq.dev/advanced-development.html" },
+          },
+          {
+            text: "VeloIQ also offers Governance, Compliance & Audit and DevOps & Automated Infrastructure as IQVigilant Enterprise Governance.",
             link: { label: "veloiq.dev/enterprise-extensions", href: "https://veloiq.dev/enterprise-extensions.html" },
           },
           {

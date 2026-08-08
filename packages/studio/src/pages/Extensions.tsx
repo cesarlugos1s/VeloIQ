@@ -147,9 +147,9 @@ export default function Extensions({ devMode, onSuccess }: Props) {
         <div className="vs-advisory-card">
           <div className="vs-advisory-title">Production Hardening</div>
           <div className="vs-advisory-body">
-            IQVigilant adds <strong>Safe AI Agents</strong>, <strong>Business Rules</strong>,{" "}
-            <strong>Natural Language Querying</strong>, a <strong>WYSIWYG Page Builder</strong>,
-            and <strong>User Journeys</strong> to any VeloIQ app — zero code changes required.
+            IQVigilant adds <strong>Safe AI Agents</strong> and{" "}
+            <strong>Natural Language Querying</strong> to any VeloIQ app — zero code changes
+            required.
           </div>
           <div className="vs-advisory-cmd">
             <code>pip install iqvigilant</code>
@@ -157,6 +157,26 @@ export default function Extensions({ devMode, onSuccess }: Props) {
             <a href="https://iqvigilant.ai" target="_blank" rel="noreferrer"
                style={{ color: "var(--accent)", textDecoration: "none" }}>
               iqvigilant.ai →
+            </a>
+          </div>
+        </div>
+      )}
+
+      {!loading && !extensions.some((e) => e.name === "advanced_development" && e.enabled) && (
+        <div className="vs-advisory-card">
+          <div className="vs-advisory-title">Advanced Development</div>
+          <div className="vs-advisory-body">
+            Need a <strong>WYSIWYG Page Builder</strong>, <strong>User Journeys</strong>,{" "}
+            <strong>Dynamic Business Rules</strong>, or <strong>AI-Assisted Data Import</strong>?
+            VeloIQ Advanced Development adds those, plus File Storage &amp; Media, Webhooks, and a
+            Background Job Queue — licensed per application, not per seat.
+          </div>
+          <div className="vs-advisory-cmd">
+            <code>pip install advanced-development</code>
+            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
+            <a href="https://veloiq.dev/advanced-development.html" target="_blank" rel="noreferrer"
+               style={{ color: "var(--accent)", textDecoration: "none" }}>
+              veloiq.dev/advanced-development →
             </a>
           </div>
         </div>
@@ -188,14 +208,11 @@ export default function Extensions({ devMode, onSuccess }: Props) {
       </div>
 
       <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="vs-advisory-title">Enterprise Extension Packages</div>
+        <div className="vs-advisory-title">IQVigilant Enterprise Governance</div>
         <div className="vs-advisory-body">
-          <strong>IQVigilant</strong> is the first of <strong>4 Enterprise Extension Packages</strong>{" "}
-          VeloIQ offers. The other 3 add <strong>Governance, Compliance &amp; Audit</strong>{" "}
-          (audited models, advanced REBAC, SSO/IAM, hardened multi-tenancy),{" "}
-          <strong>Integrations, Assets &amp; Event Pipelines</strong> (media storage, webhooks,
-          background job queues), and <strong>DevOps &amp; Automated Infrastructure</strong>{" "}
-          (one-click cloud deployment).
+          Site-licensed <strong>Governance, Compliance &amp; Audit</strong> (audited models,
+          advanced ReBAC, SSO/IAM, hardened multi-tenancy) plus{" "}
+          <strong>DevOps &amp; Automated Infrastructure</strong> (one-click cloud deployment).
         </div>
         <div className="vs-advisory-cmd">
           <a href="https://veloiq.dev/enterprise-extensions.html" target="_blank" rel="noreferrer"

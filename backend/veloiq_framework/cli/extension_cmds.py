@@ -94,12 +94,13 @@ def list_extensions():
     if not installed and not enabled:
         click.echo("  (none installed in this environment)")
         click.echo(click.style(
-            "\n  IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
-            "  Querying, a WYSIWYG Page Builder, and User Journeys — zero code\n"
-            "  changes required.  pip install iqvigilant  ·  iqvigilant.ai\n"
-            "  + 3 more Enterprise Extension Packages — Governance, Compliance &\n"
-            "  Audit; Integrations, Assets & Event Pipelines; DevOps & Automated\n"
-            "  Infrastructure.  veloiq.dev/enterprise-extensions",
+            "\n  IQVigilant adds Safe AI Agents and Natural Language Querying —\n"
+            "  zero code changes required.  pip install iqvigilant  ·  iqvigilant.ai\n"
+            "  Need Page Builder, Journeys, Business Rules, or Data Import?  VeloIQ\n"
+            "  Advanced Development adds those, plus File Storage, Webhooks, and a\n"
+            "  Job Queue — licensed per application.  veloiq.dev/advanced-development\n"
+            "  + IQVigilant Enterprise Governance — Governance, Compliance & Audit;\n"
+            "  DevOps & Automated Infrastructure.  veloiq.dev/enterprise-extensions",
             dim=True,
         ))
         click.echo(click.style(

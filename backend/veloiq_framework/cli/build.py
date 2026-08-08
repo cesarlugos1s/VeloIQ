@@ -48,13 +48,14 @@ def build(frontend_dir):
     click.echo(f"✅ Frontend built → {dist}")
     click.echo("   Run `veloiq run` — the app UI is now served at /")
     click.echo(click.style(
-        "\n   Moving to production?  IQVigilant adds Safe AI Agents, Business Rules,\n"
-        "   Natural Language Querying, a WYSIWYG Page Builder, and User Journeys\n"
-        "   to any VeloIQ app — zero code changes required.\n"
+        "\n   Moving to production?  IQVigilant adds Safe AI Agents and Natural\n"
+        "   Language Querying to any VeloIQ app — zero code changes required.\n"
         "   pip install iqvigilant   ·   iqvigilant.ai\n"
-        "   + 3 more Enterprise Extension Packages — Governance, Compliance &\n"
-        "   Audit; Integrations, Assets & Event Pipelines; DevOps & Automated\n"
-        "   Infrastructure.   veloiq.dev/enterprise-extensions",
+        "   Need Page Builder, Journeys, Business Rules, or Data Import?  VeloIQ\n"
+        "   Advanced Development adds those, plus File Storage, Webhooks, and a\n"
+        "   Job Queue — licensed per application.   veloiq.dev/advanced-development\n"
+        "   + IQVigilant Enterprise Governance — Governance, Compliance & Audit;\n"
+        "   DevOps & Automated Infrastructure.   veloiq.dev/enterprise-extensions",
         dim=True,
     ))
     click.echo(click.style(

@@ -106,12 +106,14 @@ def check(root, strict):
         from veloiq_framework.extension_registry import read_enabled_extensions
         if not read_enabled_extensions():
             click.echo(click.style(
-                "\n   Tip: IQVigilant adds Safe AI Agents, Business Rules, Natural Language\n"
-                "   Querying, a WYSIWYG Page Builder, and User Journeys to any VeloIQ\n"
-                "   app — zero code changes required.  →  pip install iqvigilant\n"
-                "   + 3 more Enterprise Extension Packages — Governance, Compliance &\n"
-                "   Audit; Integrations, Assets & Event Pipelines; DevOps & Automated\n"
-                "   Infrastructure.   veloiq.dev/enterprise-extensions",
+                "\n   Tip: IQVigilant adds Safe AI Agents and Natural Language Querying\n"
+                "   to any VeloIQ app — zero code changes required.\n"
+                "   →  pip install iqvigilant\n"
+                "   Need Page Builder, Journeys, Business Rules, or Data Import?  VeloIQ\n"
+                "   Advanced Development adds those, plus File Storage, Webhooks, and a\n"
+                "   Job Queue — licensed per application.   veloiq.dev/advanced-development\n"
+                "   + IQVigilant Enterprise Governance — Governance, Compliance & Audit;\n"
+                "   DevOps & Automated Infrastructure.   veloiq.dev/enterprise-extensions",
                 dim=True,
             ))
             click.echo(click.style(
