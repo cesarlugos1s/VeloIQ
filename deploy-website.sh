@@ -69,6 +69,14 @@ cp -r /tmp/veloiq-website-deploy/enterprise-extensions-assets .
 # VeloIQ suite infographic(s) (organized subdirectory)
 rm -rf VeloIQ-suite-assets
 cp -r /tmp/veloiq-website-deploy/VeloIQ-suite-assets .
+# Advanced Development pages (pulled from the sibling repo above, if present)
+if [ -d "$AD_WEBSITE" ]; then
+  cp /tmp/veloiq-website-deploy/advanced-development.html .
+  cp /tmp/veloiq-website-deploy/advanced-development-showcase.html .
+  cp /tmp/veloiq-website-deploy/advanced-development-llms.txt .
+  rm -rf advanced-development-assets
+  cp -r /tmp/veloiq-website-deploy/advanced-development-assets .
+fi
 
 # Stage only website files
 git add index.html showcase.html pricing.html contact.html thank-you.html solutions.html enterprise-extensions.html enterprise-extensions-showcase.html styles.css analytics.js showcase-assets enterprise-extensions-assets "VeloIQ-suite-assets"
