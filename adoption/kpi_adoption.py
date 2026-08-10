@@ -1,3 +1,4 @@
+import argparse
 import os
 import csv
 import json
@@ -175,6 +176,12 @@ def weekly_avg_excluding_outliers(dates, daily_values):
     return avg_weekly, outlier_count, total_weeks
 
 def main():
+    parser = argparse.ArgumentParser(description="Fetch VeloIQ GitHub/PyPI adoption KPIs.")
+    parser.add_argument("--json-out", default=None,
+                         help="Also write a machine-readable KPI snapshot to this path "
+                              "(consumed by the GTM telemetry consolidator).")
+    args = parser.parse_args()
+
     if not GITHUB_TOKEN:
         print("❌ Error: GITHUB_TOKEN environment variable not set.")
         return
@@ -493,6 +500,46 @@ def main():
                 rows_added += 1
 
     print(f"💾 CSV updated: {rows_added} new rows written to '{OUTPUT_FILE}'.")
+
+    if args.json_out:
+        snapshot = {
+            "product": "veloiq",
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "repo": f"{REPO_OWNER}/{REPO_NAME}",
+            "pypi_package": PYPI_PACKAGE,
+            "github": {
+                "stars": stars,
+                "forks": forks,
+                "open_issues": open_issues,
+                "views_14d": tot_views,
+                "unique_visitors_14d": uni_views,
+                "clones_14d": tot_clones,
+                "unique_cloners_14d": uni_clones,
+                "clones_this_week": clones_this_week,
+                "clones_avg_prev_week": clones_avg_prev,
+            },
+            "pypi": {
+                "downloads_day": pypi_day,
+                "downloads_week": pypi_week,
+                "downloads_month": pypi_month,
+                "real_installs_week": real_pypi_week,
+                "real_installs_source": "bigquery" if bq_real_installs_7d is not None else "filtered_estimate",
+                "pending_index": pypi_pending,
+                "from_cache": pypi_from_cache,
+            },
+            "kpis": {
+                "clone_to_pypi_conversion_pct": clone_pypi_conv,
+                "terminal_browser_ratio": ratio_terminal,
+                "velocity_multiplier": ratio_velocity,
+                "forks_stars_ratio": forks_stars_ratio,
+                "clone_wow_growth": clone_wow_str,
+                "pypi_wow_growth": pypi_wow_str,
+                "pypi_acceleration": pypi_accel_str,
+            },
+        }
+        with open(args.json_out, "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, indent=2)
+        print(f"📄 JSON snapshot written to '{args.json_out}'.")
 
 if __name__ == "__main__":
     main()
