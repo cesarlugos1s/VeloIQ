@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { AppSchema } from "../types";
+import { AppSchema, UpsellMessages } from "../types";
 import CommandCard, { CommandDef } from "../components/CommandCard";
 import ImportSchemaCard from "../components/ImportSchemaCard";
+import { api } from "../api";
 
 interface Props {
   schema: AppSchema | null;
@@ -9,7 +10,18 @@ interface Props {
   onSuccess?: () => void;
 }
 
-function buildCommands(schema: AppSchema | null): CommandDef[] {
+function buildNoteParagraphs(upsells: UpsellMessages | null): CommandDef["note"] {
+  if (!upsells) return undefined;
+  const entries = [...upsells.extensions_advisory, ...upsells.commercial_apps_advisory];
+  return {
+    paragraphs: entries.map((e) => ({
+      text: e.text,
+      link: e.link ?? undefined,
+    })),
+  };
+}
+
+function buildCommands(schema: AppSchema | null, upsells: UpsellMessages | null): CommandDef[] {
   const modules = schema?.modules.map((m) => m.name) ?? [];
 
   return [
@@ -45,30 +57,7 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
       description: "Compile the frontend for production — FastAPI will then serve the app at /",
       inputs: [],
       build: () => "veloiq build",
-      note: {
-        paragraphs: [
-          {
-            text: "Moving to production? IQVigilant adds Safe AI Agents and Natural Language Querying — zero code changes required.",
-            link: { label: "iqvigilant.ai", href: "https://iqvigilant.ai" },
-          },
-          {
-            text: "Need Page Builder, Journeys, Business Rules, or Data Import? VeloIQ Advanced Development adds those, plus File Storage, Webhooks, and a Job Queue — licensed per application.",
-            link: { label: "veloiq.dev/advanced-development", href: "https://veloiq.dev/advanced-development.html" },
-          },
-          {
-            text: "VeloIQ also offers Governance, Compliance & Audit and DevOps & Automated Infrastructure as IQVigilant Enterprise Governance.",
-            link: { label: "veloiq.dev/enterprise-extensions", href: "https://veloiq.dev/enterprise-extensions.html" },
-          },
-          {
-            text: "Need a ready-to-use commercial app? JuiceMantics delivers Supply Chain, Price, Promotion, Assortment & Variety, and Revenue Growth optimization for Retail, Wholesale, and Manufacturing — built on VeloIQ + IQVigilant.",
-            link: { label: "juicemantics.com", href: "https://www.juicemantics.com" },
-          },
-          {
-            text: "VeloIQ also offers ready-to-run business applications for Retail, Distribution & Food Service, Manufacturing, Environmental Health & Safety, Logistics and Supply Chain, Healthcare, Real Estate & PropTech, Finance & Compliance, Sales & RevOps, Marketing & Support, and Human Resources.",
-            link: { label: "veloiq.dev/solutions", href: "https://veloiq.dev/solutions.html" },
-          },
-        ],
-      },
+      note: buildNoteParagraphs(upsells),
     },
     {
       id: "migrate",
@@ -90,6 +79,7 @@ function buildCommands(schema: AppSchema | null): CommandDef[] {
 export default function CommandPanel({ schema, loadSchema, onSuccess }: Props) {
   const [data, setData] = useState<AppSchema | null>(schema);
   const [loading, setLoading] = useState(!schema);
+  const [upsells, setUpsells] = useState<UpsellMessages | null>(null);
 
   useEffect(() => {
     if (data) return;
@@ -97,7 +87,11 @@ export default function CommandPanel({ schema, loadSchema, onSuccess }: Props) {
     loadSchema().then(setData).finally(() => setLoading(false));
   }, [data, loadSchema]);
 
-  const commands = buildCommands(data);
+  useEffect(() => {
+    api.upsells().then(setUpsells).catch(() => {});
+  }, []);
+
+  const commands = buildCommands(data, upsells);
   const modules = data?.modules.map((m) => m.name) ?? [];
 
   return (

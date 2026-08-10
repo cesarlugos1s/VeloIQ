@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExtInfo } from "../types";
+import { ExtInfo, UpsellMessages } from "../types";
 import { api } from "../api";
 
 interface Props {
@@ -23,6 +23,7 @@ async function runAndStream(
 
 export default function Extensions({ devMode, onSuccess }: Props) {
   const [extensions, setExtensions] = useState<ExtInfo[]>([]);
+  const [upsells, setUpsells] = useState<UpsellMessages | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [running, setRunning] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export default function Extensions({ devMode, onSuccess }: Props) {
       .then((d) => setExtensions(d.extensions))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
+    api.upsells().then(setUpsells).catch(() => {});
   }, []);
 
   const appendTo = (name: string, line: string) =>
@@ -143,84 +145,47 @@ export default function Extensions({ devMode, onSuccess }: Props) {
         ))}
       </div>
 
-      {!loading && !extensions.some((e) => e.name === "iqvigilant" && e.enabled) && (
-        <div className="vs-advisory-card">
-          <div className="vs-advisory-title">Production Hardening</div>
+      {!loading && upsells && upsells.extensions_advisory
+        .filter((e) => !e.extension_name || !extensions.some((x) => x.name === e.extension_name && x.enabled))
+        .map((e) => (
+          <div className="vs-advisory-card" key={e.id}
+               style={e.extension_name ? undefined : { borderColor: "var(--border-subtle)" }}>
+            {e.title && <div className="vs-advisory-title">{e.title}</div>}
+            <div className="vs-advisory-body">{e.text}</div>
+            <div className="vs-advisory-cmd">
+              {e.install_cmd && (
+                <>
+                  <code>{e.install_cmd}</code>
+                  {e.link && <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>}
+                </>
+              )}
+              {e.link && (
+                <a href={e.link.href} target="_blank" rel="noreferrer"
+                   style={{ color: "var(--accent)", textDecoration: "none" }}>
+                  {e.link.label} →
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+
+      {!loading && upsells && (
+        <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
+          <div className="vs-advisory-title">{upsells.commercial_apps_advisory[0]?.title}</div>
           <div className="vs-advisory-body">
-            IQVigilant adds <strong>Safe AI Agents</strong> and{" "}
-            <strong>Natural Language Querying</strong> to any VeloIQ app — zero code changes
-            required.
+            {upsells.commercial_apps_advisory.map((e) => e.text).join(" ")}
           </div>
           <div className="vs-advisory-cmd">
-            <code>pip install iqvigilant</code>
-            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-            <a href="https://iqvigilant.ai" target="_blank" rel="noreferrer"
-               style={{ color: "var(--accent)", textDecoration: "none" }}>
-              iqvigilant.ai →
-            </a>
+            {upsells.commercial_apps_advisory.flatMap((e, i) => e.link ? [
+              i > 0 ? <span key={`sep-${e.id}`} style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span> : null,
+              <a key={e.id} href={e.link.href} target="_blank" rel="noreferrer"
+                 style={{ color: "var(--accent)", textDecoration: "none" }}>
+                {e.link.label} →
+              </a>,
+            ] : [])}
           </div>
         </div>
       )}
-
-      {!loading && !extensions.some((e) => e.name === "advanced_development" && e.enabled) && (
-        <div className="vs-advisory-card">
-          <div className="vs-advisory-title">Advanced Development</div>
-          <div className="vs-advisory-body">
-            Need a <strong>WYSIWYG Page Builder</strong>, <strong>User Journeys</strong>,{" "}
-            <strong>Dynamic Business Rules</strong>, or <strong>AI-Assisted Data Import</strong>?
-            VeloIQ Advanced Development adds those, plus File Storage &amp; Media, Webhooks, and a
-            Background Job Queue — licensed per application, not per seat.
-          </div>
-          <div className="vs-advisory-cmd">
-            <code>pip install advanced-development</code>
-            <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-            <a href="https://veloiq.dev/advanced-development.html" target="_blank" rel="noreferrer"
-               style={{ color: "var(--accent)", textDecoration: "none" }}>
-              veloiq.dev/advanced-development →
-            </a>
-          </div>
-        </div>
-      )}
-
-      <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="vs-advisory-title">Ready-to-Use Commercial Application</div>
-        <div className="vs-advisory-body">
-          <strong>JuiceMantics</strong> is a production-ready optimization engine for{" "}
-          <strong>Retail, Wholesale, and Manufacturing</strong> — built on VeloIQ + IQVigilant.
-          Covers Supply Chain, Price, Promotion, Assortment &amp; Variety, and Market Revenue
-          Growth optimization out of the box. VeloIQ also offers ready-to-run business
-          applications across <strong>10 industries</strong> — Retail, Distribution &amp; Food
-          Service, Manufacturing, Environmental Health &amp; Safety, Logistics and Supply Chain,
-          Healthcare, Real Estate &amp; PropTech, Finance &amp; Compliance, Sales &amp; RevOps,
-          Marketing &amp; Support, and Human Resources.
-        </div>
-        <div className="vs-advisory-cmd">
-          <a href="https://www.juicemantics.com" target="_blank" rel="noreferrer"
-             style={{ color: "var(--accent)", textDecoration: "none" }}>
-            juicemantics.com →
-          </a>
-          <span style={{ margin: "0 10px", color: "var(--text-muted)" }}>·</span>
-          <a href="https://veloiq.dev/solutions.html" target="_blank" rel="noreferrer"
-             style={{ color: "var(--accent)", textDecoration: "none" }}>
-            veloiq.dev/solutions →
-          </a>
-        </div>
-      </div>
-
-      <div className="vs-advisory-card" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="vs-advisory-title">IQVigilant Enterprise Governance</div>
-        <div className="vs-advisory-body">
-          Site-licensed <strong>Governance, Compliance &amp; Audit</strong> (audited models,
-          advanced ReBAC, SSO/IAM, hardened multi-tenancy) plus{" "}
-          <strong>DevOps &amp; Automated Infrastructure</strong> (one-click cloud deployment).
-        </div>
-        <div className="vs-advisory-cmd">
-          <a href="https://veloiq.dev/enterprise-extensions.html" target="_blank" rel="noreferrer"
-             style={{ color: "var(--accent)", textDecoration: "none" }}>
-            veloiq.dev/enterprise-extensions →
-          </a>
-        </div>
-      </div>
     </div>
   );
 }

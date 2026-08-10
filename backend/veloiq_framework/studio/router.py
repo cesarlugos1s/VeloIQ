@@ -159,6 +159,12 @@ def make_studio_router(cfg: VeloIQConfig) -> APIRouter:
         data = _load_app_data(_get_root())
         return {"models": data.search_models, "fields": data.search_fields}
 
+    @router.get("/upsells")
+    def upsells(request: Request):
+        _admin(request)
+        from veloiq_framework.upsells import load_upsell_messages
+        return load_upsell_messages()
+
     @router.get("/extensions")
     def extensions(request: Request):
         _admin(request)

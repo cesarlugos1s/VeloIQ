@@ -63,6 +63,25 @@ export interface ExtInfo {
   enabled: boolean;
 }
 
+export interface UpsellLink {
+  label: string;
+  href: string;
+}
+
+export interface UpsellEntry {
+  id: string;
+  extension_name: string | null;
+  title: string | null;
+  text: string;
+  install_cmd: string | null;
+  link: UpsellLink | null;
+}
+
+export interface UpsellMessages {
+  extensions_advisory: UpsellEntry[];
+  commercial_apps_advisory: UpsellEntry[];
+}
+
 export interface AppSchema {
   name: string;
   root: string;

@@ -105,6 +105,7 @@ include = ["veloiq_framework*"]
 # Include scaffold templates and static assets in the distribution.
 [tool.setuptools.package-data]
 "veloiq_framework" = [
+    "upsells.json",
     "scaffold/**/*",
     "scaffold/.windsurfrules",
     "scaffold/.cursor/rules/*",

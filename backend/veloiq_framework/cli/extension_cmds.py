@@ -93,28 +93,10 @@ def list_extensions():
     click.echo("VeloIQ extensions:\n")
     if not installed and not enabled:
         click.echo("  (none installed in this environment)")
-        click.echo(click.style(
-            "\n  IQVigilant adds Safe AI Agents and Natural Language Querying —\n"
-            "  zero code changes required.  pip install iqvigilant  ·  iqvigilant.ai\n"
-            "  Need Page Builder, Journeys, Business Rules, or Data Import?  VeloIQ\n"
-            "  Advanced Development adds those, plus File Storage, Webhooks, and a\n"
-            "  Job Queue — licensed per application.  veloiq.dev/advanced-development\n"
-            "  + IQVigilant Enterprise Governance — Governance, Compliance & Audit;\n"
-            "  DevOps & Automated Infrastructure.  veloiq.dev/enterprise-extensions",
-            dim=True,
-        ))
-        click.echo(click.style(
-            "\n  JuiceMantics is a ready-to-use optimization engine for Retail,\n"
-            "  Wholesale, and Manufacturing — Supply Chain, Price, Promotion,\n"
-            "  Assortment & Variety, and Market Revenue Growth, built on VeloIQ\n"
-            "  + IQVigilant.  juicemantics.com\n"
-            "  + 10 industries covered — Retail, Distribution & Food Service,\n"
-            "  Manufacturing, Environmental Health & Safety, Logistics and Supply\n"
-            "  Chain, Healthcare, Real Estate & PropTech, Finance & Compliance,\n"
-            "  Sales & RevOps, Marketing & Support, Human Resources.\n"
-            "  veloiq.dev/solutions.html",
-            dim=True,
-        ))
+        from veloiq_framework.upsells import render_cli_advisory
+        block1, block2 = render_cli_advisory(indent="  ")
+        click.echo(click.style(block1, dim=True))
+        click.echo(click.style(block2, dim=True))
         return
 
     for name in installed:

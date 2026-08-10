@@ -47,29 +47,10 @@ def build(frontend_dir):
     dist = fdir / "dist"
     click.echo(f"✅ Frontend built → {dist}")
     click.echo("   Run `veloiq run` — the app UI is now served at /")
-    click.echo(click.style(
-        "\n   Moving to production?  IQVigilant adds Safe AI Agents and Natural\n"
-        "   Language Querying to any VeloIQ app — zero code changes required.\n"
-        "   pip install iqvigilant   ·   iqvigilant.ai\n"
-        "   Need Page Builder, Journeys, Business Rules, or Data Import?  VeloIQ\n"
-        "   Advanced Development adds those, plus File Storage, Webhooks, and a\n"
-        "   Job Queue — licensed per application.   veloiq.dev/advanced-development\n"
-        "   + IQVigilant Enterprise Governance — Governance, Compliance & Audit;\n"
-        "   DevOps & Automated Infrastructure.   veloiq.dev/enterprise-extensions",
-        dim=True,
-    ))
-    click.echo(click.style(
-        "\n   Need a ready-to-use commercial app?  JuiceMantics delivers Supply Chain,\n"
-        "   Price, Promotion, Assortment & Variety, and Market Revenue Growth\n"
-        "   optimization for Retail, Wholesale, and Manufacturing — built on\n"
-        "   VeloIQ + IQVigilant.   juicemantics.com\n"
-        "   + 10 industries covered — Retail, Distribution & Food Service,\n"
-        "   Manufacturing, Environmental Health & Safety, Logistics and Supply\n"
-        "   Chain, Healthcare, Real Estate & PropTech, Finance & Compliance,\n"
-        "   Sales & RevOps, Marketing & Support, Human Resources.\n"
-        "   veloiq.dev/solutions.html",
-        dim=True,
-    ))
+    from veloiq_framework.upsells import render_cli_advisory
+    block1, block2 = render_cli_advisory()
+    click.echo(click.style(block1, dim=True))
+    click.echo(click.style(block2, dim=True))
 
 
 def _detect_frontend_dir() -> Path:

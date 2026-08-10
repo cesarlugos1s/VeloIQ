@@ -1,0 +1,46 @@
+{
+  "extensions_advisory": [
+    {
+      "id": "iqvigilant",
+      "extension_name": "iqvigilant",
+      "title": "Production Hardening",
+      "text": "IQVigilant adds Safe AI Agents and Natural Language Querying to any VeloIQ app — zero code changes required.",
+      "install_cmd": "pip install iqvigilant",
+      "link": { "label": "iqvigilant.ai", "href": "https://iqvigilant.ai" }
+    },
+    {
+      "id": "advanced_development",
+      "extension_name": "advanced_development",
+      "title": "Advanced Development",
+      "text": "Need Page Builder, Journeys, Business Rules, or Data Import? VeloIQ Advanced Development adds those, plus File Storage, Webhooks, and a Job Queue — licensed per application.",
+      "install_cmd": "pip install advanced-development",
+      "link": { "label": "veloiq.dev/advanced-development", "href": "https://veloiq.dev/advanced-development.html" }
+    },
+    {
+      "id": "enterprise_governance",
+      "extension_name": null,
+      "title": "IQVigilant Enterprise Governance",
+      "text": "IQVigilant Enterprise Governance adds site-licensed Governance, Compliance & Audit (audited models, advanced ReBAC, SSO/IAM, hardened multi-tenancy) plus DevOps & Automated Infrastructure (one-click cloud deployment).",
+      "install_cmd": null,
+      "link": { "label": "veloiq.dev/enterprise-extensions", "href": "https://veloiq.dev/enterprise-extensions.html" }
+    }
+  ],
+  "commercial_apps_advisory": [
+    {
+      "id": "juicemantics",
+      "extension_name": null,
+      "title": "Ready-to-Use Commercial Application",
+      "text": "JuiceMantics is a ready-to-use optimization engine for Retail, Wholesale, and Manufacturing — Supply Chain, Price, Promotion, Assortment & Variety, and Market Revenue Growth, built on VeloIQ + IQVigilant.",
+      "install_cmd": null,
+      "link": { "label": "juicemantics.com", "href": "https://www.juicemantics.com" }
+    },
+    {
+      "id": "industries",
+      "extension_name": null,
+      "title": null,
+      "text": "+ 10 industries covered — Retail, Distribution & Food Service, Manufacturing, Environmental Health & Safety, Logistics and Supply Chain, Healthcare, Real Estate & PropTech, Finance & Compliance, Sales & RevOps, Marketing & Support, Human Resources.",
+      "install_cmd": null,
+      "link": { "label": "veloiq.dev/solutions", "href": "https://veloiq.dev/solutions.html" }
+    }
+  ]
+}

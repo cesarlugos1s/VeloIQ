@@ -84,6 +84,7 @@ export const api = {
   search: () => get<import("./types").SearchConfig>("/config/search"),
   extensions: () =>
     get<{ extensions: import("./types").ExtInfo[] }>("/extensions"),
+  upsells: () => get<import("./types").UpsellMessages>("/upsells"),
   health: () =>
     get<{ stdout: string; stderr: string; returncode: number }>("/health"),
   runCommand: (command: string) =>
