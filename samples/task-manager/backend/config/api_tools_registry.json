@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-08-02T17:44:57.106901+00:00",
+  "updated_at": "2026-08-09T21:23:17.387320+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -515,618 +515,6 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__business-rules__models": {
-      "http_method": "GET",
-      "path": "/business-rules/models",
-      "summary": "GET /business-rules/models",
-      "description": "Return registered models with their columns and relationships.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__business-rules__validate": {
-      "http_method": "POST",
-      "path": "/business-rules/validate",
-      "summary": "POST /business-rules/validate",
-      "description": "Validate a rule payload without saving it.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__business-rules": {
-      "http_method": "GET",
-      "path": "/business-rules",
-      "summary": "GET /business-rules",
-      "description": "List all business rules. Returns the full list of configured rules with their IDs and conditions.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "rule_id"
-      ],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__business-rules__rule_id": {
-      "http_method": "GET",
-      "path": "/business-rules/{rule_id}",
-      "summary": "GET /business-rules/{rule_id}",
-      "description": "Return a single business rule by its ID.",
-      "parameters": {
-        "path": [
-          {
-            "name": "rule_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "rule_id"
-      ],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__business-rules": {
-      "http_method": "POST",
-      "path": "/business-rules",
-      "summary": "POST /business-rules",
-      "description": "Create a new business rule. Input: rule definition payload. Returns the created rule with its assigned ID.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__business-rules__rule_id": {
-      "http_method": "PUT",
-      "path": "/business-rules/{rule_id}",
-      "summary": "PUT /business-rules/{rule_id}",
-      "description": "Update an existing business rule by its ID. Input: updated rule definition payload. Returns the updated rule.",
-      "parameters": {
-        "path": [
-          {
-            "name": "rule_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "rule_id"
-      ],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__business-rules__rule_id": {
-      "http_method": "DELETE",
-      "path": "/business-rules/{rule_id}",
-      "summary": "DELETE /business-rules/{rule_id}",
-      "description": "Delete a business rule by its ID. Returns the deleted rule ID.",
-      "parameters": {
-        "path": [
-          {
-            "name": "rule_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "rule_id"
-      ],
-      "module": "iqvigilant.modules.business_rules",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__jm_dataimportmapping": {
-      "http_method": "GET",
-      "path": "/jm_dataimportmapping",
-      "summary": "List jm_dataimportmapping",
-      "description": "GET /jm_dataimportmapping",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "_start",
-            "type": "int",
-            "required": false,
-            "default": 0
-          },
-          {
-            "name": "_end",
-            "type": "int",
-            "required": false,
-            "default": 25
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__jm_dataimportmapping__import-csv": {
-      "http_method": "POST",
-      "path": "/jm_dataimportmapping/import-csv",
-      "summary": "Import jm_dataimportmapping from CSV",
-      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "file",
-            "type": "uploadfile",
-            "required": false,
-            "default": "PydanticUndefined"
-          },
-          {
-            "name": "dry_run",
-            "type": "bool",
-            "required": false,
-            "default": false
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "GET__jm_dataimportmapping__export-csv": {
-      "http_method": "GET",
-      "path": "/jm_dataimportmapping/export-csv",
-      "summary": "Export jm_dataimportmapping to CSV",
-      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "GET__jm_dataimportmapping__record_id": {
-      "http_method": "GET",
-      "path": "/jm_dataimportmapping/{record_id}",
-      "summary": "Get jm_dataimportmapping",
-      "description": "GET /jm_dataimportmapping/{record_id}",
-      "parameters": {
-        "path": [
-          {
-            "name": "record_id",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__jm_dataimportmapping": {
-      "http_method": "POST",
-      "path": "/jm_dataimportmapping",
-      "summary": "Create jm_dataimportmapping",
-      "description": "POST /jm_dataimportmapping",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "payload",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "PUT__jm_dataimportmapping__record_id": {
-      "http_method": "PUT",
-      "path": "/jm_dataimportmapping/{record_id}",
-      "summary": "Update jm_dataimportmapping",
-      "description": "PUT /jm_dataimportmapping/{record_id}",
-      "parameters": {
-        "path": [
-          {
-            "name": "record_id",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": [
-          {
-            "name": "payload",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "PATCH__jm_dataimportmapping__record_id": {
-      "http_method": "PATCH",
-      "path": "/jm_dataimportmapping/{record_id}",
-      "summary": "Partial update jm_dataimportmapping",
-      "description": "PATCH /jm_dataimportmapping/{record_id}",
-      "parameters": {
-        "path": [
-          {
-            "name": "record_id",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": [
-          {
-            "name": "payload",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "DELETE__jm_dataimportmapping__record_id": {
-      "http_method": "DELETE",
-      "path": "/jm_dataimportmapping/{record_id}",
-      "summary": "Delete jm_dataimportmapping",
-      "description": "DELETE /jm_dataimportmapping/{record_id}",
-      "parameters": {
-        "path": [
-          {
-            "name": "record_id",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "GET__data-import-export__models": {
-      "http_method": "GET",
-      "path": "/data-import-export/models",
-      "summary": "GET /data-import-export/models",
-      "description": "Return every registered model (host app + extensions) for the model picker.\n\nSame introspection pattern as ``business_rules``'s ``/models`` endpoint —\nwalks ``SQLModel.__subclasses__()`` rather than relying on the frontend's\ngenerated ``allModels.gen.ts``, since this component is bundled with the\nextension and has no access to any one host app's generated schema files\nat build time.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__data-import-export__analyze": {
-      "http_method": "POST",
-      "path": "/data-import-export/analyze",
-      "summary": "POST /data-import-export/analyze",
-      "description": "Upload a source file and return a suggested column mapping.\n\nConverts Excel to CSV automatically if needed. Not yet persisted — the\ncaller reviews/edits the suggestion and posts the confirmed version to\n``POST /data-import-export/mappings``.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "target_model",
-            "type": "str",
-            "required": true,
-            "default": null
-          },
-          {
-            "name": "file",
-            "type": "UploadFile",
-            "required": false,
-            "default": "PydanticUndefined"
-          },
-          {
-            "name": "use_ai",
-            "type": "bool",
-            "required": false,
-            "default": true
-          },
-          {
-            "name": "use_fuzzy",
-            "type": "bool",
-            "required": false,
-            "default": true
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__data-import-export__mappings": {
-      "http_method": "POST",
-      "path": "/data-import-export/mappings",
-      "summary": "POST /data-import-export/mappings",
-      "description": "Persist a user-confirmed column mapping.\n\nBody: ``{\"target_model_name\", \"source_filename\", \"source_temp_path\",\n\"column_mappings\", \"ai_suggested\"}`` — ``column_mappings`` is a list of\n``{\"csv_column\", \"target_field\", \"kind\": \"direct\"|\"fk_lookup\",\n\"lookup_model\", \"lookup_field\"}`` entries.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__data-import-export__mappings__mapping_eid__dry-run": {
-      "http_method": "POST",
-      "path": "/data-import-export/mappings/{mapping_eid}/dry-run",
-      "summary": "POST /data-import-export/mappings/{mapping_eid}/dry-run",
-      "description": "Pre-scan rows against the confirmed mapping without writing to the DB.\n\nScans up to the configurable ``dry_run_prescan_row_limit`` (default\n1000) rows, applies FK lookups, and validates each row with a real\nflush() (rolled back per row, nothing persisted) — not just Pydantic\nvalidation — so this actually catches DB-level constraint violations\n(e.g. re-importing a row whose PK already exists) instead of reporting\nevery row as valid regardless of what would really happen on a real run.\nReturns per-row errors, a small sample of the rows that would load, and\na valid-row count — the same shape the OSS Basic import's ``dry_run=true``\nreports, so the frontend can render both with one component.",
-      "parameters": {
-        "path": [
-          {
-            "name": "mapping_eid",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
-      "status": "active"
-    },
-    "POST__data-import-export__mappings__mapping_eid__run": {
-      "http_method": "POST",
-      "path": "/data-import-export/mappings/{mapping_eid}/run",
-      "summary": "POST /data-import-export/mappings/{mapping_eid}/run",
-      "description": "Kick off the confirmed mapping's bulk load, tracked via Vigilantprocessexec.\n\nCreates a ``Vigilantprocesstype`` (\"Data Import\") with no linked\n``Exceptiondef`` — a verified safe no-op for the existing\n``vigilant_process`` before_flush hook — and a linked\n``Vigilantprocessexec`` whose ``eid`` the frontend polls (reusing the\nexisting, unmodified ``VigilantProcessExecProgressPanel``).",
-      "parameters": {
-        "path": [
-          {
-            "name": "mapping_eid",
-            "type": "int",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.data_import_export",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
     "GET__jm_exceptiondef_applicable_actions_relation": {
@@ -2717,330 +2105,6 @@
       "enabled": true,
       "allowed_roles": [
         "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__journeys": {
-      "http_method": "GET",
-      "path": "/journeys",
-      "summary": "GET /journeys",
-      "description": "List all journey definitions. Returns paginated journey definitions with their steps and transitions.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "search",
-            "type": "optional",
-            "required": true,
-            "default": null
-          },
-          {
-            "name": "module",
-            "type": "optional",
-            "required": true,
-            "default": null
-          },
-          {
-            "name": "_start",
-            "type": "int",
-            "required": false,
-            "default": 0
-          },
-          {
-            "name": "_end",
-            "type": "int",
-            "required": false,
-            "default": 50
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "journey_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__journeys__journey_id": {
-      "http_method": "GET",
-      "path": "/journeys/{journey_id}",
-      "summary": "GET /journeys/{journey_id}",
-      "description": "Return a single journey definition by its ID.",
-      "parameters": {
-        "path": [
-          {
-            "name": "journey_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "journey_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__journeys": {
-      "http_method": "POST",
-      "path": "/journeys",
-      "summary": "POST /journeys",
-      "description": "Create a new journey definition. Input: journey definition with steps and transitions. Returns the created journey with its assigned ID.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": {
-        "description": "Request payload"
-      },
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__journeys__journey_id": {
-      "http_method": "PUT",
-      "path": "/journeys/{journey_id}",
-      "summary": "PUT /journeys/{journey_id}",
-      "description": "Update an existing journey definition by its ID. Returns the updated journey.",
-      "parameters": {
-        "path": [
-          {
-            "name": "journey_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": {
-        "description": "Request payload"
-      },
-      "response_type": "object",
-      "output_fields": [
-        "journey_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__journeys__journey_id": {
-      "http_method": "DELETE",
-      "path": "/journeys/{journey_id}",
-      "summary": "DELETE /journeys/{journey_id}",
-      "description": "Delete a journey definition by its ID.",
-      "parameters": {
-        "path": [
-          {
-            "name": "journey_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "journey_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__journey-instances": {
-      "http_method": "GET",
-      "path": "/journey-instances",
-      "summary": "GET /journey-instances",
-      "description": "List all journey instances for the current user. Returns paginated active and completed journey instances.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "status",
-            "type": "optional",
-            "required": true,
-            "default": null
-          },
-          {
-            "name": "_start",
-            "type": "int",
-            "required": false,
-            "default": 0
-          },
-          {
-            "name": "_end",
-            "type": "int",
-            "required": false,
-            "default": 50
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "instance_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__journey-instances__instance_id": {
-      "http_method": "GET",
-      "path": "/journey-instances/{instance_id}",
-      "summary": "GET /journey-instances/{instance_id}",
-      "description": "Return a single journey instance by its ID, including its current step and state.",
-      "parameters": {
-        "path": [
-          {
-            "name": "instance_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "instance_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__journey-instances": {
-      "http_method": "POST",
-      "path": "/journey-instances",
-      "summary": "POST /journey-instances",
-      "description": "Start a new journey instance for the current user. Input: journey ID and optional initial state. Returns the created instance.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": {
-        "description": "Request payload"
-      },
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__journey-instances__instance_id": {
-      "http_method": "PUT",
-      "path": "/journey-instances/{instance_id}",
-      "summary": "PUT /journey-instances/{instance_id}",
-      "description": "Advance or update a journey instance by its ID. Input: updated instance state and current step. Returns the updated instance.",
-      "parameters": {
-        "path": [
-          {
-            "name": "instance_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": {
-        "description": "Request payload"
-      },
-      "response_type": "object",
-      "output_fields": [
-        "instance_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__journey-instances__instance_id": {
-      "http_method": "DELETE",
-      "path": "/journey-instances/{instance_id}",
-      "summary": "DELETE /journey-instances/{instance_id}",
-      "description": "Delete a journey instance by its ID.",
-      "parameters": {
-        "path": [
-          {
-            "name": "instance_id",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "instance_id"
-      ],
-      "module": "iqvigilant.modules.journey",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
@@ -6469,7 +5533,7 @@
       "http_method": "GET",
       "path": "/suggested-sentences/model/{resource}",
       "summary": "GET /suggested-sentences/model/{resource}",
-      "description": "Suggested sentences for a host model's default List page (Stage 2).\n\n``resource`` is the model's table/resource name (matches ``ModelDef.resource``\non the frontend, resolved here via ``jm_obtain_model_by_name`` — the same\ndynamic-model-by-name pattern ``data_import_export`` already uses, since\nthis route must work for ANY host model IQVigilant doesn't import by name).\nSame licensing/LLM-availability/locale handling as the NLChat panel above.",
+      "description": "Suggested sentences for a host model's default List page (Stage 2).\n\n``resource`` is the model's table/resource name (matches ``ModelDef.resource``\non the frontend, resolved here via ``jm_obtain_model_by_name`` — the same\ndynamic-model-by-name pattern ``data_import_export`` already uses, since\nthis route must work for ANY host model IQVigilant doesn't import by name).\nSame licensing/locale handling as the NLChat panel above.\n\nUnlike that panel, this endpoint no longer requires an LLM: the generator\nalso produces native-syntax and deterministic-plan-matching suggestions\n(see ``suggested_sentences._resolve_method_shares``), so it's always\ncalled. ``llm_available`` in the response is purely informational now.",
       "parameters": {
         "path": [
           {
@@ -6504,7 +5568,7 @@
       "http_method": "GET",
       "path": "/suggested-sentences/object/{resource}/{pk}",
       "summary": "GET /suggested-sentences/object/{resource}/{pk}",
-      "description": "Suggested sentences for one specific object on a host model's default\nShow page (Stage 2) — the object-scoped counterpart of the List-page\nendpoint above. ``pk`` arrives as a string (the frontend's ``ModelDef``\nprimary key resolution doesn't guarantee numeric) and is coerced to ``int``\nwhen possible, since every model in this codebase keys on an integer\n``eid``/``id``.",
+      "description": "Suggested sentences for one specific object on a host model's default\nShow page (Stage 2) — the object-scoped counterpart of the List-page\nendpoint above. ``pk`` arrives as a string (the frontend's ``ModelDef``\nprimary key resolution doesn't guarantee numeric) and is coerced to ``int``\nwhen possible, since every model in this codebase keys on an integer\n``eid``/``id``.\n\nLike the List-page endpoint above, this no longer requires an LLM --\n``llm_available`` in the response is purely informational.",
       "parameters": {
         "path": [
           {
@@ -6544,7 +5608,7 @@
       "http_method": "GET",
       "path": "/suggested-sentences/dashboard-tab",
       "summary": "GET /suggested-sentences/dashboard-tab",
-      "description": "Suggested sentences for a Dashboard tab's chrome (Stage 4), scoped to\nthe SET of models present across the tab's cells.\n\n``models`` is a comma-separated list of resource/table names (the tab's\ncells' ``model`` values -- resolved to Refine resources on the frontend,\nsince which models belong to a tab is pure per-user-preferences runtime\nstate, not something resolvable at codegen time). Unresolvable names are\nsilently skipped (not a 404) since a tab may reference a model that no\nlonger exists without breaking the whole suggestion request. Same\nlicensing/LLM-availability/locale handling as the other suggested-sentences\nendpoints above.",
+      "description": "Suggested sentences for a Dashboard tab's chrome (Stage 4), scoped to\nthe SET of models present across the tab's cells.\n\n``models`` is a comma-separated list of resource/table names (the tab's\ncells' ``model`` values -- resolved to Refine resources on the frontend,\nsince which models belong to a tab is pure per-user-preferences runtime\nstate, not something resolvable at codegen time). Unresolvable names are\nsilently skipped (not a 404) since a tab may reference a model that no\nlonger exists without breaking the whole suggestion request. Same\nlicensing/locale handling as the other suggested-sentences endpoints\nabove -- no longer requires an LLM either; ``llm_available`` in the\nresponse is purely informational.",
       "parameters": {
         "path": [],
         "query": [
@@ -6573,6 +5637,94 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "GET__suggested-sentences__dbconnector__connector_id__data": {
+      "http_method": "GET",
+      "path": "/suggested-sentences/dbconnector/{connector_id}/data",
+      "summary": "GET /suggested-sentences/dbconnector/{connector_id}/data",
+      "description": "Suggested sentences scoped to a Db Connector's OWN remote data (not\nits configuration record) -- the Db Connector Show page's 4th category,\nadditive to the standard ``interesting_fact``/``exception_alert_action``/\n``tool_on_object`` categories that page already gets for free from the\ngeneric ``/suggested-sentences/object/jm_dbconnector/{pk}`` route above\n(``DbConnector`` is itself a plain host model).\n\n``tables`` is an optional comma-separated allowlist of real table names\n(``ENTITY_TYPE_NAME``) -- the user's picked sub-universe from the\n\"select from tables\" picker. Omitted/empty means \"use all tables\", the\npicker's second button. Same licensing/locale handling as the other\nsuggested-sentences endpoints above; no longer requires an LLM either.",
+      "parameters": {
+        "path": [
+          {
+            "name": "connector_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "tables",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "lang",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-09T21:23:17.386176+00:00",
+      "status": "active"
+    },
+    "GET__dbconnector__connector_id__tables": {
+      "http_method": "GET",
+      "path": "/dbconnector/{connector_id}/tables",
+      "summary": "GET /dbconnector/{connector_id}/tables",
+      "description": "Paginated, searchable list of a Db Connector's own reflected table\nnames, for the \"select from tables\" multi-select picker on the Db\nConnector Show page's suggestions panel.\n\nWraps the short-TTL cached connector-schema introspection (the same one\n``generate_dbconnector_show_data_suggestions`` uses), so this and the\nsuggestions endpoint above don't each trigger their own separate live\nschema reflection when called back-to-back (open panel -> list tables ->\nrequest suggestions). ``q`` filters case-insensitively against both the\nreal table name and its human-readable label; results are returned in\nthat human-readable label's sort order for a stable, user-friendly list.",
+      "parameters": {
+        "path": [
+          {
+            "name": "connector_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "q",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "page",
+            "type": "int",
+            "required": false,
+            "default": 1
+          },
+          {
+            "name": "page_size",
+            "type": "int",
+            "required": false,
+            "default": 20
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-09T21:23:17.386176+00:00",
       "status": "active"
     },
     "GET__agentic-tools": {
@@ -8428,6 +7580,41 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "GET__ai-config__models__provider": {
+      "http_method": "GET",
+      "path": "/ai-config/models/{provider}",
+      "summary": "GET /ai-config/models/{provider}",
+      "description": "Return available model ids for an LLM/LRM provider: a live fetch when\nthe provider supports one and credentials are configured, else the\nstatic suggestion list bundled in llm_provider_registry.py -- never a\nbare failure for \"couldn't fetch live\", only for an unrecognized\nprovider id.\n\nResponse: {\"provider\": ..., \"source\": \"live\"|\"fallback\",\n           \"models\": [...], \"note\": str|None}",
+      "parameters": {
+        "path": [
+          {
+            "name": "provider",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "refresh",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-09T21:23:17.386176+00:00",
+      "status": "active"
+    },
     "GET__ai-config__synonyms__locale": {
       "http_method": "GET",
       "path": "/ai-config/synonyms/{locale}",
@@ -8761,450 +7948,6 @@
       "enabled": true,
       "allowed_roles": [
         "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__configs": {
-      "http_method": "GET",
-      "path": "/pageconfig/configs",
-      "summary": "GET /pageconfig/configs",
-      "description": "Return all page configurations keyed by '{model}:{view_type}'.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__configs__model__view_type": {
-      "http_method": "GET",
-      "path": "/pageconfig/configs/{model}/{view_type}",
-      "summary": "GET /pageconfig/configs/{model}/{view_type}",
-      "description": "Return the page configuration for one model + view type (or empty).",
-      "parameters": {
-        "path": [
-          {
-            "name": "model",
-            "type": "str",
-            "required": true
-          },
-          {
-            "name": "view_type",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__pageconfig__configs__model__view_type": {
-      "http_method": "PUT",
-      "path": "/pageconfig/configs/{model}/{view_type}",
-      "summary": "PUT /pageconfig/configs/{model}/{view_type}",
-      "description": "Persist the page configuration for one model + view type.\n\nStores the 'Details' tab sections plus any additional named tabs (each tab\nholds its own sections). Sections hold entries (fields, relations, or\nembedded nl_sentences) positioned in a row/column grid.",
-      "parameters": {
-        "path": [
-          {
-            "name": "model",
-            "type": "str",
-            "required": true
-          },
-          {
-            "name": "view_type",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__pageconfig__configs__model__view_type": {
-      "http_method": "DELETE",
-      "path": "/pageconfig/configs/{model}/{view_type}",
-      "summary": "DELETE /pageconfig/configs/{model}/{view_type}",
-      "description": "Remove the page configuration for one model + view type.",
-      "parameters": {
-        "path": [
-          {
-            "name": "model",
-            "type": "str",
-            "required": true
-          },
-          {
-            "name": "view_type",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__templates": {
-      "http_method": "GET",
-      "path": "/pageconfig/templates",
-      "summary": "GET /pageconfig/templates",
-      "description": "Return metadata for all available templates (built-in + custom).",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "template_name",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__templates__template_name": {
-      "http_method": "GET",
-      "path": "/pageconfig/templates/{template_name}",
-      "summary": "GET /pageconfig/templates/{template_name}",
-      "description": "Return a single template definition by name.",
-      "parameters": {
-        "path": [
-          {
-            "name": "template_name",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "template_name"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__templates__resolve__model__view_type": {
-      "http_method": "GET",
-      "path": "/pageconfig/templates/resolve/{model}/{view_type}",
-      "summary": "GET /pageconfig/templates/resolve/{model}/{view_type}",
-      "description": "Resolve the template assigned to a model + view_type into ViewConfigRow[].\n\nPriority: explicit page config > template assignment > nothing.",
-      "parameters": {
-        "path": [
-          {
-            "name": "model",
-            "type": "str",
-            "required": true
-          },
-          {
-            "name": "view_type",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "model",
-        "view_type"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__pageconfig__templates__assign": {
-      "http_method": "POST",
-      "path": "/pageconfig/templates/assign",
-      "summary": "POST /pageconfig/templates/assign",
-      "description": "Assign a template to one or more pages.\n\nBody: {\"template\": \"...\", \"parameters\": {}, \"targets\": [{\"model\":\"T\",\"view_type\":\"show\"}]}",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "POST__pageconfig__templates__assign__preview": {
-      "http_method": "POST",
-      "path": "/pageconfig/templates/assign/preview",
-      "summary": "POST /pageconfig/templates/assign/preview",
-      "description": "Preview bulk assignment impact without persisting.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__pageconfig__templates__assign": {
-      "http_method": "DELETE",
-      "path": "/pageconfig/templates/assign",
-      "summary": "DELETE /pageconfig/templates/assign",
-      "description": "Remove a template assignment.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "model",
-            "type": "str",
-            "required": true,
-            "default": null
-          },
-          {
-            "name": "view_type",
-            "type": "str",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__pageconfig__templates__template_name": {
-      "http_method": "PUT",
-      "path": "/pageconfig/templates/{template_name}",
-      "summary": "PUT /pageconfig/templates/{template_name}",
-      "description": "Create or update a template definition.\n\nSaves the template JSON to page_templates/{name}.json in the host app's\nworking directory. Custom templates override built-in templates with the\nsame name.\n\nRequired fields: name, applicable_view_types, tabs",
-      "parameters": {
-        "path": [
-          {
-            "name": "template_name",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict[str, Any]",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "template_name"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__templates__template_name__usage": {
-      "http_method": "GET",
-      "path": "/pageconfig/templates/{template_name}/usage",
-      "summary": "GET /pageconfig/templates/{template_name}/usage",
-      "description": "Return all pages assigned to a given template.",
-      "parameters": {
-        "path": [
-          {
-            "name": "template_name",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "template_name"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "DELETE__pageconfig__templates__template_name": {
-      "http_method": "DELETE",
-      "path": "/pageconfig/templates/{template_name}",
-      "summary": "DELETE /pageconfig/templates/{template_name}",
-      "description": "Delete a custom template and unassign it from all pages.\n\nBuilt-in templates (shipped with the package) cannot be deleted.\nRemoving a template also removes it from page_configs.json for all\naffected pages via re-materialization.",
-      "parameters": {
-        "path": [
-          {
-            "name": "template_name",
-            "type": "str",
-            "required": true
-          }
-        ],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [
-        "template_name"
-      ],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": false,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__pageconfig__templates__assignments__all": {
-      "http_method": "GET",
-      "path": "/pageconfig/templates/assignments/all",
-      "summary": "GET /pageconfig/templates/assignments/all",
-      "description": "Return all current template assignments as {key: template_name}.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.pageconfig",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
@@ -11069,6 +9812,1386 @@
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
+    },
+    "GET__business-rules__models": {
+      "http_method": "GET",
+      "path": "/business-rules/models",
+      "summary": "GET /business-rules/models",
+      "description": "Return registered models with their columns and relationships.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "POST__business-rules__validate": {
+      "http_method": "POST",
+      "path": "/business-rules/validate",
+      "summary": "POST /business-rules/validate",
+      "description": "Validate a rule payload without saving it.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__business-rules": {
+      "http_method": "GET",
+      "path": "/business-rules",
+      "summary": "GET /business-rules",
+      "description": "List all business rules. Returns the full list of configured rules with their IDs and conditions.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "rule_id"
+      ],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__business-rules__rule_id": {
+      "http_method": "GET",
+      "path": "/business-rules/{rule_id}",
+      "summary": "GET /business-rules/{rule_id}",
+      "description": "Return a single business rule by its ID.",
+      "parameters": {
+        "path": [
+          {
+            "name": "rule_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "rule_id"
+      ],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "POST__business-rules": {
+      "http_method": "POST",
+      "path": "/business-rules",
+      "summary": "POST /business-rules",
+      "description": "Create a new business rule. Input: rule definition payload. Returns the created rule with its assigned ID.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "PUT__business-rules__rule_id": {
+      "http_method": "PUT",
+      "path": "/business-rules/{rule_id}",
+      "summary": "PUT /business-rules/{rule_id}",
+      "description": "Update an existing business rule by its ID. Input: updated rule definition payload. Returns the updated rule.",
+      "parameters": {
+        "path": [
+          {
+            "name": "rule_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "rule_id"
+      ],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "DELETE__business-rules__rule_id": {
+      "http_method": "DELETE",
+      "path": "/business-rules/{rule_id}",
+      "summary": "DELETE /business-rules/{rule_id}",
+      "description": "Delete a business rule by its ID. Returns the deleted rule ID.",
+      "parameters": {
+        "path": [
+          {
+            "name": "rule_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "rule_id"
+      ],
+      "module": "iqvigilant.modules.business_rules",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__jm_dataimportmapping": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping",
+      "summary": "List jm_dataimportmapping",
+      "description": "GET /jm_dataimportmapping",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "_start",
+            "type": "int",
+            "required": false,
+            "default": 0
+          },
+          {
+            "name": "_end",
+            "type": "int",
+            "required": false,
+            "default": 25
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__jm_dataimportmapping__import-csv": {
+      "http_method": "POST",
+      "path": "/jm_dataimportmapping/import-csv",
+      "summary": "Import jm_dataimportmapping from CSV",
+      "description": "Import rows from an uploaded CSV file.\n\nIf a custom loader is registered for *model_class* (see\n``veloiq_framework.import_registry``), every row is delegated to it instead\nof the generic path below — this is the hook host apps/extensions use to\nplug in business-key/FK-by-name resolution instead of a plain insert.\n\nOtherwise (the OSS \"Basic\" path): the CSV header must match the model's\nfield names exactly (no fuzzy matching, no relation-name resolution — a\nforeign key column is only accepted as a raw id value under its own exact\ncolumn name). Rows are validated via Pydantic/SQLModel and inserted in a\nsingle batch. ``dry_run=true`` validates and reports without committing.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "file",
+            "type": "uploadfile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "dry_run",
+            "type": "bool",
+            "required": false,
+            "default": false
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "GET__jm_dataimportmapping__export-csv": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping/export-csv",
+      "summary": "Export jm_dataimportmapping to CSV",
+      "description": "Stream every row matching the request's filters as a CSV file.\n\nHeaders are the exact model field names (round-trips with ``import-csv``\nabove). Respects the same query-param filters and ReBAC rules as the list\nendpoint, unlike the client-side \"quick export\" of currently-loaded rows.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "GET__jm_dataimportmapping__record_id": {
+      "http_method": "GET",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Get jm_dataimportmapping",
+      "description": "GET /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__jm_dataimportmapping": {
+      "http_method": "POST",
+      "path": "/jm_dataimportmapping",
+      "summary": "Create jm_dataimportmapping",
+      "description": "POST /jm_dataimportmapping",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "PUT__jm_dataimportmapping__record_id": {
+      "http_method": "PUT",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Update jm_dataimportmapping",
+      "description": "PUT /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "PATCH__jm_dataimportmapping__record_id": {
+      "http_method": "PATCH",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Partial update jm_dataimportmapping",
+      "description": "PATCH /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__jm_dataimportmapping__record_id": {
+      "http_method": "DELETE",
+      "path": "/jm_dataimportmapping/{record_id}",
+      "summary": "Delete jm_dataimportmapping",
+      "description": "DELETE /jm_dataimportmapping/{record_id}",
+      "parameters": {
+        "path": [
+          {
+            "name": "record_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "record_id"
+      ],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "GET__data-import-export__models": {
+      "http_method": "GET",
+      "path": "/data-import-export/models",
+      "summary": "GET /data-import-export/models",
+      "description": "Return every registered model (host app + extensions) for the model picker.\n\nSame introspection pattern as ``business_rules``'s ``/models`` endpoint —\nwalks ``SQLModel.__subclasses__()`` rather than relying on the frontend's\ngenerated ``allModels.gen.ts``, since this component is bundled with the\nextension and has no access to any one host app's generated schema files\nat build time.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__data-import-export__analyze": {
+      "http_method": "POST",
+      "path": "/data-import-export/analyze",
+      "summary": "POST /data-import-export/analyze",
+      "description": "Upload a source file and return a suggested column mapping.\n\nConverts Excel to CSV automatically if needed. Not yet persisted — the\ncaller reviews/edits the suggestion and posts the confirmed version to\n``POST /data-import-export/mappings``.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "target_model",
+            "type": "str",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "file",
+            "type": "UploadFile",
+            "required": false,
+            "default": "PydanticUndefined"
+          },
+          {
+            "name": "use_ai",
+            "type": "bool",
+            "required": false,
+            "default": true
+          },
+          {
+            "name": "use_fuzzy",
+            "type": "bool",
+            "required": false,
+            "default": true
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__data-import-export__mappings": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings",
+      "summary": "POST /data-import-export/mappings",
+      "description": "Persist a user-confirmed column mapping.\n\nBody: ``{\"target_model_name\", \"source_filename\", \"source_temp_path\",\n\"column_mappings\", \"ai_suggested\"}`` — ``column_mappings`` is a list of\n``{\"csv_column\", \"target_field\", \"kind\": \"direct\"|\"fk_lookup\",\n\"lookup_model\", \"lookup_field\"}`` entries.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__data-import-export__mappings__mapping_eid__dry-run": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings/{mapping_eid}/dry-run",
+      "summary": "POST /data-import-export/mappings/{mapping_eid}/dry-run",
+      "description": "Pre-scan rows against the confirmed mapping without writing to the DB.\n\nScans up to the configurable ``dry_run_prescan_row_limit`` (default\n1000) rows, applies FK lookups, and validates each row with a real\nflush() (rolled back per row, nothing persisted) — not just Pydantic\nvalidation — so this actually catches DB-level constraint violations\n(e.g. re-importing a row whose PK already exists) instead of reporting\nevery row as valid regardless of what would really happen on a real run.\nReturns per-row errors, a small sample of the rows that would load, and\na valid-row count — the same shape the OSS Basic import's ``dry_run=true``\nreports, so the frontend can render both with one component.",
+      "parameters": {
+        "path": [
+          {
+            "name": "mapping_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "POST__data-import-export__mappings__mapping_eid__run": {
+      "http_method": "POST",
+      "path": "/data-import-export/mappings/{mapping_eid}/run",
+      "summary": "POST /data-import-export/mappings/{mapping_eid}/run",
+      "description": "Kick off the confirmed mapping's bulk load, tracked via Vigilantprocessexec.\n\nCreates a ``Vigilantprocesstype`` (\"Data Import\") with no linked\n``Exceptiondef`` — a verified safe no-op for the existing\n``vigilant_process`` before_flush hook — and a linked\n``Vigilantprocessexec`` whose ``eid`` the frontend polls (reusing the\nexisting, unmodified ``VigilantProcessExecProgressPanel``).",
+      "parameters": {
+        "path": [
+          {
+            "name": "mapping_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.data_import_export",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "orphaned"
+    },
+    "GET__journeys": {
+      "http_method": "GET",
+      "path": "/journeys",
+      "summary": "GET /journeys",
+      "description": "List all journey definitions. Returns paginated journey definitions with their steps and transitions.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "search",
+            "type": "optional",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "module",
+            "type": "optional",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "_start",
+            "type": "int",
+            "required": false,
+            "default": 0
+          },
+          {
+            "name": "_end",
+            "type": "int",
+            "required": false,
+            "default": 50
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "journey_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__journeys__journey_id": {
+      "http_method": "GET",
+      "path": "/journeys/{journey_id}",
+      "summary": "GET /journeys/{journey_id}",
+      "description": "Return a single journey definition by its ID.",
+      "parameters": {
+        "path": [
+          {
+            "name": "journey_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "journey_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "POST__journeys": {
+      "http_method": "POST",
+      "path": "/journeys",
+      "summary": "POST /journeys",
+      "description": "Create a new journey definition. Input: journey definition with steps and transitions. Returns the created journey with its assigned ID.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": {
+        "description": "Request payload"
+      },
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "PUT__journeys__journey_id": {
+      "http_method": "PUT",
+      "path": "/journeys/{journey_id}",
+      "summary": "PUT /journeys/{journey_id}",
+      "description": "Update an existing journey definition by its ID. Returns the updated journey.",
+      "parameters": {
+        "path": [
+          {
+            "name": "journey_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": {
+        "description": "Request payload"
+      },
+      "response_type": "object",
+      "output_fields": [
+        "journey_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__journeys__journey_id": {
+      "http_method": "DELETE",
+      "path": "/journeys/{journey_id}",
+      "summary": "DELETE /journeys/{journey_id}",
+      "description": "Delete a journey definition by its ID.",
+      "parameters": {
+        "path": [
+          {
+            "name": "journey_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "journey_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__journey-instances": {
+      "http_method": "GET",
+      "path": "/journey-instances",
+      "summary": "GET /journey-instances",
+      "description": "List all journey instances for the current user. Returns paginated active and completed journey instances.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "status",
+            "type": "optional",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "_start",
+            "type": "int",
+            "required": false,
+            "default": 0
+          },
+          {
+            "name": "_end",
+            "type": "int",
+            "required": false,
+            "default": 50
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "instance_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__journey-instances__instance_id": {
+      "http_method": "GET",
+      "path": "/journey-instances/{instance_id}",
+      "summary": "GET /journey-instances/{instance_id}",
+      "description": "Return a single journey instance by its ID, including its current step and state.",
+      "parameters": {
+        "path": [
+          {
+            "name": "instance_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "instance_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "POST__journey-instances": {
+      "http_method": "POST",
+      "path": "/journey-instances",
+      "summary": "POST /journey-instances",
+      "description": "Start a new journey instance for the current user. Input: journey ID and optional initial state. Returns the created instance.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": {
+        "description": "Request payload"
+      },
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "PUT__journey-instances__instance_id": {
+      "http_method": "PUT",
+      "path": "/journey-instances/{instance_id}",
+      "summary": "PUT /journey-instances/{instance_id}",
+      "description": "Advance or update a journey instance by its ID. Input: updated instance state and current step. Returns the updated instance.",
+      "parameters": {
+        "path": [
+          {
+            "name": "instance_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": {
+        "description": "Request payload"
+      },
+      "response_type": "object",
+      "output_fields": [
+        "instance_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__journey-instances__instance_id": {
+      "http_method": "DELETE",
+      "path": "/journey-instances/{instance_id}",
+      "summary": "DELETE /journey-instances/{instance_id}",
+      "description": "Delete a journey instance by its ID.",
+      "parameters": {
+        "path": [
+          {
+            "name": "instance_id",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "instance_id"
+      ],
+      "module": "iqvigilant.modules.journey",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__configs": {
+      "http_method": "GET",
+      "path": "/pageconfig/configs",
+      "summary": "GET /pageconfig/configs",
+      "description": "Return all page configurations keyed by '{model}:{view_type}'.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__configs__model__view_type": {
+      "http_method": "GET",
+      "path": "/pageconfig/configs/{model}/{view_type}",
+      "summary": "GET /pageconfig/configs/{model}/{view_type}",
+      "description": "Return the page configuration for one model + view type (or empty).",
+      "parameters": {
+        "path": [
+          {
+            "name": "model",
+            "type": "str",
+            "required": true
+          },
+          {
+            "name": "view_type",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "PUT__pageconfig__configs__model__view_type": {
+      "http_method": "PUT",
+      "path": "/pageconfig/configs/{model}/{view_type}",
+      "summary": "PUT /pageconfig/configs/{model}/{view_type}",
+      "description": "Persist the page configuration for one model + view type.\n\nStores the 'Details' tab sections plus any additional named tabs (each tab\nholds its own sections). Sections hold entries (fields, relations, or\nembedded nl_sentences) positioned in a row/column grid.",
+      "parameters": {
+        "path": [
+          {
+            "name": "model",
+            "type": "str",
+            "required": true
+          },
+          {
+            "name": "view_type",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__pageconfig__configs__model__view_type": {
+      "http_method": "DELETE",
+      "path": "/pageconfig/configs/{model}/{view_type}",
+      "summary": "DELETE /pageconfig/configs/{model}/{view_type}",
+      "description": "Remove the page configuration for one model + view type.",
+      "parameters": {
+        "path": [
+          {
+            "name": "model",
+            "type": "str",
+            "required": true
+          },
+          {
+            "name": "view_type",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__templates": {
+      "http_method": "GET",
+      "path": "/pageconfig/templates",
+      "summary": "GET /pageconfig/templates",
+      "description": "Return metadata for all available templates (built-in + custom).",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "template_name",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__templates__template_name": {
+      "http_method": "GET",
+      "path": "/pageconfig/templates/{template_name}",
+      "summary": "GET /pageconfig/templates/{template_name}",
+      "description": "Return a single template definition by name.",
+      "parameters": {
+        "path": [
+          {
+            "name": "template_name",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "template_name"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__templates__resolve__model__view_type": {
+      "http_method": "GET",
+      "path": "/pageconfig/templates/resolve/{model}/{view_type}",
+      "summary": "GET /pageconfig/templates/resolve/{model}/{view_type}",
+      "description": "Resolve the template assigned to a model + view_type into ViewConfigRow[].\n\nPriority: explicit page config > template assignment > nothing.",
+      "parameters": {
+        "path": [
+          {
+            "name": "model",
+            "type": "str",
+            "required": true
+          },
+          {
+            "name": "view_type",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "model",
+        "view_type"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "POST__pageconfig__templates__assign": {
+      "http_method": "POST",
+      "path": "/pageconfig/templates/assign",
+      "summary": "POST /pageconfig/templates/assign",
+      "description": "Assign a template to one or more pages.\n\nBody: {\"template\": \"...\", \"parameters\": {}, \"targets\": [{\"model\":\"T\",\"view_type\":\"show\"}]}",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "POST__pageconfig__templates__assign__preview": {
+      "http_method": "POST",
+      "path": "/pageconfig/templates/assign/preview",
+      "summary": "POST /pageconfig/templates/assign/preview",
+      "description": "Preview bulk assignment impact without persisting.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__pageconfig__templates__assign": {
+      "http_method": "DELETE",
+      "path": "/pageconfig/templates/assign",
+      "summary": "DELETE /pageconfig/templates/assign",
+      "description": "Remove a template assignment.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "model",
+            "type": "str",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "view_type",
+            "type": "str",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "PUT__pageconfig__templates__template_name": {
+      "http_method": "PUT",
+      "path": "/pageconfig/templates/{template_name}",
+      "summary": "PUT /pageconfig/templates/{template_name}",
+      "description": "Create or update a template definition.\n\nSaves the template JSON to page_templates/{name}.json in the host app's\nworking directory. Custom templates override built-in templates with the\nsame name.\n\nRequired fields: name, applicable_view_types, tabs",
+      "parameters": {
+        "path": [
+          {
+            "name": "template_name",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict[str, Any]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "template_name"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__templates__template_name__usage": {
+      "http_method": "GET",
+      "path": "/pageconfig/templates/{template_name}/usage",
+      "summary": "GET /pageconfig/templates/{template_name}/usage",
+      "description": "Return all pages assigned to a given template.",
+      "parameters": {
+        "path": [
+          {
+            "name": "template_name",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "template_name"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "DELETE__pageconfig__templates__template_name": {
+      "http_method": "DELETE",
+      "path": "/pageconfig/templates/{template_name}",
+      "summary": "DELETE /pageconfig/templates/{template_name}",
+      "description": "Delete a custom template and unassign it from all pages.\n\nBuilt-in templates (shipped with the package) cannot be deleted.\nRemoving a template also removes it from page_configs.json for all\naffected pages via re-materialization.",
+      "parameters": {
+        "path": [
+          {
+            "name": "template_name",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "template_name"
+      ],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
+    },
+    "GET__pageconfig__templates__assignments__all": {
+      "http_method": "GET",
+      "path": "/pageconfig/templates/assignments/all",
+      "summary": "GET /pageconfig/templates/assignments/all",
+      "description": "Return all current template assignments as {key: template_name}.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.pageconfig",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "orphaned"
     }
   }
 }
