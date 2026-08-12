@@ -11217,7 +11217,13 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
     /* @__PURE__ */ jsx(Tooltip, { title: _31("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
-var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
+var NLSentenceBlock = ({
+  eid,
+  title: titleProp,
+  showLabel,
+  targetEntityType,
+  targetEntityId
+}) => {
   const { token } = theme.useToken();
   const apiUrl = useApiUrl();
   const [html, setHtml] = useState(null);
@@ -11229,7 +11235,12 @@ var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
     setLoading(true);
     setHtml(null);
     setError(null);
-    authenticatedFetch(`${apiUrl}/nlsentence/${eid}/custom_content?results_only=1`).then((r) => r.json()).then((data) => {
+    const params = new URLSearchParams({ results_only: "1" });
+    if (targetEntityType && targetEntityId !== void 0 && targetEntityId !== null) {
+      params.set("target_entity_type", targetEntityType);
+      params.set("target_entity_id", String(targetEntityId));
+    }
+    authenticatedFetch(`${apiUrl}/nlsentence/${eid}/custom_content?${params.toString()}`).then((r) => r.json()).then((data) => {
       if (!cancelled) {
         setHtml(data?.html ?? "");
         setFetchedTitle(data?.title ?? null);
@@ -11244,7 +11255,7 @@ var NLSentenceBlock = ({ eid, title: titleProp, showLabel }) => {
     return () => {
       cancelled = true;
     };
-  }, [apiUrl, eid]);
+  }, [apiUrl, eid, targetEntityType, targetEntityId]);
   const displayTitle = titleProp || fetchedTitle || null;
   return /* @__PURE__ */ jsxs("div", { style: { marginBottom: 8 }, children: [
     showLabel !== false && displayTitle && /* @__PURE__ */ jsxs("div", { style: {
@@ -11382,7 +11393,9 @@ var SectionCellContent = ({
         {
           eid: item.nl_sentence_eid,
           title: item.nl_sentence_title ?? void 0,
-          showLabel: item.show_label !== false
+          showLabel: item.show_label !== false,
+          targetEntityType: record ? model.name : void 0,
+          targetEntityId: record ? recordId : void 0
         },
         `nls-${item.nl_sentence_eid}`
       );

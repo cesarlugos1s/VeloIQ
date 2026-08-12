@@ -10,9 +10,17 @@ interface NLSentenceBlockProps {
     eid: number;
     title?: string | null;
     showLabel?: boolean;
+    /** Page embedding: the host page's own record, so this sentence answers
+     * as related to it. Both must be present to take effect; omit (or leave
+     * undefined) for the existing unscoped behavior (e.g. Dashboard cells,
+     * which have no single record in scope). */
+    targetEntityType?: string;
+    targetEntityId?: string | number;
 }
 
-export const NLSentenceBlock: React.FC<NLSentenceBlockProps> = ({ eid, title: titleProp, showLabel }) => {
+export const NLSentenceBlock: React.FC<NLSentenceBlockProps> = ({
+    eid, title: titleProp, showLabel, targetEntityType, targetEntityId,
+}) => {
     const { token } = theme.useToken();
     const apiUrl = useApiUrl();
     const [html, setHtml] = useState<string | null>(null);
@@ -25,7 +33,12 @@ export const NLSentenceBlock: React.FC<NLSentenceBlockProps> = ({ eid, title: ti
         setLoading(true);
         setHtml(null);
         setError(null);
-        authenticatedFetch(`${apiUrl}/nlsentence/${eid}/custom_content?results_only=1`)
+        const params = new URLSearchParams({ results_only: "1" });
+        if (targetEntityType && targetEntityId !== undefined && targetEntityId !== null) {
+            params.set("target_entity_type", targetEntityType);
+            params.set("target_entity_id", String(targetEntityId));
+        }
+        authenticatedFetch(`${apiUrl}/nlsentence/${eid}/custom_content?${params.toString()}`)
             .then(r => r.json())
             .then(data => {
                 if (!cancelled) {
@@ -41,7 +54,7 @@ export const NLSentenceBlock: React.FC<NLSentenceBlockProps> = ({ eid, title: ti
                 }
             });
         return () => { cancelled = true; };
-    }, [apiUrl, eid]);
+    }, [apiUrl, eid, targetEntityType, targetEntityId]);
 
     const displayTitle = titleProp || fetchedTitle || null;
 

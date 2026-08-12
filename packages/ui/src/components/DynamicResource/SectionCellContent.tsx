@@ -160,6 +160,15 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                     eid={item.nl_sentence_eid}
                     title={item.nl_sentence_title ?? undefined}
                     showLabel={item.show_label !== false}
+                    // Page embedding: when this section is rendered on a Show
+                    // page (record/recordId are already resolved above for the
+                    // field/relation cases), pass the page's own record along so
+                    // the embedded sentence answers as related to it. Left
+                    // undefined for Dashboard cells (no single record in scope
+                    // there) -- NLSentenceBlock/the backend treat that the same
+                    // as today's unscoped behavior.
+                    targetEntityType={record ? model.name : undefined}
+                    targetEntityId={record ? recordId : undefined}
                 />
             );
         }
