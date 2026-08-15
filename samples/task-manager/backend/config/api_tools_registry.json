@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-08-09T21:23:17.387320+00:00",
+  "updated_at": "2026-08-12T18:59:22.878114+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -5166,6 +5166,18 @@
             "type": "Optional[str]",
             "required": true,
             "default": null
+          },
+          {
+            "name": "target_entity_type",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "target_entity_id",
+            "type": "Optional[int]",
+            "required": true,
+            "default": null
           }
         ]
       },
@@ -5199,6 +5211,18 @@
           {
             "name": "lang",
             "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "target_entity_type",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "target_entity_id",
+            "type": "Optional[int]",
             "required": true,
             "default": null
           }
@@ -5240,6 +5264,18 @@
           {
             "name": "lang",
             "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "target_entity_type",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "target_entity_id",
+            "type": "Optional[int]",
             "required": true,
             "default": null
           }
@@ -5848,6 +5884,28 @@
         "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__deterministic-plans__llm-status": {
+      "http_method": "GET",
+      "path": "/deterministic-plans/llm-status",
+      "summary": "GET /deterministic-plans/llm-status",
+      "description": "Whether an LLM is configured/reachable, gating the AI-assist input on\nthe Deterministic Plan Manager/Builder pages.\n\nReuses suggested_sentences._llm_and_availability() — the established\n\"mimic IQVigilant's own LLM-availability check\" pattern: it calls\nobtain_chat_llm() and treats any exception (some providers construct\ntheir client eagerly and raise instead of reporting \"no key\") the same\nas \"not configured\".\n\nRegistered here, before the generic GET /deterministic-plans/{plan_key}\nroute below, so \"llm-status\" isn't swallowed as a plan_key path param\n(FastAPI matches routes in registration order).",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-08-12T16:07:01.473688+00:00",
       "status": "active"
     },
     "GET__deterministic-plans__plan_key": {
@@ -7061,6 +7119,35 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "POST__deterministic-plans__ai-assist": {
+      "http_method": "POST",
+      "path": "/deterministic-plans/ai-assist",
+      "summary": "POST /deterministic-plans/ai-assist",
+      "description": "Propose deterministic plan change(s) from a natural-language request.\n\nBody: { prompt, plan_key? }. When plan_key is given, the request is scoped\nto editing that existing plan (its current steps are given to the LLM as\ncontext); otherwise the LLM may propose creating/editing any number of\nplans by name.\n\nThis endpoint NEVER writes to the registry -- it only returns a preview\n(``proposed``) for the admin to review and save explicitly, the same way\na hand-authored edit is saved, via the normal POST/PUT\n``/deterministic-plans`` endpoints (the Builder's \"Save Plan\" button, or\nthe Manager's review dialog). A human-in-the-loop save step is required\nhere because an LLM's structured-output response can silently omit data\nit wasn't supposed to touch -- confirmed live: a request to \"add a step\nthat searches emails\" against a 3-step plan returned only the 1 new step,\nwhich under an earlier always-write design deleted the other 3 on the\nspot. Auto-detecting that kind of loss in general is unreliable, so the\nsafer fix is to never write without a human confirming the result first.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-12T16:07:01.473688+00:00",
+      "status": "active"
+    },
     "GET__api-tools": {
       "http_method": "GET",
       "path": "/api-tools",
@@ -7157,7 +7244,7 @@
       "http_method": "PUT",
       "path": "/api-tools/{tool_key:path}",
       "summary": "PUT /api-tools/{tool_key:path}",
-      "description": "Full update of an existing API tool's editable metadata fields.\n\nAll writable fields can be changed: ``http_method``, ``path``, ``summary``,\n``description``, ``module``, ``enabled``, ``allowed_roles``, ``parameters``,\n``request_body``, ``response_type``, ``base_url``.\nRead-only fields (``source``, ``first_discovered``, ``status``) are preserved.",
+      "description": "Full update of an existing API tool's editable metadata fields.\n\nAll writable fields can be changed: ``http_method``, ``path``, ``summary``,\n``description``, ``module``, ``enabled``, ``allowed_roles``, ``parameters``,\n``request_body``, ``response_type``, ``base_url``, ``auth``.\nRead-only fields (``source``, ``first_discovered``, ``status``,\n``requires_configuration``, ``base_url_placeholder``) are preserved.",
       "parameters": {
         "path": [],
         "query": [
@@ -7180,6 +7267,64 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "POST__api-tools": {
+      "http_method": "POST",
+      "path": "/api-tools",
+      "summary": "POST /api-tools",
+      "description": "Create a new API tool directly in the registry.\n\nUsed for manually-authored external tools and the single-operation\n\"Import from OpenAPI Spec\" path. Accepts the same field set as\n``PUT /api-tools/{tool_key}`` (see ``_API_TOOL_CREATE_FIELDS``), plus an\noptional ``tool_key``; 409 if that key already exists.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-12T16:07:01.473688+00:00",
+      "status": "active"
+    },
+    "POST__api-tools__bulk-create": {
+      "http_method": "POST",
+      "path": "/api-tools/bulk-create",
+      "summary": "POST /api-tools/bulk-create",
+      "description": "Bulk-create API tools from selected OpenAPI spec operations.\n\nAccepts ``operations`` (list of tool payload dicts, each shaped like the\nsingle-create payload — the same shape ``POST /api-tools/discover-spec``\nreturns per operation). Each operation becomes one registry entry via\n``_create_tool_entry``; a duplicate explicit ``tool_key`` is reported in\n``skipped`` rather than aborting the whole batch.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-12T16:07:01.473688+00:00",
       "status": "active"
     },
     "DELETE__api-tools__tool_key:path": {
@@ -7230,7 +7375,7 @@
       "http_method": "POST",
       "path": "/api-tools/bulk",
       "summary": "POST /api-tools/bulk",
-      "description": "Bulk enable/disable API tools.",
+      "description": "Bulk enable/disable API tools.\n\nFor ``action == \"enable\"``, tools that still require configuration\n(see ``_configuration_gate_error``) are skipped and reported in\n``blocked`` rather than silently enabled.",
       "parameters": {
         "path": [],
         "query": [
@@ -7447,6 +7592,47 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "POST__api-tools__discover-spec": {
+      "http_method": "POST",
+      "path": "/api-tools/discover-spec",
+      "summary": "POST /api-tools/discover-spec",
+      "description": "Import tool definitions from an OpenAPI 3.0/3.1 spec URL or an uploaded\nJSON/YAML file — the bigger sibling of the single-endpoint Auto-Discover\nheuristic (``POST /api-tools/discover``).\n\nParses every operation (path x method) in the spec and returns them for\nthe admin to multi-select in the UI (``operations``, plus any\n``warnings`` for sections that could not be parsed). If neither the file\nnor ``spec_url`` parses as an OpenAPI/Swagger document, falls back to the\nsingle-URL heuristic discovery (treating ``spec_url`` as a plain endpoint\nURL) so there is one entry point for both flows — a single-item\n``operations`` list is still returned, keeping the response shape uniform\neither way.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec_url",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "http_method",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "file",
+            "type": "Optional[UploadFile]",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-08-12T16:07:01.473688+00:00",
       "status": "active"
     },
     "GET__dashboard-chart-panels": {

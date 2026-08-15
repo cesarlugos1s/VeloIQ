@@ -14,8 +14,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 19318,
-            "output_tokens": 1516
+            "input_tokens": 19165,
+            "output_tokens": 1302
         }
     }
 ,
@@ -93,8 +93,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 18321,
-            "output_tokens": 1640
+            "input_tokens": 19441,
+            "output_tokens": 1319
         }
     }
 ,
