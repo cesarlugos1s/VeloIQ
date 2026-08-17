@@ -22,7 +22,9 @@ CSV_HEADER = [
 ]
 
 def fetch_json(url, headers=None, retries=3):
-    """Fetches JSON payloads with exponential backoff delay for 429 rate limits."""
+    """Fetches JSON payloads with exponential backoff delay for 429 rate limits
+    and transient 5xx errors (e.g. GitHub's traffic API occasionally returns
+    503 while it recomputes stats)."""
     req = urllib.request.Request(url, headers=headers or {})
     for i in range(retries):
         try:
@@ -32,6 +34,10 @@ def fetch_json(url, headers=None, retries=3):
             if e.code == 429:
                 wait_time = 2 ** (i + 1)
                 print(f"⚠️  PyPI rate limited (429). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            elif e.code >= 500:
+                wait_time = 2 ** (i + 1)
+                print(f"⚠️  {e.code} from {url}. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
             elif e.code == 404:
                 print(f"ℹ️  Package pending indexing on PyPI Stats (404). Defaulting downloads to 0.")
@@ -232,8 +238,9 @@ def main():
                 print("⚠️  PyPI data unavailable. Defaulting downloads to 0.\n")
 
     if not clones_data or not views_data:
-        print("❌ Could not recover GitHub traffic metrics. Script execution halted.")
-        return
+        print("⚠️  Could not recover GitHub traffic metrics. Defaulting clones/views to 0.\n")
+        clones_data = clones_data or {}
+        views_data = views_data or {}
 
     # ── Raw Values ────────────────────────────────────────────────────────────
     tot_views  = views_data.get("count", 0)
