@@ -9,6 +9,7 @@ import { formatNumberValue, formatDateValue, formatDateTimeValue, formatTimeValu
 import { renderOptionTag } from "../utils/colors";
 import { normalizeFieldViewType } from "../utils/viewConfig";
 import { ReferenceField } from "./ReferenceField";
+import { StorageFieldValue } from "./StorageFieldValue";
 
 dayjs.extend(relativeTime);
 
@@ -102,6 +103,11 @@ const renderFieldViewTypeReadOnly = (token: string, value: any, inTable?: boolea
                     <img src={str} alt="" style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" }} />
                 </a>
             );
+        case "read-only-storage-field":
+            // No model/field/pk context here (unlike the edit-mode widget)
+            // -- StorageFieldValue only needs the resolved value itself
+            // (the storage key), so that's not a problem for this direction.
+            return <StorageFieldValue storageKey={str} />;
         case "read-only-qrcode":
             return (
                 <Suspense fallback={<Skeleton.Input active size="small" style={{ width: 128 }} />}>

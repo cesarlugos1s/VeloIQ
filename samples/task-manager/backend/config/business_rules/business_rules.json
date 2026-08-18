@@ -6177,6 +6177,318 @@
             "condition": "name != ''",
             "message": "Test",
             "severity": "error"
+        },
+        {
+            "rule_id": "br-7209dfd0",
+            "name": "Rule br-7209dfd0",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "ai-edit-619f33e4",
+            "name": "Original",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "ai-precedence-42d781a7",
+            "name": "Saved Version",
+            "target_model": "Project",
+            "type": "constraint",
+            "condition": "name != ''",
+            "message": "x",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-5aa8c329",
+            "name": "Rule br-5aa8c329",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-f1c1abc1",
+            "name": "Rule br-f1c1abc1",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-e65da4a8",
+            "name": "Rule br-e65da4a8",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-06954889",
+            "name": "Rule br-06954889",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-ceaa6885",
+            "name": "Updated Name",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-2709cdfc",
+            "name": "Rule br-2709cdfc",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-abcdabed",
+            "name": "Admin Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-fafe5315",
+            "name": "Viewer Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "sandbox-saved-d5a1cf47",
+            "name": "Saved Constraint",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "severity": "error",
+            "violation": {
+                "message": "Name required"
+            }
+        },
+        {
+            "rule_id": "ai-edit-ffd22162",
+            "name": "Original",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "ai-precedence-7d785936",
+            "name": "Saved Version",
+            "target_model": "Project",
+            "type": "constraint",
+            "condition": "name != ''",
+            "message": "x",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-2dafe4ad",
+            "name": "Rule br-2dafe4ad",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-dd86eb56",
+            "name": "Rule br-dd86eb56",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-f5a439d1",
+            "name": "Rule br-f5a439d1",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-6e5b9612",
+            "name": "Rule br-6e5b9612",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-9fa06c87",
+            "name": "Updated Name",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-09faa70c",
+            "name": "Rule br-09faa70c",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-aaedb029",
+            "name": "Admin Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-38ba737b",
+            "name": "Viewer Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "sandbox-saved-0ba5f5ea",
+            "name": "Saved Constraint",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "severity": "error",
+            "violation": {
+                "message": "Name required"
+            }
+        },
+        {
+            "rule_id": "ai-edit-7074a4f2",
+            "name": "Original",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "ai-precedence-61144f56",
+            "name": "Saved Version",
+            "target_model": "Project",
+            "type": "constraint",
+            "condition": "name != ''",
+            "message": "x",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-c665e5c3",
+            "name": "Rule br-c665e5c3",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-182f0cfb",
+            "name": "Rule br-182f0cfb",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-b8253681",
+            "name": "Rule br-b8253681",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-899b6473",
+            "name": "Rule br-899b6473",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-b19bfa4a",
+            "name": "Updated Name",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-fa938304",
+            "name": "Rule br-fa938304",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Name is required",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-ccd7f623",
+            "name": "Admin Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "br-e153ca35",
+            "name": "Viewer Rule",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "message": "Test",
+            "severity": "error"
+        },
+        {
+            "rule_id": "sandbox-saved-a036f7fa",
+            "name": "Saved Constraint",
+            "type": "constraint",
+            "target_model": "Project",
+            "condition": "name != ''",
+            "severity": "error",
+            "violation": {
+                "message": "Name required"
+            }
         }
     ]
 }

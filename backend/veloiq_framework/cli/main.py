@@ -20,6 +20,7 @@ from veloiq_framework.cli.add_relation import add_relation
 from veloiq_framework.cli.add_model import add_model
 from veloiq_framework.cli.set_title import set_title
 from veloiq_framework.cli.import_schema import import_schema
+from veloiq_framework.cli.worker import worker
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -47,6 +48,7 @@ def cli(ctx):
       veloiq build                   Build the frontend for production
       veloiq db upgrade              Apply Alembic migrations
       veloiq check                   Health-check the project (descriptions, config gaps)
+      veloiq worker start            Run the background job queue worker (needs Advanced Development)
 
     Extension packages:
       veloiq new-extension myext     Scaffold a new extension package
@@ -86,3 +88,4 @@ cli.add_command(add_relation)
 cli.add_command(add_model)
 cli.add_command(set_title)
 cli.add_command(import_schema)
+cli.add_command(worker)

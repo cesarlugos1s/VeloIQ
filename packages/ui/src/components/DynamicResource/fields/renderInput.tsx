@@ -6,6 +6,7 @@ import { applyRelationFieldOverrides, normalizeFieldViewType } from "../utils/vi
 import { RelationSelect } from "./RelationSelect";
 import { FileUploadInput } from "./FileUploadInput";
 import { AsyncSelectInput } from "./AsyncSelectInput";
+import { StorageFieldInput } from "./StorageFieldInput";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -174,6 +175,15 @@ export const renderInput = (field: FieldDef, allModels?: ModelDef[], model?: Mod
     }
     // Scalar field view_type override
     const editToken = normalizeFieldViewType(resolvedField.editViewType || "");
+    if (editToken === "editable-storage-field") {
+        // Needs model/field/currentId context renderEditableFieldViewType's
+        // generic (value, onChange)-only signature doesn't carry — handled
+        // as its own branch rather than folded into that switch.
+        const Wrapper: React.FC<{ value?: any; onChange?: (v: any) => void }> = ({ value, onChange }) => (
+            <StorageFieldInput value={value} onChange={onChange} modelName={model?.name} fieldName={resolvedField.key} pk={currentId} />
+        );
+        return <Wrapper />;
+    }
     if (editToken && editToken.startsWith("editable-")) {
         // renderInput is used inside Form.Item which injects value/onChange — use a wrapper
         const Wrapper: React.FC<{ value?: any; onChange?: (v: any) => void }> = ({ value, onChange }) =>

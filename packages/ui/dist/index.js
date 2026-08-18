@@ -2223,7 +2223,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_53, value) {
+                validator(_55, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -3986,19 +3986,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _53 }) => _53).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_53) => {
-        if (_53.collapsible) {
+      const ut = R.panels.map(({ id: _55 }) => _55).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_55) => {
+        if (_55.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _53.collapsedSize,
-              ce[_53.panelId]
+              _55.collapsedSize,
+              ce[_55.panelId]
             ), dt = I(
-              _53.collapsedSize,
-              ge[_53.panelId]
+              _55.collapsedSize,
+              ge[_55.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_53.panelId] = ge[_53.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_55.panelId] = ge[_55.panelId]);
           }
         }
       });
@@ -5188,6 +5188,8 @@ var FIELD_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
   "editable-code",
   "read-only-image-url",
   "editable-image-url",
+  "read-only-storage-field",
+  "editable-storage-field",
   "read-only-qrcode",
   "read-only-relative",
   "read-only-truncated-text"
@@ -5713,7 +5715,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_53, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_55, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -6260,8 +6262,33 @@ var ReferenceField = ({ id, resource, onLabel }) => {
     }
   );
 };
-dayjs9__default.default.extend(relativeTime2__default.default);
 var _13 = window._ || ((text) => text);
+var StorageFieldValue = ({ storageKey }) => {
+  const [busy, setBusy] = React6.useState(false);
+  const filename = storageKey.split("/").slice(1).join("/") || storageKey;
+  const handleDownload = async () => {
+    setBusy(true);
+    try {
+      const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
+      const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
+      if (!res.ok) throw new Error(_13("Download failed."));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      antd.message.error(err?.message || _13("Download failed."));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), loading: busy, onClick: handleDownload, children: filename });
+};
+dayjs9__default.default.extend(relativeTime2__default.default);
+var _14 = window._ || ((text) => text);
 var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
@@ -6345,6 +6372,8 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
       return /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
     case "read-only-image-url":
       return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
+    case "read-only-storage-field":
+      return /* @__PURE__ */ jsxRuntime.jsx(StorageFieldValue, { storageKey: str });
     case "read-only-qrcode":
       return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
@@ -6369,7 +6398,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
         value: value === null || value === void 0 ? "" : String(value),
         autoSize: { minRows: 3, maxRows: 18 },
         style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _13(field.key),
+        placeholder: _14(field.key),
         readOnly: true
       }
     );
@@ -6402,7 +6431,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
   }
   return value ?? "-";
 };
-var _14 = window._ || ((text) => text);
+var _15 = window._ || ((text) => text);
 var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
 var COUNT_KEY = "__count__";
 var CrosstabTable = ({
@@ -6427,7 +6456,7 @@ var CrosstabTable = ({
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
   const seriesLabel = React6.useCallback(
     (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _14("Count");
+      if (seriesKey === COUNT_KEY) return _15("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
@@ -6596,10 +6625,10 @@ var CrosstabTable = ({
       const updates = computeProration(records, seriesKey, newAggregate);
       if (records.length > 1 && editable.confirmProration !== false) {
         antd.Modal.confirm({
-          title: _14("Distribute value across records"),
+          title: _15("Distribute value across records"),
           width: 520,
           content: /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _14("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _15("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
             /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
               /* @__PURE__ */ jsxRuntime.jsx("span", { children: rec?._label ?? recordId(rec) }),
               /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: token.colorTextTertiary }, children: [
@@ -6609,8 +6638,8 @@ var CrosstabTable = ({
               ] })
             ] }, String(recordId(rec)))) })
           ] }),
-          okText: _14("Apply"),
-          cancelText: _14("Cancel"),
+          okText: _15("Apply"),
+          cancelText: _15("Cancel"),
           onOk: () => editable.onCommitCell(updates)
         });
         return;
@@ -6620,10 +6649,10 @@ var CrosstabTable = ({
     [editable, contributingRecords, cellAggregate, computeProration, recordId, effectiveValue, token.colorTextTertiary]
   );
   if (!rowField && !colField) {
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _14("Crosstab needs at least one category field.") });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _15("Crosstab needs at least one category field.") });
   }
   if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _14("No data available for this view.") });
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _15("No data available for this view.") });
   }
   const headerCellStyle = {
     background: token.colorBgLayout,
@@ -6762,7 +6791,7 @@ var CrosstabTable = ({
     ] }) })
   ] });
 };
-var _15 = window._ || ((text) => text);
+var _16 = window._ || ((text) => text);
 var AnalysisChart = ({
   data,
   seriesKeys,
@@ -6806,7 +6835,7 @@ var AnalysisChart = ({
   };
   const primarySeriesKey = seriesKeys[0] || "__count__";
   const secondarySeriesKey = seriesKeys[1];
-  const resolveNumericField = (fields, n) => fields[Math.min(n, fields.length - 1)] ?? { key: "__count__", label: _15("Count") };
+  const resolveNumericField = (fields, n) => fields[Math.min(n, fields.length - 1)] ?? { key: "__count__", label: _16("Count") };
   const resolveCategoryField = (field1, field2) => field2 ?? field1;
   const getNumericValue = (record, key) => {
     if (key === "__count__") return 1;
@@ -6852,7 +6881,7 @@ var AnalysisChart = ({
     if (!title) return null;
     return /* @__PURE__ */ jsxRuntime.jsx("text", { x: paddingLeft, y: 24, fontSize: "14", fill: token.colorText, fontWeight: 600, children: title });
   };
-  const renderNoChartDataMessage = () => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _15("No data available for this chart.") });
+  const renderNoChartDataMessage = () => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _16("No data available for this chart.") });
   if (!data.length && chartType !== "scatter" && chartType !== "bubble" && chartType !== "histogram" && chartType !== "box" && chartType !== "heatmap" && chartType !== "crosstab") {
     return renderNoChartDataMessage();
   }
@@ -7451,8 +7480,8 @@ var AnalysisChart = ({
       renderTitle(),
       renderLegendItems(
         [
-          { label: _15("Increase"), color: "#52c41a" },
-          { label: _15("Decrease"), color: "#f5222d" }
+          { label: _16("Increase"), color: "#52c41a" },
+          { label: _16("Decrease"), color: "#f5222d" }
         ],
         8
       ),
@@ -7607,7 +7636,7 @@ var AnalysisChart = ({
         summaryFn,
         formatCategoryValue,
         numericBarColor,
-        caption: `${_15("Crosstab")}: ${cat1Field?.label || categoryField1} \xD7 ${cat2Field?.label || effectiveCat2} (${summaryFn})`
+        caption: `${_16("Crosstab")}: ${cat1Field?.label || categoryField1} \xD7 ${cat2Field?.label || effectiveCat2} (${summaryFn})`
       }
     );
   };
@@ -7615,7 +7644,7 @@ var AnalysisChart = ({
     if (seriesKeys.length === 0) {
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "Radar needs at least one series." });
     }
-    const effectiveSeriesKeys = seriesKeys.length >= 3 ? seriesKeys : Array.from({ length: 3 }, (_53, i) => seriesKeys[i % seriesKeys.length]);
+    const effectiveSeriesKeys = seriesKeys.length >= 3 ? seriesKeys : Array.from({ length: 3 }, (_55, i) => seriesKeys[i % seriesKeys.length]);
     const centerX = paddingLeft + chartWidth / 2;
     const centerY = paddingTop + chartHeight / 2;
     const radius = Math.min(chartWidth, chartHeight) * 0.35;
@@ -7942,7 +7971,7 @@ var SampleRowsTable = ({ rows }) => {
     }
   );
 };
-var _16 = window._ || ((text) => text);
+var _17 = window._ || ((text) => text);
 var SMART_IMPORT_EXPORT_MODULE = "data_import_export";
 var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
   const [file, setFile] = React6.useState(null);
@@ -7990,7 +8019,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           detail = JSON.parse(bodyText)?.detail || bodyText;
         } catch {
         }
-        throw new Error(detail || _16("Import failed."));
+        throw new Error(detail || _17("Import failed."));
       }
       return await response.json();
     } finally {
@@ -8002,7 +8031,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       const report = await runImport(true);
       setPreview(report);
     } catch (err) {
-      antd.message.error(err?.message || _16("Import failed."));
+      antd.message.error(err?.message || _17("Import failed."));
     }
   };
   const handleConfirm = async () => {
@@ -8012,13 +8041,13 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       setConfirmed(true);
       onImported?.();
     } catch (err) {
-      antd.message.error(err?.message || _16("Import failed."));
+      antd.message.error(err?.message || _17("Import failed."));
     }
   };
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Modal,
     {
-      title: _16("Import CSV"),
+      title: _17("Import CSV"),
       open,
       onCancel: handleClose,
       footer: null,
@@ -8042,17 +8071,17 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
             disabled: busy,
             children: [
               /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InboxOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-              /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _16("Click or drag a CSV file here") }),
-              /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _16("Headers must match the model's field names exactly.") })
+              /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _17("Click or drag a CSV file here") }),
+              /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _17("Headers must match the model's field names exactly.") })
             ]
           }
         ),
         !confirmed && !preview && localFileInfo && /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { fontSize: 12, color: "#888" }, children: [
           localFileInfo.rowCount,
           " ",
-          _16("rows detected"),
+          _17("rows detected"),
           " \u2014 ",
-          _16("headers"),
+          _17("headers"),
           ": ",
           localFileInfo.headers.join(", ")
         ] }),
@@ -8061,18 +8090,18 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           {
             type: preview.errors.length > 0 ? "warning" : "success",
             showIcon: true,
-            message: confirmed ? _16("Import complete") : _16("Preview (no changes made yet)"),
+            message: confirmed ? _17("Import complete") : _17("Preview (no changes made yet)"),
             description: /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
               /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { children: [
-                _16("Rows"),
+                _17("Rows"),
                 ": ",
                 preview.total_rows,
                 " \u2014 ",
-                _16("Valid"),
+                _17("Valid"),
                 ": ",
                 preview.inserted + preview.updated,
                 " \u2014 ",
-                _16("Errors"),
+                _17("Errors"),
                 ": ",
                 preview.errors.length
               ] }),
@@ -8096,14 +8125,14 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                     )
                   },
                   columns: [
-                    { title: _16("Row"), dataIndex: "row", width: 80 },
-                    { title: _16("Error"), dataIndex: "message", ellipsis: true }
+                    { title: _17("Row"), dataIndex: "row", width: 80 },
+                    { title: _17("Error"), dataIndex: "message", ellipsis: true }
                   ]
                 }
               ),
               !!preview.sample_rows?.length && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { style: { display: "block", marginTop: 12 }, children: [
-                  _16("Sample of rows that will be loaded"),
+                  _17("Sample of rows that will be loaded"),
                   " (",
                   preview.sample_rows.length,
                   "/",
@@ -8126,9 +8155,9 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               borderRadius: 4
             },
             children: [
-              _16("Validation error, or custom/messy headers?"),
+              _17("Validation error, or custom/messy headers?"),
               " ",
-              _16("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
+              _17("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
               " ",
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Typography.Link,
@@ -8137,7 +8166,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                   href: isSmartTierInstalled ? `/data-import-export?model=${encodeURIComponent(resourcePath)}` : "https://www.juicemantics.com/iqvigilant",
                   target: isSmartTierInstalled ? void 0 : "_blank",
                   rel: isSmartTierInstalled ? void 0 : "noreferrer",
-                  children: _16("Open in IQVigilant Workbench \u2192")
+                  children: _17("Open in IQVigilant Workbench \u2192")
                 }
               )
             ]
@@ -8152,7 +8181,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: !file || busy,
               loading: busy && !preview,
               onClick: handlePreview,
-              children: _16("Preview")
+              children: _17("Preview")
             }
           ),
           !confirmed && preview && /* @__PURE__ */ jsxRuntime.jsx(
@@ -8162,10 +8191,10 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: busy,
               loading: busy,
               onClick: handleConfirm,
-              children: _16("Confirm import")
+              children: _17("Confirm import")
             }
           ),
-          confirmed && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: handleClose, children: _16("Close") })
+          confirmed && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: handleClose, children: _17("Close") })
         ] })
       ] })
     }
@@ -8523,7 +8552,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 };
 
 // src/components/DynamicResource/relations/helpers.ts
-var _17 = window._ || ((text) => text);
+var _18 = window._ || ((text) => text);
 var INLINE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
 var TABLE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["table", "totals-details", "crosstab", "editable-crosstab"]);
 var CROSSTAB_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["crosstab", "editable-crosstab"]);
@@ -8562,7 +8591,7 @@ var getRelationTabName = (rel, mode, fallback) => {
       return fallback;
     }
   }
-  const translatedExplicit = _17(explicit);
+  const translatedExplicit = _18(explicit);
   if (translatedExplicit !== explicit) return explicit;
   const relationKey = rel.relationName || rel.resource || "";
   if (relationKey) {
@@ -8575,11 +8604,11 @@ var getRelationTabName = (rel, mode, fallback) => {
   return explicit;
 };
 var getTabDisplayLabel = (tabName) => {
-  const direct = _17(tabName);
+  const direct = _18(tabName);
   if (direct !== tabName) return direct;
   return translateRelationKey(tabName);
 };
-var _18 = window._ || ((text) => text);
+var _19 = window._ || ((text) => text);
 var DARK_GRAY = "#444";
 var { Title } = antd.Typography;
 var MetadataModal = ({ model, allModels, open, onClose }) => {
@@ -8610,7 +8639,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       const relations = (model.relations || []).map((r) => {
         const targetName = r.otherResource || r.resource;
         const relModel = findRelatedModel(targetName);
-        const other_label = relModel ? _18(getModelLabel(relModel)) : _18(targetName || "");
+        const other_label = relModel ? _19(getModelLabel(relModel)) : _19(targetName || "");
         return {
           relation_name: r.relationName || r.resource,
           relation_label: getRelationLabel(r),
@@ -8656,41 +8685,41 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   }, [navigate, onClose]);
   const fieldColumns = [
     {
-      title: _18("Field"),
+      title: _19("Field"),
       dataIndex: "label",
       key: "label",
       width: 160,
       render: (_val, row) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: tone.solid }, children: getFieldLabel(row) })
     },
     {
-      title: _18("Type"),
+      title: _19("Type"),
       dataIndex: "type",
       key: "type",
       width: 90,
-      render: (v) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { color: DARK_GRAY }, children: _18(v) })
+      render: (v) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { color: DARK_GRAY }, children: _19(v) })
     },
     {
-      title: _18("Required"),
+      title: _19("Required"),
       dataIndex: "required",
       key: "required",
       width: 80,
       render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
     },
     {
-      title: _18("Description"),
+      title: _19("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _18(v) }) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _19(v) }) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _18("Constraints"),
+      title: _19("Constraints"),
       dataIndex: "constraints",
       key: "constraints",
       width: 180,
       render: (v) => v?.length ? v.map((c, i) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { fontSize: 11, color: DARK_GRAY }, children: c }, i)) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _18("Valid Values"),
+      title: _19("Valid Values"),
       dataIndex: "options",
       key: "options",
       width: 200,
@@ -8704,7 +8733,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _18("Default"),
+      title: _19("Default"),
       key: "default",
       width: 120,
       render: (_v, row) => {
@@ -8714,7 +8743,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _18("Formula"),
+      title: _19("Formula"),
       dataIndex: "formula",
       key: "formula",
       render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx("code", { style: { fontSize: 12, color: DARK_GRAY }, children: v }) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
@@ -8722,14 +8751,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   ];
   const relationColumns = [
     {
-      title: _18("Relation"),
+      title: _19("Relation"),
       dataIndex: "label",
       key: "label",
       width: 200,
       render: (_val, row) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: getRelationLabel(row) })
     },
     {
-      title: _18("Related Model"),
+      title: _19("Related Model"),
       dataIndex: "otherResource",
       key: "otherResource",
       width: 160,
@@ -8745,15 +8774,15 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
               size: "small",
               style: { padding: 0, color: relTone.solid, fontWeight: 500 },
               onClick: () => setNestedModel(related),
-              children: _18(v)
+              children: _19(v)
             }
           );
         }
-        return /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _18(v) });
+        return /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _19(v) });
       }
     },
     {
-      title: _18("Keys"),
+      title: _19("Keys"),
       key: "keys",
       width: 170,
       render: (_val, row) => /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { fontSize: 12, fontFamily: "monospace", color: DARK_GRAY }, children: [
@@ -8762,25 +8791,25 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
           " \u2192 ",
           row.otherKey
         ] }) : null,
-        row.isRecursive ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _18("recursive") }) : null
+        row.isRecursive ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _19("recursive") }) : null
       ] })
     },
     {
-      title: _18("Description"),
+      title: _19("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _18(v) }) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: DARK_GRAY }, children: _19(v) }) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     }
   ];
   const knowledgeGraphChildren = /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     graphLoading && /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true, paragraph: { rows: 6 } }),
-    graphError && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: _18("Error loading knowledge graph"), description: graphError }),
+    graphError && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: _19("Error loading knowledge graph"), description: graphError }),
     graphHtml && !graphLoading && /* @__PURE__ */ jsxRuntime.jsx(ExecutableHtml, { html: graphHtml, style: { minHeight: 400 } })
   ] });
   const tabItems = [
     {
       key: "fields",
-      label: _18("Fields"),
+      label: _19("Fields"),
       children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Table,
         {
@@ -8795,14 +8824,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     },
     ...model.relations?.length ? [{
       key: "relations",
-      label: _18("Relations"),
+      label: _19("Relations"),
       children: (() => {
         const sortByName = (a, b) => getRelationLabel(a).localeCompare(getRelationLabel(b));
         const reverseRels = (model.relations || []).filter((r) => isReverseRelation(r)).sort(sortByName);
         const forwardRels = (model.relations || []).filter((r) => !isReverseRelation(r)).sort(sortByName);
         return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           reverseRels.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntime.jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _18("Reverse Relations") }),
+            /* @__PURE__ */ jsxRuntime.jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _19("Reverse Relations") }),
             /* @__PURE__ */ jsxRuntime.jsx(
               antd.Table,
               {
@@ -8817,7 +8846,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             )
           ] }),
           forwardRels.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntime.jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _18("Forward Relations") }),
+            /* @__PURE__ */ jsxRuntime.jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _19("Forward Relations") }),
             /* @__PURE__ */ jsxRuntime.jsx(
               antd.Table,
               {
@@ -8835,7 +8864,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     }] : [],
     {
       key: "knowledge_graph",
-      label: _18("Knowledge Graph"),
+      label: _19("Knowledge Graph"),
       children: knowledgeGraphChildren
     }
   ];
@@ -8846,7 +8875,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       {
         title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: tone.solid }, children: [
           /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, { style: { marginRight: 8 } }),
-          _18("Metadata"),
+          _19("Metadata"),
           " \u2014 ",
           moduleLabel ? `${moduleLabel} \u203A ` : "",
           modelLabel
@@ -8866,7 +8895,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             marginBottom: 16,
             fontStyle: "italic",
             border: "none"
-          }, children: _18(model.description) }),
+          }, children: _19(model.description) }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { items: tabItems, size: "small", activeKey: activeTab, onChange: setActiveTab })
         ]
       }
@@ -8882,17 +8911,17 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     )
   ] });
 };
-var _19 = window._ || ((text) => text);
+var _20 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = React6.useState(initialOpen);
   React6.useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
-  const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _19("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
+  const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _20("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
-var _20 = window._ || ((text) => text);
+var _21 = window._ || ((text) => text);
 var useShowEditableForm = (resource, id) => {
   const navigate = reactRouterDom.useNavigate();
   const { formProps, saveButtonProps, queryResult } = antd$1.useForm({
@@ -8901,7 +8930,7 @@ var useShowEditableForm = (resource, id) => {
     id,
     redirect: false,
     successNotification: () => ({
-      message: _20("Changes saved."),
+      message: _21("Changes saved."),
       type: "success"
     })
   });
@@ -8937,12 +8966,12 @@ var buildShowTabFormOptions = (formProps, model, allModels) => {
     effectiveFields
   };
 };
-var _21 = window._ || ((text) => text);
+var _22 = window._ || ((text) => text);
 var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
   const navigate = reactRouterDom.useNavigate();
   const allModelsList = allModels || [];
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }, children: [
-    recordId != null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _21("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(
+    recordId != null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _22("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.DeleteButton,
       {
         resource: model.name,
@@ -8951,7 +8980,7 @@ var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
         onSuccess: () => navigate(`/${resolveResourcePath(model.resource || model.name, allModelsList)}`)
       }
     ) }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _21("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}) }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _22("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}) }) })
   ] });
 };
 var renderModelHeading = ({
@@ -9111,7 +9140,7 @@ var RelatedObjectPreview = ({ resource, id, model, allModels, fallbackLabel }) =
     }
   );
 };
-var _22 = window._ || ((text) => text);
+var _23 = window._ || ((text) => text);
 var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = core.useApiUrl();
   const go = core.useGo();
@@ -9207,7 +9236,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
                 node: {
                   title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                     relationLabelNode,
-                    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _22("Error") })
+                    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _23("Error") })
                   ] }),
                   key: rel.relationName || rel.resource,
                   selectable: false,
@@ -9248,7 +9277,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
             node: {
               title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                 relationLabelNode,
-                /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _22("Error") })
+                /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _23("Error") })
               ] }),
               key: rel.relationName || rel.resource,
               selectable: false,
@@ -9283,12 +9312,12 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {});
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, alignItems: "flex-start" }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _22("Forward Relations") }),
-      forwardTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _22("None") })
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _23("Forward Relations") }),
+      forwardTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _23("None") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _22("Reverse Relations") }),
-      reverseTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _22("None") })
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _23("Reverse Relations") }),
+      reverseTreeData.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _23("None") })
     ] })
   ] });
 };
@@ -9349,7 +9378,7 @@ async function unpinRecords(resource, recordIds) {
     )
   );
 }
-var _23 = window._ || ((text) => text);
+var _24 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef, initialExploreOpen = false) => {
   const apiUrl = core.useApiUrl();
   const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
@@ -9417,7 +9446,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const configureLayoutRow = configureLayoutButtonRef?.current;
   const actionsSettingsContent = /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _23("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _24("Relation's row actions buttons") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Switch,
         {
@@ -9431,7 +9460,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       )
     ] }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _23("Relation's create action button") }),
+      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _24("Relation's create action button") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Switch,
         {
@@ -9460,7 +9489,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _23("Save")
+        children: _24("Save")
       }
     )
   ] });
@@ -9477,9 +9506,9 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     metadataButton,
     metadataModal,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _23("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _24("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginInlineStart: 10 } }),
-    pinned !== null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: pinned ? _23("Unpin") : _23("Pin to dashboard"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    pinned !== null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: pinned ? _24("Unpin") : _24("Pin to dashboard"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -9488,14 +9517,14 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         loading: pinLoading
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Explore"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Explore"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Modal,
       {
         open: exploreOpen,
         onCancel: () => setExploreOpen(false),
         footer: null,
-        title: _23("Explore"),
+        title: _24("Explore"),
         width: "90vw",
         styles: { body: { height: "80vh", overflowY: "auto" } },
         destroyOnClose: true,
@@ -9503,7 +9532,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    saveButtonProps && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveFilled, {}), hideText: true }) })
+    saveButtonProps && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveFilled, {}), hideText: true }) })
   ] });
   return {
     actionsState: { showActions: showRelationActions, showCreate: showRelationCreate },
@@ -9683,8 +9712,8 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
-var _24 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_24("Sun"), _24("Mon"), _24("Tue"), _24("Wed"), _24("Thu"), _24("Fri"), _24("Sat")];
+var _25 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_25("Sun"), _25("Mon"), _25("Tue"), _25("Wed"), _25("Thu"), _25("Fri"), _25("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
 var isCalendarDateField = (field) => {
   const rawType = String(field?.type || "").trim().toLowerCase();
@@ -9740,7 +9769,7 @@ function useRoleFilteredModel(model) {
     return { ...model, fields: filtered };
   }, [model, userRoles]);
 }
-var _25 = window._ || ((text) => text);
+var _26 = window._ || ((text) => text);
 var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -9754,7 +9783,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : id ?? null);
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_25("Show")} ${modelDisplayLabel}`) : `${_25("Show")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_26("Show")} ${modelDisplayLabel}`) : `${_26("Show")} ${modelDisplayLabel}`;
   const saveLayoutRef = React6.useRef(() => {
   });
   const configureLayoutButtonRef = React6.useRef(null);
@@ -9782,7 +9811,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   );
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx("span", { children: _25("Configure page layout") }),
+    /* @__PURE__ */ jsxRuntime.jsx("span", { children: _26("Configure page layout") }),
     /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
@@ -9832,7 +9861,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _25("Show"),
+          actionLabel: _26("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: combinedHeaderButtons,
@@ -9853,7 +9882,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
     )
   ] });
 };
-var _26 = window._ || ((text) => text);
+var _27 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
   const optionLabel = "_label";
@@ -9908,7 +9937,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
       }
     ),
     isCapped && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _26("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _27("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
@@ -9917,13 +9946,13 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
           style: { fontSize: 11, padding: 0 },
           loading: queryResult?.isLoading || queryResult?.isFetching,
           onClick: () => setLoadAll(true),
-          children: _26("Load all")
+          children: _27("Load all")
         }
       )
     ] })
   ] });
 };
-var _27 = window._ || ((text) => text);
+var _28 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = antd.Form.useFormInstance();
   const [uploading, setUploading] = React6.useState(false);
@@ -9932,7 +9961,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
     if (!recordId) {
-      antd.message.error(_27("Save the record first before uploading a file."));
+      antd.message.error(_28("Save the record first before uploading a file."));
       return false;
     }
     setUploading(true);
@@ -9956,9 +9985,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
         data_hash: result.data_hash
       });
       setFileName(result.data_name || file.name);
-      antd.message.success(_27("File uploaded successfully."));
+      antd.message.success(_28("File uploaded successfully."));
     } catch (err) {
-      antd.message.error(err?.message || _27("File upload failed."));
+      antd.message.error(err?.message || _28("File upload failed."));
     } finally {
       setUploading(false);
     }
@@ -9975,9 +10004,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       style: { padding: "8px 16px" },
       children: [
         /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _27("Uploading...") : _27("Click or drag a file here to upload") }),
+        /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _28("Uploading...") : _28("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxRuntime.jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
-          _27("Current"),
+          _28("Current"),
           ": ",
           displayName
         ] })
@@ -9985,7 +10014,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
     }
   ) });
 };
-var _28 = window._ || ((text) => text);
+var _29 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
@@ -10045,13 +10074,109 @@ var AsyncSelectInput = ({
       options,
       value,
       onChange,
-      placeholder: placeholder || _28("Select..."),
+      placeholder: placeholder || _29("Select..."),
       style: { width: "100%" },
       filterOption: (input, option) => String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
     }
   );
 };
-var _29 = window._ || ((text) => text);
+var _30 = window._ || ((text) => text);
+var STORAGE_FIELD_BASE = "/api/advanced-development/media/storage-field";
+var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
+  const [busy, setBusy] = React6.useState(false);
+  const handleUpload = async (file) => {
+    if (!pk) {
+      antd.message.error(_30("Save the record first before attaching a file."));
+      return false;
+    }
+    if (!modelName || !fieldName) return false;
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("model_name", modelName);
+      form.append("field_name", fieldName);
+      form.append("pk", String(pk));
+      form.append("file", file);
+      const direct = await authenticatedFetch(`${STORAGE_FIELD_BASE}/upload`, {
+        method: "POST",
+        body: form
+      });
+      if (direct.status === 400) {
+        const step1 = await authenticatedFetch(`${STORAGE_FIELD_BASE}/upload-url`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model_name: modelName,
+            field_name: fieldName,
+            filename: file.name,
+            content_type: file.type || "application/octet-stream"
+          })
+        });
+        if (!step1.ok) throw new Error(await step1.text());
+        const { upload_url, storage_key } = await step1.json();
+        const put = await fetch(upload_url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "application/octet-stream" }
+        });
+        if (!put.ok) throw new Error(_30("Upload to storage failed."));
+        const confirm = await authenticatedFetch(`${STORAGE_FIELD_BASE}/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model_name: modelName, field_name: fieldName, pk, storage_key })
+        });
+        if (!confirm.ok) throw new Error(await confirm.text());
+        onChange?.(storage_key);
+      } else if (direct.ok) {
+        const data = await direct.json();
+        onChange?.(data.storage_key);
+      } else {
+        throw new Error(await direct.text());
+      }
+      antd.message.success(_30("File uploaded."));
+    } catch (err) {
+      antd.message.error(err?.message || _30("File upload failed."));
+    } finally {
+      setBusy(false);
+    }
+    return false;
+  };
+  const handleRemove = async () => {
+    if (pk && modelName && fieldName) {
+      setBusy(true);
+      try {
+        const qs = new URLSearchParams({ model_name: modelName, field_name: fieldName, pk: String(pk) });
+        const res = await authenticatedFetch(`${STORAGE_FIELD_BASE}?${qs.toString()}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(await res.text());
+      } catch (err) {
+        antd.message.error(err?.message || _30("Could not remove the file."));
+        setBusy(false);
+        return;
+      }
+      setBusy(false);
+    }
+    onChange?.(null);
+  };
+  if (!pk) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _30("Save the record first, then attach a file here.") });
+  }
+  const attachedName = value ? value.split("/").slice(1).join("/") || value : null;
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Upload.Dragger, { beforeUpload: handleUpload, showUploadList: false, multiple: false, disabled: busy, style: { padding: "8px 16px" }, children: [
+      /* @__PURE__ */ jsxRuntime.jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
+      /* @__PURE__ */ jsxRuntime.jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _30("Uploading...") : _30("Click or drag a file here to upload") })
+    ] }),
+    attachedName && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12 }, children: [
+      /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: "#666" }, children: [
+        _30("Attached"),
+        ": ",
+        attachedName
+      ] }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Popconfirm, { title: _30("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}), disabled: busy }) })
+    ] })
+  ] });
+};
+var _31 = window._ || ((text) => text);
 var ReactMarkdown3 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
   const [activeTab, setActiveTab] = React6.useState("preview");
@@ -10065,12 +10190,12 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       items: [
         {
           key: "preview",
-          label: _29("Preview"),
+          label: _31("Preview"),
           children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown3, { children: value }) }) })
         },
         {
           key: "edit",
-          label: _29("Edit"),
+          label: _31("Edit"),
           children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Input.TextArea,
             {
@@ -10197,7 +10322,7 @@ var renderInput = (field, allModels, model, currentId) => {
     return /* @__PURE__ */ jsxRuntime.jsx(FileUploadInput, {});
   }
   const isNlSentenceField = resolvedField.key === "nl_sentence" || resolvedField.key === "nl_asks_sentence";
-  const sentenceFieldHelper = _29(resolvedField.key);
+  const sentenceFieldHelper = _31(resolvedField.key);
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsxRuntime.jsx(
       antd.Input.TextArea,
@@ -10212,6 +10337,10 @@ var renderInput = (field, allModels, model, currentId) => {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true });
   }
   const editToken = normalizeFieldViewType(resolvedField.editViewType || "");
+  if (editToken === "editable-storage-field") {
+    const Wrapper = ({ value, onChange }) => /* @__PURE__ */ jsxRuntime.jsx(StorageFieldInput, { value, onChange, modelName: model?.name, fieldName: resolvedField.key, pk: currentId });
+    return /* @__PURE__ */ jsxRuntime.jsx(Wrapper, {});
+  }
   if (editToken && editToken.startsWith("editable-")) {
     const Wrapper = ({ value, onChange }) => renderEditableFieldViewType(editToken, value, onChange);
     return /* @__PURE__ */ jsxRuntime.jsx(Wrapper, {});
@@ -10222,15 +10351,15 @@ var renderInput = (field, allModels, model, currentId) => {
     const isSelfRef = refResource && modelResource && refResource === modelResource;
     return /* @__PURE__ */ jsxRuntime.jsx(RelationSelect, { field: resolvedField, allModels, excludeId: isSelfRef ? currentId : void 0 });
   }
-  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_29("Select")} ${_29(resolvedField.label)}...` });
+  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_31("Select")} ${_31(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
     case "boolean":
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, {});
     case "date":
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { style: { width: "100%" }, placeholder: _29("Select date") });
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { style: { width: "100%" }, placeholder: _31("Select date") });
     case "datetime":
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _29("Select date and time") });
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _31("Select date and time") });
     case "time":
       return /* @__PURE__ */ jsxRuntime.jsx(antd.TimePicker, { style: { width: "100%" } });
     case "number":
@@ -10239,7 +10368,7 @@ var renderInput = (field, allModels, model, currentId) => {
       return /* @__PURE__ */ jsxRuntime.jsx(antd.Input, {});
   }
 };
-var _30 = window._ || ((text) => text);
+var _32 = window._ || ((text) => text);
 var { Title: Title2 } = antd.Typography;
 var requiredMark = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
@@ -10299,7 +10428,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       if (canAutoRelate && relateResource && relateTargetKey && relateOtherKey && relateTargetId) {
         try {
           if (createdId === void 0 || createdId === null) {
-            throw new Error(_30("Could not resolve the new record id to create the relation."));
+            throw new Error(_32("Could not resolve the new record id to create the relation."));
           }
           const relationPayload = {
             [relateTargetKey]: relateTargetId,
@@ -10314,7 +10443,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
             throw new Error(`Failed to create relation (${relationResponse.status})`);
           }
         } catch (error) {
-          antd.message.error(error instanceof Error ? error.message : _30("Failed to create relation."));
+          antd.message.error(error instanceof Error ? error.message : _32("Failed to create relation."));
         }
       }
       const hasModelRelations = (model.relations || []).length > 0;
@@ -10329,7 +10458,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       }
     },
     successNotification: () => ({
-      message: _30("Changes saved."),
+      message: _32("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -10459,8 +10588,8 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   }, [createdRecord, model.name, model.resource, go]);
   const renderHeaderButtons = ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons);
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Edit record"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleGoToEdit }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _30("Done") })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _32("Edit record"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleGoToEdit }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _32("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
   const relationTabEntries = React6.useMemo(() => {
@@ -10486,7 +10615,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const hasRelationTabs = relationTabEntries.length > 0;
   const renderFormCell = (item, index) => {
     if (item.attribute_or_relation_type === "relation") {
-      return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _30("Available after saving") }, `${item.name}-rel-ph-${index}`);
+      return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _32("Available after saving") }, `${item.name}-rel-ph-${index}`);
     }
     const key = item.object_name || item.name;
     const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
@@ -10583,8 +10712,8 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     const maxCol = Math.max(1, ...normalized.map((r) => r.column));
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _30(section) }),
-      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_53, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_54, colIdx) => {
+      /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _32(section) }),
+      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_55, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_56, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -10651,7 +10780,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         {
           type: "info",
           showIcon: true,
-          message: _30("Save the record first to add relations."),
+          message: _32("Save the record first to add relations."),
           style: { marginTop: 8 }
         }
       );
@@ -10685,7 +10814,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const tabItems = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_30("Details"), modelTone),
+      label: renderToneTabLabel(_32("Details"), modelTone),
       children: detailsContent
     },
     ...relationTabEntries.map(({ tabName, tone }) => ({
@@ -10706,7 +10835,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         {
           saveButtonProps: { ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" },
           headerButtons: renderHeaderButtons,
-          title: renderWrappedPageTitle(`${_30("Create")} ${modelDisplayLabel}`),
+          title: renderWrappedPageTitle(`${_32("Create")} ${modelDisplayLabel}`),
           children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Form,
             {
@@ -10725,12 +10854,12 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
                       body: JSON.stringify({ eid_from: eidFrom, eid_to: eidTo })
                     });
                     if (res.ok) successCount++;
-                    else antd.message.error(`${_30("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
+                    else antd.message.error(`${_32("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
                   } catch {
-                    antd.message.error(`${_30("Failed to create relation for")} eid_to=${eidTo}`);
+                    antd.message.error(`${_32("Failed to create relation for")} eid_to=${eidTo}`);
                   }
                 }
-                if (successCount > 0) antd.message.success(`${successCount} ${_30("relation(s) created.")}`);
+                if (successCount > 0) antd.message.success(`${successCount} ${_32("relation(s) created.")}`);
                 if (returnTo) navigate(returnTo);
               },
               children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !f.isPk && !f.formula).map((field) => {
@@ -10761,14 +10890,14 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         saveButtonProps: isPostCreate ? { ...saveButtonProps, style: { display: "none" }, hideText: true } : { ...saveButtonProps, hideText: true },
         headerButtons: isPostCreate ? renderPostCreateHeaderButtons : renderHeaderButtons,
         title: renderWrappedPageTitle(
-          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_30("Create")} ${modelDisplayLabel}`
+          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_32("Create")} ${modelDisplayLabel}`
         ),
         children: [
           isPostCreate && /* @__PURE__ */ jsxRuntime.jsx(
             antd.Alert,
             {
               type: "success",
-              message: _30("Record created. You can now manage relations below."),
+              message: _32("Record created. You can now manage relations below."),
               showIcon: true,
               style: { marginBottom: 12 }
             }
@@ -11190,12 +11319,12 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_53, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_55, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
 }
-var _31 = window._ || ((text) => text);
+var _33 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
   const [editing, setEditing] = React6.useState(false);
   const [draft, setDraft] = React6.useState(void 0);
@@ -11229,19 +11358,19 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
           excludeId: isSelfRef ? currentId : void 0
         }
       ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _31("Confirm"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, {}), onClick: handleConfirm }) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _31("Cancel"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}), onClick: handleCancel }) })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Confirm"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, {}), onClick: handleConfirm }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Cancel"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}), onClick: handleCancel }) })
     ] });
   }
   if (!value) {
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: row, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { children: "-" }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _31("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
     ] });
   }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: row, children: [
     /* @__PURE__ */ jsxRuntime.jsx(ReferenceField, { id: value, resource }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _31("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
 var NLSentenceBlock = ({
@@ -11305,7 +11434,7 @@ var NLSentenceBlock = ({
     !loading && html !== null && /* @__PURE__ */ jsxRuntime.jsx(ExecutableHtml, { html })
   ] });
 };
-var _32 = window._ || ((text) => text);
+var _34 = window._ || ((text) => text);
 var { Title: Title3 } = antd.Typography;
 var requiredMark2 = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 function coerce(v) {
@@ -11533,10 +11662,10 @@ var SectionCellContent = ({
     return { css, html };
   }, [rawSnippet]);
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "4px 6px" }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _32(sectionName) }),
+    /* @__PURE__ */ jsxRuntime.jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _34(sectionName) }),
     parsedSnippet.css && /* @__PURE__ */ jsxRuntime.jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsxRuntime.jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_53, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_54, colIndex) => {
+    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_55, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_56, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -11678,7 +11807,7 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
   }, [isConfiguring]);
   return { config, loading, save, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange };
 }
-var _33 = window._ || ((text) => text);
+var _35 = window._ || ((text) => text);
 var SCALABLE_SHOW = /* @__PURE__ */ new Set([
   "csv",
   "read-and-edit-csv",
@@ -11731,22 +11860,22 @@ var LEVEL_TO_EDIT = {
   6: "editable-table"
 };
 var DATA_DETAIL_LEVEL_LABELS = [
-  _33("Original"),
-  _33("Minimal"),
-  _33("Compact"),
-  _33("Summary"),
-  _33("Expandable"),
-  _33("Expanded"),
-  _33("Analyze")
+  _35("Original"),
+  _35("Minimal"),
+  _35("Compact"),
+  _35("Summary"),
+  _35("Expandable"),
+  _35("Expanded"),
+  _35("Analyze")
 ];
 var DATA_DETAIL_LEVEL_TOOLTIPS = [
-  _33("Shows each relation using its original configured view type with no slider overrides applied."),
-  _33("Sets all relations to CSV view. Great for summary quick reading."),
-  _33("Sets all relations to List view. Great for quick reading."),
-  _33("Sets relations to Crosstab. Great for analyzing trends."),
-  _33("Sets relations to Totals-Details. Great for going from summaries to details."),
-  _33("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
-  _33("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
+  _35("Shows each relation using its original configured view type with no slider overrides applied."),
+  _35("Sets all relations to CSV view. Great for summary quick reading."),
+  _35("Sets all relations to List view. Great for quick reading."),
+  _35("Sets relations to Crosstab. Great for analyzing trends."),
+  _35("Sets relations to Totals-Details. Great for going from summaries to details."),
+  _35("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
+  _35("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
 ];
 function getViewTypeLevel(viewType, mode) {
   const map = mode === "show" ? SHOW_VIEW_LEVELS : EDIT_VIEW_LEVELS;
@@ -11922,7 +12051,7 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
     isActive
   };
 }
-var _34 = window._ || ((text) => text);
+var _36 = window._ || ((text) => text);
 var requiredMark3 = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var emptyLayoutConfig = {
   isConfiguring: false,
@@ -12046,7 +12175,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const items = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_34("Details"), modelTone),
+      label: renderToneTabLabel(_36("Details"), modelTone),
       children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { paddingBottom: 2 }, children: [
         configLoading && /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true, paragraph: { rows: 6 } }),
         !configLoading && !hasConfig && /* @__PURE__ */ jsxRuntime.jsx(antd.Form, { ...editFormProps, size: "small", children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginTop: 0 }, children: effectiveFields.filter((f) => !f.isPk).map((field) => /* @__PURE__ */ jsxRuntime.jsxs(
@@ -12158,7 +12287,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_34(tabName), modelTone),
+      label: renderToneTabLabel(_36(tabName), modelTone),
       children: tabChildren
     };
   });
@@ -12167,7 +12296,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig };
 };
-var _35 = window._ || ((text) => text);
+var _37 = window._ || ((text) => text);
 var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -12201,7 +12330,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       }
     } : {},
     successNotification: () => ({
-      message: _35("Changes saved."),
+      message: _37("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -12222,7 +12351,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_35("Edit")} ${modelDisplayLabel}`) : `${_35("Edit")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_37("Edit")} ${modelDisplayLabel}`) : `${_37("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
   const [showRelationActions, setShowRelationActions] = React6.useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
@@ -12316,13 +12445,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       }
       antd.message.success(
-        withRelations ? _35("Object duplicated with relations.") : _35("Object duplicated.")
+        withRelations ? _37("Object duplicated with relations.") : _37("Object duplicated.")
       );
       if (newId) {
         go({ to: { resource: model.resource || model.name, action: "edit", id: newId } });
       }
     } catch (error) {
-      antd.message.error(error instanceof Error ? error.message : _35("Failed to duplicate object."));
+      antd.message.error(error instanceof Error ? error.message : _37("Failed to duplicate object."));
     } finally {
       setIsDuplicating(false);
     }
@@ -12371,7 +12500,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const canConfigureLayout = canLayoutData?.can !== false;
   const actionsSettingsContent = /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _35("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _37("Relation's row actions buttons") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Switch,
         {
@@ -12385,7 +12514,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       )
     ] }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _35("Relation's create action button") }),
+      /* @__PURE__ */ jsxRuntime.jsx("span", { children: _37("Relation's create action button") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Switch,
         {
@@ -12401,7 +12530,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     hasConfig && canConfigureLayout && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
       /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { style: { margin: "4px 0" } }),
       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx("span", { children: _35("Configure page layout") }),
+        /* @__PURE__ */ jsxRuntime.jsx("span", { children: _37("Configure page layout") }),
         /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
@@ -12425,7 +12554,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _35("Save")
+        children: _37("Save")
       }
     )
   ] });
@@ -12446,9 +12575,9 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
-    recordId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Show"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
+    recordId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Show"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
     record && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Duplicate"), children: /* @__PURE__ */ jsxRuntime.jsx(
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Duplicate"), children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           size: "small",
@@ -12457,7 +12586,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
           loading: isDuplicating
         }
       ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Duplicate with relations"), children: /* @__PURE__ */ jsxRuntime.jsx(
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Duplicate with relations"), children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           size: "small",
@@ -12467,9 +12596,9 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       ) })
     ] }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _35("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Popover, { content: actionsSettingsContent, title: _37("Actions"), trigger: "hover", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
-    recordId != null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(
+    recordId != null && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.DeleteButton,
       {
         resource: model.resource || model.name,
@@ -12478,7 +12607,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         ...saveButtonProps,
@@ -12501,7 +12630,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _35("Edit"),
+          actionLabel: _37("Edit"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: renderHeaderButtons,
@@ -12513,7 +12642,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     )
   ] });
 };
-var _36 = window._ || ((text) => text);
+var _38 = window._ || ((text) => text);
 var requiredMark4 = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var emptyLayoutConfig2 = {
   isConfiguring: false,
@@ -12632,7 +12761,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   };
   const detailsTab = {
     key: "details",
-    label: renderToneTabLabel(_36("Details"), modelTone),
+    label: renderToneTabLabel(_38("Details"), modelTone),
     children: /* @__PURE__ */ jsxRuntime.jsxs(
       antd.Form,
       {
@@ -12795,7 +12924,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_36(tabName), { text: token.colorText, border: token.colorBorder }),
+      label: renderToneTabLabel(_38(tabName), { text: token.colorText, border: token.colorBorder }),
       children: tabChildren
     };
   });
@@ -13163,7 +13292,7 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
     paginationProps && /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...paginationProps })
   ] });
 };
-var _37 = window._ || ((text) => text);
+var _39 = window._ || ((text) => text);
 var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   core.useGo();
   const { token } = antd.theme.useToken();
@@ -13246,8 +13375,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   }, [calendarAnchorDate, calendarMode]);
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
-  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _37("No date/datetime fields available for calendar view.") });
-  if (!records.length) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _37("No related records available.") });
+  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _39("No date/datetime fields available for calendar view.") });
+  if (!records.length) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _39("No related records available.") });
   const selectedDateField = relatedModel.fields.find((field) => field.key === calendarDateField);
   const selectedLabel = selectedDateField?.label || calendarDateField;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
@@ -13260,8 +13389,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: calendarMode,
             onChange: (value) => setCalendarMode(value),
             options: [
-              { label: _37("Monthly"), value: "month" },
-              { label: _37("Weekly"), value: "week" }
+              { label: _39("Monthly"), value: "month" },
+              { label: _39("Weekly"), value: "week" }
             ],
             style: { minWidth: 120 }
           }
@@ -13274,35 +13403,35 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             onChange: (value) => setCalendarDateField(value),
             options: dateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
             style: { minWidth: 220 },
-            placeholder: _37("Date field")
+            placeholder: _39("Date field")
           }
         )
       ] }),
       /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 8, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Previous"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _39("Previous"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
-            "aria-label": _37("Previous"),
+            "aria-label": _39("Previous"),
             onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _39("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
-            "aria-label": _37("Today"),
+            "aria-label": _39("Today"),
             onClick: () => setCalendarAnchorDate(dayjs9__default.default().startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _37("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _39("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
-            "aria-label": _37("Next"),
+            "aria-label": _39("Next"),
             onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
           }
         ) })
@@ -13421,12 +13550,12 @@ var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) =>
     }
   );
 };
-var _38 = window._ || ((text) => text);
+var _40 = window._ || ((text) => text);
 var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName }) => {
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
-  if (!records.length) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _38("No related objects.") });
+  if (!records.length) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _40("No related objects.") });
   return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 8 }, children: records.map((item) => {
     const id = item?.eid ?? item?.id;
     return /* @__PURE__ */ jsxRuntime.jsx(
@@ -13441,7 +13570,7 @@ var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName
     );
   }) });
 };
-var _39 = window._ || ((text) => text);
+var _41 = window._ || ((text) => text);
 var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
   const apiUrl = core.useApiUrl();
   const go = core.useGo();
@@ -13456,7 +13585,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (!records.length) return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
     /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
-    _39("No images available")
+    _41("No images available")
   ] });
   return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
     const id = getGalleryItemId(item);
@@ -13480,7 +13609,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
     });
   }) });
 };
-var _40 = window._ || ((text) => text);
+var _42 = window._ || ((text) => text);
 var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const go = core.useGo();
   const paneNav = usePaneNavigation();
@@ -13579,7 +13708,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
               const d = String(body.detail);
               if (d.toLowerCase().includes("unique") || d.toLowerCase().includes("duplicate")) {
                 const optLabel = allOptions.find((o) => o.id === id)?.label ?? String(id);
-                detail = `"${optLabel}" ${_40("is already linked to another record and cannot be added here.")}`;
+                detail = `"${optLabel}" ${_42("is already linked to another record and cannot be added here.")}`;
               } else {
                 detail = d;
               }
@@ -13598,9 +13727,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSelectedIds(new Set(newBaseline));
       if (errors.length > 0) {
         antd.message.error(errors[0], 6);
-        if (errors.length > 1) antd.message.warning(`${errors.length - 1} ${_40("other error(s) occurred.")}`, 4);
+        if (errors.length > 1) antd.message.warning(`${errors.length - 1} ${_42("other error(s) occurred.")}`, 4);
       } else {
-        antd.message.success(_40("Changes saved."));
+        antd.message.success(_42("Changes saved."));
         setEditing(false);
         setSearchText("");
       }
@@ -13608,7 +13737,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       const newItems = allOptions.filter((opt) => newBaseline.has(opt.id)).map((opt) => ({ id: opt.id, label: opt.label, resource: otherResource }));
       setLocalItems(newItems);
     } catch (err) {
-      antd.message.error(err instanceof Error ? err.message : _40("Failed to save changes."));
+      antd.message.error(err instanceof Error ? err.message : _42("Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -13628,7 +13757,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
     const relatedModel = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
     const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
     if (!relatedResource) {
-      antd.message.warning(_40("No create route for the related model. Opening relation create form."));
+      antd.message.warning(_42("No create route for the related model. Opening relation create form."));
       params.append(rel.targetKey, String(recordId));
       const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
       if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -13647,7 +13776,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (!editing) {
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minHeight: 22 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _40("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
       items.length === 0 && total === 0 ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontStyle: "italic" }, children: "\u2014" }) : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         /* @__PURE__ */ jsxRuntime.jsx("ul", { style: { margin: 0, paddingLeft: 16 }, children: items.map((item, index) => /* @__PURE__ */ jsxRuntime.jsx("li", { children: /* @__PURE__ */ jsxRuntime.jsx(
           "a",
@@ -13686,7 +13815,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_53, newPageSize) => {
+            onShowSizeChange: (_55, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -13718,7 +13847,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
         antd.Input,
         {
           prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, { style: { color: token.colorTextSecondary } }),
-          placeholder: _40("Search..."),
+          placeholder: _42("Search..."),
           value: searchText,
           onChange: (e) => setSearchText(e.target.value),
           allowClear: true,
@@ -13726,9 +13855,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
           style: { flex: 1 }
         }
       ),
-      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _40("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
+      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
     ] }),
-    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { image: antd.Empty.PRESENTED_IMAGE_SIMPLE, description: _40("No options") }) : sortedOptions.map((opt) => {
+    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { image: antd.Empty.PRESENTED_IMAGE_SIMPLE, description: _42("No options") }) : sortedOptions.map((opt) => {
       const checked = selectedIds.has(opt.id);
       return /* @__PURE__ */ jsxRuntime.jsxs(
         "div",
@@ -13765,12 +13894,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       );
     }) }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: handleCancel, children: _40("Cancel") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _40("Save") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: handleCancel, children: _42("Cancel") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _42("Save") })
     ] })
   ] });
 };
-var _41 = window._ || ((text) => text);
+var _43 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = core.useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
@@ -13850,7 +13979,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (!rel.otherResource || !rel.otherKey) {
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", message: _41("editable-csv requires a many-to-many relation"), showIcon: true });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", message: _43("editable-csv requires a many-to-many relation"), showIcon: true });
   }
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Select,
@@ -13861,14 +13990,14 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       options: allOptions,
       loading: optionsLoading || saving,
       style: { width: "100%" },
-      placeholder: `${_41("Select")} ${_41(rel.label)}...`,
+      placeholder: `${_43("Select")} ${_43(rel.label)}...`,
       optionFilterProp: "label",
       showSearch: true,
       allowClear: true
     }
   );
 };
-var _42 = window._ || ((text) => text);
+var _44 = window._ || ((text) => text);
 var { Title: Title4 } = antd.Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
@@ -14137,9 +14266,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      antd.message.success(_42("Layout preferences saved."));
+      antd.message.success(_44("Layout preferences saved."));
     } catch (error2) {
-      antd.message.error(error2 instanceof Error ? error2.message : _42("Failed to save layout preferences."));
+      antd.message.error(error2 instanceof Error ? error2.message : _44("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -14169,9 +14298,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      antd.message.success(_42("Analyze preferences saved."));
+      antd.message.success(_44("Analyze preferences saved."));
     } catch (error2) {
-      antd.message.error(error2 instanceof Error ? error2.message : _42("Failed to save analyze preferences."));
+      antd.message.error(error2 instanceof Error ? error2.message : _44("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -14275,11 +14404,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      antd.message.error(_42("View name already exists. Choose a new name."));
+      antd.message.error(_44("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      antd.message.error(_42('Choose a new name or enable "Save as new view".'));
+      antd.message.error(_44('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -14335,7 +14464,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return;
     }
     if (availableViewNames.includes(newName)) {
-      antd.message.error(_42("View name already exists."));
+      antd.message.error(_44("View name already exists."));
       return;
     }
     try {
@@ -14348,18 +14477,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      antd.message.success(_42("View renamed."));
+      antd.message.success(_44("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error2) {
-      antd.message.error(error2 instanceof Error ? error2.message : _42("Failed to rename view."));
+      antd.message.error(error2 instanceof Error ? error2.message : _44("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = React6.useCallback(() => {
     antd.Modal.confirm({
-      title: _42(_42("Delete view")),
+      title: _44(_44("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _42("Delete"),
+      okText: _44("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -14372,10 +14501,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          antd.message.success(_42("View deleted."));
+          antd.message.success(_44("View deleted."));
           await loadViewNames();
         } catch (error2) {
-          antd.message.error(error2 instanceof Error ? error2.message : _42("Failed to delete view."));
+          antd.message.error(error2 instanceof Error ? error2.message : _44("Failed to delete view."));
         }
       }
     });
@@ -14796,9 +14925,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
     antd.Modal.confirm({
-      title: _42("Delete"),
-      content: _42("Are you sure you want to delete this relation?"),
-      okText: _42("Delete"),
+      title: _44("Delete"),
+      content: _44("Are you sure you want to delete this relation?"),
+      okText: _44("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -14819,9 +14948,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             const itemDeleteId = rel.targetKey && rel.otherKey ? `${itemRelationRow[rel.targetKey]}:${itemRelationRow[rel.otherKey]}` : itemRelationRow?.id ?? itemRelationRow?.eid;
             return String(itemDeleteId) !== String(deleteId);
           }));
-          antd.message.success(_42("Relation deleted."));
+          antd.message.success(_44("Relation deleted."));
         } catch (err) {
-          antd.message.error(err instanceof Error ? err.message : _42("Failed to delete relation."));
+          antd.message.error(err instanceof Error ? err.message : _44("Failed to delete relation."));
         }
       }
     });
@@ -15124,7 +15253,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     }
   }, [numericFields, rankingFieldKey, rankingMode]);
   const formatCategoryValue = React6.useCallback((field, recordRow) => {
-    if (!field) return _42("All");
+    if (!field) return _44("All");
     const raw = recordRow?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, relatedModel) && recordRow?._label) return recordRow._label;
@@ -15135,7 +15264,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _42("Yes") : _42("No");
+    if (field.type === "boolean") return raw ? _44("Yes") : _44("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -15227,7 +15356,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const seriesLabels = numericFields.length > 0 ? numericFields.reduce((acc, field) => {
       acc[field.key] = field.label;
       return acc;
-    }, { "__count__": _42("Count") }) : { "__count__": _42("Count") };
+    }, { "__count__": _44("Count") }) : { "__count__": _44("Count") };
     let groups = baseGroups;
     if (rankingMode !== "none" && rankingFieldKey) {
       const limit = Math.max(1, Math.floor(rankingN || 10));
@@ -15331,7 +15460,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _42("All"),
+          placeholder: _44("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -15341,12 +15470,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
   const crosstabSummaryOptions = [
-    { label: _42("Sum"), value: "sum" },
-    { label: _42("Average"), value: "avg" },
-    { label: _42("Count"), value: "count" },
-    { label: _42("Max"), value: "max" },
-    { label: _42("Min"), value: "min" },
-    { label: _42("Std Dev"), value: "stddev" }
+    { label: _44("Sum"), value: "sum" },
+    { label: _44("Average"), value: "avg" },
+    { label: _44("Count"), value: "count" },
+    { label: _44("Max"), value: "max" },
+    { label: _44("Min"), value: "min" },
+    { label: _44("Std Dev"), value: "stddev" }
   ];
   const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(
     antd.Collapse,
@@ -15356,11 +15485,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       style: { marginBottom: 12 },
       items: [{
         key: "crosstab-config",
-        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Crosstab configuration"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
+        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Crosstab configuration"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
         children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Category 1 (rows)") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 1 (rows)") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -15371,12 +15500,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _42("Select category")
+                  placeholder: _44("Select category")
                 }
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Category 2 (columns)") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 2 (columns)") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -15387,7 +15516,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _42("None"), value: "__none__" },
+                    { label: _44("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
@@ -15396,7 +15525,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           ] }),
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Cell fields") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Cell fields") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -15409,13 +15538,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   style: { width: "100%" },
                   options: relatedModel.fields.filter((field) => !isPkField(field, relatedModel)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _42("All numeric fields"),
+                  placeholder: _44("All numeric fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Summary") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Summary") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -15430,7 +15559,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Filter fields") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Filter fields") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -15443,13 +15572,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _42("Select filter fields"),
+                  placeholder: _44("Select filter fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Save configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs, "aria-label": _42("Save configuration") }) }) })
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs, "aria-label": _44("Save configuration") }) }) })
         ] })
       }]
     }
@@ -15531,7 +15660,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _42("Yes") : _42("No");
+    if (field.type === "boolean") return raw ? _44("Yes") : _44("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -15713,7 +15842,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _42("Yes") : _42("No");
+    if (field.type === "boolean") return raw ? _44("Yes") : _44("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -15785,13 +15914,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const getSummaryFunctionDisplayText = (fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _42("Sum"),
-      avg: _42("Average"),
-      count: _42("Count"),
-      max: _42("Max"),
-      min: _42("Min"),
-      stddev: _42("Std Dev"),
-      distinct: _42("Distinct")
+      sum: _44("Sum"),
+      avg: _44("Average"),
+      count: _44("Count"),
+      max: _44("Max"),
+      min: _44("Min"),
+      stddev: _44("Std Dev"),
+      distinct: _44("Distinct")
     };
     return labels[fn] || fn;
   };
@@ -15867,12 +15996,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             ]
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isTotalsDetailsFlipped ? _42("Show totals") : _42("Show details"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isTotalsDetailsFlipped ? _44("Show totals") : _44("Show details"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-            "aria-label": isTotalsDetailsFlipped ? _42("Show totals") : _42("Show details"),
+            "aria-label": isTotalsDetailsFlipped ? _44("Show totals") : _44("Show details"),
             onClick: () => setIsTotalsDetailsFlipped((prev) => !prev),
             style: {
               flexShrink: 0,
@@ -15884,7 +16013,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         ) })
       ] }),
       relationRowsCapped && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _42("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _44("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
         /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
@@ -15895,7 +16024,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               setFullDataLoaded(false);
               setLoadAllRelatedRequested(true);
             },
-            children: _42("Load all related")
+            children: _44("Load all related")
           }
         )
       ] })
@@ -15906,7 +16035,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsxRuntime.jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _42("Hide view configuration") : _42("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _44("Hide view configuration") : _44("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
@@ -15918,11 +16047,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 return next;
               });
             },
-            "aria-label": columnsSelectorOpen ? _42("Hide view configuration") : _42("Show view configuration")
+            "aria-label": columnsSelectorOpen ? _44("Hide view configuration") : _44("Show view configuration")
           }
         ) }),
         showCreate && recordId !== void 0 && recordId !== null && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: rel.otherResource && rel.otherKey ? _42("Associate existing") : _42("Add relation"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: rel.otherResource && rel.otherKey ? _44("Associate existing") : _44("Add relation"), children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Button,
             {
               size: "small",
@@ -15955,7 +16084,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               }
             }
           ) }),
-          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Button,
             {
               size: "small",
@@ -15969,7 +16098,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 const relatedModel2 = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
                 const relatedResource = relatedModel2 ? resolveResourcePath(relatedModel2.resource || relatedModel2.name, allModels) : null;
                 if (!relatedResource) {
-                  antd.message.warning(_42("No create route for the related model. Opening relation create form."));
+                  antd.message.warning(_44("No create route for the related model. Opening relation create form."));
                   params.append(rel.targetKey, String(recordId));
                   if (allowInlineEdit) params.append("inline", "1");
                   const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
@@ -15988,7 +16117,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ) })
         ] }),
-        allowInlineEdit && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        allowInlineEdit && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
@@ -15996,10 +16125,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
             onClick: saveAllEdits,
             loading: savingAll,
-            "aria-label": _42("Save")
+            "aria-label": _44("Save")
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Export CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
@@ -16014,20 +16143,20 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.Modal,
       {
         open: saveViewModalOpen,
-        title: _42("Save view"),
+        title: _44("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _42("Save layout") : _42("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _44("Save layout") : _44("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("View name") }),
+            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("View name") }),
             /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _42("Save as new view") })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _44("Save as new view") })
         ] })
       }
     ),
@@ -16035,10 +16164,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.Modal,
       {
         open: renameViewModalOpen,
-        title: _42("Rename view"),
+        title: _44("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _42("Rename"),
+        okText: _44("Rename"),
         children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -16048,11 +16177,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       {
         size: "small",
         title: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _42("Filters") }),
+          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("Filters") }),
           /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Input,
             {
-              placeholder: _42("Search all fields..."),
+              placeholder: _44("Search all fields..."),
               prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}),
               allowClear: true,
               value: localSearch,
@@ -16070,31 +16199,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       antd.Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _42("View configuration") }),
+        title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _42("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _42("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _44("No filters yet.") }) : filterRules.map((rule) => {
                 const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _42("="), value: "eq" },
-                  { label: _42(">"), value: "gt" },
-                  { label: _42(">="), value: "gte" },
-                  { label: _42("<"), value: "lt" },
-                  { label: _42("<="), value: "lte" },
-                  { label: _42("Between"), value: "between" }
+                  { label: _44("="), value: "eq" },
+                  { label: _44(">"), value: "gt" },
+                  { label: _44(">="), value: "gte" },
+                  { label: _44("<"), value: "lt" },
+                  { label: _44("<="), value: "lte" },
+                  { label: _44("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _42("On"), value: "on" },
-                  { label: _42("After"), value: "after" },
-                  { label: _42("Before"), value: "before" },
-                  { label: _42("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _42("Is"), value: "is" }] : [
-                  { label: _42("Contains"), value: "contains" },
-                  { label: _42("Equals"), value: "equals" }
+                  { label: _44("On"), value: "on" },
+                  { label: _44("After"), value: "after" },
+                  { label: _44("Before"), value: "before" },
+                  { label: _44("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _44("Is"), value: "is" }] : [
+                  { label: _44("Contains"), value: "contains" },
+                  { label: _44("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -16107,9 +16236,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _42("Previous"), value: "previous" },
-                            { label: _42("Current"), value: "current" },
-                            { label: _42("Next"), value: "next" }
+                            { label: _44("Previous"), value: "previous" },
+                            { label: _44("Current"), value: "current" },
+                            { label: _44("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -16119,11 +16248,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _42("Days"), value: "days" },
-                            { label: _42("Weeks"), value: "weeks" },
-                            { label: _42("Months"), value: "months" },
-                            { label: _42("Quarters"), value: "quarters" },
-                            { label: _42("Years"), value: "years" }
+                            { label: _44("Days"), value: "days" },
+                            { label: _44("Weeks"), value: "weeks" },
+                            { label: _44("Months"), value: "months" },
+                            { label: _44("Quarters"), value: "quarters" },
+                            { label: _44("Years"), value: "years" }
                           ]
                         }
                       )
@@ -16145,7 +16274,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: relatedModel.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _42("Field")
+                      placeholder: _44("Field")
                     }
                   ),
                   /* @__PURE__ */ jsxRuntime.jsx(
@@ -16155,7 +16284,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _42("Operator")
+                      placeholder: _44("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -16188,10 +16317,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _42("True"), value: true },
-                        { label: _42("False"), value: false }
+                        { label: _44("True"), value: true },
+                        { label: _44("False"), value: false }
                       ],
-                      placeholder: _42("Value")
+                      placeholder: _44("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -16204,7 +16333,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _42("Value"),
+                      placeholder: _44("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -16217,8 +16346,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _42("Date"), value: "absolute" },
-                        { label: _42("Relative"), value: "relative" }
+                        { label: _44("Date"), value: "absolute" },
+                        { label: _44("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -16231,8 +16360,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _42("Date"), value: "absolute" },
-                        { label: _42("Relative"), value: "relative" }
+                        { label: _44("Date"), value: "absolute" },
+                        { label: _44("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -16242,7 +16371,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _42("Remove")
+                      children: _44("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -16254,14 +16383,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     size: "small",
                     icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _42("Add Filter")
+                    children: _44("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => setFilterRules([]), children: _42("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => setFilterRules([]), children: _44("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _42("Views shown") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Views shown") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -16282,12 +16411,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _42("Active view") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -16299,7 +16428,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _42("Rename view")
+                  children: _44("Rename view")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16310,7 +16439,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _42("Delete view")
+                  children: _44("Delete view")
                 }
               ),
               layoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(
@@ -16320,7 +16449,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _42("Save layout")
+                  children: _44("Save layout")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16332,7 +16461,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _42("Show Filters") : _42("Hide Filters")
+                  children: filtersCollapsed ? _44("Show Filters") : _44("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16344,7 +16473,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setListVisible((prev) => !prev);
                   },
-                  children: _42("View list")
+                  children: _44("View list")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16358,7 +16487,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _42("Analyze")
+                  children: _44("Analyze")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16370,7 +16499,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _42("Switch orientation")
+                  children: _44("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -16382,21 +16511,21 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _42("Switch positions")
+                  children: _44("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _42("Columns") }),
+              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _42("Reset to default") })
+              }, children: _44("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _42("Select columns") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Select columns") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Checkbox.Group,
                 {
@@ -16408,27 +16537,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _42("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _42("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = relatedModel.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _42("Totals summary function") }),
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _42("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Totals summary function") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _42("Sum"), value: "sum" },
-                  { label: _42("Average"), value: "avg" },
-                  { label: _42("Count"), value: "count" },
-                  { label: _42("Max"), value: "max" },
-                  { label: _42("Min"), value: "min" },
-                  { label: _42("Std Dev"), value: "stddev" }
+                  { label: _44("Sum"), value: "sum" },
+                  { label: _44("Average"), value: "avg" },
+                  { label: _44("Count"), value: "count" },
+                  { label: _44("Max"), value: "max" },
+                  { label: _44("Min"), value: "min" },
+                  { label: _44("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -16482,7 +16611,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_53, newPageSize) => {
+                    onShowSizeChange: (_55, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -16491,8 +16620,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   size: "small",
                   rowKey: (row) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row),
-                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _42("No related records") }) } : void 0,
-                  onChange: (_53, filters, sorter, extra) => {
+                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _44("No related records") }) } : void 0,
+                  onChange: (_55, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -16626,7 +16755,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     showActions && /* @__PURE__ */ jsxRuntime.jsx(
                       antd.Table.Column,
                       {
-                        title: _42("Actions"),
+                        title: _44("Actions"),
                         width: 140,
                         render: (_unused, row) => {
                           const id = row?.eid ?? row?.id;
@@ -16634,14 +16763,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
                           return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
                             id && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => {
                                 if (paneNav?.isInMultiPane) {
                                   paneNav.openDetail(relatedModel.name, id);
                                 } else {
                                   go({ to: { resource: relatedModel.name, action: "show", id } });
                                 }
                               } }) }),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => {
                                 if (allowInlineEdit) {
                                   const params = new URLSearchParams();
                                   params.append("inline", "1");
@@ -16653,7 +16782,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 }
                               } }) })
                             ] }),
-                            deleteId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(
+                            deleteId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(
                               antd.Button,
                               {
                                 size: "small",
@@ -16673,7 +16802,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ),
           relationRowsCapped && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _42("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _44("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
             /* @__PURE__ */ jsxRuntime.jsx(
               antd.Button,
               {
@@ -16683,7 +16812,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   setFullDataLoaded(false);
                   setLoadAllRelatedRequested(true);
                 },
-                children: _42("Load all related")
+                children: _44("Load all related")
               }
             )
           ] })
@@ -16693,7 +16822,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         antd.Card,
         {
           size: "small",
-          title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: relatedModelTone.text, fontWeight: 600 }, children: _42("Analyze") }),
+          title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: relatedModelTone.text, fontWeight: 600 }, children: _44("Analyze") }),
           styles: {
             header: {
               background: `linear-gradient(135deg, ${relatedModelTone.solid}18 0%, ${relatedModelTone.solid}0a 100%)`
@@ -16722,10 +16851,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _42("Export chart") }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _44("Export chart") }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         AnalysisChart,
@@ -16756,11 +16885,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           items: [
                             {
                               key: "configure-chart",
-                              label: _42("Customize chart"),
+                              label: _44("Customize chart"),
                               children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                                 /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Category 1") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 1") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16771,12 +16900,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                        placeholder: _42("Select category")
+                                        placeholder: _44("Select category")
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Category 2") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 2") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16787,14 +16916,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _42("None"), value: "__none__" },
+                                          { label: _44("None"), value: "__none__" },
                                           ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 160 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Chart Type") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Chart Type") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16805,31 +16934,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _42("Area"), value: "area" },
-                                          { label: _42("Horizontal Area"), value: "area-horizontal" },
-                                          { label: _42("Bars"), value: "bar" },
-                                          { label: _42("Stacked Bars"), value: "stacked" },
-                                          { label: _42("Horizontal Bars"), value: "bar-horizontal" },
-                                          { label: _42("Horizontal Stacked"), value: "stacked-horizontal" },
-                                          { label: _42("Lines"), value: "line" },
-                                          { label: _42("Pie"), value: "pie" },
-                                          { label: _42("Donut"), value: "donut" },
-                                          { label: _42("Scatter"), value: "scatter" },
-                                          { label: _42("Bubble"), value: "bubble" },
-                                          { label: _42("Histogram"), value: "histogram" },
-                                          { label: _42("Box Plot"), value: "box" },
-                                          { label: _42("Waterfall"), value: "waterfall" },
-                                          { label: _42("Heatmap"), value: "heatmap" },
-                                          { label: _42("Crosstab"), value: "crosstab" },
-                                          { label: _42("Radar"), value: "radar" },
-                                          { label: _42("Combo (Bar + Line)"), value: "combo" },
-                                          { label: _42("3D Scatter"), value: "3d" }
+                                          { label: _44("Area"), value: "area" },
+                                          { label: _44("Horizontal Area"), value: "area-horizontal" },
+                                          { label: _44("Bars"), value: "bar" },
+                                          { label: _44("Stacked Bars"), value: "stacked" },
+                                          { label: _44("Horizontal Bars"), value: "bar-horizontal" },
+                                          { label: _44("Horizontal Stacked"), value: "stacked-horizontal" },
+                                          { label: _44("Lines"), value: "line" },
+                                          { label: _44("Pie"), value: "pie" },
+                                          { label: _44("Donut"), value: "donut" },
+                                          { label: _44("Scatter"), value: "scatter" },
+                                          { label: _44("Bubble"), value: "bubble" },
+                                          { label: _44("Histogram"), value: "histogram" },
+                                          { label: _44("Box Plot"), value: "box" },
+                                          { label: _44("Waterfall"), value: "waterfall" },
+                                          { label: _44("Heatmap"), value: "heatmap" },
+                                          { label: _44("Crosstab"), value: "crosstab" },
+                                          { label: _44("Radar"), value: "radar" },
+                                          { label: _44("Combo (Bar + Line)"), value: "combo" },
+                                          { label: _44("3D Scatter"), value: "3d" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Summary") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Summary") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16840,18 +16969,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _42("Sum"), value: "sum" },
-                                          { label: _42("Average"), value: "avg" },
-                                          { label: _42("Count"), value: "count" },
-                                          { label: _42("Max"), value: "max" },
-                                          { label: _42("Min"), value: "min" },
-                                          { label: _42("Std Dev"), value: "stddev" }
+                                          { label: _44("Sum"), value: "sum" },
+                                          { label: _44("Average"), value: "avg" },
+                                          { label: _44("Count"), value: "count" },
+                                          { label: _44("Max"), value: "max" },
+                                          { label: _44("Min"), value: "min" },
+                                          { label: _44("Std Dev"), value: "stddev" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 180 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Ranking Filter") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Ranking Filter") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16862,15 +16991,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _42("None"), value: "none" },
-                                          { label: _42("Top N"), value: "top" },
-                                          { label: _42("Bottom N"), value: "bottom" }
+                                          { label: _44("None"), value: "none" },
+                                          { label: _44("Top N"), value: "top" },
+                                          { label: _44("Bottom N"), value: "bottom" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("Ranking Column") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Ranking Column") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -16881,13 +17010,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         },
                                         style: { width: "100%" },
                                         options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                        placeholder: _42("Select numeric column"),
+                                        placeholder: _44("Select numeric column"),
                                         disabled: rankingMode === "none" || numericFields.length === 0
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 120 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _42("N") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("N") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.InputNumber,
                                       {
@@ -16906,8 +17035,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 ] }),
                                 /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _42("Series") }),
-                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("Series") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Button,
                                       {
                                         size: "small",
@@ -16927,7 +17056,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                         markAnalyzePrefsTouched();
                                         setSelectedSeriesKeys(values);
                                       },
-                                      options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _42("Count"), value: "__count__" }]
+                                      options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _44("Count"), value: "__count__" }]
                                     }
                                   )
                                 ] })
@@ -16952,11 +17081,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _42("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                        statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _42("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
+                        statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _44("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
                           antd.Table,
                           {
                             dataSource: statsSummary.numericStats,
@@ -16967,18 +17096,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                               /* @__PURE__ */ jsxRuntime.jsx(
                                 antd.Table.Column,
                                 {
-                                  title: _42("Field"),
+                                  title: _44("Field"),
                                   dataIndex: "label",
                                   render: (label) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: label }),
                                   onHeaderCell: () => ({ style: statsHeaderStyle })
                                 },
                                 "label"
                               ),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                             ]
                           }
                         ) }),
@@ -16990,7 +17119,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                             items: [
                               {
                                 key: "categorical-columns",
-                                label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _42("Categorical columns (distinct < 20)") }),
+                                label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _44("Categorical columns (distinct < 20)") }),
                                 children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginBottom: 12 }, children: [
                                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: field.label }) }),
                                   /* @__PURE__ */ jsxRuntime.jsxs(
@@ -17001,11 +17130,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                       pagination: false,
                                       rowKey: (row) => row.value,
                                       children: [
-                                        /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _42("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                        /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                         /* @__PURE__ */ jsxRuntime.jsx(
                                           antd.Table.Column,
                                           {
-                                            title: _42("Count"),
+                                            title: _44("Count"),
                                             dataIndex: "count",
                                             align: "right",
                                             onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -17137,7 +17266,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     }
   );
 };
-var _43 = window._ || ((text) => text);
+var _45 = window._ || ((text) => text);
 function useMillerColumnItems({
   parentId,
   rel,
@@ -17255,7 +17384,7 @@ function useMillerColumnItems({
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
-          setError(err instanceof Error ? err.message : _43("Failed to load items"));
+          setError(err instanceof Error ? err.message : _45("Failed to load items"));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -17307,7 +17436,7 @@ var MillerColumn = ({
         antd.Empty,
         {
           image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
-          description: _43("No items"),
+          description: _45("No items"),
           style: { margin: "32px 0" }
         }
       ),
@@ -17384,12 +17513,12 @@ var DetailPaneContent = ({ node, allModels }) => {
   const model = allModels?.find((m) => m.name === node.resource);
   const showHref = getShowHref(node.resource, node.id, allModels);
   if (!model) {
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: `${_43("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: `${_45("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
   }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0, color: token.colorTextSecondary, fontWeight: 500, flex: 1, minWidth: 0 }, children: node.label }),
-      showHref && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _43("Open in new tab"), children: /* @__PURE__ */ jsxRuntime.jsx(
+      showHref && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _45("Open in new tab"), children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           size: "small",
@@ -17495,7 +17624,7 @@ var MillerBrowserLayout = ({
     }
   };
   if (!rootId) {
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _43("No record selected") });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _45("No record selected") });
   }
   const columnsAreaStyle = columnsWidth !== null ? { width: columnsWidth, flexShrink: 0, flexGrow: 0, minWidth: 200, overflowX: "auto", display: "flex", height: "100%" } : { width: showDetails ? "fit-content" : "100%", maxWidth: showDetails ? "50%" : "100%", flexShrink: 0, minWidth: 240, overflowX: "auto", display: "flex", height: "100%" };
   return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -17558,7 +17687,7 @@ var MillerBrowserLayout = ({
       showDetails && /* @__PURE__ */ jsxRuntime.jsx(
         antd.Drawer,
         {
-          title: detailNode?.label ?? _43("Details"),
+          title: detailNode?.label ?? _45("Details"),
           placement: "right",
           open: drawerOpen && !isDesktop,
           onClose: () => setDrawerOpen(false),
@@ -17897,7 +18026,7 @@ var renderRelationBlock = ({
     content
   ] }, rel.resource);
 };
-var _44 = window._ || ((text) => text);
+var _46 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
 var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
   const model = useRoleFilteredModel(modelProp);
@@ -18096,12 +18225,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           });
         }
       }
-      antd.message.success(_44("Relations added."));
+      antd.message.success(_46("Relations added."));
       if (selectModeReturnTo && selectModeReturnTo.startsWith("/")) {
         navigate(selectModeReturnTo);
       }
     } catch {
-      antd.message.error(_44("Failed to add relations."));
+      antd.message.error(_46("Failed to add relations."));
     } finally {
       setSelectModeAssociating(false);
     }
@@ -18641,7 +18770,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return;
     }
     if (availableViewNames.includes(newName)) {
-      antd.message.error(_44("View name already exists."));
+      antd.message.error(_46("View name already exists."));
       return;
     }
     try {
@@ -18654,18 +18783,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      antd.message.success(_44("View renamed."));
+      antd.message.success(_46("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error) {
-      antd.message.error(error instanceof Error ? error.message : _44("Failed to rename view."));
+      antd.message.error(error instanceof Error ? error.message : _46("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = React6.useCallback(() => {
     antd.Modal.confirm({
-      title: _44(_44("Delete view")),
+      title: _46(_46("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _44("Delete"),
+      okText: _46("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -18678,10 +18807,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          antd.message.success(_44("View deleted."));
+          antd.message.success(_46("View deleted."));
           await loadViewNames();
         } catch (error) {
-          antd.message.error(error instanceof Error ? error.message : _44("Failed to delete view."));
+          antd.message.error(error instanceof Error ? error.message : _46("Failed to delete view."));
         }
       }
     });
@@ -18723,9 +18852,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      antd.message.success(_44("Layout preferences saved."));
+      antd.message.success(_46("Layout preferences saved."));
     } catch (error) {
-      antd.message.error(error instanceof Error ? error.message : _44("Failed to save layout preferences."));
+      antd.message.error(error instanceof Error ? error.message : _46("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -18755,9 +18884,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      antd.message.success(_44("Analyze preferences saved."));
+      antd.message.success(_46("Analyze preferences saved."));
     } catch (error) {
-      antd.message.error(error instanceof Error ? error.message : _44("Failed to save analyze preferences."));
+      antd.message.error(error instanceof Error ? error.message : _46("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -18767,11 +18896,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      antd.message.error(_44("View name already exists. Choose a new name."));
+      antd.message.error(_46("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      antd.message.error(_44('Choose a new name or enable "Save as new view".'));
+      antd.message.error(_46('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -18977,7 +19106,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
       setAllRowsData(allRows2);
     } catch (error) {
-      setAllRowsError(error instanceof Error ? error.message : _44("Failed to fetch all rows"));
+      setAllRowsError(error instanceof Error ? error.message : _46("Failed to fetch all rows"));
     } finally {
       setIsAllRowsLoading(false);
       setAllRowsLoaded(true);
@@ -19072,7 +19201,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     setFilters(combined, "replace");
   }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
   const formatCategoryValue = React6.useCallback((field, record) => {
-    if (!field) return _44("All");
+    if (!field) return _46("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -19083,7 +19212,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _44("Yes") : _44("No");
+    if (field.type === "boolean") return raw ? _46("Yes") : _46("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -19168,7 +19297,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const seriesLabels = numericFields.length > 0 ? numericFields.reduce((acc, field) => {
       acc[field.key] = field.label;
       return acc;
-    }, { "__count__": _44("Count") }) : { "__count__": _44("Count") };
+    }, { "__count__": _46("Count") }) : { "__count__": _46("Count") };
     const baseGroups = Array.from(groupMap.values());
     let groups = baseGroups;
     if (rankingMode !== "none" && rankingFieldKey) {
@@ -19226,10 +19355,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
       }
       setCrosstabStaged({});
-      antd.message.success(_44("Changes saved."));
+      antd.message.success(_46("Changes saved."));
       invalidate({ resource: model.resource || model.name, invalidates: ["list"] });
     } catch (err) {
-      antd.message.error(err instanceof Error ? err.message : _44("Failed to save changes."));
+      antd.message.error(err instanceof Error ? err.message : _46("Failed to save changes."));
     } finally {
       setCrosstabSaving(false);
     }
@@ -19278,12 +19407,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return buildColumnFilterOptions({ fields, data, rangeCount });
   }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
   const crosstabSummaryOptions = [
-    { label: _44("Sum"), value: "sum" },
-    { label: _44("Average"), value: "avg" },
-    { label: _44("Count"), value: "count" },
-    { label: _44("Max"), value: "max" },
-    { label: _44("Min"), value: "min" },
-    { label: _44("Std Dev"), value: "stddev" }
+    { label: _46("Sum"), value: "sum" },
+    { label: _46("Average"), value: "avg" },
+    { label: _46("Count"), value: "count" },
+    { label: _46("Max"), value: "max" },
+    { label: _46("Min"), value: "min" },
+    { label: _46("Std Dev"), value: "stddev" }
   ];
   const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(
     antd.Collapse,
@@ -19293,11 +19422,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       style: { marginBottom: 12 },
       items: [{
         key: "crosstab-config",
-        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Crosstab configuration"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
+        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Crosstab configuration"), children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SettingOutlined, {}) }) }),
         children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 1 (rows)") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Category 1 (rows)") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -19308,12 +19437,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _44("Select category")
+                  placeholder: _46("Select category")
                 }
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 2 (columns)") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Category 2 (columns)") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -19324,7 +19453,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _44("None"), value: "__none__" },
+                    { label: _46("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
@@ -19333,7 +19462,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           ] }),
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Cell fields") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Cell fields") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -19346,13 +19475,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   },
                   style: { width: "100%" },
                   options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _44("All numeric fields"),
+                  placeholder: _46("All numeric fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Summary") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Summary") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -19367,7 +19496,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               )
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Filter fields") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Filter fields") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -19380,13 +19509,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _44("Select filter fields"),
+                  placeholder: _46("Select filter fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs, "aria-label": _44("Save configuration") }) }) })
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Save configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs, "aria-label": _46("Save configuration") }) }) })
         ] })
       }]
     }
@@ -19407,7 +19536,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _44("All"),
+          placeholder: _46("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -19417,7 +19546,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
   const crosstabBodyNode = /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-    editableCrosstab && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _44("Save") }) }) }),
+    editableCrosstab && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Save"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _46("Save") }) }) }),
     crosstabConfigPanel,
     crosstabFilterRow,
     /* @__PURE__ */ jsxRuntime.jsx(
@@ -19472,7 +19601,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           } else if (field.options) {
             label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
           } else if (field.type === "boolean") {
-            label = raw ? _44("Yes") : _44("No");
+            label = raw ? _46("Yes") : _46("No");
           } else if (field.type === "date") {
             label = formatDateValue(raw);
           } else if (field.type === "datetime") {
@@ -19534,13 +19663,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const getSummaryFunctionDisplayText = React6.useCallback((fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _44("Sum"),
-      avg: _44("Average"),
-      count: _44("Count"),
-      max: _44("Max"),
-      min: _44("Min"),
-      stddev: _44("Std Dev"),
-      distinct: _44("Distinct")
+      sum: _46("Sum"),
+      avg: _46("Average"),
+      count: _46("Count"),
+      max: _46("Max"),
+      min: _46("Min"),
+      stddev: _46("Std Dev"),
+      distinct: _46("Distinct")
     };
     return labels[fn] || fn;
   }, []);
@@ -19601,12 +19730,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           `td-num-${item.key}`
         )) })
       ] }) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isTdFlipped ? _44("Show totals") : _44("Show details"), children: /* @__PURE__ */ jsxRuntime.jsx(
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isTdFlipped ? _46("Show totals") : _46("Show details"), children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           size: "small",
           icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-          "aria-label": isTdFlipped ? _44("Show totals") : _44("Show details"),
+          "aria-label": isTdFlipped ? _46("Show totals") : _46("Show details"),
           onClick: () => setIsTdFlipped((prev) => !prev),
           style: {
             flexShrink: 0,
@@ -19681,7 +19810,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _44("Yes") : _44("No");
+    if (field.type === "boolean") return raw ? _46("Yes") : _46("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -19882,7 +20011,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         for (const actionKey of apiActionKeys) {
           if (actionKey === "__delete__") {
             const resp = await authenticatedFetch(`${apiUrl}/${resource}/${id}`, { method: "DELETE" });
-            if (!resp.ok) throw new Error(`${_44("Delete failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_46("Delete failed for record")} ${id}`);
           } else if (actionKey === "__change_field__") {
             if (!bulkChangeFieldKey) continue;
             const payload = { ...record, [bulkChangeFieldKey]: bulkChangeFieldValue };
@@ -19892,7 +20021,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
-            if (!resp.ok) throw new Error(`${_44("Update failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_46("Update failed for record")} ${id}`);
           } else if (actionKey === "__clone__") {
             const clonePayload = { ...record };
             delete clonePayload.eid;
@@ -19904,7 +20033,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(clonePayload)
             });
-            if (!resp.ok) throw new Error(`${_44("Clone failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_46("Clone failed for record")} ${id}`);
           } else if (actionKey === "__pin__") {
             await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
               method: "POST",
@@ -19923,11 +20052,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
       antd.message.success(
-        _44("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
+        _46("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
       );
     } catch (e) {
       errorOccurred = true;
-      antd.message.error(e?.message || _44("Bulk action failed"));
+      antd.message.error(e?.message || _46("Bulk action failed"));
     } finally {
       setIsBulkExecuting(false);
       setBulkActionModalOpen(false);
@@ -20045,7 +20174,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Table.SELECTION_NONE,
       {
         key: "select-all-filtered",
-        text: _44("Select all filtered rows"),
+        text: _46("Select all filtered rows"),
         onSelect: handleSelectAllFiltered
       }
     ]
@@ -20054,21 +20183,21 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const bulkActionsAvailable = React6.useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
-      opts.push({ label: _44("Change field value"), value: "__change_field__" });
+      opts.push({ label: _46("Change field value"), value: "__change_field__" });
     }
-    opts.push({ label: _44("Export selected (CSV)"), value: "__export_csv__" });
-    opts.push({ label: _44("Navigate to related"), value: "__navigate_to_related__" });
-    opts.push({ label: _44("Append related list"), value: "__append_related_list__" });
+    opts.push({ label: _46("Export selected (CSV)"), value: "__export_csv__" });
+    opts.push({ label: _46("Navigate to related"), value: "__navigate_to_related__" });
+    opts.push({ label: _46("Append related list"), value: "__append_related_list__" });
     if (canBulkEdit) {
-      opts.push({ label: _44("Clone / Duplicate selected"), value: "__clone__" });
+      opts.push({ label: _46("Clone / Duplicate selected"), value: "__clone__" });
     }
     if (bulkActions && bulkActions.length > 0) {
-      bulkActions.forEach((a) => opts.push({ label: _44(a.label), value: a.key }));
+      bulkActions.forEach((a) => opts.push({ label: _46(a.label), value: a.key }));
     }
-    opts.push({ label: _44("Pin selected"), value: "__pin__" });
-    opts.push({ label: _44("Unpin selected"), value: "__unpin__" });
+    opts.push({ label: _46("Pin selected"), value: "__pin__" });
+    opts.push({ label: _46("Unpin selected"), value: "__unpin__" });
     if (canBulkDelete) {
-      opts.push({ label: _44("Delete selected"), value: "__delete__" });
+      opts.push({ label: _46("Delete selected"), value: "__delete__" });
     }
     return opts;
   }, [bulkActions, canBulkDelete, canBulkEdit]);
@@ -20109,7 +20238,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       background: token.colorPrimaryBg,
       border: `1px solid ${token.colorPrimaryBorder}`
     }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _44("Filtered by: {relation}").replace("{relation}", filterDescription) }),
+      /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _46("Filtered by: {relation}").replace("{relation}", filterDescription) }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
@@ -20122,7 +20251,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             const newSearch = newParams.toString();
             navigate({ search: newSearch ? `?${newSearch}` : "" }, { replace: true });
           },
-          children: _44("Clear filter")
+          children: _46("Clear filter")
         }
       )
     ] });
@@ -20139,9 +20268,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     background: token.colorWarningBg,
     border: `1px solid ${token.colorWarningBorder}`
   }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _44("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _44("Select rows to associate") }),
+    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _46("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _46("Select rows to associate") }),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-      selectModeReturnTo && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _44("Cancel") }),
+      selectModeReturnTo && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _46("Cancel") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
@@ -20150,7 +20279,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           disabled: bulkSelectedRowKeys.length === 0,
           loading: selectModeAssociating,
           onClick: handleAssociateSelected,
-          children: _44("Associate selected")
+          children: _46("Associate selected")
         }
       )
     ] })
@@ -20166,7 +20295,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     background: token.colorInfoBg,
     border: `1px solid ${token.colorInfoBorder}`
   }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontWeight: 500 }, children: _44("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+    /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontWeight: 500 }, children: _46("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
     bulkSelectedRowKeys.length < filteredTotalCount && /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
@@ -20175,16 +20304,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: selectAllFilteredPending && isAllRowsLoading,
         onClick: handleSelectAllFiltered,
         style: { padding: 0 },
-        children: _44("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
+        children: _46("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
       }
     ),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _44("Clear selection") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _46("Clear selection") }),
     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, minWidth: 180 }, children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Select,
       {
         mode: "multiple",
         size: "small",
-        placeholder: _44("Actions"),
+        placeholder: _46("Actions"),
         style: { width: "100%" },
         value: bulkActionsToApply,
         onChange: (values) => {
@@ -20218,7 +20347,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Select,
         {
           size: "small",
-          placeholder: _44("Select field"),
+          placeholder: _46("Select field"),
           style: { minWidth: 160 },
           value: bulkChangeFieldKey ?? void 0,
           onChange: (v) => {
@@ -20233,7 +20362,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Select,
         {
           size: "small",
-          placeholder: _44("Select value"),
+          placeholder: _46("Select value"),
           style: { minWidth: 180 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
@@ -20244,11 +20373,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Select,
         {
           size: "small",
-          placeholder: _44("Select value"),
+          placeholder: _46("Select value"),
           style: { minWidth: 120 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
-          options: [{ label: _44("True"), value: true }, { label: _44("False"), value: false }],
+          options: [{ label: _46("True"), value: true }, { label: _46("False"), value: false }],
           allowClear: true
         }
       ) : bulkChangeField.type === "date" ? /* @__PURE__ */ jsxRuntime.jsx(
@@ -20262,7 +20391,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.InputNumber,
         {
           size: "small",
-          placeholder: _44("Value"),
+          placeholder: _46("Value"),
           value: bulkChangeFieldValue,
           onChange: (v) => setBulkChangeFieldValue(v),
           style: { minWidth: 120 }
@@ -20271,7 +20400,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Input,
         {
           size: "small",
-          placeholder: _44("Value"),
+          placeholder: _46("Value"),
           value: bulkChangeFieldValue ?? "",
           onChange: (e) => setBulkChangeFieldValue(e.target.value),
           style: { minWidth: 160 }
@@ -20286,7 +20415,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Select,
         {
           size: "small",
-          placeholder: isAppend ? _44("Select relation to append") : _44("Select relation"),
+          placeholder: isAppend ? _46("Select relation to append") : _46("Select relation"),
           style: { minWidth: 220 },
           showSearch: true,
           value: currentRelation ? `${currentRelation.targetResource}|${currentRelation.filterKey}` : void 0,
@@ -20356,7 +20485,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             setBulkActionModalOpen(true);
           }
         },
-        children: _44("Apply")
+        children: _46("Apply")
       }
     )
   ] }) : null;
@@ -20364,16 +20493,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     antd.Modal,
     {
       open: bulkActionModalOpen,
-      title: _44("Confirm bulk action"),
+      title: _46("Confirm bulk action"),
       onCancel: () => {
         if (!isBulkExecuting) setBulkActionModalOpen(false);
       },
       footer: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _44("Cancel") }, "cancel"),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _44("Confirm") }, "ok")
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _46("Cancel") }, "cancel"),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _46("Confirm") }, "ok")
       ],
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx("p", { children: _44("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+        /* @__PURE__ */ jsxRuntime.jsx("p", { children: _46("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
         /* @__PURE__ */ jsxRuntime.jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
           const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
@@ -20389,7 +20518,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const listTitle = !isEmbedded ? renderModelHeading({
     model,
     title: modelDisplayLabel,
-    actionLabel: _44("List"),
+    actionLabel: _46("List"),
     moduleLabel: model.module ? getModuleLabel(model.module) : void 0
   }) : void 0;
   const numericBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
@@ -20413,7 +20542,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, modelTone) }))
     }
   ) : null;
-  const listToggleButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("View list"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const listToggleButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("View list"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20430,7 +20559,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
       const response = await authenticatedFetch(`${apiUrl}/${resourcePath}/export-csv`);
       if (!response.ok) {
-        antd.message.error(_44("Export failed."));
+        antd.message.error(_46("Export failed."));
         return;
       }
       const blob = await response.blob();
@@ -20446,7 +20575,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const exportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20455,7 +20584,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20464,7 +20593,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       loading: exportRequested && isAllRowsLoading
     }
   ) }) : null;
-  const importButton = !isEmbedded && !model.isNamedQuery ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Import CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const importButton = !isEmbedded && !model.isNamedQuery ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Import CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20472,7 +20601,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _44("Hide view configuration") : _44("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const columnsToggleButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _46("Hide view configuration") : _46("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20484,10 +20613,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           return next;
         });
       },
-      "aria-label": columnsSelectorOpen ? _44("Hide view configuration") : _44("Show view configuration")
+      "aria-label": columnsSelectorOpen ? _46("Hide view configuration") : _46("Show view configuration")
     }
   ) });
-  const createRelationButton = isRelationView && showCreate ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Add relation"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const createRelationButton = isRelationView && showCreate ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Add relation"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20503,7 +20632,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     }
   ) }) : null;
-  const associateExistingFkButton = isRelationView && showCreate && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Associate existing"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const associateExistingFkButton = isRelationView && showCreate && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Associate existing"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20523,7 +20652,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     }
   ) }) : null;
-  const createNewAndRelateButton = isRelationView && showCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const createNewAndRelateButton = isRelationView && showCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Create new and relate"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -20539,7 +20668,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         const relatedModel = findModelByName(allModels, relationConfig?.otherResource || relationConfig?.otherResourcePath);
         const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
         if (!relatedResource) {
-          antd.message.warning(_44("No create route for the related model. Opening relation create form."));
+          antd.message.warning(_46("No create route for the related model. Opening relation create form."));
           params.append(targetKey, String(targetId));
           const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
           if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -20559,7 +20688,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const embeddedActionBar = isEmbedded ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: [
     columnsToggleButton,
     listToggleButton,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Analyze"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Analyze"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20572,7 +20701,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Switch orientation"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Switch orientation"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20583,7 +20712,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Switch positions"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Switch positions"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20594,7 +20723,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save layout"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    resolvedLayoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Save layout"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20606,7 +20735,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     associateExistingFkButton,
     createRelationButton,
     createNewAndRelateButton,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20615,7 +20744,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: exportLoading
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20624,7 +20753,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: exportRequested && isAllRowsLoading
       }
     ) }),
-    !model.isNamedQuery && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Import CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    !model.isNamedQuery && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Import CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20830,7 +20959,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   };
   const renderCalendarView = () => {
     if (calendarDateFieldOptions.length === 0) {
-      return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _44("No date/datetime fields available for calendar view.") });
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _46("No date/datetime fields available for calendar view.") });
     }
     const selectedDateField = model.fields.find((field) => field.key === calendarDateField);
     const selectedLabel = selectedDateField?.label || calendarDateField;
@@ -20844,8 +20973,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               value: calendarMode,
               onChange: (value) => setCalendarMode(value),
               options: [
-                { label: _44("Monthly"), value: "month" },
-                { label: _44("Weekly"), value: "week" }
+                { label: _46("Monthly"), value: "month" },
+                { label: _46("Weekly"), value: "week" }
               ],
               style: { minWidth: 120 }
             }
@@ -20858,35 +20987,35 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               onChange: (value) => setCalendarDateField(value),
               options: calendarDateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
               style: { minWidth: 220 },
-              placeholder: _44("Date field")
+              placeholder: _46("Date field")
             }
           )
         ] }),
         /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 8, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Previous"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Previous"), children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
-              "aria-label": _44("Previous"),
+              "aria-label": _46("Previous"),
               onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
-              "aria-label": _44("Today"),
+              "aria-label": _46("Today"),
               onClick: () => setCalendarAnchorDate(dayjs9__default.default().startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Next"), children: /* @__PURE__ */ jsxRuntime.jsx(
             antd.Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
-              "aria-label": _44("Next"),
+              "aria-label": _46("Next"),
               onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
             }
           ) })
@@ -20971,20 +21100,20 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Modal,
       {
         open: saveViewModalOpen,
-        title: _44("Save view"),
+        title: _46("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _44("Save layout") : _44("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _46("Save layout") : _46("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("View name") }),
+            /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("View name") }),
             /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _44("Save as new view") })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _46("Save as new view") })
         ] })
       }
     ),
@@ -20992,10 +21121,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Modal,
       {
         open: renameViewModalOpen,
-        title: _44("Rename view"),
+        title: _46("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _44("Rename"),
+        okText: _46("Rename"),
         children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -21005,7 +21134,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       {
         size: "small",
         title: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("Filters") }),
+          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _46("Filters") }),
           /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: !filtersCollapsed && searchField && /* @__PURE__ */ jsxRuntime.jsx(
             antd.Form,
             {
@@ -21019,7 +21148,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 }
                 searchFormProps.onFinish?.(values);
               },
-              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: _44("Search all fields..."), prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
+              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { placeholder: _46("Search all fields..."), prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
             }
           ) })
         ] }),
@@ -21032,31 +21161,31 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       antd.Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("View configuration") }),
+        title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _46("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _44("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _46("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _46("No filters yet.") }) : filterRules.map((rule) => {
                 const field = model.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _44("="), value: "eq" },
-                  { label: _44(">"), value: "gt" },
-                  { label: _44(">="), value: "gte" },
-                  { label: _44("<"), value: "lt" },
-                  { label: _44("<="), value: "lte" },
-                  { label: _44("Between"), value: "between" }
+                  { label: _46("="), value: "eq" },
+                  { label: _46(">"), value: "gt" },
+                  { label: _46(">="), value: "gte" },
+                  { label: _46("<"), value: "lt" },
+                  { label: _46("<="), value: "lte" },
+                  { label: _46("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _44("On"), value: "on" },
-                  { label: _44("After"), value: "after" },
-                  { label: _44("Before"), value: "before" },
-                  { label: _44("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _44("Is"), value: "is" }] : [
-                  { label: _44("Contains"), value: "contains" },
-                  { label: _44("Equals"), value: "equals" }
+                  { label: _46("On"), value: "on" },
+                  { label: _46("After"), value: "after" },
+                  { label: _46("Before"), value: "before" },
+                  { label: _46("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _46("Is"), value: "is" }] : [
+                  { label: _46("Contains"), value: "contains" },
+                  { label: _46("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -21069,9 +21198,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _44("Previous"), value: "previous" },
-                            { label: _44("Current"), value: "current" },
-                            { label: _44("Next"), value: "next" }
+                            { label: _46("Previous"), value: "previous" },
+                            { label: _46("Current"), value: "current" },
+                            { label: _46("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -21081,11 +21210,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _44("Days"), value: "days" },
-                            { label: _44("Weeks"), value: "weeks" },
-                            { label: _44("Months"), value: "months" },
-                            { label: _44("Quarters"), value: "quarters" },
-                            { label: _44("Years"), value: "years" }
+                            { label: _46("Days"), value: "days" },
+                            { label: _46("Weeks"), value: "weeks" },
+                            { label: _46("Months"), value: "months" },
+                            { label: _46("Quarters"), value: "quarters" },
+                            { label: _46("Years"), value: "years" }
                           ]
                         }
                       )
@@ -21107,7 +21236,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: model.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _44("Field")
+                      placeholder: _46("Field")
                     }
                   ),
                   /* @__PURE__ */ jsxRuntime.jsx(
@@ -21117,7 +21246,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _44("Operator")
+                      placeholder: _46("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -21150,10 +21279,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _44("True"), value: true },
-                        { label: _44("False"), value: false }
+                        { label: _46("True"), value: true },
+                        { label: _46("False"), value: false }
                       ],
-                      placeholder: _44("Value")
+                      placeholder: _46("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -21166,7 +21295,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _44("Value"),
+                      placeholder: _46("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -21179,8 +21308,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _44("Date"), value: "absolute" },
-                        { label: _44("Relative"), value: "relative" }
+                        { label: _46("Date"), value: "absolute" },
+                        { label: _46("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -21193,8 +21322,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _44("Date"), value: "absolute" },
-                        { label: _44("Relative"), value: "relative" }
+                        { label: _46("Date"), value: "absolute" },
+                        { label: _46("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -21204,7 +21333,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _44("Remove")
+                      children: _46("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -21216,14 +21345,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     size: "small",
                     icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _44("Add Filter")
+                    children: _46("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => setFilterRules([]), children: _44("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => setFilterRules([]), children: _46("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Views shown") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _46("Views shown") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Select,
                 {
@@ -21244,12 +21373,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Move up"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Move down"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _44("Active view") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _46("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -21261,7 +21390,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _44("Rename view")
+                  children: _46("Rename view")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -21272,7 +21401,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _44("Delete view")
+                  children: _46("Delete view")
                 }
               ),
               resolvedLayoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(
@@ -21282,7 +21411,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _44("Save layout")
+                  children: _46("Save layout")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -21294,7 +21423,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _44("Show Filters") : _44("Hide Filters")
+                  children: filtersCollapsed ? _46("Show Filters") : _46("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -21308,7 +21437,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _44("Analyze")
+                  children: _46("Analyze")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -21320,7 +21449,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _44("Switch orientation")
+                  children: _46("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsxRuntime.jsx(
@@ -21332,21 +21461,21 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _44("Switch positions")
+                  children: _46("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _44("Columns") }),
+              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _46("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _44("Reset to default") })
+              }, children: _46("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Select columns") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _46("Select columns") }),
               /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Checkbox.Group,
                 {
@@ -21358,27 +21487,27 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _46("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _46("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = model.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Move left"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Move right"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             isTotalsDetailsView && /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _44("Totals summary function") }),
-              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _46("Totals summary function") }),
+              /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _46("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _44("Sum"), value: "sum" },
-                  { label: _44("Average"), value: "avg" },
-                  { label: _44("Count"), value: "count" },
-                  { label: _44("Max"), value: "max" },
-                  { label: _44("Min"), value: "min" },
-                  { label: _44("Std Dev"), value: "stddev" }
+                  { label: _46("Sum"), value: "sum" },
+                  { label: _46("Average"), value: "avg" },
+                  { label: _46("Count"), value: "count" },
+                  { label: _46("Max"), value: "max" },
+                  { label: _46("Min"), value: "min" },
+                  { label: _46("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -21406,7 +21535,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       listVisible && /* @__PURE__ */ jsxRuntime.jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isGalleryView ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         galleryRows.length === 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
-          _44("No images available")
+          _46("No images available")
         ] }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...galleryPaginationProps }) })
       ] }) : isCrosstabView ? crosstabBodyNode : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -21482,13 +21611,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                             selectable: false,
                             onClick: handleContextMenuClick,
                             items: [
-                              { key: "__open_show__", label: _44("Open show page"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) },
-                              { key: "__open_new_tab__", label: _44("Open in new tab"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
-                              { key: "__open_new_window__", label: _44("Open in new window"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
+                              { key: "__open_show__", label: _46("Open show page"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) },
+                              { key: "__open_new_tab__", label: _46("Open in new tab"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
+                              { key: "__open_new_window__", label: _46("Open in new window"), icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, {}) },
                               { type: "divider" },
                               ...(bulkActionsAvailable ?? []).map((action) => ({
                                 key: action.value,
-                                label: _44(action.label)
+                                label: _46(action.label)
                               }))
                             ]
                           }
@@ -21638,17 +21767,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               showActions && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Table.Column,
                 {
-                  title: _44("Actions"),
+                  title: _46("Actions"),
                   width: 140,
                   render: (_unused, record) => {
                     const { resource, id, isLinkRow } = getTargetInfo(record);
-                    if (!id || !resource) return /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_44("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BugOutlined, {}) }) });
+                    if (!id || !resource) return /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_46("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BugOutlined, {}) }) });
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
                 },
@@ -21662,7 +21791,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         antd.Card,
         {
           size: "small",
-          title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: modelTone.text, fontWeight: 600 }, children: _44("Analyze") }),
+          title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: modelTone.text, fontWeight: 600 }, children: _46("Analyze") }),
           styles: {
             header: {
               background: `linear-gradient(135deg, ${modelTone.solid}18 0%, ${modelTone.solid}0a 100%)`
@@ -21691,10 +21820,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _44("Export chart") }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: () => openSaveViewModalFor("analyze"), loading: isSavingAnalyzePrefs }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _46("Export chart") }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsx(
                         AnalysisChart,
@@ -21725,11 +21854,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           items: [
                             {
                               key: "configure-chart",
-                              label: _44("Customize chart"),
+                              label: _46("Customize chart"),
                               children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                                 /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 1") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Category 1") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21740,12 +21869,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                        placeholder: _44("Select category")
+                                        placeholder: _46("Select category")
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Category 2") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Category 2") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21756,14 +21885,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _44("None"), value: "__none__" },
+                                          { label: _46("None"), value: "__none__" },
                                           ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 160 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Chart Type") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Chart Type") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21774,31 +21903,31 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _44("Area"), value: "area" },
-                                          { label: _44("Horizontal Area"), value: "area-horizontal" },
-                                          { label: _44("Bars"), value: "bar" },
-                                          { label: _44("Stacked Bars"), value: "stacked" },
-                                          { label: _44("Horizontal Bars"), value: "bar-horizontal" },
-                                          { label: _44("Horizontal Stacked"), value: "stacked-horizontal" },
-                                          { label: _44("Lines"), value: "line" },
-                                          { label: _44("Pie"), value: "pie" },
-                                          { label: _44("Donut"), value: "donut" },
-                                          { label: _44("Scatter"), value: "scatter" },
-                                          { label: _44("Bubble"), value: "bubble" },
-                                          { label: _44("Histogram"), value: "histogram" },
-                                          { label: _44("Box Plot"), value: "box" },
-                                          { label: _44("Waterfall"), value: "waterfall" },
-                                          { label: _44("Heatmap"), value: "heatmap" },
-                                          { label: _44("Crosstab"), value: "crosstab" },
-                                          { label: _44("Radar"), value: "radar" },
-                                          { label: _44("Combo (Bar + Line)"), value: "combo" },
-                                          { label: _44("3D Scatter"), value: "3d" }
+                                          { label: _46("Area"), value: "area" },
+                                          { label: _46("Horizontal Area"), value: "area-horizontal" },
+                                          { label: _46("Bars"), value: "bar" },
+                                          { label: _46("Stacked Bars"), value: "stacked" },
+                                          { label: _46("Horizontal Bars"), value: "bar-horizontal" },
+                                          { label: _46("Horizontal Stacked"), value: "stacked-horizontal" },
+                                          { label: _46("Lines"), value: "line" },
+                                          { label: _46("Pie"), value: "pie" },
+                                          { label: _46("Donut"), value: "donut" },
+                                          { label: _46("Scatter"), value: "scatter" },
+                                          { label: _46("Bubble"), value: "bubble" },
+                                          { label: _46("Histogram"), value: "histogram" },
+                                          { label: _46("Box Plot"), value: "box" },
+                                          { label: _46("Waterfall"), value: "waterfall" },
+                                          { label: _46("Heatmap"), value: "heatmap" },
+                                          { label: _46("Crosstab"), value: "crosstab" },
+                                          { label: _46("Radar"), value: "radar" },
+                                          { label: _46("Combo (Bar + Line)"), value: "combo" },
+                                          { label: _46("3D Scatter"), value: "3d" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Summary") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Summary") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21809,18 +21938,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _44("Sum"), value: "sum" },
-                                          { label: _44("Average"), value: "avg" },
-                                          { label: _44("Count"), value: "count" },
-                                          { label: _44("Max"), value: "max" },
-                                          { label: _44("Min"), value: "min" },
-                                          { label: _44("Std Dev"), value: "stddev" }
+                                          { label: _46("Sum"), value: "sum" },
+                                          { label: _46("Average"), value: "avg" },
+                                          { label: _46("Count"), value: "count" },
+                                          { label: _46("Max"), value: "max" },
+                                          { label: _46("Min"), value: "min" },
+                                          { label: _46("Std Dev"), value: "stddev" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 180 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Ranking Filter") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Ranking Filter") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21831,15 +21960,15 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: [
-                                          { label: _44("None"), value: "none" },
-                                          { label: _44("Top N"), value: "top" },
-                                          { label: _44("Bottom N"), value: "bottom" }
+                                          { label: _46("None"), value: "none" },
+                                          { label: _46("Top N"), value: "top" },
+                                          { label: _46("Bottom N"), value: "bottom" }
                                         ]
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("Ranking Column") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("Ranking Column") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Select,
                                       {
@@ -21850,13 +21979,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         },
                                         style: { width: "100%" },
                                         options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                        placeholder: _44("Select numeric column"),
+                                        placeholder: _46("Select numeric column"),
                                         disabled: rankingMode === "none" || numericFields.length === 0
                                       }
                                     )
                                   ] }),
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 120 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _44("N") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _46("N") }),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.InputNumber,
                                       {
@@ -21875,8 +22004,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                 ] }),
                                 /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
                                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _44("Series") }),
-                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
+                                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _46("Series") }),
+                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Button,
                                       {
                                         size: "small",
@@ -21896,11 +22025,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                         markAnalyzePrefsTouched();
                                         setSelectedSeriesKeys(values);
                                       },
-                                      options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _44("Count"), value: "__count__" }]
+                                      options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _46("Count"), value: "__count__" }]
                                     }
                                   )
                                 ] }),
-                                isAllRowsLoading && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _44("Loading all rows for analysis...") }),
+                                isAllRowsLoading && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _46("Loading all rows for analysis...") }),
                                 allRowsError && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
                               ] })
                             }
@@ -21923,11 +22052,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                     children: [
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _46("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                       ] }),
                       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                        statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _44("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
+                        statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _46("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
                           antd.Table,
                           {
                             dataSource: statsSummary.numericStats,
@@ -21938,18 +22067,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                               /* @__PURE__ */ jsxRuntime.jsx(
                                 antd.Table.Column,
                                 {
-                                  title: _44("Field"),
+                                  title: _46("Field"),
                                   dataIndex: "label",
                                   render: (label) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: label }),
                                   onHeaderCell: () => ({ style: statsHeaderStyle })
                                 },
                                 "label"
                               ),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                              /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                             ]
                           }
                         ) }),
@@ -21961,7 +22090,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                             items: [
                               {
                                 key: "categorical-columns",
-                                label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _44("Categorical columns (distinct < 20)") }),
+                                label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _46("Categorical columns (distinct < 20)") }),
                                 children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginBottom: 12 }, children: [
                                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: field.label }) }),
                                   /* @__PURE__ */ jsxRuntime.jsxs(
@@ -21972,11 +22101,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                                       pagination: false,
                                       rowKey: (row) => row.value,
                                       children: [
-                                        /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _44("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                        /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _46("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                         /* @__PURE__ */ jsxRuntime.jsx(
                                           antd.Table.Column,
                                           {
-                                            title: _44("Count"),
+                                            title: _46("Count"),
                                             dataIndex: "count",
                                             align: "right",
                                             onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -22019,11 +22148,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             relatedModel.label || relatedModel.name,
             /* @__PURE__ */ jsxRuntime.jsxs(antd.Typography.Text, { type: "secondary", style: { fontSize: 13, marginLeft: 8 }, children: [
               "(",
-              _44("filtered by"),
+              _46("filtered by"),
               " ",
               entry.filterIds.length,
               " ",
-              _44("rows"),
+              _46("rows"),
               ")"
             ] })
           ] }),
@@ -22033,7 +22162,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               size: "small",
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}),
               onClick: () => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id)),
-              children: _44("Take this list out")
+              children: _46("Take this list out")
             }
           )
         ] }),
@@ -22142,7 +22271,7 @@ function applyPanesToSearchParams(existing, panes) {
   panes.forEach((p) => next.append("pane", `${p.resource}:${p.id}`));
   return next;
 }
-var _45 = window._ || ((text) => text);
+var _47 = window._ || ((text) => text);
 var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 var COLLAPSED_SIZE = 10;
@@ -22184,7 +22313,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
         minHeight: PANE_TOOLBAR_HEIGHT
       },
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _45("Open in full page"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _47("Open in full page"), children: /* @__PURE__ */ jsxRuntime.jsx(
           "a",
           {
             href,
@@ -22194,7 +22323,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
             children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LinkOutlined, { style: { fontSize: 11 } })
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _45("Minimize pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _47("Minimize pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "text",
@@ -22204,7 +22333,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _45("Maximize pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _47("Maximize pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "text",
@@ -22214,7 +22343,7 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _45("Close pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _47("Close pane"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "text",
@@ -22402,7 +22531,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailPaneContexts = React6.useMemo(
-    () => panes.map((_53, idx) => ({
+    () => panes.map((_55, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -22464,7 +22593,7 @@ var MultiPaneLayout = ({ children }) => {
   ) });
 };
 var { Title: Title7 } = antd.Typography;
-var _46 = window._ || ((text) => text);
+var _48 = window._ || ((text) => text);
 var HierarchyView = ({ resource, recordId, fallback }) => {
   const go = core.useGo();
   const { data: ancestorsData, isLoading: ancestorsLoading, error: ancestorsError } = core.useCustom({
@@ -22517,15 +22646,15 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
   }
   if (ancestorsError || descendantsError) {
     if (fallback) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: fallback });
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { message: _46("Error loading hierarchy data"), type: "error" });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { message: _48("Error loading hierarchy data"), type: "error" });
   }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     ancestorsList.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(Title7, { level: 5, children: _46("Parent Hierarchy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(Title7, { level: 5, children: _48("Parent Hierarchy") }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Breadcrumb, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsxRuntime.jsx(antd.Breadcrumb.Item, { children: /* @__PURE__ */ jsxRuntime.jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
     ] }),
     treeData.length > 0 && /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-      /* @__PURE__ */ jsxRuntime.jsx(Title7, { level: 5, children: _46("Sub-hierarchy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(Title7, { level: 5, children: _48("Sub-hierarchy") }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.Tree,
         {
@@ -22630,7 +22759,7 @@ var TOKEN_KEY2 = "jm_access_token";
 var USER_KEY2 = "jm_user";
 var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
 var RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
-var _47 = window._ || ((text) => text);
+var _49 = window._ || ((text) => text);
 var authProvider = {
   /**
    * Authenticate by username + password.
@@ -22648,8 +22777,8 @@ var authProvider = {
         return {
           success: false,
           error: {
-            name: _47("Login failed"),
-            message: body?.detail || _47("Invalid credentials")
+            name: _49("Login failed"),
+            message: body?.detail || _49("Invalid credentials")
           }
         };
       }
@@ -22681,8 +22810,8 @@ var authProvider = {
       return {
         success: false,
         error: {
-          name: _47("Login failed"),
-          message: err?.message || _47("Network error")
+          name: _49("Login failed"),
+          message: err?.message || _49("Network error")
         }
       };
     }
@@ -22763,7 +22892,7 @@ var authProvider = {
 var USER_KEY3 = "jm_user";
 var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
 var RESOURCE_PERMISSIONS_KEY2 = "jm_resource_permissions";
-var _48 = window._ || ((text) => text);
+var _50 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
   Admin: ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
   Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
@@ -22795,13 +22924,13 @@ var accessControlProvider = {
   can: async ({ action, resource }) => {
     const cached = localStorage.getItem(USER_KEY3);
     if (!cached) {
-      return { can: false, reason: _48("Not authenticated") };
+      return { can: false, reason: _50("Not authenticated") };
     }
     let user;
     try {
       user = JSON.parse(cached);
     } catch {
-      return { can: false, reason: _48("Not authenticated") };
+      return { can: false, reason: _50("Not authenticated") };
     }
     const roles = user?.roles ?? [];
     if (roles.some((r) => r.toLowerCase() === "admin")) {
@@ -22827,7 +22956,7 @@ var accessControlProvider = {
     }
     return {
       can: false,
-      reason: _48("Access denied \u2014 insufficient role for this action")
+      reason: _50("Access denied \u2014 insufficient role for this action")
     };
   },
   options: {
@@ -22929,7 +23058,7 @@ var ResourceContext = React6.createContext({
   allResources: [],
   allSystemModels: []
 });
-var _49 = window._ || ((text) => text);
+var _51 = window._ || ((text) => text);
 var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
   const { mutate: login, isLoading, error } = core.useLogin();
   const [form] = antd.Form.useForm();
@@ -22958,14 +23087,14 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { textAlign: "center" }, children: [
               logo && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 8 }, children: typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle, style: { height: 48, width: "auto" } }) : logo }),
               /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 3, style: { marginBottom: 4 }, children: appTitle }),
-              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _49("Sign in to your account") })
+              /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _51("Sign in to your account") })
             ] }),
             error && /* @__PURE__ */ jsxRuntime.jsx(
               antd.Alert,
               {
                 type: "error",
-                message: error?.name || _49("Login failed"),
-                description: error?.message || _49("Invalid credentials"),
+                message: error?.name || _51("Login failed"),
+                description: error?.message || _51("Invalid credentials"),
                 showIcon: true
               }
             ),
@@ -22981,13 +23110,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     antd.Form.Item,
                     {
                       name: "username",
-                      label: _49("Username"),
-                      rules: [{ required: true, message: _49("Please enter your username") }],
+                      label: _51("Username"),
+                      rules: [{ required: true, message: _51("Please enter your username") }],
                       children: /* @__PURE__ */ jsxRuntime.jsx(
                         antd.Input,
                         {
                           prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UserOutlined, {}),
-                          placeholder: _49("Username"),
+                          placeholder: _51("Username"),
                           size: "large"
                         }
                       )
@@ -22997,13 +23126,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     antd.Form.Item,
                     {
                       name: "password",
-                      label: _49("Password"),
-                      rules: [{ required: true, message: _49("Please enter your password") }],
+                      label: _51("Password"),
+                      rules: [{ required: true, message: _51("Please enter your password") }],
                       children: /* @__PURE__ */ jsxRuntime.jsx(
                         antd.Input.Password,
                         {
                           prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
-                          placeholder: _49("Password"),
+                          placeholder: _51("Password"),
                           size: "large"
                         }
                       )
@@ -23017,7 +23146,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                       loading: isLoading,
                       block: true,
                       size: "large",
-                      children: _49("Login")
+                      children: _51("Login")
                     }
                   ) })
                 ]
@@ -23079,7 +23208,7 @@ function useHelpContent(pageKey) {
   };
   return { loading, doc, fetchContent };
 }
-var _50 = window._ || ((text) => text);
+var _52 = window._ || ((text) => text);
 var ReactMarkdown4 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardCellHelp = ({ resource }) => {
   const { token } = antd.theme.useToken();
@@ -23099,14 +23228,14 @@ var DashboardCellHelp = ({ resource }) => {
       antd.Empty,
       {
         image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _50("No help written for this cell yet."),
+        description: _52("No help written for this cell yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "link",
             size: "small",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _50("Write help for this")
+            children: _52("Write help for this")
           }
         )
       }
@@ -23126,15 +23255,15 @@ var DashboardCellHelp = ({ resource }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _50("Dashboard cell help"),
-          title: _50("Dashboard cell help"),
+          "aria-label": _52("Dashboard cell help"),
+          title: _52("Dashboard cell help"),
           style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
         }
       )
     }
   );
 };
-var _51 = window._ || ((text) => text);
+var _53 = window._ || ((text) => text);
 var ReactMarkdown5 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardTabHelp = ({ tabId }) => {
   const navigate = reactRouterDom.useNavigate();
@@ -23153,14 +23282,14 @@ var DashboardTabHelp = ({ tabId }) => {
       antd.Empty,
       {
         image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _51("No help written for this tab yet."),
+        description: _53("No help written for this tab yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "link",
             size: "small",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _51("Write help for this")
+            children: _53("Write help for this")
           }
         )
       }
@@ -23180,8 +23309,8 @@ var DashboardTabHelp = ({ tabId }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _51("Dashboard tab help"),
-          title: _51("Dashboard tab help"),
+          "aria-label": _53("Dashboard tab help"),
+          title: _53("Dashboard tab help"),
           onClick: (e) => e.stopPropagation(),
           style: { padding: "0 2px", height: 18, minWidth: 18 }
         }
@@ -23625,7 +23754,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_53, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_55, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -23906,7 +24035,7 @@ var PinnedRecordsPanel = () => {
   ] });
 };
 var { Text: Text4 } = antd.Typography;
-var _52 = window._ || ((text) => text);
+var _54 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
   const { token } = antd.theme.useToken();
@@ -23936,7 +24065,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const tabs = [
     {
       key: "models_grid",
-      label: _52("Models Grid"),
+      label: _54("Models Grid"),
       children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
         ViewsGrid,
         {
@@ -23950,12 +24079,12 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     },
     {
       key: "recent_activity",
-      label: _52("Recent Activity"),
+      label: _54("Recent Activity"),
       children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsxRuntime.jsx(RecentActivityPanel, {}) })
     },
     {
       key: "pinned_records",
-      label: _52("Pinned Records"),
+      label: _54("Pinned Records"),
       children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsxRuntime.jsx(PinnedRecordsPanel, {}) })
     }
   ];

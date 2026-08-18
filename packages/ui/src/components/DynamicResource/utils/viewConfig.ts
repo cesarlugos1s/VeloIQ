@@ -464,6 +464,7 @@ const FIELD_VIEW_TYPE_TOKENS = new Set([
     "read-only-color", "editable-color",
     "read-only-code", "editable-code",
     "read-only-image-url", "editable-image-url",
+    "read-only-storage-field", "editable-storage-field",
     "read-only-qrcode",
     "read-only-relative",
     "read-only-truncated-text",

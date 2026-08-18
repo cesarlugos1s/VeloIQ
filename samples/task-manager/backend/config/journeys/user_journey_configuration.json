@@ -29700,6 +29700,1185 @@
             },
             "transitions": [],
             "module": null
+        },
+        "j-79035cea": {
+            "journey_id": "j-79035cea",
+            "name": "Journey j-79035cea",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-add-c1f1d580": {
+            "journey_id": "ai-add-c1f1d580",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-unrelated-b31993ad": {
+            "journey_id": "ai-unrelated-b31993ad",
+            "name": "Unrelated Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "o1",
+            "steps": {
+                "o1": {
+                    "step_id": "o1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-precedence-1b263585": {
+            "journey_id": "ai-precedence-1b263585",
+            "name": "Saved Version",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "saved1",
+            "steps": {
+                "saved1": {
+                    "step_id": "saved1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-replace-7ca78d92": {
+            "journey_id": "ai-replace-7ca78d92",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-c2bff0c9": {
+            "journey_id": "j-c2bff0c9",
+            "name": "Journey j-c2bff0c9",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-c8782ac7": {
+            "journey_id": "j-c8782ac7",
+            "name": "Journey j-c8782ac7",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-92dacbb4": {
+            "journey_id": "j-92dacbb4",
+            "name": "Journey j-92dacbb4",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-87030e11": {
+            "journey_id": "j-87030e11",
+            "name": "Updated Name",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-c076a33b": {
+            "journey_id": "j-c076a33b",
+            "name": "Journey j-c076a33b",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-f3a96adb": {
+            "journey_id": "inst-f3a96adb",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-65b0fb1f": {
+            "journey_id": "inst-65b0fb1f",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-f4fc80ed": {
+            "journey_id": "inst-f4fc80ed",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-699777ee": {
+            "journey_id": "inst-699777ee",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-d4a02fab": {
+            "journey_id": "inst-d4a02fab",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-8b58811b": {
+            "journey_id": "inst-8b58811b",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-bec7d778": {
+            "journey_id": "inst-bec7d778",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-99f255ab": {
+            "journey_id": "inst-99f255ab",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-46cdf51d": {
+            "journey_id": "inst-46cdf51d",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-add-279d3d45": {
+            "journey_id": "ai-add-279d3d45",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-unrelated-a69a66e9": {
+            "journey_id": "ai-unrelated-a69a66e9",
+            "name": "Unrelated Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "o1",
+            "steps": {
+                "o1": {
+                    "step_id": "o1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-precedence-665afe82": {
+            "journey_id": "ai-precedence-665afe82",
+            "name": "Saved Version",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "saved1",
+            "steps": {
+                "saved1": {
+                    "step_id": "saved1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-replace-9a6b4a79": {
+            "journey_id": "ai-replace-9a6b4a79",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-537b4349": {
+            "journey_id": "j-537b4349",
+            "name": "Journey j-537b4349",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-c05598be": {
+            "journey_id": "j-c05598be",
+            "name": "Journey j-c05598be",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-9d074477": {
+            "journey_id": "j-9d074477",
+            "name": "Journey j-9d074477",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-62e8a2dc": {
+            "journey_id": "j-62e8a2dc",
+            "name": "Updated Name",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-01847469": {
+            "journey_id": "j-01847469",
+            "name": "Journey j-01847469",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-ba44a564": {
+            "journey_id": "inst-ba44a564",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-827af6ab": {
+            "journey_id": "inst-827af6ab",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-d9db8c45": {
+            "journey_id": "inst-d9db8c45",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-aff52575": {
+            "journey_id": "inst-aff52575",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-e85dabf4": {
+            "journey_id": "inst-e85dabf4",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-27385ed6": {
+            "journey_id": "inst-27385ed6",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-ab5bc30e": {
+            "journey_id": "inst-ab5bc30e",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-df80781a": {
+            "journey_id": "inst-df80781a",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-4569833c": {
+            "journey_id": "inst-4569833c",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-add-8075062e": {
+            "journey_id": "ai-add-8075062e",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-unrelated-e4e15bae": {
+            "journey_id": "ai-unrelated-e4e15bae",
+            "name": "Unrelated Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "o1",
+            "steps": {
+                "o1": {
+                    "step_id": "o1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-precedence-837504bf": {
+            "journey_id": "ai-precedence-837504bf",
+            "name": "Saved Version",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "saved1",
+            "steps": {
+                "saved1": {
+                    "step_id": "saved1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "ai-replace-57f33fba": {
+            "journey_id": "ai-replace-57f33fba",
+            "name": "Base Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-a15efe26": {
+            "journey_id": "j-a15efe26",
+            "name": "Journey j-a15efe26",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-87a3f8a3": {
+            "journey_id": "j-87a3f8a3",
+            "name": "Journey j-87a3f8a3",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-ba85a506": {
+            "journey_id": "j-ba85a506",
+            "name": "Journey j-ba85a506",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-fcd6eafd": {
+            "journey_id": "j-fcd6eafd",
+            "name": "Updated Name",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "j-2b33c6eb": {
+            "journey_id": "j-2b33c6eb",
+            "name": "Journey j-2b33c6eb",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "s1",
+            "steps": {
+                "s1": {
+                    "step_id": "s1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-ff8a90a3": {
+            "journey_id": "inst-ff8a90a3",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-0cb2d199": {
+            "journey_id": "inst-0cb2d199",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-00b45923": {
+            "journey_id": "inst-00b45923",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-c16e1562": {
+            "journey_id": "inst-c16e1562",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-6bdfa8b0": {
+            "journey_id": "inst-6bdfa8b0",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-a8629186": {
+            "journey_id": "inst-a8629186",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-86046c48": {
+            "journey_id": "inst-86046c48",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-deaeb295": {
+            "journey_id": "inst-deaeb295",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
+        },
+        "inst-852d8bba": {
+            "journey_id": "inst-852d8bba",
+            "name": "Instance Test Journey",
+            "description": "",
+            "allowed_roles": [],
+            "start_step_id": "step-1",
+            "steps": {
+                "step-1": {
+                    "step_id": "step-1",
+                    "model_name": "Project",
+                    "view_type": "show",
+                    "step_description": "",
+                    "ui_overrides": null
+                },
+                "step-2": {
+                    "step_id": "step-2",
+                    "model_name": "Project",
+                    "view_type": "edit",
+                    "step_description": "",
+                    "ui_overrides": null
+                }
+            },
+            "transitions": [],
+            "module": null
         }
     }
 }
