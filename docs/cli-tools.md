@@ -322,7 +322,7 @@ Answering **Y** runs:
 
 This ensures the database column is created immediately, avoiding the `OperationalError: no such column` error when the backend restarts.
 
-> **Note:** New models created with `veloiq add-module` do not require explicit migrations — VeloIQ calls `SQLModel.metadata.create_all()` on startup, which creates missing tables automatically. Migrations are only needed when adding columns to **existing** tables.
+> **Note:** VeloIQ calls `SQLModel.metadata.create_all()` on startup as a convenience, but only *before* Alembic has ever tracked the database — the moment an `alembic_version` table exists (which happens the first time `veloiq db upgrade` runs, including the initial migration `veloiq new` generates automatically), that auto-create-all is permanently disabled for that database to avoid migration-history divergence. In practice this means: run `veloiq db migrate -m "..."` then `veloiq db upgrade` after **every** model change — new models included, not just new columns on existing tables — or you'll hit `OperationalError: no such table`.
 
 **Type reference:**
 

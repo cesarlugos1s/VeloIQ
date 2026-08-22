@@ -36,7 +36,11 @@ veloiq add-module <name> --with-admin # also create admin/admin_views.py stub
 # After adding or changing any model, or after installing an extension package
 veloiq generate            # regenerates api.py + frontend TypeScript schemas;
                            # also syncs schemas from any installed extension packages
-veloiq db upgrade          # applies Alembic migration
+veloiq db migrate -m "..." # generates an Alembic revision for the change — skip
+                           # this only if you already accepted the interactive
+                           # migration prompt from add-model/add-field/add-relation
+veloiq db upgrade          # applies the migration — without a revision to apply,
+                           # this is a silent no-op and the new table won't exist
 
 # If alembic.ini is missing (project built without `veloiq new`)
 veloiq db init             # copies Alembic scaffold into backend/; run once
@@ -62,7 +66,9 @@ veloiq add-licensing       # scaffolds app/modules/license/ + frontend/src/pages
 1. `veloiq add-module <name>` — creates the module skeleton
 2. Edit `backend/app/modules/<name>/models.py` — define your SQLModel fields
 3. `veloiq generate` — regenerates `api.py` and frontend schemas
-4. `veloiq db upgrade` — creates the database table
+4. `veloiq db migrate -m "..."` then `veloiq db upgrade` — generates and applies
+   the Alembic migration that actually creates the database table (`db upgrade`
+   alone does nothing without a revision to apply)
 5. Add custom endpoints in `custom_api.py` (import `router` from `api.py`) — file is already created
 6. Edit `frontend/src/navigation.config.json` to set menu label, icon, and display order
 

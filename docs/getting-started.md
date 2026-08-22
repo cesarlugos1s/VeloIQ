@@ -136,8 +136,9 @@ You never edit `api.py` or the `*.gen.ts` files.  Re-run `veloiq generate` whene
 
 ```bash
 pip install -r requirements.txt
-veloiq db upgrade          # creates tables
-veloiq run                 # starts at http://localhost:8000
+veloiq db migrate -m "add products"  # generates the Alembic revision for the new model
+veloiq db upgrade                    # applies it — creates the table
+veloiq run                           # starts at http://localhost:8000
 ```
 
 - API docs: http://localhost:8000/docs

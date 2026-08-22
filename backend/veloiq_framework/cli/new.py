@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from veloiq_framework.cli.configure_db import _build_database_url
+from veloiq_framework.cli.configure_db import _build_database_url, _check_driver_installed
 
 
 SCAFFOLD_DIR = Path(__file__).resolve().parents[1] / "scaffold"
@@ -88,6 +88,11 @@ def new(app_name: str, title: str | None, port: int, frontend_port: int,
         user=db_user,
         password=db_password,
     )
+
+    # Fail fast here — before scaffolding anything — if the chosen dialect's
+    # driver isn't installed, instead of silently writing a DATABASE_URL that
+    # only breaks later at `veloiq db upgrade` / `veloiq run` time.
+    _check_driver_installed(database_url, db_type)
 
     tokens = {
         "{{app_name}}": app_name,
@@ -195,6 +200,45 @@ def new(app_name: str, title: str | None, port: int, frontend_port: int,
         if result.returncode != 0 and result.stderr:
             for line in result.stderr.strip().splitlines():
                 click.echo(f"  {line}")
+
+    # ── Automatic initial migration ─────────────────────────────────────────
+    # A freshly scaffolded app has an empty alembic/versions/ — with no
+    # revision to apply, `veloiq db upgrade` silently does nothing, and the
+    # very first `veloiq run` then crashes with "no such table: veloiq_role"
+    # (the framework's own auth tables were never migrated). Generate and
+    # apply that first migration now so the app is actually runnable
+    # immediately, matching what the "Next steps" below promise.
+    click.echo("\n  Running: veloiq db migrate -m \"initial\" && veloiq db upgrade\n")
+    if veloiq_bin:
+        result = subprocess.run(
+            [veloiq_bin, "db", "migrate", "-m", "initial"],
+            cwd=str(backend_dir),
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                click.echo(f"  {line}")
+        if result.returncode != 0:
+            if result.stderr:
+                for line in result.stderr.strip().splitlines():
+                    click.echo(f"  {line}")
+            click.echo("  ⚠️  Could not auto-generate the initial migration — run `veloiq db migrate -m \"initial\"` and `veloiq db upgrade` manually once the database is reachable.")
+        else:
+            result = subprocess.run(
+                [veloiq_bin, "db", "upgrade"],
+                cwd=str(backend_dir),
+                capture_output=True,
+                text=True,
+            )
+            if result.stdout:
+                for line in result.stdout.strip().splitlines():
+                    click.echo(f"  {line}")
+            if result.returncode != 0:
+                if result.stderr:
+                    for line in result.stderr.strip().splitlines():
+                        click.echo(f"  {line}")
+                click.echo("  ⚠️  Could not apply the initial migration — run `veloiq db upgrade` manually once the database is reachable.")
 
     # ── Automatic veloiq build ────────────────────────────────────────────────
     # Production mode (`veloiq run` serving frontend + API on one port) needs

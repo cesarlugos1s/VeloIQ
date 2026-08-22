@@ -89,6 +89,7 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23",
     "httpx>=0.26",
+    "playwright>=1.40",
     "ruff>=0.3",
     "mypy>=1.8",
 ]
@@ -133,4 +134,7 @@ ignore = ["E501"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "--junit-xml=tests/results.xml --html=tests/results.html --self-contained-html"
-markers = ["slow: end-to-end CLI tests (deselected by default in run_tests.sh)"]
+markers = [
+    "slow: end-to-end CLI tests (deselected by default in run_tests.sh)",
+    "e2e: full-lifecycle CLI + real-server + browser tests (run by run_tests.sh)",
+]

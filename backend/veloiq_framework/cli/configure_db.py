@@ -54,6 +54,8 @@ def configure_db(db_type, db_host, db_port, db_name, db_user, db_password, db_ur
     else:
         database_url = _build_database_url(db_type, db_host, db_port, db_name, db_user, db_password)
 
+    _check_driver_installed(database_url, db_type)
+
     # Locate the .env file (prefer backend/.env, then .env)
     env_path = root / "backend" / ".env"
     if not env_path.exists():
@@ -117,6 +119,50 @@ _DIALECT_DRIVER_MAP = {
     "clickhouse": "clickhouse",
     "bigquery":   "bigquery",
 }
+
+
+# Friendly pip package name for the driver each non-built-in dialect needs.
+# sqlite & postgresql (via psycopg2) ship with the framework's own
+# dependencies, so they're never in this map.
+_DRIVER_PACKAGE_HINTS = {
+    "mysql": "pymysql",
+    "mariadb": "pymysql",
+    "mssql": "pyodbc",
+    "oracle": "oracledb",
+    "db2": "ibm-db-sa",
+    "informix": "IfxAlchemy",
+    "snowflake": "snowflake-sqlalchemy",
+    "duckdb": "duckdb-engine",
+    "clickhouse": "clickhouse-sqlalchemy",
+    "bigquery": "sqlalchemy-bigquery",
+}
+
+
+def _check_driver_installed(database_url: str, db_type: str) -> None:
+    """Fail fast if the SQLAlchemy dialect/driver for *database_url* isn't installed.
+
+    Without this, a URL like ``informix://...`` looks like a normal, valid
+    DATABASE_URL right up until ``veloiq db upgrade`` or ``veloiq run``
+    actually tries to connect — sometimes minutes or commits later — and
+    fails with an opaque ``NoSuchModuleError`` deep in a stack trace instead
+    of a clear message at the point the dialect was chosen.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.exc import NoSuchModuleError
+
+    try:
+        create_engine(database_url)
+    except (NoSuchModuleError, ModuleNotFoundError, ImportError) as exc:
+        base_dialect = db_type.lower().split("+", 1)[0]
+        package = _DRIVER_PACKAGE_HINTS.get(base_dialect)
+        click.echo(
+            f"❌  Can't load the SQLAlchemy driver for '{db_type}': {exc}\n"
+            + (f"    Install it first:  pip install {package}\n" if package else
+               "    Install the matching driver package first.\n")
+            + "    Then re-run this command.",
+            err=True,
+        )
+        raise SystemExit(1)
 
 
 def _resolve_dialect_driver(db_type: str) -> str:
