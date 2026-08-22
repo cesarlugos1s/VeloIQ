@@ -1886,6 +1886,13 @@ def _jm_guard_duplicate_plotly_container_ids(html_embeddable_plot: str) -> str:
     return html_embeddable_plot
 
 
+# Vendored Plotly.js runtime (backend/veloiq_framework/static_assets/plotly.min.js),
+# served at this fixed path in every host app regardless of which extensions are
+# enabled — used instead of the cdn.plot.ly CDN so chart rendering never depends on
+# internet access.
+_JM_LOCAL_PLOTLY_URL = "/veloiq-assets/plotly.min.js"
+
+
 def jm_get_plotly_chart_embeddable_html(html_embeddable_plot):
     """
     Generates the HTML for Plotly chart embedding.
@@ -1902,7 +1909,7 @@ def jm_get_plotly_chart_embeddable_html(html_embeddable_plot):
 
     plotly_chart_embeddable_html = (
             '<div>'
-            '<script src="https://cdn.plot.ly/plotly-3.1.2.min.js"></script> '
+            f'<script src="{_JM_LOCAL_PLOTLY_URL}"></script> '
             + guarded_plot_html +
             '</div>'
     )
@@ -2123,7 +2130,7 @@ def _jm_wrap_plotly_inline_script(script_body: str) -> str:
         "    var existing = document.querySelector('script[data-jm-plotly-loader=\"1\"]');\n"
         "    if (existing) return;\n"
         "    var s = document.createElement('script');\n"
-        "    s.src = 'https://cdn.plot.ly/plotly-3.1.2.min.js';\n"
+        f"    s.src = '{_JM_LOCAL_PLOTLY_URL}';\n"
         "    s.async = true;\n"
         "    s.setAttribute('data-jm-plotly-loader', '1');\n"
         "    document.head.appendChild(s);\n"
@@ -2192,7 +2199,10 @@ def jm_satinize_custom_html(raw_html: str, apply_sanitization: bool = False) -> 
     _JM_SCRIPT_TAG_RE = re.compile(r"(?is)<script\b([^>]*)>(.*?)</script>")
     _JM_SCRIPT_SRC_RE = re.compile(r'(?is)\bsrc=["\']?([^"\'>\s]+)["\']?')
     _JM_UNQUOTED_ATTR_RE = re.compile(r'(?i)\b(href|src)=([^\s"\'>]+)')
-    _JM_PLOTLY_CDN_HOSTS = ("cdn.plot.ly",)
+    # Allow-lists the local vendored Plotly script src (see _JM_LOCAL_PLOTLY_URL)
+    # so it survives sanitization; retains the legacy CDN host too in case any
+    # already-cached/stored HTML still references it.
+    _JM_PLOTLY_SCRIPT_SRC_ALLOWLIST = (_JM_LOCAL_PLOTLY_URL, "cdn.plot.ly")
     # Only wrap scripts that actually invoke a Plotly rendering API. A loose
     # substring match (e.g. "Plotly" in body) falsely matches scripts that
     # merely reference `window.Plotly` for feature detection (like our flipping
@@ -2216,7 +2226,7 @@ def jm_satinize_custom_html(raw_html: str, apply_sanitization: bool = False) -> 
         src_match = _JM_SCRIPT_SRC_RE.search(attrs)
         if src_match:
             src = src_match.group(1)
-            if any(host in src for host in _JM_PLOTLY_CDN_HOSTS):
+            if any(host in src for host in _JM_PLOTLY_SCRIPT_SRC_ALLOWLIST):
                 return f"<script{attrs}>{body}</script>"
             return ""
 

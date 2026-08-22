@@ -122,6 +122,18 @@ def create_veloiq_app(
     if cfg.static_dir and Path(cfg.static_dir).exists():
         app.mount("/static", StaticFiles(directory=str(cfg.static_dir)), name="static")
 
+    # ── Core framework assets (/veloiq-assets/) ─────────────────────────────────
+    # Unconditional, extension-independent static mount for framework-shipped
+    # assets (e.g. the vendored Plotly.js runtime) that shared UI components
+    # need regardless of which extensions a host app has enabled.
+    _core_assets_dir = Path(__file__).parent / "static_assets"
+    if _core_assets_dir.exists():
+        app.mount(
+            "/veloiq-assets",
+            StaticFiles(directory=str(_core_assets_dir)),
+            name="veloiq_assets",
+        )
+
     # ── Extension static bundles (/ext/{name}/) ───────────────────────────────
     for ext in extensions:
         static_path = ext.resolved_static_dir()

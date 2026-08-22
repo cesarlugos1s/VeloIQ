@@ -116,6 +116,7 @@ include = ["veloiq_framework*"]
     "alembic_scaffold.ini",
     "studio/static/index.html",
     "studio/static/assets/*",
+    "static_assets/*",
 ]
 
 # ── Ruff (linting) ────────────────────────────────────────────────────────────

@@ -3,6 +3,10 @@ import React, { useEffect, useRef } from "react";
 let instanceCounter = 0;
 
 // Global Plotly loader — avoids duplicate <script> tags across component instances.
+// Loads the vendored runtime from the framework's core static mount
+// (backend/veloiq_framework/static_assets/plotly.min.js, served at
+// /veloiq-assets/plotly.min.js in every host app) instead of the cdn.plot.ly CDN,
+// so chart rendering never depends on internet access.
 let _plotlyLoadPromise: Promise<void> | null = null;
 const ensurePlotly = (): Promise<void> => {
     if ((window as any).Plotly) return Promise.resolve();
@@ -14,7 +18,7 @@ const ensurePlotly = (): Promise<void> => {
             return;
         }
         const s = document.createElement('script');
-        s.src = 'https://cdn.plot.ly/plotly-3.1.2.min.js';
+        s.src = '/veloiq-assets/plotly.min.js';
         s.async = true;
         s.setAttribute('data-jm-plotly-loader', '1');
         s.onload = () => resolve();
@@ -45,9 +49,11 @@ export const InlinePlotlyHtml: React.FC<{
     }
     const instanceId = instanceIdRef.current;
 
-    // Strip Plotly CDN script tags — Plotly.js is loaded globally via index.html
+    // Strip the vendored/local (and, for any already-cached older HTML, CDN)
+    // Plotly loader <script src="..."> tag — Plotly.js is loaded once globally
+    // via ensurePlotly() above instead.
     let cleanedHtml = html.replace(
-        /<script[^>]*src=["'][^"']*cdn\.plot\.ly[^"']*["'][^>]*><\/script>/gi,
+        /<script[^>]*src=["'][^"']*(?:cdn\.plot\.ly|\/veloiq-assets\/plotly\.min\.js)[^"']*["'][^>]*><\/script>/gi,
         "",
     );
 

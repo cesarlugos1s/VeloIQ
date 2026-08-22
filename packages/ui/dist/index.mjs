@@ -8506,7 +8506,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
   }, []);
   const inlineHtml = useMemo(
     () => (html || "").replace(
-      /<script\b[^>]*\bsrc=["']?[^"'>]*cdn\.plot\.ly[^"'>]*["']?[^>]*><\/script>/gi,
+      /<script\b[^>]*\bsrc=["']?[^"'>]*(?:cdn\.plot\.ly|\/veloiq-assets\/plotly\.min\.js)[^"'>]*["']?[^>]*><\/script>/gi,
       ""
     ),
     [html]
@@ -22653,7 +22653,7 @@ var ensurePlotly = () => {
       return;
     }
     const s = document.createElement("script");
-    s.src = "https://cdn.plot.ly/plotly-3.1.2.min.js";
+    s.src = "/veloiq-assets/plotly.min.js";
     s.async = true;
     s.setAttribute("data-jm-plotly-loader", "1");
     s.onload = () => resolve();
@@ -22671,7 +22671,7 @@ var InlinePlotlyHtml = ({ html, style }) => {
   }
   const instanceId = instanceIdRef.current;
   let cleanedHtml = html.replace(
-    /<script[^>]*src=["'][^"']*cdn\.plot\.ly[^"']*["'][^>]*><\/script>/gi,
+    /<script[^>]*src=["'][^"']*(?:cdn\.plot\.ly|\/veloiq-assets\/plotly\.min\.js)[^"']*["'][^>]*><\/script>/gi,
     ""
   );
   cleanedHtml = cleanedHtml.replace(
