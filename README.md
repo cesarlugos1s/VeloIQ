@@ -56,6 +56,24 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.10
+
+- **New** — `veloiq new`/`veloiq configure-db` fail fast with an actionable
+  message when the chosen database dialect's driver isn't installed,
+  instead of silently scaffolding an app that only breaks later at
+  `db upgrade`/`run` time.
+- **New** — `veloiq new` now auto-generates and applies the initial
+  Alembic migration, so a fresh app's own auth tables exist before the
+  first `veloiq run`.
+- **New** — Storage Field UI widget (local + S3 presigned upload), a new
+  `veloiq worker` CLI command, and Plotly charts now render fully offline
+  (vendored locally instead of loaded from a CDN).
+- **Fix** — `veloiq run` now actually serves the built frontend at `/`
+  (was always 401ing), and a generated-schema merge-order bug that broke
+  manual field overrides and `tsc` in `veloiq build` is fixed.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.9
 
 - **New** — Framework-wide contextual Help drawer on every List/Show/

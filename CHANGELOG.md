@@ -2,6 +2,74 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.10] — 2026-08-22
+
+### New
+
+- **Fail-fast database driver validation** — `veloiq new` and
+  `veloiq configure-db` now verify the chosen dialect's SQLAlchemy driver
+  is actually importable right after building `DATABASE_URL`, aborting
+  immediately with an actionable `pip install <package>` message. Previously
+  an unsupported/uninstalled dialect (e.g. `--db-type informix` without
+  `IfxAlchemy`) looked like a normal, successfully scaffolded app and only
+  failed much later, at `veloiq db upgrade` or `veloiq run` time, with an
+  opaque `NoSuchModuleError` deep in a stack trace.
+- **`veloiq new` auto-generates and applies the initial migration** — a
+  freshly scaffolded app previously had an empty `alembic/versions/`, so
+  `veloiq db upgrade` silently applied nothing and the very first
+  `veloiq run` crashed with `no such table: veloiq_role`. `veloiq new` now
+  runs `veloiq db migrate -m "initial"` and `veloiq db upgrade`
+  automatically, matching its existing auto-generate/auto-build steps.
+- **Storage Field UI widget** — upload/download widget for Advanced
+  Development's declarative `StorageField`, supporting both its local
+  direct-upload and S3 presigned-upload backends.
+- **`veloiq worker` CLI command** — canonical entrypoint that delegates to
+  the installed job-queue extension's worker loop.
+- **Offline chart rendering** — `@juicemantics/veloiq-ui`'s Plotly-based
+  charts (dashboard cells, Analyse views, custom HTML views) previously
+  loaded Plotly.js from `cdn.plot.ly` at render time, so any host app
+  without internet access had charts silently fail to render. Plotly.js is
+  now vendored and served locally via a new unconditional `/veloiq-assets`
+  static mount.
+- **Full CLI-lifecycle end-to-end test** (`test_full_cli_lifecycle.py`,
+  `e2e` marker, run by `run_tests.sh`) drives an entire app lifecycle
+  through `veloiq` CLI commands only — `new`, `add-module`/`add-model`,
+  `add-field`, `add-relation`, `add-dashboard`, `search`, `generate`,
+  `db migrate`/`db upgrade`, `build`, and a real `veloiq run` subprocess
+  verified over HTTP and in a real Playwright browser — plus a regression
+  test for the driver-validation fix above.
+
+### Fixes
+
+- **`veloiq run`'s `serve_frontend` wiring** — `veloiq build` promised
+  "the UI is now served at `/`", but nothing actually set `serve_frontend`,
+  so `GET /` always returned 401 on a built app.
+- **Generated `*Schema.ts` merge order** — the template spread `...o`
+  *before* the merged fields/relations instead of after, silently
+  discarding any manually-overridden model field and breaking `tsc` during
+  `veloiq build`.
+- **`jm_log()` no longer crashes its caller** when the `[logging]` config
+  section is missing — previously a bare diagnostic logging call could
+  raise `configparser.NoSectionError` and take down whatever called it
+  (observed on every `veloiq run --reload` dev-server start).
+- Module/factory load failures now print the full traceback instead of
+  just the exception's `str()`, which was too little to identify the call
+  site for errors like a bare `NoSectionError` raised deep in a shared
+  helper.
+- Threaded a Show page's own record into an embedded `NLSentenceBlock` as
+  its target entity, so it can answer as related to that page's record
+  instead of always being unscoped.
+
+### Docs
+
+- Corrected the scaffolded `CLAUDE.md`, `getting-started.md`, and
+  `cli-tools.md`: `veloiq db migrate -m "..."` is required before
+  `veloiq db upgrade` for **any** model change, including brand-new
+  models, not just new columns on existing tables. The previous claim that
+  new tables auto-create on startup only held before Alembic ever tracked
+  the database — which, as of the auto-migration fix above, now happens
+  from the very first `veloiq new`.
+
 ## [0.9.9] — 2026-07-31
 
 ### New
