@@ -23400,7 +23400,7 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
   }
   return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" }, minScale });
 };
-var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, gridDensity, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
   const { token } = theme.useToken();
   const model = findModelByName(allModels, cell.model);
   const cellRef = useRef(null);
@@ -23447,6 +23447,33 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name || cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
   const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
+  const isNlSentenceCell = isPlotlyChart && typeof cell.model === "string" && cell.model.toLowerCase().includes("nlsentence");
+  const initialScrollFraction = isModelLike ? 0.4 : isNlSentenceCell ? 0.1 : null;
+  const cellBodyRef = useRef(null);
+  useEffect(() => {
+    if (initialScrollFraction === null) return;
+    const body = cellBodyRef.current;
+    if (!body) return;
+    let applied = false;
+    let settleTimer = null;
+    const applyInitialScroll = () => {
+      if (applied || body.scrollHeight <= body.clientHeight) return;
+      applied = true;
+      body.scrollTop = Math.round((body.scrollHeight - body.clientHeight) * initialScrollFraction);
+      observer.disconnect();
+    };
+    const scheduleApply = () => {
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(applyInitialScroll, 250);
+    };
+    const observer = new ResizeObserver(scheduleApply);
+    observer.observe(body);
+    scheduleApply();
+    return () => {
+      if (settleTimer) clearTimeout(settleTimer);
+      observer.disconnect();
+    };
+  }, [initialScrollFraction, resource, gridDensity]);
   const startResize = useCallback((e, dir) => {
     e.preventDefault();
     e.stopPropagation();
@@ -23602,7 +23629,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) })
       ] })
     ] }),
-    !isMinimized && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce, minScale: cardMinScale }) : model ? /* @__PURE__ */ jsx(
+    !isMinimized && /* @__PURE__ */ jsx("div", { ref: cellBodyRef, style: { flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce, minScale: cardMinScale }) : model ? /* @__PURE__ */ jsx(
       DynamicList,
       {
         model,
@@ -23712,6 +23739,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
           isMinimized: minimizedCellIds.has(cell.id),
           canConfigureLayout,
           cardMinScale,
+          gridDensity,
           onConfigure: () => onConfigure(cell),
           onMaximize: () => onMaximize(cell.id),
           onMinimize: () => onMinimize(cell.id),

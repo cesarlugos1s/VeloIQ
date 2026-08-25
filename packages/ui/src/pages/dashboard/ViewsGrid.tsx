@@ -172,13 +172,19 @@ const DashboardGridCell: React.FC<{
      * scroll — whereas a user who deliberately picked "Small" is choosing a
      * fixed size knowing content may not fully fit, so legibility wins there. */
     cardMinScale: number;
+    /** Cell-size slider's current step. Used only to re-trigger the
+     * initial-scroll effect below whenever the user changes it — a
+     * resize alone (e.g. switching between two fixed steps that share the
+     * same cardMinScale) wouldn't otherwise be distinguishable from any
+     * other resize the cell goes through while loading. */
+    gridDensity: GridDensity;
     onConfigure: () => void;
     onMaximize: () => void;
     onMinimize: () => void;
     onResize: (minWidth: string | null, minHeight: string | null) => void;
     onMove: (direction: "left" | "right" | "up" | "down") => void;
     cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
-}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
+}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, gridDensity, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
@@ -234,6 +240,70 @@ const DashboardGridCell: React.FC<{
 
     // Refresh nonce for plotly chart cells — incrementing triggers re-fetch
     const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
+
+    // Model-list cells stack a toolbar + a compact list preview above their
+    // own "Analyze" chart panel, so a cell short enough to need scrolling
+    // opens showing mostly toolbar/list and very little of the actual
+    // chart. Nudging the initial scroll position down reveals more chart
+    // right away, at the cost of the toolbar; this is a one-shot jump on
+    // first content settle, not a floor — later content changes or the
+    // user's own scrolling are left alone.
+    //
+    // IQVigilant's NL Sentence cells (source_type "plotly_chart", chart_url
+    // pointing at /nlsentence/{id}/chart) get the same treatment, but only
+    // need a small nudge past their own header — 10% rather than 40%.
+    // `cell.model` carries an "iqvigilant:nlsentence:{id}" identifier for
+    // these; there's no dedicated field for it since the framework treats
+    // all plotly_chart cells generically otherwise.
+    const isNlSentenceCell = isPlotlyChart && typeof cell.model === "string" && cell.model.toLowerCase().includes("nlsentence");
+    const initialScrollFraction = isModelLike ? 0.4 : isNlSentenceCell ? 0.1 : null;
+    const cellBodyRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (initialScrollFraction === null) return;
+        const body = cellBodyRef.current;
+        if (!body) return;
+
+        let applied = false;
+        let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const applyInitialScroll = () => {
+            if (applied || body.scrollHeight <= body.clientHeight) return;
+            applied = true;
+            // scrollTop ranges over [0, scrollHeight - clientHeight], not
+            // [0, scrollHeight] — the visible viewport's own height is
+            // already "on screen" and isn't part of the distance left to
+            // scroll through. Multiplying scrollHeight directly landed at a
+            // larger fraction of that actual range than intended (e.g. ~60%
+            // of the way down a track instead of 40%).
+            body.scrollTop = Math.round((body.scrollHeight - body.clientHeight) * initialScrollFraction);
+            observer.disconnect();
+        };
+
+        // The toolbar, list preview, and "Analyze" chart panel render in
+        // separate passes as their own data loads, so scrollHeight moves
+        // several times in quick succession before settling. Jumping on
+        // the first tick that merely has SOME overflow (e.g. once just the
+        // toolbar+list has loaded, before the chart adds its own height)
+        // set the scroll position too early — Chrome's scroll-anchoring
+        // then nudges scrollTop further as the chart's later growth gets
+        // inserted above it, so the two effects compounded into far more
+        // than 40%. Waiting for a short quiet period with no further
+        // resizes before jumping avoids racing that growth in the first
+        // place, rather than fighting the browser's own scroll-anchoring
+        // after the fact.
+        const scheduleApply = () => {
+            if (settleTimer) clearTimeout(settleTimer);
+            settleTimer = setTimeout(applyInitialScroll, 250);
+        };
+
+        const observer = new ResizeObserver(scheduleApply);
+        observer.observe(body);
+        scheduleApply();
+        return () => {
+            if (settleTimer) clearTimeout(settleTimer);
+            observer.disconnect();
+        };
+    }, [initialScrollFraction, resource, gridDensity]);
 
     // Resize via pointer drag on bottom / right / corner handles.
     const startResize = useCallback((
@@ -383,7 +453,7 @@ const DashboardGridCell: React.FC<{
                 </div>
             </div>
             {!isMinimized && (
-                <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+                <div ref={cellBodyRef} style={{ flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" }}>
                     {isPlotlyChart && cell.chart_url ? (
                         <PlotlyChartContent chartUrl={cell.chart_url} refreshNonce={chartRefreshNonce} minScale={cardMinScale} />
                     ) : model ? (
@@ -580,6 +650,7 @@ const DashboardTabContent: React.FC<{
                         isMinimized={minimizedCellIds.has(cell.id)}
                         canConfigureLayout={canConfigureLayout}
                         cardMinScale={cardMinScale}
+                        gridDensity={gridDensity}
                         onConfigure={() => onConfigure(cell)}
                         onMaximize={() => onMaximize(cell.id)}
                         onMinimize={() => onMinimize(cell.id)}
