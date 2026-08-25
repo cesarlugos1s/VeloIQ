@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { Refine, Authenticated } from "@refinedev/core";
 import { notificationProvider } from "@refinedev/antd";
-import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import routerProvider from "@refinedev/react-router-v6";
 import dataProvider from "@refinedev/simple-rest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ import {
     authSystemModels,
     helpSystemModels,
     DashboardPage,
+    LandingRedirect,
     LicenseGate,
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
@@ -140,7 +141,6 @@ export default function App() {
                         <ColorModeContextProvider>
                             <PrimaryShowContext.Provider value={PrimaryShowRenderer}>
                                 <Routes>
-                                    <Route path="/" element={<Navigate to={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "dashboard"}`} replace />} />
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route
                                         element={
@@ -152,6 +152,7 @@ export default function App() {
                                             </Authenticated>
                                         }
                                     >
+                                        <Route path="/" element={<LandingRedirect fallbackPath={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "dashboard"}`} />} />
                                         <Route path="/dashboard" element={<DashboardPage cellExtraActions={_globalListHeaderButtons} tabExtraActions={_globalDashboardTabHeaderActions} />} />
                                         {extensionRoutes.map((r) => (
                                             <Route key={r.path} path={r.path} element={

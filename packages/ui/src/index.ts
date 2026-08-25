@@ -70,6 +70,7 @@ export type { HelpContextValue } from "./contexts/HelpContext";
 export { LoginPage } from "./pages/auth/LoginPage";
 export type { LoginPageProps } from "./pages/auth/LoginPage";
 export { DashboardPage } from "./pages/dashboard/DashboardPage";
+export { LandingRedirect } from "./pages/dashboard/LandingRedirect";
 export { ViewsGrid } from "./pages/dashboard/ViewsGrid";
 export { SectionsGrid } from "./pages/dashboard/SectionsGrid";
 export { RecentActivityPanel } from "./pages/dashboard/RecentActivityPanel";

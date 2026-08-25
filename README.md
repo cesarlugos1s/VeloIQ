@@ -56,6 +56,15 @@ class Project(TimestampedModel, table=True):
 
 ---
 
+## What's New in v0.9.11
+
+- **New** — The Dashboard now becomes the app's landing page automatically
+  once it has at least one cell configured in any tab; apps with an empty
+  Dashboard keep landing on the first model page in the first module shown
+  in the menu.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## What's New in v0.9.10
 
 - **New** — `veloiq new`/`veloiq configure-db` fail fast with an actionable

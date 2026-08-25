@@ -2,6 +2,16 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [0.9.11] — 2026-08-25
+
+### New
+
+- **Dashboard-aware landing page** — host apps now land on the Dashboard on
+  login/root navigation when it has at least one cell configured in any tab;
+  otherwise they fall back to the first model page in the first module shown
+  in the menu, as before. New `LandingRedirect` component in
+  `@juicemantics/veloiq-ui`, wired into the scaffold's `App.tsx` `/` route.
+
 ## [0.9.10] — 2026-08-22
 
 ### New

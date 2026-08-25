@@ -5,7 +5,7 @@ import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, Conf
 import * as AntDIcons2 from '@ant-design/icons';
 import { SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, SettingOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, EyeOutlined, BugOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, FullscreenOutlined, MinusSquareOutlined, InboxOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { useNavigate, useLocation, useParams, useSearchParams, Link, UNSAFE_RouteContext } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import dayjs9 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
@@ -24304,6 +24304,14 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     ) })
   );
 };
+var LandingRedirect = ({ fallbackPath }) => {
+  const { config, enabled, loading } = useDashboardConfig();
+  if (loading) {
+    return /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }, children: /* @__PURE__ */ jsx(Spin, { size: "large" }) });
+  }
+  const hasCells = enabled && !!config?.tabs?.some((tab) => tab.cells.length > 0);
+  return /* @__PURE__ */ jsx(Navigate, { to: hasCells ? "/dashboard" : fallbackPath, replace: true });
+};
 
 // src/utils/generateResources.ts
 var humanizeModuleName = (moduleName) => {
@@ -24525,6 +24533,6 @@ var helpSystemModels = [
   }
 ];
 
-export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

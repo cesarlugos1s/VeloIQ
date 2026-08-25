@@ -24331,6 +24331,14 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     ) })
   );
 };
+var LandingRedirect = ({ fallbackPath }) => {
+  const { config, enabled, loading } = useDashboardConfig();
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "large" }) });
+  }
+  const hasCells = enabled && !!config?.tabs?.some((tab) => tab.cells.length > 0);
+  return /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Navigate, { to: hasCells ? "/dashboard" : fallbackPath, replace: true });
+};
 
 // src/utils/generateResources.ts
 var humanizeModuleName = (moduleName) => {
@@ -24573,6 +24581,7 @@ exports.HelpDrawer = HelpDrawer;
 exports.HierarchyView = HierarchyView;
 exports.HorizontalMenu = HorizontalMenu;
 exports.InlinePlotlyHtml = InlinePlotlyHtml;
+exports.LandingRedirect = LandingRedirect;
 exports.LayoutWrapper = LayoutWrapper;
 exports.LicenseGate = LicenseGate;
 exports.LoginPage = LoginPage;
