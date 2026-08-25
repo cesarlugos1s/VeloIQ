@@ -13,7 +13,7 @@ REPO_OWNER = "cesarlugos1s"
 REPO_NAME = "veloiq"
 PYPI_PACKAGE = "VeloIQ-framework"
 OUTPUT_FILE = "veloiq_traffic_history.csv"
-PYPI_CACHE_FILE = ".pypi_cache.json"
+PYPI_CACHE_FILE = ".veloiq_pypi_cache.json"
 
 CSV_HEADER = [
     "Date", "Total_Views", "Unique_Visitors", "Total_Clones", "Unique_Cloners",
@@ -21,10 +21,14 @@ CSV_HEADER = [
     "Stars", "Forks", "Open_Issues"
 ]
 
-def fetch_json(url, headers=None, retries=3):
-    """Fetches JSON payloads with exponential backoff delay for 429 rate limits
-    and transient 5xx errors (e.g. GitHub's traffic API occasionally returns
-    503 while it recomputes stats)."""
+def fetch_json(url, headers=None, retries=5, rate_limit_label="PyPI", max_backoff=128):
+    """Fetches JSON payloads, respecting HTTP 429 'Retry-After' headers.
+
+    pypistats.org imposes an IP-wide rate limit with no Retry-After header,
+    and its data only refreshes once/day, so a long in-run backoff can't
+    outlast a real ban — callers hitting that API should pass a small
+    `retries` and `max_backoff` to fail fast instead of stalling for minutes.
+    """
     req = urllib.request.Request(url, headers=headers or {})
     for i in range(retries):
         try:
@@ -32,12 +36,18 @@ def fetch_json(url, headers=None, retries=3):
                 return json.loads(response.read().decode())
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                wait_time = 2 ** (i + 1)
-                print(f"⚠️  PyPI rate limited (429). Retrying in {wait_time}s...")
+                # Inspect response header for explicit wait time, otherwise fallback to 10s, 20s, 30s...
+                retry_after = e.headers.get("Retry-After") if e.headers else None
+                if retry_after and retry_after.isdigit():
+                    wait_time = int(retry_after) + 1
+                else:
+                    wait_time = min(max(10 * (i + 1), 2 ** (i + 3)), max_backoff)
+
+                print(f"⚠️  {rate_limit_label} rate limited (429). Retrying in {wait_time}s (attempt {i + 1}/{retries})...")
                 time.sleep(wait_time)
-            elif e.code >= 500:
-                wait_time = 2 ** (i + 1)
-                print(f"⚠️  {e.code} from {url}. Retrying in {wait_time}s...")
+            elif e.code in (403, 500, 502, 503, 504):
+                wait_time = 5 * (i + 1)
+                print(f"⚠️  HTTP {e.code} fetching {url}. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
             elif e.code == 404:
                 print(f"ℹ️  Package pending indexing on PyPI Stats (404). Defaulting downloads to 0.")
@@ -46,8 +56,9 @@ def fetch_json(url, headers=None, retries=3):
                 print(f"❌ HTTP Error fetching {url}: {e.code} - {e.reason}")
                 return None
         except Exception as e:
-            print(f"❌ Error fetching {url}: {e}")
-            return None
+            wait_time = 5 * (i + 1)
+            print(f"⚠️  Network exception fetching {url}: {e}. Retrying in {wait_time}s...")
+            time.sleep(wait_time)
     return None
 
 def fetch_bigquery_real_installs(project_name):
@@ -70,7 +81,6 @@ def fetch_bigquery_real_installs(project_name):
         if results:
             return results[0].real_installations
     except Exception:
-        # Fall back gracefully if BigQuery SDK or credentials are not configured
         return None
     return None
 
@@ -128,10 +138,10 @@ def load_csv_history(filepath):
             if not row:
                 continue
             try:
-                result["existing_dates"].add(row[0])      # Date
-                result["dates_ordered"].append(row[0])     # Date
-                result["clone_daily"].append(int(row[3])) # Total_Clones
-                result["pypi_daily"].append(int(row[6]))  # PyPI_Day
+                result["existing_dates"].add(row[0])
+                result["dates_ordered"].append(row[0])
+                result["clone_daily"].append(int(row[3]))
+                result["pypi_daily"].append(int(row[6]))
             except (ValueError, IndexError):
                 pass
     return result
@@ -201,12 +211,14 @@ def main():
     }
     pypi_headers = {"User-Agent": "veloiq-kpi-tracker/1.0 (cesar.lugo.marcos@juicemantics.com)"}
 
-    repo_data   = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}", gh_headers)
-    clones_data = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/clones", gh_headers)
-    views_data  = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/views", gh_headers)
+    repo_data   = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}", gh_headers, rate_limit_label="GitHub")
+    clones_data = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/clones", gh_headers, rate_limit_label="GitHub")
+    views_data  = fetch_json(f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/traffic/views", gh_headers, rate_limit_label="GitHub")
 
-    # Load fresh cache if available (<6 hours old)
-    pypi_cached_payload = load_pypi_cache(max_age_hours=6)
+    # pypistats.org data is refreshed once/day and enforces an IP-wide 429 ban
+    # with no Retry-After header, so a 24h cache avoids re-triggering that ban
+    # on every run for data that hasn't changed anyway.
+    pypi_cached_payload = load_pypi_cache(max_age_hours=24)
     pypi_from_cache = False
     pypi_pending = False
 
@@ -215,13 +227,18 @@ def main():
         pypi_from_cache = True
         print(f"ℹ️  Using fresh local PyPI cache from {pypi_cached_payload['cached_at']} UTC.\n")
     else:
-        pypi_data = fetch_json(f"https://pypistats.org/api/packages/{PYPI_PACKAGE.lower()}/recent", pypi_headers)
+        # Pacing buffer to clear rate limits prior to hitting pypistats API
+        time.sleep(2.0)
+        # An IP-wide ban won't clear within one run's backoff window, so fail
+        # fast here (2 short retries) rather than stalling for minutes.
+        pypi_data = fetch_json(
+            f"https://pypistats.org/api/packages/{PYPI_PACKAGE.lower()}/recent",
+            pypi_headers, retries=2, rate_limit_label="PyPI", max_backoff=10)
         if pypi_data and pypi_data.get("is_pending"):
             pypi_pending = True
         elif pypi_data:
             save_pypi_cache(pypi_data)
         else:
-            # Emergency fallback to expired cache if live network fetch fails
             fallback_cache = None
             if os.path.exists(PYPI_CACHE_FILE):
                 try:
@@ -242,7 +259,6 @@ def main():
         clones_data = clones_data or {}
         views_data = views_data or {}
 
-    # ── Raw Values ────────────────────────────────────────────────────────────
     tot_views  = views_data.get("count", 0)
     uni_views  = views_data.get("uniques", 0)
     tot_clones = clones_data.get("count", 0)
@@ -256,7 +272,6 @@ def main():
     pypi_week  = (pypi_data or {}).get("data", {}).get("last_week", 0)
     pypi_month = (pypi_data or {}).get("data", {}).get("last_month", 0)
 
-    # Attempt BigQuery fetch for real installations; fallback to filtered estimate if unavailable
     bq_real_installs_7d = fetch_bigquery_real_installs(PYPI_PACKAGE)
     if bq_real_installs_7d is not None:
         real_pypi_week = bq_real_installs_7d
@@ -267,7 +282,6 @@ def main():
 
     clean_ratio = (real_pypi_week / max(1, pypi_week)) if pypi_week > 0 else 0.15
 
-    # Split 14-day clone window: this week (last 7 days)
     today = date.today()
     seven_days_ago = today - timedelta(days=7)
     clones_this_week = sum(
@@ -275,7 +289,6 @@ def main():
         if date.fromisoformat(c["timestamp"].split("T")[0]) >= seven_days_ago
     )
 
-    # ── Historical Averages from CSV ──────────────────────────────────────────
     csv_history    = load_csv_history(OUTPUT_FILE)
     existing_dates = csv_history["existing_dates"] if csv_history else set()
 
@@ -299,7 +312,6 @@ def main():
     raw_pypi_monthly_avg  = round(pypi_month / 4, 1) if pypi_month > 0 else 0
     real_pypi_monthly_avg = round(raw_pypi_monthly_avg * clean_ratio, 1) if raw_pypi_monthly_avg > 0 else 0
 
-    # ── Computed KPIs ─────────────────────────────────────────────────────────
     ratio_terminal    = round(uni_clones / uni_views, 2)         if uni_views  > 0 else 0
     ratio_velocity    = round(tot_clones / uni_clones, 2)        if uni_clones > 0 else 0
     forks_stars_ratio = round(forks / stars, 2)                  if stars      > 0 else 0
@@ -309,9 +321,6 @@ def main():
     pypi_wow_str   = pct_change(real_pypi_week, clean_pypi_avg_prev)
     pypi_accel_str = pct_change(real_pypi_week, real_pypi_monthly_avg)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # DISPLAY: RAW DATA SNAPSHOT
-    # ══════════════════════════════════════════════════════════════════════════
     print("══════════════════════════════════════════════════════════════════════════")
     print("📥  RAW DATA  —  CURRENT SNAPSHOT")
     print("══════════════════════════════════════════════════════════════════════════")
@@ -339,7 +348,6 @@ def main():
         print(f"      {status}  {interpretation}")
         print(f"      ↳ {explanation}")
 
-    # ── Classifications ───────────────────────────────────────────────────────
     if forks_stars_ratio >= 0.3:
         fs_status, fs_interp = "🟢 GREAT", "Strong contributor community — many people are forking to contribute or customize the framework."
     elif forks_stars_ratio >= 0.15:
@@ -423,9 +431,6 @@ def main():
     else:
         is_status, is_interp = "🟡 STEADY","Strong community engagement. Consider a triage or labeling process."
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # DISPLAY: ADOPTION KPIs
-    # ══════════════════════════════════════════════════════════════════════════
     print("══════════════════════════════════════════════════════════════════════════")
     print("📊  ADOPTION KPIs  —  VeloIQ Framework")
     print("══════════════════════════════════════════════════════════════════════════")
@@ -470,9 +475,6 @@ def main():
 
     print("\n══════════════════════════════════════════════════════════════════════════\n")
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # INCREMENTAL CSV LOGGING
-    # ══════════════════════════════════════════════════════════════════════════
     history = {}
     for c in clones_data.get("clones", []):
         d = c["timestamp"].split("T")[0]
