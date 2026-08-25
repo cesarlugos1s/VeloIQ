@@ -2196,7 +2196,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_55, value) {
+                validator(_56, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -3959,19 +3959,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _55 }) => _55).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_55) => {
-        if (_55.collapsible) {
+      const ut = R.panels.map(({ id: _56 }) => _56).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_56) => {
+        if (_56.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _55.collapsedSize,
-              ce[_55.panelId]
+              _56.collapsedSize,
+              ce[_56.panelId]
             ), dt = I(
-              _55.collapsedSize,
-              ge[_55.panelId]
+              _56.collapsedSize,
+              ge[_56.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_55.panelId] = ge[_55.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_56.panelId] = ge[_56.panelId]);
           }
         }
       });
@@ -5688,7 +5688,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_55, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_56, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -7617,7 +7617,7 @@ var AnalysisChart = ({
     if (seriesKeys.length === 0) {
       return /* @__PURE__ */ jsx(Empty, { description: "Radar needs at least one series." });
     }
-    const effectiveSeriesKeys = seriesKeys.length >= 3 ? seriesKeys : Array.from({ length: 3 }, (_55, i) => seriesKeys[i % seriesKeys.length]);
+    const effectiveSeriesKeys = seriesKeys.length >= 3 ? seriesKeys : Array.from({ length: 3 }, (_56, i) => seriesKeys[i % seriesKeys.length]);
     const centerX = paddingLeft + chartWidth / 2;
     const centerY = paddingTop + chartHeight / 2;
     const radius = Math.min(chartWidth, chartHeight) * 0.35;
@@ -10686,7 +10686,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _32(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_55, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_56, colIdx) => {
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_56, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_57, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -11292,7 +11292,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_55, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_56, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -11638,7 +11638,7 @@ var SectionCellContent = ({
     /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _34(sectionName) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_55, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_56, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_56, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_57, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -13788,7 +13788,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_55, newPageSize) => {
+            onShowSizeChange: (_56, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -16584,7 +16584,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_55, newPageSize) => {
+                    onShowSizeChange: (_56, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -16594,7 +16594,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   size: "small",
                   rowKey: (row) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _44("No related records") }) } : void 0,
-                  onChange: (_55, filters, sorter, extra) => {
+                  onChange: (_56, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -22504,7 +22504,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailPaneContexts = useMemo(
-    () => panes.map((_55, idx) => ({
+    () => panes.map((_56, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -22662,7 +22662,10 @@ var ensurePlotly = () => {
   });
   return _plotlyLoadPromise;
 };
-var InlinePlotlyHtml = ({ html, style }) => {
+var DEFAULT_MIN_CARD_SCALE = 0.6;
+var InlinePlotlyHtml = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE }) => {
+  const outerRef = useRef(null);
+  const scaleWrapperRef = useRef(null);
   const containerRef = useRef(null);
   const instanceIdRef = useRef("");
   if (!instanceIdRef.current) {
@@ -22716,14 +22719,56 @@ var InlinePlotlyHtml = ({ html, style }) => {
     }
     ensurePlotly().then(executeScripts);
   }, [html, instanceId]);
-  return /* @__PURE__ */ jsx(
+  useEffect(() => {
+    const outer = outerRef.current;
+    const content = containerRef.current;
+    const scaleWrapper = scaleWrapperRef.current;
+    if (!outer || !content || !scaleWrapper) return;
+    const recompute = () => {
+      const plotly = window.Plotly;
+      const graphDivs = content.querySelectorAll(".js-plotly-plot");
+      const outerStyle = window.getComputedStyle(outer);
+      const verticalPadding = parseFloat(outerStyle.paddingTop || "0") + parseFloat(outerStyle.paddingBottom || "0");
+      const availableHeight = outer.clientHeight - verticalPadding;
+      if (graphDivs.length > 0) {
+        content.style.transform = "";
+        scaleWrapper.style.height = "";
+        scaleWrapper.style.maxHeight = availableHeight > 0 ? `${Math.floor(availableHeight)}px` : "";
+        if (plotly?.Plots?.resize) {
+          graphDivs.forEach((graphDiv) => {
+            try {
+              plotly.Plots.resize(graphDiv);
+            } catch {
+            }
+          });
+        }
+        return;
+      }
+      scaleWrapper.style.maxHeight = "";
+      const naturalHeight = content.scrollHeight;
+      if (availableHeight <= 0 || naturalHeight <= availableHeight) {
+        content.style.transform = "";
+        scaleWrapper.style.height = "";
+        return;
+      }
+      const scale = Math.max(minScale, availableHeight / naturalHeight);
+      content.style.transform = `scale(${scale})`;
+      content.style.transformOrigin = "top center";
+      scaleWrapper.style.height = `${Math.floor(naturalHeight * scale)}px`;
+    };
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(outer);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [html, minScale]);
+  return /* @__PURE__ */ jsx("div", { ref: outerRef, style, children: /* @__PURE__ */ jsx("div", { ref: scaleWrapperRef, style: { overflow: "hidden" }, children: /* @__PURE__ */ jsx(
     "div",
     {
       ref: containerRef,
-      dangerouslySetInnerHTML: { __html: cleanedHtml },
-      style
+      dangerouslySetInnerHTML: { __html: cleanedHtml }
     }
-  );
+  ) }) });
 };
 
 // src/providers/authProvider.ts
@@ -23291,7 +23336,28 @@ var DashboardTabHelp = ({ tabId }) => {
     }
   );
 };
-var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
+var _54 = (text) => translateText(text, text);
+var GRID_DENSITY_STEPS = ["original", "small", "fit", "medium", "large"];
+var GRID_DENSITY_ROW_HEIGHT = {
+  small: 180,
+  medium: 320,
+  large: 480
+};
+var FIT_PAGE_MIN_ROW_HEIGHT = 120;
+var FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
+var FIT_CARD_MIN_SCALE = 0.15;
+var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
+var loadStoredGridDensity = () => {
+  try {
+    const stored = localStorage.getItem(GRID_DENSITY_STORAGE_KEY);
+    if (stored && GRID_DENSITY_STEPS.includes(stored)) {
+      return stored;
+    }
+  } catch {
+  }
+  return "fit";
+};
+var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
   const [chartHtml, setChartHtml] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23332,14 +23398,23 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce }) => {
   if (!chartHtml) {
     return /* @__PURE__ */ jsx(Empty, { description: "No chart data", style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
-  return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" } });
+  return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" }, minScale });
 };
-var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
+var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
   const { token } = theme.useToken();
   const model = findModelByName(allModels, cell.model);
   const cellRef = useRef(null);
   const cellStyle = {
     position: "relative",
+    // Fills whatever height the grid assigns its track (the cell-size
+    // slider in ViewsGrid sets a fixed row track for its non-"original"
+    // steps). Against an "auto" track (the default "Original" step) a
+    // percentage height resolves to auto per the CSS spec, so this is a
+    // no-op there and content sizes exactly as it did before the slider
+    // existed — it only takes effect once the track has a definite size,
+    // which is what lets `overflow: hidden` below actually clip content
+    // instead of the cell silently growing past its grid row.
+    height: "100%",
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
     overflow: "hidden",
@@ -23527,7 +23602,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) })
       ] })
     ] }),
-    !isMinimized && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce }) : model ? /* @__PURE__ */ jsx(
+    !isMinimized && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce, minScale: cardMinScale }) : model ? /* @__PURE__ */ jsx(
       DynamicList,
       {
         model,
@@ -23548,8 +23623,10 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     ) })
   ] });
 };
-var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
+var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
   const cells = tab.cells;
+  const containerRef = useRef(null);
+  const [fitRowHeight, setFitRowHeight] = useState(FIT_PAGE_MIN_ROW_HEIGHT);
   const numCols = useMemo(() => {
     if (!cells.length) return 2;
     return Math.max(...cells.map((c) => c.col)) + 1;
@@ -23558,20 +23635,68 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     if (!cells.length) return 1;
     return Math.max(...cells.map((c) => c.row)) + 1;
   }, [cells]);
+  const gridGap = 12;
+  const gridPadding = 12;
+  useEffect(() => {
+    if (gridDensity !== "fit") return;
+    const el = containerRef.current;
+    if (!el) return;
+    const findScrollableAncestor = (node) => {
+      let current = node.parentElement;
+      while (current && current !== document.body) {
+        const overflowY = window.getComputedStyle(current).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return current;
+        current = current.parentElement;
+      }
+      return null;
+    };
+    const recompute = () => {
+      const top = el.getBoundingClientRect().top;
+      const ancestor2 = findScrollableAncestor(el);
+      const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
+      const availableHeight = bottomBoundary - top;
+      const usableHeight = availableHeight - gridGap * Math.max(0, numRows - 1) - gridPadding * 2;
+      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / numRows));
+      setFitRowHeight(rowHeight);
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    const ancestor = findScrollableAncestor(el);
+    const observer = ancestor ? new ResizeObserver(recompute) : null;
+    if (ancestor && observer) observer.observe(ancestor);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      observer?.disconnect();
+    };
+  }, [gridDensity, numRows]);
   const visibleCells = maximizedCellId ? cells.filter((c) => c.id === maximizedCellId) : cells;
+  const cardMinScale = gridDensity === "fit" ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
+  const rowTrackHeight = () => {
+    switch (gridDensity) {
+      case "small":
+      case "medium":
+      case "large":
+        return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
+      case "fit":
+        return `minmax(${fitRowHeight}px, ${fitRowHeight}px)`;
+      case "original":
+      default:
+        return "minmax(320px, auto)";
+    }
+  };
   const gridStyle = {
     display: "grid",
     gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
-    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, minmax(320px, auto))`,
-    gap: 12,
-    padding: 12,
+    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, ${rowTrackHeight()})`,
+    gap: gridGap,
+    padding: gridPadding,
     height: "100%",
     boxSizing: "border-box"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: "No models in this tab", style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _54("No models in this tab"), style: { padding: 48 } });
   }
-  return /* @__PURE__ */ jsx("div", { style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsx(
+  return /* @__PURE__ */ jsx("div", { ref: containerRef, style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsx(
     "div",
     {
       style: {
@@ -23586,6 +23711,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
           isMaximized: maximizedCellId === cell.id,
           isMinimized: minimizedCellIds.has(cell.id),
           canConfigureLayout,
+          cardMinScale,
           onConfigure: () => onConfigure(cell),
           onMaximize: () => onMaximize(cell.id),
           onMinimize: () => onMinimize(cell.id),
@@ -23599,11 +23725,28 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   )) });
 };
 var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtraActions }) => {
+  const { token } = theme.useToken();
   const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
   const [maximizedCellId, setMaximizedCellId] = useState(null);
   const [minimizedCellIds, setMinimizedCellIds] = useState(/* @__PURE__ */ new Set());
   const [drawerSelection, setDrawerSelection] = useState(null);
+  const [gridDensity, setGridDensity] = useState(loadStoredGridDensity);
+  const handleGridDensityChange = useCallback((stepIndex) => {
+    const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
+    setGridDensity(next);
+    try {
+      localStorage.setItem(GRID_DENSITY_STORAGE_KEY, next);
+    } catch {
+    }
+  }, []);
+  const gridDensityMarks = useMemo(() => ({
+    0: _54("Original"),
+    1: _54("Small"),
+    2: _54("Fit page"),
+    3: _54("Medium"),
+    4: _54("Large")
+  }), []);
   const handleMaximize = useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
@@ -23679,6 +23822,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
           maximizedCellId,
           minimizedCellIds,
           canConfigureLayout,
+          gridDensity,
           onMaximize: handleMaximize,
           onMinimize: handleMinimize,
           onConfigure: (cell) => handleOpenDrawer(tab.id, cell),
@@ -23688,10 +23832,10 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
         }
       )
     })),
-    [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
+    [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
   );
   if (!config.tabs.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: "No tabs configured. Run veloiq add-dashboard to add models.", style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _54("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
   }
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
@@ -23703,7 +23847,36 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
           setMinimizedCellIds(/* @__PURE__ */ new Set());
         },
         style: { height: "100%" },
-        tabBarStyle: { paddingLeft: 12, marginBottom: 0 }
+        tabBarStyle: { paddingLeft: 12, marginBottom: 0 },
+        tabBarExtraContent: {
+          right: (
+            // antd centers each mark's label text under its track position, so the
+            // end marks ("Original", "Large") render with text bleeding past the
+            // slider's own declared width on both sides (measured ~18px total in
+            // testing). Left unabsorbed, that bleed escapes into the tab bar and,
+            // from there, into an ancestor with overflow-x: auto — producing a real,
+            // if small, page-level horizontal scrollbar. Generous left/right padding
+            // on this wrapping div (rather than a margin on the Slider itself, which
+            // only ever addressed the left side) contains the bleed within this box
+            // on both ends instead of just shifting where it leaks from.
+            /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "0 40px" }, children: [
+              /* @__PURE__ */ jsx("span", { style: { fontSize: 13, color: token.colorTextSecondary, whiteSpace: "nowrap", marginRight: 20 }, children: _54("Cell size") }),
+              /* @__PURE__ */ jsx(
+                Slider,
+                {
+                  style: { width: 280 },
+                  min: 0,
+                  max: GRID_DENSITY_STEPS.length - 1,
+                  step: null,
+                  marks: gridDensityMarks,
+                  value: GRID_DENSITY_STEPS.indexOf(gridDensity),
+                  onChange: handleGridDensityChange,
+                  tooltip: { formatter: (index) => (index !== void 0 ? gridDensityMarks[index] : "") ?? "" }
+                }
+              )
+            ] })
+          )
+        }
       }
     ),
     /* @__PURE__ */ jsx(
@@ -23727,7 +23900,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_55, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_56, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -24008,12 +24181,37 @@ var PinnedRecordsPanel = () => {
   ] });
 };
 var { Text: Text4 } = Typography;
-var _54 = window._ || ((text) => text);
+var _55 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
   const { token } = theme.useToken();
   const allModels = useAllModels();
   const { config, enabled, loading, save } = useDashboardConfig();
+  const contentRef = useRef(null);
+  const [contentHeight, setContentHeight] = useState(null);
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+    const recompute = () => {
+      const top = contentEl.getBoundingClientRect().top;
+      let reservedBelow = 0;
+      let ancestor = contentEl.parentElement;
+      while (ancestor && ancestor !== document.body) {
+        const cs = window.getComputedStyle(ancestor);
+        reservedBelow += parseFloat(cs.paddingBottom || "0") + parseFloat(cs.borderBottomWidth || "0");
+        ancestor = ancestor.parentElement;
+      }
+      const available = window.innerHeight - top - reservedBelow;
+      setContentHeight(Math.max(200, Math.floor(available)));
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, [loading, enabled, config]);
+  const contentAreaStyle = {
+    height: contentHeight !== null ? `${contentHeight}px` : "calc(100vh - 140px)",
+    overflow: "auto"
+  };
   if (loading) {
     return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 64 }, children: /* @__PURE__ */ jsx(Spin, {}) });
   }
@@ -24038,8 +24236,8 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const tabs = [
     {
       key: "models_grid",
-      label: _54("Models Grid"),
-      children: /* @__PURE__ */ jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto" }, children: /* @__PURE__ */ jsx(
+      label: _55("Models Grid"),
+      children: /* @__PURE__ */ jsx("div", { ref: contentRef, style: contentAreaStyle, children: /* @__PURE__ */ jsx(
         ViewsGrid,
         {
           config,
@@ -24052,22 +24250,31 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     },
     {
       key: "recent_activity",
-      label: _54("Recent Activity"),
-      children: /* @__PURE__ */ jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsx(RecentActivityPanel, {}) })
+      label: _55("Recent Activity"),
+      children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(RecentActivityPanel, {}) })
     },
     {
       key: "pinned_records",
-      label: _54("Pinned Records"),
-      children: /* @__PURE__ */ jsx("div", { style: { height: "calc(100vh - 140px)", overflow: "auto", padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
+      label: _55("Pinned Records"),
+      children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
     }
   ];
-  return /* @__PURE__ */ jsx("div", { style: { padding: "0 16px", height: "100%" }, children: /* @__PURE__ */ jsx(
-    Tabs,
-    {
-      items: tabs,
-      tabBarStyle: { marginBottom: 0 }
-    }
-  ) });
+  return (
+    // No horizontal padding here — Refine's ThemedLayoutV2 already wraps
+    // every page (this one included) in its own
+    // <AntdLayout.Content style={{ padding: isSmall ? 24 : 12 }}>, so an
+    // extra "0 16px" here was pure duplication: it narrowed every cell's
+    // usable width by 32px total for no reason, making it that much
+    // easier for cell content (long chart labels, wide table columns) to
+    // need its own horizontal scroll.
+    /* @__PURE__ */ jsx("div", { style: { height: "100%" }, children: /* @__PURE__ */ jsx(
+      Tabs,
+      {
+        items: tabs,
+        tabBarStyle: { marginBottom: 0 }
+      }
+    ) })
+  );
 };
 
 // src/utils/generateResources.ts

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCan } from "@refinedev/core";
-import { Tabs, Tooltip, Button, theme, Empty, Spin } from "antd";
+import { Tabs, Tooltip, Button, theme, Empty, Spin, Slider } from "antd";
 import {
     SettingOutlined,
     FullscreenOutlined,
@@ -16,6 +16,7 @@ import type { ModelDef } from "../../components/DynamicResource/types";
 import { DynamicList } from "../../components/DynamicResource";
 import { findModelByName } from "../../components/DynamicResource/utils/model";
 import { getModelTone } from "../../utils/modelTone";
+import { translateText } from "../../components/DynamicResource/utils/i18n";
 import { InlinePlotlyHtml } from "../../components/InlinePlotlyHtml";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { API_URL } from "../../providers/constants";
@@ -23,6 +24,12 @@ import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDa
 import { CellConfigDrawer } from "./CellConfigDrawer";
 import { DashboardCellHelp } from "../../components/Help/DashboardCellHelp";
 import { DashboardTabHelp } from "../../components/Help/DashboardTabHelp";
+
+// Resolved at call time (not module load) so it always reflects whatever
+// catalog loadLocale() has installed on window._ by the time it runs — see
+// utils/i18n.ts's translateText for why a module-load-time capture would
+// freeze the English fallback in place.
+const _ = (text: string): string => translateText(text, text);
 
 interface Props {
     config: DashboardConfig;
@@ -45,10 +52,63 @@ interface CellSelection {
 }
 
 // ---------------------------------------------------------------------------
+// Global cell-size slider — a view-only preference (persisted to
+// localStorage, never written into the dashboard config) that scales every
+// cell in the grid uniformly regardless of what content type it holds
+// (model list, plotly_chart-backed chart, journey card, NL Sentence card,
+// etc.) by changing the CSS grid's row track height. "Fit page" is computed
+// per tab from the tab's own row count and its container's rendered height.
+// ---------------------------------------------------------------------------
+
+/** Ordered slider steps; the index is the value the antd <Slider> tracks. */
+const GRID_DENSITY_STEPS = ["original", "small", "fit", "medium", "large"] as const;
+type GridDensity = (typeof GRID_DENSITY_STEPS)[number];
+
+/** Fixed row height (px) for each non-"original"/non-"fit" step. */
+const GRID_DENSITY_ROW_HEIGHT: Record<Exclude<GridDensity, "original" | "fit">, number> = {
+    small: 180,
+    medium: 320,
+    large: 480,
+};
+
+/** Minimum row height "fit page" will ever compute down to, so a tab with
+ * many rows degrades to scrolling instead of squashing cells unreadably. */
+const FIT_PAGE_MIN_ROW_HEIGHT = 120;
+
+/** Card-content scale floor (see InlinePlotlyHtml's `minScale` prop) for the
+ * fixed density steps (Small/Medium/Large/Original) — a deliberately chosen
+ * fixed size, where staying legible matters more than guaranteeing zero
+ * scroll. */
+const FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
+
+/** Card-content scale floor for "Fit page" specifically. Its entire purpose
+ * is guaranteeing nothing needs to scroll, so it keeps shrinking non-Plotly
+ * card content (journey/NL Sentence cards) far past the point where the
+ * fixed steps would give up and fall back to scrolling. Not 0: an
+ * arbitrarily thin sliver is still preferable to a literal zero-size
+ * collapse, and this stays reachable only in genuinely crowded dashboards —
+ * a normal few-cell tab never needs to shrink this far. */
+const FIT_CARD_MIN_SCALE = 0.15;
+
+const GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
+
+const loadStoredGridDensity = (): GridDensity => {
+    try {
+        const stored = localStorage.getItem(GRID_DENSITY_STORAGE_KEY);
+        if (stored && (GRID_DENSITY_STEPS as readonly string[]).includes(stored)) {
+            return stored as GridDensity;
+        }
+    } catch {
+        // localStorage unavailable (private mode, etc.) — fall back silently.
+    }
+    return "fit";
+};
+
+// ---------------------------------------------------------------------------
 // Plotly chart cell content — fetches server-rendered chart HTML
 // ---------------------------------------------------------------------------
 
-const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number }> = ({ chartUrl, refreshNonce }) => {
+const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number; minScale: number }> = ({ chartUrl, refreshNonce, minScale }) => {
     const [chartHtml, setChartHtml] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -91,7 +151,7 @@ const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number }> =
     if (!chartHtml) {
         return <Empty description="No chart data" style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
     }
-    return <InlinePlotlyHtml html={chartHtml} style={{ padding: 8, height: "100%", overflow: "auto" }} />;
+    return <InlinePlotlyHtml html={chartHtml} style={{ padding: 8, height: "100%", overflow: "auto" }} minScale={minScale} />;
 };
 
 // ---------------------------------------------------------------------------
@@ -104,19 +164,36 @@ const DashboardGridCell: React.FC<{
     isMaximized: boolean;
     isMinimized: boolean;
     canConfigureLayout: boolean;
+    /** Floor for the card-content scale-to-fit in InlinePlotlyHtml (see
+     * MIN_CARD_SCALE there). "Fit page" passes a much lower floor than the
+     * fixed density steps: its whole point is guaranteeing no scrolling, so
+     * it should keep shrinking non-Plotly card content (journey/NL Sentence
+     * cards) rather than stop at a "still legible" floor and fall back to
+     * scroll — whereas a user who deliberately picked "Small" is choosing a
+     * fixed size knowing content may not fully fit, so legibility wins there. */
+    cardMinScale: number;
     onConfigure: () => void;
     onMaximize: () => void;
     onMinimize: () => void;
     onResize: (minWidth: string | null, minHeight: string | null) => void;
     onMove: (direction: "left" | "right" | "up" | "down") => void;
     cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
-}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
+}> = ({ cell, allModels, isMaximized, isMinimized, canConfigureLayout, cardMinScale, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }) => {
     const { token } = theme.useToken();
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
 
     const cellStyle: React.CSSProperties = {
         position: "relative",
+        // Fills whatever height the grid assigns its track (the cell-size
+        // slider in ViewsGrid sets a fixed row track for its non-"original"
+        // steps). Against an "auto" track (the default "Original" step) a
+        // percentage height resolves to auto per the CSS spec, so this is a
+        // no-op there and content sizes exactly as it did before the slider
+        // existed — it only takes effect once the track has a definite size,
+        // which is what lets `overflow: hidden` below actually clip content
+        // instead of the cell silently growing past its grid row.
+        height: "100%",
         border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: token.borderRadiusLG,
         overflow: "hidden",
@@ -308,7 +385,7 @@ const DashboardGridCell: React.FC<{
             {!isMinimized && (
                 <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
                     {isPlotlyChart && cell.chart_url ? (
-                        <PlotlyChartContent chartUrl={cell.chart_url} refreshNonce={chartRefreshNonce} />
+                        <PlotlyChartContent chartUrl={cell.chart_url} refreshNonce={chartRefreshNonce} minScale={cardMinScale} />
                     ) : model ? (
                         <DynamicList
                             key={`${resource}-${cell.view_type ?? ''}`}
@@ -346,14 +423,17 @@ const DashboardTabContent: React.FC<{
     maximizedCellId: string | null;
     minimizedCellIds: Set<string>;
     canConfigureLayout: boolean;
+    gridDensity: GridDensity;
     onMaximize: (cellId: string) => void;
     onMinimize: (cellId: string) => void;
     onConfigure: (cell: DashboardCell) => void;
     onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
     onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
     cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
-}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
+}> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
     const cells = tab.cells;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [fitRowHeight, setFitRowHeight] = useState(FIT_PAGE_MIN_ROW_HEIGHT);
 
     const numCols = useMemo(() => {
         if (!cells.length) return 2;
@@ -365,10 +445,105 @@ const DashboardTabContent: React.FC<{
         return Math.max(...cells.map((c) => c.row)) + 1;
     }, [cells]);
 
+    const gridGap = 12;
+    const gridPadding = 12; // must match gridStyle.padding below
+
+    // "Fit page": divide the space between the grid's top edge and the
+    // bottom of whatever actually clips it on screen evenly across the
+    // tab's rows, floored so cells never get squashed past readability (a
+    // tab with too many rows falls back to scrolling instead).
+    //
+    // Deliberately measured via getBoundingClientRect() on the nearest
+    // scrollable ancestor rather than the grid container's own
+    // clientHeight: this component's height:100% doesn't resolve against a
+    // definite ancestor height (antd Tabs' pane doesn't force one), so the
+    // div's rendered height ends up driven by its own row-track content —
+    // i.e. by fitRowHeight itself. A ResizeObserver on that same element
+    // would then see its own output as new input on every tick (grow row
+    // height → div grows → observer fires → grow row height again),
+    // running away to the top of the screen.
+    //
+    // window.innerHeight is *not* a safe stand-in for "the bottom of the
+    // visible page" either: the actual clipping boundary is whatever
+    // ancestor has overflow:auto/scroll (DashboardPage's calc(100vh-140px)
+    // wrapper in the framework's own dashboard page) — its rendered bottom
+    // edge can sit noticeably above window.innerHeight (extra chrome, a
+    // host app's own page shell, etc.), which is what previously left a
+    // several-percent gap at the bottom instead of truly filling the page.
+    // That ancestor's own height is CSS-driven (not sized by its children),
+    // so reading its rect is just as loop-safe as reading window.innerHeight.
+    useEffect(() => {
+        if (gridDensity !== "fit") return;
+        const el = containerRef.current;
+        if (!el) return;
+
+        const findScrollableAncestor = (node: HTMLElement): HTMLElement | null => {
+            let current = node.parentElement;
+            while (current && current !== document.body) {
+                const overflowY = window.getComputedStyle(current).overflowY;
+                if (overflowY === "auto" || overflowY === "scroll") return current;
+                current = current.parentElement;
+            }
+            return null;
+        };
+
+        const recompute = () => {
+            const top = el.getBoundingClientRect().top;
+            const ancestor = findScrollableAncestor(el);
+            const bottomBoundary = ancestor ? ancestor.getBoundingClientRect().bottom : window.innerHeight;
+            const availableHeight = bottomBoundary - top;
+            // The grid's own top/bottom padding lives inside this same span
+            // (gridStyle.padding below) — it must come out of the budget
+            // before dividing rows, or every row ends up gridPadding*2 too
+            // tall in total and the grid overflows its clipping ancestor.
+            const usableHeight = availableHeight - gridGap * Math.max(0, numRows - 1) - gridPadding * 2;
+            const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / numRows));
+            setFitRowHeight(rowHeight);
+        };
+
+        recompute();
+        window.addEventListener("resize", recompute);
+
+        // React runs child effects before parent effects, so on first mount
+        // this can fire before an ancestor (e.g. DashboardPage's own content
+        // wrapper, which measures its real available height asynchronously
+        // in its own effect) has settled on its final size — a plain
+        // `window resize` listener never sees that later, ancestor-only
+        // resize. Watching the ancestor's own box directly catches it. This
+        // is the SAME ancestor referenced in `bottomBoundary` above, whose
+        // size is driven by its own CSS/state (never by this grid's row
+        // heights), so observing it carries none of the self-referential
+        // risk called out at the top of this effect.
+        const ancestor = findScrollableAncestor(el);
+        const observer = ancestor ? new ResizeObserver(recompute) : null;
+        if (ancestor && observer) observer.observe(ancestor);
+
+        return () => {
+            window.removeEventListener("resize", recompute);
+            observer?.disconnect();
+        };
+    }, [gridDensity, numRows]);
+
     // When a cell is maximized, hide all others.
     const visibleCells = maximizedCellId
         ? cells.filter((c) => c.id === maximizedCellId)
         : cells;
+
+    const cardMinScale = gridDensity === "fit" ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
+
+    const rowTrackHeight = (): string => {
+        switch (gridDensity) {
+            case "small":
+            case "medium":
+            case "large":
+                return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
+            case "fit":
+                return `minmax(${fitRowHeight}px, ${fitRowHeight}px)`;
+            case "original":
+            default:
+                return "minmax(320px, auto)";
+        }
+    };
 
     const gridStyle: React.CSSProperties = {
         display: "grid",
@@ -377,19 +552,19 @@ const DashboardTabContent: React.FC<{
             : `repeat(${numCols}, 1fr)`,
         gridTemplateRows: maximizedCellId
             ? "1fr"
-            : `repeat(${numRows}, minmax(320px, auto))`,
-        gap: 12,
-        padding: 12,
+            : `repeat(${numRows}, ${rowTrackHeight()})`,
+        gap: gridGap,
+        padding: gridPadding,
         height: "100%",
         boxSizing: "border-box",
     };
 
     if (!cells.length) {
-        return <Empty description="No models in this tab" style={{ padding: 48 }} />;
+        return <Empty description={_("No models in this tab")} style={{ padding: 48 }} />;
     }
 
     return (
-        <div style={gridStyle}>
+        <div ref={containerRef} style={gridStyle}>
             {visibleCells.map((cell) => (
                 <div
                     key={cell.id}
@@ -404,6 +579,7 @@ const DashboardTabContent: React.FC<{
                         isMaximized={maximizedCellId === cell.id}
                         isMinimized={minimizedCellIds.has(cell.id)}
                         canConfigureLayout={canConfigureLayout}
+                        cardMinScale={cardMinScale}
                         onConfigure={() => onConfigure(cell)}
                         onMaximize={() => onMaximize(cell.id)}
                         onMinimize={() => onMinimize(cell.id)}
@@ -422,12 +598,33 @@ const DashboardTabContent: React.FC<{
 // ---------------------------------------------------------------------------
 
 export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, cellExtraActions, tabExtraActions }) => {
+    const { token } = theme.useToken();
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
     const canConfigureLayout = canLayoutData?.can !== false;
 
     const [maximizedCellId, setMaximizedCellId] = useState<string | null>(null);
     const [minimizedCellIds, setMinimizedCellIds] = useState<Set<string>>(new Set());
     const [drawerSelection, setDrawerSelection] = useState<CellSelection | null>(null);
+    const [gridDensity, setGridDensity] = useState<GridDensity>(loadStoredGridDensity);
+
+    const handleGridDensityChange = useCallback((stepIndex: number) => {
+        const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
+        setGridDensity(next);
+        try {
+            localStorage.setItem(GRID_DENSITY_STORAGE_KEY, next);
+        } catch {
+            // localStorage unavailable — the preference just won't persist across reloads.
+        }
+    }, []);
+
+    // Order must track GRID_DENSITY_STEPS above (Original, Small, Fit, Medium, Large).
+    const gridDensityMarks = useMemo(() => ({
+        0: _("Original"),
+        1: _("Small"),
+        2: _("Fit page"),
+        3: _("Medium"),
+        4: _("Large"),
+    }), []);
 
     const handleMaximize = useCallback((cellId: string) => {
         setMaximizedCellId((prev) => (prev === cellId ? null : cellId));
@@ -507,6 +704,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
                     maximizedCellId={maximizedCellId}
                     minimizedCellIds={minimizedCellIds}
                     canConfigureLayout={canConfigureLayout}
+                    gridDensity={gridDensity}
                     onMaximize={handleMaximize}
                     onMinimize={handleMinimize}
                     onConfigure={(cell) => handleOpenDrawer(tab.id, cell)}
@@ -516,11 +714,11 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
                 />
             ),
         })),
-        [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
+        [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
     );
 
     if (!config.tabs.length) {
-        return <Empty description="No tabs configured. Run veloiq add-dashboard to add models." style={{ padding: 48 }} />;
+        return <Empty description={_("No tabs configured. Run veloiq add-dashboard to add models.")} style={{ padding: 48 }} />;
     }
 
     return (
@@ -533,6 +731,39 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
                 }}
                 style={{ height: "100%" }}
                 tabBarStyle={{ paddingLeft: 12, marginBottom: 0 }}
+                tabBarExtraContent={{
+                    right: (
+                        // antd centers each mark's label text under its track position, so the
+                        // end marks ("Original", "Large") render with text bleeding past the
+                        // slider's own declared width on both sides (measured ~18px total in
+                        // testing). Left unabsorbed, that bleed escapes into the tab bar and,
+                        // from there, into an ancestor with overflow-x: auto — producing a real,
+                        // if small, page-level horizontal scrollbar. Generous left/right padding
+                        // on this wrapping div (rather than a margin on the Slider itself, which
+                        // only ever addressed the left side) contains the bleed within this box
+                        // on both ends instead of just shifting where it leaks from.
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 40px" }}>
+                            <span style={{ fontSize: 13, color: token.colorTextSecondary, whiteSpace: "nowrap", marginRight: 20 }}>
+                                {/* The 12px flex `gap` alone isn't enough clearance from the
+                                 * "Original" mark's own leftward text bleed (see the note on the
+                                 * outer div above) — this margin is what actually keeps the two
+                                 * from overlapping; the outer padding only stops that same bleed
+                                 * from escaping the whole control into the tab bar. */}
+                                {_("Cell size")}
+                            </span>
+                            <Slider
+                                style={{ width: 280 }}
+                                min={0}
+                                max={GRID_DENSITY_STEPS.length - 1}
+                                step={null}
+                                marks={gridDensityMarks}
+                                value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
+                                onChange={handleGridDensityChange}
+                                tooltip={{ formatter: (index?: number) => (index !== undefined ? gridDensityMarks[index as keyof typeof gridDensityMarks] : "") ?? "" }}
+                            />
+                        </div>
+                    ),
+                }}
             />
             <CellConfigDrawer
                 open={Boolean(drawerSelection)}

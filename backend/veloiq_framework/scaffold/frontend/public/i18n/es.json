@@ -238,5 +238,13 @@
   "Use fuzzy matching": "Usar coincidencia difusa",
   "Unmapped": "Sin asignar",
   "Added": "Agregadas",
-  "Updated": "Actualizadas"
+  "Updated": "Actualizadas",
+  "Cell size": "Tamaño de celda",
+  "Original": "Original",
+  "Small": "Pequeño",
+  "Medium": "Mediano",
+  "Large": "Grande",
+  "Fit page": "Ajustar a pantalla",
+  "No models in this tab": "No hay modelos en esta pestaña",
+  "No tabs configured. Run veloiq add-dashboard to add models.": "No hay pestañas configuradas. Ejecute veloiq add-dashboard para agregar modelos."
 }

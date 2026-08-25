@@ -383,5 +383,13 @@
   "Use fuzzy matching": "Use fuzzy matching",
   "Unmapped": "Unmapped",
   "Added": "Added",
-  "Updated": "Updated"
+  "Updated": "Updated",
+  "Cell size": "Cell size",
+  "Original": "Original",
+  "Small": "Small",
+  "Medium": "Medium",
+  "Large": "Large",
+  "Fit page": "Fit page",
+  "No models in this tab": "No models in this tab",
+  "No tabs configured. Run veloiq add-dashboard to add models.": "No tabs configured. Run veloiq add-dashboard to add models."
 }
