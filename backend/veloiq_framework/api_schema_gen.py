@@ -1312,6 +1312,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     list_header_button_export_names: list[str] = []
     show_header_button_export_names: list[str] = []
     dashboard_tab_header_export_names: list[str] = []
+    global_header_export_names: list[str] = []
     # export_name -> optional help_text, for the Help drawer to append under a
     # page's own curated content (see global_components' optional "help_text" key).
     global_component_help_text: dict[str, str] = {}
@@ -1401,6 +1402,9 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         for export_name in (getattr(ext, "dashboard_tab_header_components", None) or []):
             if export_name in _declared_export_names:
                 dashboard_tab_header_export_names.append(export_name)
+        for export_name in (getattr(ext, "global_header_components", None) or []):
+            if export_name in _declared_export_names:
+                global_header_export_names.append(export_name)
 
         # User-menu items.
         for item in (getattr(ext, "user_menu_items", None) or []):
@@ -1639,6 +1643,16 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         "React.ComponentType<{ tab: any; allModels: any[] }>[] = ["
         + ", ".join(dashboard_tab_header_export_names) + "];"
     )
+    lines.append(
+        "// Components rendered as a persistent icon button in the app's global "
+        "header, next to Global Search (see global_header_components in extension "
+        "manifests). Rendered on every page, not scoped to a resource — each "
+        "receives no props."
+    )
+    lines.append(
+        "export const globalHeaderComponents: React.ComponentType<{}>[] = ["
+        + ", ".join(global_header_export_names) + "];"
+    )
     lines.append("")
 
     # ── Alert-aware resources set ──────────────────────────────────────────
@@ -1711,6 +1725,9 @@ _APP_TSX_ALERT_WRAPPER_RE = re.compile(
 )
 _APP_TSX_DASHBOARD_TAB_MARKER = "VELOIQ:GLOBAL_DASHBOARD_TAB_HEADER:START"
 _APP_TSX_DASHBOARD_PAGE_RE = re.compile(r"<DashboardPage\b((?:(?!/>).)*?)/>", re.DOTALL)
+# Matches the LayoutWrapper's opening tag (non-self-closing — it wraps children),
+# so the "/>" tail used by the other _RE constants above doesn't apply here.
+_APP_TSX_LAYOUT_WRAPPER_RE = re.compile(r"<LayoutWrapper\b((?:(?!>).)*?)>", re.DOTALL)
 
 
 def _ensure_app_tsx_header_button_wiring(frontend_src: Path) -> None:
@@ -1857,6 +1874,28 @@ def _ensure_app_tsx_header_button_wiring(frontend_src: Path) -> None:
 
     content = _APP_TSX_DASHBOARD_PAGE_RE.sub(_add_dashboard_page_props, content, count=1)
 
+    # Step D: Global header components — a persistent icon button in the app's
+    # header, next to Global Search (see global_header_components in extension
+    # manifests). No per-page context to thread through (unlike Steps B/C), so
+    # the array is passed straight to LayoutWrapper as a prop — no wrapper
+    # helper function needed. Runs unconditionally, independently guarded by
+    # its own "already present" checks, same idiom as Steps A/C.
+    if "globalHeaderComponents" not in content:
+        import_re3 = re.compile(r'(import\s*\{[^}]*\})(\s*from\s*"\./extensions\.gen";)')
+        m3 = import_re3.search(content)
+        if m3:
+            import_block = m3.group(1)
+            patched_import = import_block[:-1].rstrip() + ", globalHeaderComponents }"
+            content = content[:m3.start(1)] + patched_import + m3.group(2) + content[m3.end():]
+
+        def _add_layout_wrapper_prop(match: re.Match) -> str:
+            inner = match.group(1)
+            if "globalHeaderComponents" in inner:
+                return match.group(0)  # host already customized this prop — don't clobber
+            return match.group(0)[:-1] + " globalHeaderComponents={globalHeaderComponents}>"
+
+        content = _APP_TSX_LAYOUT_WRAPPER_RE.sub(_add_layout_wrapper_prop, content, count=1)
+
     if content == original_content:
         return  # already fully wired (or nothing could be matched — warnings already printed above)
 
@@ -1865,7 +1904,8 @@ def _ensure_app_tsx_header_button_wiring(frontend_src: Path) -> None:
     app_tsx.write_text(content)
     print("  🔌 App.tsx updated: wired globalListHeaderButtonComponents / "
           "globalShowHeaderButtonComponents into DynamicList/DynamicShow/"
-          f"AlertAwareListWrapper (original backed up → {bak.name})")
+          "AlertAwareListWrapper, and globalHeaderComponents into LayoutWrapper "
+          f"(original backed up → {bak.name})")
 
 
 def _guess_modules_dir(cwd: Path) -> Path:

@@ -2025,7 +2025,8 @@ var LayoutWrapper = ({
   appTitle,
   extraUserMenuItems = [],
   navConfig = [],
-  helpButtonTexts
+  helpButtonTexts,
+  globalHeaderComponents = []
 }) => {
   const [layoutMode, setLayoutMode] = React6.useState(
     () => localStorage.getItem("layoutMode") || "vertical"
@@ -2142,6 +2143,7 @@ var LayoutWrapper = ({
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(GlobalSearch, {}) }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
+      globalHeaderComponents.map((C2, i) => /* @__PURE__ */ jsxRuntime.jsx(C2, {}, i)),
       /* @__PURE__ */ jsxRuntime.jsxs(antd.Space.Compact, { children: [
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,

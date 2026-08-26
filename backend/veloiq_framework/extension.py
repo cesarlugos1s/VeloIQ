@@ -169,6 +169,17 @@ class VeloIQExtension:
     #: referenced component receives ``{ tab, allModels }``.
     dashboard_tab_header_components: list = []
 
+    #: ``global_header_components`` — ``export_name`` strings (each must
+    #: already be declared in this manifest's ``global_components``) to render
+    #: as a persistent icon button in the app's global header, next to Global
+    #: Search — visible on every page, not scoped to a resource. Wired into
+    #: ``LayoutWrapper``'s ``globalHeaderComponents`` prop via the
+    #: ``VELOIQ:GLOBAL_HEADER_COMPONENTS`` marker block in host ``App.tsx``.
+    #: Each referenced component receives no props — it renders identically
+    #: everywhere, so put per-page logic (routing, record creation) inside the
+    #: component itself.
+    global_header_components: list = []
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:

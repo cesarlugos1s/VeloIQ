@@ -42,6 +42,8 @@ export interface LayoutWrapperProps {
     navConfig?: NavConfig;
     /** Extension-contributed Help text for list/show header buttons, from extensions.gen.tsx. */
     helpButtonTexts?: { list?: (string | null)[]; show?: (string | null)[] };
+    /** Extension-contributed persistent header icon buttons (e.g. a chat launcher), from extensions.gen.tsx's globalHeaderComponents. Rendered next to Global Search on every page. */
+    globalHeaderComponents?: React.ComponentType<{}>[];
 }
 
 const DefaultLogo: React.FC<{
@@ -117,6 +119,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     children, logo, appTitle, extraUserMenuItems = [], navConfig = [], helpButtonTexts,
+    globalHeaderComponents = [],
 }) => {
     const [layoutMode, setLayoutMode] = useState<"vertical" | "horizontal">(() =>
         (localStorage.getItem("layoutMode") as "vertical" | "horizontal") || "vertical"
@@ -255,6 +258,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             </div>
 
             <Space size={isMobile ? "small" : "middle"} style={{ flexShrink: 0, marginLeft: 6 }}>
+                {globalHeaderComponents.map((C, i) => <C key={i} />)}
                 <Space.Compact>
                     <Tooltip title={layoutMode === "vertical" ? "Top Menu" : "Sidebar"}>
                         <Button icon={layoutMode === "vertical" ? <LayoutOutlined /> : <AppstoreOutlined />}

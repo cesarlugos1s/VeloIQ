@@ -34,7 +34,7 @@ import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
 import type { NavConfig } from "@juicemantics/veloiq-ui";
 import navConfigData from "./navigation.config.json";
-import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, extensionEditComponents, extensionCreateComponents, extensionListComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources, globalListHeaderButtonComponents, globalShowHeaderButtonComponents, globalListHeaderButtonHelp, globalShowHeaderButtonHelp, globalDashboardTabHeaderComponents } from "./extensions.gen";
+import { extensionRoutes, extensionUserMenuItems, extensionShowComponents, extensionEditComponents, extensionCreateComponents, extensionListComponents, exceptionAlertBannerComponent, exceptionAlertListWrapperComponent, exceptionAlertAwareResources, globalListHeaderButtonComponents, globalShowHeaderButtonComponents, globalListHeaderButtonHelp, globalShowHeaderButtonHelp, globalDashboardTabHeaderComponents, globalHeaderComponents } from "./extensions.gen";
 import { customListComponents, customShowComponents, customEditComponents, customCreateComponents } from "./custom_pages";
 
 // Render helpers — check for app-level custom page overrides first, then
@@ -146,7 +146,7 @@ export default function App() {
                                     <Route
                                         element={
                                             <Authenticated key="auth" redirectOnFail="/login">
-                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems} helpButtonTexts={{ list: globalListHeaderButtonHelp, show: globalShowHeaderButtonHelp }}>
+                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems} helpButtonTexts={{ list: globalListHeaderButtonHelp, show: globalShowHeaderButtonHelp }} globalHeaderComponents={globalHeaderComponents}>
                                                     <Outlet />
                                                 </LayoutWrapper>
                                                 {exceptionAlertBannerComponent && createElement(exceptionAlertBannerComponent)}
