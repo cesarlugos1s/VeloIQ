@@ -71,6 +71,47 @@ export function getNavEntry(navConfig: NavConfig, key: string): NavConfigEntry |
 }
 
 /**
+ * Resolve the flat navigation.config.json key for a Refine menu/tree item.
+ *
+ * Refine's `useMenu()` builds `item.key` as a full path from the resource
+ * tree — e.g. "/module:action" for a module, "/module:action/jm_action" for
+ * one of its models — while navigation.config.json stores the bare resource
+ * identifier ("module:action", "jm_action"). `item.name` always carries that
+ * bare identifier unchanged, so prefer it; fall back to the last path
+ * segment of `key` for any item that lacks `name`.
+ */
+export function resolveNavKey(item: { key?: string; name?: string } | null | undefined): string {
+    if (item?.name) return String(item.name);
+    const key = String(item?.key ?? "");
+    return key.split("/").filter(Boolean).pop() ?? key;
+}
+
+/**
+ * Resolve the app's landing fallback path — where "/" should send a user
+ * when the Dashboard has no cells configured. This is the first model of
+ * the first module, ordered by navigation.config.json's `sequence` (so it
+ * matches whatever the menu itself shows first), not the raw registration
+ * order of `allModels`.
+ */
+export function resolveFallbackLandingPath(
+    navConfig: NavConfig,
+    allModels: Array<{ resource?: string; name?: string }>,
+): string {
+    const firstModelEntry = [...navConfig]
+        .filter((e) => e.type === "model" && e.key !== "dashboard")
+        .sort((a, b) => a.sequence - b.sequence)[0];
+
+    if (firstModelEntry) {
+        const match = allModels.find(
+            (m) => (m.resource || m.name) === firstModelEntry.key,
+        );
+        return `/${(match && (match.resource || match.name)) || firstModelEntry.key}`;
+    }
+
+    return `/${allModels[0]?.resource || allModels[0]?.name || "dashboard"}`;
+}
+
+/**
  * Sort items by the `sequence` values in navConfig.
  * Items without a matching entry sort to the end (sequence = 999).
  * Original array order serves as a stable tiebreaker.
@@ -81,8 +122,8 @@ export function sortItemsByNavConfig<T extends { key?: string; name?: string }>(
 ): T[] {
     if (!Array.isArray(items)) return [];
     return [...items].sort((a, b) => {
-        const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
-        const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
+        const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
+        const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
         return aSeq - bSeq;
     });
 }

@@ -336,11 +336,26 @@ function resolveIcon(iconName) {
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
 }
+function resolveNavKey(item) {
+  if (item?.name) return String(item.name);
+  const key = String(item?.key ?? "");
+  return key.split("/").filter(Boolean).pop() ?? key;
+}
+function resolveFallbackLandingPath(navConfig, allModels) {
+  const firstModelEntry = [...navConfig].filter((e) => e.type === "model" && e.key !== "dashboard").sort((a, b) => a.sequence - b.sequence)[0];
+  if (firstModelEntry) {
+    const match = allModels.find(
+      (m) => (m.resource || m.name) === firstModelEntry.key
+    );
+    return `/${match && (match.resource || match.name) || firstModelEntry.key}`;
+  }
+  return `/${allModels[0]?.resource || allModels[0]?.name || "dashboard"}`;
+}
 function sortItemsByNavConfig(items, navConfig) {
   if (!Array.isArray(items)) return [];
   return [...items].sort((a, b) => {
-    const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
-    const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
+    const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
+    const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
     return aSeq - bSeq;
   });
 }
@@ -503,7 +518,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
-    const entry = getNavEntry(navConfig, key);
+    const entry = getNavEntry(navConfig, resolveNavKey(item));
     const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2[iconName];
     const Fallback = AntDIcons2["DatabaseOutlined"];
@@ -560,7 +575,11 @@ var HorizontalMenu = ({ navConfig = [] }) => {
       };
     });
   };
-  const items = transformItems(injectJourneyMenuItems(licensedMenuItems, journeysByModule));
+  const sortedMenuItems = useMemo(
+    () => navConfig.length > 0 ? sortItemsByNavConfig(licensedMenuItems, navConfig) : licensedMenuItems,
+    [licensedMenuItems, navConfig]
+  );
+  const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
   return /* @__PURE__ */ jsx(
     Menu,
     {
@@ -609,7 +628,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
-    const entry = getNavEntry(navConfig, key);
+    const entry = getNavEntry(navConfig, resolveNavKey(item));
     const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2[iconName];
     const Fallback = AntDIcons2["DatabaseOutlined"];
@@ -24533,6 +24552,6 @@ var helpSystemModels = [
   }
 ];
 
-export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveIcon, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

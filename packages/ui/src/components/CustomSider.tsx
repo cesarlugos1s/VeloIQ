@@ -5,7 +5,7 @@ import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import type { NavConfig } from "../utils/navConfig";
-import { getNavEntry, guessIcon, sortItemsByNavConfig } from "../utils/navConfig";
+import { getNavEntry, guessIcon, resolveNavKey, sortItemsByNavConfig } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
 import { useLicensePool } from "../hooks/useLicensePool";
 
@@ -58,7 +58,7 @@ export const CustomSider: React.FC<{
         const key = String(item?.key || "");
         const label = String(item?.label || item?.name || "");
         const isModule = key.startsWith("module:") || key === "dashboard";
-        const entry = getNavEntry(navConfig, key);
+        const entry = getNavEntry(navConfig, resolveNavKey(item));
         // An explicit icon name on the item (e.g. injected journeys) wins.
         const iconName = (typeof item?.icon === "string" && item.icon)
             || entry?.icon || guessIcon(label || key, isModule);

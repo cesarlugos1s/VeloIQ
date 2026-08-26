@@ -28,6 +28,7 @@ import {
     DashboardPage,
     LandingRedirect,
     LicenseGate,
+    resolveFallbackLandingPath,
 } from "@juicemantics/veloiq-ui";
 import type { PrimaryShowRendererProps } from "@juicemantics/veloiq-ui";
 import { allModuleRegistrations, allSystemModels } from "./allModels.gen";
@@ -152,7 +153,7 @@ export default function App() {
                                             </Authenticated>
                                         }
                                     >
-                                        <Route path="/" element={<LandingRedirect fallbackPath={`/${allSystemModels[0]?.resource || allSystemModels[0]?.name || "dashboard"}`} />} />
+                                        <Route path="/" element={<LandingRedirect fallbackPath={resolveFallbackLandingPath(navConfigData as NavConfig, allSystemModels)} />} />
                                         <Route path="/dashboard" element={<DashboardPage cellExtraActions={_globalListHeaderButtons} tabExtraActions={_globalDashboardTabHeaderActions} />} />
                                         {extensionRoutes.map((r) => (
                                             <Route key={r.path} path={r.path} element={

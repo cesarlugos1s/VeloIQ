@@ -363,11 +363,26 @@ function resolveIcon(iconName) {
 function getNavEntry(navConfig, key) {
   return navConfig.find((e) => e.key === key);
 }
+function resolveNavKey(item) {
+  if (item?.name) return String(item.name);
+  const key = String(item?.key ?? "");
+  return key.split("/").filter(Boolean).pop() ?? key;
+}
+function resolveFallbackLandingPath(navConfig, allModels) {
+  const firstModelEntry = [...navConfig].filter((e) => e.type === "model" && e.key !== "dashboard").sort((a, b) => a.sequence - b.sequence)[0];
+  if (firstModelEntry) {
+    const match = allModels.find(
+      (m) => (m.resource || m.name) === firstModelEntry.key
+    );
+    return `/${match && (match.resource || match.name) || firstModelEntry.key}`;
+  }
+  return `/${allModels[0]?.resource || allModels[0]?.name || "dashboard"}`;
+}
 function sortItemsByNavConfig(items, navConfig) {
   if (!Array.isArray(items)) return [];
   return [...items].sort((a, b) => {
-    const aSeq = getNavEntry(navConfig, a.key ?? a.name ?? "")?.sequence ?? 999;
-    const bSeq = getNavEntry(navConfig, b.key ?? b.name ?? "")?.sequence ?? 999;
+    const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
+    const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
     return aSeq - bSeq;
   });
 }
@@ -530,7 +545,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
-    const entry = getNavEntry(navConfig, key);
+    const entry = getNavEntry(navConfig, resolveNavKey(item));
     const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2__namespace[iconName];
     const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
@@ -587,7 +602,11 @@ var HorizontalMenu = ({ navConfig = [] }) => {
       };
     });
   };
-  const items = transformItems(injectJourneyMenuItems(licensedMenuItems, journeysByModule));
+  const sortedMenuItems = React6.useMemo(
+    () => navConfig.length > 0 ? sortItemsByNavConfig(licensedMenuItems, navConfig) : licensedMenuItems,
+    [licensedMenuItems, navConfig]
+  );
+  const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Menu,
     {
@@ -636,7 +655,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
     const isModule = key.startsWith("module:") || key === "dashboard";
-    const entry = getNavEntry(navConfig, key);
+    const entry = getNavEntry(navConfig, resolveNavKey(item));
     const iconName = typeof item?.icon === "string" && item.icon || entry?.icon || guessIcon(label || key, isModule);
     const Icon = AntDIcons2__namespace[iconName];
     const Fallback = AntDIcons2__namespace["DatabaseOutlined"];
@@ -24613,7 +24632,9 @@ exports.helpSystemModels = helpSystemModels;
 exports.httpClient = httpClient;
 exports.normalizeToneKey = normalizeToneKey;
 exports.renderRelationBlock = renderRelationBlock;
+exports.resolveFallbackLandingPath = resolveFallbackLandingPath;
 exports.resolveIcon = resolveIcon;
+exports.resolveNavKey = resolveNavKey;
 exports.setColorSchemas = setColorSchemas;
 exports.sortItemsByNavConfig = sortItemsByNavConfig;
 exports.useAllModels = useAllModels;
