@@ -666,6 +666,14 @@ const DashboardTabContent: React.FC<{
                     style={{
                         gridColumn: maximizedCellId ? "1 / -1" : `${cell.col + 1}`,
                         gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`,
+                        // Grid items default to min-width: auto, which lets a
+                        // cell with wide intrinsic content (a table with many
+                        // columns, an embedded show page) force its 1fr track
+                        // wider than its fair share instead of scrolling —
+                        // this is what actually lets the grid's overflowX:
+                        // auto above kick in for that case.
+                        minWidth: 0,
+                        overflow: "hidden",
                     }}
                 >
                     <DashboardGridCell
