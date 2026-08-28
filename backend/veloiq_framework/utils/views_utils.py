@@ -1194,7 +1194,7 @@ def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: 
             has_data = _record_has_data_like_dynamic_resource(row)
             # DynamicResource requires image metadata; fallback to file content URL when metadata is missing.
             if (is_image and has_data) or ("data_format" not in row and "data_name" not in row):
-                image_url = f"/file/{file_id}/content"
+                image_url = f"/api/file/{file_id}/content"
 
         if not image_url:
             continue
@@ -1211,7 +1211,8 @@ def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: 
         image_tag_html = (
             f'<img src="{html.escape(str(image_url))}" '
             f'onerror="if(this.dataset.fallbackTried!==\'1\'){{this.dataset.fallbackTried=\'1\';'
-            f'if(this.src.startsWith(window.location.origin + \'/\')){{this.src=\'http://localhost:8000\'+new URL(this.src).pathname;}}}}" '
+            f'var o=window.location.origin+\'/\';if(this.src.indexOf(o)===0){{'
+            f'this.src=\'http://localhost:8000/\'+this.src.slice(o.length);}}}}" '
             f'style="width:{gallery_image_width}px;height:{gallery_image_length}px;object-fit:contain;display:block;" />'
         )
         image_html = (

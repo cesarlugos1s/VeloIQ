@@ -256,7 +256,7 @@ export const DynamicList: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "gallery" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab";
+    listViewType?: "table" | "gallery" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -362,6 +362,8 @@ export const DynamicList: React.FC<{
     const isCalendarView = resolvedListViewType === "calendar";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
+    const isPrimaryView = resolvedListViewType === "primary";
+    const isListView = resolvedListViewType === "list";
     const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
     const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
@@ -3371,6 +3373,72 @@ export const DynamicList: React.FC<{
         });
     };
 
+    const renderPrimaryItem = (record: any, index: number) => (
+        <RelatedObjectPrimaryCard key={getRowKey(record, index)} record={record} model={model} allModels={allModels} />
+    );
+
+    const renderListFieldValue = (field: FieldDef, record: any) => {
+        const value = record?.[field.key];
+        const showToken = normalizeFieldViewType(field.showViewType || "");
+        if (showToken && !(showToken === "read-only-field" && field.reference)) {
+            return renderFieldValue(field, record, allModels, true);
+        }
+        if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+            return (
+                <ReferenceField
+                    id={value}
+                    resource={field.reference}
+                    onLabel={(label) => handleReferenceLabel(field.reference!, value, label)}
+                />
+            );
+        }
+        if (isPkField(field, model) && record._label) return record._label;
+        if (field.type === 'boolean') return <Checkbox checked={value} disabled />;
+        if (field.type === 'number' && !field.reference) return formatNumberValue(value);
+        if (field.type === 'date') return formatDateValue(value);
+        if (field.type === 'datetime') return formatDateTimeValue(value) ?? value;
+        if (field.type === 'time') return formatTimeValue(value);
+        if (field.options) return renderOptionTag(field, value);
+        return value;
+    };
+
+    const renderListItem = (record: any, index: number) => {
+        const { resource, id } = getTargetInfo(record);
+        const label = getRecordDisplayLabel(record);
+        const titleNode = resource && id !== undefined && id !== null ? (
+            <a
+                href={getShowHref(resource, id, allModels)}
+                onClick={(e) => {
+                    if (!shouldHandleLinkClick(e)) return;
+                    e.preventDefault();
+                    if (paneNav?.isInMultiPane) {
+                        paneNav.openDetail(resource, id);
+                    } else {
+                        go({ to: { resource, action: "show", id } });
+                    }
+                }}
+                style={{ cursor: "pointer", color: token.colorLink, textDecoration: "none", fontWeight: 600 }}
+            >
+                {label}
+            </a>
+        ) : (
+            <span style={{ fontWeight: 600 }}>{label}</span>
+        );
+        return (
+            <li key={getRowKey(record, index)} style={{ marginBottom: 12, listStyle: "none" }}>
+                {titleNode}
+                <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                    {displayFields.map((field) => (
+                        <div key={field.key} style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                            <span style={{ color: token.colorText }}>{field.label}: </span>
+                            {renderListFieldValue(field, record)}
+                        </div>
+                    ))}
+                </div>
+            </li>
+        );
+    };
+
     const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize
         ? tablePagination.pageSize
         : 10;
@@ -3433,6 +3501,68 @@ export const DynamicList: React.FC<{
             onShowSizeChange: handleGalleryPageChange,
         };
     }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
+    const primaryRows = useMemo(() => {
+        if (!isPrimaryView) return [];
+        if (!isClientFiltering) return filteredDataSource;
+        const start = (galleryPage - 1) * galleryPageSize;
+        return filteredDataSource.slice(start, start + galleryPageSize);
+    }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isPrimaryView]);
+    const primaryPaginationProps = useMemo(() => {
+        if (!isPrimaryView) return undefined;
+        if (!isClientFiltering) {
+            return {
+                current: galleryPage,
+                pageSize: galleryPageSize,
+                total: Number.isFinite(serverTotal) ? serverTotal : undefined,
+                hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                onChange: handleGalleryPageChange,
+                onShowSizeChange: handleGalleryPageChange,
+            };
+        }
+        return {
+            current: galleryPage,
+            pageSize: galleryPageSize,
+            total: filteredDataSource.length,
+            hideOnSinglePage: true,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            onChange: handleGalleryPageChange,
+            onShowSizeChange: handleGalleryPageChange,
+        };
+    }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isPrimaryView, serverTotal, tablePagination]);
+    const listRows = useMemo(() => {
+        if (!isListView) return [];
+        if (!isClientFiltering) return filteredDataSource;
+        const start = (galleryPage - 1) * galleryPageSize;
+        return filteredDataSource.slice(start, start + galleryPageSize);
+    }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isListView]);
+    const listPaginationProps = useMemo(() => {
+        if (!isListView) return undefined;
+        if (!isClientFiltering) {
+            return {
+                current: galleryPage,
+                pageSize: galleryPageSize,
+                total: Number.isFinite(serverTotal) ? serverTotal : undefined,
+                hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                onChange: handleGalleryPageChange,
+                onShowSizeChange: handleGalleryPageChange,
+            };
+        }
+        return {
+            current: galleryPage,
+            pageSize: galleryPageSize,
+            total: filteredDataSource.length,
+            hideOnSinglePage: true,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            onChange: handleGalleryPageChange,
+            onShowSizeChange: handleGalleryPageChange,
+        };
+    }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isListView, serverTotal, tablePagination]);
     const calendarDateFieldKeySet = useMemo(
         () => new Set(calendarDateFieldOptions.map((field) => field.key)),
         [calendarDateFieldOptions]
@@ -4132,6 +4262,34 @@ export const DynamicList: React.FC<{
                         </>
                     ) : isCrosstabView ? (
                         crosstabBodyNode
+                    ) : isPrimaryView ? (
+                        <>
+                            {primaryRows.length === 0 ? (
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No records available")}</div>
+                            ) : (
+                                primaryRows.map((record, index) => renderPrimaryItem(record, index))
+                            )}
+                            {primaryPaginationProps && (
+                                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                                    <Pagination {...primaryPaginationProps} />
+                                </div>
+                            )}
+                        </>
+                    ) : isListView ? (
+                        <>
+                            {listRows.length === 0 ? (
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No records available")}</div>
+                            ) : (
+                                <ul style={{ margin: 0, padding: 0 }}>
+                                    {listRows.map((record, index) => renderListItem(record, index))}
+                                </ul>
+                            )}
+                            {listPaginationProps && (
+                                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                                    <Pagination {...listPaginationProps} />
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <>
                         {!selectMode && preFilterBanner}

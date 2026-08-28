@@ -189,6 +189,15 @@ const DashboardGridCell: React.FC<{
     const model = findModelByName(allModels, cell.model);
     const cellRef = useRef<HTMLDivElement>(null);
 
+    // Parsed once so both the outer wrapper and the toolbar/body backgrounds
+    // (which would otherwise paint over a custom background-color) can react
+    // to it consistently.
+    const parsedHtmlStyle = cell.html_style ? parseInlineStyle(cell.html_style) : {};
+    const hasCustomBackground = Boolean(
+        (parsedHtmlStyle as Record<string, unknown>).background
+        || (parsedHtmlStyle as Record<string, unknown>).backgroundColor
+    );
+
     const cellStyle: React.CSSProperties = {
         position: "relative",
         // Fills whatever height the grid assigns its track (the cell-size
@@ -210,7 +219,7 @@ const DashboardGridCell: React.FC<{
         ...(cell.max_width ? { maxWidth: cell.max_width } : {}),
         ...(cell.min_height ? { minHeight: cell.min_height } : {}),
         ...(cell.max_height ? { maxHeight: cell.max_height } : {}),
-        ...(cell.html_style ? parseInlineStyle(cell.html_style) : {}),
+        ...parsedHtmlStyle,
         ...(isMaximized ? { gridColumn: "1 / -1" } : {}),
         ...(isMinimized ? { minHeight: 0 } : {}),
     };
@@ -222,7 +231,7 @@ const DashboardGridCell: React.FC<{
         padding: "2px 8px",
         gap: 2,
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        background: token.colorBgContainer,
+        background: hasCustomBackground ? "transparent" : token.colorBgContainer,
         flexShrink: 0,
         minHeight: 32,
         position: "relative",
@@ -351,6 +360,17 @@ const DashboardGridCell: React.FC<{
                 .jm-dashboard-cell:hover .jm-resize-handle { opacity: 1; }
                 .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
                 .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
+                ${hasCustomBackground ? `
+                .jm-dashboard-cell-body-transparent,
+                .jm-dashboard-cell-body-transparent .ant-card,
+                .jm-dashboard-cell-body-transparent .ant-table,
+                .jm-dashboard-cell-body-transparent .ant-table-container,
+                .jm-dashboard-cell-body-transparent .ant-table-content,
+                .jm-dashboard-cell-body-transparent .ant-table-cell,
+                .jm-dashboard-cell-body-transparent table {
+                    background: transparent !important;
+                }
+                ` : ""}
             `}</style>
 
             {canConfigureLayout && (
@@ -453,7 +473,11 @@ const DashboardGridCell: React.FC<{
                 </div>
             </div>
             {!isMinimized && (
-                <div ref={cellBodyRef} style={{ flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" }}>
+                <div
+                    ref={cellBodyRef}
+                    className={hasCustomBackground ? "jm-dashboard-cell-body-transparent" : undefined}
+                    style={{ flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" }}
+                >
                     {isPlotlyChart && cell.chart_url ? (
                         <PlotlyChartContent chartUrl={cell.chart_url} refreshNonce={chartRefreshNonce} minScale={cardMinScale} />
                     ) : model ? (

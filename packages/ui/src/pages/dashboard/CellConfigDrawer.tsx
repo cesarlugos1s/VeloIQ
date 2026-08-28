@@ -10,6 +10,8 @@ const VIEW_TYPE_OPTIONS = [
     { label: "Gallery", value: "gallery" },
     { label: "Calendar", value: "calendar" },
     { label: "Totals / Details", value: "totals-details" },
+    { label: "Primary", value: "primary" },
+    { label: "List", value: "list" },
 ];
 
 interface Props {
@@ -164,7 +166,7 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
                     </Form.Item>
                 </Space>
 
-                {cell?.source_type === "model" && (
+                {(cell?.source_type === "model" || cell?.source_type === "named_query") && (
                     <>
                         <Divider orientation="left">View</Divider>
                         <Form.Item name="view_type" label="View type">

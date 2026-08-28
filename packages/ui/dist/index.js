@@ -6082,6 +6082,45 @@ var renderNumericValueBar = (value, maxValue, formattedValue, barColor) => {
     /* @__PURE__ */ jsxRuntime.jsx("span", { style: { position: "relative", display: "inline-block", paddingLeft: 6, width: "100%", textAlign: "right" }, children: formattedValue })
   ] });
 };
+var PrimaryShowContext = React6__default.default.createContext(null);
+
+// src/components/DynamicResource/utils/navigation.ts
+var getShowHref = (resource, id, allModels) => {
+  const resourcePath = resolveResourcePath(resource, allModels);
+  return `/${resourcePath}/show/${id}`;
+};
+var shouldHandleLinkClick = (event) => {
+  if (event.defaultPrevented) return false;
+  if (event.button !== 0) return false;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  return true;
+};
+var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) => {
+  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
+  const tone = useModelTone(model);
+  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
+  const label = getRecordDisplayLabel(record);
+  const id = record?.eid ?? record?.id;
+  const resource = resolveResourcePath(model.resource || model.name, allModelsList);
+  const showHref = id !== void 0 && id !== null ? getShowHref(resource, id, allModelsList) : void 0;
+  const viewQuery = customPageName ? `?view=${encodeURIComponent(customPageName)}` : "";
+  const embeddedSrc = id !== void 0 && id !== null ? `/embedded/${resource}/show/${id}${viewQuery}` : void 0;
+  const bodyContent = PrimaryShowRenderer && id !== void 0 && id !== null ? /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowRenderer, { model, id, allModels: allModelsList, viewName: customPageName }) : embeddedSrc ? /* @__PURE__ */ jsxRuntime.jsx("iframe", { title: label, src: embeddedSrc, style: { width: "100%", minHeight: 480, border: "none", display: "block" } }) : null;
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Card,
+    {
+      size: "small",
+      title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx("span", { children: label }),
+        showHref && /* @__PURE__ */ jsxRuntime.jsx("a", { href: showHref, style: { fontSize: 12, color: tone.solid }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) })
+      ] }),
+      variant: "borderless",
+      style: { marginBottom: 12, boxShadow: `0 8px 20px -16px ${tone.shadow}` },
+      styles: { header: { background: "transparent", color: tone.text }, body: { padding: 0 } },
+      children: bodyContent
+    }
+  );
+};
 var ToneSharedStyles = () => /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -6238,18 +6277,6 @@ var renderOptionTag = (field, rawValue) => {
   const colorMap = getFieldValueColors(field);
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
   return /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
-};
-
-// src/components/DynamicResource/utils/navigation.ts
-var getShowHref = (resource, id, allModels) => {
-  const resourcePath = resolveResourcePath(resource, allModels);
-  return `/${resourcePath}/show/${id}`;
-};
-var shouldHandleLinkClick = (event) => {
-  if (event.defaultPrevented) return false;
-  if (event.button !== 0) return false;
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
-  return true;
 };
 var ReferenceField = ({ id, resource, onLabel }) => {
   const { data, isLoading } = core.useOne({ resource, id, queryOptions: { enabled: !!id } });
@@ -9560,7 +9587,6 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
     headerButtons
   };
 };
-var PrimaryShowContext = React6__default.default.createContext(null);
 
 // src/components/DynamicResource/utils/columnFilters.ts
 var truncateLabel = (s) => s.length > 15 ? s.substring(0, 15) + "\u2026" : s;
@@ -10943,7 +10969,9 @@ var VIEW_TYPE_OPTIONS = [
   { label: "Table", value: "table" },
   { label: "Gallery", value: "gallery" },
   { label: "Calendar", value: "calendar" },
-  { label: "Totals / Details", value: "totals-details" }
+  { label: "Totals / Details", value: "totals-details" },
+  { label: "Primary", value: "primary" },
+  { label: "List", value: "list" }
 ];
 var nextGridPosition = (cells) => {
   if (!cells.length) return { row: 0, col: 0 };
@@ -11057,7 +11085,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "row", label: "Row", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { min: 1, style: { width: 80 } }) }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "col", label: "Column", style: { marginBottom: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.InputNumber, { min: 1, style: { width: 80 } }) })
         ] }),
-        cell?.source_type === "model" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+        (cell?.source_type === "model" || cell?.source_type === "named_query") && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: "View" }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "view_type", label: "View type", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: VIEW_TYPE_OPTIONS }) })
         ] }),
@@ -13544,32 +13572,6 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
       }
     )
   ] });
-};
-var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName }) => {
-  const allModelsList = React6.useMemo(() => allModels || [], [allModels]);
-  const tone = useModelTone(model);
-  const PrimaryShowRenderer = React6.useContext(PrimaryShowContext);
-  const label = getRecordDisplayLabel(record);
-  const id = record?.eid ?? record?.id;
-  const resource = resolveResourcePath(model.resource || model.name, allModelsList);
-  const showHref = id !== void 0 && id !== null ? getShowHref(resource, id, allModelsList) : void 0;
-  const viewQuery = customPageName ? `?view=${encodeURIComponent(customPageName)}` : "";
-  const embeddedSrc = id !== void 0 && id !== null ? `/embedded/${resource}/show/${id}${viewQuery}` : void 0;
-  const bodyContent = PrimaryShowRenderer && id !== void 0 && id !== null ? /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowRenderer, { model, id, allModels: allModelsList, viewName: customPageName }) : embeddedSrc ? /* @__PURE__ */ jsxRuntime.jsx("iframe", { title: label, src: embeddedSrc, style: { width: "100%", minHeight: 480, border: "none", display: "block" } }) : null;
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Card,
-    {
-      size: "small",
-      title: /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx("span", { children: label }),
-        showHref && /* @__PURE__ */ jsxRuntime.jsx("a", { href: showHref, style: { fontSize: 12, color: tone.solid }, children: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}) })
-      ] }),
-      variant: "borderless",
-      style: { marginBottom: 12, boxShadow: `0 8px 20px -16px ${tone.shadow}` },
-      styles: { header: { background: "transparent", color: tone.text }, body: { padding: 0 } },
-      children: bodyContent
-    }
-  );
 };
 var _40 = window._ || ((text) => text);
 var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName }) => {
@@ -18128,6 +18130,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const isCalendarView = resolvedListViewType === "calendar";
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
+  const isPrimaryView = resolvedListViewType === "primary";
+  const isListView = resolvedListViewType === "list";
   const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
@@ -20829,6 +20833,63 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onClick: resource && id !== void 0 && id !== null ? handleClick : void 0
     });
   };
+  const renderPrimaryItem = (record, index) => /* @__PURE__ */ jsxRuntime.jsx(RelatedObjectPrimaryCard, { record, model, allModels }, getRowKey(record, index));
+  const renderListFieldValue = (field, record) => {
+    const value = record?.[field.key];
+    const showToken = normalizeFieldViewType(field.showViewType || "");
+    if (showToken && !(showToken === "read-only-field" && field.reference)) {
+      return renderFieldValue(field, record, allModels, true);
+    }
+    if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+      return /* @__PURE__ */ jsxRuntime.jsx(
+        ReferenceField,
+        {
+          id: value,
+          resource: field.reference,
+          onLabel: (label) => handleReferenceLabel(field.reference, value, label)
+        }
+      );
+    }
+    if (isPkField(field, model) && record._label) return record._label;
+    if (field.type === "boolean") return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: value, disabled: true });
+    if (field.type === "number" && !field.reference) return formatNumberValue(value);
+    if (field.type === "date") return formatDateValue(value);
+    if (field.type === "datetime") return formatDateTimeValue(value) ?? value;
+    if (field.type === "time") return formatTimeValue(value);
+    if (field.options) return renderOptionTag(field, value);
+    return value;
+  };
+  const renderListItem = (record, index) => {
+    const { resource, id } = getTargetInfo(record);
+    const label = getRecordDisplayLabel(record);
+    const titleNode = resource && id !== void 0 && id !== null ? /* @__PURE__ */ jsxRuntime.jsx(
+      "a",
+      {
+        href: getShowHref(resource, id, allModels),
+        onClick: (e) => {
+          if (!shouldHandleLinkClick(e)) return;
+          e.preventDefault();
+          if (paneNav?.isInMultiPane) {
+            paneNav.openDetail(resource, id);
+          } else {
+            go({ to: { resource, action: "show", id } });
+          }
+        },
+        style: { cursor: "pointer", color: token.colorLink, textDecoration: "none", fontWeight: 600 },
+        children: label
+      }
+    ) : /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontWeight: 600 }, children: label });
+    return /* @__PURE__ */ jsxRuntime.jsxs("li", { style: { marginBottom: 12, listStyle: "none" }, children: [
+      titleNode,
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }, children: displayFields.map((field) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: [
+        /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: token.colorText }, children: [
+          field.label,
+          ": "
+        ] }),
+        renderListFieldValue(field, record)
+      ] }, field.key)) })
+    ] }, getRowKey(record, index));
+  };
   const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize ? tablePagination.pageSize : 10;
   const handleGalleryPageChange = React6.useCallback((page, nextPageSize) => {
     setGalleryPage(page);
@@ -20885,6 +20946,68 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onShowSizeChange: handleGalleryPageChange
     };
   }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
+  const primaryRows = React6.useMemo(() => {
+    if (!isPrimaryView) return [];
+    if (!isClientFiltering) return filteredDataSource;
+    const start = (galleryPage - 1) * galleryPageSize;
+    return filteredDataSource.slice(start, start + galleryPageSize);
+  }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isPrimaryView]);
+  const primaryPaginationProps = React6.useMemo(() => {
+    if (!isPrimaryView) return void 0;
+    if (!isClientFiltering) {
+      return {
+        current: galleryPage,
+        pageSize: galleryPageSize,
+        total: Number.isFinite(serverTotal) ? serverTotal : void 0,
+        hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
+        showSizeChanger: true,
+        pageSizeOptions: ["10", "20", "50", "100"],
+        onChange: handleGalleryPageChange,
+        onShowSizeChange: handleGalleryPageChange
+      };
+    }
+    return {
+      current: galleryPage,
+      pageSize: galleryPageSize,
+      total: filteredDataSource.length,
+      hideOnSinglePage: true,
+      showSizeChanger: true,
+      pageSizeOptions: ["10", "20", "50", "100"],
+      onChange: handleGalleryPageChange,
+      onShowSizeChange: handleGalleryPageChange
+    };
+  }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isPrimaryView, serverTotal, tablePagination]);
+  const listRows = React6.useMemo(() => {
+    if (!isListView) return [];
+    if (!isClientFiltering) return filteredDataSource;
+    const start = (galleryPage - 1) * galleryPageSize;
+    return filteredDataSource.slice(start, start + galleryPageSize);
+  }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isListView]);
+  const listPaginationProps = React6.useMemo(() => {
+    if (!isListView) return void 0;
+    if (!isClientFiltering) {
+      return {
+        current: galleryPage,
+        pageSize: galleryPageSize,
+        total: Number.isFinite(serverTotal) ? serverTotal : void 0,
+        hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
+        showSizeChanger: true,
+        pageSizeOptions: ["10", "20", "50", "100"],
+        onChange: handleGalleryPageChange,
+        onShowSizeChange: handleGalleryPageChange
+      };
+    }
+    return {
+      current: galleryPage,
+      pageSize: galleryPageSize,
+      total: filteredDataSource.length,
+      hideOnSinglePage: true,
+      showSizeChanger: true,
+      pageSizeOptions: ["10", "20", "50", "100"],
+      onChange: handleGalleryPageChange,
+      onShowSizeChange: handleGalleryPageChange
+    };
+  }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isListView, serverTotal, tablePagination]);
   const calendarDateFieldKeySet = React6.useMemo(
     () => new Set(calendarDateFieldOptions.map((field) => field.key)),
     [calendarDateFieldOptions]
@@ -21559,7 +21682,19 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           _46("No images available")
         ] }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...galleryPaginationProps }) })
-      ] }) : isCrosstabView ? crosstabBodyNode : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+      ] }) : isCrosstabView ? crosstabBodyNode : isPrimaryView ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+        primaryRows.length === 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
+          _46("No records available")
+        ] }) : primaryRows.map((record, index) => renderPrimaryItem(record, index)),
+        primaryPaginationProps && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...primaryPaginationProps }) })
+      ] }) : isListView ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+        listRows.length === 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, { style: { fontSize: 16 } }),
+          _46("No records available")
+        ] }) : /* @__PURE__ */ jsxRuntime.jsx("ul", { style: { margin: 0, padding: 0 }, children: listRows.map((record, index) => renderListItem(record, index)) }),
+        listPaginationProps && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Pagination, { ...listPaginationProps }) })
+      ] }) : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         !selectMode && preFilterBanner,
         selectModeBanner,
         !selectMode && bulkActionsToolbar,
@@ -23452,6 +23587,10 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   const { token } = antd.theme.useToken();
   const model = findModelByName(allModels, cell.model);
   const cellRef = React6.useRef(null);
+  const parsedHtmlStyle = cell.html_style ? parseInlineStyle4(cell.html_style) : {};
+  const hasCustomBackground = Boolean(
+    parsedHtmlStyle.background || parsedHtmlStyle.backgroundColor
+  );
   const cellStyle = {
     position: "relative",
     // Fills whatever height the grid assigns its track (the cell-size
@@ -23473,7 +23612,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     ...cell.max_width ? { maxWidth: cell.max_width } : {},
     ...cell.min_height ? { minHeight: cell.min_height } : {},
     ...cell.max_height ? { maxHeight: cell.max_height } : {},
-    ...cell.html_style ? parseInlineStyle4(cell.html_style) : {},
+    ...parsedHtmlStyle,
     ...isMaximized ? { gridColumn: "1 / -1" } : {},
     ...isMinimized ? { minHeight: 0 } : {}
   };
@@ -23484,7 +23623,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     padding: "2px 8px",
     gap: 2,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
+    background: hasCustomBackground ? "transparent" : token.colorBgContainer,
     flexShrink: 0,
     minHeight: 32,
     position: "relative"
@@ -23561,6 +23700,17 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
                 .jm-dashboard-cell:hover .jm-resize-handle { opacity: 1; }
                 .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
                 .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
+                ${hasCustomBackground ? `
+                .jm-dashboard-cell-body-transparent,
+                .jm-dashboard-cell-body-transparent .ant-card,
+                .jm-dashboard-cell-body-transparent .ant-table,
+                .jm-dashboard-cell-body-transparent .ant-table-container,
+                .jm-dashboard-cell-body-transparent .ant-table-content,
+                .jm-dashboard-cell-body-transparent .ant-table-cell,
+                .jm-dashboard-cell-body-transparent table {
+                    background: transparent !important;
+                }
+                ` : ""}
             ` }),
     canConfigureLayout && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
       /* @__PURE__ */ jsxRuntime.jsx(
@@ -23677,25 +23827,33 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) })
       ] })
     ] }),
-    !isMinimized && /* @__PURE__ */ jsxRuntime.jsx("div", { ref: cellBodyRef, style: { flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" }, children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsxRuntime.jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce, minScale: cardMinScale }) : model ? /* @__PURE__ */ jsxRuntime.jsx(
-      DynamicList,
+    !isMinimized && /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
       {
-        model,
-        allModels,
-        isEmbedded: true,
-        preferencesResourceOverride: `dashboard:${resource}`,
-        defaultListVisible: Boolean(cell.view_type),
-        listViewType: cell.view_type ? cell.view_type : model.listViewType
-      },
-      `${resource}-${cell.view_type ?? ""}`
-    ) : /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Empty,
-      {
-        description: `Model "${cell.model}" not found`,
-        style: { padding: 24 },
-        image: antd.Empty.PRESENTED_IMAGE_SIMPLE
+        ref: cellBodyRef,
+        className: hasCustomBackground ? "jm-dashboard-cell-body-transparent" : void 0,
+        style: { flex: 1, overflow: "auto", minHeight: 0, overflowAnchor: "none" },
+        children: isPlotlyChart && cell.chart_url ? /* @__PURE__ */ jsxRuntime.jsx(PlotlyChartContent, { chartUrl: cell.chart_url, refreshNonce: chartRefreshNonce, minScale: cardMinScale }) : model ? /* @__PURE__ */ jsxRuntime.jsx(
+          DynamicList,
+          {
+            model,
+            allModels,
+            isEmbedded: true,
+            preferencesResourceOverride: `dashboard:${resource}`,
+            defaultListVisible: Boolean(cell.view_type),
+            listViewType: cell.view_type ? cell.view_type : model.listViewType
+          },
+          `${resource}-${cell.view_type ?? ""}`
+        ) : /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Empty,
+          {
+            description: `Model "${cell.model}" not found`,
+            style: { padding: 24 },
+            image: antd.Empty.PRESENTED_IMAGE_SIMPLE
+          }
+        )
       }
-    ) })
+    )
   ] });
 };
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
