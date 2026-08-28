@@ -23924,7 +23924,8 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     gap: gridGap,
     padding: gridPadding,
     height: "100%",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
+    overflowX: "auto"
   };
   if (!cells.length) {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _54("No models in this tab"), style: { padding: 48 } });

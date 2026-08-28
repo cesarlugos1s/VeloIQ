@@ -651,6 +651,7 @@ const DashboardTabContent: React.FC<{
         padding: gridPadding,
         height: "100%",
         boxSizing: "border-box",
+        overflowX: "auto",
     };
 
     if (!cells.length) {
