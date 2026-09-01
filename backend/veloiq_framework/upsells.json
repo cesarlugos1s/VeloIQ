@@ -19,10 +19,18 @@
     {
       "id": "enterprise_governance",
       "extension_name": null,
-      "title": "IQVigilant Enterprise Governance",
-      "text": "IQVigilant Enterprise Governance adds site-licensed Governance, Compliance & Audit (audited models, advanced ReBAC, SSO/IAM, hardened multi-tenancy) plus DevOps & Automated Infrastructure (one-click cloud deployment).",
+      "title": "Enterprise Governance",
+      "text": "Enterprise Governance adds site-licensed Governance, Compliance & Audit (audited models, advanced ReBAC, SSO/IAM, hardened multi-tenancy) plus DevOps & Automated Infrastructure (one-click cloud deployment).",
       "install_cmd": null,
       "link": { "label": "veloiq.dev/enterprise-extensions", "href": "https://veloiq.dev/enterprise-extensions.html" }
+    },
+    {
+      "id": "cognitive_augmentation",
+      "extension_name": "cognitive_augmentation",
+      "title": "Cognitive Augmentation",
+      "text": "Cognitive Augmentation adds Benefit Realization Management, Balanced Scorecard, AI-forecasted Goal Seeking Scenarios, Predictive Model, and Knowledge Management to any VeloIQ app — licensed by number of users.",
+      "install_cmd": "pip install cognitive_augmentation",
+      "link": { "label": "cognitive-augmentation.veloiq.dev", "href": "https://cognitive-augmentation.veloiq.dev" }
     }
   ],
   "commercial_apps_advisory": [
