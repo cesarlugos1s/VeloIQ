@@ -32,6 +32,10 @@ so generated integration code is correct on the first try.
   `SQLModel` subclass registry** — plain SQLAlchemy declarative models are not discovered.
 - When emitting business-rule JSON, use the **real schema below** (`rule_id`, `definition.*`,
   `actions: [...]`), not an abbreviated ad-hoc form.
+- Every admin component's user-facing text is wrapped in the shared `window._()` i18n pattern (see
+  the "Conventions for generated code" note below). The translation catalog itself
+  (`frontend/public/i18n/<locale>.json`) is **host-app-owned**, same as PO catalogs elsewhere in
+  the VeloIQ ecosystem — this package ships no catalog entries of its own; a host app adds them.
 
 ## Install & activate (host app)
 
@@ -151,6 +155,37 @@ any non-allow-listed name. Validate untrusted expressions with `validate_express
 `POST /validate` (server-side validation), `GET /models` (each model's columns + relationship
 attribute names — powers the Builder's field-path pickers). UI: **Business Rule Builder**.
 
+**LLM-assisted authoring** (optional — same pattern as `journey`'s, see below): `GET /llm-status`
+→ `{"llm_available": bool}`; `POST /ai-assist` body `{prompt, rule_id?}` → `{assistant_message,
+proposed}` where `proposed` is one rule dict (`is_new_rule` flag included) in the same schema as
+the CRUD endpoints, run through the same `_validate()` the CRUD routes use. **Never writes to the
+rules file** — the client loads `proposed` into the Builder's editor draft; only an explicit
+`POST`/`PUT` persists it. Registered *before* `GET /{rule_id}` so `"llm-status"` isn't captured as
+a `rule_id` path param.
+
+**Rule Sandbox & Testing Harness** (`sandbox.py`): `POST /sandbox` body
+`{rule? | rule_id?, payload?, live_pk?}` → `{errors: [...]}` (static-validation failure, never
+evaluated) or `{errors: [], trace: {...}}` (per-type shape: formula → `computed_value`/
+`would_persist`; inference → `condition_result`/`actions` — each `update_property` reports
+`resolved_value`, each `create_object` reports `resolved_properties` and **never calls
+`session.add`**; constraint → `would_violate`/`violation_message`) or `{errors: [], trace: None,
+evaluation_error: "..."}` (a mock payload missing a field the rule references). `live_pk` fetches a
+real row but evaluates against a **detached snapshot** (`_snapshot_model_instance`) — the real ORM
+instance is never touched, so a simulated `update_property` can't risk an accidental
+SQLAlchemy autoflush of a live row. Reuses the engine's own `_apply_formula`/`_resolve_value`/
+`_set_path`/`resolve_model` (private methods; `sandbox.py` is as tightly coupled to `engine.py` as
+`custom_api.py`'s `_validate()` already is).
+
+UI (`BusinessRuleBuilder.tsx`, "Test in Sandbox" button): `payload` is built from a real form
+generated off the target model's own columns (`ConstantInput`, same typed widget the action editor
+uses) rather than a raw JSON textarea, with an "Advanced (raw JSON)" toggle pre-seeded from the
+form for cases the flat form can't express; `live_pk` is picked via an embedded `DynamicList`
+(`@juicemantics/veloiq-ui`) in single-select (`rowSelection.type: "radio"`) mode — the same
+paginated/searchable/filterable list every model's own List page uses — instead of a blind
+PK-entry field. `DynamicList`'s row key resolves to `record.eid`/`record.id` and is typically
+numeric; keep `selectedRowKeys`/`onChange` on the raw `React.Key` type end-to-end rather than
+stringifying it, or antd's strict-equality selection match silently never renders a row as checked.
+
 ---
 
 ## Module: journey — multi-step user-journey engine
@@ -163,10 +198,48 @@ File-based (no DB tables). Config in the host working dir: definitions at
 UIs: Journey Builder (`/journeys`), Journey Runner (`/journey-run/:journeyId`), Journey Runs
 (`/journey-results`).
 
+**LLM-assisted authoring** (optional, gated by the shared LLM connection — see
+`data_import_export/llm_availability.py`'s `llm_and_availability()`, reused rather than
+duplicated a third time): `GET /journeys/llm-status` → `{"llm_available": bool}` (registered
+before `GET /journeys/{journey_id}` for the same routing-order reason as `business_rules`);
+`POST /journeys/ai-assist` body `{prompt, journey_id?}` → `{assistant_message, proposed}` where
+`proposed` is a list of journey dicts (`is_new_journey` flag each), matching the `JourneyDef`
+schema above. Each LLM "operation" is `action: "create" | "add_steps" | "replace_all_steps"` —
+`"add_steps"` is spliced onto the existing step chain **in code**, not by asking the LLM to echo
+back unrelated steps, so it can never silently drop them. **Never writes to the journeys file**;
+the client loads the proposal into the Builder's editor draft, and only `POST`/`PUT /journeys`
+persists it. Parameter mappings and transition conditions are left for manual authoring after
+review — not generated.
+
 ## Module: pageconfig — drag-and-drop WYSIWYG page builder
 
 Frontend-only capability; the backend is a minimal stub router (prefix `/pageconfig`) that exists
 for loader discovery and license enforcement. UI route `/pageconfig` (Page Configuration Tool).
+
+**Page Configuration Templates**: `TemplateBuilder.tsx` (`/pageconfig/template-builder`) authors a
+reusable template — same drag-and-drop canvas as the Page Configuration Tool (`PALETTE` blocks:
+`field_group`, `relation_group`, `page_title`, `action_buttons`, `html`, `nlsentence_group`, laid
+out in tabs → sections → entries), persisted via `GET|PUT|DELETE {prefix}/templates/{name}`
+(`BASE = ${API_URL}/pageconfig/templates`) instead of one page's own config. `TemplateManager.tsx`
+(`/pageconfig/template-assignment`) bulk-assigns a saved template to any number of model/view-type
+pages at once; deleting a template in use shows the affected page count/list first
+(`GET {prefix}/templates/{name}/usage`) before confirming.
+
+**Behavior Personalization Console** (`BehaviorPersonalizationConsole.tsx`,
+`/behavior-personalization-console`): a hub page with one KPI card per module (Business Rules,
+Journeys, Page Configuration, Page Configuration Templates), each with a live count and a link to
+that module's own admin page. Each card's count comes from a summary endpoint **owned by its own
+module**, not a shared cross-module route: `GET /business-rules/summary` (`{"total", "label_singular":
+"Active Rule", "label_plural": "Active Rules"}`), `GET /journeys/summary` (`"Journey"`/`"Journeys"`),
+`GET /pageconfig/configs/summary` (`"Configured Page"`/`"Configured Pages"`), `GET
+/pageconfig/templates/summary` (`"Configured Page Template"`/`"Configured Page Templates"`) — all
+registered *before* their respective `/{id}`-shaped routes for the same routing-order reason as
+`llm-status` elsewhere in this package. Zero dependency on IQVigilant: earlier this package called
+IQVigilant's own `/personalization-summary/*` (a shared, no-license-gate endpoint set in
+`nlp/custom_api.py`) directly, which silently broke the KPI cards on an install without IQVigilant.
+Each of these AD-native endpoints instead inherits its own module's existing license gate
+(`business-rules/summary` requires "Dynamic Business Rules" active/grace, etc.) rather than being
+ungated.
 
 ## Module: process_exec — progress-tracked background execution
 
@@ -204,17 +277,81 @@ specific model, same hook Basic uses.
 
 **No export route** — Basic's `export-csv` already respects the current list view's filters.
 
+**Background Loader**: `POST .../mappings/{eid}/run` runs the load two ways, chosen by
+`_use_job_queue_for_import()` (`[data_import] use_job_queue` in `jm_config.ini`, or the
+`DATA_IMPORT_USE_JOB_QUEUE` env var — default **off**): unset, a daemon `threading.Thread` runs
+`_run_import_job` in-process (zero extra deployment requirement, unchanged from before this
+Add-feature); set, `_run_import_job_via_queue` (`@background_task`-decorated, see `jobs` below)
+enqueues the same function onto the durable `jobs` queue instead — durable across a web-process
+restart, retried on failure, visible on the Job Queue Dashboard, **but requires a separate
+`veloiq worker start` process actually running**, or the import queues and never executes. Both
+paths call the identical `_run_import_job(mapping_eid, process_exec_eid)`, so row-processing logic
+never diverges between them.
+
 ## Module: jobs — background job queue & real-time scaling
 
 Durable background job queue: Worker CLI, Job Queue Dashboard (queued/running/succeeded/dead
 status, filtering/sorting/pagination), and a Dead Letter Queue with replay. Scaled Multi-Node
 Server-Sent Events (via Redis/NATS) for real-time updates across instances.
 
+Table `veloiq_ee_job_record` (kept `veloiq_ee_`-prefixed on purpose — see `models.py`'s
+docstring). Core API: `register_handler(job_type, handler)`, `enqueue(session, job_type, payload,
+max_attempts=5, run_at=None)`, `run_worker_loop(...)` (blocking poll loop). Hand-rolled, DB-polling
+queue (portable atomic claim via `UPDATE ... WHERE status='queued'`, no dialect-specific
+`SELECT ... FOR UPDATE`) — **no SAQ/ARQ dependency**, by design (see the two Add-features below).
+
+**Async model/route hook decorators** (`decorators.py`): `@background_task(job_type=None,
+max_attempts=5)` registers the decorated `payload: dict -> None` function as a handler (import-time
+side effect — no separate `factory.py` wiring step needed) and attaches `.delay(session, payload=None,
+**payload_kwargs)`, which enqueues instead of running inline. The function itself stays a plain,
+directly-callable synchronous function (handy in tests) — `.delay(...)` is the only thing that goes
+through the queue. Built entirely on `register_handler`/`enqueue` above; introduces no new library.
+
+**Unified Task CLI**: `veloiq worker start` — added to **`veloiq_framework`'s own CLI**
+(`veloiq_framework/cli/worker.py`, an approved framework change), not just this package's. It
+delegates to `advanced_development.modules.jobs.worker.start_worker_process()` when Advanced
+Development is installed (prints a clear message and exits 1 otherwise) — the same bootstrap
+`advanced-development worker start` (`cli/worker_cmds.py`, kept as a working alias) calls, so the
+two entrypoints can't drift apart. `start_worker_process()` imports the host app's own `app.main`
+first (triggers the full `create_veloiq_app()` startup path — every installed extension's
+`factory.py`, and every `@background_task`-decorated function's module, gets imported, registering
+their handlers), then runs the blocking poll loop.
+
 ## Module: media — file storage & media asset management
 
 S3-compatible file storage (AWS S3, MinIO, Cloudflare R2, DigitalOcean Spaces) with a Media
 Manager UI for uploading, organizing, and attaching assets to any model — presigned-URL uploads,
-no proxying file bytes through the app server.
+no proxying file bytes through the app server. `storage_backend.py` also has a **local filesystem**
+backend (`local_save_bytes`/`local_read_bytes`/`local_delete_object`/`local_head_object`), selected
+via `MEDIA_STORAGE_BACKEND=local` (default `s3`) + `MEDIA_LOCAL_STORAGE_DIR` (default
+`./media_storage`) — the two backends have deliberately different-shaped upload/download functions
+(presigned URL vs. direct proxy-through-this-process), not one shared interface, since they're
+genuinely different protocols, not just different storage locations.
+
+**Declarative `StorageField`** (`storage_field.py`): `StorageField(default=None, **kwargs)` — a
+`veloiq_field(view_type="storage-field", ...)` wrapper — declares a plain `Optional[str]` column
+(an object-storage key) on ANY host/extension SQLModel, e.g. `photo: Optional[str] =
+StorageField(default=None)` on a `Product` model. No per-model registration: `is_storage_field(model_cls,
+field_name)` checks the field's `json_schema_extra` marker at request time, and
+`discover_storage_fields()` walks `SQLModel.__subclasses__()` to list every `(model_name,
+field_name)` pair across the whole app (`GET /storage-field/fields`). Generic, model-agnostic API
+(prefix `/api/advanced-development/media/storage-field`):
+`POST /upload` (local backend only — multipart, proxies bytes, writes the row's field in one call),
+`POST /upload-url` + `POST /confirm` (S3 backend — presigned PUT, then a HEAD-check + write,
+mirroring the polymorphic `MediaAsset` flow's own `/upload-url`+`/confirm`), `GET /download-url`
+(returns a presigned GET or this app's own `/storage-field/file/{key:path}` streaming route,
+depending on backend), `GET /storage-field/by-key/{key:path}` (key-only download/preview, used by
+the read-only field renderer, which has no model/pk context), `DELETE /storage-field`.
+
+Frontend: `veloiq_view_type: "storage-field"` flows through the existing `api_schema_gen.py`
+pipeline into `editViewType: "editable-storage-field"` / `showViewType: "read-only-storage-field"`
+— no new schema-gen plumbing. Rendered by `StorageFieldInput.tsx` (upload/replace/remove widget;
+disabled with a "save the record first" message until a real PK exists) and
+`StorageFieldValue.tsx` (a download button, fetch-then-blob since a plain `<a href>`/`<img>` can't
+attach the Authorization header the API requires) — both new components in
+`veloiq_framework/packages/ui`'s shared `DynamicResource/fields/` (an approved framework change:
+`renderInput.tsx`/`renderFieldValue.tsx`/`viewConfig.ts`'s `FIELD_VIEW_TYPE_TOKENS` all needed the
+new token wired in).
 
 ## Module: webhooks — webhooks & event delivery engine
 
@@ -234,6 +371,14 @@ queue, and an Admin Dashboard UI for monitoring delivery status.
 - Frontend schema files follow the three-file pattern: `{module}Schema.gen.ts` (regenerated),
   `{module}Schema.manual.ts` (never overwritten), `{module}Schema.ts` (merged). After editing,
   run `veloiq generate` from the host app.
+- Wrap every user-facing string in a new/edited component with the local `window._()` helper
+  already defined near the top of each `.tsx` file here (`const _ = (text: string): string => {
+  const t = (window as any)._; return typeof t === "function" ? t(text) : text; };`) — titles,
+  button labels, table columns, form labels/placeholders, tooltips, `message.*` calls, dynamic
+  strings built with template literals (wrap the static fragments). Don't wrap enum/type values
+  used as data (e.g. a rule's `"formula"` discriminator), technical field/column names, or example
+  syntax shown in a placeholder. The translation catalog itself is host-app-owned (see the i18n
+  note above) — this package's job is only ensuring the string passes through `_()`.
 
 ## Reference
 

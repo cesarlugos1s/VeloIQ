@@ -63,6 +63,7 @@
       A WYSIWYG Page Builder, a multi-step Journey engine, Dynamic Business Rules, AI-Assisted
       Data Import, File Storage &amp; Media, Webhooks, and a Background Job Queue — one extension
       package on top of any VeloIQ™ app, billed per application/installation rather than per seat.
+      Every admin screen it adds is translation-ready out of the box.
     </p>
     <a href="advanced-development-showcase.html" class="btn-primary" style="margin-top:8px;display:inline-block">▶ Watch the Showcase →</a>
   </div>
@@ -82,9 +83,14 @@
         <p>A drag-and-drop page builder — non-technical stakeholders compose enterprise UI at runtime without touching code.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">🗃️</span>
+        <h3>Reusable Page Templates</h3>
+        <p>Build a layout once in the Template Builder, then bulk-assign it across any number of pages — a design change to the template propagates everywhere it's used, without re-editing each page by hand.</p>
+      </div>
+      <div class="feature-card">
         <span class="feature-icon">🧭</span>
         <h3>User Journeys</h3>
-        <p>A multi-step user-journey engine with conditional branching and traceability — guide users through complex processes.</p>
+        <p>A multi-step user-journey engine with conditional branching and traceability — guide users through complex processes. Describe one in plain language and an "Ask AI" input proposes the steps for you to review before saving, when an LLM is configured.</p>
       </div>
     </div>
   </div>
@@ -106,7 +112,12 @@
       <div class="feature-card">
         <span class="feature-icon">🧩</span>
         <h3>Visual Rule Builder</h3>
-        <p>Condition builder, field-path pickers, and a multi-row actions editor — hot-reloads on save, no restart required.</p>
+        <p>Condition builder, field-path pickers, and a multi-row actions editor — hot-reloads on save, no restart required. An optional "Ask AI" input turns a plain-language request into a rule proposal you review before saving.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🧪</span>
+        <h3>Rule Sandbox &amp; Testing Harness</h3>
+        <p>Evaluate any rule — saved, or a draft straight from the Builder — against a friendly test-data form or a real row picked from a searchable list, and see exactly what it would compute or do before it ever runs for real. Never writes or persists anything.</p>
       </div>
     </div>
   </div>
@@ -123,7 +134,7 @@
       <div class="feature-card">
         <span class="feature-icon">📥</span>
         <h3>AI-Assisted Data Import</h3>
-        <p>AI-or-fuzzy column mapping, foreign-key resolution, and a real dry-run preview — added vs. updated, per-row errors — before a progress-tracked background load ever writes a row.</p>
+        <p>AI-or-fuzzy column mapping, foreign-key resolution, and a real dry-run preview — added vs. updated, per-row errors — before a progress-tracked background load ever writes a row. Opt into durable, retryable, job-queue-backed loading for large files.</p>
       </div>
     </div>
   </div>
@@ -141,7 +152,12 @@
       <div class="feature-card">
         <span class="feature-icon">🗂️</span>
         <h3>File Storage &amp; Media Asset Management</h3>
-        <p>S3-backed file storage with a Media Manager UI for uploading, organizing, and attaching assets to any model.</p>
+        <p>S3-or-local file storage with a Media Manager UI for uploading, organizing, and attaching assets to any model.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📎</span>
+        <h3>Declarative StorageField</h3>
+        <p>Attach a file straight to a model field — <code>photo: Optional[str] = StorageField()</code> — and get a real upload picker on your Create/Edit pages automatically, no route wiring required.</p>
       </div>
       <div class="feature-card">
         <span class="feature-icon">🔗</span>
@@ -151,7 +167,12 @@
       <div class="feature-card">
         <span class="feature-icon">🧵</span>
         <h3>Background Job Queue &amp; Real-time Scaling</h3>
-        <p>Production Worker CLI, Task Dashboard, and Dead Letter Queue for background jobs; Scaled Multi-Node Server-Sent Events via Redis/NATS for real-time updates across instances.</p>
+        <p>Unified <code>veloiq worker start</code> CLI, Task Dashboard, and Dead Letter Queue for background jobs; Scaled Multi-Node Server-Sent Events via Redis/NATS for real-time updates across instances.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Async Model/Route Hook Decorators</h3>
+        <p>Wrap any function with <code>@background_task()</code> and call <code>.delay(session, payload)</code> from a route or model hook to fire it in the background — same durable queue, retries, and dashboard as every other job.</p>
       </div>
     </div>
   </div>
