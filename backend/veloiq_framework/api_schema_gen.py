@@ -1190,6 +1190,20 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
             # Write manual stub only if missing (developer may have customised it).
             _write_manual_schema_if_missing(module_name, dest_dir)
 
+            # Copy per-model custom_*.tsx overrides (e.g. Benefit/custom_show.tsx) —
+            # always overwrite, extension owns these. The later "scan app module
+            # pages for custom_*.tsx overrides" pass in _sync_extension_frontend
+            # only sees files that physically exist under the host's pages_dir,
+            # so these must land here or the override is silently never wired up.
+            for model_dir in sorted(mod_dir.iterdir()):
+                if not model_dir.is_dir() or model_dir.name.startswith("_"):
+                    continue
+                dest_model_dir = dest_dir / model_dir.name
+                for src_file in sorted(model_dir.glob("custom_*.tsx")):
+                    dest_model_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_file, dest_model_dir / src_file.name)
+                    print(f"  ✅ {module_name}/{model_dir.name}/{src_file.name}")
+
             ext_modules.append(module_name)
             ext_module_label_map[module_name] = ext.name
 
