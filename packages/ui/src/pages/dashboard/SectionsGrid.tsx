@@ -11,6 +11,16 @@ import {
 } from "@ant-design/icons";
 import type { DashboardCell, DashboardConfig } from "./hooks/useDashboardConfig";
 import { CellConfigDrawer } from "./CellConfigDrawer";
+import { computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig, type MoveDirection } from "./hooks/gridCellOps";
+import { useCellWindowState } from "./hooks/useCellWindowState";
+import { computeRowTrackHeight, useFitRowHeight, type GridDensity } from "./hooks/gridDensity";
+import { FitRowCellCarousel } from "./FitCellCarousel";
+
+/** "Original" step's row-height floor for SectionsGrid — its section cards
+ * historically had no floor at all (`minmax(80px, auto)`), much shorter
+ * than ViewsGrid's dashboard cells (320px), so it keeps its own value
+ * rather than inheriting ViewsGrid's. */
+const SECTIONS_ORIGINAL_MIN_ROW_PX = 80;
 
 // ---------------------------------------------------------------------------
 // SectionsGrid — a grid of named section cards with ViewsGrid cell chrome.
@@ -26,6 +36,13 @@ interface Props {
     renderContent: (cell: DashboardCell) => React.ReactNode;
     onConfigChange: (next: DashboardConfig) => void;
     isConfiguring?: boolean;
+    /** Cell-size preference — shared across every tab of one Show/Edit page
+     * instance (its selector lives at the right edge of that page's own
+     * tab bar, not inside SectionsGrid — see useStandardShowTabs/
+     * useStandardEditTabs, which own the state and thread it into every
+     * SectionsGrid call for the page). Defaults to "original" so this
+     * matches SectionsGrid's pre-existing look until a user opts in. */
+    gridDensity?: GridDensity;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,6 +66,12 @@ const SectionCell: React.FC<{
 
     const cellStyle: React.CSSProperties = {
         position: "relative",
+        // Fills whatever height the grid assigns its track. Against an
+        // "auto" track (the default "Original" density) a percentage
+        // height resolves to auto per the CSS spec, so this is a no-op
+        // there — it only takes effect once the track has a definite size
+        // (a fixed density step, or the fit-row/fit-cell carousel).
+        height: "100%",
         border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: token.borderRadiusLG,
         overflow: "hidden",
@@ -175,76 +198,32 @@ const SectionCell: React.FC<{
 // SectionsGrid
 // ---------------------------------------------------------------------------
 
-export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false }) => {
-    const [maximizedCellId, setMaximizedCellId] = useState<string | null>(null);
-    const [minimizedCellIds, setMinimizedCellIds] = useState<Set<string>>(new Set());
+export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }) => {
+    const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize } = useCellWindowState();
     const [drawerCellId, setDrawerCellId] = useState<string | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    const handleMaximize = useCallback((cellId: string) => {
-        setMaximizedCellId((prev) => (prev === cellId ? null : cellId));
-    }, []);
-
-    const handleMinimize = useCallback((cellId: string) => {
-        setMinimizedCellIds((prev) => {
-            const next = new Set(prev);
-            next.has(cellId) ? next.delete(cellId) : next.add(cellId);
-            return next;
-        });
-    }, []);
-
-    const handleMove = useCallback((cellId: string, direction: "left" | "right" | "up" | "down") => {
-        const nextTabs = config.tabs.map((tab) => {
-            if (tab.id !== tabId) return tab;
-            const cell = tab.cells.find((c) => c.id === cellId);
-            if (!cell) return tab;
-            let newRow = cell.row;
-            let newCol = cell.col;
-            if (direction === "left")  newCol = Math.max(0, cell.col - 1);
-            if (direction === "right") newCol = cell.col + 1;
-            if (direction === "up")    newRow = Math.max(0, cell.row - 1);
-            if (direction === "down")  newRow = cell.row + 1;
-            const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
-            return {
-                ...tab,
-                cells: tab.cells.map((c) => {
-                    if (c.id === cellId) return { ...c, row: newRow, col: newCol };
-                    if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
-                    return c;
-                }),
-            };
-        });
-        onConfigChange({ ...config, tabs: nextTabs });
+    const handleMove = useCallback((cellId: string, direction: MoveDirection) => {
+        onConfigChange(moveCellInConfig(config, tabId, cellId, direction));
     }, [config, tabId, onConfigChange]);
 
     const handleResize = useCallback((cellId: string, minWidth: string | null, minHeight: string | null) => {
-        const nextTabs = config.tabs.map((tab) => {
-            if (tab.id !== tabId) return tab;
-            return {
-                ...tab,
-                cells: tab.cells.map((c) => {
-                    if (c.id !== cellId) return c;
-                    return {
-                        ...c,
-                        ...(minWidth !== null ? { min_width: minWidth } : {}),
-                        ...(minHeight !== null ? { min_height: minHeight } : {}),
-                    };
-                }),
-            };
-        });
-        onConfigChange({ ...config, tabs: nextTabs });
+        onConfigChange(resizeCellInConfig(config, tabId, cellId, minWidth, minHeight));
     }, [config, tabId, onConfigChange]);
 
-    const numCols = useMemo(() => {
-        if (!cells.length) return 1;
-        return Math.max(...cells.map((c) => c.col)) + 1;
-    }, [cells]);
+    const { numCols, numRows } = useMemo(() => computeGridDims(cells), [cells]);
+    const gridGap = 8;
+    const gridPadding = 8; // must match gridStyle.padding below
 
-    const numRows = useMemo(() => {
-        if (!cells.length) return 1;
-        return Math.max(...cells.map((c) => c.row)) + 1;
-    }, [cells]);
+    // null until the very first measurement lands — see useFitRowHeight's
+    // own comment for why the "fit row"/"fit cell" Carousel below must never
+    // mount before this is final.
+    const fitRowHeight = useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding);
 
-    // Rows occupied by exactly one section — those cells should span all columns.
+    // Rows occupied by exactly one section — those cells should span all
+    // columns. Only meaningful for the plain CSS-grid rendering below: the
+    // carousel branch already gives every row's cells the full available
+    // width evenly (a solo row there is just a 1-cell `repeat(1, 1fr)`).
     const soloRows = useMemo(() => {
         const counts = new Map<number, number>();
         for (const c of cells) counts.set(c.row, (counts.get(c.row) ?? 0) + 1);
@@ -260,9 +239,11 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
     const gridStyle: React.CSSProperties = {
         display: "grid",
         gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
-        gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, minmax(80px, auto))`,
-        gap: 8,
-        padding: 8,
+        gridTemplateRows: maximizedCellId
+            ? "1fr"
+            : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight, SECTIONS_ORIGINAL_MIN_ROW_PX)})`,
+        gap: gridGap,
+        padding: gridPadding,
         boxSizing: "border-box",
     };
 
@@ -272,32 +253,60 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
 
     const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;
 
+    const renderCell = (cell: DashboardCell) => (
+        <SectionCell
+            cell={cell}
+            isConfiguring={isConfiguring}
+            isMaximized={maximizedCellId === cell.id}
+            isMinimized={minimizedCellIds.has(cell.id)}
+            onConfigure={() => setDrawerCellId(cell.id)}
+            onMaximize={() => handleMaximize(cell.id)}
+            onMinimize={() => handleMinimize(cell.id)}
+            onMove={(dir) => handleMove(cell.id, dir)}
+            onResize={(w, h) => handleResize(cell.id, w, h)}
+        >
+            {renderContent(cell)}
+        </SectionCell>
+    );
+
+    // A maximized cell already shows one cell full-bleed via the ordinary
+    // grid path below — carousel navigation only kicks in when nothing is
+    // maximized.
+    const gridBody = (!maximizedCellId && (gridDensity === "fit-row" || gridDensity === "fit-cell")) ? (
+        // Nothing to mount the Carousel against yet — see useFitRowHeight's
+        // comment for why this must not fall back to a default height
+        // instead. This state is resolved synchronously so this branch is
+        // not user-visible.
+        fitRowHeight === null ? null : (
+            <FitRowCellCarousel
+                cellsByRow={groupCellsByRow(cells)}
+                gridDensity={gridDensity}
+                rowHeight={fitRowHeight}
+                gridGap={gridGap}
+                gridPadding={gridPadding}
+                renderCell={renderCell}
+            />
+        )
+    ) : (
+        <div style={gridStyle}>
+            {visibleCells.map((cell) => (
+                <div
+                    key={cell.id}
+                    style={{
+                        gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
+                        gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`,
+                    }}
+                >
+                    {renderCell(cell)}
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <>
-            <div style={gridStyle}>
-                {visibleCells.map((cell) => (
-                    <div
-                        key={cell.id}
-                        style={{
-                            gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
-                            gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`,
-                        }}
-                    >
-                        <SectionCell
-                            cell={cell}
-                            isConfiguring={isConfiguring}
-                            isMaximized={maximizedCellId === cell.id}
-                            isMinimized={minimizedCellIds.has(cell.id)}
-                            onConfigure={() => setDrawerCellId(cell.id)}
-                            onMaximize={() => handleMaximize(cell.id)}
-                            onMinimize={() => handleMinimize(cell.id)}
-                            onMove={(dir) => handleMove(cell.id, dir)}
-                            onResize={(w, h) => handleResize(cell.id, w, h)}
-                        >
-                            {renderContent(cell)}
-                        </SectionCell>
-                    </div>
-                ))}
+            <div ref={containerRef} style={{ height: "100%", boxSizing: "border-box" }}>
+                {gridBody}
             </div>
             <CellConfigDrawer
                 open={Boolean(drawerCell)}

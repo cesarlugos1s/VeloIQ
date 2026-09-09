@@ -8,6 +8,8 @@ import type { FieldDef, ModelDef, ViewConfigRow } from "../types";
 import { isDarkColor, renderToneTabLabel } from "../utils/colors";
 import { findModelByName, getRecordId, resolveResourcePath } from "../utils/model";
 import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
+import { CellSizeSelector } from "../../../pages/dashboard/CellSizeSelector";
+import { buildGridDensityLabelText, buildGridDensityMarks, GRID_DENSITY_STEPS, useGridDensity } from "../../../pages/dashboard/hooks/gridDensity";
 import { SectionCellContent } from "../SectionCellContent";
 import { usePageSectionsConfig } from "./usePageSectionsConfig";
 import {
@@ -63,7 +65,7 @@ export const useStandardEditTabs = (
     overrideConfigRows?: ViewConfigRow[],
     dataDetailLevelState?: DataDetailLevelState,
 ) => {
-    if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
+    if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
     const { token } = theme.useToken();
     const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
     const modelTone = useModelTone(model);
@@ -98,6 +100,25 @@ export const useStandardEditTabs = (
     );
     const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
     setCurrentDataDetailLevelState(effectiveDetailState);
+
+    // See useStandardShowTabs's matching comment — one shared "Cell size"
+    // preference per Edit page, selector at the right edge of DynamicEdit's
+    // own tab bar, defaulting to "original" so the page's first render
+    // matches its pre-existing look.
+    const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    const gridDensityMarks = useMemo(() => buildGridDensityMarks(_), []);
+    const gridDensityLabelText = buildGridDensityLabelText(_);
+    const cellSizeControl = (
+        <CellSizeSelector
+            label={_("Cell size")}
+            stepCount={GRID_DENSITY_STEPS.length}
+            marks={gridDensityMarks}
+            value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
+            onChange={setGridDensityByStep}
+            currentLabelText={gridDensityLabelText[gridDensity]}
+        />
+    );
+
     const appliedRels = effectiveDetailState.applyToRelations(model.relations || []);
     const derivedModel: ModelDef = useMemo(
         () => ({ ...model, relations: appliedRels }),
@@ -248,6 +269,7 @@ export const useStandardEditTabs = (
                                 )}
                                 onConfigChange={onLayoutChange}
                                 isConfiguring={isConfiguring && canConfigureLayout}
+                                gridDensity={gridDensity}
                             />
                         </Form>
                         );
@@ -308,6 +330,7 @@ export const useStandardEditTabs = (
                     )}
                     onConfigChange={onLayoutChange}
                     isConfiguring={isConfiguring}
+                    gridDensity={gridDensity}
                 />
             </Form>
         );
@@ -323,5 +346,5 @@ export const useStandardEditTabs = (
 
     const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
 
-    return { tabs: items, layoutConfig };
+    return { tabs: items, layoutConfig, cellSizeControl };
 };

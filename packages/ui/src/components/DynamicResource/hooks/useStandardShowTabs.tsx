@@ -9,6 +9,8 @@ import { applyI18nLabelsToModel, applyI18nLabelsToModels } from "../utils/i18n";
 import { isDarkColor, renderToneTabLabel } from "../utils/colors";
 import { findModelByName, getRecordId, resolveResourcePath } from "../utils/model";
 import { SectionsGrid } from "../../../pages/dashboard/SectionsGrid";
+import { CellSizeSelector } from "../../../pages/dashboard/CellSizeSelector";
+import { buildGridDensityLabelText, buildGridDensityMarks, GRID_DENSITY_STEPS, useGridDensity } from "../../../pages/dashboard/hooks/gridDensity";
 import { SectionCellContent } from "../SectionCellContent";
 import { usePageSectionsConfig } from "./usePageSectionsConfig";
 import {
@@ -64,7 +66,7 @@ export const useStandardShowTabs = (
     overrideConfigRows?: ViewConfigRow[],
     dataDetailLevelState?: DataDetailLevelState,
 ) => {
-    if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
+    if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const { token } = theme.useToken();
@@ -93,6 +95,28 @@ export const useStandardShowTabs = (
     );
     const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
     setCurrentDataDetailLevelState(effectiveDetailState);
+
+    // Cell size ("Original"/"Fit page"/.../"Fit cell") for this page's
+    // SectionsGrid instances — one shared preference per Show page, same as
+    // pageConfig below, so every tab (details + custom tabs) uses the same
+    // density. Its selector renders at the right edge of DynamicShow's own
+    // tab bar (see DynamicShow.tsx), not inside SectionsGrid itself, so it
+    // shows even for a page with only the built-in "Details" tab. Defaults
+    // to "original" — unlike ViewsGrid's dashboard, which defaults to "fit"
+    // — so a Show page's first render always matches its pre-existing look.
+    const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    const gridDensityMarks = useMemo(() => buildGridDensityMarks(_), []);
+    const gridDensityLabelText = buildGridDensityLabelText(_);
+    const cellSizeControl = (
+        <CellSizeSelector
+            label={_("Cell size")}
+            stepCount={GRID_DENSITY_STEPS.length}
+            marks={gridDensityMarks}
+            value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
+            onChange={setGridDensityByStep}
+            currentLabelText={gridDensityLabelText[gridDensity]}
+        />
+    );
     const relations = effectiveDetailState.applyToRelations(model.relations || []);
     const derivedModel: ModelDef = useMemo(
         () => ({ ...model, relations }),
@@ -258,6 +282,7 @@ export const useStandardShowTabs = (
                             )}
                             onConfigChange={onLayoutChange}
                             isConfiguring={isConfiguring && canConfigureLayout}
+                            gridDensity={gridDensity}
                         />
                     );
                 })()}
@@ -356,6 +381,7 @@ export const useStandardShowTabs = (
                     )}
                     onConfigChange={onLayoutChange}
                     isConfiguring={isConfiguring}
+                    gridDensity={gridDensity}
                 />
             </Form>
         );
@@ -429,5 +455,5 @@ export const useStandardShowTabs = (
         return () => { setCurrentDataDetailLevelState(undefined); };
     }, []);
 
-    return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState };
+    return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState, cellSizeControl };
 };

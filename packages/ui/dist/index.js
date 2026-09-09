@@ -9849,7 +9849,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
     (headerButtons ?? renderStandardShowHeaderButtons)(args)
   ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = React6.useState("details");
-  const { tabs: items, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
+  const { tabs: items, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
     model,
     record,
     allModelsList,
@@ -9886,7 +9886,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
       /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
       !record ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "center", padding: 32 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) }) : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         beforeTabs,
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
         /* @__PURE__ */ jsxRuntime.jsx(
           ShowFooterButtons,
           {
@@ -9914,7 +9914,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
         headerButtons: combinedHeaderButtons,
         children: [
           beforeTabs,
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
           /* @__PURE__ */ jsxRuntime.jsx(
             ShowFooterButtons,
             {
@@ -11126,11 +11126,341 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     }
   );
 };
+
+// src/pages/dashboard/hooks/gridCellOps.ts
+function computeGridDims(cells) {
+  if (!cells.length) return { numCols: 1, numRows: 1 };
+  return {
+    numCols: Math.max(...cells.map((c) => c.col)) + 1,
+    numRows: Math.max(...cells.map((c) => c.row)) + 1
+  };
+}
+function moveCellInConfig(config, tabId, cellId, direction) {
+  const nextTabs = config.tabs.map((tab) => {
+    if (tab.id !== tabId) return tab;
+    const cell = tab.cells.find((c) => c.id === cellId);
+    if (!cell) return tab;
+    let newRow = cell.row;
+    let newCol = cell.col;
+    if (direction === "left") newCol = Math.max(0, cell.col - 1);
+    if (direction === "right") newCol = cell.col + 1;
+    if (direction === "up") newRow = Math.max(0, cell.row - 1);
+    if (direction === "down") newRow = cell.row + 1;
+    const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
+    return {
+      ...tab,
+      cells: tab.cells.map((c) => {
+        if (c.id === cellId) return { ...c, row: newRow, col: newCol };
+        if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
+        return c;
+      })
+    };
+  });
+  return { ...config, tabs: nextTabs };
+}
+function groupCellsByRow(cells) {
+  const byRow = /* @__PURE__ */ new Map();
+  cells.forEach((c) => {
+    if (!byRow.has(c.row)) byRow.set(c.row, []);
+    byRow.get(c.row).push(c);
+  });
+  return Array.from(byRow.entries()).sort(([a], [b]) => a - b).map(([, rowCells]) => [...rowCells].sort((a, b) => a.col - b.col));
+}
+function resizeCellInConfig(config, tabId, cellId, minWidth, minHeight) {
+  const nextTabs = config.tabs.map((tab) => {
+    if (tab.id !== tabId) return tab;
+    return {
+      ...tab,
+      cells: tab.cells.map((c) => {
+        if (c.id !== cellId) return c;
+        return {
+          ...c,
+          ...minWidth !== null ? { min_width: minWidth } : {},
+          ...minHeight !== null ? { min_height: minHeight } : {}
+        };
+      })
+    };
+  });
+  return { ...config, tabs: nextTabs };
+}
+function useCellWindowState() {
+  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
+  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+  const handleMaximize = React6.useCallback((cellId) => {
+    setMaximizedCellId((prev) => prev === cellId ? null : cellId);
+  }, []);
+  const handleMinimize = React6.useCallback((cellId) => {
+    setMinimizedCellIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cellId)) next.delete(cellId);
+      else next.add(cellId);
+      return next;
+    });
+  }, []);
+  const reset = React6.useCallback(() => {
+    setMaximizedCellId(null);
+    setMinimizedCellIds(/* @__PURE__ */ new Set());
+  }, []);
+  return { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset };
+}
+var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
+var GRID_DENSITY_ROW_HEIGHT = {
+  small: 180,
+  medium: 320,
+  large: 480
+};
+var FIT_PAGE_MIN_ROW_HEIGHT = 120;
+function loadStoredGridDensity(storageKey, defaultValue) {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored && GRID_DENSITY_STEPS.includes(stored)) {
+      return stored;
+    }
+  } catch {
+  }
+  return defaultValue;
+}
+function useGridDensity(storageKey, defaultValue) {
+  const [gridDensity, setGridDensityState] = React6.useState(() => loadStoredGridDensity(storageKey, defaultValue));
+  const setGridDensityByStep = React6.useCallback((stepIndex) => {
+    const next = GRID_DENSITY_STEPS[stepIndex] ?? defaultValue;
+    setGridDensityState(next);
+    try {
+      localStorage.setItem(storageKey, next);
+    } catch {
+    }
+  }, [storageKey, defaultValue]);
+  return { gridDensity, setGridDensityByStep };
+}
+function buildGridDensityMarks(_56) {
+  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _56(text) });
+  return {
+    0: label("Original"),
+    1: label("Small"),
+    2: label("Page"),
+    3: label("Row"),
+    4: label("Cell"),
+    5: label("Medium"),
+    6: label("Large")
+  };
+}
+function buildGridDensityLabelText(_56) {
+  return {
+    original: _56("Original"),
+    small: _56("Small"),
+    fit: _56("Page"),
+    "fit-row": _56("Row"),
+    "fit-cell": _56("Cell"),
+    medium: _56("Medium"),
+    large: _56("Large")
+  };
+}
+function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320) {
+  switch (gridDensity) {
+    case "small":
+    case "medium":
+    case "large":
+      return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
+    case "fit": {
+      const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
+      return `minmax(${height}px, ${height}px)`;
+    }
+    case "original":
+    default:
+      return `minmax(${originalMinPx}px, auto)`;
+  }
+}
+function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding) {
+  const [fitRowHeight, setFitRowHeight] = React6.useState(null);
+  React6.useLayoutEffect(() => {
+    if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
+    const el = containerRef.current;
+    if (!el) return;
+    const effectiveRows = gridDensity === "fit" ? numRows : 1;
+    const findScrollableAncestor = (node) => {
+      let current = node.parentElement;
+      while (current && current !== document.body) {
+        const overflowY = window.getComputedStyle(current).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return current;
+        current = current.parentElement;
+      }
+      return null;
+    };
+    const recompute = () => {
+      const top = el.getBoundingClientRect().top;
+      const ancestor2 = findScrollableAncestor(el);
+      const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
+      const availableHeight = bottomBoundary - top;
+      const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
+      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
+      setFitRowHeight(rowHeight);
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    const ancestor = findScrollableAncestor(el);
+    const observer = ancestor ? new ResizeObserver(recompute) : null;
+    if (ancestor && observer) observer.observe(ancestor);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      observer?.disconnect();
+    };
+  }, [gridDensity, numRows]);
+  return fitRowHeight;
+}
+var CarouselPositionBadge = ({ corner, current, total }) => {
+  const { token } = antd.theme.useToken();
+  const positionStyle = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: {
+    position: "absolute",
+    zIndex: 20,
+    ...positionStyle,
+    fontSize: 11,
+    padding: "1px 6px",
+    borderRadius: 10,
+    background: token.colorBgElevated,
+    color: token.colorTextSecondary,
+    border: `1px solid ${token.colorBorderSecondary}`
+  }, children: [
+    current,
+    " / ",
+    total
+  ] });
+};
+var CarouselEdgeArrow = ({ direction, onClick }) => {
+  const icon = direction === "up" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}) : direction === "down" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}) : direction === "left" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {});
+  const positionStyle = direction === "up" ? { top: 4, left: "50%", transform: "translateX(-50%)" } : direction === "down" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : direction === "left" ? { left: 4, top: "50%", transform: "translateY(-50%)" } : { right: 4, top: "50%", transform: "translateY(-50%)" };
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Button,
+    {
+      shape: "circle",
+      size: "small",
+      icon,
+      onClick,
+      style: { position: "absolute", zIndex: 20, ...positionStyle }
+    }
+  );
+};
+var FitCellRow = React6__default.default.forwardRef(({ rowCells, rowHeight, gridPadding, renderCell }, ref) => {
+  const count = rowCells.length;
+  const hasMultipleCells = count > 1;
+  const [activeIndex, setActiveIndex] = React6.useState(0);
+  React6.useImperativeHandle(ref, () => ({
+    next: () => setActiveIndex((i) => (i + 1) % count),
+    prev: () => setActiveIndex((i) => (i - 1 + count) % count),
+    goTo: (index) => setActiveIndex((index % count + count) % count)
+  }), [count]);
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "relative", height: rowHeight, overflow: "hidden" }, children: [
+    hasMultipleCells && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "left", onClick: () => setActiveIndex((i) => (i - 1 + count) % count) }),
+      /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "right", onClick: () => setActiveIndex((i) => (i + 1) % count) }),
+      /* @__PURE__ */ jsxRuntime.jsx(CarouselPositionBadge, { corner: "bottom-right", current: activeIndex + 1, total: count })
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
+      display: "flex",
+      height: rowHeight,
+      width: "100%",
+      transform: `translateX(-${activeIndex * 100}%)`,
+      transition: "transform 0.3s ease"
+    }, children: rowCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: "0 0 100%", width: "100%", height: rowHeight, padding: gridPadding, boxSizing: "border-box" }, children: renderCell(cell) }, cell.id)) })
+  ] });
+});
+FitCellRow.displayName = "FitCellRow";
+var FitRowCellCarousel = ({ cellsByRow, gridDensity, rowHeight, gridGap, gridPadding, renderCell }) => {
+  const outerRef = React6.useRef(null);
+  const activeRowRef = React6.useRef(0);
+  const [activeRow, setActiveRow] = React6.useState(0);
+  const innerRefsByRow = React6.useRef(/* @__PURE__ */ new Map());
+  const hasMultipleRows = cellsByRow.length > 1;
+  const goToRow = React6.useCallback((dir) => {
+    if (dir === "prev") outerRef.current?.prev();
+    else outerRef.current?.next();
+  }, []);
+  const goToCell = React6.useCallback((dir) => {
+    const ref = innerRefsByRow.current.get(activeRowRef.current);
+    if (dir === "prev") ref?.prev();
+    else ref?.next();
+  }, []);
+  React6.useEffect(() => {
+    outerRef.current?.innerSlider?.onWindowResized?.();
+  }, [rowHeight]);
+  const handleRowChange = React6.useCallback((next) => {
+    activeRowRef.current = next;
+    setActiveRow(next);
+    if (gridDensity === "fit-cell") {
+      innerRefsByRow.current.get(next)?.goTo(0);
+    }
+  }, [gridDensity]);
+  const handleKeyDown = React6.useCallback((e) => {
+    if (e.key === "PageUp") {
+      e.preventDefault();
+      goToRow("prev");
+    } else if (e.key === "PageDown") {
+      e.preventDefault();
+      goToRow("next");
+    } else if (gridDensity === "fit-cell" && e.key === "ArrowLeft") {
+      e.preventDefault();
+      goToCell("prev");
+    } else if (gridDensity === "fit-cell" && e.key === "ArrowRight") {
+      e.preventDefault();
+      goToCell("next");
+    }
+  }, [gridDensity, goToRow, goToCell]);
+  return /* @__PURE__ */ jsxRuntime.jsxs(
+    "div",
+    {
+      tabIndex: 0,
+      autoFocus: true,
+      onKeyDown: handleKeyDown,
+      style: { position: "relative", height: rowHeight, outline: "none" },
+      children: [
+        hasMultipleRows && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "up", onClick: () => goToRow("prev") }),
+          /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "down", onClick: () => goToRow("next") }),
+          /* @__PURE__ */ jsxRuntime.jsx(CarouselPositionBadge, { corner: "top-right", current: activeRow + 1, total: cellsByRow.length })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Carousel,
+          {
+            ref: outerRef,
+            vertical: true,
+            dots: false,
+            afterChange: handleRowChange,
+            style: { height: rowHeight },
+            children: cellsByRow.map((rowCells, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: rowHeight }, children: gridDensity === "fit-row" ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
+              display: "grid",
+              gridTemplateColumns: `repeat(${rowCells.length}, 1fr)`,
+              gap: gridGap,
+              padding: gridPadding,
+              height: rowHeight,
+              boxSizing: "border-box"
+            }, children: rowCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, overflow: "hidden" }, children: renderCell(cell) }, cell.id)) }) : /* @__PURE__ */ jsxRuntime.jsx(
+              FitCellRow,
+              {
+                rowCells,
+                rowHeight,
+                gridPadding,
+                renderCell,
+                ref: (r) => innerRefsByRow.current.set(rowIndex, r)
+              }
+            ) }, rowIndex))
+          }
+        )
+      ]
+    }
+  );
+};
+var SECTIONS_ORIGINAL_MIN_ROW_PX = 80;
 var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onMove, onResize, children }) => {
   const { token } = antd.theme.useToken();
   const cellRef = React6.useRef(null);
   const cellStyle = {
     position: "relative",
+    // Fills whatever height the grid assigns its track. Against an
+    // "auto" track (the default "Original" density) a percentage
+    // height resolves to auto per the CSS spec, so this is a no-op
+    // there — it only takes effect once the track has a definite size
+    // (a fixed density step, or the fit-row/fit-cell carousel).
+    height: "100%",
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
     overflow: "hidden",
@@ -11236,68 +11566,20 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
     (!isMinimized || !isConfiguring) && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children })
   ] });
 };
-var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false }) => {
-  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }) => {
+  const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize } = useCellWindowState();
   const [drawerCellId, setDrawerCellId] = React6.useState(null);
-  const handleMaximize = React6.useCallback((cellId) => {
-    setMaximizedCellId((prev) => prev === cellId ? null : cellId);
-  }, []);
-  const handleMinimize = React6.useCallback((cellId) => {
-    setMinimizedCellIds((prev) => {
-      const next = new Set(prev);
-      next.has(cellId) ? next.delete(cellId) : next.add(cellId);
-      return next;
-    });
-  }, []);
+  const containerRef = React6.useRef(null);
   const handleMove = React6.useCallback((cellId, direction) => {
-    const nextTabs = config.tabs.map((tab) => {
-      if (tab.id !== tabId) return tab;
-      const cell = tab.cells.find((c) => c.id === cellId);
-      if (!cell) return tab;
-      let newRow = cell.row;
-      let newCol = cell.col;
-      if (direction === "left") newCol = Math.max(0, cell.col - 1);
-      if (direction === "right") newCol = cell.col + 1;
-      if (direction === "up") newRow = Math.max(0, cell.row - 1);
-      if (direction === "down") newRow = cell.row + 1;
-      const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
-      return {
-        ...tab,
-        cells: tab.cells.map((c) => {
-          if (c.id === cellId) return { ...c, row: newRow, col: newCol };
-          if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
-          return c;
-        })
-      };
-    });
-    onConfigChange({ ...config, tabs: nextTabs });
+    onConfigChange(moveCellInConfig(config, tabId, cellId, direction));
   }, [config, tabId, onConfigChange]);
   const handleResize = React6.useCallback((cellId, minWidth, minHeight) => {
-    const nextTabs = config.tabs.map((tab) => {
-      if (tab.id !== tabId) return tab;
-      return {
-        ...tab,
-        cells: tab.cells.map((c) => {
-          if (c.id !== cellId) return c;
-          return {
-            ...c,
-            ...minWidth !== null ? { min_width: minWidth } : {},
-            ...minHeight !== null ? { min_height: minHeight } : {}
-          };
-        })
-      };
-    });
-    onConfigChange({ ...config, tabs: nextTabs });
+    onConfigChange(resizeCellInConfig(config, tabId, cellId, minWidth, minHeight));
   }, [config, tabId, onConfigChange]);
-  const numCols = React6.useMemo(() => {
-    if (!cells.length) return 1;
-    return Math.max(...cells.map((c) => c.col)) + 1;
-  }, [cells]);
-  const numRows = React6.useMemo(() => {
-    if (!cells.length) return 1;
-    return Math.max(...cells.map((c) => c.row)) + 1;
-  }, [cells]);
+  const { numCols, numRows } = React6.useMemo(() => computeGridDims(cells), [cells]);
+  const gridGap = 8;
+  const gridPadding = 8;
+  const fitRowHeight = useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding);
   const soloRows = React6.useMemo(() => {
     const counts = /* @__PURE__ */ new Map();
     for (const c of cells) counts.set(c.row, (counts.get(c.row) ?? 0) + 1);
@@ -11309,41 +11591,59 @@ var SectionsGrid = ({ cells, config, tabId, renderContent, onConfigChange, isCon
   const gridStyle = {
     display: "grid",
     gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
-    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, minmax(80px, auto))`,
-    gap: 8,
-    padding: 8,
+    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight, SECTIONS_ORIGINAL_MIN_ROW_PX)})`,
+    gap: gridGap,
+    padding: gridPadding,
     boxSizing: "border-box"
   };
   if (!cells.length) {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: "No sections configured", style: { padding: 24 }, image: antd.Empty.PRESENTED_IMAGE_SIMPLE });
   }
   const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;
-  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntime.jsx("div", { style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx(
-      "div",
+  const renderCell = (cell) => /* @__PURE__ */ jsxRuntime.jsx(
+    SectionCell,
+    {
+      cell,
+      isConfiguring,
+      isMaximized: maximizedCellId === cell.id,
+      isMinimized: minimizedCellIds.has(cell.id),
+      onConfigure: () => setDrawerCellId(cell.id),
+      onMaximize: () => handleMaximize(cell.id),
+      onMinimize: () => handleMinimize(cell.id),
+      onMove: (dir) => handleMove(cell.id, dir),
+      onResize: (w, h) => handleResize(cell.id, w, h),
+      children: renderContent(cell)
+    }
+  );
+  const gridBody = !maximizedCellId && (gridDensity === "fit-row" || gridDensity === "fit-cell") ? (
+    // Nothing to mount the Carousel against yet — see useFitRowHeight's
+    // comment for why this must not fall back to a default height
+    // instead. This state is resolved synchronously so this branch is
+    // not user-visible.
+    fitRowHeight === null ? null : /* @__PURE__ */ jsxRuntime.jsx(
+      FitRowCellCarousel,
       {
-        style: {
-          gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
-          gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`
-        },
-        children: /* @__PURE__ */ jsxRuntime.jsx(
-          SectionCell,
-          {
-            cell,
-            isConfiguring,
-            isMaximized: maximizedCellId === cell.id,
-            isMinimized: minimizedCellIds.has(cell.id),
-            onConfigure: () => setDrawerCellId(cell.id),
-            onMaximize: () => handleMaximize(cell.id),
-            onMinimize: () => handleMinimize(cell.id),
-            onMove: (dir) => handleMove(cell.id, dir),
-            onResize: (w, h) => handleResize(cell.id, w, h),
-            children: renderContent(cell)
-          }
-        )
+        cellsByRow: groupCellsByRow(cells),
+        gridDensity,
+        rowHeight: fitRowHeight,
+        gridGap,
+        gridPadding,
+        renderCell
+      }
+    )
+  ) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx(
+    "div",
+    {
+      style: {
+        gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
+        gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`
       },
-      cell.id
-    )) }),
+      children: renderCell(cell)
+    },
+    cell.id
+  )) });
+  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntime.jsx("div", { ref: containerRef, style: { height: "100%", boxSizing: "border-box" }, children: gridBody }),
     /* @__PURE__ */ jsxRuntime.jsx(
       CellConfigDrawer,
       {
@@ -11373,6 +11673,36 @@ function parseInlineStyle2(cssText) {
   });
   return result;
 }
+var { Text: Text3 } = antd.Typography;
+var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabelText }) => {
+  const [open, setOpen] = React6.useState(false);
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Popover,
+    {
+      content: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: 480, padding: "8px 4px" }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsxRuntime.jsx(Text3, { strong: true, children: label }) }),
+        /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Slider,
+          {
+            min: 0,
+            max: stepCount - 1,
+            step: null,
+            marks,
+            value,
+            onChange,
+            tooltip: { formatter: (index) => (index !== void 0 ? marks[index] : "") ?? "" }
+          }
+        )
+      ] }),
+      title: null,
+      trigger: "click",
+      open,
+      onOpenChange: setOpen,
+      placement: "bottomRight",
+      children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: label, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SlidersOutlined, {}), style: { marginRight: 12 }, children: currentLabelText }) })
+    }
+  );
+};
 var _33 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
   const [editing, setEditing] = React6.useState(false);
@@ -12113,7 +12443,7 @@ var emptyLayoutConfig = {
   hasConfig: false
 };
 var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps, overrideConfigRows, dataDetailLevelState) => {
-  if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig };
+  if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
   const { token } = antd.theme.useToken();
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
   const modelTone = useModelTone(model);
@@ -12143,6 +12473,20 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   );
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
+  const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+  const gridDensityMarks = React6.useMemo(() => buildGridDensityMarks(_36), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_36);
+  const cellSizeControl = /* @__PURE__ */ jsxRuntime.jsx(
+    CellSizeSelector,
+    {
+      label: _36("Cell size"),
+      stepCount: GRID_DENSITY_STEPS.length,
+      marks: gridDensityMarks,
+      value: GRID_DENSITY_STEPS.indexOf(gridDensity),
+      onChange: setGridDensityByStep,
+      currentLabelText: gridDensityLabelText[gridDensity]
+    }
+  );
   const appliedRels = effectiveDetailState.applyToRelations(model.relations || []);
   const derivedModel = React6.useMemo(
     () => ({ ...model, relations: appliedRels }),
@@ -12280,7 +12624,8 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
                 }
               ),
               onConfigChange: onLayoutChange,
-              isConfiguring: isConfiguring && canConfigureLayout
+              isConfiguring: isConfiguring && canConfigureLayout,
+              gridDensity
             }
           ) });
         })(),
@@ -12331,7 +12676,8 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
           }
         ),
         onConfigChange: onLayoutChange,
-        isConfiguring
+        isConfiguring,
+        gridDensity
       }
     ) });
     return {
@@ -12343,7 +12689,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   items.push(...customConfigTabs);
   items.push(...relationTabs);
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
-  return { tabs: items, layoutConfig };
+  return { tabs: items, layoutConfig, cellSizeControl };
 };
 var _37 = window._ || ((text) => text);
 var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
@@ -12537,7 +12883,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       cancelled = true;
     };
   }, [apiUrl, allModelsList, model.name, model.resource]);
-  const { tabs: items, layoutConfig } = useStandardEditTabs(
+  const { tabs: items, layoutConfig, cellSizeControl } = useStandardEditTabs(
     model,
     record,
     allModelsList,
@@ -12685,7 +13031,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         headerButtons: renderHeaderButtons,
         children: [
           topContent,
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } })
         ]
       }
     )
@@ -12704,7 +13050,7 @@ var emptyLayoutConfig2 = {
   hasConfig: false
 };
 var useStandardShowTabs = (model, record, allModels, actionsState, editForm, overrideConfigRows, dataDetailLevelState) => {
-  if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig2 };
+  if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig2, cellSizeControl: null };
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const { token } = antd.theme.useToken();
@@ -12730,6 +13076,20 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   );
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
+  const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+  const gridDensityMarks = React6.useMemo(() => buildGridDensityMarks(_38), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_38);
+  const cellSizeControl = /* @__PURE__ */ jsxRuntime.jsx(
+    CellSizeSelector,
+    {
+      label: _38("Cell size"),
+      stepCount: GRID_DENSITY_STEPS.length,
+      marks: gridDensityMarks,
+      value: GRID_DENSITY_STEPS.indexOf(gridDensity),
+      onChange: setGridDensityByStep,
+      currentLabelText: gridDensityLabelText[gridDensity]
+    }
+  );
   const relations = effectiveDetailState.applyToRelations(model.relations || []);
   const derivedModel = React6.useMemo(
     () => ({ ...model, relations }),
@@ -12880,7 +13240,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                   }
                 ),
                 onConfigChange: onLayoutChange,
-                isConfiguring: isConfiguring && canConfigureLayout
+                isConfiguring: isConfiguring && canConfigureLayout,
+                gridDensity
               }
             );
           })(),
@@ -12968,7 +13329,8 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
           }
         ),
         onConfigChange: onLayoutChange,
-        isConfiguring
+        isConfiguring,
+        gridDensity
       }
     ) });
     return {
@@ -13023,7 +13385,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
       setCurrentDataDetailLevelState(void 0);
     };
   }, []);
-  return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState };
+  return { tabs: items, layoutConfig, dataDetailLevelState: effectiveDetailState, cellSizeControl };
 };
 var INLINE_DEFAULT_PAGE_SIZE = 10;
 var INLINE_PAGE_SIZE_OPTIONS = ["10", "20", "50", "100"];
@@ -23520,27 +23882,9 @@ var DashboardTabHelp = ({ tabId }) => {
   );
 };
 var _54 = (text) => translateText(text, text);
-var { Text: Text3 } = antd.Typography;
-var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
-var GRID_DENSITY_ROW_HEIGHT = {
-  small: 180,
-  medium: 320,
-  large: 480
-};
-var FIT_PAGE_MIN_ROW_HEIGHT = 120;
+var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
 var FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
 var FIT_CARD_MIN_SCALE = 0.15;
-var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
-var loadStoredGridDensity = () => {
-  try {
-    const stored = localStorage.getItem(GRID_DENSITY_STORAGE_KEY);
-    if (stored && GRID_DENSITY_STEPS.includes(stored)) {
-      return stored;
-    }
-  } catch {
-  }
-  return "fit";
-};
 var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
   const [chartHtml, setChartHtml] = React6.useState("");
   const [loading, setLoading] = React6.useState(true);
@@ -23857,266 +24201,19 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     )
   ] });
 };
-function groupCellsByRow(cells) {
-  const byRow = /* @__PURE__ */ new Map();
-  cells.forEach((c) => {
-    if (!byRow.has(c.row)) byRow.set(c.row, []);
-    byRow.get(c.row).push(c);
-  });
-  return Array.from(byRow.entries()).sort(([a], [b]) => a - b).map(([, rowCells]) => [...rowCells].sort((a, b) => a.col - b.col));
-}
-var CarouselPositionBadge = ({ corner, current, total }) => {
-  const { token } = antd.theme.useToken();
-  const positionStyle = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: {
-    position: "absolute",
-    zIndex: 20,
-    ...positionStyle,
-    fontSize: 11,
-    padding: "1px 6px",
-    borderRadius: 10,
-    background: token.colorBgElevated,
-    color: token.colorTextSecondary,
-    border: `1px solid ${token.colorBorderSecondary}`
-  }, children: [
-    current,
-    " / ",
-    total
-  ] });
-};
-var CarouselEdgeArrow = ({ direction, onClick }) => {
-  const icon = direction === "up" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowUpOutlined, {}) : direction === "down" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowDownOutlined, {}) : direction === "left" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {});
-  const positionStyle = direction === "up" ? { top: 4, left: "50%", transform: "translateX(-50%)" } : direction === "down" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : direction === "left" ? { left: 4, top: "50%", transform: "translateY(-50%)" } : { right: 4, top: "50%", transform: "translateY(-50%)" };
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Button,
-    {
-      shape: "circle",
-      size: "small",
-      icon,
-      onClick,
-      style: { position: "absolute", zIndex: 20, ...positionStyle }
-    }
-  );
-};
-var FitCellRow = React6__default.default.forwardRef(({ rowCells, rowHeight, gridPadding, allModels, minimizedCellIds, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }, ref) => {
-  const count = rowCells.length;
-  const hasMultipleCells = count > 1;
-  const [activeIndex, setActiveIndex] = React6.useState(0);
-  React6.useImperativeHandle(ref, () => ({
-    next: () => setActiveIndex((i) => (i + 1) % count),
-    prev: () => setActiveIndex((i) => (i - 1 + count) % count),
-    goTo: (index) => setActiveIndex((index % count + count) % count)
-  }), [count]);
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "relative", height: rowHeight, overflow: "hidden" }, children: [
-    hasMultipleCells && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "left", onClick: () => setActiveIndex((i) => (i - 1 + count) % count) }),
-      /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "right", onClick: () => setActiveIndex((i) => (i + 1) % count) }),
-      /* @__PURE__ */ jsxRuntime.jsx(CarouselPositionBadge, { corner: "bottom-right", current: activeIndex + 1, total: count })
-    ] }),
-    /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
-      display: "flex",
-      height: rowHeight,
-      width: "100%",
-      transform: `translateX(-${activeIndex * 100}%)`,
-      transition: "transform 0.3s ease"
-    }, children: rowCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: "0 0 100%", width: "100%", height: rowHeight, padding: gridPadding, boxSizing: "border-box" }, children: /* @__PURE__ */ jsxRuntime.jsx(
-      DashboardGridCell,
-      {
-        cell,
-        allModels,
-        isMaximized: false,
-        isMinimized: minimizedCellIds.has(cell.id),
-        canConfigureLayout,
-        cardMinScale: FIT_CARD_MIN_SCALE,
-        gridDensity: "fit-cell",
-        onConfigure: () => onConfigure(cell),
-        onMaximize: () => onMaximize(cell.id),
-        onMinimize: () => onMinimize(cell.id),
-        onResize: (w, h) => onResize(cell.id, w, h),
-        onMove: (dir) => onMove(cell.id, dir),
-        cellExtraActions
-      }
-    ) }, cell.id)) })
-  ] });
-});
-FitCellRow.displayName = "FitCellRow";
-var FitRowCellCarousel = ({ cellsByRow, allModels, minimizedCellIds, canConfigureLayout, gridDensity, rowHeight, gridGap, gridPadding, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
-  const outerRef = React6.useRef(null);
-  const activeRowRef = React6.useRef(0);
-  const [activeRow, setActiveRow] = React6.useState(0);
-  const innerRefsByRow = React6.useRef(/* @__PURE__ */ new Map());
-  const hasMultipleRows = cellsByRow.length > 1;
-  const goToRow = React6.useCallback((dir) => {
-    if (dir === "prev") outerRef.current?.prev();
-    else outerRef.current?.next();
-  }, []);
-  const goToCell = React6.useCallback((dir) => {
-    const ref = innerRefsByRow.current.get(activeRowRef.current);
-    if (dir === "prev") ref?.prev();
-    else ref?.next();
-  }, []);
-  React6.useEffect(() => {
-    outerRef.current?.innerSlider?.onWindowResized?.();
-  }, [rowHeight]);
-  const handleRowChange = React6.useCallback((next) => {
-    activeRowRef.current = next;
-    setActiveRow(next);
-    if (gridDensity === "fit-cell") {
-      innerRefsByRow.current.get(next)?.goTo(0);
-    }
-  }, [gridDensity]);
-  const handleKeyDown = React6.useCallback((e) => {
-    if (e.key === "PageUp") {
-      e.preventDefault();
-      goToRow("prev");
-    } else if (e.key === "PageDown") {
-      e.preventDefault();
-      goToRow("next");
-    } else if (gridDensity === "fit-cell" && e.key === "ArrowLeft") {
-      e.preventDefault();
-      goToCell("prev");
-    } else if (gridDensity === "fit-cell" && e.key === "ArrowRight") {
-      e.preventDefault();
-      goToCell("next");
-    }
-  }, [gridDensity, goToRow, goToCell]);
-  return /* @__PURE__ */ jsxRuntime.jsxs(
-    "div",
-    {
-      tabIndex: 0,
-      autoFocus: true,
-      onKeyDown: handleKeyDown,
-      style: { position: "relative", height: rowHeight, outline: "none" },
-      children: [
-        hasMultipleRows && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "up", onClick: () => goToRow("prev") }),
-          /* @__PURE__ */ jsxRuntime.jsx(CarouselEdgeArrow, { direction: "down", onClick: () => goToRow("next") }),
-          /* @__PURE__ */ jsxRuntime.jsx(CarouselPositionBadge, { corner: "top-right", current: activeRow + 1, total: cellsByRow.length })
-        ] }),
-        /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Carousel,
-          {
-            ref: outerRef,
-            vertical: true,
-            dots: false,
-            afterChange: handleRowChange,
-            style: { height: rowHeight },
-            children: cellsByRow.map((rowCells, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: rowHeight }, children: gridDensity === "fit-row" ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
-              display: "grid",
-              gridTemplateColumns: `repeat(${rowCells.length}, 1fr)`,
-              gap: gridGap,
-              padding: gridPadding,
-              height: rowHeight,
-              boxSizing: "border-box"
-            }, children: rowCells.map((cell) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, overflow: "hidden" }, children: /* @__PURE__ */ jsxRuntime.jsx(
-              DashboardGridCell,
-              {
-                cell,
-                allModels,
-                isMaximized: false,
-                isMinimized: minimizedCellIds.has(cell.id),
-                canConfigureLayout,
-                cardMinScale: FIT_CARD_MIN_SCALE,
-                gridDensity: "fit-row",
-                onConfigure: () => onConfigure(cell),
-                onMaximize: () => onMaximize(cell.id),
-                onMinimize: () => onMinimize(cell.id),
-                onResize: (w, h) => onResize(cell.id, w, h),
-                onMove: (dir) => onMove(cell.id, dir),
-                cellExtraActions
-              }
-            ) }, cell.id)) }) : /* @__PURE__ */ jsxRuntime.jsx(
-              FitCellRow,
-              {
-                ref: (r) => innerRefsByRow.current.set(rowIndex, r),
-                rowCells,
-                rowHeight,
-                gridPadding,
-                allModels,
-                minimizedCellIds,
-                canConfigureLayout,
-                onConfigure,
-                onMaximize,
-                onMinimize,
-                onResize,
-                onMove,
-                cellExtraActions
-              }
-            ) }, rowIndex))
-          }
-        )
-      ]
-    }
-  );
-};
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
   const cells = tab.cells;
   const containerRef = React6.useRef(null);
-  const [fitRowHeight, setFitRowHeight] = React6.useState(null);
-  const numCols = React6.useMemo(() => {
-    if (!cells.length) return 2;
-    return Math.max(...cells.map((c) => c.col)) + 1;
-  }, [cells]);
-  const numRows = React6.useMemo(() => {
-    if (!cells.length) return 1;
-    return Math.max(...cells.map((c) => c.row)) + 1;
-  }, [cells]);
+  const { numCols, numRows } = React6.useMemo(() => computeGridDims(cells), [cells]);
   const gridGap = 12;
   const gridPadding = 12;
-  React6.useLayoutEffect(() => {
-    if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
-    const el = containerRef.current;
-    if (!el) return;
-    const effectiveRows = gridDensity === "fit" ? numRows : 1;
-    const findScrollableAncestor = (node) => {
-      let current = node.parentElement;
-      while (current && current !== document.body) {
-        const overflowY = window.getComputedStyle(current).overflowY;
-        if (overflowY === "auto" || overflowY === "scroll") return current;
-        current = current.parentElement;
-      }
-      return null;
-    };
-    const recompute = () => {
-      const top = el.getBoundingClientRect().top;
-      const ancestor2 = findScrollableAncestor(el);
-      const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
-      const availableHeight = bottomBoundary - top;
-      const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
-      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
-      setFitRowHeight(rowHeight);
-    };
-    recompute();
-    window.addEventListener("resize", recompute);
-    const ancestor = findScrollableAncestor(el);
-    const observer = ancestor ? new ResizeObserver(recompute) : null;
-    if (ancestor && observer) observer.observe(ancestor);
-    return () => {
-      window.removeEventListener("resize", recompute);
-      observer?.disconnect();
-    };
-  }, [gridDensity, numRows]);
+  const fitRowHeight = useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding);
   const visibleCells = maximizedCellId ? cells.filter((c) => c.id === maximizedCellId) : cells;
   const cardMinScale = gridDensity === "fit" || gridDensity === "fit-row" || gridDensity === "fit-cell" ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
-  const rowTrackHeight = () => {
-    switch (gridDensity) {
-      case "small":
-      case "medium":
-      case "large":
-        return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
-      case "fit": {
-        const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
-        return `minmax(${height}px, ${height}px)`;
-      }
-      case "original":
-      default:
-        return "minmax(320px, auto)";
-    }
-  };
   const gridStyle = {
     display: "grid",
     gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
-    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, ${rowTrackHeight()})`,
+    gridTemplateRows: maximizedCellId ? "1fr" : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight)})`,
     gap: gridGap,
     padding: gridPadding,
     height: "100%",
@@ -24126,6 +24223,24 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   if (!cells.length) {
     return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _54("No models in this tab"), style: { padding: 48 } });
   }
+  const renderCell = (cell) => /* @__PURE__ */ jsxRuntime.jsx(
+    DashboardGridCell,
+    {
+      cell,
+      allModels,
+      isMaximized: maximizedCellId === cell.id,
+      isMinimized: minimizedCellIds.has(cell.id),
+      canConfigureLayout,
+      cardMinScale,
+      gridDensity,
+      onConfigure: () => onConfigure(cell),
+      onMaximize: () => onMaximize(cell.id),
+      onMinimize: () => onMinimize(cell.id),
+      onResize: (w, h) => onResize(cell.id, w, h),
+      onMove: (dir) => onMove(cell.id, dir),
+      cellExtraActions
+    }
+  );
   if (!maximizedCellId && (gridDensity === "fit-row" || gridDensity === "fit-cell")) {
     if (fitRowHeight === null) {
       return /* @__PURE__ */ jsxRuntime.jsx("div", { ref: containerRef, style: { height: "100%" } });
@@ -24134,19 +24249,11 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
       FitRowCellCarousel,
       {
         cellsByRow: groupCellsByRow(cells),
-        allModels,
-        minimizedCellIds,
-        canConfigureLayout,
         gridDensity,
         rowHeight: fitRowHeight,
         gridGap,
         gridPadding,
-        onMaximize,
-        onMinimize,
-        onConfigure,
-        onResize,
-        onMove,
-        cellExtraActions
+        renderCell
       }
     ) });
   }
@@ -24165,24 +24272,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
         minWidth: 0,
         overflow: "hidden"
       },
-      children: /* @__PURE__ */ jsxRuntime.jsx(
-        DashboardGridCell,
-        {
-          cell,
-          allModels,
-          isMaximized: maximizedCellId === cell.id,
-          isMinimized: minimizedCellIds.has(cell.id),
-          canConfigureLayout,
-          cardMinScale,
-          gridDensity,
-          onConfigure: () => onConfigure(cell),
-          onMaximize: () => onMaximize(cell.id),
-          onMinimize: () => onMinimize(cell.id),
-          onResize: (w, h) => onResize(cell.id, w, h),
-          onMove: (dir) => onMove(cell.id, dir),
-          cellExtraActions
-        }
-      )
+      children: renderCell(cell)
     },
     cell.id
   )) });
@@ -24191,54 +24281,11 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const { token } = antd.theme.useToken();
   const { data: canLayoutData } = core.useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
-  const [maximizedCellId, setMaximizedCellId] = React6.useState(null);
-  const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
+  const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = React6.useState(null);
-  const [gridDensity, setGridDensity] = React6.useState(loadStoredGridDensity);
-  const [cellSizeOpen, setCellSizeOpen] = React6.useState(false);
-  const handleGridDensityChange = React6.useCallback((stepIndex) => {
-    const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
-    setGridDensity(next);
-    try {
-      localStorage.setItem(GRID_DENSITY_STORAGE_KEY, next);
-    } catch {
-    }
-  }, []);
-  const gridDensityMarks = React6.useMemo(() => {
-    const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _54(text) });
-    return {
-      0: label("Original"),
-      1: label("Small"),
-      2: label("Page"),
-      3: label("Row"),
-      4: label("Cell"),
-      5: label("Medium"),
-      6: label("Large")
-    };
-  }, []);
-  const gridDensityLabelText = {
-    original: _54("Original"),
-    small: _54("Small"),
-    fit: _54("Page"),
-    "fit-row": _54("Row"),
-    "fit-cell": _54("Cell"),
-    medium: _54("Medium"),
-    large: _54("Large")
-  };
-  const handleMaximize = React6.useCallback((cellId) => {
-    setMaximizedCellId((prev) => prev === cellId ? null : cellId);
-  }, []);
-  const handleMinimize = React6.useCallback((cellId) => {
-    setMinimizedCellIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(cellId)) {
-        next.delete(cellId);
-      } else {
-        next.add(cellId);
-      }
-      return next;
-    });
-  }, []);
+  const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "fit");
+  const gridDensityMarks = React6.useMemo(() => buildGridDensityMarks(_54), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_54);
   const handleOpenDrawer = React6.useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
@@ -24247,42 +24294,10 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     setDrawerSelection(null);
   }, [onConfigChange]);
   const handleMoveCell = React6.useCallback((tabId, cellId, direction) => {
-    const nextTabs = config.tabs.map((tab) => {
-      if (tab.id !== tabId) return tab;
-      const cell = tab.cells.find((c) => c.id === cellId);
-      if (!cell) return tab;
-      let newRow = cell.row;
-      let newCol = cell.col;
-      if (direction === "left") newCol = Math.max(0, cell.col - 1);
-      if (direction === "right") newCol = cell.col + 1;
-      if (direction === "up") newRow = Math.max(0, cell.row - 1);
-      if (direction === "down") newRow = cell.row + 1;
-      const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
-      const updatedCells = tab.cells.map((c) => {
-        if (c.id === cellId) return { ...c, row: newRow, col: newCol };
-        if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
-        return c;
-      });
-      return { ...tab, cells: updatedCells };
-    });
-    onConfigChange({ ...config, tabs: nextTabs });
+    onConfigChange(moveCellInConfig(config, tabId, cellId, direction));
   }, [config, onConfigChange]);
   const handleResizeCell = React6.useCallback((tabId, cellId, minWidth, minHeight) => {
-    const nextTabs = config.tabs.map((tab) => {
-      if (tab.id !== tabId) return tab;
-      return {
-        ...tab,
-        cells: tab.cells.map((c) => {
-          if (c.id !== cellId) return c;
-          return {
-            ...c,
-            ...minWidth !== null ? { min_width: minWidth } : {},
-            ...minHeight !== null ? { min_height: minHeight } : {}
-          };
-        })
-      };
-    });
-    onConfigChange({ ...config, tabs: nextTabs });
+    onConfigChange(resizeCellInConfig(config, tabId, cellId, minWidth, minHeight));
   }, [config, onConfigChange]);
   const tabItems = React6.useMemo(
     () => config.tabs.map((tab) => ({
@@ -24320,37 +24335,19 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
       antd.Tabs,
       {
         items: tabItems,
-        onChange: () => {
-          setMaximizedCellId(null);
-          setMinimizedCellIds(/* @__PURE__ */ new Set());
-        },
+        onChange: resetCellWindowState,
         style: { height: "100%" },
         tabBarStyle: { paddingLeft: 12, marginBottom: 0 },
         tabBarExtraContent: {
           right: /* @__PURE__ */ jsxRuntime.jsx(
-            antd.Popover,
+            CellSizeSelector,
             {
-              content: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: 480, padding: "8px 4px" }, children: [
-                /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsxRuntime.jsx(Text3, { strong: true, children: _54("Cell size") }) }),
-                /* @__PURE__ */ jsxRuntime.jsx(
-                  antd.Slider,
-                  {
-                    min: 0,
-                    max: GRID_DENSITY_STEPS.length - 1,
-                    step: null,
-                    marks: gridDensityMarks,
-                    value: GRID_DENSITY_STEPS.indexOf(gridDensity),
-                    onChange: handleGridDensityChange,
-                    tooltip: { formatter: (index) => (index !== void 0 ? gridDensityMarks[index] : "") ?? "" }
-                  }
-                )
-              ] }),
-              title: null,
-              trigger: "click",
-              open: cellSizeOpen,
-              onOpenChange: setCellSizeOpen,
-              placement: "bottomRight",
-              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _54("Cell size"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SlidersOutlined, {}), style: { marginRight: 12 }, children: gridDensityLabelText[gridDensity] }) })
+              label: _54("Cell size"),
+              stepCount: GRID_DENSITY_STEPS.length,
+              marks: gridDensityMarks,
+              value: GRID_DENSITY_STEPS.indexOf(gridDensity),
+              onChange: handleGridDensityChange,
+              currentLabelText: gridDensityLabelText[gridDensity]
             }
           )
         }

@@ -86,7 +86,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         : headerButtons;
     const [activeTabKey, setActiveTabKey] = useState("details");
 
-    const { tabs: items, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
+    const { tabs: items, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
         model,
         record,
         allModelsList,
@@ -131,7 +131,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                 ) : (
                     <>
                         {beforeTabs}
-                        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
+                        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
                         <ShowFooterButtons
                             model={model}
                             allModels={allModels}
@@ -158,7 +158,7 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
                 headerButtons={combinedHeaderButtons}
             >
                 {beforeTabs}
-                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
+                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
                 <ShowFooterButtons
                     model={model}
                     allModels={allModels}

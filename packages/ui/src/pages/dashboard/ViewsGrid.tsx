@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCan } from "@refinedev/core";
-import { Tabs, Tooltip, Button, theme, Empty, Spin, Slider, Carousel, Popover, Typography } from "antd";
+import { Tabs, Tooltip, Button, theme, Empty, Spin } from "antd";
 import {
     SettingOutlined,
     FullscreenOutlined,
@@ -10,7 +10,6 @@ import {
     ArrowRightOutlined,
     ArrowUpOutlined,
     ArrowDownOutlined,
-    SlidersOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import type { ModelDef } from "../../components/DynamicResource/types";
@@ -23,16 +22,27 @@ import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { API_URL } from "../../providers/constants";
 import type { DashboardCell, DashboardConfig, DashboardTab } from "./hooks/useDashboardConfig";
 import { CellConfigDrawer } from "./CellConfigDrawer";
+import { CellSizeSelector } from "./CellSizeSelector";
 import { DashboardCellHelp } from "../../components/Help/DashboardCellHelp";
 import { DashboardTabHelp } from "../../components/Help/DashboardTabHelp";
+import { computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig, type MoveDirection } from "./hooks/gridCellOps";
+import { useCellWindowState } from "./hooks/useCellWindowState";
+import {
+    buildGridDensityLabelText,
+    buildGridDensityMarks,
+    computeRowTrackHeight,
+    GRID_DENSITY_STEPS,
+    useFitRowHeight,
+    useGridDensity,
+    type GridDensity,
+} from "./hooks/gridDensity";
+import { FitRowCellCarousel } from "./FitCellCarousel";
 
 // Resolved at call time (not module load) so it always reflects whatever
 // catalog loadLocale() has installed on window._ by the time it runs — see
 // utils/i18n.ts's translateText for why a module-load-time capture would
 // freeze the English fallback in place.
 const _ = (text: string): string => translateText(text, text);
-
-const { Text } = Typography;
 
 interface Props {
     config: DashboardConfig;
@@ -61,26 +71,11 @@ interface CellSelection {
 // (model list, plotly_chart-backed chart, journey card, NL Sentence card,
 // etc.) by changing the CSS grid's row track height. "Fit page" is computed
 // per tab from the tab's own row count and its container's rendered height.
+// The density concept itself (steps/labels/row-height math) is shared with
+// SectionsGrid's own cell-size selector — see hooks/gridDensity.tsx.
 // ---------------------------------------------------------------------------
 
-/** Ordered slider steps; the index is the value the antd <Slider> tracks.
- * "fit-row"/"fit-cell" sit next to "fit" (page) since all three share the
- * same "compute a height that fills the available viewport" mechanism —
- * see fitRowHeight in DashboardTabContent — they only differ in how much of
- * the tab's content is shown at once (all rows / one row / one cell). */
-const GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"] as const;
-type GridDensity = (typeof GRID_DENSITY_STEPS)[number];
-
-/** Fixed row height (px) for each non-"original"/non-"fit"-family step. */
-const GRID_DENSITY_ROW_HEIGHT: Record<Exclude<GridDensity, "original" | "fit" | "fit-row" | "fit-cell">, number> = {
-    small: 180,
-    medium: 320,
-    large: 480,
-};
-
-/** Minimum row height "fit page" will ever compute down to, so a tab with
- * many rows degrades to scrolling instead of squashing cells unreadably. */
-const FIT_PAGE_MIN_ROW_HEIGHT = 120;
+const GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
 
 /** Card-content scale floor (see InlinePlotlyHtml's `minScale` prop) for the
  * fixed density steps (Small/Medium/Large/Original) — a deliberately chosen
@@ -96,20 +91,6 @@ const FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
  * collapse, and this stays reachable only in genuinely crowded dashboards —
  * a normal few-cell tab never needs to shrink this far. */
 const FIT_CARD_MIN_SCALE = 0.15;
-
-const GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
-
-const loadStoredGridDensity = (): GridDensity => {
-    try {
-        const stored = localStorage.getItem(GRID_DENSITY_STORAGE_KEY);
-        if (stored && (GRID_DENSITY_STEPS as readonly string[]).includes(stored)) {
-            return stored as GridDensity;
-        }
-    } catch {
-        // localStorage unavailable (private mode, etc.) — fall back silently.
-    }
-    return "fit";
-};
 
 // ---------------------------------------------------------------------------
 // Plotly chart cell content — fetches server-rendered chart HTML
@@ -515,299 +496,6 @@ const DashboardGridCell: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
-// "Fit row" / "Fit cell" — one row (or one cell) at a time, navigated via
-// nested antd Carousels: an outer vertical carousel over rows and, in "fit
-// cell" mode only, an inner horizontal carousel per row over that row's
-// cells. Both rely on antd Carousel's default `infinite` behavior (wraps at
-// either edge) rather than tracking bounds ourselves.
-// ---------------------------------------------------------------------------
-
-type CarouselRef = React.ElementRef<typeof Carousel>;
-
-/** Groups cells by `row` (preserving row order, sorting each row by `col`).
- * Rows with no cells simply don't appear — row numbers need not be
- * contiguous, mirroring how the CSS-grid rendering already tolerates gaps. */
-function groupCellsByRow(cells: DashboardCell[]): DashboardCell[][] {
-    const byRow = new Map<number, DashboardCell[]>();
-    cells.forEach((c) => {
-        if (!byRow.has(c.row)) byRow.set(c.row, []);
-        byRow.get(c.row)!.push(c);
-    });
-    return Array.from(byRow.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([, rowCells]) => [...rowCells].sort((a, b) => a.col - b.col));
-}
-
-/** Small "2 / 5" position readout. antd's own Carousel dots would sit at the
- * exact edge-center spot CarouselEdgeArrow already occupies (dotPosition
- * "right"/"bottom" both center on their edge) and end up hidden behind the
- * arrow button, so this renders in a corner instead — clear of every arrow,
- * which are all edge-centered, never corner-anchored. */
-const CarouselPositionBadge: React.FC<{ corner: "top-right" | "bottom-right"; current: number; total: number }> = ({ corner, current, total }) => {
-    const { token } = theme.useToken();
-    const positionStyle: React.CSSProperties = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
-    return (
-        <div style={{
-            position: "absolute",
-            zIndex: 20,
-            ...positionStyle,
-            fontSize: 11,
-            padding: "1px 6px",
-            borderRadius: 10,
-            background: token.colorBgElevated,
-            color: token.colorTextSecondary,
-            border: `1px solid ${token.colorBorderSecondary}`,
-        }}>
-            {current} / {total}
-        </div>
-    );
-};
-
-const CarouselEdgeArrow: React.FC<{ direction: "up" | "down" | "left" | "right"; onClick: () => void }> = ({ direction, onClick }) => {
-    const icon = direction === "up" ? <ArrowUpOutlined /> : direction === "down" ? <ArrowDownOutlined /> : direction === "left" ? <ArrowLeftOutlined /> : <ArrowRightOutlined />;
-    const positionStyle: React.CSSProperties =
-        direction === "up" ? { top: 4, left: "50%", transform: "translateX(-50%)" }
-        : direction === "down" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" }
-        : direction === "left" ? { left: 4, top: "50%", transform: "translateY(-50%)" }
-        : { right: 4, top: "50%", transform: "translateY(-50%)" };
-    return (
-        <Button
-            shape="circle"
-            size="small"
-            icon={icon}
-            onClick={onClick}
-            style={{ position: "absolute", zIndex: 20, ...positionStyle }}
-        />
-    );
-};
-
-/** Imperative handle for FitCellRow — deliberately narrow (just next/prev/
- * goTo) since that's all a hand-rolled slider needs, unlike CarouselRef's
- * antd/react-slick surface (autoPlay, innerSlider, etc). */
-interface CellCarouselRef {
-    next: () => void;
-    prev: () => void;
-    goTo: (index: number) => void;
-}
-
-/** One row's cells in "fit cell" mode — showing exactly one cell at a time.
- * Hand-rolled (a CSS transform + React state) rather than a second nested
- * antd/react-slick Carousel: nesting two independent react-slick instances
- * (this one horizontal, inside each slide of the outer vertical one) proved
- * genuinely fragile in practice — a slide-height measurement race between
- * the two, on top of the mount-order issues already worked around on the
- * outer carousel. A row only ever needs "show cell N, wrap at the ends",
- * which doesn't need react-slick's lazy-loading/fade/swipe machinery, so
- * owning the four lines of index math ourselves removes that whole class of
- * bug rather than working around it again. */
-const FitCellRow = React.forwardRef<CellCarouselRef, {
-    rowCells: DashboardCell[];
-    rowHeight: number;
-    gridPadding: number;
-    allModels: ModelDef[];
-    minimizedCellIds: Set<string>;
-    canConfigureLayout: boolean;
-    onConfigure: (cell: DashboardCell) => void;
-    onMaximize: (cellId: string) => void;
-    onMinimize: (cellId: string) => void;
-    onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
-    onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
-    cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
-}>(({ rowCells, rowHeight, gridPadding, allModels, minimizedCellIds, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }, ref) => {
-    const count = rowCells.length;
-    const hasMultipleCells = count > 1;
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    useImperativeHandle(ref, () => ({
-        next: () => setActiveIndex((i) => (i + 1) % count),
-        prev: () => setActiveIndex((i) => (i - 1 + count) % count),
-        goTo: (index: number) => setActiveIndex(((index % count) + count) % count),
-    }), [count]);
-
-    return (
-        <div style={{ position: "relative", height: rowHeight, overflow: "hidden" }}>
-            {hasMultipleCells && (
-                <>
-                    <CarouselEdgeArrow direction="left" onClick={() => setActiveIndex((i) => (i - 1 + count) % count)} />
-                    <CarouselEdgeArrow direction="right" onClick={() => setActiveIndex((i) => (i + 1) % count)} />
-                    <CarouselPositionBadge corner="bottom-right" current={activeIndex + 1} total={count} />
-                </>
-            )}
-            <div style={{
-                display: "flex",
-                height: rowHeight,
-                width: "100%",
-                transform: `translateX(-${activeIndex * 100}%)`,
-                transition: "transform 0.3s ease",
-            }}>
-                {rowCells.map((cell) => (
-                    <div key={cell.id} style={{ flex: "0 0 100%", width: "100%", height: rowHeight, padding: gridPadding, boxSizing: "border-box" }}>
-                        <DashboardGridCell
-                            cell={cell}
-                            allModels={allModels}
-                            isMaximized={false}
-                            isMinimized={minimizedCellIds.has(cell.id)}
-                            canConfigureLayout={canConfigureLayout}
-                            cardMinScale={FIT_CARD_MIN_SCALE}
-                            gridDensity="fit-cell"
-                            onConfigure={() => onConfigure(cell)}
-                            onMaximize={() => onMaximize(cell.id)}
-                            onMinimize={() => onMinimize(cell.id)}
-                            onResize={(w, h) => onResize(cell.id, w, h)}
-                            onMove={(dir) => onMove(cell.id, dir)}
-                            cellExtraActions={cellExtraActions}
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-});
-FitCellRow.displayName = "FitCellRow";
-
-const FitRowCellCarousel: React.FC<{
-    cellsByRow: DashboardCell[][];
-    allModels: ModelDef[];
-    minimizedCellIds: Set<string>;
-    canConfigureLayout: boolean;
-    gridDensity: Extract<GridDensity, "fit-row" | "fit-cell">;
-    rowHeight: number;
-    gridGap: number;
-    gridPadding: number;
-    onMaximize: (cellId: string) => void;
-    onMinimize: (cellId: string) => void;
-    onConfigure: (cell: DashboardCell) => void;
-    onResize: (cellId: string, minWidth: string | null, minHeight: string | null) => void;
-    onMove: (cellId: string, direction: "left" | "right" | "up" | "down") => void;
-    cellExtraActions?: (resource: string, model: ModelDef | undefined, allModels: ModelDef[]) => React.ReactNode;
-}> = ({ cellsByRow, allModels, minimizedCellIds, canConfigureLayout, gridDensity, rowHeight, gridGap, gridPadding, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
-    const outerRef = useRef<CarouselRef>(null);
-    const activeRowRef = useRef(0);
-    const [activeRow, setActiveRow] = useState(0);
-    const innerRefsByRow = useRef<Map<number, CellCarouselRef | null>>(new Map());
-    const hasMultipleRows = cellsByRow.length > 1;
-
-    const goToRow = useCallback((dir: "prev" | "next") => {
-        if (dir === "prev") outerRef.current?.prev(); else outerRef.current?.next();
-    }, []);
-
-    const goToCell = useCallback((dir: "prev" | "next") => {
-        const ref = innerRefsByRow.current.get(activeRowRef.current);
-        if (dir === "prev") ref?.prev(); else ref?.next();
-    }, []);
-
-    // Remeasure (not remount — see the matching note in FitCellRow) once
-    // rowHeight settles on its real value.
-    useEffect(() => {
-        outerRef.current?.innerSlider?.onWindowResized?.();
-    }, [rowHeight]);
-
-    // Whenever the outer (row) carousel lands on a new row, jump that row's
-    // own inner carousel back to its first cell — a row that was previously
-    // visited and left mid-way through shouldn't reappear scrolled in.
-    const handleRowChange = useCallback((next: number) => {
-        activeRowRef.current = next;
-        setActiveRow(next);
-        if (gridDensity === "fit-cell") {
-            innerRefsByRow.current.get(next)?.goTo(0);
-        }
-    }, [gridDensity]);
-
-    // Keyboard nav is scoped to this component (via tabIndex + onKeyDown)
-    // rather than a window-level listener, so PageUp/PageDown/ArrowLeft/
-    // ArrowRight only drive the carousel while it (or a descendant) has
-    // focus — otherwise they'd hijack native page scrolling everywhere else
-    // this component's host app is used.
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === "PageUp") { e.preventDefault(); goToRow("prev"); }
-        else if (e.key === "PageDown") { e.preventDefault(); goToRow("next"); }
-        else if (gridDensity === "fit-cell" && e.key === "ArrowLeft") { e.preventDefault(); goToCell("prev"); }
-        else if (gridDensity === "fit-cell" && e.key === "ArrowRight") { e.preventDefault(); goToCell("next"); }
-    }, [gridDensity, goToRow, goToCell]);
-
-    return (
-        <div
-            tabIndex={0}
-            autoFocus
-            onKeyDown={handleKeyDown}
-            // A definite pixel height (not "100%") all the way from here down
-            // to the <Carousel> below — its antd Tabs pane ancestor never
-            // resolves a definite height, so a "100%" here would collapse to
-            // auto/indeterminate and leave react-slick to measure the wrong
-            // slide height at mount (manifesting as stale/blank slides and
-            // adjacent rows bleeding through with a scrollbar).
-            style={{ position: "relative", height: rowHeight, outline: "none" }}
-        >
-            {hasMultipleRows && (
-                <>
-                    <CarouselEdgeArrow direction="up" onClick={() => goToRow("prev")} />
-                    <CarouselEdgeArrow direction="down" onClick={() => goToRow("next")} />
-                    <CarouselPositionBadge corner="top-right" current={activeRow + 1} total={cellsByRow.length} />
-                </>
-            )}
-            <Carousel
-                ref={outerRef}
-                vertical
-                dots={false}
-                afterChange={handleRowChange}
-                style={{ height: rowHeight }}
-            >
-                {cellsByRow.map((rowCells, rowIndex) => (
-                    <div key={rowIndex} style={{ height: rowHeight }}>
-                        {gridDensity === "fit-row" ? (
-                            <div style={{
-                                display: "grid",
-                                gridTemplateColumns: `repeat(${rowCells.length}, 1fr)`,
-                                gap: gridGap,
-                                padding: gridPadding,
-                                height: rowHeight,
-                                boxSizing: "border-box",
-                            }}>
-                                {rowCells.map((cell) => (
-                                    <div key={cell.id} style={{ minWidth: 0, overflow: "hidden" }}>
-                                        <DashboardGridCell
-                                            cell={cell}
-                                            allModels={allModels}
-                                            isMaximized={false}
-                                            isMinimized={minimizedCellIds.has(cell.id)}
-                                            canConfigureLayout={canConfigureLayout}
-                                            cardMinScale={FIT_CARD_MIN_SCALE}
-                                            gridDensity="fit-row"
-                                            onConfigure={() => onConfigure(cell)}
-                                            onMaximize={() => onMaximize(cell.id)}
-                                            onMinimize={() => onMinimize(cell.id)}
-                                            onResize={(w, h) => onResize(cell.id, w, h)}
-                                            onMove={(dir) => onMove(cell.id, dir)}
-                                            cellExtraActions={cellExtraActions}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <FitCellRow
-                                ref={(r) => innerRefsByRow.current.set(rowIndex, r)}
-                                rowCells={rowCells}
-                                rowHeight={rowHeight}
-                                gridPadding={gridPadding}
-                                allModels={allModels}
-                                minimizedCellIds={minimizedCellIds}
-                                canConfigureLayout={canConfigureLayout}
-                                onConfigure={onConfigure}
-                                onMaximize={onMaximize}
-                                onMinimize={onMinimize}
-                                onResize={onResize}
-                                onMove={onMove}
-                                cellExtraActions={cellExtraActions}
-                            />
-                        )}
-                    </div>
-                ))}
-            </Carousel>
-        </div>
-    );
-};
-
-// ---------------------------------------------------------------------------
 // Tab content — one CSS grid
 // ---------------------------------------------------------------------------
 
@@ -827,117 +515,16 @@ const DashboardTabContent: React.FC<{
 }> = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
     const cells = tab.cells;
     const containerRef = useRef<HTMLDivElement>(null);
-    // null until the very first measurement lands. The CSS-grid "fit page"
-    // path can tolerate a default-then-correct cycle (a row track's height
-    // just changes, nothing about it is order-sensitive), but the "fit
-    // row"/"fit cell" Carousels cannot: react-slick measures slide height
-    // once at its own mount and caches it, and that mount happens before
-    // this component's own layout effect gets a chance to correct a default
-    // value — so the carousel below is gated on this being non-null instead
-    // of ever being mounted with a placeholder height to begin with.
-    const [fitRowHeight, setFitRowHeight] = useState<number | null>(null);
 
-    const numCols = useMemo(() => {
-        if (!cells.length) return 2;
-        return Math.max(...cells.map((c) => c.col)) + 1;
-    }, [cells]);
-
-    const numRows = useMemo(() => {
-        if (!cells.length) return 1;
-        return Math.max(...cells.map((c) => c.row)) + 1;
-    }, [cells]);
+    const { numCols, numRows } = useMemo(() => computeGridDims(cells), [cells]);
 
     const gridGap = 12;
     const gridPadding = 12; // must match gridStyle.padding below
 
-    // "Fit page": divide the space between the grid's top edge and the
-    // bottom of whatever actually clips it on screen evenly across the
-    // tab's rows, floored so cells never get squashed past readability (a
-    // tab with too many rows falls back to scrolling instead).
-    //
-    // Deliberately measured via getBoundingClientRect() on the nearest
-    // scrollable ancestor rather than the grid container's own
-    // clientHeight: this component's height:100% doesn't resolve against a
-    // definite ancestor height (antd Tabs' pane doesn't force one), so the
-    // div's rendered height ends up driven by its own row-track content —
-    // i.e. by fitRowHeight itself. A ResizeObserver on that same element
-    // would then see its own output as new input on every tick (grow row
-    // height → div grows → observer fires → grow row height again),
-    // running away to the top of the screen.
-    //
-    // window.innerHeight is *not* a safe stand-in for "the bottom of the
-    // visible page" either: the actual clipping boundary is whatever
-    // ancestor has overflow:auto/scroll (DashboardPage's calc(100vh-140px)
-    // wrapper in the framework's own dashboard page) — its rendered bottom
-    // edge can sit noticeably above window.innerHeight (extra chrome, a
-    // host app's own page shell, etc.), which is what previously left a
-    // several-percent gap at the bottom instead of truly filling the page.
-    // That ancestor's own height is CSS-driven (not sized by its children),
-    // so reading its rect is just as loop-safe as reading window.innerHeight.
-    // useLayoutEffect (not useEffect): the "fit row"/"fit cell" Carousels
-    // cache their slide position as a pixel transform computed from
-    // whatever rowHeight they saw at mount. A plain useEffect resolves the
-    // real rowHeight only after the browser has already painted once at the
-    // FIT_PAGE_MIN_ROW_HEIGHT default, so the user would briefly see the
-    // carousel at the wrong size and then visibly snap to the right one.
-    // Measuring synchronously before paint lets the corrected value reach
-    // the DOM in the same commit as the initial render.
-    useLayoutEffect(() => {
-        if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
-        const el = containerRef.current;
-        if (!el) return;
-
-        // "Fit page" divides the available height across every row in the
-        // tab; "fit row"/"fit cell" only ever show one row at a time, so
-        // that one row should claim the whole available height instead.
-        const effectiveRows = gridDensity === "fit" ? numRows : 1;
-
-        const findScrollableAncestor = (node: HTMLElement): HTMLElement | null => {
-            let current = node.parentElement;
-            while (current && current !== document.body) {
-                const overflowY = window.getComputedStyle(current).overflowY;
-                if (overflowY === "auto" || overflowY === "scroll") return current;
-                current = current.parentElement;
-            }
-            return null;
-        };
-
-        const recompute = () => {
-            const top = el.getBoundingClientRect().top;
-            const ancestor = findScrollableAncestor(el);
-            const bottomBoundary = ancestor ? ancestor.getBoundingClientRect().bottom : window.innerHeight;
-            const availableHeight = bottomBoundary - top;
-            // The grid's own top/bottom padding lives inside this same span
-            // (gridStyle.padding below) — it must come out of the budget
-            // before dividing rows, or every row ends up gridPadding*2 too
-            // tall in total and the grid overflows its clipping ancestor.
-            const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
-            const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
-            setFitRowHeight(rowHeight);
-        };
-
-        recompute();
-        window.addEventListener("resize", recompute);
-
-        // React runs child effects before parent effects, so on first mount
-        // this can fire before an ancestor (e.g. DashboardPage's own content
-        // wrapper, which measures its real available height asynchronously
-        // in its own effect) has settled on its final size — a plain
-        // `window resize` listener never sees that later, ancestor-only
-        // resize. Watching the ancestor's own box directly catches it. This
-        // is the SAME ancestor referenced in `bottomBoundary` above, whose
-        // size is driven by its own CSS/state (never by this grid's row
-        // heights), so observing it carries none of the self-referential
-        // risk called out at the top of this effect.
-        const ancestor = findScrollableAncestor(el);
-        const observer = ancestor ? new ResizeObserver(recompute) : null;
-        if (ancestor && observer) observer.observe(ancestor);
-
-        return () => {
-            window.removeEventListener("resize", recompute);
-            observer?.disconnect();
-        };
-    }, [gridDensity, numRows]);
+    // null until the very first measurement lands — see useFitRowHeight's
+    // own comment for why the "fit row"/"fit cell" Carousel below must never
+    // mount before this is final.
+    const fitRowHeight = useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding);
 
     // When a cell is maximized, hide all others.
     const visibleCells = maximizedCellId
@@ -946,22 +533,6 @@ const DashboardTabContent: React.FC<{
 
     const cardMinScale = (gridDensity === "fit" || gridDensity === "fit-row" || gridDensity === "fit-cell") ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
 
-    const rowTrackHeight = (): string => {
-        switch (gridDensity) {
-            case "small":
-            case "medium":
-            case "large":
-                return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
-            case "fit": {
-                const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
-                return `minmax(${height}px, ${height}px)`;
-            }
-            case "original":
-            default:
-                return "minmax(320px, auto)";
-        }
-    };
-
     const gridStyle: React.CSSProperties = {
         display: "grid",
         gridTemplateColumns: maximizedCellId
@@ -969,7 +540,7 @@ const DashboardTabContent: React.FC<{
             : `repeat(${numCols}, 1fr)`,
         gridTemplateRows: maximizedCellId
             ? "1fr"
-            : `repeat(${numRows}, ${rowTrackHeight()})`,
+            : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight)})`,
         gap: gridGap,
         padding: gridPadding,
         height: "100%",
@@ -981,14 +552,32 @@ const DashboardTabContent: React.FC<{
         return <Empty description={_("No models in this tab")} style={{ padding: 48 }} />;
     }
 
+    const renderCell = (cell: DashboardCell) => (
+        <DashboardGridCell
+            cell={cell}
+            allModels={allModels}
+            isMaximized={maximizedCellId === cell.id}
+            isMinimized={minimizedCellIds.has(cell.id)}
+            canConfigureLayout={canConfigureLayout}
+            cardMinScale={cardMinScale}
+            gridDensity={gridDensity}
+            onConfigure={() => onConfigure(cell)}
+            onMaximize={() => onMaximize(cell.id)}
+            onMinimize={() => onMinimize(cell.id)}
+            onResize={(w, h) => onResize(cell.id, w, h)}
+            onMove={(dir) => onMove(cell.id, dir)}
+            cellExtraActions={cellExtraActions}
+        />
+    );
+
     // A maximized cell already shows one cell full-bleed via the ordinary
     // grid path below (visibleCells filtered to it, gridStyle collapsed to
     // 1x1) — carousel navigation only kicks in when nothing is maximized.
     if (!maximizedCellId && (gridDensity === "fit-row" || gridDensity === "fit-cell")) {
-        // Nothing to mount the Carousel against yet — see the fitRowHeight
-        // declaration above for why this must not fall back to a default
-        // height instead. This state is resolved synchronously (see the
-        // useLayoutEffect below) so this branch is not user-visible.
+        // Nothing to mount the Carousel against yet — see useFitRowHeight's
+        // comment for why this must not fall back to a default height
+        // instead. This state is resolved synchronously so this branch is
+        // not user-visible.
         if (fitRowHeight === null) {
             return <div ref={containerRef} style={{ height: "100%" }} />;
         }
@@ -996,19 +585,11 @@ const DashboardTabContent: React.FC<{
             <div ref={containerRef} style={{ height: "100%", boxSizing: "border-box" }}>
                 <FitRowCellCarousel
                     cellsByRow={groupCellsByRow(cells)}
-                    allModels={allModels}
-                    minimizedCellIds={minimizedCellIds}
-                    canConfigureLayout={canConfigureLayout}
                     gridDensity={gridDensity}
                     rowHeight={fitRowHeight}
                     gridGap={gridGap}
                     gridPadding={gridPadding}
-                    onMaximize={onMaximize}
-                    onMinimize={onMinimize}
-                    onConfigure={onConfigure}
-                    onResize={onResize}
-                    onMove={onMove}
-                    cellExtraActions={cellExtraActions}
+                    renderCell={renderCell}
                 />
             </div>
         );
@@ -1032,21 +613,7 @@ const DashboardTabContent: React.FC<{
                         overflow: "hidden",
                     }}
                 >
-                    <DashboardGridCell
-                        cell={cell}
-                        allModels={allModels}
-                        isMaximized={maximizedCellId === cell.id}
-                        isMinimized={minimizedCellIds.has(cell.id)}
-                        canConfigureLayout={canConfigureLayout}
-                        cardMinScale={cardMinScale}
-                        gridDensity={gridDensity}
-                        onConfigure={() => onConfigure(cell)}
-                        onMaximize={() => onMaximize(cell.id)}
-                        onMinimize={() => onMinimize(cell.id)}
-                        onResize={(w, h) => onResize(cell.id, w, h)}
-                        onMove={(dir) => onMove(cell.id, dir)}
-                        cellExtraActions={cellExtraActions}
-                    />
+                    {renderCell(cell)}
                 </div>
             ))}
         </div>
@@ -1062,64 +629,21 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
     const canConfigureLayout = canLayoutData?.can !== false;
 
-    const [maximizedCellId, setMaximizedCellId] = useState<string | null>(null);
-    const [minimizedCellIds, setMinimizedCellIds] = useState<Set<string>>(new Set());
+    const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
     const [drawerSelection, setDrawerSelection] = useState<CellSelection | null>(null);
-    const [gridDensity, setGridDensity] = useState<GridDensity>(loadStoredGridDensity);
-    const [cellSizeOpen, setCellSizeOpen] = useState(false);
+    const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "fit");
 
-    const handleGridDensityChange = useCallback((stepIndex: number) => {
-        const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
-        setGridDensity(next);
-        try {
-            localStorage.setItem(GRID_DENSITY_STORAGE_KEY, next);
-        } catch {
-            // localStorage unavailable — the preference just won't persist across reloads.
-        }
-    }, []);
-
-    // Order must track GRID_DENSITY_STEPS above. Labels are wrapped in a
-    // smaller font than the antd Slider's default mark size — seven marks
-    // on one track otherwise crowd/overlap each other.
-    const gridDensityMarks = useMemo(() => {
-        const label = (text: string) => <span style={{ fontSize: 11 }}>{_(text)}</span>;
-        return {
-            0: label("Original"),
-            1: label("Small"),
-            2: label("Page"),
-            3: label("Row"),
-            4: label("Cell"),
-            5: label("Medium"),
-            6: label("Large"),
-        };
-    }, []);
+    // Order must track GRID_DENSITY_STEPS. Labels are wrapped in a smaller
+    // font than the antd Slider's default mark size — seven marks on one
+    // track otherwise crowd/overlap each other.
+    const gridDensityMarks = useMemo(() => buildGridDensityMarks(_), []);
 
     // Plain-text form of the same labels (the marks above are JSX, sized
     // down to fit seven of them on one track) — used for the trigger
     // button's own text, which shows the currently selected option instead
     // of a fixed caption (matching DataDetailSlider's "Data Detail Level"
     // pattern in DynamicShow/DynamicEdit).
-    const gridDensityLabelText: Record<GridDensity, string> = {
-        original: _("Original"),
-        small: _("Small"),
-        fit: _("Page"),
-        "fit-row": _("Row"),
-        "fit-cell": _("Cell"),
-        medium: _("Medium"),
-        large: _("Large"),
-    };
-
-    const handleMaximize = useCallback((cellId: string) => {
-        setMaximizedCellId((prev) => (prev === cellId ? null : cellId));
-    }, []);
-
-    const handleMinimize = useCallback((cellId: string) => {
-        setMinimizedCellIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(cellId)) { next.delete(cellId); } else { next.add(cellId); }
-            return next;
-        });
-    }, []);
+    const gridDensityLabelText = buildGridDensityLabelText(_);
 
     const handleOpenDrawer = useCallback((tabId: string, cell: DashboardCell) => {
         setDrawerSelection({ tabId, cell });
@@ -1130,44 +654,12 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
         setDrawerSelection(null);
     }, [onConfigChange]);
 
-    const handleMoveCell = useCallback((tabId: string, cellId: string, direction: "left" | "right" | "up" | "down") => {
-        const nextTabs = config.tabs.map((tab) => {
-            if (tab.id !== tabId) return tab;
-            const cell = tab.cells.find((c) => c.id === cellId);
-            if (!cell) return tab;
-            let newRow = cell.row;
-            let newCol = cell.col;
-            if (direction === "left")  newCol = Math.max(0, cell.col - 1);
-            if (direction === "right") newCol = cell.col + 1;
-            if (direction === "up")    newRow = Math.max(0, cell.row - 1);
-            if (direction === "down")  newRow = cell.row + 1;
-            const neighbor = tab.cells.find((c) => c.id !== cellId && c.row === newRow && c.col === newCol);
-            const updatedCells = tab.cells.map((c) => {
-                if (c.id === cellId) return { ...c, row: newRow, col: newCol };
-                if (neighbor && c.id === neighbor.id) return { ...c, row: cell.row, col: cell.col };
-                return c;
-            });
-            return { ...tab, cells: updatedCells };
-        });
-        onConfigChange({ ...config, tabs: nextTabs });
+    const handleMoveCell = useCallback((tabId: string, cellId: string, direction: MoveDirection) => {
+        onConfigChange(moveCellInConfig(config, tabId, cellId, direction));
     }, [config, onConfigChange]);
 
     const handleResizeCell = useCallback((tabId: string, cellId: string, minWidth: string | null, minHeight: string | null) => {
-        const nextTabs = config.tabs.map((tab) => {
-            if (tab.id !== tabId) return tab;
-            return {
-                ...tab,
-                cells: tab.cells.map((c) => {
-                    if (c.id !== cellId) return c;
-                    return {
-                        ...c,
-                        ...(minWidth  !== null ? { min_width:  minWidth  } : {}),
-                        ...(minHeight !== null ? { min_height: minHeight } : {}),
-                    };
-                }),
-            };
-        });
-        onConfigChange({ ...config, tabs: nextTabs });
+        onConfigChange(resizeCellInConfig(config, tabId, cellId, minWidth, minHeight));
     }, [config, onConfigChange]);
 
     const tabItems = useMemo(() =>
@@ -1208,43 +700,19 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
         <>
             <Tabs
                 items={tabItems}
-                onChange={() => {
-                    setMaximizedCellId(null);
-                    setMinimizedCellIds(new Set());
-                }}
+                onChange={resetCellWindowState}
                 style={{ height: "100%" }}
                 tabBarStyle={{ paddingLeft: 12, marginBottom: 0 }}
                 tabBarExtraContent={{
                     right: (
-                        <Popover
-                            content={
-                                <div style={{ width: 480, padding: "8px 4px" }}>
-                                    <div style={{ marginBottom: 8 }}>
-                                        <Text strong>{_("Cell size")}</Text>
-                                    </div>
-                                    <Slider
-                                        min={0}
-                                        max={GRID_DENSITY_STEPS.length - 1}
-                                        step={null}
-                                        marks={gridDensityMarks}
-                                        value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
-                                        onChange={handleGridDensityChange}
-                                        tooltip={{ formatter: (index?: number) => (index !== undefined ? gridDensityMarks[index as keyof typeof gridDensityMarks] : "") ?? "" }}
-                                    />
-                                </div>
-                            }
-                            title={null}
-                            trigger="click"
-                            open={cellSizeOpen}
-                            onOpenChange={setCellSizeOpen}
-                            placement="bottomRight"
-                        >
-                            <Tooltip title={_("Cell size")}>
-                                <Button size="small" icon={<SlidersOutlined />} style={{ marginRight: 12 }}>
-                                    {gridDensityLabelText[gridDensity]}
-                                </Button>
-                            </Tooltip>
-                        </Popover>
+                        <CellSizeSelector
+                            label={_("Cell size")}
+                            stepCount={GRID_DENSITY_STEPS.length}
+                            marks={gridDensityMarks}
+                            value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
+                            onChange={handleGridDensityChange}
+                            currentLabelText={gridDensityLabelText[gridDensity]}
+                        />
                     ),
                 }}
             />

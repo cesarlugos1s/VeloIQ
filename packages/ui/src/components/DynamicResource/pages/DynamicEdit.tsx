@@ -253,7 +253,7 @@ export const DynamicEdit: React.FC<{
             cancelled = true;
         };
     }, [apiUrl, allModelsList, model.name, model.resource]);
-    const { tabs: items, layoutConfig } = useStandardEditTabs(
+    const { tabs: items, layoutConfig, cellSizeControl } = useStandardEditTabs(
         model,
         record,
         allModelsList,
@@ -404,7 +404,7 @@ export const DynamicEdit: React.FC<{
                 headerButtons={renderHeaderButtons}
             >
                 {topContent}
-                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
+                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
             </StandardEdit>
         </div>
     );
