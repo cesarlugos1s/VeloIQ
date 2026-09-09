@@ -1,11 +1,11 @@
-import React6, { createContext, lazy, useState, useEffect, useCallback, useContext, useMemo, useRef, Suspense, useLayoutEffect, useSyncExternalStore, useId, useImperativeHandle } from 'react';
-import { ThemedLayoutV2, Show, useForm, DeleteButton, useTable, List, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useInvalidate, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
-import { Typography, Menu, theme, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Divider, Row, Col, Card, Tooltip, Button, Grid, Drawer, Skeleton, Empty, Form, Modal, Result, Slider, Popover, Table, message, Switch, Tabs, Alert, Collapse, Select, DatePicker, InputNumber, Checkbox, Pagination, Breadcrumb, Tree, Tag, List as List$1, Dropdown, Avatar, TimePicker, Upload, Rate, Progress, Popconfirm } from 'antd';
+import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useEffect, useCallback, Suspense, useMemo, useContext, useLayoutEffect, useSyncExternalStore, useId } from 'react';
+import { useTable, DeleteButton, List, Breadcrumb, ThemedLayoutV2, Show, useForm, RefineThemes, ListButton, EditButton, RefreshButton, Create, useSelect, Edit } from '@refinedev/antd';
+import { useCan, useGo, useInvalidate, useApiUrl, useOne, useMenu, useGetIdentity, useLogout, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
+import { Typography, Button, theme, Tooltip, Empty, Skeleton, Popover, Spin, message, Modal, Collapse, Select, Table, DatePicker, InputNumber, Input, Tabs, Checkbox, Card, Form, Pagination, Menu, Space, Upload, Alert, Drawer, Tag, Rate, Progress, Grid, Dropdown, Layout, AutoComplete, ConfigProvider, Divider, Row, Col, Result, Slider, Switch, Breadcrumb as Breadcrumb$1, Tree, List as List$1, Avatar, TimePicker, Carousel, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, SettingOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, EyeOutlined, BugOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, FullscreenOutlined, MinusSquareOutlined, InboxOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
-import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
+import { ArrowLeftOutlined, ArrowUpOutlined, ArrowDownOutlined, ArrowRightOutlined, SettingOutlined, LinkOutlined, FullscreenOutlined, MinusSquareOutlined, QuestionCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, SearchOutlined, FilterOutlined, DeleteOutlined, FileTextOutlined, EyeOutlined, BugOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, CloseOutlined, InfoCircleOutlined, CalendarOutlined, InboxOutlined, MenuOutlined, CheckCircleOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
+import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
+import { Link, useNavigate, useLocation, useSearchParams, useParams, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import dayjs9 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
@@ -5487,7 +5487,7 @@ var useActionsWrapping = (headerButtons) => {
         marginBottom: 2
       },
       children: [
-        /* @__PURE__ */ jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: /* @__PURE__ */ jsx(Breadcrumb$1, {}) }),
+        /* @__PURE__ */ jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: /* @__PURE__ */ jsx(Breadcrumb, {}) }),
         /* @__PURE__ */ jsx(
           "div",
           {
@@ -22780,7 +22780,7 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
   return /* @__PURE__ */ jsxs("div", { children: [
     ancestorsList.length > 0 && /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
       /* @__PURE__ */ jsx(Title7, { level: 5, children: _48("Parent Hierarchy") }),
-      /* @__PURE__ */ jsx(Breadcrumb, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsx(Breadcrumb.Item, { children: /* @__PURE__ */ jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
+      /* @__PURE__ */ jsx(Breadcrumb$1, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsx(Breadcrumb$1.Item, { children: /* @__PURE__ */ jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
     ] }),
     treeData.length > 0 && /* @__PURE__ */ jsxs("div", { children: [
       /* @__PURE__ */ jsx(Title7, { level: 5, children: _48("Sub-hierarchy") }),
@@ -23493,7 +23493,7 @@ var DashboardTabHelp = ({ tabId }) => {
   );
 };
 var _54 = (text) => translateText(text, text);
-var GRID_DENSITY_STEPS = ["original", "small", "fit", "medium", "large"];
+var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
 var GRID_DENSITY_ROW_HEIGHT = {
   small: 180,
   medium: 320,
@@ -23829,10 +23829,202 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     )
   ] });
 };
+function groupCellsByRow(cells) {
+  const byRow = /* @__PURE__ */ new Map();
+  cells.forEach((c) => {
+    if (!byRow.has(c.row)) byRow.set(c.row, []);
+    byRow.get(c.row).push(c);
+  });
+  return Array.from(byRow.entries()).sort(([a], [b]) => a - b).map(([, rowCells]) => [...rowCells].sort((a, b) => a.col - b.col));
+}
+var CarouselPositionBadge = ({ corner, current, total }) => {
+  const { token } = theme.useToken();
+  const positionStyle = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
+  return /* @__PURE__ */ jsxs("div", { style: {
+    position: "absolute",
+    zIndex: 20,
+    ...positionStyle,
+    fontSize: 11,
+    padding: "1px 6px",
+    borderRadius: 10,
+    background: token.colorBgElevated,
+    color: token.colorTextSecondary,
+    border: `1px solid ${token.colorBorderSecondary}`
+  }, children: [
+    current,
+    " / ",
+    total
+  ] });
+};
+var CarouselEdgeArrow = ({ direction, onClick }) => {
+  const icon = direction === "up" ? /* @__PURE__ */ jsx(ArrowUpOutlined, {}) : direction === "down" ? /* @__PURE__ */ jsx(ArrowDownOutlined, {}) : direction === "left" ? /* @__PURE__ */ jsx(ArrowLeftOutlined, {}) : /* @__PURE__ */ jsx(ArrowRightOutlined, {});
+  const positionStyle = direction === "up" ? { top: 4, left: "50%", transform: "translateX(-50%)" } : direction === "down" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : direction === "left" ? { left: 4, top: "50%", transform: "translateY(-50%)" } : { right: 4, top: "50%", transform: "translateY(-50%)" };
+  return /* @__PURE__ */ jsx(
+    Button,
+    {
+      shape: "circle",
+      size: "small",
+      icon,
+      onClick,
+      style: { position: "absolute", zIndex: 20, ...positionStyle }
+    }
+  );
+};
+var FitCellRow = React6.forwardRef(({ rowCells, rowHeight, gridPadding, allModels, minimizedCellIds, canConfigureLayout, onConfigure, onMaximize, onMinimize, onResize, onMove, cellExtraActions }, ref) => {
+  const count = rowCells.length;
+  const hasMultipleCells = count > 1;
+  const [activeIndex, setActiveIndex] = useState(0);
+  useImperativeHandle(ref, () => ({
+    next: () => setActiveIndex((i) => (i + 1) % count),
+    prev: () => setActiveIndex((i) => (i - 1 + count) % count),
+    goTo: (index) => setActiveIndex((index % count + count) % count)
+  }), [count]);
+  return /* @__PURE__ */ jsxs("div", { style: { position: "relative", height: rowHeight, overflow: "hidden" }, children: [
+    hasMultipleCells && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(CarouselEdgeArrow, { direction: "left", onClick: () => setActiveIndex((i) => (i - 1 + count) % count) }),
+      /* @__PURE__ */ jsx(CarouselEdgeArrow, { direction: "right", onClick: () => setActiveIndex((i) => (i + 1) % count) }),
+      /* @__PURE__ */ jsx(CarouselPositionBadge, { corner: "bottom-right", current: activeIndex + 1, total: count })
+    ] }),
+    /* @__PURE__ */ jsx("div", { style: {
+      display: "flex",
+      height: rowHeight,
+      width: "100%",
+      transform: `translateX(-${activeIndex * 100}%)`,
+      transition: "transform 0.3s ease"
+    }, children: rowCells.map((cell) => /* @__PURE__ */ jsx("div", { style: { flex: "0 0 100%", width: "100%", height: rowHeight, padding: gridPadding, boxSizing: "border-box" }, children: /* @__PURE__ */ jsx(
+      DashboardGridCell,
+      {
+        cell,
+        allModels,
+        isMaximized: false,
+        isMinimized: minimizedCellIds.has(cell.id),
+        canConfigureLayout,
+        cardMinScale: FIT_CARD_MIN_SCALE,
+        gridDensity: "fit-cell",
+        onConfigure: () => onConfigure(cell),
+        onMaximize: () => onMaximize(cell.id),
+        onMinimize: () => onMinimize(cell.id),
+        onResize: (w, h) => onResize(cell.id, w, h),
+        onMove: (dir) => onMove(cell.id, dir),
+        cellExtraActions
+      }
+    ) }, cell.id)) })
+  ] });
+});
+FitCellRow.displayName = "FitCellRow";
+var FitRowCellCarousel = ({ cellsByRow, allModels, minimizedCellIds, canConfigureLayout, gridDensity, rowHeight, gridGap, gridPadding, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
+  const outerRef = useRef(null);
+  const activeRowRef = useRef(0);
+  const [activeRow, setActiveRow] = useState(0);
+  const innerRefsByRow = useRef(/* @__PURE__ */ new Map());
+  const hasMultipleRows = cellsByRow.length > 1;
+  const goToRow = useCallback((dir) => {
+    if (dir === "prev") outerRef.current?.prev();
+    else outerRef.current?.next();
+  }, []);
+  const goToCell = useCallback((dir) => {
+    const ref = innerRefsByRow.current.get(activeRowRef.current);
+    if (dir === "prev") ref?.prev();
+    else ref?.next();
+  }, []);
+  useEffect(() => {
+    outerRef.current?.innerSlider?.onWindowResized?.();
+  }, [rowHeight]);
+  const handleRowChange = useCallback((next) => {
+    activeRowRef.current = next;
+    setActiveRow(next);
+    if (gridDensity === "fit-cell") {
+      innerRefsByRow.current.get(next)?.goTo(0);
+    }
+  }, [gridDensity]);
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === "PageUp") {
+      e.preventDefault();
+      goToRow("prev");
+    } else if (e.key === "PageDown") {
+      e.preventDefault();
+      goToRow("next");
+    } else if (gridDensity === "fit-cell" && e.key === "ArrowLeft") {
+      e.preventDefault();
+      goToCell("prev");
+    } else if (gridDensity === "fit-cell" && e.key === "ArrowRight") {
+      e.preventDefault();
+      goToCell("next");
+    }
+  }, [gridDensity, goToRow, goToCell]);
+  return /* @__PURE__ */ jsxs(
+    "div",
+    {
+      tabIndex: 0,
+      autoFocus: true,
+      onKeyDown: handleKeyDown,
+      style: { position: "relative", height: rowHeight, outline: "none" },
+      children: [
+        hasMultipleRows && /* @__PURE__ */ jsxs(Fragment, { children: [
+          /* @__PURE__ */ jsx(CarouselEdgeArrow, { direction: "up", onClick: () => goToRow("prev") }),
+          /* @__PURE__ */ jsx(CarouselEdgeArrow, { direction: "down", onClick: () => goToRow("next") }),
+          /* @__PURE__ */ jsx(CarouselPositionBadge, { corner: "top-right", current: activeRow + 1, total: cellsByRow.length })
+        ] }),
+        /* @__PURE__ */ jsx(
+          Carousel,
+          {
+            ref: outerRef,
+            vertical: true,
+            dots: false,
+            afterChange: handleRowChange,
+            style: { height: rowHeight },
+            children: cellsByRow.map((rowCells, rowIndex) => /* @__PURE__ */ jsx("div", { style: { height: rowHeight }, children: gridDensity === "fit-row" ? /* @__PURE__ */ jsx("div", { style: {
+              display: "grid",
+              gridTemplateColumns: `repeat(${rowCells.length}, 1fr)`,
+              gap: gridGap,
+              padding: gridPadding,
+              height: rowHeight,
+              boxSizing: "border-box"
+            }, children: rowCells.map((cell) => /* @__PURE__ */ jsx("div", { style: { minWidth: 0, overflow: "hidden" }, children: /* @__PURE__ */ jsx(
+              DashboardGridCell,
+              {
+                cell,
+                allModels,
+                isMaximized: false,
+                isMinimized: minimizedCellIds.has(cell.id),
+                canConfigureLayout,
+                cardMinScale: FIT_CARD_MIN_SCALE,
+                gridDensity: "fit-row",
+                onConfigure: () => onConfigure(cell),
+                onMaximize: () => onMaximize(cell.id),
+                onMinimize: () => onMinimize(cell.id),
+                onResize: (w, h) => onResize(cell.id, w, h),
+                onMove: (dir) => onMove(cell.id, dir),
+                cellExtraActions
+              }
+            ) }, cell.id)) }) : /* @__PURE__ */ jsx(
+              FitCellRow,
+              {
+                ref: (r) => innerRefsByRow.current.set(rowIndex, r),
+                rowCells,
+                rowHeight,
+                gridPadding,
+                allModels,
+                minimizedCellIds,
+                canConfigureLayout,
+                onConfigure,
+                onMaximize,
+                onMinimize,
+                onResize,
+                onMove,
+                cellExtraActions
+              }
+            ) }, rowIndex))
+          }
+        )
+      ]
+    }
+  );
+};
 var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, onMaximize, onMinimize, onConfigure, onResize, onMove, cellExtraActions }) => {
   const cells = tab.cells;
   const containerRef = useRef(null);
-  const [fitRowHeight, setFitRowHeight] = useState(FIT_PAGE_MIN_ROW_HEIGHT);
+  const [fitRowHeight, setFitRowHeight] = useState(null);
   const numCols = useMemo(() => {
     if (!cells.length) return 2;
     return Math.max(...cells.map((c) => c.col)) + 1;
@@ -23843,10 +24035,11 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   }, [cells]);
   const gridGap = 12;
   const gridPadding = 12;
-  useEffect(() => {
-    if (gridDensity !== "fit") return;
+  useLayoutEffect(() => {
+    if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
     const el = containerRef.current;
     if (!el) return;
+    const effectiveRows = gridDensity === "fit" ? numRows : 1;
     const findScrollableAncestor = (node) => {
       let current = node.parentElement;
       while (current && current !== document.body) {
@@ -23861,8 +24054,8 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
       const ancestor2 = findScrollableAncestor(el);
       const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
       const availableHeight = bottomBoundary - top;
-      const usableHeight = availableHeight - gridGap * Math.max(0, numRows - 1) - gridPadding * 2;
-      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / numRows));
+      const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
+      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
       setFitRowHeight(rowHeight);
     };
     recompute();
@@ -23876,15 +24069,17 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     };
   }, [gridDensity, numRows]);
   const visibleCells = maximizedCellId ? cells.filter((c) => c.id === maximizedCellId) : cells;
-  const cardMinScale = gridDensity === "fit" ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
+  const cardMinScale = gridDensity === "fit" || gridDensity === "fit-row" || gridDensity === "fit-cell" ? FIT_CARD_MIN_SCALE : FIXED_DENSITY_CARD_MIN_SCALE;
   const rowTrackHeight = () => {
     switch (gridDensity) {
       case "small":
       case "medium":
       case "large":
         return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
-      case "fit":
-        return `minmax(${fitRowHeight}px, ${fitRowHeight}px)`;
+      case "fit": {
+        const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
+        return `minmax(${height}px, ${height}px)`;
+      }
       case "original":
       default:
         return "minmax(320px, auto)";
@@ -23902,6 +24097,30 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
   };
   if (!cells.length) {
     return /* @__PURE__ */ jsx(Empty, { description: _54("No models in this tab"), style: { padding: 48 } });
+  }
+  if (!maximizedCellId && (gridDensity === "fit-row" || gridDensity === "fit-cell")) {
+    if (fitRowHeight === null) {
+      return /* @__PURE__ */ jsx("div", { ref: containerRef, style: { height: "100%" } });
+    }
+    return /* @__PURE__ */ jsx("div", { ref: containerRef, style: { height: "100%", boxSizing: "border-box" }, children: /* @__PURE__ */ jsx(
+      FitRowCellCarousel,
+      {
+        cellsByRow: groupCellsByRow(cells),
+        allModels,
+        minimizedCellIds,
+        canConfigureLayout,
+        gridDensity,
+        rowHeight: fitRowHeight,
+        gridGap,
+        gridPadding,
+        onMaximize,
+        onMinimize,
+        onConfigure,
+        onResize,
+        onMove,
+        cellExtraActions
+      }
+    ) });
   }
   return /* @__PURE__ */ jsx("div", { ref: containerRef, style: gridStyle, children: visibleCells.map((cell) => /* @__PURE__ */ jsx(
     "div",
@@ -23956,13 +24175,18 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     } catch {
     }
   }, []);
-  const gridDensityMarks = useMemo(() => ({
-    0: _54("Original"),
-    1: _54("Small"),
-    2: _54("Fit page"),
-    3: _54("Medium"),
-    4: _54("Large")
-  }), []);
+  const gridDensityMarks = useMemo(() => {
+    const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _54(text) });
+    return {
+      0: label("Original"),
+      1: label("Small"),
+      2: label("Page"),
+      3: label("Row"),
+      4: label("Cell"),
+      5: label("Medium"),
+      6: label("Large")
+    };
+  }, []);
   const handleMaximize = useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);

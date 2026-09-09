@@ -389,6 +389,8 @@
   "Small": "Small",
   "Medium": "Medium",
   "Large": "Large",
+  "Page": "Page",
+  "Cell": "Cell",
   "Fit page": "Fit page",
   "No models in this tab": "No models in this tab",
   "No tabs configured. Run veloiq add-dashboard to add models.": "No tabs configured. Run veloiq add-dashboard to add models."
