@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useCan } from "@refinedev/core";
-import { Tabs, Tooltip, Button, theme, Empty, Spin, Slider, Carousel } from "antd";
+import { Tabs, Tooltip, Button, theme, Empty, Spin, Slider, Carousel, Popover, Typography } from "antd";
 import {
     SettingOutlined,
     FullscreenOutlined,
@@ -10,6 +10,7 @@ import {
     ArrowRightOutlined,
     ArrowUpOutlined,
     ArrowDownOutlined,
+    SlidersOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import type { ModelDef } from "../../components/DynamicResource/types";
@@ -30,6 +31,8 @@ import { DashboardTabHelp } from "../../components/Help/DashboardTabHelp";
 // utils/i18n.ts's translateText for why a module-load-time capture would
 // freeze the English fallback in place.
 const _ = (text: string): string => translateText(text, text);
+
+const { Text } = Typography;
 
 interface Props {
     config: DashboardConfig;
@@ -1063,6 +1066,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
     const [minimizedCellIds, setMinimizedCellIds] = useState<Set<string>>(new Set());
     const [drawerSelection, setDrawerSelection] = useState<CellSelection | null>(null);
     const [gridDensity, setGridDensity] = useState<GridDensity>(loadStoredGridDensity);
+    const [cellSizeOpen, setCellSizeOpen] = useState(false);
 
     const handleGridDensityChange = useCallback((stepIndex: number) => {
         const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
@@ -1089,6 +1093,21 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
             6: label("Large"),
         };
     }, []);
+
+    // Plain-text form of the same labels (the marks above are JSX, sized
+    // down to fit seven of them on one track) — used for the trigger
+    // button's own text, which shows the currently selected option instead
+    // of a fixed caption (matching DataDetailSlider's "Data Detail Level"
+    // pattern in DynamicShow/DynamicEdit).
+    const gridDensityLabelText: Record<GridDensity, string> = {
+        original: _("Original"),
+        small: _("Small"),
+        fit: _("Page"),
+        "fit-row": _("Row"),
+        "fit-cell": _("Cell"),
+        medium: _("Medium"),
+        large: _("Large"),
+    };
 
     const handleMaximize = useCallback((cellId: string) => {
         setMaximizedCellId((prev) => (prev === cellId ? null : cellId));
@@ -1197,35 +1216,35 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
                 tabBarStyle={{ paddingLeft: 12, marginBottom: 0 }}
                 tabBarExtraContent={{
                     right: (
-                        // antd centers each mark's label text under its track position, so the
-                        // end marks ("Original", "Large") render with text bleeding past the
-                        // slider's own declared width on both sides (measured ~18px total in
-                        // testing). Left unabsorbed, that bleed escapes into the tab bar and,
-                        // from there, into an ancestor with overflow-x: auto — producing a real,
-                        // if small, page-level horizontal scrollbar. Generous left/right padding
-                        // on this wrapping div (rather than a margin on the Slider itself, which
-                        // only ever addressed the left side) contains the bleed within this box
-                        // on both ends instead of just shifting where it leaks from.
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 40px" }}>
-                            <span style={{ fontSize: 13, color: token.colorTextSecondary, whiteSpace: "nowrap", marginRight: 20 }}>
-                                {/* The 12px flex `gap` alone isn't enough clearance from the
-                                 * "Original" mark's own leftward text bleed (see the note on the
-                                 * outer div above) — this margin is what actually keeps the two
-                                 * from overlapping; the outer padding only stops that same bleed
-                                 * from escaping the whole control into the tab bar. */}
-                                {_("Cell size")}
-                            </span>
-                            <Slider
-                                style={{ width: 280 }}
-                                min={0}
-                                max={GRID_DENSITY_STEPS.length - 1}
-                                step={null}
-                                marks={gridDensityMarks}
-                                value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
-                                onChange={handleGridDensityChange}
-                                tooltip={{ formatter: (index?: number) => (index !== undefined ? gridDensityMarks[index as keyof typeof gridDensityMarks] : "") ?? "" }}
-                            />
-                        </div>
+                        <Popover
+                            content={
+                                <div style={{ width: 480, padding: "8px 4px" }}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text strong>{_("Cell size")}</Text>
+                                    </div>
+                                    <Slider
+                                        min={0}
+                                        max={GRID_DENSITY_STEPS.length - 1}
+                                        step={null}
+                                        marks={gridDensityMarks}
+                                        value={GRID_DENSITY_STEPS.indexOf(gridDensity)}
+                                        onChange={handleGridDensityChange}
+                                        tooltip={{ formatter: (index?: number) => (index !== undefined ? gridDensityMarks[index as keyof typeof gridDensityMarks] : "") ?? "" }}
+                                    />
+                                </div>
+                            }
+                            title={null}
+                            trigger="click"
+                            open={cellSizeOpen}
+                            onOpenChange={setCellSizeOpen}
+                            placement="bottomRight"
+                        >
+                            <Tooltip title={_("Cell size")}>
+                                <Button size="small" icon={<SlidersOutlined />} style={{ marginRight: 12 }}>
+                                    {gridDensityLabelText[gridDensity]}
+                                </Button>
+                            </Tooltip>
+                        </Popover>
                     ),
                 }}
             />

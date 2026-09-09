@@ -23520,6 +23520,7 @@ var DashboardTabHelp = ({ tabId }) => {
   );
 };
 var _54 = (text) => translateText(text, text);
+var { Text: Text3 } = antd.Typography;
 var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
 var GRID_DENSITY_ROW_HEIGHT = {
   small: 180,
@@ -24194,6 +24195,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const [minimizedCellIds, setMinimizedCellIds] = React6.useState(/* @__PURE__ */ new Set());
   const [drawerSelection, setDrawerSelection] = React6.useState(null);
   const [gridDensity, setGridDensity] = React6.useState(loadStoredGridDensity);
+  const [cellSizeOpen, setCellSizeOpen] = React6.useState(false);
   const handleGridDensityChange = React6.useCallback((stepIndex) => {
     const next = GRID_DENSITY_STEPS[stepIndex] ?? "original";
     setGridDensity(next);
@@ -24214,6 +24216,15 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
       6: label("Large")
     };
   }, []);
+  const gridDensityLabelText = {
+    original: _54("Original"),
+    small: _54("Small"),
+    fit: _54("Page"),
+    "fit-row": _54("Row"),
+    "fit-cell": _54("Cell"),
+    medium: _54("Medium"),
+    large: _54("Large")
+  };
   const handleMaximize = React6.useCallback((cellId) => {
     setMaximizedCellId((prev) => prev === cellId ? null : cellId);
   }, []);
@@ -24316,32 +24327,31 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
         style: { height: "100%" },
         tabBarStyle: { paddingLeft: 12, marginBottom: 0 },
         tabBarExtraContent: {
-          right: (
-            // antd centers each mark's label text under its track position, so the
-            // end marks ("Original", "Large") render with text bleeding past the
-            // slider's own declared width on both sides (measured ~18px total in
-            // testing). Left unabsorbed, that bleed escapes into the tab bar and,
-            // from there, into an ancestor with overflow-x: auto — producing a real,
-            // if small, page-level horizontal scrollbar. Generous left/right padding
-            // on this wrapping div (rather than a margin on the Slider itself, which
-            // only ever addressed the left side) contains the bleed within this box
-            // on both ends instead of just shifting where it leaks from.
-            /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "0 40px" }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 13, color: token.colorTextSecondary, whiteSpace: "nowrap", marginRight: 20 }, children: _54("Cell size") }),
-              /* @__PURE__ */ jsxRuntime.jsx(
-                antd.Slider,
-                {
-                  style: { width: 280 },
-                  min: 0,
-                  max: GRID_DENSITY_STEPS.length - 1,
-                  step: null,
-                  marks: gridDensityMarks,
-                  value: GRID_DENSITY_STEPS.indexOf(gridDensity),
-                  onChange: handleGridDensityChange,
-                  tooltip: { formatter: (index) => (index !== void 0 ? gridDensityMarks[index] : "") ?? "" }
-                }
-              )
-            ] })
+          right: /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Popover,
+            {
+              content: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: 480, padding: "8px 4px" }, children: [
+                /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsxRuntime.jsx(Text3, { strong: true, children: _54("Cell size") }) }),
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Slider,
+                  {
+                    min: 0,
+                    max: GRID_DENSITY_STEPS.length - 1,
+                    step: null,
+                    marks: gridDensityMarks,
+                    value: GRID_DENSITY_STEPS.indexOf(gridDensity),
+                    onChange: handleGridDensityChange,
+                    tooltip: { formatter: (index) => (index !== void 0 ? gridDensityMarks[index] : "") ?? "" }
+                  }
+                )
+              ] }),
+              title: null,
+              trigger: "click",
+              open: cellSizeOpen,
+              onOpenChange: setCellSizeOpen,
+              placement: "bottomRight",
+              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _54("Cell size"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SlidersOutlined, {}), style: { marginRight: 12 }, children: gridDensityLabelText[gridDensity] }) })
+            }
           )
         }
       }
@@ -24372,7 +24382,7 @@ function parseInlineStyle4(cssText) {
   });
   return result;
 }
-var { Text: Text3, Title: Title8 } = antd.Typography;
+var { Text: Text4, Title: Title8 } = antd.Typography;
 function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
@@ -24393,7 +24403,7 @@ var RecentActivityPanel = () => {
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsxRuntime.jsx(Text3, { type: "secondary", children: "Show activity from the last" }),
+      /* @__PURE__ */ jsxRuntime.jsx(Text4, { type: "secondary", children: "Show activity from the last" }),
       /* @__PURE__ */ jsxRuntime.jsx(
         antd.InputNumber,
         {
@@ -24405,7 +24415,7 @@ var RecentActivityPanel = () => {
           size: "small"
         }
       ),
-      /* @__PURE__ */ jsxRuntime.jsx(Text3, { type: "secondary", children: "days" }),
+      /* @__PURE__ */ jsxRuntime.jsx(Text4, { type: "secondary", children: "days" }),
       /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Refresh", children: /* @__PURE__ */ jsxRuntime.jsx(
         AntDIcons2.ReloadOutlined,
         {
@@ -24413,7 +24423,7 @@ var RecentActivityPanel = () => {
           onClick: reload
         }
       ) }),
-      data && /* @__PURE__ */ jsxRuntime.jsxs(Text3, { type: "secondary", style: { fontSize: 12 }, children: [
+      data && /* @__PURE__ */ jsxRuntime.jsxs(Text4, { type: "secondary", style: { fontSize: 12 }, children: [
         groups.reduce((n, g) => n + g.records.length, 0),
         " records across ",
         groups.length,
@@ -24482,7 +24492,7 @@ var RecentActivityPanel = () => {
                         }
                       ),
                       isNew && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: "new" }),
-                      /* @__PURE__ */ jsxRuntime.jsx(Text3, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
+                      /* @__PURE__ */ jsxRuntime.jsx(Text4, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
                 }
@@ -24647,7 +24657,7 @@ var PinnedRecordsPanel = () => {
     }) })
   ] });
 };
-var { Text: Text4 } = antd.Typography;
+var { Text: Text5 } = antd.Typography;
 var _55 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
@@ -24691,7 +24701,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
         description: /* @__PURE__ */ jsxRuntime.jsxs("span", { children: [
           "No dashboard configured.",
           /* @__PURE__ */ jsxRuntime.jsx("br", {}),
-          /* @__PURE__ */ jsxRuntime.jsxs(Text4, { type: "secondary", children: [
+          /* @__PURE__ */ jsxRuntime.jsxs(Text5, { type: "secondary", children: [
             "Run ",
             /* @__PURE__ */ jsxRuntime.jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
             " to get started."
