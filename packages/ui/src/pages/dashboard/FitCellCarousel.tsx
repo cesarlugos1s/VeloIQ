@@ -179,6 +179,24 @@ export const FitRowCellCarousel: React.FC<{
         else if (gridDensity === "fit-cell" && e.key === "ArrowRight") { e.preventDefault(); goToCell("next"); }
     }, [gridDensity, goToRow, goToCell]);
 
+    // infinite={false}: antd's default infinite-loop mode clones the DOM of
+    // edge slides (via cloneNode) to fake seamless wrap-around. A clone is a
+    // static snapshot — scripts inside it never (re-)execute — which
+    // corrupts any row whose cells render via imperative script execution
+    // (e.g. a Plotly chart drawn by a <script> tag) rather than plain React
+    // output: the clone briefly shows stale/blank content, surfacing as a
+    // cell that renders once then goes blank around Slick's post-mount
+    // remeasure. Cost: the up/down row arrows now clamp at the first/last
+    // row instead of wrapping.
+    //
+    // Tried lazyLoad="ondemand" here to defer mounting off-screen rows'
+    // heavy content (every row currently mounts, and every row's charts
+    // draw, as soon as the carousel mounts) — reverted: react-slick's
+    // "ondemand" lazy loading doesn't play well with `vertical: true`, and
+    // broke row-to-row navigation entirely (afterChange fired but the newly
+    // active row never rendered real content). Not worth trading away
+    // working navigation for; revisit only if react-slick fixes that
+    // interaction upstream.
     return (
         <div
             tabIndex={0}
@@ -203,6 +221,7 @@ export const FitRowCellCarousel: React.FC<{
                 ref={outerRef}
                 vertical
                 dots={false}
+                infinite={false}
                 afterChange={handleRowChange}
                 style={{ height: rowHeight }}
             >

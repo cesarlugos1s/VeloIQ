@@ -11424,6 +11424,7 @@ var FitRowCellCarousel = ({ cellsByRow, gridDensity, rowHeight, gridGap, gridPad
             ref: outerRef,
             vertical: true,
             dots: false,
+            infinite: false,
             afterChange: handleRowChange,
             style: { height: rowHeight },
             children: cellsByRow.map((rowCells, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { height: rowHeight }, children: gridDensity === "fit-row" ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: {
