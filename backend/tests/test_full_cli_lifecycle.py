@@ -81,6 +81,17 @@ def test_full_cli_lifecycle_app_boots_in_browser(tmp_path, register_summary_path
     # 1. veloiq new (default db-type: sqlite — needs no external driver)
     _run(["veloiq", "new", app_name], tmp_path, env)
 
+    # 1b. `veloiq new`'s automatic `npm install` pulls @juicemantics/veloiq-ui
+    #     from whatever is currently published to npm, not from this repo's
+    #     packages/ui source. Since local UI changes are normally unpublished
+    #     at test time, that makes the e2e build test against stale code
+    #     instead of the change under test. `npm link` swaps in the local
+    #     package (registering the global link first is idempotent, so this
+    #     works even on a machine that has never linked it before).
+    ui_package_dir = FRAMEWORK_BACKEND.parent / "packages" / "ui"
+    _run(["npm", "link"], ui_package_dir, env)
+    _run(["npm", "link", "@juicemantics/veloiq-ui"], frontend_dir, env)
+
     pip = Path(sys.executable).parent / "pip"
     _run([str(pip), "install", "-r", "requirements.txt"], backend_dir, env)
     _run([str(pip), "install", "-e", str(FRAMEWORK_BACKEND)], backend_dir, env)

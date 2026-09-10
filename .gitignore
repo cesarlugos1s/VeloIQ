@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+adoption/.veloiq_pypi_cache.json
 *.py[cod]
 *.egg-info/
 *.egg
