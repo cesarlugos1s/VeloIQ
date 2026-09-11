@@ -12685,6 +12685,14 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const modelDisplayLabel = asDisplayText(model.label, asDisplayText(model.name, "Record"));
   const { formProps, saveButtonProps, queryResult } = useForm({
     resource: model.resource || model.name,
+    // Refine infers "create" | "edit" | "clone" from the current route when
+    // this isn't given, by matching the URL against the resource's registered
+    // CRUD routes. That works for the standalone edit page (it IS that route),
+    // but breaks whenever DynamicEdit is embedded somewhere else entirely (e.g.
+    // a journey step at /journey-run/:journeyId) — with no route to infer from,
+    // it silently falls back to "create": no fetch-by-id, blank form, despite a
+    // valid idOverride being passed in.
+    action: "edit",
     id: effectiveId,
     redirect: returnTo || journeyCallbacks ? false : redirectTarget,
     ...returnTo || journeyCallbacks ? {
