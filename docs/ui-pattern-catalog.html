@@ -1,0 +1,1054 @@
+<title>UI Pattern Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#f5f7f7;
+    --paper-raised:#ffffff;
+    --ink:#12191c;
+    --ink-soft:#3c4a4f;
+    --line:#d7dfdf;
+    --line-soft:#e6ebeb;
+    --accent:#0d6e76;
+    --accent-ink:#054046;
+    --accent-tint:#e4f2f1;
+    --amber:#a5680f;
+    --amber-tint:#fbf0dd;
+    --code-bg:#eef2f2;
+    --shadow: 0 1px 2px rgba(18,25,28,.06), 0 8px 24px -12px rgba(18,25,28,.12);
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#10161a;
+      --paper-raised:#161f23;
+      --ink:#eef3f3;
+      --ink-soft:#a9bcc0;
+      --line:#2a3639;
+      --line-soft:#1f2a2d;
+      --accent:#3fb8ba;
+      --accent-ink:#bdeeee;
+      --accent-tint:#132a29;
+      --amber:#e0ab5c;
+      --amber-tint:#2c2314;
+      --code-bg:#1b2427;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#10161a;
+    --paper-raised:#161f23;
+    --ink:#eef3f3;
+    --ink-soft:#a9bcc0;
+    --line:#2a3639;
+    --line-soft:#1f2a2d;
+    --accent:#3fb8ba;
+    --accent-ink:#bdeeee;
+    --accent-tint:#132a29;
+    --amber:#e0ab5c;
+    --amber-tint:#2c2314;
+    --code-bg:#1b2427;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;
+    padding:0 20px;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding-block:48px 80px;}
+
+  .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    display:flex; align-items:center; gap:10px;
+  }
+  .kicker::before{
+    content:"";
+    width:7px; height:7px; border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+
+  h1{
+    font-family:'Manrope', sans-serif;
+    font-size:clamp(28px, 4.4vw, 40px);
+    font-weight:800;
+    letter-spacing:-0.02em;
+    line-height:1.12;
+    margin:10px 0 14px;
+    text-wrap:balance;
+    color:var(--ink);
+  }
+
+  .lede{
+    font-size:17px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    max-width:none;
+    margin:0 0 6px;
+  }
+
+  .stack-note{
+    margin-top:22px;
+    padding:14px 16px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--ink-soft);
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 18px;
+  }
+  .stack-note b{color:var(--ink); font-weight:600;}
+
+  section.group{margin-top:52px;}
+
+  .group-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:10px;
+    margin-bottom:22px;
+  }
+  .group-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--accent);
+    background:var(--accent-tint);
+    border-radius:5px;
+    padding:2px 7px;
+    font-weight:600;
+  }
+  .group-head h2{
+    font-family:'Manrope', sans-serif;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0;
+    color:var(--ink);
+  }
+  .group-desc{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-left:auto;
+    text-align:right;
+    max-width:32ch;
+  }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    padding:20px 22px;
+    margin-bottom:16px;
+  }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .card-title{
+    font-family:'Manrope', sans-serif;
+    font-size:16.5px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:-.005em;
+  }
+  .card-title .std{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:500;
+    color:var(--ink-soft);
+    margin-top:3px;
+    letter-spacing:.01em;
+  }
+  .badge{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.03em;
+    padding:3px 9px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+  .badge.lib{background:var(--amber-tint); color:var(--amber); border:1px solid color-mix(in srgb, var(--amber) 35%, transparent);}
+  .badge.custom{background:var(--accent-tint); color:var(--accent-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);}
+  .badge.repo{background:transparent; color:var(--ink-soft); border:1px solid var(--line); font-weight:600;}
+
+  .source-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:2px 7px 2px 0;
+    color:var(--ink-soft);
+  }
+  .source-tag.spec{color:var(--accent-ink);}
+  .source-tag.system{color:var(--amber);}
+  .source-tag.convention{color:var(--ink-soft);}
+  .source-tag.research{color:var(--ink-soft);}
+
+  .purpose{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    margin:12px 0 14px;
+    max-width:62ch;
+  }
+
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 12px;
+    align-items:center;
+  }
+  .evidence{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    background:var(--code-bg);
+    border:1px solid var(--line-soft);
+    border-radius:6px;
+    padding:5px 9px;
+    color:var(--ink);
+    line-height:1.5;
+    overflow-x:auto;
+    max-width:100%;
+  }
+  .ref-link{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--accent-ink);
+    background:transparent;
+    border:1px solid var(--accent);
+    border-radius:999px;
+    padding:5px 12px 5px 10px;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    margin-left:auto;
+    white-space:nowrap;
+  }
+  .ref-link:hover{background:var(--accent-tint);}
+  .ref-link::after{content:"→"; font-size:12px;}
+
+  .mockup{
+    margin:2px 0 16px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line-soft);
+    background:var(--paper);
+  }
+  .mockup-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:7px 12px;
+    border-bottom:1px solid var(--line-soft);
+    background:var(--code-bg);
+  }
+
+  .mockup-drop{
+    padding:26px 20px;
+    text-align:center;
+  }
+  .mockup-drop svg{display:block; margin:0 auto 10px;}
+  .mockup-drop .drop-primary{
+    font-family:'Manrope', sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .mockup-drop .drop-primary b{color:var(--accent-ink);}
+  .mockup-drop .drop-secondary{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:5px;
+  }
+  .mockup-drop .drop-zone{
+    border:1.5px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+    border-radius:8px;
+    padding:20px 16px;
+    background:var(--accent-tint);
+  }
+
+  .mockup-steps{
+    display:flex;
+    padding:22px 24px 18px;
+  }
+  .mockup-step{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    position:relative;
+    min-width:0;
+  }
+  .mockup-step::before{
+    content:"";
+    position:absolute;
+    top:13px;
+    left:-50%;
+    width:100%;
+    height:2px;
+    background:var(--line);
+    z-index:0;
+  }
+  .mockup-step:first-child::before{content:none;}
+  .mockup-step.done::before{background:var(--accent);}
+  .mockup-step .dot{
+    width:26px; height:26px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px; font-weight:700;
+    position:relative; z-index:1;
+    border:2px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--ink-soft);
+  }
+  .mockup-step.done .dot{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .mockup-step.current .dot{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-tint); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);}
+  .mockup-step .step-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9.5px;
+    text-align:center;
+    margin-top:7px;
+    color:var(--ink-soft);
+    max-width:88px;
+    line-height:1.4;
+  }
+  .mockup-step.current .step-label{color:var(--accent-ink); font-weight:600;}
+  .mockup-step.done .step-label{color:var(--ink-soft);}
+
+  /* nav drawer */
+  .mockup-nav{padding:10px; display:flex; flex-direction:column; gap:2px;}
+  .mockup-nav .nav-item{font-family:'IBM Plex Mono', monospace; font-size:11.5px; padding:7px 10px; border-radius:6px; color:var(--ink-soft);}
+  .mockup-nav .nav-item.active{background:var(--accent-tint); color:var(--accent-ink); font-weight:600; border-left:3px solid var(--accent); padding-left:7px;}
+
+  /* breadcrumb */
+  .mockup-breadcrumb{padding:16px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft);}
+  .mockup-breadcrumb .sep{color:var(--line);}
+  .mockup-breadcrumb .current{color:var(--accent-ink); font-weight:600;}
+
+  /* miller columns */
+  .mockup-miller{display:flex; min-height:130px;}
+  .miller-pane{flex:1; min-width:0; border-right:1px solid var(--line-soft); padding:8px;}
+  .miller-pane:last-child{border-right:none;}
+  .miller-item{font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:6px 8px; border-radius:5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .miller-item.sel{background:var(--accent-tint); color:var(--accent-ink); font-weight:600;}
+  .miller-pane.detail{background:var(--code-bg);}
+  .miller-detail-title{font-family:'Manrope', sans-serif; font-size:12px; font-weight:700; margin-bottom:8px; color:var(--ink);}
+  .miller-detail-row{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-soft); margin-bottom:4px;}
+  .miller-detail-row b{color:var(--ink); font-weight:600;}
+
+  /* drawer */
+  .mockup-drawer-scene{position:relative; height:140px; overflow:hidden; background:var(--code-bg);}
+  .drawer-backdrop{padding:14px; display:flex; flex-direction:column; gap:8px;}
+  .backdrop-row{height:14px; border-radius:4px; background:var(--line-soft); width:80%;}
+  .drawer-panel{position:absolute; top:0; right:0; bottom:0; width:58%; background:var(--paper-raised); border-left:1px solid var(--line); box-shadow:-8px 0 18px -12px rgba(18,25,28,.3); padding:14px;}
+  .drawer-title{font-family:'Manrope', sans-serif; font-size:12px; font-weight:700; margin-bottom:10px; color:var(--ink);}
+  .drawer-field{display:flex; justify-content:space-between; gap:10px; font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-soft); margin-bottom:6px;}
+  .drawer-field b{color:var(--ink); font-weight:600;}
+
+  /* modal */
+  .mockup-modal-scene{position:relative; min-height:150px; background:var(--code-bg); display:flex; align-items:center; justify-content:center; padding:20px;}
+  .mockup-modal-scene::before{content:""; position:absolute; inset:0; background:color-mix(in srgb, var(--ink) 30%, transparent);}
+  .modal-card{position:relative; z-index:1; background:var(--paper-raised); border-radius:10px; border:1px solid var(--line); padding:16px 18px; width:min(320px, 84%); box-shadow:var(--shadow);}
+  .modal-title{font-family:'Manrope', sans-serif; font-weight:700; font-size:13px; margin-bottom:8px; color:var(--ink);}
+  .modal-body{font-family:'Source Serif 4', serif; font-size:12px; color:var(--ink-soft); margin-bottom:14px; line-height:1.5;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .btn-ghost,.btn-solid{font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:600; padding:5px 11px; border-radius:6px;}
+  .btn-ghost{color:var(--ink-soft); border:1px solid var(--line);}
+  .btn-solid{background:var(--accent); color:#fff;}
+
+  /* tabs */
+  .mockup-tabs-bar{display:flex; gap:18px; padding:12px 18px 0; border-bottom:1px solid var(--line-soft);}
+  .mockup-tabs-bar .tab{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); padding-bottom:9px;}
+  .mockup-tabs-bar .tab.active{color:var(--accent-ink); font-weight:600; border-bottom:2px solid var(--accent);}
+  .mockup-tabs-body{padding:14px 18px 18px; font-family:'Source Serif 4', serif; font-size:12px; color:var(--ink-soft); line-height:1.5;}
+
+  /* table */
+  .mockup-table{width:100%; border-collapse:collapse; font-family:'IBM Plex Mono', monospace; font-size:11px;}
+  .mockup-table th{text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); padding:9px 14px; background:var(--code-bg); border-bottom:1px solid var(--line); font-weight:600;}
+  .mockup-table th .th-controls{display:inline-flex; align-items:center; gap:5px; text-transform:none; letter-spacing:0;}
+  .mockup-table th .sort-ico{display:inline-flex; flex-direction:column; line-height:.55; font-size:7px; color:var(--line);}
+  .mockup-table th .sort-ico .up.on, .mockup-table th .sort-ico .down.on{color:var(--accent);}
+  .mockup-table th .filter-ico{color:var(--line); font-size:10px;}
+  .mockup-table th .filter-ico.on{color:var(--accent);}
+  .mockup-table td{padding:8px 14px; border-bottom:1px solid var(--line-soft); color:var(--ink);}
+  .mockup-table tr:last-child td{border-bottom:none;}
+  .mockup-table tr.hl td{background:var(--accent-tint);}
+  .pill{font-size:9.5px; font-weight:600; padding:2px 8px; border-radius:999px; display:inline-block;}
+  .pill.ok{background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent-ink);}
+  .pill.warn{background:var(--amber-tint); color:var(--amber);}
+
+  /* chart */
+  .mockup-chart{padding:16px 18px 12px;}
+  .chart-bar{fill:var(--accent);}
+  .chart-axis{stroke:var(--line);}
+  .chart-label{font-family:'IBM Plex Mono', monospace; fill:var(--ink-soft);}
+  .chart-caption{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); margin-top:6px;}
+
+  /* chat */
+  .mockup-chat{padding:14px 16px; display:flex; flex-direction:column; gap:8px;}
+  .chat-bubble{font-family:'Source Serif 4', serif; font-size:12px; line-height:1.5; padding:8px 12px; border-radius:10px; max-width:80%;}
+  .chat-bubble.user{align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:3px;}
+  .chat-bubble.bot{align-self:flex-start; background:var(--code-bg); color:var(--ink); border-bottom-left-radius:3px;}
+  .chat-input-row{margin-top:4px; display:flex; justify-content:space-between; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); border:1px solid var(--line); border-radius:999px; padding:6px 6px 6px 12px;}
+  .chat-send{background:var(--accent); color:#fff; font-weight:600; padding:4px 10px; border-radius:999px; flex-shrink:0;}
+
+  /* resizable/reorderable dashboard grid */
+  .mockup-viewsgrid{padding:16px;}
+  .vg-controls{display:flex; align-items:center; gap:8px; margin-bottom:10px; font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--ink-soft);}
+  .vg-slider{flex:1; max-width:90px; height:3px; background:var(--line); border-radius:2px; position:relative;}
+  .vg-slider::after{content:""; position:absolute; left:55%; top:50%; width:9px; height:9px; border-radius:50%; background:var(--accent); transform:translate(-50%,-50%);}
+  .vg-grid{display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:56px; gap:8px;}
+  .vg-cell{background:var(--code-bg); border:1px solid var(--line-soft); border-radius:8px; padding:8px 10px; position:relative;}
+  .vg-cell.wide{grid-column:1 / span 2;}
+  .vg-cell.active{border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);}
+  .vg-cell .vg-title{font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--ink-soft);}
+  .vg-cell .vg-move{position:absolute; top:6px; right:24px; font-size:10px; color:var(--ink-soft);}
+  .vg-cell .vg-resize{position:absolute; bottom:5px; right:6px; width:9px; height:9px; border-right:2px solid var(--accent); border-bottom:2px solid var(--accent);}
+
+  /* server-rendered searchable/sortable/filterable table */
+  .mockup-serverwidget{padding:14px 16px 10px;}
+  .sw-search{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); border:1px solid var(--line); border-radius:6px; padding:5px 9px; margin-bottom:9px; display:inline-block;}
+  .sw-table{width:100%; border-collapse:collapse; font-family:'IBM Plex Mono', monospace; font-size:10.5px;}
+  .sw-table th{text-align:left; font-size:9px; color:var(--ink-soft); padding:6px 10px; border-bottom:1px solid var(--line); font-weight:600;}
+  .sw-table th .arrow{color:var(--accent); margin-left:3px;}
+  .sw-table td{padding:6px 10px; border-bottom:1px solid var(--line-soft); color:var(--ink);}
+  .sw-bar-track{width:100%; height:6px; background:var(--line-soft); border-radius:3px; overflow:hidden;}
+  .sw-bar-fill{height:100%; background:var(--accent);}
+  .sw-foot{display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--ink-soft); margin-top:8px;}
+
+  /* fit-cell carousel */
+  .mockup-carousel{padding:18px 20px; text-align:center;}
+  .carousel-frame{background:var(--code-bg); border:1px solid var(--line-soft); border-radius:8px; padding:18px 10px; display:flex; align-items:center; justify-content:center; gap:12px; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); min-height:56px;}
+  .carousel-frame .chev{color:var(--accent); font-weight:700; font-size:14px;}
+  .carousel-dots{display:flex; justify-content:center; gap:6px; margin-top:10px;}
+  .carousel-dots span{width:6px; height:6px; border-radius:50%; background:var(--line);}
+  .carousel-dots span.on{background:var(--accent);}
+
+  /* horizontal top-bar menu */
+  .mockup-hmenu{display:flex; gap:22px; padding:16px 20px; background:var(--code-bg); align-items:center; flex-wrap:wrap;}
+  .mockup-hmenu .hitem{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); letter-spacing:.02em; padding-bottom:5px; border-bottom:2px solid transparent;}
+  .mockup-hmenu .hitem.active{color:var(--accent-ink); font-weight:700; border-bottom-color:var(--accent);}
+
+  /* command center */
+  .mockup-cmdk-scene{position:relative; min-height:190px; background:var(--code-bg); padding:20px;}
+  .mockup-cmdk-scene::before{content:""; position:absolute; inset:0; background:color-mix(in srgb, var(--ink) 25%, transparent);}
+  .cmdk-card{position:relative; z-index:1; background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:14px 16px; max-width:460px; margin:0 auto;}
+  .cmdk-search{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); border:1px solid var(--line); border-radius:7px; padding:7px 10px; margin-bottom:12px;}
+  .cmdk-cols{display:flex; gap:14px; flex-wrap:wrap;}
+  .cmdk-col{flex:1; min-width:110px;}
+  .cmdk-col-title{font-family:'IBM Plex Mono', monospace; font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin-bottom:6px;}
+  .cmdk-item{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink); padding:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cmdk-pin{color:var(--amber); margin-right:4px;}
+
+  footer{
+    margin-top:56px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+
+  @media (max-width:560px){
+    .card-top{flex-direction:column;}
+    .meta-row{flex-direction:column; align-items:flex-start;}
+    .ref-link{margin-left:0;}
+    .group-desc{margin-left:0; text-align:left; max-width:none;}
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="kicker">VeloIQ Platform — UI Pattern Catalog</div>
+  <h1>UI design patterns in use across the app</h1>
+  <p class="lede">A catalog of the recurring interface patterns behind a VeloIQ host application's panels, drawers, tables, and charts, each entry naming the pattern, the component that carries it, and a reference — labeled by what kind of authority that reference holds: a formal spec, a design system's convention, or UX research guidance.</p>
+  <div class="meta-row" style="margin-top:14px; gap:14px 20px;">
+    <span class="source-tag spec">■ Spec — W3C ARIA APG</span>
+    <span class="source-tag system">■ Design system — Material Design 3</span>
+    <span class="source-tag convention">■ Named convention — Wikipedia</span>
+    <span class="source-tag research">■ UX research — Nielsen Norman Group</span>
+  </div>
+
+  <div class="stack-note">
+    <span><b>Framework:</b> Refine (@refinedev/core, @refinedev/antd)</span>
+    <span><b>Component kit:</b> Ant Design 5</span>
+    <span><b>Shared layout:</b> @juicemantics/veloiq-ui</span>
+    <span><b>Charts:</b> Plotly (window.Plotly)</span>
+  </div>
+  <div class="stack-note">
+    <span><b>VeloIQ Framework:</b> ~/Documents/VeloIQ/Product/VeloIQ_framework</span>
+    <span><b>IQVigilant:</b> ~/Documents/IQVigilant/Product/IQVigilant</span>
+    <span><b>Advanced Development ext.:</b> ~/Documents/VeloIQ/Product/Advanced_development_extension</span>
+  </div>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">01</span>
+      <h2>Wayfinding &amp; navigation</h2>
+      <span class="group-desc">how a user knows where they are</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Left navigation sider
+          <span class="std">Standard pattern: Navigation drawer</span>
+        </div>
+        <span class="badge lib">antd Layout / Menu</span>
+      </div>
+      <p class="purpose">Persistent left-hand menu listing every module (patients, appointments, inventory, etc.), built from Refine's <code>useMenu</code> resource list plus injected "journey" shortcuts.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — sider, Patients active</div>
+        <div class="mockup-nav">
+          <div class="nav-item">Dashboard</div>
+          <div class="nav-item active">Patients</div>
+          <div class="nav-item">Appointments</div>
+          <div class="nav-item">Inventory</div>
+          <div class="nav-item">Journeys</div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/CustomSider.tsx</span>
+        <span class="source-tag system">Design system</span>
+        <a class="ref-link" href="https://m3.material.io/components/navigation-drawer/overview" target="_blank" rel="noopener">Material Design 3 — Navigation drawer</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Trail above record detail views
+          <span class="std">Standard pattern: Breadcrumb</span>
+        </div>
+        <span class="badge lib">antd Breadcrumb</span>
+      </div>
+      <p class="purpose">Shows the parent-resource chain above a record (e.g. Patients / Show), letting a user retrace how they got to a nested record without using the browser back button.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — breadcrumb trail</div>
+        <div class="mockup-breadcrumb">
+          <span>Patients</span><span class="sep">/</span><span>Radiology visits</span><span class="sep">/</span><span class="current">#PT-1042</span>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">IQVigilant</span>
+        <span class="evidence">pages/iqvigilant/NLSentenceShow.tsx, NLChatShow.tsx</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/" target="_blank" rel="noopener">W3C ARIA APG — Breadcrumb Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Top-bar module menu
+          <span class="std">Standard pattern: Menu bar</span>
+        </div>
+        <span class="badge lib">antd Menu (mode="horizontal")</span>
+      </div>
+      <p class="purpose">A horizontal row of module/model links across the top of the app, filled from the same resource list as the sider, with license-aware filtering and journey shortcuts folded in — the secondary nav surface next to it, not a replacement for it.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — top bar, Journeys active</div>
+        <div class="mockup-hmenu">
+          <span class="hitem">Dashboard</span>
+          <span class="hitem">Patients</span>
+          <span class="hitem">Appointments</span>
+          <span class="hitem active">Journeys</span>
+          <span class="hitem">Inventory</span>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/HorizontalMenu.tsx, LayoutWrapper.tsx</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/menubar/" target="_blank" rel="noopener">W3C ARIA APG — Menu and Menubar Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Command center
+          <span class="std">Standard pattern: Command palette</span>
+        </div>
+        <span class="badge custom">custom, full-screen overlay</span>
+      </div>
+      <p class="purpose">A keyboard-summoned overlay (Ctrl/Cmd+G) built as a custom backdrop-blurred panel rather than an antd Modal. Empty, it lays out three columns — Pinned records, Recently viewed, and Modules; typing narrows it to matching records grouped by model, a filtered module grid, and typed-command suggestions (e.g. "create "), navigable by arrow keys.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — command center, empty query</div>
+        <div class="mockup-cmdk-scene">
+          <div class="cmdk-card">
+            <div class="cmdk-search">Search records or type a command…</div>
+            <div class="cmdk-cols">
+              <div class="cmdk-col">
+                <div class="cmdk-col-title">Pinned</div>
+                <div class="cmdk-item"><span class="cmdk-pin">📌</span>Patient #1042</div>
+                <div class="cmdk-item"><span class="cmdk-pin">📌</span>Radiology dashboard</div>
+              </div>
+              <div class="cmdk-col">
+                <div class="cmdk-col-title">Recent</div>
+                <div class="cmdk-item">Eligibility Check tool</div>
+                <div class="cmdk-item">Appointment #58210</div>
+              </div>
+              <div class="cmdk-col">
+                <div class="cmdk-col-title">Modules</div>
+                <div class="cmdk-item">Patients</div>
+                <div class="cmdk-item">Journeys</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/CommandCenterPortal.tsx, GlobalSearch.tsx</span>
+        <span class="source-tag convention">Named convention</span>
+        <a class="ref-link" href="https://en.wikipedia.org/wiki/Command_palette" target="_blank" rel="noopener">Wikipedia — Command palette</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">02</span>
+      <h2>Progressive disclosure</h2>
+      <span class="group-desc">surfacing detail without leaving context</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Cascading detail panes
+          <span class="std">Standard pattern: Miller columns (cascading lists)</span>
+        </div>
+        <span class="badge custom">custom, react-resizable-panels</span>
+      </div>
+      <p class="purpose">A resizable list-panel plus stacked detail panes, each level pushing a new column to the right and keeping every ancestor level visible and scrollable — the pattern the request called "miller columns." State is held in URL search params so a drill-down path is shareable.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — three cascading panes</div>
+        <div class="mockup-miller">
+          <div class="miller-pane">
+            <div class="miller-item">Cardiology</div>
+            <div class="miller-item sel">Radiology</div>
+            <div class="miller-item">Oncology</div>
+          </div>
+          <div class="miller-pane">
+            <div class="miller-item">MRI Suite A</div>
+            <div class="miller-item sel">MRI Suite B</div>
+            <div class="miller-item">CT Suite</div>
+          </div>
+          <div class="miller-pane detail">
+            <div class="miller-detail-title">MRI Suite B</div>
+            <div class="miller-detail-row">Status: <b>In service</b></div>
+            <div class="miller-detail-row">Next slot: 14:30</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/index.tsx, paneUtils.ts</span>
+        <span class="source-tag convention">Named convention</span>
+        <a class="ref-link" href="https://en.wikipedia.org/wiki/Miller_columns" target="_blank" rel="noopener">Wikipedia — Miller columns</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Right-side detail drawer
+          <span class="std">Standard pattern: Side sheet</span>
+        </div>
+        <span class="badge lib">antd Drawer</span>
+      </div>
+      <p class="purpose">Slides in from the right edge to show or edit one record's fields (API tools, deterministic plans) while keeping the underlying list visible and interactive behind it.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — record drawer over list</div>
+        <div class="mockup-drawer-scene">
+          <div class="drawer-backdrop">
+            <div class="backdrop-row"></div>
+            <div class="backdrop-row"></div>
+            <div class="backdrop-row"></div>
+          </div>
+          <div class="drawer-panel">
+            <div class="drawer-title">API Tool — Eligibility Check</div>
+            <div class="drawer-field"><span>Endpoint</span><b>/v1/eligibility</b></div>
+            <div class="drawer-field"><span>Method</span><b>POST</b></div>
+            <div class="drawer-field"><span>Timeout</span><b>8000ms</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">IQVigilant</span>
+        <span class="evidence">pages/iqvigilant/ApiToolsManager.tsx, DeterministicPlanManager.tsx</span>
+        <span class="source-tag system">Design system</span>
+        <a class="ref-link" href="https://m3.material.io/components/side-sheets/overview" target="_blank" rel="noopener">Material Design 3 — Side sheets</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Confirmation &amp; scoped-edit dialogs
+          <span class="std">Standard pattern: Modal dialog</span>
+        </div>
+        <span class="badge lib">antd Modal</span>
+      </div>
+      <p class="purpose">Interrupts the current view for a focused, bounded task — delimiting a chat's data scope, editing module/model mappings, confirming a destructive action — then returns control to the page beneath it.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — scoped-edit dialog</div>
+        <div class="mockup-modal-scene">
+          <div class="modal-card">
+            <div class="modal-title">Delimit chat scope</div>
+            <div class="modal-body">Restrict this chat's answers to the Radiology database only?</div>
+            <div class="modal-actions"><span class="btn-ghost">Cancel</span><span class="btn-solid">Confirm</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">IQVigilant + VeloIQ Framework</span>
+        <span class="evidence">DelimitScopeModal.tsx, ModuleModelsModal.tsx, DbConnectorShow.tsx (+18 more)</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/" target="_blank" rel="noopener">W3C ARIA APG — Dialog (Modal) Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Grouped record sections
+          <span class="std">Standard pattern: Tabs</span>
+        </div>
+        <span class="badge lib">antd Tabs</span>
+      </div>
+      <p class="purpose">Splits a dense record — an NL chat's transcript, analytics, and dashboard suggestions — into switchable panels so related fields aren't shown all at once.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — record tabs, Analytics active</div>
+        <div class="mockup-tabs-bar">
+          <span class="tab">Transcript</span>
+          <span class="tab active">Analytics</span>
+          <span class="tab">Suggestions</span>
+        </div>
+        <div class="mockup-tabs-body">Confidence trend across the last 30 answered questions…</div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">IQVigilant</span>
+        <span class="evidence">pages/iqvigilant/NLChatShow.tsx (+12 more)</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/tabs/" target="_blank" rel="noopener">W3C ARIA APG — Tabs Pattern</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">03</span>
+      <h2>Data display</h2>
+      <span class="group-desc">lists, records, and metrics</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Resource list grids
+          <span class="std">Standard pattern: Data table / grid</span>
+        </div>
+        <span class="badge lib">antd Table + Refine useTable</span>
+      </div>
+      <p class="purpose">Sortable, filterable, paginated tabular listings for every CRUD resource generated by <code>veloiq generate</code> — the default landing view for a module.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — resource list grid, sorted by Tool, filtered by Method</div>
+        <table class="mockup-table">
+          <thead>
+            <tr>
+              <th><span class="th-controls">Tool <span class="sort-ico"><span class="up on">▲</span><span class="down">▼</span></span></span></th>
+              <th><span class="th-controls">Method <span class="filter-ico on">▽</span></span></th>
+              <th><span class="th-controls">Status <span class="sort-ico"><span class="up">▲</span><span class="down">▼</span></span></span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Claim Status</td><td>GET</td><td><span class="pill warn">Draft</span></td></tr>
+            <tr class="hl"><td>Eligibility Check</td><td>GET</td><td><span class="pill ok">Active</span></td></tr>
+            <tr><td>Prior Auth Lookup</td><td>GET</td><td><span class="pill ok">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework + IQVigilant</span>
+        <span class="evidence">27 pages, e.g. pages/iqvigilant/ApiToolsManager.tsx</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/grid/" target="_blank" rel="noopener">W3C ARIA APG — Grid Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Metric &amp; chart panels
+          <span class="std">Standard pattern: Dashboard</span>
+        </div>
+        <span class="badge lib">Plotly (window.Plotly)</span>
+      </div>
+      <p class="purpose">At-a-glance charts rendered from Plotly figure JSON and composed into a dashboard by pinning individual NL-query results as tiles rather than one fixed report.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — pinned dashboard tile</div>
+        <div class="mockup-chart">
+          <svg viewBox="0 0 240 90" width="100%" height="90" role="img" aria-label="Bar chart of weekly patient visits">
+            <line x1="0" y1="80" x2="240" y2="80" class="chart-axis" stroke-width="1"/>
+            <rect x="10" y="40" width="24" height="40" class="chart-bar" opacity=".55"/>
+            <rect x="50" y="28" width="24" height="52" class="chart-bar" opacity=".7"/>
+            <rect x="90" y="50" width="24" height="30" class="chart-bar" opacity=".55"/>
+            <rect x="130" y="18" width="24" height="62" class="chart-bar"/>
+            <rect x="170" y="34" width="24" height="46" class="chart-bar" opacity=".7"/>
+            <text x="130" y="12" font-size="8" class="chart-label">62 visits, peak Wed</text>
+          </svg>
+          <div class="chart-caption">Weekly patient visits — Radiology</div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework + IQVigilant</span>
+        <span class="evidence">LocalPlotlyHtml.tsx, InlinePlotlyHtml.tsx, AddToDashboardPanel.tsx</span>
+        <span class="source-tag convention">Named convention</span>
+        <a class="ref-link" href="https://en.wikipedia.org/wiki/Dashboard_(business)" target="_blank" rel="noopener">Wikipedia — Dashboard (business)</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">04</span>
+      <h2>Conversational surface</h2>
+      <span class="group-desc">the IQVigilant NL/chat layer</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Header launcher → chat &amp; query workspace
+          <span class="std">Standard pattern: Conversational UI / chatbot panel</span>
+        </div>
+        <span class="badge lib">antd Card, Input, Progress</span>
+      </div>
+      <p class="purpose">A header button opens a combined chat-and-analytics workspace: natural-language input, voice entry, suggested follow-up sentences, and one-click "add to dashboard" for any answer — the surface referenced elsewhere as the MedDevice Guard / NL Analytical Queries chat.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — NL chat workspace</div>
+        <div class="mockup-chat">
+          <div class="chat-bubble user">How many Radiology appointments are unconfirmed for tomorrow?</div>
+          <div class="chat-bubble bot">7 appointments are unconfirmed for Sep 14 — 4 MRI, 3 CT.</div>
+          <div class="chat-input-row">Ask a question about your data… <span class="chat-send">Send</span></div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">IQVigilant</span>
+        <span class="evidence">ChatLauncherButton.tsx → NLChatShow.tsx, VoiceInputButton.tsx, SuggestedSentencesPanel.tsx</span>
+        <span class="source-tag research">UX research</span>
+        <a class="ref-link" href="https://www.nngroup.com/articles/chatbots/" target="_blank" rel="noopener">NN/g — The User Experience of Chatbots</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">05</span>
+      <h2>Data transfer &amp; step navigation</h2>
+      <span class="group-desc">VeloIQ core + Advanced Development extension</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Drop zone for file &amp; CSV upload
+          <span class="std">Standard pattern: Drag-and-drop upload (dropzone)</span>
+        </div>
+        <span class="badge lib">antd Upload.Dragger</span>
+      </div>
+      <p class="purpose">A dashed drop target that accepts a dragged file or falls back to click-to-browse. Used in VeloIQ core for image/file field inputs and CSV import, and again in the Advanced Development extension's Media Manager and Data Import/Export Workbench.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — drop zone at rest</div>
+        <div class="mockup-drop">
+          <div class="drop-zone">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+              <path d="M12 15V5m0 0L8 9m4-4l4 4" stroke="#0d6e76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 15a4 4 0 01-.8-7.92A5 5 0 0115 5.6 3.5 3.5 0 0117.5 15H6z" stroke="#0d6e76" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+            <div class="drop-primary">Drag file here, or <b>click to browse</b></div>
+            <div class="drop-secondary">supports .csv, .png, .jpg — max 10MB</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework + Advanced Development ext.</span>
+        <span class="evidence">FileUploadInput.tsx, ImportCsvModal.tsx, advanced_development/MediaManager.tsx, DataImportExportWorkbench.tsx</span>
+        <span class="source-tag research">UX research</span>
+        <a class="ref-link" href="https://www.nngroup.com/articles/drag-drop/" target="_blank" rel="noopener">NN/g — Drag-and-Drop: How to Design for Ease of Use</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Journey execution stepper
+          <span class="std">Standard pattern: Stepper / wizard progress indicator</span>
+        </div>
+        <span class="badge lib">antd Steps</span>
+      </div>
+      <p class="purpose">A multi-position navigator at the top of a running journey. Each position is one step in the journey's sequence; the bar marks completed, current, and pending steps as execution advances — the antd <code>current</code> index is driven by the runner's step state.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — step 3 of 5 executing</div>
+        <div class="mockup-steps">
+          <div class="mockup-step done"><div class="dot">✓</div><div class="step-label">Verify eligibility</div></div>
+          <div class="mockup-step done"><div class="dot">✓</div><div class="step-label">Collect intake form</div></div>
+          <div class="mockup-step current"><div class="dot">3</div><div class="step-label">Schedule appointment</div></div>
+          <div class="mockup-step"><div class="dot">4</div><div class="step-label">Send confirmation</div></div>
+          <div class="mockup-step"><div class="dot">5</div><div class="step-label">Close journey</div></div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">Advanced Development ext.</span>
+        <span class="evidence">advanced_development/JourneyRunner.tsx</span>
+        <span class="source-tag research">UX research</span>
+        <a class="ref-link" href="https://www.nngroup.com/articles/wizards/" target="_blank" rel="noopener">NN/g — Wizards: Definition and Design Recommendations</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="group-num">06</span>
+      <h2>Dense composition &amp; server-rendered widgets</h2>
+      <span class="group-desc">dashboard canvas + framework-generated HTML</span>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Dashboard canvas with resizable, repositionable tiles
+          <span class="std">Standard pattern: Widget dashboard grid</span>
+        </div>
+        <span class="badge custom">custom, React</span>
+      </div>
+      <p class="purpose">The canvas that composes chart and table tiles side by side: a density slider resizes every cell at once, and per-cell move controls reposition a tile within the grid — the layer above the individual chart tile catalogued earlier.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — dashboard canvas, one cell selected</div>
+        <div class="mockup-viewsgrid">
+          <div class="vg-controls">Cell size<div class="vg-slider"></div></div>
+          <div class="vg-grid">
+            <div class="vg-cell wide active"><span class="vg-move">⇄</span><div class="vg-title">Weekly patient visits</div><div class="vg-resize"></div></div>
+            <div class="vg-cell"><div class="vg-title">Open API tools</div></div>
+            <div class="vg-cell"><div class="vg-title">Unconfirmed appts</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/pages/dashboard/ViewsGrid.tsx, gridCellOps.ts, gridDensity.tsx</span>
+        <span class="source-tag system">Design system</span>
+        <a class="ref-link" href="https://m3.material.io/components/cards/overview" target="_blank" rel="noopener">Material Design 3 — Cards</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Server-rendered searchable, sortable, filterable widget
+          <span class="std">Standard pattern: Faceted data table (with list &amp; gallery variants)</span>
+        </div>
+        <span class="badge custom">custom, hand-rolled HTML/JS</span>
+      </div>
+      <p class="purpose">A search box, multi-column sort, per-column filter popovers, numeric progress bars, and pagination — generated as static HTML and vanilla JS by the backend rather than as a React component, then embedded into a chat answer or dashboard tile. The same dispatch also renders a card-list or an image-gallery layout for the same underlying rows.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — searchable, sortable widget</div>
+        <div class="mockup-serverwidget">
+          <div class="sw-search">🔍 Search rows…</div>
+          <table class="sw-table">
+            <thead><tr><th>Patient<span class="arrow">↓</span></th><th>Wait time</th><th>Load</th></tr></thead>
+            <tbody>
+              <tr><td>J. Alvarez</td><td>12 min</td><td><div class="sw-bar-track"><div class="sw-bar-fill" style="width:40%"></div></div></td></tr>
+              <tr><td>R. Chen</td><td>26 min</td><td><div class="sw-bar-track"><div class="sw-bar-fill" style="width:78%"></div></div></td></tr>
+              <tr><td>M. Okafor</td><td>8 min</td><td><div class="sw-bar-track"><div class="sw-bar-fill" style="width:22%"></div></div></td></tr>
+            </tbody>
+          </table>
+          <div class="sw-foot"><span>Filter: Radiology ×</span><span>Page 1 of 6 ‹ ›</span></div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">backend/veloiq_framework/utils/views_utils.py</span>
+        <span class="source-tag convention">Named convention</span>
+        <a class="ref-link" href="https://en.wikipedia.org/wiki/Faceted_search" target="_blank" rel="noopener">Wikipedia — Faceted search</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Fit-cell content carousel
+          <span class="std">Standard pattern: Carousel</span>
+        </div>
+        <span class="badge custom">custom, React</span>
+      </div>
+      <p class="purpose">When a dashboard or section cell is too small to show everything it holds, this cycles through its contents one frame at a time behind shared chevron/dot controls, instead of shrinking each item past legibility.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — cell showing 2 of 3</div>
+        <div class="mockup-carousel">
+          <div class="carousel-frame"><span class="chev">‹</span><span>Prior-auth turnaround — 2 of 3</span><span class="chev">›</span></div>
+          <div class="carousel-dots"><span></span><span class="on"></span><span></span></div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/pages/dashboard/FitCellCarousel.tsx</span>
+        <span class="source-tag research">UX research</span>
+        <a class="ref-link" href="https://m3.material.io/components/carousel/overview" target="_blank" rel="noopener">Material Design 3 — Carousel</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    "UI design pattern" means a recurring, named solution to a common interface problem — a category spanning formal W3C specs, design-system conventions, and UX research guidance, distinguished above rather than flattened into one claim of authority.
+  </footer>
+
+</div>
