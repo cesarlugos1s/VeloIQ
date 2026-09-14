@@ -181,12 +181,38 @@ export function useFitRowHeight(
         // in its own effect) has settled on its final size — a plain
         // `window resize` listener never sees that later, ancestor-only
         // resize. Watching the ancestor's own box directly catches it.
+        //
+        // Debounced (unlike the initial `recompute()` above, which must
+        // stay synchronous so "fit row"/"fit cell" has a real rowHeight
+        // before FitRowCellCarousel's first mount): an ancestor nested in
+        // something with its own async settle (an antd Tabs pane measuring
+        // its ink bar, a sticky toolbar's height changing, etc.) can fire
+        // this observer several times within the same ~1s window a
+        // card/chart's own delayed resize script (e.g. the NLP engine's
+        // 0/200/700ms optimizeCardSizeInViewPort retries) is also running.
+        // Each undebounced recompute() here re-triggers react-slick's own
+        // remeasure (see FitCellCarousel's rowHeight effect), and landing
+        // that close to the card's own resize can catch it mid-layout —
+        // confirmed live as a blank cell ~1s after first paint alongside a
+        // flood of "<rect> attribute height: Expected length, NaN" (same
+        // failure class already fixed once for a different trigger, see
+        // useSentenceHtmlInteractivity's comment in the IQVigilant
+        // extension). Coalescing this observer's bursts into one trailing
+        // recompute keeps the same eventual result without the extra
+        // mid-window remeasures.
+        let debounceTimer: number | null = null;
+        const debouncedRecompute = () => {
+            if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+            debounceTimer = window.setTimeout(recompute, 150);
+        };
+
         const ancestor = findScrollableAncestor(el);
-        const observer = ancestor ? new ResizeObserver(recompute) : null;
+        const observer = ancestor ? new ResizeObserver(debouncedRecompute) : null;
         if (ancestor && observer) observer.observe(ancestor);
 
         return () => {
             window.removeEventListener("resize", recompute);
+            if (debounceTimer !== null) window.clearTimeout(debounceTimer);
             observer?.disconnect();
         };
     }, [gridDensity, numRows]);

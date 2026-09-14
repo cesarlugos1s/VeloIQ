@@ -93,10 +93,8 @@ const SectionCell: React.FC<{
         justifyContent: "space-between",
         padding: "2px 8px",
         gap: 2,
-        borderBottom: `1px solid ${token.colorBorderSecondary}`,
         background: token.colorBgContainer,
         flexShrink: 0,
-        minHeight: 32,
         position: "relative",
     };
 
@@ -141,6 +139,21 @@ const SectionCell: React.FC<{
                     .jm-section-cell:hover .jm-resize-handle { opacity: 1; }
                     .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
                     .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
+                    /* Collapsed by default (not just faded) so its space is actually
+                       reclaimed by the cell's content, not merely hidden underneath
+                       it — reveals (and only then claims its height) on hover or
+                       keyboard focus, same trigger the buttons above already use. */
+                    .jm-section-cell .jm-cell-toolbar {
+                        max-height: 0;
+                        overflow: hidden;
+                        border-bottom: 1px solid transparent;
+                        transition: max-height 0.15s ease, border-color 0.15s ease;
+                    }
+                    .jm-section-cell:hover .jm-cell-toolbar,
+                    .jm-section-cell:focus-within .jm-cell-toolbar {
+                        max-height: 32px;
+                        border-bottom-color: ${token.colorBorderSecondary};
+                    }
                 `}</style>
             )}
 
@@ -156,7 +169,7 @@ const SectionCell: React.FC<{
             )}
 
             {isConfiguring && (
-                <div style={toolbarStyle}>
+                <div className="jm-cell-toolbar" style={toolbarStyle}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {cell.section_name || cell.id}
                     </span>

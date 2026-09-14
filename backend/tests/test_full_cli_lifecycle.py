@@ -34,6 +34,15 @@ rules) does NOT reliably match under WSL2 — confirmed by testing: `sudo ufw
 allow in on lo` changed nothing, but the address-based equivalent did. Fix
 once with:
     sudo ufw allow from 127.0.0.1
+
+`veloiq new` installs `@juicemantics/veloiq-ui` from the public npm registry,
+which lags behind local `packages/ui` source between releases — the build
+step below would then be validating a stale, already-published package
+instead of the change under test, and could only ever fail *after* a
+premature publish. To break that chicken-and-egg loop, this test `npm link`s
+the scaffolded app's frontend to local `packages/ui` right after `veloiq
+new`, so the E2E build always exercises the local source, not whatever is
+currently on npm.
     sudo ufw reload
 """
 import os
@@ -47,6 +56,7 @@ import httpx
 import pytest
 
 FRAMEWORK_BACKEND = Path(__file__).parent.parent
+FRAMEWORK_UI = Path(__file__).parent.parent.parent / "packages" / "ui"
 
 
 def _run(cmd: list[str], cwd: Path, env: dict) -> subprocess.CompletedProcess:
@@ -80,6 +90,13 @@ def test_full_cli_lifecycle_app_boots_in_browser(tmp_path, register_summary_path
 
     # 1. veloiq new (default db-type: sqlite — needs no external driver)
     _run(["veloiq", "new", app_name], tmp_path, env)
+
+    # `veloiq new`'s automatic npm install just pulled @juicemantics/veloiq-ui
+    # from the public registry. Re-point it at local packages/ui via npm link
+    # so `veloiq build` below (and thus this whole test) validates the actual
+    # local source, not whatever was last published — see module docstring.
+    _run(["npm", "link"], FRAMEWORK_UI, env)
+    _run(["npm", "link", "@juicemantics/veloiq-ui"], frontend_dir, env)
 
     pip = Path(sys.executable).parent / "pip"
     _run([str(pip), "install", "-r", "requirements.txt"], backend_dir, env)

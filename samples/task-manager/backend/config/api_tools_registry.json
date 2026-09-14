@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-08-12T18:59:22.878114+00:00",
+  "updated_at": "2026-09-12T15:20:57.236919+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -5495,6 +5495,180 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "GET__nlchat__scope-options__modules": {
+      "http_method": "GET",
+      "path": "/nlchat/scope-options/modules",
+      "summary": "GET /nlchat/scope-options/modules",
+      "description": "Paginated, searchable list of host-app modules for the \"Delimit scope\" picker.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "q",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "page",
+            "type": "int",
+            "required": false,
+            "default": 1
+          },
+          {
+            "name": "page_size",
+            "type": "int",
+            "required": false,
+            "default": 20
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
+    "GET__nlchat__scope-options__document-urls": {
+      "http_method": "GET",
+      "path": "/nlchat/scope-options/document-urls",
+      "summary": "GET /nlchat/scope-options/document-urls",
+      "description": "Paginated, searchable list of the configured RAG document source URLs\n(``[documents] document_source_urls`` in jm_config.ini) for the \"Delimit\nscope\" picker.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "q",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "page",
+            "type": "int",
+            "required": false,
+            "default": 1
+          },
+          {
+            "name": "page_size",
+            "type": "int",
+            "required": false,
+            "default": 20
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
+    "GET__nlchat__scope-options__modules__module_id:path__models": {
+      "http_method": "GET",
+      "path": "/nlchat/scope-options/modules/{module_id:path}/models",
+      "summary": "GET /nlchat/scope-options/modules/{module_id:path}/models",
+      "description": "Names of every schema entity belonging to one module, for the \"Delimit\nscope\" Modules-tab drill-down (\"view\" a module's models).\n\nDeliberately thin -- no labels, no pagination: the frontend already has\nevery model's full (i18n'd) ``ModelDef`` via ``useAllModels()``, and\nresolves/translates/paginates/searches against that, so translated-name\nsearch is correct by construction (translation only ever happens\nclient-side).",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "module_id",
+            "type": "str",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
+    "GET__nlchat__nl_chat_eid__scope": {
+      "http_method": "GET",
+      "path": "/nlchat/{nl_chat_eid}/scope",
+      "summary": "GET /nlchat/{nl_chat_eid}/scope",
+      "description": "Return an NLChat's current \"Delimit scope\" selections, hydrated with\ndisplay labels/aliases for the picker to pre-populate on open.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_chat_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
+    "PATCH__nlchat__nl_chat_eid__scope": {
+      "http_method": "PATCH",
+      "path": "/nlchat/{nl_chat_eid}/scope",
+      "summary": "PATCH /nlchat/{nl_chat_eid}/scope",
+      "description": "Set an NLChat's \"Delimit scope\" selections.\n\n``payload`` may include ``modules``, ``db_connector_eids``, ``document_urls``\n(each a list; an empty list or omitted key clears that source type's\nrestriction, i.e. \"unrestricted\"). Clears the chat's cached NLAnswers on\nsuccess (mirrors ``clear_nlchat_answers``) so a scope change doesn't leave a\nstale, now-out-of-scope answer in place.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_chat_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "payload",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
     "POST__nlchat__nl_chat_eid__nlsentence": {
       "http_method": "POST",
       "path": "/nlchat/{nl_chat_eid}/nlsentence",
@@ -5761,6 +5935,34 @@
         "*"
       ],
       "first_discovered": "2026-08-09T21:23:17.386176+00:00",
+      "status": "active"
+    },
+    "GET__dbconnector__connector_id__models": {
+      "http_method": "GET",
+      "path": "/dbconnector/{connector_id}/models",
+      "summary": "GET /dbconnector/{connector_id}/models",
+      "description": "Full ``ModelDef[]`` (fields + relations, per\n``DynamicResource/types.ts``) for every table in a Db Connector's own\nschema, so the \"Delimit scope\" Databases-tab drill-down can feed the\nVeloIQ framework's own ``MetadataModal`` -- same component the host app's\nown models use -- without a second, connector-specific metadata panel.\n\nReturns every table in one call (the underlying introspection already\ncomputes the whole schema regardless), so the frontend needs no further\nround-trips for the outer table list, its search/pagination, or the\nnested relation-click drill-down between the connector's own tables.",
+      "parameters": {
+        "path": [
+          {
+            "name": "connector_id",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
       "status": "active"
     },
     "GET__agentic-tools": {
@@ -7684,6 +7886,63 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__nlchat__nl_chat_eid__dashboard-sentences": {
+      "http_method": "GET",
+      "path": "/nlchat/{nl_chat_eid}/dashboard-sentences",
+      "summary": "GET /nlchat/{nl_chat_eid}/dashboard-sentences",
+      "description": "List a chat's NL Sentences (eid + display title) for the \"Add to Dashboard\" panel's multi-select.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_chat_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
+      "status": "active"
+    },
+    "POST__nlsentence__add-to-dashboard": {
+      "http_method": "POST",
+      "path": "/nlsentence/add-to-dashboard",
+      "summary": "POST /nlsentence/add-to-dashboard",
+      "description": "Add one or more NLSentence results as Plotly chart cells to dashboard tab(s).\n\nBody: {\"sentence_eids\": [int, ...], \"tab_names\": [str, ...]}. Each non-blank\ntab name is matched case-insensitively against existing tabs (found-or-\ncreated, mirroring seed_dashboard_charts above); every sentence not already\npinned to that tab (deduped by the \"iqvigilant:nlsentence:{eid}\" model id)\nis appended as a NEW ROW in the tab's first column, in the given order --\nper the \"Add to Dashboard\" acceptance criteria (deliberately not the 2-column\npacking seed_dashboard_charts uses for report charts).",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-09-12T13:58:09.357484+00:00",
       "status": "active"
     },
     "GET__reporting-page-config": {

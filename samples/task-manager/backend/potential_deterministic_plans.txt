@@ -14,8 +14,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 19165,
-            "output_tokens": 1302
+            "input_tokens": 20203,
+            "output_tokens": 2054
         }
     }
 ,
@@ -43,10 +43,19 @@
 
     "submit_final_answer": {
         "description": "ALWAYS call this tool to return the final answer.",
-        "start_node": "step_1_submit_final_answer",
+        "start_node": "step_1_POST__team_member",
         "nodes": {
-            "step_1_submit_final_answer": {
-                "id": "step_1_submit_final_answer",
+            "step_1_POST__team_member": {
+                "id": "step_1_POST__team_member",
+                "tool": "POST__team_member",
+                "purpose": "Execute POST__team_member",
+                "transitions": {
+                    "default": "step_2_submit_final_answer",
+                    "paths": []
+                }
+            },
+            "step_2_submit_final_answer": {
+                "id": "step_2_submit_final_answer",
                 "tool": "submit_final_answer",
                 "purpose": "Execute submit_final_answer",
                 "transitions": {
@@ -56,8 +65,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 10797,
-            "output_tokens": 1006
+            "input_tokens": 20200,
+            "output_tokens": 1500
         }
     }
 ,
@@ -95,6 +104,69 @@
         "agentic_planner_tokens": {
             "input_tokens": 19441,
             "output_tokens": 1319
+        }
+    }
+,
+
+    "Parse_and_answer_NL_asks_for_an_ask_via_llm": {
+        "description": "\n    Parse and answer natural language asks using a language model.\n\n    This function processes a natural language ask, invokes a language\n    model to obtain an answer, and formats the result into an HTML response.\n    The function handles cleaning of the input ask string, invokes\n    a language model API, processes the response, and renders results\n    appropriately. The function also logs any occurring errors and formats\n    answers as specific HTML contents.\n\n    :param nl_asks_sentence: A string containing the natural language ask\n        to be answered.\n\n    :return: view_content, as returned by _run function.\n    ",
+        "start_node": "step_1_Parse_and_answer_NL_asks_for_an_ask_via_llm",
+        "nodes": {
+            "step_1_Parse_and_answer_NL_asks_for_an_ask_via_llm": {
+                "id": "step_1_Parse_and_answer_NL_asks_for_an_ask_via_llm",
+                "tool": "Parse_and_answer_NL_asks_for_an_ask_via_llm",
+                "purpose": "Execute Parse_and_answer_NL_asks_for_an_ask_via_llm",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 20210,
+            "output_tokens": 1858
+        }
+    }
+,
+
+    "answer_asks_via_pandasai_tool": {
+        "description": "\n    Use this tool to answer natural language asks from previous answers in the same Chat or Sentence.\n\n    This tool processes a natural language ask, invoking a pandasai library,\n    which uses a Smart Datalake containing multiple Smart DataFrames, which contain answers of previous asks in the same Chat.\n\n    :param nl_asks_sentence: A string containing the natural language ask\n        to be answered.\n\n    :return: view_content, as returned by _run function.\n    ",
+        "start_node": "step_1_answer_asks_via_pandasai_tool",
+        "nodes": {
+            "step_1_answer_asks_via_pandasai_tool": {
+                "id": "step_1_answer_asks_via_pandasai_tool",
+                "tool": "answer_asks_via_pandasai_tool",
+                "purpose": "Execute answer_asks_via_pandasai_tool",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 20210,
+            "output_tokens": 1222
+        }
+    }
+,
+
+    "POST__team_member": {
+        "description": "POST /team_member",
+        "start_node": "step_1_POST__team_member",
+        "nodes": {
+            "step_1_POST__team_member": {
+                "id": "step_1_POST__team_member",
+                "tool": "POST__team_member",
+                "purpose": "Execute POST__team_member",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 20200,
+            "output_tokens": 1062
         }
     }
 ,

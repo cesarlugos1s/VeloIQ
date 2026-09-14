@@ -11270,11 +11270,17 @@ function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPaddin
     };
     recompute();
     window.addEventListener("resize", recompute);
+    let debounceTimer = null;
+    const debouncedRecompute = () => {
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(recompute, 150);
+    };
     const ancestor = findScrollableAncestor(el);
-    const observer = ancestor ? new ResizeObserver(recompute) : null;
+    const observer = ancestor ? new ResizeObserver(debouncedRecompute) : null;
     if (ancestor && observer) observer.observe(ancestor);
     return () => {
       window.removeEventListener("resize", recompute);
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
       observer?.disconnect();
     };
   }, [gridDensity, numRows]);
@@ -11397,6 +11403,7 @@ var FitRowCellCarousel = ({ cellsByRow, gridDensity, rowHeight, gridGap, gridPad
             ref: outerRef,
             vertical: true,
             dots: false,
+            infinite: false,
             afterChange: handleRowChange,
             style: { height: rowHeight },
             children: cellsByRow.map((rowCells, rowIndex) => /* @__PURE__ */ jsx("div", { style: { height: rowHeight }, children: gridDensity === "fit-row" ? /* @__PURE__ */ jsx("div", { style: {
@@ -11454,10 +11461,8 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
     justifyContent: "space-between",
     padding: "2px 8px",
     gap: 2,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     flexShrink: 0,
-    minHeight: 32,
     position: "relative"
   };
   const startResize = useCallback((e, dir) => {
@@ -11497,6 +11502,21 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
                     .jm-section-cell:hover .jm-resize-handle { opacity: 1; }
                     .jm-resize-handle:hover { background: rgba(128,128,128,0.25) !important; }
                     .jm-resize-handle:active { background: rgba(128,128,128,0.45) !important; }
+                    /* Collapsed by default (not just faded) so its space is actually
+                       reclaimed by the cell's content, not merely hidden underneath
+                       it \u2014 reveals (and only then claims its height) on hover or
+                       keyboard focus, same trigger the buttons above already use. */
+                    .jm-section-cell .jm-cell-toolbar {
+                        max-height: 0;
+                        overflow: hidden;
+                        border-bottom: 1px solid transparent;
+                        transition: max-height 0.15s ease, border-color 0.15s ease;
+                    }
+                    .jm-section-cell:hover .jm-cell-toolbar,
+                    .jm-section-cell:focus-within .jm-cell-toolbar {
+                        max-height: 32px;
+                        border-bottom-color: ${token.colorBorderSecondary};
+                    }
                 ` }),
     isConfiguring && /* @__PURE__ */ jsxs(Fragment, { children: [
       /* @__PURE__ */ jsx(
@@ -11524,7 +11544,7 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
         }
       )
     ] }),
-    isConfiguring && /* @__PURE__ */ jsxs("div", { style: toolbarStyle, children: [
+    isConfiguring && /* @__PURE__ */ jsxs("div", { className: "jm-cell-toolbar", style: toolbarStyle, children: [
       /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name || cell.id }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
         /* @__PURE__ */ jsx(Tooltip, { title: "Move left", children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),

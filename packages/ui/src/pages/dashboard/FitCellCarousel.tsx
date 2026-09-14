@@ -203,6 +203,17 @@ export const FitRowCellCarousel: React.FC<{
                 ref={outerRef}
                 vertical
                 dots={false}
+                // antd's default (react-slick "infinite" wraparound) clones
+                // slides via cloneNode — including every id in a row's
+                // rendered markup (e.g. the NLP engine's cardContainer{id}
+                // elements). A clone's <script> tags never re-execute, so its
+                // chart is never live, but it still shares the SAME id as the
+                // real one; a later document.getElementById lookup (the
+                // engine's own delayed resize/optimize retries) can resolve
+                // to the dead clone instead, leaving the real chart to go
+                // blank. Confirmed live: switching into "Fit Row"/"Fit Cell"
+                // shows content correctly for ~1s, then blanks out.
+                infinite={false}
                 afterChange={handleRowChange}
                 style={{ height: rowHeight }}
             >
