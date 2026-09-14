@@ -3,7 +3,7 @@ import { ThemedLayoutV2, Show, useForm, DeleteButton, useTable, List, RefineThem
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useInvalidate, useCustom, useLogin, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Button, theme, Menu, Layout, Space, AutoComplete, Input, Spin, ConfigProvider, Divider, Row, Col, Card, Tooltip, Grid, Drawer, Skeleton, Empty, Form, Modal, Result, Slider, Popover, Table, message, Switch, Tabs, Alert, Collapse, Select, DatePicker, InputNumber, Checkbox, Pagination, Breadcrumb, Tree, Tag, List as List$1, Dropdown, Avatar, TimePicker, Carousel, Upload, Rate, Progress, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, SettingOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, DeleteOutlined, EyeOutlined, BugOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, InboxOutlined, MinusSquareOutlined, FullscreenOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, SettingOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, DeleteOutlined, EyeOutlined, BugOutlined, EditOutlined, FilePdfOutlined, CloseCircleOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, InboxOutlined, PlusSquareOutlined, MinusSquareOutlined, FullscreenExitOutlined, FullscreenOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -2042,6 +2042,23 @@ var LayoutWrapper = ({
     },
     [isModuleLicensed]
   );
+  const userRoles = identity?.roles ?? [];
+  const filterMenuItemsByRole = React6.useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        if (!item.roles) return true;
+        return item.roles.some((r) => userRoles.includes(r));
+      }).map((item) => {
+        if (Array.isArray(item.children)) {
+          return { ...item, children: filterMenuItemsByRole(item.children) };
+        }
+        return item;
+      });
+    },
+    [userRoles]
+  );
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
@@ -2081,7 +2098,7 @@ var LayoutWrapper = ({
   };
   const userItems = [
     { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsx(LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
-    ...filterMenuItemsByLicense(extraUserMenuItems),
+    ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
     { type: "divider" },
     { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsx(LogoutOutlined, {}), danger: true, onClick: () => logout() }
   ];
@@ -22794,6 +22811,9 @@ var _47 = window._ || ((text) => text);
 var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 var COLLAPSED_SIZE = 10;
+var HOVER_EXPAND_DELAY = 180;
+var HOVER_COLLAPSE_DELAY = 150;
+var HOVER_ANIM_DURATION = 180;
 var FakeRouteProvider = ({ model, id, children }) => {
   const existingRouteContext = useContext(UNSAFE_RouteContext);
   const fakeRouteContext = useMemo(() => ({
@@ -22810,7 +22830,7 @@ var FakeRouteProvider = ({ model, id, children }) => {
   }), [existingRouteContext, id, model]);
   return /* @__PURE__ */ jsx(UNSAFE_RouteContext.Provider, { value: fakeRouteContext, children });
 };
-var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) => {
+var PaneToolbar = ({ model, pane, allModels, maximized, minimized, onClose, onMinimize, onMaximize }) => {
   const { token } = theme.useToken();
   const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
   const href = `/${resourcePath}/show/${pane.id}`;
@@ -22842,24 +22862,38 @@ var PaneToolbar = ({ model, pane, allModels, onClose, onMinimize, onMaximize }) 
             children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } })
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _47("Minimize pane"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: minimized ? _47("Restore pane (also re-enables hover-to-expand)") : _47("Minimize pane"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }),
+            icon: minimized ? /* @__PURE__ */ jsx(PlusSquareOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }),
             onClick: onMinimize,
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            style: {
+              color: minimized ? token.colorPrimary : token.colorTextTertiary,
+              background: minimized ? token.colorPrimaryBg : "transparent",
+              padding: "0 4px",
+              height: 22,
+              minWidth: 22,
+              borderRadius: 4
+            }
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _47("Maximize pane"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: maximized ? _47("Restore pane (also re-enables hover-to-expand)") : _47("Maximize pane"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
             size: "small",
-            icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }),
+            icon: maximized ? /* @__PURE__ */ jsx(FullscreenExitOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }),
             onClick: onMaximize,
-            style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+            style: {
+              color: maximized ? token.colorPrimary : token.colorTextTertiary,
+              background: maximized ? token.colorPrimaryBg : "transparent",
+              padding: "0 4px",
+              height: 22,
+              minWidth: 22,
+              borderRadius: 4
+            }
           }
         ) }),
         /* @__PURE__ */ jsx(Tooltip, { title: _47("Close pane"), children: /* @__PURE__ */ jsx(
@@ -22942,6 +22976,130 @@ var MultiPaneLayout = ({ children }) => {
   const groupRef = useRef(null);
   const pendingLayoutRef = useRef(null);
   const prevPaneCountRef = useRef(0);
+  const hoverSupported = useMemo(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(hover: hover) and (pointer: fine)").matches,
+    []
+  );
+  const isDraggingRef = useRef(false);
+  const [maximizedPaneId, setMaximizedPaneIdState] = useState(null);
+  const maximizedPaneIdRef = useRef(null);
+  const setMaximizedPaneId = useCallback((id) => {
+    maximizedPaneIdRef.current = id;
+    setMaximizedPaneIdState(id);
+  }, []);
+  const [minimizedPaneIds, setMinimizedPaneIdsState] = useState(() => /* @__PURE__ */ new Set());
+  const minimizedPaneIdsRef = useRef(/* @__PURE__ */ new Set());
+  const setMinimizedPaneIds = useCallback((updater) => {
+    setMinimizedPaneIdsState((prev) => {
+      const next = updater(prev);
+      minimizedPaneIdsRef.current = next;
+      return next;
+    });
+  }, []);
+  const hoverRestoreLayoutRef = useRef(null);
+  const preMaximizeLayoutRef = useRef(null);
+  const preMinimizeLayoutsRef = useRef(/* @__PURE__ */ new Map());
+  const hoverTimersRef = useRef({ in: null, out: null });
+  const hoverAnimFrameRef = useRef(null);
+  const clearHoverTimers = useCallback(() => {
+    if (hoverTimersRef.current.in) clearTimeout(hoverTimersRef.current.in);
+    if (hoverTimersRef.current.out) clearTimeout(hoverTimersRef.current.out);
+    hoverTimersRef.current.in = null;
+    hoverTimersRef.current.out = null;
+  }, []);
+  const animateLayoutTo = useCallback((targetLayout, duration) => {
+    if (!groupRef.current) return;
+    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+    const startLayout = groupRef.current.getLayout();
+    const startTime = performance.now();
+    const ids = /* @__PURE__ */ new Set([...Object.keys(startLayout), ...Object.keys(targetLayout)]);
+    const step = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const frame = {};
+      ids.forEach((id) => {
+        const from = startLayout[id] ?? targetLayout[id] ?? 0;
+        const to = targetLayout[id] ?? startLayout[id] ?? 0;
+        frame[id] = from + (to - from) * eased;
+      });
+      groupRef.current?.setLayout(frame);
+      hoverAnimFrameRef.current = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    hoverAnimFrameRef.current = requestAnimationFrame(step);
+  }, []);
+  const cancelHoverExpand = useCallback(() => {
+    clearHoverTimers();
+    if (hoverAnimFrameRef.current) {
+      cancelAnimationFrame(hoverAnimFrameRef.current);
+      hoverAnimFrameRef.current = null;
+    }
+    if (hoverRestoreLayoutRef.current && groupRef.current) {
+      groupRef.current.setLayout(hoverRestoreLayoutRef.current);
+    }
+    hoverRestoreLayoutRef.current = null;
+  }, [clearHoverTimers]);
+  const handlePaneHoverStart = useCallback((panelId) => {
+    if (!hoverSupported || isDraggingRef.current || maximizedPaneIdRef.current || minimizedPaneIdsRef.current.size > 0) return;
+    if (hoverTimersRef.current.out) {
+      clearTimeout(hoverTimersRef.current.out);
+      hoverTimersRef.current.out = null;
+    }
+    if (hoverTimersRef.current.in) clearTimeout(hoverTimersRef.current.in);
+    hoverTimersRef.current.in = setTimeout(() => {
+      hoverTimersRef.current.in = null;
+      if (!groupRef.current || isDraggingRef.current || maximizedPaneIdRef.current || minimizedPaneIdsRef.current.size > 0) return;
+      const layout = groupRef.current.getLayout();
+      if (!hoverRestoreLayoutRef.current) {
+        hoverRestoreLayoutRef.current = { ...layout };
+      }
+      const panelIds = Object.keys(layout);
+      const n = panelIds.length;
+      const maxSize = 100 - COLLAPSED_SIZE * (n - 1);
+      const target = {};
+      panelIds.forEach((id) => {
+        target[id] = id === panelId ? maxSize : COLLAPSED_SIZE;
+      });
+      animateLayoutTo(target, HOVER_ANIM_DURATION);
+    }, HOVER_EXPAND_DELAY);
+  }, [hoverSupported, animateLayoutTo]);
+  const handlePaneHoverEnd = useCallback(() => {
+    if (!hoverSupported) return;
+    if (hoverTimersRef.current.in) {
+      clearTimeout(hoverTimersRef.current.in);
+      hoverTimersRef.current.in = null;
+    }
+    if (hoverTimersRef.current.out) clearTimeout(hoverTimersRef.current.out);
+    hoverTimersRef.current.out = setTimeout(() => {
+      hoverTimersRef.current.out = null;
+      if (hoverRestoreLayoutRef.current) {
+        animateLayoutTo(hoverRestoreLayoutRef.current, HOVER_ANIM_DURATION);
+        hoverRestoreLayoutRef.current = null;
+      }
+    }, HOVER_COLLAPSE_DELAY);
+  }, [hoverSupported, animateLayoutTo]);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !hoverSupported) return;
+    const onPointerDown = (e) => {
+      if (e.target?.closest?.("[data-separator]")) {
+        isDraggingRef.current = true;
+        cancelHoverExpand();
+      }
+    };
+    const onPointerUp = () => {
+      isDraggingRef.current = false;
+    };
+    container.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      container.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [hoverSupported, cancelHoverExpand]);
+  useEffect(() => () => {
+    clearHoverTimers();
+    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+  }, [clearHoverTimers]);
   const defaultLayout = useMemo(() => {
     if (panes.length === 0) return void 0;
     let layout = { [LIST_PANEL_ID]: 100 };
@@ -22984,6 +23142,11 @@ var MultiPaneLayout = ({ children }) => {
   }, [panes.length]);
   const openDetail = useCallback(
     (fromPaneIndex, resource, id) => {
+      setMaximizedPaneId(null);
+      preMaximizeLayoutRef.current = null;
+      setMinimizedPaneIds(() => /* @__PURE__ */ new Set());
+      preMinimizeLayoutsRef.current.clear();
+      cancelHoverExpand();
       if (groupRef.current) {
         pendingLayoutRef.current = { ...groupRef.current.getLayout() };
       }
@@ -23000,10 +23163,15 @@ var MultiPaneLayout = ({ children }) => {
         { replace: false }
       );
     },
-    [allModels, setSearchParams]
+    [allModels, setSearchParams, cancelHoverExpand, setMaximizedPaneId, setMinimizedPaneIds]
   );
   const closePane = useCallback(
     (fromArrayIndex) => {
+      setMaximizedPaneId(null);
+      preMaximizeLayoutRef.current = null;
+      setMinimizedPaneIds(() => /* @__PURE__ */ new Set());
+      preMinimizeLayoutsRef.current.clear();
+      cancelHoverExpand();
       setSearchParams(
         (prev) => {
           const current = parsePanes(prev);
@@ -23012,13 +23180,29 @@ var MultiPaneLayout = ({ children }) => {
         { replace: false }
       );
     },
-    [setSearchParams]
+    [setSearchParams, cancelHoverExpand, setMaximizedPaneId, setMinimizedPaneIds]
   );
   const minimizePane = useCallback((panelId) => {
     if (!groupRef.current) return;
+    if (minimizedPaneIdsRef.current.has(panelId)) {
+      const restoreLayout = preMinimizeLayoutsRef.current.get(panelId) ?? null;
+      preMinimizeLayoutsRef.current.delete(panelId);
+      setMinimizedPaneIds((prev) => {
+        const next = new Set(prev);
+        next.delete(panelId);
+        return next;
+      });
+      if (restoreLayout) groupRef.current.setLayout(restoreLayout);
+      return;
+    }
+    if (maximizedPaneIdRef.current === panelId) setMaximizedPaneId(null);
+    preMaximizeLayoutRef.current = null;
+    cancelHoverExpand();
     const layout = groupRef.current.getLayout();
     const currentSize = layout[panelId] ?? COLLAPSED_SIZE;
     if (currentSize <= COLLAPSED_SIZE + 1) return;
+    preMinimizeLayoutsRef.current.set(panelId, { ...layout });
+    setMinimizedPaneIds((prev) => new Set(prev).add(panelId));
     const freed = currentSize - COLLAPSED_SIZE;
     const otherIds = Object.keys(layout).filter((id) => id !== panelId);
     const otherTotal = otherIds.reduce((sum, id) => sum + (layout[id] ?? 0), 0);
@@ -23028,9 +23212,21 @@ var MultiPaneLayout = ({ children }) => {
       newLayout[id] = (layout[id] ?? 0) + freed * frac;
     });
     groupRef.current.setLayout(newLayout);
-  }, []);
+  }, [cancelHoverExpand, setMaximizedPaneId, setMinimizedPaneIds]);
   const maximizePane = useCallback((panelId) => {
     if (!groupRef.current) return;
+    if (maximizedPaneIdRef.current === panelId) {
+      const restoreLayout = preMaximizeLayoutRef.current;
+      preMaximizeLayoutRef.current = null;
+      setMaximizedPaneId(null);
+      if (restoreLayout) groupRef.current.setLayout(restoreLayout);
+      return;
+    }
+    preMaximizeLayoutRef.current = { ...groupRef.current.getLayout() };
+    setMaximizedPaneId(panelId);
+    setMinimizedPaneIds(() => /* @__PURE__ */ new Set());
+    preMinimizeLayoutsRef.current.clear();
+    cancelHoverExpand();
     const layout = groupRef.current.getLayout();
     const panelIds = Object.keys(layout);
     const n = panelIds.length;
@@ -23040,7 +23236,7 @@ var MultiPaneLayout = ({ children }) => {
       newLayout[id] = id === panelId ? maxSize : COLLAPSED_SIZE;
     });
     groupRef.current.setLayout(newLayout);
-  }, []);
+  }, [cancelHoverExpand, setMaximizedPaneId, setMinimizedPaneIds]);
   const listPaneContext = useMemo(
     () => ({
       isInMultiPane: true,
@@ -23059,7 +23255,18 @@ var MultiPaneLayout = ({ children }) => {
   );
   const panelChildren = useMemo(() => {
     const result = [
-      /* @__PURE__ */ jsx(Yt, { id: LIST_PANEL_ID, minSize: 10, style: { overflow: "auto" }, children: /* @__PURE__ */ jsx(PaneNavigationContext.Provider, { value: listPaneContext, children }) }, "master-list")
+      /* @__PURE__ */ jsx(
+        Yt,
+        {
+          id: LIST_PANEL_ID,
+          minSize: 10,
+          style: { overflow: "auto" },
+          onMouseEnter: () => handlePaneHoverStart(LIST_PANEL_ID),
+          onMouseLeave: handlePaneHoverEnd,
+          children: /* @__PURE__ */ jsx(PaneNavigationContext.Provider, { value: listPaneContext, children })
+        },
+        "master-list"
+      )
     ];
     panes.forEach((pane, idx) => {
       const paneModel = findModelByName(allModels, pane.resource);
@@ -23072,6 +23279,8 @@ var MultiPaneLayout = ({ children }) => {
             id: detailPanelId(idx),
             minSize: 10,
             style: { overflow: "auto", borderLeft: `2px solid ${token.colorBorder}` },
+            onMouseEnter: () => handlePaneHoverStart(detailPanelId(idx)),
+            onMouseLeave: handlePaneHoverEnd,
             children: /* @__PURE__ */ jsxs(PaneNavigationContext.Provider, { value: detailPaneContexts[idx], children: [
               /* @__PURE__ */ jsx(
                 PaneToolbar,
@@ -23079,6 +23288,8 @@ var MultiPaneLayout = ({ children }) => {
                   model: paneModel,
                   pane,
                   allModels,
+                  maximized: maximizedPaneId === detailPanelId(idx),
+                  minimized: minimizedPaneIds.has(detailPanelId(idx)),
                   onClose: () => closePane(idx),
                   onMinimize: () => minimizePane(detailPanelId(idx)),
                   onMaximize: () => maximizePane(detailPanelId(idx))
@@ -23099,7 +23310,7 @@ var MultiPaneLayout = ({ children }) => {
       );
     });
     return result;
-  }, [panes, allModels, listPaneContext, detailPaneContexts, children, closePane, minimizePane, maximizePane, PrimaryShowRenderer, token.colorBorder]);
+  }, [panes, allModels, listPaneContext, detailPaneContexts, children, closePane, minimizePane, maximizePane, PrimaryShowRenderer, token.colorBorder, handlePaneHoverStart, handlePaneHoverEnd, maximizedPaneId, minimizedPaneIds]);
   return /* @__PURE__ */ jsx("div", { ref: containerRef, className: "jm-full-width-page", style: { overflow: "hidden", height: panelHeight }, children: /* @__PURE__ */ jsx(
     Ut,
     {
