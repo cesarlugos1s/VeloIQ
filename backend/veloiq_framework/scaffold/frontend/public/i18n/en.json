@@ -392,6 +392,8 @@
   "Page": "Page",
   "Cell": "Cell",
   "Fit page": "Fit page",
+  "Go to first row": "Go to first row",
+  "Go to last row": "Go to last row",
   "No models in this tab": "No models in this tab",
   "No tabs configured. Run veloiq add-dashboard to add models.": "No tabs configured. Run veloiq add-dashboard to add models."
 }

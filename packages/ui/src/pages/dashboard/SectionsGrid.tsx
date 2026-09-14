@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Tooltip, Button, theme, Empty } from "antd";
 import {
     SettingOutlined,
@@ -14,7 +14,7 @@ import { CellConfigDrawer } from "./CellConfigDrawer";
 import { computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig, type MoveDirection } from "./hooks/gridCellOps";
 import { useCellWindowState } from "./hooks/useCellWindowState";
 import { computeRowTrackHeight, useFitRowHeight, type GridDensity } from "./hooks/gridDensity";
-import { FitRowCellCarousel } from "./FitCellCarousel";
+import { FitRowCellCarousel, type FitRowCellCarouselHandle } from "./FitCellCarousel";
 
 /** "Original" step's row-height floor for SectionsGrid — its section cards
  * historically had no floor at all (`minmax(80px, auto)`), much shorter
@@ -43,6 +43,28 @@ interface Props {
      * SectionsGrid call for the page). Defaults to "original" so this
      * matches SectionsGrid's pre-existing look until a user opts in. */
     gridDensity?: GridDensity;
+}
+
+/** Imperative handle for SectionsGrid.
+ *
+ * goToFirstRow/goToLastRow forward to the "fit-row"/"fit-cell" carousel's
+ * own handle (see FitRowCellCarouselHandle) when that density is active; a
+ * no-op otherwise, since every other density is a normal scrollable stacked
+ * layout a caller can already scroll to directly (e.g. NLChatShow's own
+ * conversationScrollRef) -- and, being a continuous scrollable area rather
+ * than a paginated view, "first row"/"last row" isn't a meaningful notion
+ * there the way "the start/end of the list" already is via plain scrolling.
+ *
+ * goToRow(index), unlike those two, DOES work in every density: it jumps
+ * the carousel to that row, or scrollIntoView()s that row's cell in a
+ * stacked layout -- there's no equivalent "just scroll" shortcut a caller
+ * can already reach for to land on one specific ARBITRARY row (as opposed
+ * to the start/end of the scrollable area), e.g. NLChatShow positioning on
+ * whichever sentence a save just edited. */
+export interface SectionsGridHandle {
+    goToFirstRow: () => void;
+    goToLastRow: () => void;
+    goToRow: (index: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,10 +233,26 @@ const SectionCell: React.FC<{
 // SectionsGrid
 // ---------------------------------------------------------------------------
 
-export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }) => {
+export const SectionsGrid = React.forwardRef<SectionsGridHandle, Props>(({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }, ref) => {
     const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize } = useCellWindowState();
     const [drawerCellId, setDrawerCellId] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const carouselRef = useRef<FitRowCellCarouselHandle>(null);
+    // Only populated by the plain-grid (stacked) branch below, one entry per
+    // row index -- purely so goToRow() has something to scrollIntoView when
+    // gridDensity isn't fit-row/fit-cell. Not used to render anything (no
+    // per-row chrome in stacked densities -- see SectionsGridHandle's own
+    // comment for why goToFirstRow/goToLastRow don't get this fallback too).
+    const rowRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+
+    useImperativeHandle(ref, () => ({
+        goToFirstRow: () => carouselRef.current?.goToFirstRow(),
+        goToLastRow: () => carouselRef.current?.goToLastRow(),
+        goToRow: (index: number) => {
+            if (carouselRef.current) carouselRef.current.goToRowIndex(index);
+            else rowRefs.current.get(index)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+    }), []);
 
     const handleMove = useCallback((cellId: string, direction: MoveDirection) => {
         onConfigChange(moveCellInConfig(config, tabId, cellId, direction));
@@ -254,7 +292,7 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
         gridTemplateColumns: maximizedCellId ? "1fr" : `repeat(${numCols}, 1fr)`,
         gridTemplateRows: maximizedCellId
             ? "1fr"
-            : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight, SECTIONS_ORIGINAL_MIN_ROW_PX)})`,
+            : `repeat(${numRows}, ${computeRowTrackHeight(gridDensity, fitRowHeight, SECTIONS_ORIGINAL_MIN_ROW_PX, gridDensity === "large")})`,
         gap: gridGap,
         padding: gridPadding,
         boxSizing: "border-box",
@@ -292,6 +330,7 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
         // not user-visible.
         fitRowHeight === null ? null : (
             <FitRowCellCarousel
+                ref={carouselRef}
                 cellsByRow={groupCellsByRow(cells)}
                 gridDensity={gridDensity}
                 rowHeight={fitRowHeight}
@@ -305,6 +344,7 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
             {visibleCells.map((cell) => (
                 <div
                     key={cell.id}
+                    ref={(el) => { rowRefs.current.set(cell.row, el); }}
                     style={{
                         gridColumn: maximizedCellId || soloRows.has(cell.row) ? "1 / -1" : `${cell.col + 1}`,
                         gridRow: maximizedCellId ? "1 / -1" : `${cell.row + 1}`,
@@ -334,7 +374,8 @@ export const SectionsGrid: React.FC<Props> = ({ cells, config, tabId, renderCont
             />
         </>
     );
-};
+});
+SectionsGrid.displayName = "SectionsGrid";
 
 // ---------------------------------------------------------------------------
 // Inline-style parser (CSS string → CSSProperties)

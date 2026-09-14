@@ -247,6 +247,8 @@
   "Page": "Página",
   "Cell": "Celda",
   "Fit page": "Ajustar a pantalla",
+  "Go to first row": "Ir a la primera fila",
+  "Go to last row": "Ir a la última fila",
   "No models in this tab": "No hay modelos en esta pestaña",
   "No tabs configured. Run veloiq add-dashboard to add models.": "No hay pestañas configuradas. Ejecute veloiq add-dashboard para agregar modelos."
 }

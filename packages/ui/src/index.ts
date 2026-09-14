@@ -73,6 +73,7 @@ export { DashboardPage } from "./pages/dashboard/DashboardPage";
 export { LandingRedirect } from "./pages/dashboard/LandingRedirect";
 export { ViewsGrid } from "./pages/dashboard/ViewsGrid";
 export { SectionsGrid } from "./pages/dashboard/SectionsGrid";
+export type { SectionsGridHandle } from "./pages/dashboard/SectionsGrid";
 export { RecentActivityPanel } from "./pages/dashboard/RecentActivityPanel";
 export { PinnedRecordsPanel } from "./pages/dashboard/PinnedRecordsPanel";
 export type { DashboardConfig, DashboardTab, DashboardCell, CellSourceType } from "./pages/dashboard/hooks/useDashboardConfig";

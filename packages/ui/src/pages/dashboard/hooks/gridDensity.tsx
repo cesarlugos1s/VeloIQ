@@ -95,13 +95,29 @@ export function buildGridDensityLabelText(_: (text: string) => string): Record<G
  * CSS-grid rendering path (every density except "fit-row"/"fit-cell", which
  * switch to FitRowCellCarousel instead of a multi-row grid). `originalMinPx`
  * lets each grid keep its own pre-existing "Original" floor (ViewsGrid's
- * dashboard cells want more headroom than SectionsGrid's section cards). */
-export function computeRowTrackHeight(gridDensity: GridDensity, fitRowHeight: number | null, originalMinPx = 320): string {
+ * dashboard cells want more headroom than SectionsGrid's section cards).
+ *
+ * `growPastFixedHeight` (default false, preserving ViewsGrid's existing
+ * dashboard-tile behavior -- tiles deliberately snap to one uniform height
+ * per density so multiple tiles align) switches "small"/"medium"/"large"
+ * from a hard `minmax(H,H)` cap to `minmax(H,auto)`. SectionsGrid passes
+ * true for its own "large" step: unlike a dashboard tile, an NL Chat
+ * sentence's answer content (tables, charts) routinely exceeds the fixed
+ * 480px "large" height, and a hard cap there just clips it behind an
+ * internal scrollbar -- while "original"'s own `minmax(floor, auto)` never
+ * clips, so a tall answer's "Large" cell could end up visibly SHORTER than
+ * its "Original" cell. `minmax(H, auto)` guarantees "large" is never
+ * shorter than "original" for any content height (large's floor, 480, is
+ * already what "original"'s own H=320 in the ViewsGrid convention scales up
+ * by 1.5x), while still growing past 480 for content that needs more. */
+export function computeRowTrackHeight(gridDensity: GridDensity, fitRowHeight: number | null, originalMinPx = 320, growPastFixedHeight = false): string {
     switch (gridDensity) {
         case "small":
         case "medium":
-        case "large":
-            return `minmax(${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px, ${GRID_DENSITY_ROW_HEIGHT[gridDensity]}px)`;
+        case "large": {
+            const h = GRID_DENSITY_ROW_HEIGHT[gridDensity];
+            return growPastFixedHeight ? `minmax(${h}px, auto)` : `minmax(${h}px, ${h}px)`;
+        }
         case "fit": {
             const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
             return `minmax(${height}px, ${height}px)`;

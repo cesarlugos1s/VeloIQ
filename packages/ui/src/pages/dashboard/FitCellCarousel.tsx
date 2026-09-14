@@ -1,8 +1,16 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Button, Carousel, theme } from "antd";
-import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
+import { Button, Carousel, Tooltip, theme } from "antd";
+import {
+    ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined,
+    VerticalAlignTopOutlined, VerticalAlignBottomOutlined,
+} from "@ant-design/icons";
 import type { DashboardCell } from "./hooks/useDashboardConfig";
 import type { GridDensity } from "./hooks/gridDensity";
+import { translateText } from "../../components/DynamicResource/utils/i18n";
+
+// Resolved at call time (not module load) -- see ViewsGrid.tsx's own copy of
+// this pattern / utils/i18n.ts's translateText for why.
+const _ = (text: string): string => translateText(text, text);
 
 // ---------------------------------------------------------------------------
 // "Fit row" / "Fit cell" — one row (or one cell) at a time, navigated via
@@ -50,6 +58,72 @@ const CarouselPositionBadge: React.FC<{ corner: "top-right" | "bottom-right"; cu
         </div>
     );
 };
+
+/** Row-level "N / M" readout (optional -- omit `current` where there's no
+ * single "active" row, e.g. a plain scrollable stacked grid) + jump-to-
+ * first/last-row buttons. Purely the visual pill -- positioning is the
+ * caller's job (see RowPositionToolbarOverlay below for the two ways
+ * SectionsGrid/FitRowCellCarousel place it), since a carousel (fixed-size,
+ * chrome floats via position:absolute) and a scrollable stacked list
+ * (chrome must stay put via position:sticky as content scrolls under it)
+ * need different positioning strategies around the very same pill.
+ *
+ * Deliberately not placed at a corner (that's where CarouselPositionBadge
+ * lives): each row's own content is a <SectionCell>/<DashboardCell> whose
+ * own toolbar (maximize/minimize/move/configure) already occupies the
+ * top-right corner, so a corner badge here would sit directly on top of
+ * those buttons. */
+export const RowPositionToolbar: React.FC<{ current?: number; total: number; onFirst: () => void; onLast: () => void; onPrevRow?: () => void }> = ({ current, total, onFirst, onLast, onPrevRow }) => {
+    const { token } = theme.useToken();
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {onPrevRow && (
+                <Button shape="circle" size="small" icon={<ArrowUpOutlined />} onClick={onPrevRow} />
+            )}
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                fontSize: 11,
+                padding: "1px 3px",
+                borderRadius: 10,
+                background: token.colorBgElevated,
+                color: token.colorTextSecondary,
+                border: `1px solid ${token.colorBorderSecondary}`,
+            }}>
+                <Tooltip title={_("Go to first row")}>
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<VerticalAlignTopOutlined style={{ fontSize: 11 }} />}
+                        onClick={onFirst}
+                        style={{ height: 18, minWidth: 18, padding: 0 }}
+                    />
+                </Tooltip>
+                {current !== undefined && <span style={{ padding: "0 2px" }}>{current} / {total}</span>}
+                <Tooltip title={_("Go to last row")}>
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<VerticalAlignBottomOutlined style={{ fontSize: 11 }} />}
+                        onClick={onLast}
+                        style={{ height: 18, minWidth: 18, padding: 0 }}
+                    />
+                </Tooltip>
+            </div>
+        </div>
+    );
+};
+
+/** Absolute, top-center placement for RowPositionToolbar inside a
+ * position:relative container that never itself scrolls (the "fit-row"/
+ * "fit-cell" carousel, which is fixed-size) -- see SectionsGrid.tsx's
+ * RowPositionToolbarSticky for the scrollable-stacked-grid equivalent. */
+export const RowPositionToolbarOverlay: React.FC<{ current?: number; total: number; onFirst: () => void; onLast: () => void; onPrevRow?: () => void }> = (props) => (
+    <div style={{ position: "absolute", zIndex: 20, top: 4, left: "50%", transform: "translateX(-50%)" }}>
+        <RowPositionToolbar {...props} />
+    </div>
+);
 
 const CarouselEdgeArrow: React.FC<{ direction: "up" | "down" | "left" | "right"; onClick: () => void }> = ({ direction, onClick }) => {
     const icon = direction === "up" ? <ArrowUpOutlined /> : direction === "down" ? <ArrowDownOutlined /> : direction === "left" ? <ArrowLeftOutlined /> : <ArrowRightOutlined />;
@@ -122,23 +196,44 @@ const FitCellRow = React.forwardRef<CellCarouselRef, {
 });
 FitCellRow.displayName = "FitCellRow";
 
-export const FitRowCellCarousel: React.FC<{
+/** Imperative handle for FitRowCellCarousel -- lets a caller (e.g.
+ * SectionsGrid, forwarding further up to the page that mounted it) jump the
+ * OUTER row carousel directly to the first row, last row, or an arbitrary
+ * row index, as opposed to the single-step prev/next the edge arrows/
+ * keyboard already offer. Used by NLChatShow to keep a newly-added or
+ * newly-edited conversation sentence in view even in "fit-row"/"fit-cell"
+ * density, where the grid is a paginated carousel rather than a scrollable
+ * stacked list (scrollTop has nothing to act on there). */
+export interface FitRowCellCarouselHandle {
+    goToFirstRow: () => void;
+    goToLastRow: () => void;
+    goToRowIndex: (index: number) => void;
+}
+
+export const FitRowCellCarousel = React.forwardRef<FitRowCellCarouselHandle, {
     cellsByRow: DashboardCell[][];
     gridDensity: Extract<GridDensity, "fit-row" | "fit-cell">;
     rowHeight: number;
     gridGap: number;
     gridPadding: number;
     renderCell: (cell: DashboardCell) => React.ReactNode;
-}> = ({ cellsByRow, gridDensity, rowHeight, gridGap, gridPadding, renderCell }) => {
+}>(({ cellsByRow, gridDensity, rowHeight, gridGap, gridPadding, renderCell }, ref) => {
     const outerRef = useRef<CarouselRef>(null);
     const activeRowRef = useRef(0);
     const [activeRow, setActiveRow] = useState(0);
     const innerRefsByRow = useRef<Map<number, CellCarouselRef | null>>(new Map());
     const hasMultipleRows = cellsByRow.length > 1;
+    const rowCount = cellsByRow.length;
 
     const goToRow = useCallback((dir: "prev" | "next") => {
         if (dir === "prev") outerRef.current?.prev(); else outerRef.current?.next();
     }, []);
+
+    useImperativeHandle(ref, () => ({
+        goToFirstRow: () => outerRef.current?.goTo(0),
+        goToLastRow: () => outerRef.current?.goTo(Math.max(0, rowCount - 1)),
+        goToRowIndex: (index: number) => outerRef.current?.goTo(Math.max(0, Math.min(rowCount - 1, index))),
+    }), [rowCount]);
 
     const goToCell = useCallback((dir: "prev" | "next") => {
         const ref = innerRefsByRow.current.get(activeRowRef.current);
@@ -194,9 +289,14 @@ export const FitRowCellCarousel: React.FC<{
         >
             {hasMultipleRows && (
                 <>
-                    <CarouselEdgeArrow direction="up" onClick={() => goToRow("prev")} />
+                    <RowPositionToolbarOverlay
+                        current={activeRow + 1}
+                        total={cellsByRow.length}
+                        onFirst={() => outerRef.current?.goTo(0)}
+                        onLast={() => outerRef.current?.goTo(Math.max(0, rowCount - 1))}
+                        onPrevRow={() => goToRow("prev")}
+                    />
                     <CarouselEdgeArrow direction="down" onClick={() => goToRow("next")} />
-                    <CarouselPositionBadge corner="top-right" current={activeRow + 1} total={cellsByRow.length} />
                 </>
             )}
             <Carousel
@@ -248,4 +348,5 @@ export const FitRowCellCarousel: React.FC<{
             </Carousel>
         </div>
     );
-};
+});
+FitRowCellCarousel.displayName = "FitRowCellCarousel";
