@@ -1503,7 +1503,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         "",
         ("export interface ExtensionUserMenuItem { key: string; label: string; "
          "icon?: React.ReactNode; onClick?: () => void; type?: \"group\"; "
-         "children?: ExtensionUserMenuItem[]; module?: string; }"),
+         "children?: ExtensionUserMenuItem[]; module?: string; roles?: string[]; }"),
         "export const extensionUserMenuItems: ExtensionUserMenuItem[] = [",
     ]
 
@@ -1513,11 +1513,15 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
         route = menu_item["route"]
         icon = menu_item.get("icon")
         mod = menu_item.get("module")
+        roles = menu_item.get("roles")
         icon_expr = f"createElement({icon})" if icon else "undefined"
         mod_expr = f', module: "{mod}"' if mod else ""
+        roles_expr = (
+            ", roles: [" + ", ".join(f'"{r}"' for r in roles) + "]" if roles else ""
+        )
         return (
             f'{{ key: "{key}", label: "{label}", icon: {icon_expr}, '
-            f'onClick: () => {{ window.location.assign("{route}"); }}{mod_expr} }}'
+            f'onClick: () => {{ window.location.assign("{route}"); }}{mod_expr}{roles_expr} }}'
         )
 
     ungrouped_items = [it for it in menu_entries if not it.get("group")]
@@ -1719,6 +1723,115 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     )
 
     _ensure_app_tsx_header_button_wiring(frontend_src)
+    _ensure_app_tsx_help_wiring(frontend_src)
+
+
+# Matches the {authSystemModels.map((model) => ( ... ))} route block verbatim
+# (both the scaffold template and every host App.tsx generated from it emit
+# this exact literal), used as the insertion anchor for the sibling
+# {helpSystemModels.map(...)} block below. Non-greedy so it stops at this
+# block's own closing `))}` rather than a later one.
+_APP_TSX_AUTH_SYSTEM_MODELS_ROUTE_RE = re.compile(
+    r"\{authSystemModels\.map\(\(model\) => \(.*?\)\)\}", re.DOTALL
+)
+
+
+def _ensure_app_tsx_help_wiring(frontend_src: Path) -> None:
+    """One-time, idempotent patch so an EXISTING host app's ``App.tsx``
+    (scaffolded before the framework added ``helpSystemModels``, see commit
+    ``0525e190`` "Add framework-wide contextual Help drawer") gets a real
+    route for ``HelpDocument``/``HelpAction`` -- without it, the "Help
+    Content" menu item (``help/menu.py``) navigates to ``/veloiq_help_document``,
+    which matches no route and renders a blank page in every such host app.
+
+    Follows the same idiom as ``_ensure_app_tsx_header_button_wiring``:
+    content-sniff before mutate, `.tsx.bak` backup, never raises -- warns and
+    leaves the file untouched if the known anchors can't be found.
+    """
+    import shutil
+
+    app_tsx = frontend_src / "App.tsx"
+    if not app_tsx.exists():
+        return
+    content = app_tsx.read_text()
+    original_content = content
+
+    if "helpSystemModels" in content:
+        return  # already wired (scaffolded post-0525e190, or already patched)
+
+    # Step A: add helpSystemModels to the "@juicemantics/veloiq-ui" import.
+    import_re = re.compile(r'(import\s*\{[^}]*\})(\s*from\s*"@juicemantics/veloiq-ui";)')
+    m = import_re.search(content)
+    if not m:
+        print("  ⚠️  Could not find the \"@juicemantics/veloiq-ui\" import in App.tsx — "
+              "skipping automatic Help Content route wiring. The \"Help Content\" menu "
+              "item will not work until helpSystemModels is wired in by hand — see "
+              "docs/module-authoring.md.")
+        return
+    import_block = m.group(1)
+    patched_import = import_block[:-1].rstrip().rstrip(",") + ", helpSystemModels }"
+    content = content[:m.start(1)] + patched_import + m.group(2) + content[m.end():]
+
+    # Step B: append ...helpSystemModels to `const allModels = [...]`.
+    all_models_re = re.compile(r"(const allModels = \[)([^\]]*)(\];)")
+    content = all_models_re.sub(
+        lambda mm: mm.group(1) + mm.group(2).rstrip() + ", ...helpSystemModels" + mm.group(3),
+        content, count=1,
+    )
+
+    # Step C: register the "help" resource group, right after the existing
+    # authSystemModels one in the `resources` array.
+    resources_anchor = re.search(r'\.\.\.generateResources\(authSystemModels,[^)]*\),', content)
+    if resources_anchor:
+        insertion = (
+            resources_anchor.group(0)
+            + '\n    ...generateResources(helpSystemModels, "help", { moduleLabel: "Help" }),'
+        )
+        content = content[:resources_anchor.start()] + insertion + content[resources_anchor.end():]
+    else:
+        print("  ⚠️  Could not find the authSystemModels resources entry in App.tsx — "
+              "helpSystemModels won't appear as a navigable resource group. "
+              "See docs/module-authoring.md.")
+
+    # Step D: insert a helpSystemModels route block, mirroring the
+    # authSystemModels one exactly (list/create/edit/show via Dynamic* against
+    # HelpDocument/HelpAction's real ModelDefs).
+    route_anchor = _APP_TSX_AUTH_SYSTEM_MODELS_ROUTE_RE.search(content)
+    if not route_anchor:
+        print("  ⚠️  Could not find the authSystemModels route block in App.tsx — "
+              "skipping automatic Help Content route wiring. The \"Help Content\" menu "
+              "item will not work until this route is wired in by hand — see "
+              "docs/module-authoring.md.")
+    else:
+        help_route_block = (
+            "\n{helpSystemModels.map((model) => (\n"
+            "    <Route key={model.name} path={`/${model.resource || model.name}`}>\n"
+            "        <Route index element={\n"
+            "            <MultiPaneLayout>\n"
+            "                <DynamicList key={model.resource || model.name} model={model} allModels={allModels} />\n"
+            "            </MultiPaneLayout>\n"
+            "        } />\n"
+            "        <Route path=\"create\" element={<DynamicCreate model={model} allModels={allModels} />} />\n"
+            "        <Route path=\"edit/:id\" element={<DynamicEdit model={model} allModels={allModels} />} />\n"
+            "        <Route path=\"show/:id\" element={\n"
+            "            <MultiPaneLayout>\n"
+            "                <DynamicShow model={model} allModels={allModels} />\n"
+            "            </MultiPaneLayout>\n"
+            "        } />\n"
+            "    </Route>\n"
+            "))}\n"
+        )
+        insert_at = route_anchor.end()
+        content = content[:insert_at] + help_route_block + content[insert_at:]
+
+    if content == original_content:
+        return
+
+    bak = app_tsx.with_suffix(".tsx.bak")
+    shutil.copy(app_tsx, bak)
+    app_tsx.write_text(content)
+    print("  🔌 App.tsx updated: wired helpSystemModels into allModels/resources/routes "
+          f"so \"Help Content\" resolves to a real page (original backed up → {bak.name})")
 
 
 # Anchors the generate-time App.tsx patch below into the exact literal fallback

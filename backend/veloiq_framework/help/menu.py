@@ -10,8 +10,23 @@ from veloiq_framework.extension import VeloIQExtension
 
 
 class _HelpMenuManifest(VeloIQExtension):
-    name = "veloiq-help-menu"
+    # Underscore, not hyphen: `routes` codegen builds a JS import identifier
+    # as f"{ext.name}_{component}" — a hyphen there produces invalid JS
+    # (confirmed via a live `veloiq generate` run once `routes` was added
+    # below; harmless before that, since `user_menu_items`-only extensions
+    # never feed `name` into an identifier).
+    name = "veloiq_help_menu"
     modules_package = "veloiq_framework.help"
+    frontend_components_dir = "help/frontend/components"
+
+    routes = [
+        {
+            "path": "/veloiq-generate-user-guide",
+            "component": "GenerateUserGuidePage",
+            "source": "GenerateUserGuidePage.tsx",
+            "export": "default",
+        },
+    ]
 
     user_menu_items = [
         {
@@ -20,6 +35,14 @@ class _HelpMenuManifest(VeloIQExtension):
             "route": "/veloiq_help_document",
             "group": "Help Content",
             "icon": "QuestionCircleOutlined",
+        },
+        {
+            "key": "veloiq-generate-user-guide",
+            "label": "Generate User Guide",
+            "route": "/veloiq-generate-user-guide",
+            "group": "Help Content",
+            "icon": "FilePdfOutlined",
+            "roles": ["Admin"],
         },
     ]
 

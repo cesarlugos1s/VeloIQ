@@ -37,6 +37,8 @@ export interface LayoutWrapperProps {
         label: React.ReactNode;
         icon?: React.ReactNode;
         onClick?: () => void;
+        module?: string;
+        roles?: string[];
     }>;
     /** Navigation config loaded from navigation.config.json — drives icons and sort order. */
     navConfig?: NavConfig;
@@ -177,6 +179,31 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         [isModuleLicensed],
     );
 
+    // ── Role-aware filtering of extension user-menu items ──────────────────
+    // Same shape as filterMenuItemsByLicense above, but against the current
+    // user's roles (from useGetIdentity) instead of the license pool. Items
+    // without a ``roles`` field are kept unconditionally — backwards
+    // compatible with every existing extension menu item.
+    const userRoles: string[] = (identity as any)?.roles ?? [];
+    const filterMenuItemsByRole = React.useCallback(
+        (items: any[]): any[] => {
+            if (!Array.isArray(items)) return [];
+            return items
+                .filter((item) => {
+                    if (typeof item !== "object" || item === null) return true;
+                    if (!item.roles) return true;
+                    return item.roles.some((r: string) => userRoles.includes(r));
+                })
+                .map((item) => {
+                    if (Array.isArray(item.children)) {
+                        return { ...item, children: filterMenuItemsByRole(item.children) };
+                    }
+                    return item;
+                });
+        },
+        [userRoles],
+    );
+
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
@@ -216,7 +243,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
 
     const userItems = [
         { key: "change-password", label: "Change Password", icon: <LockOutlined />, onClick: () => setPwdModalOpen(true) },
-        ...filterMenuItemsByLicense(extraUserMenuItems),
+        ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
         { type: "divider" as const },
         { key: "logout", label: "Logout", icon: <LogoutOutlined />, danger: true, onClick: () => logout() },
     ];

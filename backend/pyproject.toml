@@ -64,6 +64,11 @@ dependencies = [
     # statsmodels stays analytics-only -- its one call site already guards
     # the import in a try/except (seasonal_decompose = None on failure).
     "pandas>=2.0",
+    # help/user_guide.py renders curated Help content into a PDF. Both are
+    # pure-Python (no Pango/Cairo/etc. system libs, unlike weasyprint), so
+    # they install cleanly in any host app's venv.
+    "markdown>=3.5",
+    "xhtml2pdf>=0.2.15",
 ]
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
@@ -118,6 +123,7 @@ include = ["veloiq_framework*"]
     "studio/static/index.html",
     "studio/static/assets/*",
     "static_assets/*",
+    "help/frontend/components/*.tsx",
 ]
 
 # ── Ruff (linting) ────────────────────────────────────────────────────────────
