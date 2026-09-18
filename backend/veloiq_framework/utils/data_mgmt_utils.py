@@ -2763,6 +2763,71 @@ def jm_obtain_entity_by_eid(self, calling_class_entity, entity_eid, of_entity_ty
     return None
 
 
+_JM_ENTITY_ID_LOCK_KEY = 845692137451
+
+
+def jm_ensure_entity_id(session, obj) -> None:
+    """
+    Pre-assign a CubicWeb-style entity ID from ``entities_id_seq`` for a
+    brand-new legacy-schema (``StandardEidModel``) entity, before it is
+    added to the session.
+
+    Legacy (``cw_*``/``jm_*``) tables migrated from CubicWeb have no
+    Postgres sequence or default on their primary-key column
+    (``cw_eid``/``jm_eid`` etc.) — CubicWeb itself allocated IDs from one
+    single global counter (the ``entities`` bookkeeping table), not
+    per-table SERIAL/IDENTITY columns. Most host-app usage of these tables
+    is update-only on already-migrated data, so this gap goes unnoticed
+    until some module needs to INSERT a genuinely new row (e.g. a
+    ``Knowledge`` entity written by a predictive-model training pipeline) —
+    that insert then fails with a NOT NULL violation on the PK column
+    unless this is called first.
+
+    Call this once per new entity, before ``session.add(obj)``. Safe to
+    call inside a ``before_flush`` event handler because it executes raw
+    SQL directly on the connection rather than calling ``session.flush()``.
+
+    :param session: The active SQLModel/SQLAlchemy session.
+    :param obj: The newly-constructed entity instance. Its primary-key
+        attribute is set in place; if it already has a value, this is a
+        no-op (never overwrites an explicitly-assigned id).
+    """
+    from veloiq_framework.models import get_pk_field_name
+
+    pk_name = get_pk_field_name(type(obj))
+    if getattr(obj, pk_name, None):
+        return
+
+    session.exec(
+        text("SELECT pg_advisory_xact_lock(:lock_key)").bindparams(lock_key=_JM_ENTITY_ID_LOCK_KEY)
+    )
+
+    session.exec(text(
+        "UPDATE entities_id_seq SET last = last + 1 "
+        "WHERE last = (SELECT MAX(last) FROM entities_id_seq)"
+    ))
+
+    last_row = session.exec(text(
+        "SELECT last FROM entities_id_seq "
+        "WHERE last = (SELECT MAX(last) FROM entities_id_seq)"
+    )).first()
+
+    if last_row:
+        new_id = last_row[0]
+    else:
+        session.exec(text("INSERT INTO entities_id_seq (last) VALUES (1)"))
+        new_id = 1
+
+    session.exec(
+        text("INSERT INTO entities (eid, type) VALUES (:eid, :type)").bindparams(
+            eid=new_id, type=obj.__class__.__name__
+        )
+    )
+    setattr(obj, pk_name, new_id)
+    if hasattr(obj, "cwuri") and not getattr(obj, "cwuri", None):
+        obj.cwuri = f"eid://{new_id}"
+
+
 def jm_summarize_df(df, group_cols=None, sum_cols=None, mean_cols=None, exclude_cols=None):
     """
     Summarizes a DataFrame by grouping and aggregating specific columns.
