@@ -63,6 +63,14 @@ export const useViewConfigurations = (modelName: string | undefined, viewType: s
 
 export type GeneralActionsButtonPosition = "top-right" | "left" | "right";
 
+/** Layout modes for the right-side detail panes (`panes_layout_mode`). */
+export type PanesLayoutMode = "stack" | "breadcrumb" | "overlay" | "scroll";
+
+/** Defaults for the pane settings, used when `[views]` leaves them unset or invalid. */
+export const DEFAULT_PANES_LAYOUT_MODE: PanesLayoutMode = "stack";
+export const DEFAULT_PANES_MAX_VISIBLE = 2;
+export const DEFAULT_PANES_FIXED_WIDTH = 480;
+
 export type ViewSettings = {
     showViewType: string;
     editViewType: string;
@@ -76,12 +84,31 @@ export type ViewSettings = {
     modelsColorSchema: string;
     generalActionsButtonPosition: GeneralActionsButtonPosition;
     addTabsForNonConfiguredRelations: boolean;
+    /** Layout mode of the right-side detail panes. */
+    panesLayoutMode: PanesLayoutMode;
+    /** "stack" mode: cap of fully visible panes; older ones collapse to spines. */
+    panesMaxVisible: number;
+    /** Minimum page width in px ("breadcrumb", "overlay", "scroll" and the "stack" fallback threshold). */
+    panesFixedWidth: number;
 };
 
 const normalizeActionsPosition = (raw: unknown): GeneralActionsButtonPosition => {
     const v = String(raw || "").trim().toLowerCase();
     if (v === "left" || v === "right") return v;
     return "top-right";
+};
+
+/** Coerces the raw `panes_layout_mode` value to a known mode, else the default. */
+export const normalizePanesLayoutMode = (raw: unknown): PanesLayoutMode => {
+    const v = String(raw || "").trim().toLowerCase();
+    if (v === "stack" || v === "breadcrumb" || v === "overlay" || v === "scroll") return v;
+    return DEFAULT_PANES_LAYOUT_MODE;
+};
+
+/** Coerces a raw setting to a positive integer, else the given fallback. */
+export const normalizePositiveInt = (raw: unknown, fallback: number): number => {
+    const n = Math.floor(Number(raw));
+    return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
 export const useViewSettings = (): { settings: ViewSettings | null; loading: boolean } => {
@@ -117,6 +144,9 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                     modelsColorSchema,
                     generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),
                     addTabsForNonConfiguredRelations: data?.addTabsForNonConfiguredRelations !== false,
+                    panesLayoutMode: normalizePanesLayoutMode(data?.panesLayoutMode),
+                    panesMaxVisible: normalizePositiveInt(data?.panesMaxVisible, DEFAULT_PANES_MAX_VISIBLE),
+                    panesFixedWidth: normalizePositiveInt(data?.panesFixedWidth, DEFAULT_PANES_FIXED_WIDTH),
                 });
             } catch {
                 if (!cancelled) setSettings(null);

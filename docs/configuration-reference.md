@@ -161,29 +161,57 @@ relations_max_rows_to_load = 1000
 | `max_distinct_column_filter_values_to_ranges` | `20` | Above this many distinct numeric values, a column filter offers ranges instead of individual values. |
 | `general_actions_button_position` | `"top-right"` | Where general action buttons sit on list / show / edit pages: `"top-right"`, `"left"`, `"right"`. |
 | `add_tabs_for_non_configured_relations` | `true` | When `true`, forward relations not configured in `views_preferences.json` each get their own tab in show / edit forms. |
+| `panes_layout_mode` | `"stack"` | Layout of the right-side panels opened by following a link: `"stack"`, `"breadcrumb"`, `"overlay"` or `"scroll"` (see [Side panel layouts](#side-panel-layouts)). |
+| `panes_max_visible` | `2` | `"stack"` layout: how many panels stay fully visible (the main page counts as one); older ones collapse into narrow spines. |
+| `panes_fixed_width` | `480` | Minimum width (px) of each page in the `"breadcrumb"`, `"overlay"` and `"scroll"` layouts; pages use any extra room. It is also the width the `"stack"` layout needs before it falls back to `"breadcrumb"`. |
 
 The scaffolded `veloiq.toml` ships these keys as commented examples with the
 same guidance, so you can uncomment and edit the ones you want to change. Apps
 that enable an extension (e.g. `iqvigilant`) get the same settings on the
 extension's pages automatically — they render through the host's `DynamicResource`.
 
+### Side panel layouts
+
+Following a link inside a list or show page opens the target record in a
+right-side panel, so the user keeps their context. `panes_layout_mode` chooses
+how those panels are arranged:
+
+| Mode | Behaviour |
+|---|---|
+| `stack` (default) | Resizable split. Only the last `panes_max_visible` panels stay fully visible; older ones collapse into 40px spines that show the record label rotated. Clicking a spine restores that panel and closes the ones after it. Hovering a visible panel expands it. |
+| `breadcrumb` | One side panel at a time next to the main page. The two share the width equally (each at least `panes_fixed_width`, shrinking together only if the window cannot fit both). Following a link replaces the panel's content and adds the previous record to a trail in the panel toolbar (e.g. *Project A › Task 12 › User Ana*); click a crumb to go back to it. |
+| `overlay` | The main page and every panel are the same width, as wide as the window allows (never below `panes_fixed_width`), cascaded over each other about 24px apart so the edge of the earlier one stays visible. Click an edge strip to bring that page to the front; nothing is closed. |
+| `scroll` | The main page and every panel share the width equally, never narrower than `panes_fixed_width`; beyond that the row scrolls horizontally and snaps to the newest panel. |
+
+The `stack` layout falls back to `breadcrumb` when the viewport cannot fit one
+`panes_fixed_width` panel after the spines are subtracted. In every mode the
+panel buttons stay: open in full page, minimize, maximize and close. Maximize
+and minimize hold until they are toggled off or the visible panel changes.
+
 ### System Configuration console
 
-When the IQVigilant extension is installed, a **System Configuration** page is
-available in the user dropdown menu under **Configurations → General Configuration**.
-This page provides an interactive UI for editing application-wide settings without
-manually editing configuration files:
+A **System Configuration** page is available in the user dropdown menu under
+**Configurations → General Configuration** (route `/system-config`). It provides
+an interactive UI for editing application-wide settings without manually editing
+configuration files:
 
 - **Logging** — `log_up_to_relevance` (controls log verbosity)
 - **Appearance** — `modules_color_schema`, `models_color_schema`, `plain_color_base_hex`
   (includes a color swatch preview and preset palette)
-- **Views & Layout** — all `[views]` table keys listed above, grouped into
-  *View types*, *Gallery images*, *Table limits*, and *Actions & tabs*
+- **Views & Layout** — `show_back_of_cards` and all `[views]` table keys listed
+  above, grouped into *View types*, *Gallery images*, *Table limits*, *Actions &
+  tabs* and *Side panels*
 
-The page reads from both `jm_config.ini` ([logging], [views]) and
-`veloiq.toml` ([views]). When you save, each file is updated atomically and
+The page reads from both `jm_config.ini` (`[logging]`, `[views]`) and
+`veloiq.toml` (`[views]`). When you save, each file is updated atomically and
 for `veloiq.toml` keys not yet present, descriptive comments are inserted
-automatically.
+automatically. The page and its `GET`/`PUT /api/system-config` endpoints are part
+of the framework; run `veloiq generate` to add the page and menu entry to an
+existing app.
+
+Extensions and app modules can add their own settings to the page by defining
+`register_system_config()` in a module `factory.py` and calling
+`veloiq_framework.system_config.register_system_config(entries)`.
 
 > **Permission required:** Access to the System Configuration page requires the
 > `CONFIGURE_LAYOUT` permission in the user's role. The built-in `Admin` and

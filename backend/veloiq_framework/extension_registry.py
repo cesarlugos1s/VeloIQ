@@ -136,6 +136,13 @@ _VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
     "max_distinct_column_filter_values_to_ranges": ("maxDistinctColumnFilterValuesToRanges", int),
     "general_actions_button_position": ("generalActionsButtonPosition", str),
     "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
+    # Right-side detail panes: layout mode ("stack" | "breadcrumb" | "overlay" |
+    # "scroll"), the cap of fully visible panes in "stack" mode, and the minimum
+    # page width in px (used by "breadcrumb", "overlay", "scroll" and the "stack"
+    # fallback).
+    "panes_layout_mode": ("panesLayoutMode", str),
+    "panes_max_visible": ("panesMaxVisible", int),
+    "panes_fixed_width": ("panesFixedWidth", int),
 }
 
 

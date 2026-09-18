@@ -372,6 +372,33 @@
   .drawer-field{display:flex; justify-content:space-between; gap:10px; font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-soft); margin-bottom:6px;}
   .drawer-field b{color:var(--ink); font-weight:600;}
 
+  /* pane spines (stack mode) */
+  .mockup-spines{display:flex; min-height:130px;}
+  .spine{width:22px; flex:none; border-right:1px solid var(--line-soft); background:var(--code-bg); display:flex; justify-content:center; padding-top:8px;}
+  .spine span{writing-mode:vertical-rl; transform:rotate(180deg); font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600; color:var(--ink-soft); white-space:nowrap;}
+  .spine.first{background:var(--line-soft);}
+
+  /* breadcrumb trail + single panel */
+  .mockup-trail{display:flex; min-height:130px;}
+  .trail-list{flex:1; min-width:0; padding:8px; border-right:1px solid var(--line-soft);}
+  .trail-panel{flex:1; min-width:0; padding:8px; background:var(--code-bg);}
+  .trail-bar{display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--line-soft); font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-soft);}
+  .trail-bar .sep{color:var(--line);}
+  .trail-bar .cur{color:var(--accent-ink); font-weight:600;}
+
+  /* cascaded overlay cards */
+  .mockup-cascade{position:relative; height:140px; overflow:hidden; background:var(--code-bg);}
+  .cascade-card{position:absolute; top:0; bottom:0; width:74%; background:var(--paper-raised); border-left:1px solid var(--line); box-shadow:-6px 0 14px -10px rgba(18,25,28,.35); padding:10px 12px 10px 24px;}
+  .cascade-card.c1{left:0;} .cascade-card.c2{left:18px;} .cascade-card.c3{left:36px;}
+  .cascade-card .strip{position:absolute; left:0; top:0; bottom:0; width:18px; display:flex; justify-content:center; padding-top:8px; background:var(--code-bg); border-right:1px solid var(--line-soft);}
+  .cascade-card .strip span{writing-mode:vertical-rl; transform:rotate(180deg); font-family:'IBM Plex Mono', monospace; font-size:9.5px; font-weight:600; color:var(--ink-soft); white-space:nowrap;}
+
+  /* horizontally scrolling pane row */
+  .mockup-scrollrow{position:relative; display:flex; min-height:130px; overflow:hidden;}
+  .scroll-col{flex:0 0 40%; min-width:0; padding:8px; border-right:1px solid var(--line-soft);}
+  .scroll-col.detail{background:var(--code-bg);}
+  .scroll-thumb{position:absolute; left:26%; bottom:4px; width:52%; height:5px; border-radius:3px; background:var(--line);}
+
   /* modal */
   .mockup-modal-scene{position:relative; min-height:150px; background:var(--code-bg); display:flex; align-items:center; justify-content:center; padding:20px;}
   .mockup-modal-scene::before{content:""; position:absolute; inset:0; background:color-mix(in srgb, var(--ink) 30%, transparent);}
@@ -654,7 +681,7 @@
         </div>
         <span class="badge custom">custom, react-resizable-panels</span>
       </div>
-      <p class="purpose">A resizable list-panel plus stacked detail panes, each level pushing a new column to the right and keeping every ancestor level visible and scrollable — the pattern the request called "miller columns." State is held in URL search params so a drill-down path is shareable.</p>
+      <p class="purpose">A resizable list-panel plus stacked detail panes, each level pushing a new column to the right and keeping the ancestor levels visible and scrollable — the pattern the request called "miller columns." A cap (<code>panes_max_visible</code>, default 2) keeps only the last few panels fully open, so the active panel never shrinks below usable width; older ones fold into spines. This is the default of four selectable layouts (<code>panes_layout_mode</code>). State is held in URL search params so a drill-down path is shareable.</p>
 
       <div class="mockup">
         <div class="mockup-label">Mockup — three cascading panes</div>
@@ -679,7 +706,158 @@
 
       <div class="meta-row">
         <span class="badge repo">VeloIQ Framework</span>
-        <span class="evidence">packages/ui/src/components/MultiPane/index.tsx, paneUtils.ts</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/index.tsx, SplitPaneLayout.tsx, paneUtils.ts</span>
+        <span class="source-tag convention">Named convention</span>
+        <a class="ref-link" href="https://en.wikipedia.org/wiki/Miller_columns" target="_blank" rel="noopener">Wikipedia — Miller columns</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Collapsed pane spines
+          <span class="std">Standard pattern: Accordion (collapsed sections, laid out horizontally)</span>
+        </div>
+        <span class="badge custom">custom, react-resizable-panels</span>
+      </div>
+      <p class="purpose">When more panels are open than the cap allows, the older ones fold into narrow 40px strips showing the record label rotated, instead of squeezing the active panel. Clicking a strip restores that panel and closes the ones after it; the folded panels stay mounted, so their scroll position and unsaved edits survive. Part of the stack layout.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — two spines, two open panels</div>
+        <div class="mockup-spines">
+          <div class="spine first"><span>Patient</span></div>
+          <div class="spine"><span>Norma Aguilar Castillo</span></div>
+          <div class="miller-pane">
+            <div class="miller-detail-title">Consulta 2026-08-16</div>
+            <div class="miller-detail-row">Status: <b>finalizado</b></div>
+            <div class="miller-detail-row">Type: consulta</div>
+          </div>
+          <div class="miller-pane detail">
+            <div class="miller-detail-title">Dra. Alejandra Ruiz</div>
+            <div class="miller-detail-row">Specialty: <b>Córnea</b></div>
+            <div class="miller-detail-row">Phone: 55-4859-4611</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/SplitPaneLayout.tsx, PaneParts.tsx (PaneSpine)</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/accordion/" target="_blank" rel="noopener">W3C ARIA APG — Accordion Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Breadcrumb trail with a single side panel
+          <span class="std">Standard pattern: Breadcrumb</span>
+        </div>
+        <span class="badge lib">antd Breadcrumb</span>
+      </div>
+      <p class="purpose">Shows one side panel next to the main page. Following a link replaces the panel's content and adds the previous record to a trail in the panel toolbar, so the path is remembered without stacking columns; clicking a crumb jumps back to it and the home icon returns to the list. The page and the panel share the width equally, each at least <code>panes_fixed_width</code>. Selected with <code>panes_layout_mode = "breadcrumb"</code>; the stack layout also falls back to it on windows too narrow for a full panel.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — list page and one panel with its trail</div>
+        <div class="mockup-trail">
+          <div class="trail-list">
+            <div class="miller-item">Norma Aguilar Castillo</div>
+            <div class="miller-item sel">Octavio Chávez Jiménez</div>
+            <div class="miller-item">Verónica Gómez Jiménez</div>
+          </div>
+          <div class="trail-panel">
+            <div class="trail-bar"><span>⌂</span><span class="sep">/</span><span>Project A</span><span class="sep">/</span><span>Task 12</span><span class="sep">/</span><span class="cur">User Ana</span></div>
+            <div class="miller-detail-title">User Ana</div>
+            <div class="miller-detail-row">Role: <b>lead</b></div>
+            <div class="miller-detail-row">Email: ana@example.com</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/FlexPaneLayout.tsx (breadcrumb mode)</span>
+        <span class="source-tag spec">Spec</span>
+        <a class="ref-link" href="https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/" target="_blank" rel="noopener">W3C ARIA APG — Breadcrumb Pattern</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Cascaded overlay cards
+          <span class="std">Standard pattern: Side sheet (stacked)</span>
+        </div>
+        <span class="badge custom">custom, CSS stacking</span>
+      </div>
+      <p class="purpose">The main page and every opened record are cards of the same width, as wide as the window allows and never below <code>panes_fixed_width</code>, laid over each other about 24px apart so the edge of each earlier card stays visible as a labeled strip. Clicking a strip brings that card to the front without closing the others; strips of older cards sit on its left and those of newer cards on its right. Selected with <code>panes_layout_mode = "overlay"</code>. Stacking several sheets is a VeloIQ extension of the side-sheet pattern, which the reference describes for a single sheet.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — three cards, the newest in front</div>
+        <div class="mockup-cascade">
+          <div class="cascade-card c1">
+            <div class="strip"><span>Patients</span></div>
+            <div class="backdrop-row"></div>
+            <div class="backdrop-row" style="margin-top:8px"></div>
+          </div>
+          <div class="cascade-card c2">
+            <div class="strip"><span>Consulta 2026-08-16</span></div>
+            <div class="backdrop-row"></div>
+            <div class="backdrop-row" style="margin-top:8px"></div>
+          </div>
+          <div class="cascade-card c3">
+            <div class="strip"><span>Dra. Alejandra Ruiz</span></div>
+            <div class="drawer-title">Dra. Alejandra Ruiz</div>
+            <div class="drawer-field"><span>Specialty</span><b>Córnea</b></div>
+            <div class="drawer-field"><span>Phone</span><b>55-4859-4611</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/FlexPaneLayout.tsx (overlay mode)</span>
+        <span class="source-tag system">Design system</span>
+        <a class="ref-link" href="https://m3.material.io/components/side-sheets/overview" target="_blank" rel="noopener">Material Design 3 — Side sheets</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Horizontally scrolling pane row
+          <span class="std">Standard pattern: Miller columns (horizontally scrolling)</span>
+        </div>
+        <span class="badge custom">custom, CSS scroll snap</span>
+      </div>
+      <p class="purpose">The main page and every opened record sit side by side in one row. The pages share the window equally, never narrower than <code>panes_fixed_width</code>; once they no longer fit, the row scrolls horizontally and snaps to the newest page, so nothing shrinks below a readable width. Selected with <code>panes_layout_mode = "scroll"</code>.</p>
+
+      <div class="mockup">
+        <div class="mockup-label">Mockup — four pages in a scrolling row</div>
+        <div class="mockup-scrollrow">
+          <div class="scroll-col">
+            <div class="miller-item">Cardiology</div>
+            <div class="miller-item sel">Radiology</div>
+            <div class="miller-item">Oncology</div>
+          </div>
+          <div class="scroll-col">
+            <div class="miller-item">MRI Suite A</div>
+            <div class="miller-item sel">MRI Suite B</div>
+            <div class="miller-item">CT Suite</div>
+          </div>
+          <div class="scroll-col detail">
+            <div class="miller-detail-title">MRI Suite B</div>
+            <div class="miller-detail-row">Status: <b>In service</b></div>
+            <div class="miller-detail-row">Next slot: 14:30</div>
+          </div>
+          <div class="scroll-col">
+            <div class="miller-detail-title">Technician</div>
+            <div class="miller-detail-row">On duty: <b>Ana</b></div>
+          </div>
+          <div class="scroll-thumb"></div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="badge repo">VeloIQ Framework</span>
+        <span class="evidence">packages/ui/src/components/MultiPane/FlexPaneLayout.tsx (scroll mode)</span>
         <span class="source-tag convention">Named convention</span>
         <a class="ref-link" href="https://en.wikipedia.org/wiki/Miller_columns" target="_blank" rel="noopener">Wikipedia — Miller columns</a>
       </div>

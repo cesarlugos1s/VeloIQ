@@ -69,3 +69,21 @@ plain_color_base_hex = "#1e708a"
 # separate from the Details tab. Set false to suppress those auto-tabs
 # (default: true).
 #add_tabs_for_non_configured_relations = true
+
+# Layout of the right-side panels that open when following a link:
+#   "stack"      (default) a resizable split where only the last
+#                panes_max_visible panels stay fully visible; older ones
+#                collapse into narrow spines. Click a spine to restore it.
+#   "breadcrumb" one panel at a time, with a trail of the previous records.
+#   "overlay"    fixed-width drawers over the page.
+#   "scroll"     fixed-width panels in a horizontally scrolling row.
+#panes_layout_mode = "stack"
+
+# Stack layout: maximum number of panels shown in full; the main page counts as
+# one (default: 2).
+#panes_max_visible = 2
+
+# Minimum width in px of each page in the breadcrumb, overlay and scroll
+# layouts; pages use any extra room. The stack layout falls back to breadcrumb
+# when the active panel cannot get this width (default: 480).
+#panes_fixed_width = 480

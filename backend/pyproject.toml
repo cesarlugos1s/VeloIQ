@@ -124,6 +124,7 @@ include = ["veloiq_framework*"]
     "studio/static/assets/*",
     "static_assets/*",
     "help/frontend/components/*.tsx",
+    "system_config/frontend/components/*.tsx",
 ]
 
 # ── Ruff (linting) ────────────────────────────────────────────────────────────

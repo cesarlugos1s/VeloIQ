@@ -112,6 +112,10 @@ def create_veloiq_app(
             locales_dir=str(cfg.i18n_locales_dir.resolve()),
             default_locale=cfg.i18n_default_locale,
         )
+        # VeloIQ's own System Configuration entries register first, so they lead
+        # the console; module/extension factories then add theirs.
+        from veloiq_framework.system_config.baseline import register_baseline_system_config
+        register_baseline_system_config()
         load_factory_events(cfg.modules_dir)
         yield
 
@@ -555,6 +559,10 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     # All data API endpoints live under /api so the frontend's API_URL="/api"
     # works in production without any Vite proxy path-rewriting.
     core_api = _APIRouter()
+
+    # System Configuration Console endpoints (GET/PUT /api/system-config).
+    from veloiq_framework.system_config.router import router as _system_config_router
+    core_api.include_router(_system_config_router)
 
     # --- UI configuration stubs ---
     # The frontend reads these endpoints on every page load.  When not configured
