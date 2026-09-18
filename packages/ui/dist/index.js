@@ -24599,7 +24599,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const canConfigureLayout = canLayoutData?.can !== false;
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = React6.useState(null);
-  const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "fit");
+  const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
   const gridDensityMarks = React6.useMemo(() => buildGridDensityMarks(_55), []);
   const gridDensityLabelText = buildGridDensityLabelText(_55);
   const handleOpenDrawer = React6.useCallback((tabId, cell) => {

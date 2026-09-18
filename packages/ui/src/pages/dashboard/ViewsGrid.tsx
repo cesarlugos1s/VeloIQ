@@ -631,7 +631,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
 
     const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
     const [drawerSelection, setDrawerSelection] = useState<CellSelection | null>(null);
-    const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "fit");
+    const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
 
     // Order must track GRID_DENSITY_STEPS. Labels are wrapped in a smaller
     // font than the antd Slider's default mark size — seven marks on one

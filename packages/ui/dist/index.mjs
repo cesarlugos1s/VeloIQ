@@ -24572,7 +24572,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const canConfigureLayout = canLayoutData?.can !== false;
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = useState(null);
-  const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "fit");
+  const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
   const gridDensityMarks = useMemo(() => buildGridDensityMarks(_55), []);
   const gridDensityLabelText = buildGridDensityLabelText(_55);
   const handleOpenDrawer = useCallback((tabId, cell) => {
