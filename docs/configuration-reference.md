@@ -195,7 +195,9 @@ A **System Configuration** page is available in the user dropdown menu under
 an interactive UI for editing application-wide settings without manually editing
 configuration files:
 
-- **Logging** — `log_up_to_relevance` (controls log verbosity)
+- **Logging** — console and log-file verbosity, and the log file's location and
+  rotation (see [Logging](#logging) below), grouped into *Verbosity*, *Log file*
+  and *File rotation*
 - **Appearance** — `modules_color_schema`, `models_color_schema`, `plain_color_base_hex`
   (includes a color swatch preview and preset palette)
 - **Views & Layout** — `show_back_of_cards` and all `[views]` table keys listed
@@ -216,6 +218,58 @@ Extensions and app modules can add their own settings to the page by defining
 > **Permission required:** Access to the System Configuration page requires the
 > `CONFIGURE_LAYOUT` permission in the user's role. The built-in `Admin` and
 > `Manager` roles include this by default.
+
+### Logging
+
+Framework and extension code logs through `jm_log(relevance, *message)`. Each
+call has a **relevance** level (lower is more important; by convention 1 = errors,
+2 = warnings, 3 = info, 4 = debug, 5 = trace). A message is emitted only when its
+level is at or below the configured threshold.
+
+`jm_log` always prints to the console. By default it also appends the same message,
+without colour codes, to a rotating log file. All settings live in the `[logging]`
+section of `jm_config.ini` and are editable on the System Configuration page; changes
+apply immediately, without a restart.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `log_up_to_relevance` | `2` | Console threshold. |
+| `log_to_file` | `true` | Also write log lines to a file. |
+| `file_log_up_to_relevance` | console level | File threshold, independent of the console (e.g. console `2`, file `4`). |
+| `log_dir` | `logs` | Directory for the log file (see below). |
+| `log_file_name` | `veloiq.log` | File name inside `log_dir`; any directory part is ignored. |
+| `log_max_bytes` | `10485760` | Rotate the file at this size (10 MB). `0` disables rotation. |
+| `log_backup_count` | `5` | Rotated files kept (`veloiq.log.1`, `.2`, …) before the oldest is deleted. |
+
+**Location.** `<app working directory>/logs/veloiq.log` — the directory uvicorn is
+started from, normally the app's `backend/`. A relative `log_dir` must stay inside the
+application directory (`../elsewhere` is rejected). An absolute path is accepted only
+when set by an operator through the `VELOIQ_LOG_DIR` environment variable, which also
+overrides `log_dir` from the ini file. If the file cannot be opened, one warning is
+printed to stderr and logging continues on the console only. Add `logs/` to the host
+app's `.gitignore`.
+
+**Line format.** The first column is the id of the authenticated user whose request
+produced the line, or `0` when there is none (startup, unauthenticated paths, threads
+started outside a request), so lines from concurrent users can be told apart.
+
+```text
+# console
+7 | 85.20 | 0.00 | message
+# file
+7 | 2026-09-19 10:40:19,036 | rel=2 | 85.20 | 0.00 | message
+```
+
+The remaining columns are the process CPU time in seconds, the CPU time since the
+previous logged line, and the message. Both are CPU time, not wall-clock time, so
+waiting on the database or an LLM does not show up in them; compare the file's
+timestamps for that. Multi-line messages (SQL, dumps) carry the prefix on their first
+line only.
+
+The user id comes from a context variable set by `auth_middleware` for the duration
+of a request (`veloiq_framework.utils.log_context`: `set_log_user`, `reset_log_user`,
+`get_log_user`). Code that starts its own thread or background task should copy the
+context (for example `contextvars.copy_context().run(...)`) to keep the id.
 
 ### CORS
 
@@ -433,6 +487,8 @@ AUTH_ALGORITHM=HS256
 AUTH_TOKEN_EXPIRE_MINUTES=60
 ECHO_SQL=false
 VELOIQ_EXTENSIONS=iqvigilant   # comma-separated; overrides veloiq.toml (usually unset)
+VELOIQ_LOG_DIR=/var/log/myapp  # log file directory; the only way to use an absolute path
+VELOIQ_NLP_LOG_LEVEL=2         # overrides [logging] log_up_to_relevance
 
 # i18n
 VELOIQ_I18N_LOCALES_DIR=../config/internationalization/locales

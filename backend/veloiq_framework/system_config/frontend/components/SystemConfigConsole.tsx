@@ -417,14 +417,44 @@ const SystemConfigConsole: React.FC = () => {
         },
     ];
 
-    const renderViewsCardGroups = (cardItems: ConfigItem[]) => {
+    /** Groups for the Logging card, rendered one field per row (single column). */
+    const LOGGING_FIELD_GROUPS: { label: string; keys: string[] }[] = [
+        {
+            label: "Verbosity",
+            keys: ["log_up_to_relevance", "file_log_up_to_relevance"],
+        },
+        {
+            label: "Log file",
+            keys: ["log_to_file", "log_dir", "log_file_name"],
+        },
+        {
+            label: "File rotation",
+            keys: ["log_max_bytes", "log_backup_count"],
+        },
+    ];
+
+    const renderCardGroups = (
+        cardItems: ConfigItem[],
+        groups: { label: string; keys: string[] }[],
+        showUngrouped = false,
+        singleColumn = false
+    ) => {
         // Build a quick lookup: key → item
         const byKey: Record<string, ConfigItem> = {};
         for (const it of cardItems) {
             byKey[it.key] = it;
         }
 
-        return VIEWS_FIELD_GROUPS.map((group) => {
+        // Items registered by extensions that no group lists still render, in a trailing group.
+        const grouped = new Set(groups.flatMap((g) => g.keys));
+        const ungrouped = showUngrouped
+            ? cardItems.filter((it) => !grouped.has(it.key))
+            : [];
+        const allGroups = ungrouped.length
+            ? [...groups, { label: "Other", keys: ungrouped.map((it) => it.key) }]
+            : groups;
+
+        return allGroups.map((group) => {
             const groupItems = group.keys
                 .map((k) => byKey[k])
                 .filter(Boolean);
@@ -455,7 +485,7 @@ const SystemConfigConsole: React.FC = () => {
                                 <Col
                                     key={item.key}
                                     span={
-                                        item.type === "bool" ? 24 : 12
+                                        singleColumn || item.type === "bool" ? 24 : 12
                                     }
                                 >
                                     {renderConfigItem(item)}
@@ -562,10 +592,11 @@ const SystemConfigConsole: React.FC = () => {
                                     label to visually indicate grouping. */}
                                 <Row gutter={[12, 4]} style={{ marginTop: 8 }}>
                                     {card === "views"
-                                        ? renderViewsCardGroups(cardItems)
+                                        ? renderCardGroups(cardItems, VIEWS_FIELD_GROUPS)
+                                        : card === "logging"
+                                        ? renderCardGroups(cardItems, LOGGING_FIELD_GROUPS, true, true)
                                         : cardItems.map((item) => {
                                             // Appearance card: stack dropdowns vertically
-                                            // Logging card: single field, full width
                                             const span =
                                                 card === "appearance"
                                                     ? 24

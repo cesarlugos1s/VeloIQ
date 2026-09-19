@@ -10,6 +10,9 @@ and entity-mutation functions are stubbed (never reached on the SQL branch).
 import smtplib, ssl
 import html
 import re, time, os, sys, string, json, ast, copy, math
+import logging as _logging
+import threading as _threading
+from logging.handlers import RotatingFileHandler as _RotatingFileHandler
 from datetime import datetime, date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -37,6 +40,7 @@ except Exception:  # colorama optional
     def init(*a, **k): pass
 
 from veloiq_framework.utils.i18n_utils import _
+from veloiq_framework.utils.log_context import get_log_user as _get_log_user
 
 
 # JuiceMantics base-model class; SQLModel is the closest VeloIQ analog. Used only
@@ -1024,10 +1028,105 @@ COLOR_MAP = {
 
 last_logged_process_time = round(time.process_time(),2)
 
+# ── File sink for jm_log ────────────────────────────────────────────────────
+# jm_log always prints to the console; when [logging] log_to_file is enabled it
+# also appends the same (uncoloured) line to a rotating file. The handler is
+# built lazily and rebuilt whenever the file-related settings change, so edits
+# made on the System Configuration page apply without a restart.
+_jm_file_logger = _logging.getLogger("veloiq.jm")
+_jm_file_logger.setLevel(_logging.INFO)
+_jm_file_logger.propagate = False   # don't double-emit through uvicorn's handlers
+_jm_file_handler = None
+_jm_file_handler_key = None
+_jm_file_handler_lock = _threading.Lock()
+
+
+def _jm_log_file_settings(jm_config):
+    """Read the [logging] file-sink settings, applying defaults.
+
+    Returns ``(enabled, file_relevance, settings_key)``. ``settings_key`` is the
+    tuple the handler is built from; a change in it triggers a rebuild.
+    """
+    def _int(option, default):
+        try:
+            return int(jm_config.get('logging', option, fallback=str(default)))
+        except (TypeError, ValueError):
+            return default
+
+    enabled = jm_config.get('logging', 'log_to_file', fallback='true').strip().lower() in ('1', 'true', 'yes', 'on')
+    console_relevance = _int('log_up_to_relevance', 2)
+    file_relevance = _int('file_log_up_to_relevance', console_relevance)
+    key = (
+        jm_config.get('logging', 'log_dir', fallback='logs').strip() or 'logs',
+        os.path.basename(jm_config.get('logging', 'log_file_name', fallback='veloiq.log').strip()) or 'veloiq.log',
+        _int('log_max_bytes', 10 * 1024 * 1024),
+        _int('log_backup_count', 5),
+    )
+    return enabled, file_relevance, key
+
+
+def _jm_resolve_log_path(log_dir, file_name):
+    """Resolve the log file path, or raise ValueError if the directory is not allowed.
+
+    A relative ``log_dir`` must stay inside the host app's working directory
+    (so a value edited on the System Configuration page cannot point the server
+    at an arbitrary location). An absolute path is accepted only when it is the
+    one an operator set through the ``VELOIQ_LOG_DIR`` environment variable.
+    """
+    cwd = os.path.realpath(os.getcwd())
+    env_dir = os.getenv('VELOIQ_LOG_DIR')
+    if os.path.isabs(log_dir):
+        if not env_dir or os.path.realpath(log_dir) != os.path.realpath(env_dir):
+            raise ValueError(
+                f"absolute log_dir '{log_dir}' is only allowed via the VELOIQ_LOG_DIR environment variable"
+            )
+        directory = os.path.realpath(log_dir)
+    else:
+        directory = os.path.realpath(os.path.join(cwd, log_dir))
+        if directory != cwd and not directory.startswith(cwd + os.sep):
+            raise ValueError(f"log_dir '{log_dir}' resolves outside the application directory")
+    return os.path.join(directory, file_name)
+
+
+def _jm_sync_file_handler(enabled, key):
+    """Bring the file handler in line with the current settings (create/rebuild/remove)."""
+    global _jm_file_handler, _jm_file_handler_key
+    wanted_key = key if enabled else None
+    if wanted_key == _jm_file_handler_key:
+        return _jm_file_handler
+    with _jm_file_handler_lock:
+        if wanted_key == _jm_file_handler_key:
+            return _jm_file_handler
+        if _jm_file_handler is not None:
+            _jm_file_logger.removeHandler(_jm_file_handler)
+            try:
+                _jm_file_handler.close()
+            except Exception:
+                pass
+            _jm_file_handler = None
+        _jm_file_handler_key = wanted_key   # set first so a failure isn't retried on every call
+        if wanted_key is not None:
+            log_dir, file_name, max_bytes, backup_count = wanted_key
+            try:
+                path = _jm_resolve_log_path(log_dir, file_name)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                handler = _RotatingFileHandler(
+                    path, maxBytes=max(0, max_bytes), backupCount=max(0, backup_count), encoding='utf-8',
+                )
+                handler.setFormatter(_logging.Formatter('%(eid)s | %(asctime)s | %(message)s'))
+                _jm_file_logger.addHandler(handler)
+                _jm_file_handler = handler
+            except Exception as exc:
+                print(f"jm_log: file logging disabled -- {exc}", file=sys.stderr)
+    return _jm_file_handler
+
 
 def jm_log(relevance, *args, **kwargs):
     """
     Print log messages gated by configured relevance, including elapsed CPU time.
+
+    When ``[logging] log_to_file`` is enabled the same message is also appended
+    (without colour codes) to a rotating log file -- see ``_jm_log_file_settings``.
 
     :param relevance: Message importance level (lower means more important).
     :type relevance: int
@@ -1048,7 +1147,14 @@ def jm_log(relevance, *args, **kwargs):
     # import pass), rather than raising configparser.NoSectionError.
     log_up_to_relevance = int(jm_config.get('logging', 'log_up_to_relevance', fallback='2'))
 
-    if relevance <= log_up_to_relevance:
+    try:
+        file_enabled, file_relevance, file_key = _jm_log_file_settings(jm_config)
+    except Exception:
+        file_enabled, file_relevance, file_key = False, log_up_to_relevance, None
+    to_file = file_enabled and relevance <= file_relevance
+    to_console = relevance <= log_up_to_relevance
+
+    if to_console or to_file:
 
         # 2. Capture time once (High Performance)
         current_time = time.process_time()
@@ -1057,20 +1163,39 @@ def jm_log(relevance, *args, **kwargs):
         # .join is significantly faster than loop concatenation
         string_to_print = ' '.join(str(s) for s in args)
 
-        # 4. Color Application
-        # We assume the user might pass 'text_color' in kwargs
-        if 'text_color' in kwargs:
-            color_code = COLOR_MAP.get(kwargs['text_color'].upper())
-            if color_code:
-                # We manually add the Reset code at the end
-                string_to_print = f"{color_code}{string_to_print}{Style.RESET_ALL}"
-
         # 5. Calculate Delta
         time_delta = current_time - last_logged_process_time
 
-        # 6. Final Print
-        # Using f-strings is faster than passing multiple args to print()
-        print(f"{current_time:.2f} | {time_delta:.2f} | {string_to_print}")
+        # Authenticated user of the current request (0 when none), so lines from
+        # concurrent users can be told apart.
+        user_eid = _get_log_user()
+
+        if to_file:
+            try:
+                handler = _jm_sync_file_handler(file_enabled, file_key)
+                if handler is not None:
+                    _jm_file_logger.info(
+                        f"rel={relevance} | {current_time:.2f} | {time_delta:.2f} | {string_to_print}",
+                        extra={'eid': user_eid},
+                    )
+            except Exception:
+                pass   # a logging function must never be what crashes the app
+        elif not file_enabled and _jm_file_handler is not None:
+            # log_to_file was switched off: release the file promptly.
+            _jm_sync_file_handler(False, None)
+
+        if to_console:
+            # 4. Color Application
+            # We assume the user might pass 'text_color' in kwargs
+            if 'text_color' in kwargs:
+                color_code = COLOR_MAP.get(kwargs['text_color'].upper())
+                if color_code:
+                    # We manually add the Reset code at the end
+                    string_to_print = f"{color_code}{string_to_print}{Style.RESET_ALL}"
+
+            # 6. Final Print
+            # Using f-strings is faster than passing multiple args to print()
+            print(f"{user_eid} | {current_time:.2f} | {time_delta:.2f} | {string_to_print}")
 
         last_logged_process_time = current_time
 
@@ -2221,6 +2346,7 @@ _JM_CONFIG_ENV_OVERRIDES = {
     ("nlp", "answer_asks_via_llm"): "VELOIQ_NLP_ANSWER_VIA_LLM",
     ("nlp", "render_load_type"): "VELOIQ_NLP_RENDER_LOAD_TYPE",
     ("logging", "log_up_to_relevance"): "VELOIQ_NLP_LOG_LEVEL",
+    ("logging", "log_dir"): "VELOIQ_LOG_DIR",
 }
 
 # Memoized config: jm_obtain_config() is called on every jm_log() line (hundreds

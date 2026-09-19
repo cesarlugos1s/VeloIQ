@@ -484,7 +484,13 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
                 status_code=401,
                 content={"detail": "Invalid or expired token"},
             )
-        return await call_next(request)
+        # Tag jm_log lines emitted while serving this request with the user id.
+        from veloiq_framework.utils.log_context import set_log_user, reset_log_user
+        log_user_token = set_log_user(payload["eid"])
+        try:
+            return await call_next(request)
+        finally:
+            reset_log_user(log_user_token)
 
 
 # ---------------------------------------------------------------------------
