@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useContext, Suspense, useSyncExternalStore, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, useTable, List, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useInvalidate, useCustom, useLogin, useWarnAboutChange, useResource } from '@refinedev/core';
@@ -18,6 +19,9 @@ var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot
 var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), member.set(obj, value), value);
+onlineManager.setEventListener(() => () => {
+});
+onlineManager.setOnline(true);
 var ColorModeContext = createContext({ mode: "light", setMode: () => {
 }, schemaVersion: 0 });
 var MODEL_TONES_LIGHT = [

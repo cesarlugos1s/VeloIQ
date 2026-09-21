@@ -72,7 +72,7 @@ export default function App() {
                         routerProvider={routerProvider}
                         notificationProvider={notificationProvider}
                         resources={resources}
-                        options={{ syncWithLocation: true, warnWhenUnsavedChanges: true }}
+                        options={{ syncWithLocation: true, warnWhenUnsavedChanges: true, disableTelemetry: true }}
                     >
                         <ColorModeContextProvider>
                             <PrimaryShowContext.Provider value={PrimaryShowRenderer}>

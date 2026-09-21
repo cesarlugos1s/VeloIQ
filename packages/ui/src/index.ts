@@ -1,3 +1,5 @@
+import "./offlineMode";
+
 // ── Core components ────────────────────────────────────────────────────────
 export { LayoutWrapper } from "./components/LayoutWrapper";
 export type { LayoutWrapperProps } from "./components/LayoutWrapper";
