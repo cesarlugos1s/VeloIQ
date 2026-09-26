@@ -921,12 +921,13 @@ def _parse_primary_resource_from_sql(sql_statement: str, first_column_name: str)
         flags=re.IGNORECASE,
     )
     alias_match = alias_regex.search(sql_text)
+    # Return the full table name (cw_ prefix kept): it is the frontend resource/route name.
     if alias_match and alias_match.group(1):
-        return alias_match.group(1).lower()
+        return f"cw_{alias_match.group(1).lower()}"
 
     generic_match = re.search(r"FROM\s+cw_([a-zA-Z0-9_]+)", sql_text, flags=re.IGNORECASE)
     if generic_match and generic_match.group(1):
-        return generic_match.group(1).lower()
+        return f"cw_{generic_match.group(1).lower()}"
 
     return None
 
@@ -1305,7 +1306,6 @@ def _build_primary_items(sql_columns: List[str], sql_rows: List[Dict[str, Any]],
     if not first_column:
         return []
 
-    resource = _parse_primary_resource_from_sql(sql_statement, first_column)
     primary_items: List[Dict[str, str]] = []
 
     for row in sql_rows:
@@ -1333,9 +1333,6 @@ def _build_primary_items(sql_columns: List[str], sql_rows: List[Dict[str, Any]],
                 href_resource = re.search(r"/([a-zA-Z0-9_]+)/show/\d+", href, flags=re.IGNORECASE)
                 if href_resource and href_resource.group(1):
                     item_resource = href_resource.group(1).lower()
-        if not item_resource:
-            item_resource = resource
-
         if not item_resource:
             continue
 
@@ -1547,6 +1544,60 @@ def _coerce_eid(raw_value: Any) -> Optional[int]:
     return None
 
 
+from sqlalchemy import inspect as sa_inspect
+
+
+def _resolve_select_columns_to_models(sql_statement: str, n_columns: int) -> Dict[int, Any]:
+    """Map result-column index -> model, from the table each SELECT item is read from.
+
+    ``SELECT inv.cw_eid, ...  FROM cw_itemallocationplan iap JOIN cw_inventory inv ...``
+    resolves column 0 to the model of ``cw_inventory`` via its alias ``inv``.  Only items of the
+    form ``alias.column`` (or a bare column when the query has a single table) are resolved;
+    anything else is left out rather than guessed.
+    """
+    sql_text = re.sub(r"\s+", " ", str(sql_statement or "")).strip()
+    select_match = re.match(r"SELECT\s+(?:DISTINCT\s+)?(.*?)\s+FROM\s", sql_text, flags=re.IGNORECASE)
+    if not select_match:
+        return {}
+
+    # alias (or bare table name) -> table name, from FROM / JOIN clauses
+    alias_to_table: Dict[str, str] = {}
+    for table, alias in re.findall(
+        r"(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+(?:AS\s+)?(?!(?:ON|WHERE|INNER|LEFT|RIGHT|FULL|CROSS|JOIN|ORDER|GROUP|LIMIT|UNION|USING)\b)([a-zA-Z_][a-zA-Z0-9_]*))?",
+        sql_text, flags=re.IGNORECASE,
+    ):
+        alias_to_table[table.lower()] = table
+        if alias:
+            alias_to_table[alias.lower()] = table
+
+    # split the select list on top-level commas
+    items, depth, current = [], 0, ""
+    for ch in select_match.group(1):
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "," and depth == 0:
+            items.append(current)
+            current = ""
+        else:
+            current += ch
+    items.append(current)
+    if len(items) != n_columns:
+        return {}
+
+    single_table = next(iter(set(alias_to_table.values()))) if len(set(alias_to_table.values())) == 1 else None
+    resolved: Dict[int, Any] = {}
+    for idx, item in enumerate(items):
+        expr = re.split(r"\s+AS\s+", item.strip(), flags=re.IGNORECASE)[0].strip()
+        m = re.fullmatch(r"([a-zA-Z_][a-zA-Z0-9_]*)\.[a-zA-Z_][a-zA-Z0-9_]*", expr)
+        table = alias_to_table.get(m.group(1).lower()) if m else (
+            single_table if re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", expr) else None
+        )
+        model = jm_obtain_model_by_name(table) if table else None
+        if model is not None:
+            resolved[idx] = model
+    return resolved
+
+
 def _resolve_entity_eid_cells(
         sql_columns: List[str],
         sql_rows: List[Dict[str, Any]],
@@ -1581,14 +1632,18 @@ def _resolve_entity_eid_cells(
         if model is not None:
             col_models[col] = model
 
-    # Pass 2: SQL-aware PK lookup for columns not resolved by pass 1.
-    unresolved = [c for c in sql_columns if c not in col_models]
-    if unresolved and sql_statement:
-        pk_col_to_model = _build_pk_col_to_model_from_sql(sql_statement)
-        for col in unresolved:
-            col_key = col.strip().strip('"').lower()
-            if col_key in pk_col_to_model:
-                col_models[col] = pk_col_to_model[col_key]
+    # Pass 2: the table each SELECT item is actually read from (alias-aware).
+    if sql_statement:
+        for idx, model in _resolve_select_columns_to_models(sql_statement, len(sql_columns)).items():
+            col = sql_columns[idx]
+            if col in col_models:
+                continue
+            try:
+                pk_names = {c.name.lower() for c in sa_inspect(model).primary_key}
+            except Exception:
+                pk_names = set()
+            if col.strip().strip('"').lower() in pk_names:
+                col_models[col] = model
 
     if not col_models:
         return

@@ -839,7 +839,12 @@ def absolute_url(model_object):
     """
 
     try:
-        model_name = model_object.__class__.__name__.lower()
+        # The frontend resource (and route) is the table name, which differs
+        # from the lowercased class name for prefixed tables (e.g. cw_item).
+        model_name = (
+            getattr(model_object.__class__, "__tablename__", None)
+            or model_object.__class__.__name__
+        ).lower()
         eid_value = int(getattr(model_object, "eid"))
         if model_name and eid_value > 0:
             return f"/{model_name}/show/{eid_value}"
