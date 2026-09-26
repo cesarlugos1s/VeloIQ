@@ -1553,7 +1553,7 @@ def _resolve_select_columns_to_models(sql_statement: str, n_columns: int) -> Dic
     ``SELECT inv.cw_eid, ...  FROM cw_itemallocationplan iap JOIN cw_inventory inv ...``
     resolves column 0 to the model of ``cw_inventory`` via its alias ``inv``.  Only items of the
     form ``alias.column`` (or a bare column when the query has a single table) are resolved;
-    anything else is left out rather than guessed.
+    a leading ``alias.*`` resolves column 0 only; anything else is left out rather than guessed.
     """
     sql_text = re.sub(r"\s+", " ", str(sql_statement or "")).strip()
     select_match = re.match(r"SELECT\s+(?:DISTINCT\s+)?(.*?)\s+FROM\s", sql_text, flags=re.IGNORECASE)
@@ -1581,6 +1581,15 @@ def _resolve_select_columns_to_models(sql_statement: str, n_columns: int) -> Dic
         else:
             current += ch
     items.append(current)
+
+    # ``alias.*`` first: column 0 is the first column of that alias's table.  Later items are
+    # not positionally resolvable once a star expands, so only column 0 is returned.
+    star = re.fullmatch(r"([a-zA-Z_][a-zA-Z0-9_]*)\.\*", items[0].strip())
+    if star:
+        table = alias_to_table.get(star.group(1).lower())
+        model = jm_obtain_model_by_name(table) if table else None
+        return {0: model} if model is not None else {}
+
     if len(items) != n_columns:
         return {}
 
