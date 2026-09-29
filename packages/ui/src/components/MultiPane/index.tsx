@@ -12,6 +12,7 @@ import {
     useViewSettings,
     type PanesLayoutMode,
 } from "../DynamicResource/utils/viewConfig";
+import { useBottomOverlayInset } from "../../hooks/useBottomOverlayInset";
 import { FlexPaneLayout } from "./FlexPaneLayout";
 import { SplitPaneLayout } from "./SplitPaneLayout";
 import type { ResolvedPane } from "./PaneParts";
@@ -43,7 +44,8 @@ let cachedPaneSettings: PaneSettings | null = null;
 // ---------------------------------------------------------------------------
 export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [panelHeight, setPanelHeight] = useState<string>("100vh");
+    // Height from the container's top to the bottom of the window; null until measured.
+    const [viewportHeight, setViewportHeight] = useState<number | null>(null);
     const [containerWidth, setContainerWidth] = useState(0);
 
     useLayoutEffect(() => {
@@ -59,7 +61,7 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 const style = window.getComputedStyle(parent);
                 padBottom = parseFloat(style.paddingBottom) || 0;
             }
-            setPanelHeight(`${window.innerHeight - rect.top - padBottom}px`);
+            setViewportHeight(window.innerHeight - rect.top - padBottom);
             setContainerWidth(rect.width);
         };
         measure();
@@ -74,6 +76,12 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
             observer?.disconnect();
         };
     }, []);
+
+    // Fixed bottom bars (e.g. an extension's alerts bar) float over the page, so
+    // end the panes above them — otherwise they hide the bottom of every pane
+    // and the horizontal scrollbar of the "scroll" mode.
+    const bottomInset = useBottomOverlayInset();
+    const panelHeight = viewportHeight === null ? "100vh" : `${Math.max(0, viewportHeight - bottomInset)}px`;
 
     const [searchParams, setSearchParams] = useSearchParams();
     const allModels = useAllModels();

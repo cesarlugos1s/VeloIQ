@@ -61,8 +61,9 @@ export function applyPanesToSearchParams(
 /** Width in px of a collapsed pane ("spine") showing only a rotated title. */
 export const SPINE_WIDTH_PX = 40;
 
-/** Horizontal offset in px between stacked overlay drawers, so the edge of the earlier one stays visible. */
-export const OVERLAY_OFFSET_PX = 24;
+/** Horizontal offset in px between stacked overlay drawers, so the edge of the earlier one stays visible.
+ *  Matches the spine width so every edge strip (left or right) is as wide as a collapsed pane in stack mode. */
+export const OVERLAY_OFFSET_PX = SPINE_WIDTH_PX;
 
 /** Panel id of the master list / main page pane in the "stack" split group. */
 export const LIST_PANEL_ID = "list-panel";

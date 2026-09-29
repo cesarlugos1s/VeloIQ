@@ -86,6 +86,7 @@ export { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 export { useRecordSearch } from "./hooks/useRecordSearch";
 export type { RecordResult, ModelSearchResult, UseRecordSearchReturn } from "./hooks/useRecordSearch";
 export { useLicensePool } from "./hooks/useLicensePool";
+export { useBottomOverlayInset, BOTTOM_OVERLAY_ATTR } from "./hooks/useBottomOverlayInset";
 export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 
 // ── Utilities ──────────────────────────────────────────────────────────────

@@ -20818,7 +20818,7 @@ function applyPanesToSearchParams(existing, panes) {
   return next;
 }
 var SPINE_WIDTH_PX = 40;
-var OVERLAY_OFFSET_PX = 24;
+var OVERLAY_OFFSET_PX = SPINE_WIDTH_PX;
 var LIST_PANEL_ID = "list-panel";
 var detailPanelId = (idx) => `detail-panel-${idx}`;
 function splitVisibleAndSpines(ids, cap) {
@@ -20872,6 +20872,41 @@ function computeInitialStackLayout(detailIds, cap, spinePct) {
     visible = splitVisibleAndSpines(ids, cap).visible;
   }
   return layout;
+}
+var BOTTOM_OVERLAY_ATTR = "data-veloiq-bottom-overlay";
+function measureBottomOverlays() {
+  let total = 0;
+  document.querySelectorAll(`[${BOTTOM_OVERLAY_ATTR}]`).forEach((el) => {
+    total += el.getBoundingClientRect().height;
+  });
+  return total;
+}
+function useBottomOverlayInset() {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => update()) : null;
+    let observed = [];
+    const update = () => {
+      setInset(measureBottomOverlays());
+      const current = Array.from(document.querySelectorAll(`[${BOTTOM_OVERLAY_ATTR}]`));
+      if (resizeObserver && (current.length !== observed.length || current.some((el, i) => el !== observed[i]))) {
+        resizeObserver.disconnect();
+        current.forEach((el) => resizeObserver.observe(el));
+        observed = current;
+      }
+    };
+    update();
+    const mutationObserver = new MutationObserver(update);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", update);
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return inset;
 }
 var _48 = window._ || ((text) => text);
 var FakeRouteProvider = ({ model, id, children }) => {
@@ -21266,7 +21301,9 @@ var FlexPaneLayout = ({
               left: isMaximized ? 0 : j * step,
               width: isMaximized ? "100%" : isMinimized ? SPINE_WIDTH_PX : cardWidth,
               zIndex: isMaximized ? cardCount + 3 : zFor(j),
-              overflow: isMinimized ? "hidden" : "auto",
+              // Only the front card scrolls: a scrollbar on a card behind it
+              // would sit on its right edge and cover most of its edge strip.
+              overflow: isMinimized || !isFront ? "hidden" : "auto",
               boxShadow: `-4px 0 12px ${token.colorFillSecondary}`,
               transition: "width 0.18s ease, left 0.18s ease"
             },
@@ -23811,7 +23848,7 @@ var SplitPaneLayout = ({
 var cachedPaneSettings = null;
 var MultiPaneLayout = ({ children }) => {
   const containerRef = useRef(null);
-  const [panelHeight, setPanelHeight] = useState("100vh");
+  const [viewportHeight, setViewportHeight] = useState(null);
   const [containerWidth, setContainerWidth] = useState(0);
   useLayoutEffect(() => {
     const measure = () => {
@@ -23823,7 +23860,7 @@ var MultiPaneLayout = ({ children }) => {
         const style = window.getComputedStyle(parent);
         padBottom = parseFloat(style.paddingBottom) || 0;
       }
-      setPanelHeight(`${window.innerHeight - rect.top - padBottom}px`);
+      setViewportHeight(window.innerHeight - rect.top - padBottom);
       setContainerWidth(rect.width);
     };
     measure();
@@ -23835,6 +23872,8 @@ var MultiPaneLayout = ({ children }) => {
       observer?.disconnect();
     };
   }, []);
+  const bottomInset = useBottomOverlayInset();
+  const panelHeight = viewportHeight === null ? "100vh" : `${Math.max(0, viewportHeight - bottomInset)}px`;
   const [searchParams, setSearchParams] = useSearchParams();
   const allModels = useAllModels();
   const PrimaryShowRenderer = useContext(PrimaryShowContext);
@@ -25804,6 +25843,6 @@ var helpSystemModels = [
   }
 ];
 
-export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

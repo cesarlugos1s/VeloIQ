@@ -292,7 +292,9 @@ export const FlexPaneLayout: React.FC<PaneLayoutProps & { mode: FlexPaneMode }> 
                                 left: isMaximized ? 0 : j * step,
                                 width: isMaximized ? "100%" : isMinimized ? SPINE_WIDTH_PX : cardWidth,
                                 zIndex: isMaximized ? cardCount + 3 : zFor(j),
-                                overflow: isMinimized ? "hidden" : "auto",
+                                // Only the front card scrolls: a scrollbar on a card behind it
+                                // would sit on its right edge and cover most of its edge strip.
+                                overflow: isMinimized || !isFront ? "hidden" : "auto",
                                 boxShadow: `-4px 0 12px ${token.colorFillSecondary}`,
                                 transition: "width 0.18s ease, left 0.18s ease",
                             }}
