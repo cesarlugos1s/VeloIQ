@@ -1437,15 +1437,26 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
 # ---------------------------------------------------------------------------
 
 class _SPAFiles(StaticFiles):
-    """StaticFiles with SPA fallback: serves index.html for unmatched paths."""
+    """StaticFiles with SPA fallback: serves index.html for unmatched paths.
+
+    HTML responses (index.html and every SPA-route fallback, including iframe
+    documents such as ``/embedded/...``) are sent with ``Cache-Control:
+    no-cache`` so browsers revalidate them.  Without it, a heuristically cached
+    index.html keeps pointing at hashed ``/assets/index-*.js`` bundles that a
+    frontend rebuild has since deleted, leaving the page blank (404 on the
+    bundle).  The hashed assets themselves stay cacheable.
+    """
     async def get_response(self, path: str, scope):
         from starlette.exceptions import HTTPException as _StarletteHTTPException
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except _StarletteHTTPException as ex:
-            if ex.status_code == 404:
-                return await super().get_response("index.html", scope)
-            raise
+            if ex.status_code != 404:
+                raise
+            response = await super().get_response("index.html", scope)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def _mount_frontend(app: FastAPI, cfg: VeloIQConfig) -> None:
