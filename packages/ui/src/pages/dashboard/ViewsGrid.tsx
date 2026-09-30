@@ -25,7 +25,7 @@ import { CellConfigDrawer } from "./CellConfigDrawer";
 import { CellSizeSelector } from "./CellSizeSelector";
 import { DashboardCellHelp } from "../../components/Help/DashboardCellHelp";
 import { DashboardTabHelp } from "../../components/Help/DashboardTabHelp";
-import { computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig, type MoveDirection } from "./hooks/gridCellOps";
+import { capMinWidthToTrack, computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig, type MoveDirection } from "./hooks/gridCellOps";
 import { useCellWindowState } from "./hooks/useCellWindowState";
 import {
     buildGridDensityLabelText,
@@ -186,7 +186,7 @@ const DashboardGridCell: React.FC<{
         || (parsedHtmlStyle as Record<string, unknown>).backgroundColor
     );
 
-    const cellStyle: React.CSSProperties = {
+    const cellStyle: React.CSSProperties = capMinWidthToTrack({
         position: "relative",
         // Fills whatever height the grid assigns its track (the cell-size
         // slider in ViewsGrid sets a fixed row track for its non-"original"
@@ -210,7 +210,7 @@ const DashboardGridCell: React.FC<{
         ...parsedHtmlStyle,
         ...(isMaximized ? { gridColumn: "1 / -1" } : {}),
         ...(isMinimized ? { minHeight: 0 } : {}),
-    };
+    });
 
     const toolbarStyle: React.CSSProperties = {
         display: "flex",

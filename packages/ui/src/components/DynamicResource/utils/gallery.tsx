@@ -84,6 +84,7 @@ export const renderSharedGalleryCard = ({
     borderColor,
     textColor,
     onClick,
+    fill = false,
 }: {
     item: any;
     itemId: any;
@@ -94,12 +95,16 @@ export const renderSharedGalleryCard = ({
     borderColor: string;
     textColor: string;
     onClick?: () => void;
+    /** "image" view: scale the image to the container's full width, keeping its aspect ratio. */
+    fill?: boolean;
 }) => {
     const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
     const imageStyle: React.CSSProperties = {
-        width: imageWidth,
-        height: imageHeight,
-        objectFit: "cover",
+        width: fill ? "100%" : imageWidth,
+        height: fill ? "auto" : imageHeight,
+        minHeight: fill && !contentUrl ? imageHeight : undefined,
+        objectFit: fill ? "contain" : "cover",
+        display: "block",
         borderRadius: 8,
         border: `1px solid ${borderColor}`,
         background: "#f5f5f5",
@@ -107,7 +112,7 @@ export const renderSharedGalleryCard = ({
     return (
         <div
             key={itemId ?? label}
-            style={{ width: imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" }}
+            style={{ width: fill ? "100%" : imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" }}
             onClick={onClick}
         >
             {contentUrl ? (

@@ -3091,7 +3091,8 @@ var normalizeRelationViewType = (rawVid) => {
   if (normalized === "readandeditlist") return "read-and-edit-list";
   if (normalized === "readandeditcsv") return "read-and-edit-csv";
   if (normalized === "editablecsv") return "editable-csv";
-  if (normalized === "gallery" || normalized === "image") return "gallery";
+  if (normalized === "gallery") return "gallery";
+  if (normalized === "image" || normalized === "images") return "image";
   if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
   if (normalized === "primary") return "primary";
   if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";
@@ -3789,13 +3790,16 @@ var renderSharedGalleryCard = ({
   imageHeight,
   borderColor,
   textColor,
-  onClick
+  onClick,
+  fill = false
 }) => {
   const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
   const imageStyle = {
-    width: imageWidth,
-    height: imageHeight,
-    objectFit: "cover",
+    width: fill ? "100%" : imageWidth,
+    height: fill ? "auto" : imageHeight,
+    minHeight: fill && !contentUrl ? imageHeight : void 0,
+    objectFit: fill ? "contain" : "cover",
+    display: "block",
     borderRadius: 8,
     border: `1px solid ${borderColor}`,
     background: "#f5f5f5"
@@ -3803,7 +3807,7 @@ var renderSharedGalleryCard = ({
   return /* @__PURE__ */ jsxs(
     "div",
     {
-      style: { width: imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" },
+      style: { width: fill ? "100%" : imageWidth, display: "grid", gap: 6, cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
         contentUrl ? /* @__PURE__ */ jsx(AuthenticatedImage, { url: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 24 } }) }),
@@ -8891,6 +8895,7 @@ var VIEW_TYPE_OPTIONS = [
   { label: "Default (from model schema)", value: "" },
   { label: "Table", value: "table" },
   { label: "Gallery", value: "gallery" },
+  { label: "Image", value: "image" },
   { label: "Calendar", value: "calendar" },
   { label: "Totals / Details", value: "totals-details" },
   { label: "Primary", value: "primary" },
@@ -9051,6 +9056,13 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
 };
 
 // src/pages/dashboard/hooks/gridCellOps.ts
+var capMinWidthToTrack = (style) => {
+  const { minWidth } = style;
+  if (minWidth === void 0 || minWidth === null || minWidth === "" || minWidth === 0) return style;
+  const value = typeof minWidth === "number" ? `${minWidth}px` : String(minWidth).trim();
+  if (value.endsWith("%") || /^(min|auto|initial|inherit|unset)\b/.test(value)) return style;
+  return { ...style, minWidth: `min(${value}, 100%)` };
+};
 function computeGridDims(cells) {
   if (!cells.length) return { numCols: 1, numRows: 1 };
   return {
@@ -11984,7 +11996,8 @@ var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName
   }) });
 };
 var _42 = window._ || ((text) => text);
-var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
+var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "gallery" }) => {
+  const fill = variant === "image";
   const apiUrl = useApiUrl();
   const go = useGo();
   const paneNav = usePaneNavigation();
@@ -12000,7 +12013,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
     /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
     _42("No images available")
   ] });
-  return /* @__PURE__ */ jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
+  return /* @__PURE__ */ jsx("div", { style: fill ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
     const id = getGalleryItemId(item);
     const label = getGalleryItemLabel(item, id);
     return renderSharedGalleryCard({
@@ -12012,6 +12025,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels }) => {
       imageHeight,
       borderColor: token.colorBorder,
       textColor: token.colorText,
+      fill,
       onClick: id !== void 0 && id !== null ? () => {
         if (paneNav?.isInMultiPane) {
           paneNav.openDetail(resource, id);
@@ -16288,11 +16302,11 @@ var renderRelationBlock = ({
       /* @__PURE__ */ jsx(RelatedObjectsPrimaryView, { rel, record, model: primaryModel, allModels, customPageName })
     ] }, rel.resource);
   }
-  if (viewType === "gallery") {
+  if (viewType === "gallery" || viewType === "image") {
     const galleryModel = relatedModel || relationModel;
     return /* @__PURE__ */ jsxs("div", { style: { marginTop: 12 }, children: [
       showLabel && /* @__PURE__ */ jsx("div", { style: { ...resolvedLabelStyle, marginBottom: 6 }, children: relationLabel }),
-      /* @__PURE__ */ jsx(RelatedObjectsGallery, { rel, record, relatedModel: galleryModel, allModels })
+      /* @__PURE__ */ jsx(RelatedObjectsGallery, { rel, record, relatedModel: galleryModel, allModels, variant: viewType })
     ] }, rel.resource);
   }
   const recursiveFallback = relatedModel && rel.otherResource && rel.otherKey ? /* @__PURE__ */ jsx(
@@ -16516,7 +16530,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const resolvedListViewType = String(
     urlViewType || listViewType || (isFileModel3 && fileListViewType ? fileListViewType : defaultListViewType) || "table"
   ).toLowerCase();
-  const isGalleryView = resolvedListViewType === "gallery";
+  const isImageView = resolvedListViewType === "image";
+  const isGalleryView = resolvedListViewType === "gallery" || isImageView;
   const isCalendarView = resolvedListViewType === "calendar";
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
@@ -19220,6 +19235,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       imageHeight: galleryImageHeight,
       borderColor: token.colorBorder,
       textColor: token.colorText,
+      fill: isImageView,
       onClick: resource && id !== void 0 && id !== null ? handleClick : void 0
     });
   };
@@ -20070,7 +20086,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         galleryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
           _47("No images available")
-        ] }) : /* @__PURE__ */ jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
+        ] }) : /* @__PURE__ */ jsx("div", { style: isImageView ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...galleryPaginationProps }) })
       ] }) : isCrosstabView ? crosstabBodyNode : isPrimaryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         primaryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
@@ -24800,7 +24816,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   const hasCustomBackground = Boolean(
     parsedHtmlStyle.background || parsedHtmlStyle.backgroundColor
   );
-  const cellStyle = {
+  const cellStyle = capMinWidthToTrack({
     position: "relative",
     // Fills whatever height the grid assigns its track (the cell-size
     // slider in ViewsGrid sets a fixed row track for its non-"original"
@@ -24824,7 +24840,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
     ...parsedHtmlStyle,
     ...isMaximized ? { gridColumn: "1 / -1" } : {},
     ...isMinimized ? { minHeight: 0 } : {}
-  };
+  });
   const toolbarStyle = {
     display: "flex",
     alignItems: "center",

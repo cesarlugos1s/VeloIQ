@@ -468,7 +468,8 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
     if (normalized === "readandeditlist") return "read-and-edit-list";
     if (normalized === "readandeditcsv") return "read-and-edit-csv";
     if (normalized === "editablecsv") return "editable-csv";
-    if (normalized === "gallery" || normalized === "image") return "gallery";
+    if (normalized === "gallery") return "gallery";
+    if (normalized === "image" || normalized === "images") return "image";
     if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
     if (normalized === "primary") return "primary";
     if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";

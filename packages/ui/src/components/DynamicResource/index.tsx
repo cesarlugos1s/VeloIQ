@@ -256,7 +256,7 @@ export const DynamicList: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "gallery" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list";
+    listViewType?: "table" | "gallery" | "image" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -358,7 +358,9 @@ export const DynamicList: React.FC<{
     const resolvedListViewType = String(
         urlViewType || listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
     ).toLowerCase();
-    const isGalleryView = resolvedListViewType === "gallery";
+    // "image" is the gallery with each image at full width (no thumbnails).
+    const isImageView = resolvedListViewType === "image";
+    const isGalleryView = resolvedListViewType === "gallery" || isImageView;
     const isCalendarView = resolvedListViewType === "calendar";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
@@ -3369,6 +3371,7 @@ export const DynamicList: React.FC<{
             imageHeight: galleryImageHeight,
             borderColor: token.colorBorder,
             textColor: token.colorText,
+            fill: isImageView,
             onClick: resource && id !== undefined && id !== null ? handleClick : undefined,
         });
     };
@@ -4250,7 +4253,7 @@ export const DynamicList: React.FC<{
                             {galleryRows.length === 0 ? (
                                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No images available")}</div>
                             ) : (
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                                <div style={isImageView ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }}>
                                     {galleryRows.map((record) => renderGalleryItem(record))}
                                 </div>
                             )}

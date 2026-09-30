@@ -1,4 +1,20 @@
+import type React from "react";
 import type { DashboardCell, DashboardConfig } from "./useDashboardConfig";
+
+/** Cap a cell's min-width (from `min_width` or its `html_style`) at its grid
+ * track's width. Each cell's track wrapper is `min-width: 0; overflow: hidden`
+ * so wide content scrolls inside the cell rather than stretching the grid — but
+ * that means a cell whose own min-width exceeds the track (e.g. a Fileview's
+ * `min-width: 1200px` in a half-page column) is clipped on the right, hiding its
+ * content and the toolbar's right-aligned action buttons. The min-width still
+ * applies whenever the track is wide enough. */
+export const capMinWidthToTrack = (style: React.CSSProperties): React.CSSProperties => {
+    const { minWidth } = style;
+    if (minWidth === undefined || minWidth === null || minWidth === "" || minWidth === 0) return style;
+    const value = typeof minWidth === "number" ? `${minWidth}px` : String(minWidth).trim();
+    if (value.endsWith("%") || /^(min|auto|initial|inherit|unset)\b/.test(value)) return style;
+    return { ...style, minWidth: `min(${value}, 100%)` };
+};
 
 export type MoveDirection = "left" | "right" | "up" | "down";
 

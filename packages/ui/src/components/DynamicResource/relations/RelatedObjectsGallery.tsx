@@ -16,7 +16,10 @@ export const RelatedObjectsGallery: React.FC<{
     record: any;
     relatedModel: ModelDef;
     allModels?: ModelDef[];
-}> = ({ rel, record, relatedModel, allModels }) => {
+    /** "image" renders each image at full container width instead of as a thumbnail. */
+    variant?: "gallery" | "image";
+}> = ({ rel, record, relatedModel, allModels, variant = "gallery" }) => {
+    const fill = variant === "image";
     const apiUrl = useApiUrl();
     const go = useGo();
     const paneNav = usePaneNavigation();
@@ -32,7 +35,7 @@ export const RelatedObjectsGallery: React.FC<{
     if (!records.length) return <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No images available")}</div>;
 
     return (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+        <div style={fill ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }}>
             {records.map((item) => {
                 const id = getGalleryItemId(item);
                 const label = getGalleryItemLabel(item, id);
@@ -45,6 +48,7 @@ export const RelatedObjectsGallery: React.FC<{
                     imageHeight,
                     borderColor: token.colorBorder,
                     textColor: token.colorText,
+                    fill,
                     onClick: id !== undefined && id !== null
                         ? () => {
                             if (paneNav?.isInMultiPane) {

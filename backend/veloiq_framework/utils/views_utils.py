@@ -44,8 +44,10 @@ def resolve_dashboard_view_type(raw: Optional[str]) -> str:
     normalized = normalized.removesuffix("view")
     if normalized == "primary":
         return "primary"
-    if normalized in {"gallery", "image"}:
+    if normalized == "gallery":
         return "gallery"
+    if normalized in {"image", "images"}:
+        return "image"
     if normalized in {"editabletable", "editable", "muledit"}:
         # muledit is a legacy CubicWeb multi-edit view; render it as the
         # (read-only) table view — inline editing is a frontend concern.
@@ -1097,18 +1099,12 @@ def _record_has_data_like_dynamic_resource(row: Dict[str, Any]) -> bool:
     return True
 
 
-def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: List[Dict[str, Any]]) -> str:
-    widget_id = f"jm_dash_gallery_{random.randint(1, 10_000_000)}"
-    config = jm_obtain_config()
-    try:
-        gallery_image_width = int(config["views"]["image_width"])
-    except Exception:
-        gallery_image_width = 180
-    try:
-        gallery_image_length = int(config["views"]["image_length"])
-    except Exception:
-        gallery_image_length = 140
+def _collect_dashboard_image_items(sql_columns: List[str], sql_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Resolve SQL rows to the images they reference, for the gallery and image views.
 
+    Returns de-duplicated ``{"image_url", "show_url", "label"}`` dicts in row order;
+    rows that don't resolve to an image are skipped.
+    """
     file_description_cache: Dict[int, Optional[str]] = {}
 
     def _get_file_description(file_eid: Optional[int]) -> Optional[str]:
@@ -1132,7 +1128,7 @@ def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: 
             file_description_cache[file_eid] = None
         return file_description_cache[file_eid]
 
-    cards_html = ""
+    items: List[Dict[str, Any]] = []
     seen_gallery_keys = set()
     for row_idx, row in enumerate(sql_rows):
         row_values = [row.get(column) for column in sql_columns]
@@ -1208,13 +1204,66 @@ def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: 
         if dedupe_key in seen_gallery_keys:
             continue
         seen_gallery_keys.add(dedupe_key)
+        items.append({"image_url": image_url, "show_url": show_url, "label": label})
 
-        image_tag_html = (
-            f'<img src="{html.escape(str(image_url))}" '
-            f'onerror="if(this.dataset.fallbackTried!==\'1\'){{this.dataset.fallbackTried=\'1\';'
-            f'var o=window.location.origin+\'/\';if(this.src.indexOf(o)===0){{'
-            f'this.src=\'http://localhost:8000/\'+this.src.slice(o.length);}}}}" '
-            f'style="width:{gallery_image_width}px;height:{gallery_image_length}px;object-fit:contain;display:block;" />'
+    return items
+
+
+def _dashboard_image_tag_html(image_url: str, style: str) -> str:
+    return (
+        f'<img src="{html.escape(str(image_url))}" '
+        f'onerror="if(this.dataset.fallbackTried!==\'1\'){{this.dataset.fallbackTried=\'1\';'
+        f'var o=window.location.origin+\'/\';if(this.src.indexOf(o)===0){{'
+        f'this.src=\'http://localhost:8000/\'+this.src.slice(o.length);}}}}" '
+        f'style="{style}" />'
+    )
+
+
+def _render_image_view_html(sql_columns: List[str], sql_rows: List[Dict[str, Any]]) -> str:
+    """Render each referenced image scaled to fill the width of its container.
+
+    Unlike the gallery (fixed-size thumbnails with search and paging), this is for
+    cells whose whole content is the image itself — e.g. dashboard Fileviews.
+    """
+    images_html = ""
+    for item in _collect_dashboard_image_items(sql_columns, sql_rows):
+        image_tag_html = _dashboard_image_tag_html(
+            item["image_url"],
+            "width:100%;height:auto;max-width:100%;object-fit:contain;display:block;",
+        )
+        show_url = item["show_url"]
+        images_html += (
+            f'<a href="{html.escape(str(show_url))}" title="{html.escape(str(item["label"]))}" '
+            f'style="display:block;">{image_tag_html}</a>'
+            if show_url else image_tag_html
+        )
+    if not images_html:
+        return "No images found for this ask."
+    return (
+        f'<div style="{DASHBOARD_WIDGET_BASE_STYLE}display:flex;flex-direction:column;gap:8px;width:100%;">'
+        f"{images_html}"
+        "</div>"
+    )
+
+
+def _render_searchable_paginated_gallery_html(sql_columns: List[str], sql_rows: List[Dict[str, Any]]) -> str:
+    widget_id = f"jm_dash_gallery_{random.randint(1, 10_000_000)}"
+    config = jm_obtain_config()
+    try:
+        gallery_image_width = int(config["views"]["image_width"])
+    except Exception:
+        gallery_image_width = 180
+    try:
+        gallery_image_length = int(config["views"]["image_length"])
+    except Exception:
+        gallery_image_length = 140
+
+    cards_html = ""
+    for item in _collect_dashboard_image_items(sql_columns, sql_rows):
+        image_url, show_url, label = item["image_url"], item["show_url"], item["label"]
+        image_tag_html = _dashboard_image_tag_html(
+            image_url,
+            f"width:{gallery_image_width}px;height:{gallery_image_length}px;object-fit:contain;display:block;",
         )
         image_html = (
             f'<a href="{html.escape(str(show_url))}">{image_tag_html}</a>'
@@ -1746,6 +1795,9 @@ def render_query_rows_as_dashboard_view_html(
     if resolved_view_type == "gallery":
         return _render_searchable_paginated_gallery_html(sql_columns, sql_rows)
 
+    if resolved_view_type == "image":
+        return _render_image_view_html(sql_columns, sql_rows)
+
     if resolved_view_type == "csv":
         csv_lines = [",".join([html.escape(str(column)) for column in sql_columns])]
         for row in sql_rows:
@@ -1774,7 +1826,7 @@ def render_query_rows_as_dashboard_view_html(
     # Custom page view type (e.g. "custom_show_mechanism_results") —
     # render like primary but with ?view=<page_name> appended to embedded URLs
     # so the React frontend dispatches to the correct custom component.
-    _KNOWN_VIEW_TYPES = {"table", "editable-table", "totals-details", "list", "gallery", "csv", "primary"}
+    _KNOWN_VIEW_TYPES = {"table", "editable-table", "totals-details", "list", "gallery", "image", "csv", "primary"}
     if resolved_view_type not in _KNOWN_VIEW_TYPES:
         primary_items = _build_primary_items(sql_columns, sql_rows, sql_statement)
         if len(primary_items) > 0:

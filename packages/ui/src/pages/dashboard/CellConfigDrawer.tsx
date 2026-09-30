@@ -8,6 +8,7 @@ const VIEW_TYPE_OPTIONS = [
     { label: "Default (from model schema)", value: "" },
     { label: "Table", value: "table" },
     { label: "Gallery", value: "gallery" },
+    { label: "Image", value: "image" },
     { label: "Calendar", value: "calendar" },
     { label: "Totals / Details", value: "totals-details" },
     { label: "Primary", value: "primary" },

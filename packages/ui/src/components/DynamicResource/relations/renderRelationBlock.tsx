@@ -245,12 +245,12 @@ export const renderRelationBlock = ({
         );
     }
 
-    if (viewType === "gallery") {
+    if (viewType === "gallery" || viewType === "image") {
         const galleryModel = relatedModel || relationModel;
         return (
             <div key={rel.resource} style={{ marginTop: 12 }}>
                 {showLabel && <div style={{ ...resolvedLabelStyle, marginBottom: 6 }}>{relationLabel}</div>}
-                <RelatedObjectsGallery rel={rel} record={record} relatedModel={galleryModel} allModels={allModels} />
+                <RelatedObjectsGallery rel={rel} record={record} relatedModel={galleryModel} allModels={allModels} variant={viewType} />
             </div>
         );
     }

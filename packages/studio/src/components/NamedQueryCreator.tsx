@@ -3,7 +3,7 @@ import { FieldInfo, ModelInfo, NamedQueryDef, NQField, NQFilter, NQJoin, NQSort 
 import { api } from "../api";
 
 const FILTER_OPS = ["eq", "ne", "contains", "gt", "gte", "lt", "lte"];
-const VIEW_TYPES = ["table", "gallery", "calendar"];
+const VIEW_TYPES = ["table", "gallery", "image", "calendar"];
 
 interface JoinCandidate {
   resource: string;
