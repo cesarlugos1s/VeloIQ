@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-09-12T15:20:57.236919+00:00",
+  "updated_at": "2026-09-27T01:38:58.885096+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -5467,6 +5467,34 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
+    "DELETE__nlsentence__nl_sentence_eid": {
+      "http_method": "DELETE",
+      "path": "/nlsentence/{nl_sentence_eid}",
+      "summary": "DELETE /nlsentence/{nl_sentence_eid}",
+      "description": "Delete an NLSentence together with its answers and its links to NLChats.\n\nThe NL Chat page's per-sentence Delete button calls this route (under\n``/nlsentence``, like every other NL Chat sentence action) -- the framework's\ngeneric CRUD router only exposes DELETE under the table name\n(``/jm_nlsentence/{id}``), so ``DELETE /nlsentence/{id}`` answered 405.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_sentence_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-09-27T01:38:14.237880+00:00",
+      "status": "active"
+    },
     "DELETE__nlchat__nl_chat_eid__answers": {
       "http_method": "DELETE",
       "path": "/nlchat/{nl_chat_eid}/answers",
@@ -8346,57 +8374,6 @@
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
     },
-    "GET__system-config": {
-      "http_method": "GET",
-      "path": "/system-config",
-      "summary": "GET /system-config",
-      "description": "Return system configuration keys with current values and metadata.\n\nReads values from both jm_config.ini (via jm_obtain_config) and\nveloiq.toml [views] (via read_views_config). Returns a flat list\nof config items for the System Configuration console frontend.\n\nFor toml-sourced keys not yet present in veloiq.toml, returns the\nframework default value so the frontend always shows a sensible\nstarting point.\n\nRequires CONFIGURE_LAYOUT permission in the user's role.",
-      "parameters": {
-        "path": [],
-        "query": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.nlp",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "PUT__system-config": {
-      "http_method": "PUT",
-      "path": "/system-config",
-      "summary": "PUT /system-config",
-      "description": "Update system configuration keys across jm_config.ini and veloiq.toml.\n\nBody: { \"updates\": { \"log_up_to_relevance\": \"2\", \"plain_color_base_hex\": \"#1e708a\", ... } }\n\nKeys with source \"ini\" are written to config/jm_config.ini using the atomic\ntempfile pattern. Keys with source \"toml\" are written to veloiq.toml [views].\n\nRequires CONFIGURE_LAYOUT permission in the user's role.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "body",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ]
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.nlp",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
     "GET__jm_vigilant_has_process_type_relation": {
       "http_method": "GET",
       "path": "/jm_vigilant_has_process_type_relation",
@@ -10252,6 +10229,57 @@
       "source_file": "api.py",
       "source": "auto-discovered",
       "enabled": false,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__system-config": {
+      "http_method": "GET",
+      "path": "/system-config",
+      "summary": "GET /system-config",
+      "description": "Return system configuration keys with current values and metadata.\n\nReads values from both jm_config.ini (via jm_obtain_config) and\nveloiq.toml [views] (via read_views_config). Returns a flat list\nof config items for the System Configuration console frontend.\n\nFor toml-sourced keys not yet present in veloiq.toml, returns the\nframework default value so the frontend always shows a sensible\nstarting point.\n\nRequires CONFIGURE_LAYOUT permission in the user's role.",
+      "parameters": {
+        "path": [],
+        "query": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "PUT__system-config": {
+      "http_method": "PUT",
+      "path": "/system-config",
+      "summary": "PUT /system-config",
+      "description": "Update system configuration keys across jm_config.ini and veloiq.toml.\n\nBody: { \"updates\": { \"log_up_to_relevance\": \"2\", \"plain_color_base_hex\": \"#1e708a\", ... } }\n\nKeys with source \"ini\" are written to config/jm_config.ini using the atomic\ntempfile pattern. Keys with source \"toml\" are written to veloiq.toml [views].\n\nRequires CONFIGURE_LAYOUT permission in the user's role.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
       "allowed_roles": [
         "Admin"
       ],

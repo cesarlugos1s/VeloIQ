@@ -15,17 +15,26 @@
         },
         "agentic_planner_tokens": {
             "input_tokens": 20203,
-            "output_tokens": 2054
+            "output_tokens": 875
         }
     }
 ,
 
     "GET__task": {
         "description": "GET /task",
-        "start_node": "step_1_GET__task",
+        "start_node": "step_1_GET__project",
         "nodes": {
-            "step_1_GET__task": {
-                "id": "step_1_GET__task",
+            "step_1_GET__project": {
+                "id": "step_1_GET__project",
+                "tool": "GET__project",
+                "purpose": "Execute GET__project",
+                "transitions": {
+                    "default": "step_2_GET__task",
+                    "paths": []
+                }
+            },
+            "step_2_GET__task": {
+                "id": "step_2_GET__task",
                 "tool": "GET__task",
                 "purpose": "Execute GET__task",
                 "transitions": {
@@ -35,8 +44,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 10797,
-            "output_tokens": 1061
+            "input_tokens": 20207,
+            "output_tokens": 1292
         }
     }
 ,
@@ -123,8 +132,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 20210,
-            "output_tokens": 1858
+            "input_tokens": 20203,
+            "output_tokens": 1249
         }
     }
 ,
