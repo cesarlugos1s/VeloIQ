@@ -26,7 +26,9 @@ dependencies = [
     "fastapi>=0.109,<1.0",
     "uvicorn[standard]>=0.27",
     "python-multipart>=0.0.6",
-    "sqlmodel>=0.0.14,<1.0",
+    # <0.0.45: from 0.0.45 sqlmodel rejects naive datetimes ("Datetime values must have
+    # timezone information"); TimestampedModel and the extensions use datetime.utcnow.
+    "sqlmodel>=0.0.14,<0.0.45",
     "sqlalchemy>=2.0.25,<3.0",
     "alembic>=1.13,<2.0",
     "pydantic>=2.5,<3.0",
