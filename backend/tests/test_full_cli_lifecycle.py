@@ -46,6 +46,7 @@ currently on npm.
     sudo ufw reload
 """
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -95,8 +96,10 @@ def test_full_cli_lifecycle_app_boots_in_browser(tmp_path, register_summary_path
     # from the public registry. Re-point it at local packages/ui via npm link
     # so `veloiq build` below (and thus this whole test) validates the actual
     # local source, not whatever was last published — see module docstring.
-    _run(["npm", "link"], FRAMEWORK_UI, env)
-    _run(["npm", "link", "@juicemantics/veloiq-ui"], frontend_dir, env)
+    # npm is npm.cmd on Windows, which a bare "npm" in subprocess.run can't find.
+    npm = shutil.which("npm") or "npm"
+    _run([npm, "link"], FRAMEWORK_UI, env)
+    _run([npm, "link", "@juicemantics/veloiq-ui"], frontend_dir, env)
 
     pip = Path(sys.executable).parent / "pip"
     _run([str(pip), "install", "-r", "requirements.txt"], backend_dir, env)
