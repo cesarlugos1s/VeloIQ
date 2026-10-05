@@ -1,1 +1,18 @@
-{}
+{
+  "deterministic_test_find_projects_and_tasks": {
+    "description": "Find the projects and their tasks using the agent",
+    "status": "Active",
+    "start_node": "1",
+    "nodes": {
+      "1": {
+        "id": "1",
+        "tool": "provide_information_about_an_entity_tool",
+        "purpose": "Provide information about projects and tasks",
+        "transitions": {
+          "default": "__end__",
+          "paths": []
+        }
+      }
+    }
+  }
+}

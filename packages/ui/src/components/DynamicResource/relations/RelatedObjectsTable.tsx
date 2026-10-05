@@ -294,7 +294,6 @@ export const RelatedObjectsTable: React.FC<{
     const [renameViewName, setRenameViewName] = useState<string>("");
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
-    const [serverTotalRows, setServerTotalRows] = useState(0);
     const [fullDataLoaded, setFullDataLoaded] = useState(false);
     const [relationRowsCapped, setRelationRowsCapped] = useState(false);
     const [loadedRowsCount, setLoadedRowsCount] = useState(0);
@@ -1035,6 +1034,9 @@ export const RelatedObjectsTable: React.FC<{
         if (activeEntries.length === 0) return filteredRows;
         return filteredRows.filter((row) =>
             activeEntries.every(([fieldKey, selectedValues]) => {
+                if (fieldKey === "relation-link") {
+                    return selectedValues.includes(getRecordDisplayLabel(row));
+                }
                 const field = relatedModel.fields.find((f) => f.key === fieldKey);
                 if (!field) return true;
                 return selectedValues.some((value) => matchesColumnFilterValue(field, row, value));
@@ -1289,7 +1291,6 @@ export const RelatedObjectsTable: React.FC<{
     useEffect(() => {
         if (!recordId || !rel.otherResource || !rel.otherKey) {
             setRows([]);
-            setServerTotalRows(0);
             setFullDataLoaded(false);
             setRelationRowsCapped(false);
             setLoadedRowsCount(0);
@@ -1376,7 +1377,6 @@ export const RelatedObjectsTable: React.FC<{
                 if (relatedIds.length === 0) {
                     if (isMounted) {
                         setRows([]);
-                        setServerTotalRows(relationTotal);
                         if (shouldUseFullDataMode) {
                             setLoadedRowsCount(0);
                             setRelationRowsCapped(false);
@@ -1393,7 +1393,6 @@ export const RelatedObjectsTable: React.FC<{
                 if (filteredRelatedIds.length === 0) {
                     if (isMounted) {
                         setRows([]);
-                        setServerTotalRows(relationTotal);
                         if (shouldUseFullDataMode) {
                             setLoadedRowsCount(0);
                             setRelationRowsCapped(false);
@@ -1420,7 +1419,6 @@ export const RelatedObjectsTable: React.FC<{
                     .filter(Boolean);
                 if (isMounted) {
                     setRows(mergedRows);
-                    setServerTotalRows(shouldUseFullDataMode ? mergedRows.length : relationTotal);
                     setFullDataLoaded(shouldUseFullDataMode);
                     if (shouldUseFullDataMode) {
                         setLoadedRowsCount(mergedRows.length);
@@ -2915,7 +2913,9 @@ export const RelatedObjectsTable: React.FC<{
                             pagination={{
                                 current: currentPage,
                                 pageSize,
-                                total: shouldUseFullDataMode ? filteredRows.length : serverTotalRows,
+                                // Rows are loaded client-side, so the total must reflect the
+                                // search, filter rules and column filters applied to them.
+                                total: columnFilteredRows.length,
                                 hideOnSinglePage: true,
                                 showSizeChanger: true,
                                 pageSizeOptions: ["10", "20", "50", "100"],
@@ -2943,6 +2943,7 @@ export const RelatedObjectsTable: React.FC<{
                                     nextFilters[key] = (values as Array<string | number>).map((val) => String(val));
                                 });
                                 setColumnFiltersSelected(nextFilters);
+                                if (extra?.action === "filter") setCurrentPage(1);
                                 if (extra?.action === "sort") {
                                     const sortIntent = sortIntentRef.current;
                                     sortIntentRef.current = null;
@@ -3004,13 +3005,7 @@ export const RelatedObjectsTable: React.FC<{
                                             };
                                         },
                                     })}
-                                    onFilter={(value, recordRow: any) => {
-                                        if (isPkField(field, relatedModel) && recordRow?._label) {
-                                            return String(recordRow._label) === String(value) || String(recordRow.eid) === String(value);
-                                        }
-                                        const recordValue = recordRow?.[field.key];
-                                        return String(recordValue) === String(value);
-                                    }}
+                                    onFilter={(value, recordRow: any) => matchesColumnFilterValue(field, recordRow, value)}
                                     align={(field.type === "number" && !isReferenceField(field) && !isPkField(field, relatedModel)) ? "right" : undefined}
                                     render={(value, row: any) => {
                                         if (allowInlineEdit && !isPkField(field, relatedModel)) {
