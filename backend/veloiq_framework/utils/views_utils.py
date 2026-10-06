@@ -52,15 +52,18 @@ def resolve_dashboard_view_type(raw: Optional[str]) -> str:
         # muledit is a legacy CubicWeb multi-edit view; render it as the
         # (read-only) table view — inline editing is a frontend concern.
         return "editable-table"
-    if normalized == "list":
+    if normalized in {"list", "sameetypelist"}:
+        # sameetypelist is a legacy CubicWeb list of same-type entities;
+        # render it as the list view.
         return "list"
     if normalized == "csv":
         return "csv"
     if normalized in {"totalsdetails", "totaldetails"}:
         return "totals-details"
-    # Pass through custom page names (e.g. "custom_show_mechanism_results")
+    # Pass through custom page names (e.g. "custom_show_mechanism_results",
+    # or legacy CubicWeb view ids such as "iap-chart-view")
     raw_trimmed = str(raw or "").strip()
-    if raw_trimmed and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_trimmed):
+    if raw_trimmed and re.match(r'^[a-zA-Z_][a-zA-Z0-9_-]*$', raw_trimmed):
         return raw_trimmed
     return "table"
 
@@ -1509,13 +1512,44 @@ def _render_searchable_paginated_primary_html(
         "   setTimeout(()=>resizeEmbed(iframe),ms);"
         " });"
         "}"
+        # Embedded show pages are React apps that render their content well after the
+        # iframe 'load' event (later still when many embeds load at once), so the fixed
+        # resize schedule above can finish before any content exists. Watch the embedded
+        # document and grow the iframe whenever its content grows. Only growing (never
+        # collapsing to 1px here) avoids a resize feedback loop with the observer.
+        "function growEmbed(iframe){"
+        " try {"
+        "   const doc=iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);"
+        "   if(!doc || !doc.documentElement) return;"
+        "   const maxHeight=parseInt(iframe.dataset.maxHeight||'0',10)||0;"
+        "   const contentHeight=Math.max(doc.body ? doc.body.scrollHeight : 0, doc.documentElement.scrollHeight || 0);"
+        "   const finalHeight=maxHeight>0 ? Math.min(contentHeight,maxHeight) : contentHeight;"
+        "   if(finalHeight>(parseInt(iframe.style.height||'0',10)||0)){ iframe.style.height=`${finalHeight}px`; }"
+        " } catch(e) { /* Ignore cross-origin access restrictions. */ }"
+        "}"
+        "function observeEmbed(iframe){"
+        " try {"
+        "   const doc=iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);"
+        "   const win=iframe.contentWindow;"
+        "   if(!doc || !doc.body || !win || !win.ResizeObserver) return;"
+        "   if(iframe._jmObserver){ iframe._jmObserver.disconnect(); }"
+        "   let pending=false;"
+        "   iframe._jmObserver=new win.ResizeObserver(()=>{"
+        "     if(pending) return; pending=true;"
+        "     requestAnimationFrame(()=>{ pending=false; growEmbed(iframe); });"
+        "   });"
+        "   iframe._jmObserver.observe(doc.body);"
+        " } catch(e) { /* Ignore cross-origin access restrictions. */ }"
+        "}"
         "function setupEmbeds(){"
         " embeds.forEach((iframe)=>{"
         "   iframe.addEventListener('load',()=>{"
         "     scheduleResize(iframe);"
+        "     observeEmbed(iframe);"
         "   });"
         "   if(iframe.contentDocument && iframe.contentDocument.readyState==='complete'){"
         "     scheduleResize(iframe);"
+        "     observeEmbed(iframe);"
         "   }"
         " });"
         "}"
