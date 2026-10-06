@@ -78,6 +78,7 @@ import {
     resolveResourcePath,
 } from "../utils/model";
 import { getShowHref, shouldHandleLinkClick } from "../utils/navigation";
+import { getModelLabel } from "../utils/i18n";
 import {
     ToneSharedStyles,
     isDarkColor,
@@ -1029,10 +1030,14 @@ export const RelatedObjectsTable: React.FC<{
         return applyFilterRules(applyGlobalSearch(rows || []));
     }, [applyFilterRules, applyGlobalSearch, rows]);
 
-    const columnFilteredRows = useMemo(() => {
-        const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
-        if (activeEntries.length === 0) return filteredRows;
-        return filteredRows.filter((row) =>
+    // Rows passing every active column filter, except the one on `skipKey`. Column
+    // filters combine with AND, so a column's dropdown lists values from the rows the
+    // other columns' filters leave visible; it never offers a value that can't match.
+    const applyColumnFilters = useCallback((data: any[], skipKey?: string) => {
+        const activeEntries = Object.entries(columnFiltersSelected)
+            .filter(([fieldKey, values]) => fieldKey !== skipKey && values && values.length > 0);
+        if (activeEntries.length === 0) return data;
+        return data.filter((row) =>
             activeEntries.every(([fieldKey, selectedValues]) => {
                 if (fieldKey === "relation-link") {
                     return selectedValues.includes(getRecordDisplayLabel(row));
@@ -1042,7 +1047,9 @@ export const RelatedObjectsTable: React.FC<{
                 return selectedValues.some((value) => matchesColumnFilterValue(field, row, value));
             })
         );
-    }, [filteredRows, columnFiltersSelected, relatedModel.fields]);
+    }, [columnFiltersSelected, relatedModel.fields]);
+
+    const columnFilteredRows = useMemo(() => applyColumnFilters(filteredRows), [applyColumnFilters, filteredRows]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -2007,8 +2014,14 @@ export const RelatedObjectsTable: React.FC<{
         // rows. The loaded set is capped by relationsMaxRowsToLoad; the "Load all related"
         // banner surfaces when capped so the user knows values may be partial.
         const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-        return buildColumnFilterOptions({ fields: displayFields, data: filteredRows || [], rangeCount });
-    }, [displayFields, filteredRows, viewSettings]);
+        const options: ReturnType<typeof buildColumnFilterOptions> = new Map();
+        displayFields.forEach((field) => {
+            const data = applyColumnFilters(filteredRows || [], field.key);
+            const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount }).get(field.key);
+            if (fieldOptions) options.set(field.key, fieldOptions);
+        });
+        return options;
+    }, [applyColumnFilters, displayFields, filteredRows, viewSettings]);
 
     const allFieldOptions = useMemo(() => {
         return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
@@ -2953,15 +2966,29 @@ export const RelatedObjectsTable: React.FC<{
                                 }
                             }}
                         >
-                            {allowInlineEdit && (
-                                <Table.Column
+                            <Table.Column
                                     key="relation-link"
                                     // Identify the related entity by its dc_title()/__str__ label
-                                    // (the API-provided _label), never the raw PK/FK value.
-                                    title={relatedModel.label || relatedModel.name}
-                                    sorter={{ compare: (a: any, b: any) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)) }}
-                                    filters={Array.from(new Set((filteredRows || []).map((r: any) => getRecordDisplayLabel(r))))
+                                    // (the API-provided _label, built in the request's locale),
+                                    // never the raw PK/FK value. Shown first in every mode; its
+                                    // sort and filter state lives with the other columns'.
+                                    title={getModelLabel(relatedModel)}
+                                    sorter={{
+                                        compare: (a: any, b: any) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)),
+                                        multiple: getSortPriority(columnSort, "relation-link"),
+                                    }}
+                                    sortOrder={columnSort.find((item) => item.fieldKey === "relation-link")?.order ?? null}
+                                    onHeaderCell={() => ({
+                                        onClick: (event: React.MouseEvent) => {
+                                            sortIntentRef.current = {
+                                                fieldKey: "relation-link",
+                                                additive: event.ctrlKey || event.metaKey,
+                                            };
+                                        },
+                                    })}
+                                    filters={Array.from(new Set(applyColumnFilters(filteredRows || [], "relation-link").map((r: any) => getRecordDisplayLabel(r))))
                                         .map((label) => ({ text: label, value: label }))}
+                                    filteredValue={columnFiltersSelected["relation-link"] || null}
                                     filterSearch
                                     onFilter={(value, row: any) => getRecordDisplayLabel(row) === String(value)}
                                     render={(_unused, row: any) => {
@@ -2987,7 +3014,6 @@ export const RelatedObjectsTable: React.FC<{
                                         );
                                     }}
                                 />
-                            )}
                             {displayFields.map((field) => (
                                 <Table.Column
                                     key={field.key}

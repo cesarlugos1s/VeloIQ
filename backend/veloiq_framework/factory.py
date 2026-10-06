@@ -162,6 +162,9 @@ def create_veloiq_app(
     # ── Auth middleware ───────────────────────────────────────────────────────
     _add_auth_middleware(app, cfg)
 
+    # ── Request locale ────────────────────────────────────────────────────────
+    app.add_middleware(_RequestLocaleMiddleware)
+
     # ── SQLAdmin ──────────────────────────────────────────────────────────────
     from sqladmin import Admin
 
@@ -382,6 +385,38 @@ def _sync_schema(engine) -> None:
                     f"to apply, or set VELOIQ_DEV=1 for automatic migration."
                 )
 
+
+
+class _RequestLocaleMiddleware:
+    """Make ``_()`` use the caller's locale for the whole request.
+
+    Reads ``Accept-Language`` (the frontend sends the app's active locale) and
+    sets the request locale context, so server-built text such as record
+    titles (``_label``), charts and messages comes from that locale's
+    ``messages.po`` on every endpoint, not only on endpoints that set it
+    themselves. Pure ASGI, so the context reaches async and threadpool
+    endpoints alike.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        from veloiq_framework.utils.i18n_utils import (
+            reset_request_locale,
+            resolve_locale_from_accept_language,
+            set_request_locale,
+        )
+
+        header = next((v.decode("latin-1") for k, v in scope.get("headers", []) if k == b"accept-language"), None)
+        token = set_request_locale(resolve_locale_from_accept_language(header))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            reset_request_locale(token)
 
 
 # ---------------------------------------------------------------------------

@@ -391,6 +391,15 @@ function sortItemsByNavConfig(items, navConfig) {
   });
 }
 
+// src/utils/activeLocale.ts
+var getActiveLocale = () => {
+  try {
+    return (localStorage.getItem("locale") || navigator.language || "en").split("-")[0].toLowerCase();
+  } catch {
+    return "en";
+  }
+};
+
 // src/utils/authenticatedFetch.ts
 var TOKEN_KEY = "jm_access_token";
 var authenticatedFetch = (url, options = {}) => {
@@ -400,6 +409,9 @@ var authenticatedFetch = (url, options = {}) => {
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (!headers["Accept-Language"]) {
+    headers["Accept-Language"] = getActiveLocale();
   }
   return fetch(url, { ...options, headers });
 };
@@ -13283,10 +13295,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const filteredRows = React6.useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
-  const columnFilteredRows = React6.useMemo(() => {
-    const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
-    if (activeEntries.length === 0) return filteredRows;
-    return filteredRows.filter(
+  const applyColumnFilters = React6.useCallback((data, skipKey) => {
+    const activeEntries = Object.entries(columnFiltersSelected).filter(([fieldKey, values]) => fieldKey !== skipKey && values && values.length > 0);
+    if (activeEntries.length === 0) return data;
+    return data.filter(
       (row) => activeEntries.every(([fieldKey, selectedValues]) => {
         if (fieldKey === "relation-link") {
           return selectedValues.includes(getRecordDisplayLabel(row));
@@ -13296,7 +13308,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         return selectedValues.some((value) => matchesColumnFilterValue(field, row, value));
       })
     );
-  }, [filteredRows, columnFiltersSelected, relatedModel.fields]);
+  }, [columnFiltersSelected, relatedModel.fields]);
+  const columnFilteredRows = React6.useMemo(() => applyColumnFilters(filteredRows), [applyColumnFilters, filteredRows]);
   React6.useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
@@ -14204,8 +14217,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   };
   const columnFilters = React6.useMemo(() => {
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-    return buildColumnFilterOptions({ fields: displayFields, data: filteredRows || [], rangeCount });
-  }, [displayFields, filteredRows, viewSettings]);
+    const options = /* @__PURE__ */ new Map();
+    displayFields.forEach((field) => {
+      const data = applyColumnFilters(filteredRows || [], field.key);
+      const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount }).get(field.key);
+      if (fieldOptions) options.set(field.key, fieldOptions);
+    });
+    return options;
+  }, [applyColumnFilters, displayFields, filteredRows, viewSettings]);
   const allFieldOptions = React6.useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
@@ -15092,12 +15111,25 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     }
                   },
                   children: [
-                    allowInlineEdit && /* @__PURE__ */ jsxRuntime.jsx(
+                    /* @__PURE__ */ jsxRuntime.jsx(
                       antd.Table.Column,
                       {
-                        title: relatedModel.label || relatedModel.name,
-                        sorter: { compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)) },
-                        filters: Array.from(new Set((filteredRows || []).map((r) => getRecordDisplayLabel(r)))).map((label) => ({ text: label, value: label })),
+                        title: getModelLabel(relatedModel),
+                        sorter: {
+                          compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)),
+                          multiple: getSortPriority(columnSort, "relation-link")
+                        },
+                        sortOrder: columnSort.find((item) => item.fieldKey === "relation-link")?.order ?? null,
+                        onHeaderCell: () => ({
+                          onClick: (event) => {
+                            sortIntentRef.current = {
+                              fieldKey: "relation-link",
+                              additive: event.ctrlKey || event.metaKey
+                            };
+                          }
+                        }),
+                        filters: Array.from(new Set(applyColumnFilters(filteredRows || [], "relation-link").map((r) => getRecordDisplayLabel(r)))).map((label) => ({ text: label, value: label })),
+                        filteredValue: columnFiltersSelected["relation-link"] || null,
                         filterSearch: true,
                         onFilter: (value, row) => getRecordDisplayLabel(row) === String(value),
                         render: (_unused, row) => {
@@ -24438,6 +24470,9 @@ httpClient.interceptors.request.use((config) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.headers && !config.headers["Accept-Language"]) {
+    config.headers["Accept-Language"] = getActiveLocale();
+  }
   return config;
 });
 httpClient.interceptors.response.use(
@@ -25928,6 +25963,7 @@ exports.authSystemModels = authSystemModels;
 exports.authenticatedFetch = authenticatedFetch;
 exports.buildShowTabFormOptions = buildShowTabFormOptions;
 exports.generateResources = generateResources;
+exports.getActiveLocale = getActiveLocale;
 exports.getModelTone = getModelTone;
 exports.getNavEntry = getNavEntry;
 exports.guessIcon = guessIcon;

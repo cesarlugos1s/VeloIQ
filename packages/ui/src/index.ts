@@ -93,6 +93,7 @@ export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 export { generateResources } from "./utils/generateResources";
 export type { ResourceDef } from "./utils/generateResources";
 export { authenticatedFetch } from "./utils/authenticatedFetch";
+export { getActiveLocale } from "./utils/activeLocale";
 export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/DynamicResource/utils/gallery";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
 export { guessIcon, resolveIcon, getNavEntry, resolveNavKey, sortItemsByNavConfig, resolveFallbackLandingPath } from "./utils/navConfig";

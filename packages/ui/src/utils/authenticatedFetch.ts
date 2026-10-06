@@ -6,6 +6,8 @@
  * switch to this wrapper so requests are authenticated.
  */
 
+import { getActiveLocale } from "./activeLocale";
+
 const TOKEN_KEY = "jm_access_token";
 
 export const authenticatedFetch = (
@@ -18,6 +20,9 @@ export const authenticatedFetch = (
     };
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (!headers["Accept-Language"]) {
+        headers["Accept-Language"] = getActiveLocale();
     }
     return fetch(url, { ...options, headers });
 };

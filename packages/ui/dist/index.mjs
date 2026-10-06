@@ -364,6 +364,15 @@ function sortItemsByNavConfig(items, navConfig) {
   });
 }
 
+// src/utils/activeLocale.ts
+var getActiveLocale = () => {
+  try {
+    return (localStorage.getItem("locale") || navigator.language || "en").split("-")[0].toLowerCase();
+  } catch {
+    return "en";
+  }
+};
+
 // src/utils/authenticatedFetch.ts
 var TOKEN_KEY = "jm_access_token";
 var authenticatedFetch = (url, options = {}) => {
@@ -373,6 +382,9 @@ var authenticatedFetch = (url, options = {}) => {
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (!headers["Accept-Language"]) {
+    headers["Accept-Language"] = getActiveLocale();
   }
   return fetch(url, { ...options, headers });
 };
@@ -13256,10 +13268,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const filteredRows = useMemo(() => {
     return applyFilterRules(applyGlobalSearch(rows || []));
   }, [applyFilterRules, applyGlobalSearch, rows]);
-  const columnFilteredRows = useMemo(() => {
-    const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
-    if (activeEntries.length === 0) return filteredRows;
-    return filteredRows.filter(
+  const applyColumnFilters = useCallback((data, skipKey) => {
+    const activeEntries = Object.entries(columnFiltersSelected).filter(([fieldKey, values]) => fieldKey !== skipKey && values && values.length > 0);
+    if (activeEntries.length === 0) return data;
+    return data.filter(
       (row) => activeEntries.every(([fieldKey, selectedValues]) => {
         if (fieldKey === "relation-link") {
           return selectedValues.includes(getRecordDisplayLabel(row));
@@ -13269,7 +13281,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         return selectedValues.some((value) => matchesColumnFilterValue(field, row, value));
       })
     );
-  }, [filteredRows, columnFiltersSelected, relatedModel.fields]);
+  }, [columnFiltersSelected, relatedModel.fields]);
+  const columnFilteredRows = useMemo(() => applyColumnFilters(filteredRows), [applyColumnFilters, filteredRows]);
   useEffect(() => {
     setCurrentPage(1);
   }, [localSearch, filterRules]);
@@ -14177,8 +14190,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   };
   const columnFilters = useMemo(() => {
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-    return buildColumnFilterOptions({ fields: displayFields, data: filteredRows || [], rangeCount });
-  }, [displayFields, filteredRows, viewSettings]);
+    const options = /* @__PURE__ */ new Map();
+    displayFields.forEach((field) => {
+      const data = applyColumnFilters(filteredRows || [], field.key);
+      const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount }).get(field.key);
+      if (fieldOptions) options.set(field.key, fieldOptions);
+    });
+    return options;
+  }, [applyColumnFilters, displayFields, filteredRows, viewSettings]);
   const allFieldOptions = useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
@@ -15065,12 +15084,25 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     }
                   },
                   children: [
-                    allowInlineEdit && /* @__PURE__ */ jsx(
+                    /* @__PURE__ */ jsx(
                       Table.Column,
                       {
-                        title: relatedModel.label || relatedModel.name,
-                        sorter: { compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)) },
-                        filters: Array.from(new Set((filteredRows || []).map((r) => getRecordDisplayLabel(r)))).map((label) => ({ text: label, value: label })),
+                        title: getModelLabel(relatedModel),
+                        sorter: {
+                          compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)),
+                          multiple: getSortPriority(columnSort, "relation-link")
+                        },
+                        sortOrder: columnSort.find((item) => item.fieldKey === "relation-link")?.order ?? null,
+                        onHeaderCell: () => ({
+                          onClick: (event) => {
+                            sortIntentRef.current = {
+                              fieldKey: "relation-link",
+                              additive: event.ctrlKey || event.metaKey
+                            };
+                          }
+                        }),
+                        filters: Array.from(new Set(applyColumnFilters(filteredRows || [], "relation-link").map((r) => getRecordDisplayLabel(r)))).map((label) => ({ text: label, value: label })),
+                        filteredValue: columnFiltersSelected["relation-link"] || null,
                         filterSearch: true,
                         onFilter: (value, row) => getRecordDisplayLabel(row) === String(value),
                         render: (_unused, row) => {
@@ -24411,6 +24443,9 @@ httpClient.interceptors.request.use((config) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.headers && !config.headers["Accept-Language"]) {
+    config.headers["Accept-Language"] = getActiveLocale();
+  }
   return config;
 });
 httpClient.interceptors.response.use(
@@ -25854,6 +25889,6 @@ var helpSystemModels = [
   }
 ];
 
-export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getActiveLocale, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

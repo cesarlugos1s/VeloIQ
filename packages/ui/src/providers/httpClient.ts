@@ -6,6 +6,7 @@
  */
 
 import axios from "axios";
+import { getActiveLocale } from "../utils/activeLocale";
 
 const TOKEN_KEY = "jm_access_token";
 
@@ -15,6 +16,9 @@ httpClient.interceptors.request.use((config) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (config.headers && !config.headers["Accept-Language"]) {
+        config.headers["Accept-Language"] = getActiveLocale();
     }
     return config;
 });
