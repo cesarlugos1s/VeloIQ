@@ -2167,34 +2167,48 @@ def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
             # Keep exact identifier names when no locale translator is available.
             df_to_format.columns = [str(column) for column in df_to_format.columns]
 
+    # Decimal values (e.g. SQL NUMERIC results) arrive as object columns; make them floats so
+    # they are rounded, aligned and barred like any other number.
+    for column in df_to_format.select_dtypes('object').columns:
+        non_null_values = df_to_format[column].dropna()
+        if len(non_null_values) > 0 and all(isinstance(value, decimal.Decimal) for value in non_null_values):
+            df_to_format[column] = df_to_format[column].astype(float)
+
     if format_decimals:
         df_to_format = df_to_format.round(2)
 
     df_with_pretty_format = df_to_format.copy()
 
+    # Markdown keeps 2 decimals on every float column; the default 'g' format drops them on whole
+    # values (202.0 -> 202), so a float column would read, and parse back, as integers.
+    markdown_floatfmt = ['.2f' if pandas.api.types.is_float_dtype(dtype) else 'g' for dtype in df_to_format.dtypes]
+    if keep_index:
+        markdown_floatfmt = ['g'] * df_to_format.index.nlevels + markdown_floatfmt
+
     try:
 
         if 'pretty_df_with_bars' in df_styles_to_apply:
 
-            df_columns_names_list = tuple(df_with_pretty_format.columns.values.tolist())
-
             pandas.options.display.float_format = '{:,.2f}'.format
 
+            numeric_columns = df_with_pretty_format.select_dtypes('number').columns
+            float_columns = df_with_pretty_format.select_dtypes('floating').columns
+            integer_columns = numeric_columns.difference(float_columns)
+
             if len(include_bars_on_columns) == 0 and show_bars:
-                include_bars_on_columns = df_with_pretty_format.select_dtypes([np.int64, np.float64]).columns
+                include_bars_on_columns = numeric_columns
+
+            # Numbers that can carry decimals always show 2 of them; whole numbers none.
+            # Both are right-aligned, so their digits line up across rows. Missing values show empty.
+            df_with_pretty_format = df_with_pretty_format.style \
+                .format(na_rep='') \
+                .format('{:,.2f}', subset=float_columns, na_rep='') \
+                .format('{:,.0f}', subset=integer_columns, na_rep='') \
+                .set_properties(subset=numeric_columns, **{'text-align': 'right !important'})
 
             if len(include_bars_on_columns) > 0:
-                df_with_pretty_format = df_with_pretty_format.style \
-                    .format({
-                    df_columns_names_list: "{:20,.0f}"
-                }) \
+                df_with_pretty_format = df_with_pretty_format \
                     .bar(subset=include_bars_on_columns, color=bars_color)
-
-            else:
-                df_with_pretty_format = df_with_pretty_format.style \
-                    .format({
-                    df_columns_names_list: "{:20,.0f}"
-                })
 
             cell_hover = {  # for row hover use <tr> instead of <td>
                 'selector': 'td:hover',
@@ -2208,7 +2222,7 @@ def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
 
             headers = {
                 'selector': 'th:not(.index_name)',
-                'props': 'background-color: #509EE333; color: #27537A; border-left: 10px solid transparent; text-align: left'
+                'props': 'background-color: #509EE333; color: #27537A; border-left: 10px solid transparent; text-align: center'
             }
 
             df_with_pretty_format = df_with_pretty_format.set_table_styles([cell_hover, index_names, headers])
@@ -2237,14 +2251,14 @@ def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
         if output_format == 'HTML':
             df_as_html = df_with_pretty_format.to_html(index = keep_index)
         else:
-            df_as_html = df_with_pretty_format.to_markdown(index = keep_index)
+            df_as_html = df_to_format.to_markdown(index = keep_index, floatfmt = markdown_floatfmt)
 
     except Exception as e:
         # In case DataFrame formatting fails, return the simple conversion to HTML with no formatting.
         if output_format == 'HTML':
             df_as_html = df_to_format.to_html(index = keep_index)
         else:
-            df_as_html = df_to_format.to_markdown(index = keep_index)
+            df_as_html = df_to_format.to_markdown(index = keep_index, floatfmt = markdown_floatfmt)
 
     return df_as_html
 
