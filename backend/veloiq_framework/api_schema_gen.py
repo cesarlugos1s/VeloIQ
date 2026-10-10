@@ -381,11 +381,13 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                         if isinstance(jse, dict):
                             if "options" in jse:
                                 raw_opts = jse["options"]
-                                # FieldDef.options expects { label, value }[] — normalise string arrays
-                                if raw_opts and isinstance(raw_opts[0], str):
+                                # FieldDef.options expects { label, value }[] — normalise plain-value
+                                # arrays. None marks an Optional field's "no value" (already covered by
+                                # clearing the select) and a raw null entry crashes antd's Select.
+                                if raw_opts and all(v is None or isinstance(v, (str, int, float, bool)) for v in raw_opts):
                                     ts_opts = "[" + ", ".join(
                                         f'{{ label: {json.dumps(v)}, value: {json.dumps(v)} }}'
-                                        for v in raw_opts
+                                        for v in raw_opts if v is not None
                                     ) + "]"
                                 else:
                                     ts_opts = json.dumps(raw_opts)
