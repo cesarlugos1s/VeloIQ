@@ -180,6 +180,15 @@ class VeloIQExtension:
     #: component itself.
     global_header_components: list = []
 
+    #: Path *relative to the installed package directory* of the extension's
+    #: translation catalogs, laid out as ``<locale>/LC_MESSAGES/messages.po``.
+    #: One catalog per locale holds BOTH the extension's backend ``_()``
+    #: strings and its frontend UI ``_()`` strings. The framework layers it
+    #: above VeloIQ's own catalog and below the host app's, so every host app
+    #: gets the extension's translations and can still override any of them.
+    #: Ignored when the directory doesn't exist.
+    locales_dir: Optional[str] = "locales"
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
@@ -216,6 +225,13 @@ class VeloIQExtension:
         if not self.frontend_components_dir:
             return None
         p = self.package_dir() / self.frontend_components_dir
+        return p if p.exists() else None
+
+    def resolved_locales_dir(self) -> Optional[Path]:
+        """Return the absolute path to the translation catalogs directory, or None."""
+        if not self.locales_dir:
+            return None
+        p = self.package_dir() / self.locales_dir
         return p if p.exists() else None
 
     # ── Validation ────────────────────────────────────────────────────────────

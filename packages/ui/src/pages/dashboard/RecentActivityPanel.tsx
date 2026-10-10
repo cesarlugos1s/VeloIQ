@@ -6,6 +6,9 @@ import { useRecentActivity } from "./hooks/useRecentActivity";
 import { useAllModels } from "../../contexts/AllModelsContext";
 import { findModelByName } from "../../components/DynamicResource/utils/model";
 import { getModelTone } from "../../utils/modelTone";
+import { translateText } from "../../components/DynamicResource/utils/i18n";
+// Resolved at call time — see utils/i18n.ts's translateText for why.
+const _ = (text: string): string => translateText(text, text);
 
 const { Text, Title } = Typography;
 
@@ -13,12 +16,12 @@ function relativeTime(iso?: string): string {
     if (!iso) return "";
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return _("just now");
+    if (mins < 60) return _("{count}m ago").replace("{count}", String(mins));
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
+    if (hrs < 24) return _("{count}h ago").replace("{count}", String(hrs));
     const days = Math.floor(hrs / 24);
-    if (days < 30) return `${days}d ago`;
+    if (days < 30) return _("{count}d ago").replace("{count}", String(days));
     return new Date(iso).toLocaleDateString();
 }
 
@@ -33,7 +36,7 @@ export const RecentActivityPanel: React.FC = () => {
     return (
         <div style={{ padding: "16px 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }}>
-                <Text type="secondary">Show activity from the last</Text>
+                <Text type="secondary">{_("Show activity from the last")}</Text>
                 <InputNumber
                     min={1}
                     max={365}
@@ -42,8 +45,8 @@ export const RecentActivityPanel: React.FC = () => {
                     style={{ width: 72 }}
                     size="small"
                 />
-                <Text type="secondary">days</Text>
-                <Tooltip title="Refresh">
+                <Text type="secondary">{_("days")}</Text>
+                <Tooltip title={_("Refresh")}>
                     <ReloadOutlined
                         style={{ color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 }}
                         onClick={reload}
@@ -51,7 +54,9 @@ export const RecentActivityPanel: React.FC = () => {
                 </Tooltip>
                 {data && (
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                        {groups.reduce((n, g) => n + g.records.length, 0)} records across {groups.length} models
+                        {_("{records} records across {models} models")
+                            .replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0)))
+                            .replace("{models}", String(groups.length))}
                     </Text>
                 )}
             </div>
@@ -62,7 +67,7 @@ export const RecentActivityPanel: React.FC = () => {
                 </div>
             ) : groups.length === 0 ? (
                 <Empty
-                    description={`No activity in the last ${days} days`}
+                    description={_("No activity in the last {days} days").replace("{days}", String(days))}
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                     style={{ padding: 48 }}
                 />
@@ -125,7 +130,7 @@ export const RecentActivityPanel: React.FC = () => {
                                                         {rec._label || `#${rec.id}`}
                                                     </Link>
                                                     {isNew && (
-                                                        <Tag color="green" style={{ fontSize: 10, padding: "0 4px", lineHeight: "16px" }}>new</Tag>
+                                                        <Tag color="green" style={{ fontSize: 10, padding: "0 4px", lineHeight: "16px" }}>{_("new")}</Tag>
                                                     )}
                                                     <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
                                                         {relativeTime(timestamp)}

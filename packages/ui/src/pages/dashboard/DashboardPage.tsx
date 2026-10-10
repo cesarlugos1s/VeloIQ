@@ -15,7 +15,7 @@ const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((te
 
 const ComingSoon: React.FC<{ label: string }> = ({ label }) => (
     <div style={{ padding: 48, textAlign: "center" }}>
-        <Text type="secondary">{label} — coming soon.</Text>
+        <Text type="secondary">{label} — {_("coming soon.")}</Text>
     </div>
 );
 
@@ -128,8 +128,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ cellExtraActions, 
                     imageStyle={{ height: 60 }}
                     description={
                         <span>
-                            No dashboard configured.<br />
-                            <Text type="secondary">Run <code>veloiq add-dashboard &lt;model&gt; …</code> to get started.</Text>
+                            {_("No dashboard configured.")}<br />
+                            <Text type="secondary">{_("Run")} <code>veloiq add-dashboard &lt;model&gt; …</code> {_("to get started.")}</Text>
                         </span>
                     }
                 />

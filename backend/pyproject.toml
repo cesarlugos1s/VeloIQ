@@ -114,6 +114,7 @@ include = ["veloiq_framework*"]
 [tool.setuptools.package-data]
 "veloiq_framework" = [
     "upsells.json",
+    "locales/*/LC_MESSAGES/*.po",
     "scaffold/**/*",
     "scaffold/.windsurfrules",
     "scaffold/.cursor/rules/*",

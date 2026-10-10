@@ -1,9 +1,29 @@
+"""Translation lookup for VeloIQ and every package built on it.
+
+Catalogs are layered. Each layer is a ``locales`` directory laid out as
+``<locale>/LC_MESSAGES/messages.po``, and one catalog per locale holds both
+the backend ``_()`` strings and the frontend UI ``_()`` strings of whatever
+owns that layer. Lowest priority first:
+
+1. VeloIQ's own catalog (``veloiq_framework/locales``), shipped with the package.
+2. Each enabled extension's catalog, in ``veloiq.toml`` order
+   (:attr:`VeloIQExtension.locales_dir`).
+3. The host app's catalog (``I18N_LOCALES_DIR``), which overrides any string
+   of the layers below it.
+
+A locale is supported when any layer has a catalog for it, so a host app can
+add a locale on its own; strings no layer translates for that locale fall
+back to the English catalogs, then to the source text.
+"""
 import os
 import ast
 from contextvars import ContextVar, Token
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
+
+FRAMEWORK_LOCALES_DIR: Path = Path(__file__).resolve().parent.parent / "locales"
+_EXTENSION_LOCALES_DIRS: Tuple[Path, ...] = ()
 
 I18N_LOCALES_DIR: Path = Path(
     os.getenv(
@@ -17,16 +37,35 @@ FALLBACK_LOCALE = "en"
 _REQUEST_LOCALE: ContextVar[Optional[str]] = ContextVar("veloiq_request_locale", default=None)
 
 
-def configure_i18n(locales_dir: str = "", default_locale: str = "") -> None:
-    """Override i18n paths at startup (called from create_veloiq_app())."""
-    global I18N_LOCALES_DIR, DEFAULT_LOCALE
+def configure_i18n(
+    locales_dir: str = "",
+    default_locale: str = "",
+    extension_locales_dirs: Optional[Iterable] = None,
+) -> None:
+    """Override i18n paths at startup (called from create_veloiq_app()).
+
+    :param locales_dir: The host app's catalogs directory (the top layer).
+    :param default_locale: Locale used when nothing else selects one.
+    :param extension_locales_dirs: The enabled extensions' catalogs
+        directories, lowest priority first; ``None`` keeps the current ones.
+    """
+    global I18N_LOCALES_DIR, DEFAULT_LOCALE, _EXTENSION_LOCALES_DIRS
     if locales_dir:
         I18N_LOCALES_DIR = Path(locales_dir)
     if default_locale:
         DEFAULT_LOCALE = default_locale
+    if extension_locales_dirs is not None:
+        _EXTENSION_LOCALES_DIRS = tuple(Path(d) for d in extension_locales_dirs if d)
     # Clear caches so they pick up new paths.
     get_supported_locales.cache_clear()
     _load_po_catalog_cached.cache_clear()
+    _merge_po_catalogs_cached.cache_clear()
+
+
+def catalog_layers() -> Tuple[Path, ...]:
+    """The catalogs directories in lookup order, lowest priority first:
+    VeloIQ, then the enabled extensions, then the host app."""
+    return (FRAMEWORK_LOCALES_DIR, *_EXTENSION_LOCALES_DIRS, I18N_LOCALES_DIR)
 
 
 def _canonicalize_locale(locale: Optional[str]) -> str:
@@ -39,18 +78,18 @@ def _canonicalize_locale(locale: Optional[str]) -> str:
 @lru_cache(maxsize=1)
 def get_supported_locales() -> Tuple[str, ...]:
     """
-    Discover locales that have a messages.po translation catalog.
+    Discover locales that have a messages.po translation catalog in any layer.
     """
-    if not I18N_LOCALES_DIR.exists():
-        return (FALLBACK_LOCALE,)
-
     supported = []
-    for locale_dir in I18N_LOCALES_DIR.iterdir():
-        if not locale_dir.is_dir():
+    for layer in catalog_layers():
+        if not layer.is_dir():
             continue
-        catalog = locale_dir / "LC_MESSAGES" / f"{I18N_DOMAIN}.po"
-        if catalog.exists():
-            supported.append(_canonicalize_locale(locale_dir.name))
+        for locale_dir in layer.iterdir():
+            if not locale_dir.is_dir():
+                continue
+            catalog = locale_dir / "LC_MESSAGES" / f"{I18N_DOMAIN}.po"
+            if catalog.exists():
+                supported.append(_canonicalize_locale(locale_dir.name))
 
     if FALLBACK_LOCALE not in supported:
         supported.append(FALLBACK_LOCALE)
@@ -252,16 +291,43 @@ def _normalize_locale(locale: Optional[str]) -> str:
     return resolve_supported_locale(candidate, fallback_locale=FALLBACK_LOCALE)
 
 
-def _resolve_po_file(locale: str) -> Optional[Path]:
-    resolved_locale = resolve_supported_locale(locale, fallback_locale=FALLBACK_LOCALE)
-    locale_candidates = [resolved_locale]
-    if "_" in resolved_locale:
-        locale_candidates.append(resolved_locale.split("_", 1)[0])
+def _layer_po_files(layer: Path, locale: str) -> Tuple[Path, ...]:
+    """The catalogs one layer has for ``locale``: its base language's first,
+    then the regional one (``es`` then ``es_mx``), so a regional catalog only
+    needs the strings that differ from the base language."""
+    files = []
+    locale_candidates = [locale.split("_", 1)[0]] if "_" in locale else []
+    locale_candidates.append(locale)
     for loc in locale_candidates:
-        candidate = I18N_LOCALES_DIR / loc / "LC_MESSAGES" / f"{I18N_DOMAIN}.po"
-        if candidate.exists():
-            return candidate
-    return None
+        # Directory names keep their on-disk case (``es_MX``); match loosely.
+        for candidate_dir in (layer / loc, layer / _denormalize_region(loc)):
+            candidate = candidate_dir / "LC_MESSAGES" / f"{I18N_DOMAIN}.po"
+            if candidate.exists() and candidate not in files:
+                files.append(candidate)
+                break
+    return tuple(files)
+
+
+def _denormalize_region(locale: str) -> str:
+    """``es_mx`` -> ``es_MX``, the usual on-disk spelling of a regional locale."""
+    language, _sep, region = locale.partition("_")
+    return f"{language}_{region.upper()}" if region else language
+
+
+def _locale_po_files(locale: str) -> Tuple[Path, ...]:
+    """Every catalog for ``locale`` across all layers, lowest priority first."""
+    resolved_locale = resolve_supported_locale(locale, fallback_locale=FALLBACK_LOCALE)
+    files = []
+    for layer in catalog_layers():
+        files.extend(_layer_po_files(layer, resolved_locale))
+    return tuple(files)
+
+
+def _resolve_po_file(locale: str) -> Optional[Path]:
+    """The host app's own catalog for ``locale`` (top layer only), or None."""
+    resolved_locale = resolve_supported_locale(locale, fallback_locale=FALLBACK_LOCALE)
+    files = _layer_po_files(I18N_LOCALES_DIR, resolved_locale)
+    return files[-1] if files else None
 
 
 @lru_cache(maxsize=32)
@@ -317,26 +383,53 @@ def _load_po_catalog_cached(po_file_str: Optional[str], _mtime_ns: int) -> Dict[
     return catalog
 
 
+@lru_cache(maxsize=32)
+def _merge_po_catalogs_cached(po_files: Tuple[Tuple[str, int], ...]) -> Dict[str, str]:
+    """Merge ``(path, mtime_ns)`` catalogs in order, later ones winning. The
+    mtimes are part of the cache key, so editing any layer's file on disk
+    invalidates the merged result."""
+    merged: Dict[str, str] = {}
+    for po_file_str, mtime_ns in po_files:
+        merged.update(_load_po_catalog_cached(po_file_str, mtime_ns))
+    return merged
+
+
 def _load_po_catalog(locale: str) -> Dict[str, str]:
     """
-    Load translation entries from the ``messages.po`` catalog for a locale.
+    Load the merged translation entries of every layer for a locale.
 
-    Resolves the file on disk and delegates parsing to a cached helper keyed
-    on the file path and its mtime, so on-disk edits invalidate the cache
+    VeloIQ's catalog first, then each enabled extension's, then the host
+    app's, each one overriding the entries of the layers before it. Parsing
+    is cached per file path and mtime, so on-disk edits invalidate the cache
     automatically (no explicit clear needed for dev workflows).
     """
-    po_file = _resolve_po_file(locale)
-    if po_file is None:
-        return _load_po_catalog_cached(None, 0)
-    return _load_po_catalog_cached(str(po_file), po_file.stat().st_mtime_ns)
+    key = tuple((str(f), f.stat().st_mtime_ns) for f in _locale_po_files(locale))
+    return _merge_po_catalogs_cached(key)
 
 
 def get_catalog_for_locale(locale: Optional[str]) -> Dict[str, str]:
     """
-    Return translation catalog for a locale resolved to supported files.
+    Return the merged translation catalog (all layers) for a locale resolved
+    to supported files.
     """
     resolved = resolve_supported_locale(locale, fallback_locale=FALLBACK_LOCALE)
     return _load_po_catalog(resolved)
+
+
+def get_ui_catalog(locale: Optional[str]) -> Dict[str, str]:
+    """
+    Return the catalog the browser's ``window._`` uses for ``locale``.
+
+    The merged English catalog sits underneath the locale's own, so a string
+    no layer translates for ``locale`` shows its English label rather than
+    its raw source text (an identifier such as ``sales_record``), the same
+    fallback the backend ``_()`` applies.
+    """
+    resolved = resolve_supported_locale(locale, fallback_locale=FALLBACK_LOCALE)
+    catalog = dict(_load_po_catalog(FALLBACK_LOCALE))
+    if resolved != FALLBACK_LOCALE:
+        catalog.update(_load_po_catalog(resolved))
+    return catalog
 
 
 def clear_i18n_catalog_cache() -> None:
@@ -345,6 +438,7 @@ def clear_i18n_catalog_cache() -> None:
     is keyed on file mtime; provided for tests and admin tooling.
     """
     _load_po_catalog_cached.cache_clear()
+    _merge_po_catalogs_cached.cache_clear()
 
 
 def _humanize_identifier_fallback(text_to_translate: str) -> str:
@@ -361,10 +455,11 @@ def _humanize_identifier_fallback(text_to_translate: str) -> str:
 
 def _(text_to_translate, locale: Optional[str] = None) -> str:
     """
-    Translate text using the shared application PO catalogs.
+    Translate text using the layered PO catalogs (host app, then the enabled
+    extensions, then VeloIQ).
 
-    The function resolves the effective locale, tries that catalog first,
-    then falls back to the default locale catalog. If no entry is found,
+    The function resolves the effective locale, tries that merged catalog
+    first, then falls back to the merged English catalog. If no entry is found,
     the source text is returned unchanged.
 
     :param text_to_translate: Text to translate.
@@ -393,3 +488,75 @@ def _(text_to_translate, locale: Optional[str] = None) -> str:
                 return translated
 
     return _humanize_identifier_fallback(source_text)
+
+
+def legacy_frontend_catalog_files(locale: str, serve_frontend: Optional[str] = None) -> Tuple[Path, ...]:
+    """
+    The host app's legacy per-locale frontend catalogue files, if any.
+
+    Before catalogs were layered, a host app kept every UI translation
+    (its own, VeloIQ's and each extension's) in
+    ``frontend/public/i18n/<locale>.json``, copied into ``dist/i18n`` by the
+    build. The source file wins over the built copy.
+    """
+    language = _canonicalize_locale(locale).split("_", 1)[0]
+    roots = []
+    if serve_frontend:
+        dist = Path(serve_frontend)
+        roots += [dist.parent / "public" / "i18n", dist / "i18n"]
+    roots.append(Path.cwd().parent / "frontend" / "public" / "i18n")
+    for root in roots:
+        candidate = root / f"{language}.json"
+        if candidate.is_file():
+            return (candidate,)
+    return ()
+
+
+def load_legacy_frontend_catalog(locale: str, serve_frontend: Optional[str] = None) -> Dict[str, str]:
+    """
+    The host app's legacy frontend catalogue for ``locale`` as ``{key: text}``,
+    or ``{}`` when there is none or it can't be parsed.
+    """
+    import json
+
+    for path in legacy_frontend_catalog_files(locale, serve_frontend):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items() if isinstance(v, str)}
+    return {}
+
+
+def get_frontend_catalog(
+    locale: Optional[str],
+    serve_frontend: Optional[str] = None,
+    english_fallback: bool = True,
+) -> Dict[str, str]:
+    """
+    The full catalog the browser's ``window._`` gets for ``locale``
+    (served at ``/i18n/<locale>.json``).
+
+    :func:`get_ui_catalog` (every layer, English underneath), plus the host
+    app's legacy frontend catalogue while it still has one: its entries sit
+    above the packages' catalogs and below the host app's own PO catalog.
+    An untranslated copy (value equal to its key) is ignored so it can't
+    mask a package's translation.
+
+    :param english_fallback: False leaves out the English catalog underneath,
+        for callers that need to know whether ``locale`` itself has an entry.
+    """
+    catalog = get_ui_catalog(locale) if english_fallback else dict(get_catalog_for_locale(locale))
+    legacy = load_legacy_frontend_catalog(locale or FALLBACK_LOCALE, serve_frontend)
+    if legacy:
+        host_po_file = _resolve_po_file(locale or FALLBACK_LOCALE)
+        host_entries = (
+            _load_po_catalog_cached(str(host_po_file), host_po_file.stat().st_mtime_ns)
+            if host_po_file is not None else {}
+        )
+        for key, value in legacy.items():
+            if key in host_entries or not value or value == key:
+                continue
+            catalog[key] = value
+    return catalog

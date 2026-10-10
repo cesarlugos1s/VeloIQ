@@ -102,16 +102,28 @@ def create_veloiq_app(
     )
     extensions = discover_extensions(enabled_extensions)
 
+    # ── Translation catalogs ──────────────────────────────────────────────────
+    # Layered lowest priority first: VeloIQ's own, each enabled extension's
+    # (in the order the app enables them), then the host app's. Configured
+    # here, before modules load, since model and module code calls _() at
+    # import time.
+    from veloiq_framework.utils.i18n_utils import configure_i18n
+    _enabled_order = list(enabled_extensions or [])
+    _ordered_extensions = sorted(
+        extensions,
+        key=lambda ext: _enabled_order.index(ext.name) if ext.name in _enabled_order else len(_enabled_order),
+    )
+    configure_i18n(
+        locales_dir=str(cfg.i18n_locales_dir.resolve()),
+        default_locale=cfg.i18n_default_locale,
+        extension_locales_dirs=[
+            d for d in (ext.resolved_locales_dir() for ext in _ordered_extensions) if d is not None
+        ],
+    )
+
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # Configure i18n from app settings.
-        from veloiq_framework.utils.i18n_utils import configure_i18n
-
-        configure_i18n(
-            locales_dir=str(cfg.i18n_locales_dir.resolve()),
-            default_locale=cfg.i18n_default_locale,
-        )
         # VeloIQ's own System Configuration entries register first, so they lead
         # the console; module/extension factories then add theirs.
         from veloiq_framework.system_config.baseline import register_baseline_system_config
@@ -544,41 +556,31 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
 
     @app.get("/i18n/{locale}.json")
     def i18n_catalog(locale: str):
-        """Serve the translation catalogue for *locale* as a JSON dict.
+        """Serve the translation catalogue the browser's ``window._`` uses for *locale*.
 
-        Merges two sources: the frontend's built static catalogue (all
-        strings wrapped in ``_()`` in TSX — only present once ``veloiq
-        build`` has run) and the backend PO catalogue (strings wrapped in
-        ``_()`` in Python). This route is an explicit FastAPI route, so in
-        production (``cfg.serve_frontend`` set) it always wins over the
-        frontend dist's own ``i18n/{locale}.json`` static file, which is
-        only reachable via the SPA fallback (``app.router.default``) and
-        therefore never matched here — without this merge the static
-        catalogue would be unreachable and only backend strings would
-        translate.
+        The PO catalogs are layered (see ``utils/i18n_utils.py``): VeloIQ's
+        own, each enabled extension's, then the host app's, which overrides
+        any of them. One catalog per package and locale holds both its
+        backend and its frontend UI strings, so a host app keeps no copies of
+        VeloIQ's or an extension's translations. The merged English catalog
+        sits underneath, so a string no layer translates for *locale* shows
+        its English label.
+
+        A host app's legacy frontend catalogue
+        (``frontend/public/i18n/{locale}.json``, or the built
+        ``dist/i18n/{locale}.json``) is still honoured, above the packages'
+        catalogs and below the host app's own PO catalog, until
+        ``veloiq i18n migrate`` moves its entries into that PO catalog.
+
+        This route is an explicit FastAPI route, so in production
+        (``cfg.serve_frontend`` set) it always wins over the frontend dist's
+        own ``i18n/{locale}.json`` static file; in development Vite proxies
+        ``/i18n`` here.
         """
-        import json
         from fastapi.responses import JSONResponse
-        from veloiq_framework.utils.i18n_utils import (
-            _resolve_po_file,
-            _load_po_catalog_cached,
-        )
+        from veloiq_framework.utils.i18n_utils import get_frontend_catalog
 
-        catalog: dict = {}
-        if cfg.serve_frontend is not None:
-            static_catalog_file = Path(cfg.serve_frontend) / "i18n" / f"{locale}.json"
-            if static_catalog_file.exists():
-                try:
-                    catalog.update(json.loads(static_catalog_file.read_text(encoding="utf-8")))
-                except (json.JSONDecodeError, OSError):
-                    pass
-
-        po_file = _resolve_po_file(locale)
-        if po_file is not None:
-            mtime = int(po_file.stat().st_mtime_ns)
-            catalog.update(_load_po_catalog_cached(str(po_file), mtime))
-
-        return JSONResponse(catalog)
+        return JSONResponse(get_frontend_catalog(locale, cfg.serve_frontend))
 
     # Auth endpoints (login, me, register, CRUD for user/role/tenant). The
     # "/auth/*" router stays unprefixed (the UI's authProvider calls it

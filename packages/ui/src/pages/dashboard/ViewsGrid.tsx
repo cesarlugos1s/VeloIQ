@@ -134,10 +134,10 @@ const PlotlyChartContent: React.FC<{ chartUrl: string; refreshNonce: number; min
         return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }}><Spin /></div>;
     }
     if (error) {
-        return <Empty description={`Chart error: ${error}`} style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+        return <Empty description={`${_("Chart error")}: ${error}`} style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
     }
     if (!chartHtml) {
-        return <Empty description="No chart data" style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+        return <Empty description={_("No chart data")} style={{ padding: 20 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
     }
     return <InlinePlotlyHtml html={chartHtml} style={{ padding: 8, height: "100%", overflow: "auto" }} minScale={minScale} />;
 };
@@ -232,7 +232,7 @@ const DashboardGridCell: React.FC<{
         ? (cell.chart_title || cell.model)
         : isModelLike
             ? (model?.label || cell.model)
-            : (cell.section_name || cell.model);
+            : (cell.section_name ? _(cell.section_name) : cell.model);
     const tone = (isModelLike && model) ? getModelTone(model) : null;
 
     // Refresh nonce for plotly chart cells — incrementing triggers re-fetch
@@ -391,7 +391,7 @@ const DashboardGridCell: React.FC<{
                 <div className="jm-cell-actions" style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 {canConfigureLayout && (
                 <>
-                <Tooltip title="Move left">
+                <Tooltip title={_("Move left")}>
                     <Button
                         type="text" size="small"
                         icon={<ArrowLeftOutlined style={{ fontSize: 10 }} />}
@@ -399,7 +399,7 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title="Move up">
+                <Tooltip title={_("Move up")}>
                     <Button
                         type="text" size="small"
                         icon={<ArrowUpOutlined style={{ fontSize: 10 }} />}
@@ -407,7 +407,7 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title="Move down">
+                <Tooltip title={_("Move down")}>
                     <Button
                         type="text" size="small"
                         icon={<ArrowDownOutlined style={{ fontSize: 10 }} />}
@@ -415,7 +415,7 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title="Move right">
+                <Tooltip title={_("Move right")}>
                     <Button
                         type="text" size="small"
                         icon={<ArrowRightOutlined style={{ fontSize: 10 }} />}
@@ -423,7 +423,7 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title="Configure cell">
+                <Tooltip title={_("Configure cell")}>
                     <Button
                         type="text" size="small"
                         icon={<SettingOutlined style={{ fontSize: 11 }} />}
@@ -436,13 +436,13 @@ const DashboardGridCell: React.FC<{
                 {isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null}
                 {isModelLike && resource ? <DashboardCellHelp resource={resource} /> : null}
                 {isModelLike || cell.source_type === "relation" ? (
-                    <Tooltip title="Open full page">
+                    <Tooltip title={_("Open full page")}>
                         <Link to={`/${resource}`} style={{ color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }}>
                             <LinkOutlined style={{ fontSize: 11 }} />
                         </Link>
                     </Tooltip>
                 ) : null}
-                <Tooltip title={isMaximized ? "Restore" : "Maximize"}>
+                <Tooltip title={isMaximized ? _("Restore") : _("Maximize")}>
                     <Button
                         type="text" size="small"
                         icon={<FullscreenOutlined style={{ fontSize: 11 }} />}
@@ -450,7 +450,7 @@ const DashboardGridCell: React.FC<{
                         style={{ color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }}
                     />
                 </Tooltip>
-                <Tooltip title={isMinimized ? "Restore" : "Minimize"}>
+                <Tooltip title={isMinimized ? _("Restore") : _("Minimize")}>
                     <Button
                         type="text" size="small"
                         icon={<MinusSquareOutlined style={{ fontSize: 11 }} />}
@@ -484,7 +484,7 @@ const DashboardGridCell: React.FC<{
                         />
                     ) : (
                         <Empty
-                            description={`Model "${cell.model}" not found`}
+                            description={_("Model \"{model}\" not found").replace("{model}", cell.model)}
                             style={{ padding: 24 }}
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                         />
@@ -667,7 +667,7 @@ export const ViewsGrid: React.FC<Props> = ({ config, allModels, onConfigChange, 
             key: tab.id,
             label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    {tab.name}
+                    {_(tab.name)}
                     {tabExtraActions ? tabExtraActions(tab, allModels) : null}
                     <DashboardTabHelp tabId={tab.id} />
                 </span>

@@ -15,6 +15,9 @@ import { computeGridDims, groupCellsByRow, moveCellInConfig, resizeCellInConfig,
 import { useCellWindowState } from "./hooks/useCellWindowState";
 import { computeRowTrackHeight, useFitRowHeight, type GridDensity } from "./hooks/gridDensity";
 import { FitRowCellCarousel, type FitRowCellCarouselHandle } from "./FitCellCarousel";
+import { translateText } from "../../components/DynamicResource/utils/i18n";
+// Resolved at call time — see utils/i18n.ts's translateText for why.
+const _ = (text: string): string => translateText(text, text);
 
 /** "Original" step's row-height floor for SectionsGrid — its section cards
  * historically had no floor at all (`minmax(80px, auto)`), much shorter
@@ -193,28 +196,28 @@ const SectionCell: React.FC<{
             {isConfiguring && (
                 <div className="jm-cell-toolbar" style={toolbarStyle}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {cell.section_name || cell.id}
+                        {cell.section_name ? _(cell.section_name) : cell.id}
                     </span>
                     <div className="jm-cell-actions" style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                        <Tooltip title="Move left">
+                        <Tooltip title={_("Move left")}>
                             <Button type="text" size="small" icon={<ArrowLeftOutlined style={{ fontSize: 10 }} />} onClick={() => onMove("left")} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title="Move up">
+                        <Tooltip title={_("Move up")}>
                             <Button type="text" size="small" icon={<ArrowUpOutlined style={{ fontSize: 10 }} />} onClick={() => onMove("up")} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title="Move down">
+                        <Tooltip title={_("Move down")}>
                             <Button type="text" size="small" icon={<ArrowDownOutlined style={{ fontSize: 10 }} />} onClick={() => onMove("down")} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title="Move right">
+                        <Tooltip title={_("Move right")}>
                             <Button type="text" size="small" icon={<ArrowRightOutlined style={{ fontSize: 10 }} />} onClick={() => onMove("right")} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title="Configure section">
+                        <Tooltip title={_("Configure section")}>
                             <Button type="text" size="small" icon={<SettingOutlined style={{ fontSize: 11 }} />} onClick={onConfigure} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title={isMaximized ? "Restore" : "Maximize"}>
+                        <Tooltip title={isMaximized ? _("Restore") : _("Maximize")}>
                             <Button type="text" size="small" icon={<FullscreenOutlined style={{ fontSize: 11 }} />} onClick={onMaximize} style={btnStyle} />
                         </Tooltip>
-                        <Tooltip title={isMinimized ? "Restore" : "Minimize"}>
+                        <Tooltip title={isMinimized ? _("Restore") : _("Minimize")}>
                             <Button type="text" size="small" icon={<MinusSquareOutlined style={{ fontSize: 11 }} />} onClick={onMinimize} style={btnStyle} />
                         </Tooltip>
                     </div>
@@ -299,7 +302,7 @@ export const SectionsGrid = React.forwardRef<SectionsGridHandle, Props>(({ cells
     };
 
     if (!cells.length) {
-        return <Empty description="No sections configured" style={{ padding: 24 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+        return <Empty description={_("No sections configured")} style={{ padding: 24 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
     }
 
     const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;

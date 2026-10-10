@@ -8,6 +8,9 @@ import { getModelTone } from "../../utils/modelTone";
 import { unpinRecords } from "./hooks/usePinRecord";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { API_URL } from "../../providers/constants";
+import { translateText } from "../../components/DynamicResource/utils/i18n";
+// Resolved at call time — see utils/i18n.ts's translateText for why.
+const _ = (text: string): string => translateText(text, text);
 
 const { Text: AntText, Title: AntTitle } = Typography;
 
@@ -65,8 +68,8 @@ export const PinnedRecordsPanel: React.FC = () => {
         <div style={{ padding: "16px 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }}>
                 <PushpinFilled style={{ color: "#faad14", fontSize: 14 }} />
-                <AntText type="secondary">Records you've pinned across the app</AntText>
-                <Tooltip title="Refresh">
+                <AntText type="secondary">{_("Records you've pinned across the app")}</AntText>
+                <Tooltip title={_("Refresh")}>
                     <ReloadOutlined
                         style={{ color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 }}
                         onClick={reload}
@@ -74,7 +77,9 @@ export const PinnedRecordsPanel: React.FC = () => {
                 </Tooltip>
                 {!loading && (
                     <AntText type="secondary" style={{ fontSize: 12 }}>
-                        {visibleGroups.reduce((n, g) => n + g.records.length, 0)} pins across {visibleGroups.length} models
+                        {_("{pins} pins across {models} models")
+                            .replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0)))
+                            .replace("{models}", String(visibleGroups.length))}
                     </AntText>
                 )}
             </div>
@@ -87,9 +92,9 @@ export const PinnedRecordsPanel: React.FC = () => {
                 <Empty
                     description={
                         <span>
-                            No pinned records yet.<br />
+                            {_("No pinned records yet.")}<br />
                             <AntText type="secondary" style={{ fontSize: 12 }}>
-                                Open any record and click the <PushpinOutlined /> pin button to pin it here.
+                                {_("Open any record and click the")} <PushpinOutlined /> {_("pin button to pin it here.")}
                             </AntText>
                         </span>
                     }
@@ -155,7 +160,7 @@ export const PinnedRecordsPanel: React.FC = () => {
                                                     >
                                                         {rec._label || `#${rec.id}`}
                                                     </Link>
-                                                    <Tooltip title="Unpin">
+                                                    <Tooltip title={_("Unpin")}>
                                                         <Button
                                                             className="jm-unpin-btn"
                                                             type="text"

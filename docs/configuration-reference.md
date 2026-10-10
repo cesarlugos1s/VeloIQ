@@ -413,7 +413,34 @@ veloiq db current                           # show current revision
 
 ## Internationalisation (i18n)
 
-VeloIQ includes a PO-file-based translation system available in backend code via the `_()` helper.
+VeloIQ includes a PO-file-based translation system. The same catalogs serve backend code (the `_()` helper) and the UI (`window._`, loaded from `GET /i18n/{locale}.json`).
+
+### Layered catalogs
+
+VeloIQ and every extension ship their own catalogs, one `messages.po` per locale holding both their backend and their frontend UI strings. A host app keeps only its own strings and the ones it wants worded differently. Lookups go through these layers, highest priority first:
+
+| Layer | Catalogs |
+|---|---|
+| Host app | `i18n_locales_dir` (default `config/internationalization/locales`, relative to `backend/`) |
+| Enabled extensions, in `veloiq.toml` order | `<extension package>/locales/` (`VeloIQExtension.locales_dir`) |
+| VeloIQ | `veloiq_framework/locales/` |
+
+The first layer with a translation wins, so a host app overrides any VeloIQ or extension string by adding the same `msgid` with its own `msgstr`. A locale is available when any layer has a catalog for it: a host app can add, say, `fr` for its own strings alone, and every string no layer translates to French falls back to the English catalogs, then to the source text. A regional catalog (`es_MX`) needs only the strings that differ from its base language (`es`).
+
+Two commands keep catalogs in step:
+
+```bash
+# Package maintainers: add a package's new _() strings (backend .py and frontend .ts/.tsx) to its catalogs
+veloiq i18n extract backend/veloiq_framework --source packages/ui/src
+veloiq i18n extract backend/iqvigilant --check     # CI: fail on missing or untranslated strings
+
+# Host apps created before layered catalogs: keep only the app's own strings and overrides,
+# moved from frontend/public/i18n/<locale>.json into the host app's messages.po
+veloiq i18n migrate --dry-run
+veloiq i18n migrate
+```
+
+Until `veloiq i18n migrate` runs, a host app's legacy `frontend/public/i18n/<locale>.json` is still served, above the packages' catalogs and below the host app's own `messages.po`.
 
 | Field | Env var | Default | Description |
 |---|---|---|---|
@@ -464,7 +491,7 @@ def get_thing(thing_id: int, request: Request, lang: str | None = Query(None)):
 
 > **Streaming caveat:** for `StreamingResponse`, set the locale in the **async** request handler (so each per-chunk `copy_context()` inherits it), **not** inside the body generator — setting/resetting it inside the generator raises `ValueError: <Token …> was created in a different Context` and the locale will not persist across chunks.
 
-The `GET /i18n/{locale}.json` route used by the frontend i18n client serves a catalog by explicit locale and is independent of the request-locale context above. Catalog files are parsed on first use and cached; edits on disk are picked up automatically (the cache is keyed on file mtime).
+The `GET /i18n/{locale}.json` route used by the frontend i18n client serves the merged catalog of all layers for an explicit locale, with the merged English catalog underneath, and is independent of the request-locale context above. Catalog files are parsed on first use and cached; edits on disk are picked up automatically (the cache is keyed on file mtime).
 
 > **Path resolution note:** `VELOIQ_I18N_LOCALES_DIR` is resolved relative to the process working directory when `create_veloiq_app()` is called. If you run `veloiq run` from the `backend/` subdirectory instead of the project root, set an absolute path or a `../`-relative path in your `.env` to point to the shared catalogs:
 >

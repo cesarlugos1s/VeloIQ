@@ -1,0 +1,12 @@
+# This app's own translations for locale "en", for both the backend and the UI.
+#
+# VeloIQ and every enabled extension ship their own catalogs, so list only:
+#   - this app's strings (module, model and field names, custom page text), and
+#   - any VeloIQ or extension string you want worded differently here
+#     (same msgid, your msgstr wins).
+# Strings with no translation in any catalog show in English.
+# To add a locale, create locales/<locale>/LC_MESSAGES/messages.po next to this one.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
