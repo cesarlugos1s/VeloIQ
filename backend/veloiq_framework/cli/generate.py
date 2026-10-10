@@ -53,10 +53,15 @@ def generate(modules_dir, frontend_src, project_root):
     Run this whenever you add or change a model.
     Use custom_api.py (not api.py) for custom endpoints.
     """
-    from veloiq_framework.api_schema_gen import run_api_schema_gen
+    from veloiq_framework.api_schema_gen import run_api_schema_gen, _guess_frontend_src
+    from veloiq_framework.cli.ui_vendor import sync_ui_vendor
     run_api_schema_gen(
         modules_dir=modules_dir,
         frontend_src=frontend_src,
         project_root=project_root,
     )
+    # Generated App.tsx may import UI exports newer than a vendored copy of
+    # @juicemantics/veloiq-ui — refresh it so the next build resolves them.
+    cwd = Path(project_root).resolve() if project_root else Path.cwd().resolve()
+    sync_ui_vendor((Path(frontend_src) if frontend_src else _guess_frontend_src(cwd)).resolve().parent)
     _check_migration_needed(project_root)

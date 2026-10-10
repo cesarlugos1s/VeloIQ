@@ -34,6 +34,9 @@ def build(frontend_dir):
         click.echo(f"❌ No package.json found in {fdir}", err=True)
         raise SystemExit(1)
 
+    from veloiq_framework.cli.ui_vendor import sync_ui_vendor
+    sync_ui_vendor(fdir)
+
     click.echo(f"🔨 Building frontend: {fdir}")
     # bare "npm" resolves to npm.cmd on Windows, which subprocess can't
     # execute without shell=True — shutil.which finds the real executable
