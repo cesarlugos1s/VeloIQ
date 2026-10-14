@@ -221,6 +221,18 @@ Extensions and app modules can add their own settings to the page by defining
 > `CONFIGURE_LAYOUT` permission in the user's role. The built-in `Admin` and
 > `Manager` roles include this by default.
 
+### Layered `jm_config.ini`
+
+`jm_obtain_config()` merges these files, each overriding the ones before it:
+
+| Layer | File |
+|---|---|
+| VeloIQ | `veloiq_framework/jm_config.ini` |
+| Enabled extensions, in `veloiq.toml` order | The extension's packaged ini (`VeloIQExtension.config_file`, e.g. IQVigilant's `modules/nlp/jm_config.ini`) |
+| Host app | `config/jm_config.ini`, then `jm_config.ini`, in the app's working directory |
+
+An extension's settings therefore have defaults in every host app that enables it, and the host app can override any of them in its own `jm_config.ini`. A few environment variables (`LLM_PROVIDER`, `VELOIQ_NLP_LOG_LEVEL`, `VELOIQ_LOG_DIR`, ...) override all files.
+
 ### Logging
 
 Framework and extension code logs through `jm_log(relevance, *message)`. Each

@@ -1222,7 +1222,7 @@ def jm_execute_basic_sql(self, sql, sql_params, timeout_ms = None):
     """
     # Normalize placeholder syntax before sending SQL to SQLAlchemy.
     normalized_sql = _normalize_sql_query(sql, sql_params)
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         # Apply per-statement timeout only when explicitly requested.
         if timeout_ms:
             connection.execute(text('SET statement_timeout TO :timeout_ms'), {'timeout_ms': timeout_ms})
@@ -1980,21 +1980,7 @@ class JM_Rset:
             else:
                 entity_id = _normalize_entity_id(cell_value)
                 if entity_id is not None:
-                    entity_rset = jm_execute_basic_sql(
-                        None,
-                        "SELECT eid, type FROM entities WHERE eid = :entity_id",
-                        {'entity_id': entity_id},
-                    )
-                    if len(entity_rset) > 0:
-                        entity_type = entity_rset[0][1]
-                        entity_model = jm_obtain_model_by_name(entity_type)
-                        if entity_model:
-                            local_session, created = _get_session()
-                            try:
-                                entity = local_session.get(entity_model, entity_id)
-                            finally:
-                                if created:
-                                    local_session.close()
+                    entity = jm_obtain_entity_by_eid(None, None, entity_id)
 
         jm_log(2, '')
         jm_log(2, 'Entity obtained in get_entity:', entity)
@@ -2194,14 +2180,18 @@ def jm_is_date(string, fuzzy=False):
 
 def obtain_model_main_attribute_names(model, maximum_model_main_attribute_names = 1
                                       , preferred_model_field__names_suffixes =
-                                      ('eid', '_name', '_id', 'name', 'id', '_description', 'description')):
+                                      ('_name', 'name', '_description', 'description', '_status', 'status', '_type', 'type')):
     """
     Obtain the Model's model_main_attribute_names based on the preferred_model_field_db_names_suffixes,
     up to the maximum_model_main_attribute_names.
 
+    PK columns are excluded — selecting the PK as a title produces raw IDs.
+    When no preferred-suffix field exists, return empty so the caller can fall
+    back to PK-based resolution via _resolve_entity_eid_cells.
+
     :param model: The model to obtain the model_main_attribute_names for.
     :param maximum_model_main_attribute_names: Obtain up to this number of model attribute names.
-    :param preferred_model_field__names_suffixes: ('eid', '_name', '_id', 'name', 'id', '_description', 'description')
+    :param preferred_model_field__names_suffixes: ordered suffixes to prefer for the title field.
 
     :return: model_main_attribute_names
     """
@@ -2209,18 +2199,30 @@ def obtain_model_main_attribute_names(model, maximum_model_main_attribute_names 
     if model is None:
         return model_field_db_names
     mapper = inspect(model)
+    pk_keys = {col.key for col in mapper.primary_key}
     for column in mapper.columns:
-        model_field_db_names.append(column.key)
+        if column.key not in pk_keys:
+            model_field_db_names.append(column.key)
 
+    # Try each suffix in priority order against ALL fields before moving to the
+    # next suffix -- a field that doesn't match the first (highest-priority)
+    # suffix must still get a chance to match a later one (e.g. 'name' doesn't
+    # end with '_name' but does end with 'name'). Committing a field to
+    # "remaining" on its first non-match -- the previous behavior -- silently
+    # disqualified it from ever matching a later suffix, so a plain 'name'
+    # column was never picked and the function fell through to an arbitrary
+    # column (or, once PK exclusion was added elsewhere, a non-PK column with
+    # no title semantics at all, e.g. 'created_at').
     preferred_model_field_names = []
-    remaining_model_field_names = []
     for preferred_model_field_db_names_suffix in preferred_model_field__names_suffixes:
         for field_name in model_field_db_names:
-            if field_name not in preferred_model_field_names + remaining_model_field_names:
+            if field_name not in preferred_model_field_names:
                 if field_name.endswith(preferred_model_field_db_names_suffix):
                     preferred_model_field_names.append(field_name)
-                else:
-                    remaining_model_field_names.append(field_name)
+    remaining_model_field_names = [
+        field_name for field_name in model_field_db_names
+        if field_name not in preferred_model_field_names
+    ]
     prioritized_model_field_db_names = preferred_model_field_names
     prioritized_model_field_db_names.extend(remaining_model_field_names)
     model_main_attribute_names = prioritized_model_field_db_names[0: maximum_model_main_attribute_names]
@@ -2230,14 +2232,23 @@ def obtain_model_main_attribute_names(model, maximum_model_main_attribute_names 
 
 def obtain_table_main_attribute_names(table_name, inspector, maximum_model_main_attribute_names = 1
                                       , preferred_model_field__names_suffixes =
-                                      ('eid', '_name', '_id', 'name', 'id', '_description', 'description')):
+                                      ('_name', 'name', '_description', 'description', '_status', 'status', '_type', 'type')
+                                      , excluded_column_names = frozenset()):
     """
     Obtain the Model's model_main_attribute_names based on the preferred_model_field_db_names_suffixes,
     up to the maximum_model_main_attribute_names.
 
-    :param model: The model to obtain the model_main_attribute_names for.
+    PK and FK columns should be passed in ``excluded_column_names`` -- an id-like
+    column (raw PK, or a FK such as ``facility_id``) is not a human-readable
+    title, and 'id'/'eid'/'_id' were previously part of the preferred suffixes
+    themselves, which meant a FK column like ``facility_id`` (matching '_id')
+    outranked a real ``name`` column since '_id' was tried before 'name'.
+
+    :param table_name: The table to obtain the model_main_attribute_names for.
+    :param inspector: SQLAlchemy Inspector for the connection the table lives on.
     :param maximum_model_main_attribute_names: Obtain up to this number of model attribute names.
-    :param preferred_model_field__names_suffixes: ('eid', '_name', '_id', 'name', 'id', '_description', 'description')
+    :param preferred_model_field__names_suffixes: ordered suffixes to prefer for the title field.
+    :param excluded_column_names: column names to never select as a title (PK/FK columns).
 
     :return: model_main_attribute_names
     """
@@ -2246,17 +2257,21 @@ def obtain_table_main_attribute_names(table_name, inspector, maximum_model_main_
 
     for field in table_fields:
         field_name = field.get('name')
-        table_field_names.append(field_name)
+        if field_name not in excluded_column_names:
+            table_field_names.append(field_name)
 
+    # See obtain_model_main_attribute_names above for why each suffix must be
+    # tried against all fields before moving to the next suffix.
     preferred_model_field_names = []
-    remaining_model_field_names = []
     for preferred_model_field_db_names_suffix in preferred_model_field__names_suffixes:
         for field_name in table_field_names:
-            if field_name not in preferred_model_field_names + remaining_model_field_names:
+            if field_name not in preferred_model_field_names:
                 if field_name.endswith(preferred_model_field_db_names_suffix):
                     preferred_model_field_names.append(field_name)
-                else:
-                    remaining_model_field_names.append(field_name)
+    remaining_model_field_names = [
+        field_name for field_name in table_field_names
+        if field_name not in preferred_model_field_names
+    ]
     prioritized_model_field_db_names = preferred_model_field_names
     prioritized_model_field_db_names.extend(remaining_model_field_names)
     model_main_attribute_names = prioritized_model_field_db_names[0: maximum_model_main_attribute_names]
@@ -2403,35 +2418,66 @@ def _jm_config_signature(config_paths):
     return (tuple(path_stamps), env_values)
 
 
-def jm_resolve_nlp_config_file(host_path, package_relative_path):
-    """Resolve an nlp config file, preferring the host's own copy.
+# Packaged jm_config.ini files of the enabled extensions, lowest priority first.
+# None until configure_jm_config() sets them (create_veloiq_app does so at
+# startup); a process that never builds the app (a script, a CLI command)
+# resolves them once from the enabled extensions on first use instead.
+_jm_extension_config_files = None
 
-    The deterministic NL parser reads its CSV config (synonyms, entity/attribute
-    classification) from ``<cwd>/../config/...`` so deployments can supply their
-    own. When the host has not provided a file, fall back to the template shipped
-    inside the iqvigilant package at ``modules/nlp/config/<package_relative_path>``
-    (e.g. the generic synonyms vocabulary), so a fresh host works out of the box.
 
-    :param host_path: The host working-directory path the caller would normally read.
-    :param package_relative_path: Path of the packaged template, relative to
-        ``modules/nlp/config/``.
-    :return: ``host_path`` if it exists, otherwise the packaged template path.
+def configure_jm_config(extension_config_files):
+    """Set the enabled extensions' packaged jm_config.ini files.
+
+    Called by create_veloiq_app() with the files in the order the app enables
+    the extensions, so a later extension's values take precedence over an
+    earlier one's; the host app's own jm_config.ini still overrides them all.
+
+    :param extension_config_files: Paths of the extensions' packaged
+        jm_config.ini files, lowest priority first.
     """
-    if os.path.exists(host_path):
-        return host_path
-    return os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # .../modules/nlp
-        "config", package_relative_path)
+    global _jm_extension_config_files, _jm_config_cache
+    _jm_extension_config_files = tuple(str(path) for path in extension_config_files if path)
+    _jm_config_cache = None
+
+
+def _jm_extension_config_paths():
+    """Return the enabled extensions' packaged jm_config.ini files, lowest priority first.
+
+    Uses the files set by configure_jm_config(). When it has not run, resolves
+    them once from the app's enabled extensions (VELOIQ_EXTENSIONS or
+    veloiq.toml). The empty result is stored before resolving, so a jm_log()
+    call made while the extensions load does not resolve them again; that call
+    simply sees no extension layer yet.
+
+    :return: A list of paths.
+    """
+    global _jm_extension_config_files
+    if _jm_extension_config_files is None:
+        _jm_extension_config_files = ()
+        try:
+            from veloiq_framework.extension_registry import read_enabled_extensions
+            from veloiq_framework.extensions import discover_extensions, order_extensions
+            enabled_extensions = read_enabled_extensions()
+            ordered_extensions = order_extensions(
+                discover_extensions(enabled_extensions, quiet=True), enabled_extensions)
+            _jm_extension_config_files = tuple(
+                str(path) for path in (ext.resolved_config_file() for ext in ordered_extensions)
+                if path is not None)
+        except Exception as resolve_error:
+            # Safe to log: the empty result stored above stops jm_log() from resolving again.
+            jm_log(1, "jm_obtain_config: could not resolve the extensions' jm_config.ini files:", resolve_error)
+    return list(_jm_extension_config_files)
 
 
 def jm_obtain_config():
-    """Load the NLP module configuration from jm_config.ini.
+    """Load the application configuration from the jm_config.ini layers.
 
-    Resolution order (later paths override earlier ones):
-      1. The default jm_config.ini shipped with the iqvigilant package
-         (modules/nlp/jm_config.ini).
-      2. config/jm_config.ini or jm_config.ini in the host app's working
-         directory, so deployments can override without touching the package.
+    Resolution order (later files override earlier ones):
+      1. VeloIQ's own jm_config.ini (veloiq_framework/jm_config.ini).
+      2. Each enabled extension's packaged jm_config.ini
+         (VeloIQExtension.config_file), in the order the app enables them.
+      3. config/jm_config.ini or jm_config.ini in the host app's working
+         directory, so deployments can override without touching the packages.
 
     A small set of environment variables (see _JM_CONFIG_ENV_OVERRIDES) override
     the file values when set.
@@ -2439,14 +2485,11 @@ def jm_obtain_config():
     The parsed config is memoized and only re-read when a config file's mtime or
     an override env var changes, so the hot logging path does not re-parse the
     .ini files on every call.
+
+    :return: The ConfigParser with the merged configuration.
     """
     global _jm_config_cache, _jm_config_cache_signature
 
-    # Packaged defaults: VeloIQ framework ships a minimal jm_config.ini
-    # next to this utils directory (veloiq_framework/jm_config.ini).
-    # IQVigilant extension may also ship a richer one at
-    # iqvigilant/modules/nlp/jm_config.ini (discovered at runtime by
-    # ConfigParser.read() if the package is installed in site-packages).
     _vf_package = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "jm_config.ini",
@@ -2454,6 +2497,7 @@ def jm_obtain_config():
     _cwd = os.getcwd()
     config_paths = [
         _vf_package,
+        *_jm_extension_config_paths(),
         os.path.join(_cwd, "config", "jm_config.ini"),
         os.path.join(_cwd, "jm_config.ini"),
         "jm_config.ini",
@@ -2519,29 +2563,46 @@ def _coerce_eid_value(value):
     return None
 
 
-def replace_df_values_with_rset_entity_names(rset_df, rset=None):
-    """Replace entity primary-key (eid) values in a result DataFrame with the
-    object's title (``dc_title()`` / ``str()``), so charts and dataframe-based
-    views show readable object labels instead of raw primary keys.
+def replace_df_values_with_rset_entity_names(rset_df, rset=None, return_entity_type_map=False):
+    """Replace entity primary-key (eid) integers in a chart DataFrame with the
+    object's human-readable title, so chart axes show meaningful labels.
 
-    Object columns are detected from their name: ``<TYPE>__id`` columns are
-    resolved to the model for ``TYPE`` and each eid replaced with that object's
-    title. Attribute / aggregate columns (no ``<type>_id`` pattern, or whose type
-    does not map to a model) are left untouched. Chart axis labels are plain text,
-    so this produces titles (not links); the tabular/object views add the
-    navigable links separately (see views_utils._resolve_entity_eid_cells).
+    Columns named ``{type}__eid`` / ``{type}__id`` / ``{type}_id`` are detected
+    as entity reference columns.  Each integer value is replaced with the object's
+    plain-text title (via ``build_model_str_label``), converting the column from
+    numeric to categorical so the chart renderer can use it as an X-axis grouping.
+    The column is also renamed to the model class name (e.g. ``Pricingpolicy``)
+    so chart axis labels are readable.
 
-    Returns the DataFrame (mutated in place when object columns are found).
+    The table/list views add navigable HTML links separately via
+    ``views_utils._resolve_entity_eid_cells``.
+
+    :param return_entity_type_map: when True, return ``(rset_df, entity_type_map)``
+        instead of just ``rset_df``, where ``entity_type_map`` maps each *final*
+        (possibly renamed) DataFrame column name to the entity type name it holds.
+        Reused by the Named Dataset Registry so published datasets carry the same
+        column->entity-type mapping this function already computes, instead of
+        re-deriving it from scratch.
+    Returns the DataFrame with entity-reference columns replaced and renamed
+    (plus the entity_type_map dict, if requested).
     """
+    entity_type_map: Dict[str, str] = {}
+
+    def _result(df):
+        return (df, entity_type_map) if return_entity_type_map else df
+
     try:
         if rset_df is None or getattr(rset_df, "empty", True) or len(rset_df.columns) == 0:
-            return rset_df
+            return _result(rset_df)
     except Exception:
-        return rset_df
+        return _result(rset_df)
 
     # Map each object column to its model via the type encoded in the column name.
     col_models: Dict[Any, Any] = {}
+    aggregate_columns = jm_aggregate_column_aliases_from_SQL(getattr(rset, "query_command", ""))
     for col in rset_df.columns:
+        if str(col).strip().lower() in aggregate_columns:
+            continue
         etype = _parse_entity_type_from_column(col)
         if not etype:
             continue
@@ -2549,10 +2610,11 @@ def replace_df_values_with_rset_entity_names(rset_df, rset=None):
         if model is not None:
             col_models[col] = model
     if not col_models:
-        return rset_df
+        return _result(rset_df)
 
     try:
         from veloiq_framework.db import get_engine
+        from veloiq_framework.models import build_model_str_label as _bsl
         with Session(get_engine()) as session:
             label_cache: Dict[tuple, Any] = {}
 
@@ -2569,16 +2631,23 @@ def replace_df_values_with_rset_entity_names(rset_df, rset=None):
                     if obj is None:
                         label_cache[key] = value
                     else:
-                        label_cache[key] = obj.dc_title() if hasattr(obj, "dc_title") else str(obj)
+                        label_cache[key] = _bsl(obj)
                 cached = label_cache[key]
                 return cached if cached is not None else value
 
+            rename_map: Dict[str, str] = {}
             for col, model in col_models.items():
                 rset_df[col] = rset_df[col].map(lambda v, m=model: _label_for(m, v))
+                new_col = model.__name__
+                if new_col != col:
+                    rename_map[col] = new_col
+                entity_type_map[new_col] = model.__name__
+            if rename_map:
+                rset_df = rset_df.rename(columns=rename_map)
     except Exception as resolve_error:
         jm_log(1, f"replace_df_values_with_rset_entity_names: could not resolve entity eids: {resolve_error}")
 
-    return rset_df
+    return _result(rset_df)
 
 
 def replace_query_results_with_object_labels(sql_statement=None, sql_columns=None, sql_rows=None, *args, **kwargs):
@@ -2596,19 +2665,35 @@ def jm_execute_rql(*args, **kwargs):
     raise NotImplementedError("RQL execution is disabled in the VeloIQ NLP port (SQL-only branch).")
 
 
+def jm_execute_query_from_db_query(self, entity, query_name, column_names, variables_values=None):
+    """Obtain the results of a stored, named query instead of executing it again.
+
+    Reusing stored query results is disabled in VeloIQ: this always reports the
+    named query as unavailable, so jm_execute_orm executes the ORM command itself.
+
+    :param self: Unused placeholder, kept for call compatibility.
+    :param entity: Unused placeholder, kept for call compatibility.
+    :param query_name: The name of the stored query (jm_execute_orm's jm_action).
+    :param column_names: The column names the results would have.
+    :param variables_values: The values of the query's variables.
+    :return: A tuple (rset, rset_df, query_is_available): (None, an empty DataFrame, False).
+    """
+    return None, DataFrame(), False
+
+
 def orm_execution_supported() -> bool:
     """Whether ORM-dialect execution (jm_execute_orm) is available.
 
     Implemented in this package against the host app's SQLModel engine, so
-    features that depend on it — notably cached DbQuery reuse
+    features that depend on it — notably reusing stored query results
     (``use_db_query_in_nlp_if_available``) — are available.
     """
     return True
 
 
 class _OrmModelUnavailable(Exception):
-    """Raised when an ORM spec targets a model/table that is not available."""
-    pass
+    """Raised internally when a dict ORM spec references a model/table that is
+    not a persisted SQLModel table in this port (so it cannot be queried)."""
 
 
 def jm_execute_orm(self, entity
@@ -2619,8 +2704,8 @@ def jm_execute_orm(self, entity
                    , sql_column_names=None
                    , pretty_df_column_names=False
                    , get_sql_column_names_from_rset=True
-                   , max_retries=2
-                   , retries_sleep_seconds=5
+                   , max_retries=None
+                   , retries_sleep_seconds=None
                    , log_level=2
                    , log_sql_command=False
                    , log_rset=False
@@ -2647,6 +2732,19 @@ def jm_execute_orm(self, entity
 
     if orm_command_parameters is None:
         orm_command_parameters = {}
+    # Resolve SQL retry defaults from the nlp configuration (lazy, per-call).
+    _max_r = max_retries
+    _sleep = retries_sleep_seconds
+    if _max_r is None:
+        try:
+            _max_r = int(jm_obtain_config().get('nlp', 'sql_max_retries', fallback='2'))
+        except Exception:
+            _max_r = 2
+    if _sleep is None:
+        try:
+            _sleep = int(jm_obtain_config().get('nlp', 'sql_retries_sleep_seconds', fallback='5'))
+        except Exception:
+            _sleep = 5
 
     rset = None
     results_df = DataFrame()
@@ -2724,11 +2822,11 @@ def jm_execute_orm(self, entity
                 normalized.append((row,))
         return normalized
 
-    # Try to get the results from a named DbQuery, if requested (disabled in port).
+    # Try to get the results from a stored, named query, if requested (disabled in VeloIQ).
     if use_db_query_if_available and jm_action != '':
         rset, rset_df, db_query_is_available = (
             jm_execute_query_from_db_query(self, entity
-                                           , db_query_name=jm_action, column_names=sql_column_names
+                                           , query_name=jm_action, column_names=sql_column_names
                                            , variables_values=orm_command_parameters))
         sql_execution_success = True
 
@@ -2742,8 +2840,8 @@ def jm_execute_orm(self, entity
             if callable(orm_query_command):
                 command_to_execute = orm_query_command(local_session, orm_command_parameters)
 
-            # A dict spec referencing an unknown model/table (e.g. DbQuery, which
-            # is a value object rather than a persisted table in this port) builds
+            # A dict spec referencing an unknown model/table (e.g. a value object
+            # rather than a persisted table) builds
             # to None. Treat that as an empty result instead of an execution error.
             if command_to_execute is None:
                 raise _OrmModelUnavailable(orm_query_command)
@@ -2832,7 +2930,7 @@ def jm_execute_orm(self, entity
 
         except _OrmModelUnavailable:
             # Expected when a spec targets a model/table that does not exist in
-            # this port (e.g. the DbQuery reuse cache). Return empty quietly so
+            # the host app (e.g. a stored-query cache). Return empty quietly so
             # callers fall back to generating the query fresh.
             rset = []
             results_df = DataFrame(columns=sql_column_names or [])
@@ -2912,9 +3010,41 @@ def __getattr__(name):
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 def jm_obtain_entity_by_eid(self, calling_class_entity, entity_eid, of_entity_types=('*',)):
-    """Best-effort: without the cw_ entity registry, label resolution is skipped;
-    query results display raw values. Returns None so callers fall back."""
-    return None
+    """Obtain the object (SQLModel instance) that has the given eid.
+
+    The ``entities`` registry table (``eid`` -> entity ``type``, kept by host
+    apps migrated from CubicWeb) says which model the eid belongs to, and the
+    object is then loaded from that model. Best-effort: returns None when the
+    registry table is absent, the eid is unknown, the type matches no model or
+    the object is gone, so callers fall back to showing raw values.
+
+    :param self: Unused placeholder, kept for call compatibility.
+    :param calling_class_entity: Unused placeholder, kept for call compatibility.
+    :param entity_eid: The eid of the object.
+    :param of_entity_types: Entity type names the object must be one of, or ('*',) for any.
+    :return: The object, or None.
+    """
+    try:
+        entity_eid = int(entity_eid)
+        entity_rset = jm_execute_basic_sql(
+            None, "SELECT eid, type FROM entities WHERE eid = :entity_id", {'entity_id': entity_eid})
+        if len(entity_rset) == 0:
+            return None
+        entity_type = entity_rset[0][1]
+        if '*' not in of_entity_types and str(entity_type).lower() not in [str(t).lower() for t in of_entity_types]:
+            return None
+        entity_model = jm_obtain_model_by_name(entity_type)
+        if not entity_model:
+            return None
+        local_session, created = _get_session()
+        try:
+            return local_session.get(entity_model, entity_eid)
+        finally:
+            if created:
+                local_session.close()
+    except Exception as e:
+        jm_log(1, f"jm_obtain_entity_by_eid: could not obtain the entity with eid {entity_eid}: {e}")
+        return None
 
 
 _JM_ENTITY_ID_LOCK_KEY = 845692137451

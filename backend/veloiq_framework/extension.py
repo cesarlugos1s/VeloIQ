@@ -189,6 +189,14 @@ class VeloIQExtension:
     #: Ignored when the directory doesn't exist.
     locales_dir: Optional[str] = "locales"
 
+    #: Path *relative to the installed package directory* of the extension's
+    #: packaged ``jm_config.ini`` defaults (e.g. ``"modules/nlp/jm_config.ini"``).
+    #: ``jm_obtain_config()`` layers it above VeloIQ's own ``jm_config.ini`` and
+    #: below the host app's, so the extension's settings have defaults in every
+    #: host app and the host app can still override any of them.
+    #: ``None`` (the default) or a missing file means no packaged config.
+    config_file: Optional[str] = None
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
@@ -233,6 +241,13 @@ class VeloIQExtension:
             return None
         p = self.package_dir() / self.locales_dir
         return p if p.exists() else None
+
+    def resolved_config_file(self) -> Optional[Path]:
+        """Return the absolute path to the packaged ``jm_config.ini``, or None."""
+        if not self.config_file:
+            return None
+        p = self.package_dir() / self.config_file
+        return p if p.is_file() else None
 
     # ── Validation ────────────────────────────────────────────────────────────
 

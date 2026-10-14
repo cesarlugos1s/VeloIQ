@@ -39,7 +39,7 @@ except ImportError:
     pass
 
 from veloiq_framework.config import VeloIQConfig
-from veloiq_framework.extensions import discover_extensions
+from veloiq_framework.extensions import discover_extensions, order_extensions
 from veloiq_framework.loader import load_factory_events, load_modules
 
 
@@ -108,11 +108,7 @@ def create_veloiq_app(
     # here, before modules load, since model and module code calls _() at
     # import time.
     from veloiq_framework.utils.i18n_utils import configure_i18n
-    _enabled_order = list(enabled_extensions or [])
-    _ordered_extensions = sorted(
-        extensions,
-        key=lambda ext: _enabled_order.index(ext.name) if ext.name in _enabled_order else len(_enabled_order),
-    )
+    _ordered_extensions = order_extensions(extensions, enabled_extensions)
     configure_i18n(
         locales_dir=str(cfg.i18n_locales_dir.resolve()),
         default_locale=cfg.i18n_default_locale,
@@ -120,6 +116,14 @@ def create_veloiq_app(
             d for d in (ext.resolved_locales_dir() for ext in _ordered_extensions) if d is not None
         ],
     )
+
+    # ── jm_config.ini layers ─────────────────────────────────────────────────
+    # Same order as the catalogs: VeloIQ's jm_config.ini, each enabled
+    # extension's packaged one, then the host app's (see jm_obtain_config).
+    from veloiq_framework.utils.data_mgmt_utils import configure_jm_config
+    configure_jm_config([
+        f for f in (ext.resolved_config_file() for ext in _ordered_extensions) if f is not None
+    ])
 
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager
