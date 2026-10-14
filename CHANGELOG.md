@@ -2,6 +2,68 @@
 
 All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- **Every chart is drawn with Plotly, with one catalogue, theme and set of
+  summary rules** — the Analyze section of list pages and relation views
+  replaces its hand-drawn SVG charts with Plotly.js (the vendored
+  `/veloiq-assets/plotly.min.js`): clicking a legend entry shows or hides its
+  series, values show on hover, and the chart-type selector is searchable.
+  Backend charts (NL answers, dashboards' NL Sentence cells, extension pages)
+  use the same chart-type IDs, palette, legend, number format (`,.2f`) and
+  empty-state message, and follow the page's dark theme.
+- **Same numbers in both layers** — the default summary function is Sum
+  everywhere (the backend used Average); Std Dev is the sample standard
+  deviation (divisor n − 1) and a single value has a standard deviation of
+  0; empty values are skipped rather than counted as 0. This applies to the
+  chart, crosstab, statistics and totals boxes. `test-fixtures/charts.json`
+  checks the TypeScript and Python implementations against the same cases
+  (`npm test` in `packages/ui`, `backend/tests/test_chart_fixtures.py`).
+- **Chart-type IDs** — one ID per chart type in both layers: `bar`,
+  `bar_stacked`, `bar_h`, `bar_h_stacked`, `line`, `area`, `area_h`, `pie`,
+  `donut`, `scatter`, `bubble`, `histogram`, `box`, `waterfall`, `heatmap`,
+  `scatterpolar`, `combo`, `crosstab`, `scatter3d`, plus the backend-only
+  `seasonal` and `trend`. Saved Analyze preferences and stored text with the
+  old IDs (`3d`, `boxplot`, `stacked`, `bar-horizontal`…) are converted when
+  read.
+- **Backend 3D chart** — takes three numeric series as its X, Y and Z axes
+  (categories only group and label); bubble size is proportional to the third
+  series' value, as in the frontend.
+- **`views_utils.py`** — takes IQVigilant's newer chart, table and
+  flipping-card fixes, so extensions import it instead of keeping copies.
+  `jm_render_views` accepts a `card_header_extras_renderer` callback;
+  `jm_pretty_df(reformat_column_names=True)` translates or humanizes column
+  names; `jm_plot_chart_from_DataFrame` draws its `plot_chart_title`;
+  `jm_satinize_custom_html` returns the HTML unchanged by default (without
+  the appended note).
+- **`InlinePlotlyHtml`** is the single host component for backend Plotly HTML:
+  it waits for a sized container before drawing, de-duplicates resizes,
+  re-runs flip-card sizing, re-colours charts for the dark theme and takes a
+  `scaleToFit` prop.
+
+### New
+
+- **Category 3** in the Analyze section (and crosstab views): added to the
+  category labels, or to the column labels on heatmap and crosstab. Bubble
+  size and the 3D Z axis come from Series 3.
+- **Server-side aggregation for large lists** — above the new
+  `analyze_server_aggregation_threshold` view setting (default 10000, in the
+  System Configuration console), a list's Analyze section asks
+  `POST /api/<resource>/analyze` for the aggregated values instead of
+  downloading every row. The server applies the list's filters, search text
+  and column filters, permissions and row-level rules; charts that plot
+  individual rows draw an evenly spaced sample and say so.
+- **Chart helpers for extensions** — `JM_CHART_TYPES`,
+  `jm_normalize_chart_type_id`, `jm_chart_type_label`, `jm_summarize_values`,
+  `jm_group_and_summarize`, `JM_CHART_COLORWAY` and the other theme constants
+  in `veloiq_framework.utils.views_utils` (see "Charts in custom endpoints and
+  pages" in the module authoring guide).
+- The scaffold's `vite.config.ts` proxies `/veloiq-assets` to the backend, so
+  charts load Plotly.js under `npm run dev`. Existing apps can add the same
+  line.
+
 ## [0.9.11] — 2026-08-25
 
 ### New

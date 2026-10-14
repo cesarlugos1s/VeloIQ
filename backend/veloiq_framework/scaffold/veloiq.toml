@@ -60,6 +60,11 @@ plain_color_base_hex = "#1e708a"
 # individual values, applying the filter using the selected ranges (default: 20).
 #max_distinct_column_filter_values_to_ranges = 20
 
+# Above this many rows, the Analyze section of a list aggregates on the server
+# and receives only the grouped values, instead of downloading every row into
+# the browser; the chart shows the same numbers either way (default: 10000).
+#analyze_server_aggregation_threshold = 10000
+
 # Where the general action buttons are rendered on a model's list / show / edit
 # pages: "top-right", "left", or "right" (default: "top-right").
 #general_actions_button_position = "top-right"

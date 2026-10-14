@@ -358,6 +358,7 @@ router = create_crud_router(Order)
 | DELETE | `/order/{id}` | Delete |
 | POST | `/order/import-csv` | CSV import (`?dry_run=true\|false`) |
 | GET | `/order/export-csv` | CSV export (respects list filters) |
+| POST | `/order/analyze` | Aggregated values for the Analyze section, used above the `analyze_server_aggregation_threshold` view setting (respects list filters) |
 
 Response headers `x-total-count` and `content-range` are set on list responses
 to support the Refine data provider pagination convention.
@@ -497,6 +498,39 @@ def list_pending(session: Session = Depends(get_session)):
 ```
 
 The framework loader imports both `api.py` and `custom_api.py` automatically.
+
+### Charts in custom endpoints and pages
+
+Every chart in VeloIQ and its extensions is drawn by Plotly with one chart-type
+catalogue, one theme and one set of summary rules, so it looks and behaves the
+same wherever it appears. In `custom_api.py` code, use the framework's helpers in
+`veloiq_framework.utils.views_utils` rather than styling figures by hand:
+
+- **A chart of a catalogue type** (bars, lines, pie, heatmap, scatter… — see
+  `JM_CHART_TYPES`): build it with `jm_plot_chart_from_DataFrame(None, df,
+  ['bar'], plot_the_chart=False, plot_chart_title=...)`. Rows sharing a category
+  are summarised with `summary_function` (default `sum`) using the same rules as
+  the frontend (`jm_summarize_values`: empty values skipped, sample standard
+  deviation). A ready pivot table can be drawn with `pivot_heatmap_figure(df)`.
+- **A custom figure** (a network, a gauge…): build it with Plotly and pass it to
+  `jm_apply_standard_chart_layout(fig, title=...)`, which applies the shared
+  palette (`JM_CHART_COLORWAY`), fonts, grid, legend and number format. Take
+  any explicit colour from `JM_CHART_COLORWAY` and text colours from
+  `JM_CHART_TEXT_COLOR`.
+- **Returning the chart**: wrap the figure's div with
+  `jm_get_plotly_chart_embeddable_html(...)` (never `include_plotlyjs="cdn"`).
+  The frontend shows it with `InlinePlotlyHtml` from `@juicemantics/veloiq-ui`,
+  which loads the vendored Plotly.js runtime and re-colours the chart for the
+  dark theme.
+
+Chart-type IDs are `bar`, `bar_stacked`, `bar_h`, `bar_h_stacked`, `line`,
+`area`, `area_h`, `pie`, `donut`, `scatter`, `bubble`, `histogram`, `box`,
+`waterfall`, `heatmap`, `scatterpolar` (Radar), `combo`, `crosstab`,
+`scatter3d`, and the backend-only `seasonal` and `trend`. Older IDs (`3d`,
+`boxplot`, `stacked`, `bar-horizontal`, `stacked-horizontal`,
+`area-horizontal`, `radar`) are still accepted and converted with
+`jm_normalize_chart_type_id`. The frontend keeps the same catalogue in
+`analysis/chartCatalog.ts`; `test-fixtures/charts.json` checks that both match.
 
 ## admin/admin_views.py
 
@@ -902,7 +936,7 @@ relations, or on `FieldDef.showViewType` / `FieldDef.editViewType` for FK
 | `editable-list` | Bullet list with add / remove controls |
 | `table` | Read-only data table |
 | `editable-table` | **Default for to-many in edit mode.** Table with inline editing |
-| `crosstab` | Pivot table: Category 1 → rows, Category 2 → columns (optional), one or more fields per cell. Numeric cells aggregate (sum/avg/count/max/min/stddev) with value bars; other fields render with their own field view type. Includes Excel-style multi-select filter dropdowns and the Analyze chart/stats card. Reuses the Analysis-area crosstab chart-type, so the two stay in sync. Config (categories, cell fields, filters, summary) is saved to the views JSON. |
+| `crosstab` | Pivot table: Category 1 → rows, Category 2 → columns (optional), Category 3 added to the column labels (optional), one or more fields per cell. Numeric cells aggregate (sum/avg/count/max/min/stddev, the sample standard deviation) with value bars; other fields render with their own field view type. Includes Excel-style multi-select filter dropdowns and the Analyze chart/stats card. Reuses the Analysis-area crosstab chart-type, so the two stay in sync. Config (categories, cell fields, filters, summary) is saved to the views JSON. |
 | `editable-crosstab` | Same as `crosstab` with editable numeric cells (Tab / arrow-key navigation). Editing an aggregated cell distributes the value back to its underlying records prorated by the summary function (sum/avg, with a confirmation step; max/min/stddev only when the cell maps to a single record), rounded to 2 decimals, persisted via the standard Save button. |
 | `gallery` | Image / card grid |
 | `calendar` | Calendar view (requires a `date` or `datetime` field in the related model) |
