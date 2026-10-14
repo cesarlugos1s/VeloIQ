@@ -17,6 +17,8 @@ export default defineConfig({
       "/auth": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
       "/admin": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
       "/i18n": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
+      // Framework assets such as the Plotly.js runtime every chart loads.
+      "/veloiq-assets": { target: "http://127.0.0.1:{{backend_port}}", changeOrigin: true },
     },
   },
 });

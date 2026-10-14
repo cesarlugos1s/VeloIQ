@@ -1698,3 +1698,66 @@ msgstr "Abrir a página completa"
 
 msgid "Model \"{model}\" not found"
 msgstr "No se encontró el modelo \"{model}\""
+
+# views_utils: answer-card fallback and aggregate-function column suffixes ("Task (max)")
+msgid "No results found for this ask. (9)."
+msgstr "No se encontraron resultados para esta consulta. (9)."
+
+msgid "count"
+msgstr "cantidad"
+
+msgid "max"
+msgstr "máx"
+
+msgid "min"
+msgstr "mín"
+
+msgid "sum"
+msgstr "suma"
+
+msgid "avg"
+msgstr "promedio"
+
+msgid "total"
+msgstr "Total"
+
+# Analyze section: Category 3, chart axes, backend-only chart types
+msgid "Category 3"
+msgstr "Categoría 3"
+
+msgid "Category 3 (columns)"
+msgstr "Categoría 3 (columnas)"
+
+msgid "Bubble size"
+msgstr "Tamaño de burbuja"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+msgid "Z"
+msgstr "Z"
+
+msgid "Seasonal"
+msgstr "Estacional"
+
+msgid "Trend"
+msgstr "Tendencia"
+
+# Analyze section: server-side aggregation above the row threshold
+msgid "Aggregating on the server..."
+msgstr "Agregando en el servidor..."
+
+msgid "Showing a sample of {shown} of {total} rows"
+msgstr "Mostrando una muestra de {shown} de {total} filas"
+
+msgid "Failed to aggregate on the server."
+msgstr "No se pudo agregar en el servidor."
+
+msgid "Analyze server aggregation threshold (rows)"
+msgstr "Umbral de agregación en el servidor de Analizar (filas)"
+
+msgid "Above this many rows, the Analyze section of a list aggregates on the server and receives only the grouped values, instead of downloading every row into the browser. The chart shows the same numbers either way. Default: 10000."
+msgstr "Por encima de este número de filas, la sección Analizar de una lista agrega en el servidor y recibe solo los valores agrupados, en lugar de descargar todas las filas en el navegador. El gráfico muestra los mismos números en ambos casos. Valor predeterminado: 10000."

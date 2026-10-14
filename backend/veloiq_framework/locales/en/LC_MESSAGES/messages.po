@@ -1699,3 +1699,66 @@ msgstr ""
 
 msgid "Model \"{model}\" not found"
 msgstr ""
+
+# views_utils: answer-card fallback and aggregate-function column suffixes ("Task (max)")
+msgid "No results found for this ask. (9)."
+msgstr ""
+
+msgid "count"
+msgstr ""
+
+msgid "max"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "sum"
+msgstr ""
+
+msgid "avg"
+msgstr ""
+
+msgid "total"
+msgstr ""
+
+# Analyze section: Category 3, chart axes, backend-only chart types
+msgid "Category 3"
+msgstr ""
+
+msgid "Category 3 (columns)"
+msgstr ""
+
+msgid "Bubble size"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid "Y"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Seasonal"
+msgstr ""
+
+msgid "Trend"
+msgstr ""
+
+# Analyze section: server-side aggregation above the row threshold
+msgid "Aggregating on the server..."
+msgstr ""
+
+msgid "Showing a sample of {shown} of {total} rows"
+msgstr ""
+
+msgid "Failed to aggregate on the server."
+msgstr ""
+
+msgid "Analyze server aggregation threshold (rows)"
+msgstr ""
+
+msgid "Above this many rows, the Analyze section of a list aggregates on the server and receives only the grouped values, instead of downloading every row into the browser. The chart shows the same numbers either way. Default: 10000."
+msgstr ""

@@ -646,6 +646,80 @@ def create_crud_router(
             headers={"Content-Disposition": f'attachment; filename="{tablename}.csv"'},
         )
 
+    # ── Analyze (server-side aggregation) ─────────────────────────────────────
+    # Registered before the "/{record_id}" routes for the same reason as export-csv above.
+
+    def _reference_models() -> dict:
+        """Field key -> referenced model class, for this model's foreign-key columns."""
+        from sqlalchemy.inspection import inspect as sa_inspect
+        tables = {getattr(mapper.class_, "__tablename__", None): mapper.class_
+                  for mapper in SQLModel._sa_registry.mappers}
+        references = {}
+        for col_attr in sa_inspect(model_class).column_attrs:
+            for foreign_key in col_attr.columns[0].foreign_keys:
+                target = tables.get(foreign_key.column.table.name)
+                if target is not None:
+                    references[col_attr.key] = target
+        return references
+
+    @router.post("/analyze", summary=f"Aggregate {tablename} for the Analyze section")
+    def analyze_items(spec: dict, request: Request, session: Session = Depends(get_session)):
+        """Aggregate the rows matching the list's filters for the Analyze section.
+
+        Used instead of downloading every row when a list has more rows than the
+        ``analyze_server_aggregation_threshold`` view setting. Takes the same query-param
+        filters, permissions and ReBAC rules as the list endpoint; the JSON body carries
+        what the browser would otherwise apply itself (search text, column filters) and
+        the chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the
+        body's keys and the response.
+        """
+        from veloiq_framework.analyze import jm_analyze_rows, reference_titles_for
+        from veloiq_framework.extension_registry import read_views_config
+
+        _check_model_permissions(request, model_class, "GET")
+        user = getattr(request.state, "user", None) or {}
+        user_roles = user.get("roles", [])
+        stmt = select(model_class)
+        for clause in _build_where_clauses(model_class, request.query_params):
+            stmt = stmt.where(clause)
+        rebac_clause = _build_rebac_clause(model_class, user, session)
+        if rebac_clause is not None:
+            stmt = stmt.where(rebac_clause)
+
+        fields = [field for field in (spec.get("fields") or []) if isinstance(field, dict) and field.get("key")]
+        category_keys = [key for key in (spec.get("category_keys") or []) if key]
+        column_filters = {key: values for key, values in (spec.get("column_filters") or {}).items() if values}
+        search = str(spec.get("search") or "")
+        stats_keys = list(spec.get("stats_keys") or [])
+        # Record titles are only needed when searching, or when the primary key is grouped or filtered on.
+        needs_titles = bool(search.strip()) or pk_field in category_keys or pk_field in column_filters
+
+        rows = []
+        for record in session.exec(stmt).all():
+            data = record.model_dump()
+            if needs_titles:
+                data["_label"] = build_model_str_label(record)
+            rows.append(_filter_read_fields(data, model_class, user_roles))
+
+        reference_models = _reference_models()
+        wanted = set(category_keys) | set(stats_keys) | (set(reference_models) if search.strip() else set())
+        reference_titles = reference_titles_for(
+            rows, {key: model for key, model in reference_models.items() if key in wanted}, session,
+            build_model_str_label)
+
+        try:
+            sample_size = int(read_views_config().get("analyzeServerAggregationThreshold") or 10000)
+        except Exception:
+            sample_size = 10000
+        ranking = spec.get("ranking") or {}
+        result = jm_analyze_rows(
+            rows, fields=fields, pk_field=pk_field, category_keys=category_keys,
+            series_keys=list(spec.get("series_keys") or []), summary_function=spec.get("summary_function") or "sum",
+            ranking_mode=ranking.get("mode") or "none", ranking_key=ranking.get("key"),
+            ranking_n=int(ranking.get("n") or 10), search=search, column_filters=column_filters,
+            reference_titles=reference_titles, stats_keys=stats_keys, sample_size=sample_size)
+        return JSONResponse(content=jsonable_encoder(_sanitize(result)))
+
     # ── Get one ───────────────────────────────────────────────────────────────
 
     @router.get("/{record_id}", summary=f"Get {tablename}")

@@ -4,10 +4,11 @@ import type { FieldDef, ModelDef } from "../types";
 import { formatNumberValue } from "../utils/formatting";
 import { renderNumericValueBar } from "../utils/statistics";
 import { renderFieldValue } from "../fields/renderFieldValue";
+import { CATEGORY_LABEL_SEPARATOR, summarizeValues, type SummaryFn } from "./aggregation";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export type CrosstabSummaryFn = "sum" | "avg" | "count" | "max" | "min" | "stddev";
+export type CrosstabSummaryFn = SummaryFn;
 
 /** Proration is only meaningful for sum/avg; other aggregations can only be edited
  * when a cell maps to a single underlying record. */
@@ -31,6 +32,8 @@ export interface CrosstabTableProps {
     rowField: string | null;
     /** Column dimension field key — null collapses to a single implicit column (grouped totals). */
     colField: string | null;
+    /** Optional Category 3: its value is added to each column label ("Open • North"). */
+    colField3?: string | null;
     /** Numeric field keys shown in each cell (one sub-column per field). Empty → record count. */
     cellFieldKeys: string[];
     /** Display labels for the cell fields, keyed by field key. */
@@ -53,6 +56,7 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
     rows,
     rowField,
     colField,
+    colField3 = null,
     cellFieldKeys,
     cellFieldLabels,
     allFields,
@@ -96,32 +100,12 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
         [editable, recordId]
     );
 
-    const summarize = useCallback(
-        (values: number[]): number => {
-            if (values.length === 0) return 0;
-            switch (summaryFn) {
-                case "count":
-                    return values.length;
-                case "avg":
-                    return values.reduce((acc, val) => acc + val, 0) / values.length;
-                case "max":
-                    return Math.max(...values);
-                case "min":
-                    return Math.min(...values);
-                case "stddev": {
-                    const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-                    const variance = values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
-                    return Math.sqrt(variance);
-                }
-                case "sum":
-                default:
-                    return values.reduce((acc, val) => acc + val, 0);
-            }
-        },
-        [summaryFn]
-    );
+    // The summary calculation is the Analyze section's own (summarizeValues), so a cell shows
+    // the same number as the chart for the same rows.
+    const summarize = useCallback((values: number[]): number => summarizeValues(values, summaryFn), [summaryFn]);
 
     const colFieldDef = modelField(colField);
+    const col3FieldDef = modelField(colField3);
     const rowFieldDef = modelField(rowField);
     const hasColDimension = Boolean(colField);
     const hasRowDimension = Boolean(rowField);
@@ -136,7 +120,9 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
         (rows || []).forEach((row) => {
             // formatCategoryValue(undefined, …) yields the "All" bucket — used for a collapsed axis.
             const rowLabel = formatCategoryValue(rowFieldDef, row);
-            const colLabel = formatCategoryValue(colFieldDef, row);
+            const colLabel = col3FieldDef
+                ? `${formatCategoryValue(colFieldDef, row)}${CATEGORY_LABEL_SEPARATOR}${formatCategoryValue(col3FieldDef, row)}`
+                : formatCategoryValue(colFieldDef, row);
             if (!rowLabels.includes(rowLabel)) rowLabels.push(rowLabel);
             if (!colLabels.includes(colLabel)) colLabels.push(colLabel);
             const cellKey = `${rowLabel}::${colLabel}`;
@@ -148,7 +134,7 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
             });
         });
         return { rowLabels, colLabels, cellRecords };
-    }, [rows, rowFieldDef, colFieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys]);
+    }, [rows, rowFieldDef, colFieldDef, col3FieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys]);
 
     const { rowLabels, colLabels, cellRecords } = pivot;
 
@@ -335,7 +321,7 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
                         {hasColDimension && (
                             <tr>
                                 <th style={{ position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }}>
-                                    {colFieldDef?.label || colField}
+                                    {[colFieldDef?.label || colField, col3FieldDef?.label].filter(Boolean).join(CATEGORY_LABEL_SEPARATOR)}
                                 </th>
                                 {colLabels.map((colLabel, colIndex) => (
                                     <th

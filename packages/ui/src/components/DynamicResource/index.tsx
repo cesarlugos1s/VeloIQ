@@ -35,7 +35,6 @@ import {
     Button,
     Tooltip,
     Popover,
-    Collapse,
     Tree,
     Spin,
     theme,
@@ -48,7 +47,7 @@ import {
     Menu,
     message
 } from "antd";
-import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, FilePdfOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { HierarchyView } from "../HierarchyView";
@@ -58,7 +57,7 @@ import { getContrastingTextColor, getModelTone, setColorSchemas, useModelTone, t
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 const { Title } = Typography;
-import { renderWrappedPageTitle, wrappedPageTitleStyle, formatNumberValue, formatDateValue, formatDateTimeValue, formatTimeValue, escapeHtml, parseInlineStyle } from "./utils/formatting";
+import { renderWrappedPageTitle, wrappedPageTitleStyle, formatNumberValue, formatDateValue, formatDateTimeValue, formatTimeValue, parseInlineStyle } from "./utils/formatting";
 
 import {
     asDisplayText,
@@ -94,13 +93,7 @@ import {
     getGalleryItemContentUrl,
     renderSharedGalleryCard,
 } from "./utils/gallery";
-import {
-    openPdfWindow,
-    buildStatsHtml,
-    buildStatsSummary,
-    renderStatBar,
-    renderNumericValueBar,
-} from "./utils/statistics";
+import { renderNumericValueBar } from "./utils/statistics";
 import {
     INLINE_RELATION_MAX_ITEMS,
     GALLERY_RELATION_MAX_ITEMS,
@@ -131,8 +124,13 @@ import {
     getRelationTabName,
     getTabDisplayLabel,
 } from "./relations/helpers";
-import { AnalysisChart } from "./analysis/AnalysisChart";
 import { CrosstabTable } from "./analysis/CrosstabTable";
+import { AnalyzePanel } from "./analysis/AnalyzePanel";
+import { CrosstabConfigPanel } from "./analysis/CrosstabConfigPanel";
+import { useAnalyzeResults, useAnalyzeSettings } from "./analysis/useAnalyze";
+import { resolveSeries, summarizeValues } from "./analysis/aggregation";
+import { useServerAnalyze } from "./analysis/useServerAnalyze";
+import { buildListFilterParams, buildServerFiltersFromRules } from "./utils/listFilters";
 import { PolymorphicRelatedObjectsTable, RelatedObjectsTable } from "./relations/RelatedObjectsTable";
 import { MetadataModal } from "./MetadataModal";
 import { ImportCsvModal } from "./ImportCsvModal";
@@ -179,6 +177,7 @@ import {
     normalizeRelationViewType,
     applyRelationViewOverride,
     normalizeFieldViewType,
+    DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD,
 } from "./utils/viewConfig";
 import type { ViewSettings, NormalizedViewConfigRow } from "./utils/viewConfig";
 import { ActionsButtonStack, VerticalActionsLayout } from "./utils/verticalActionsBar";
@@ -199,7 +198,6 @@ import {
     ToneSharedStyles,
     toneScopeStyle,
     renderToneTabLabel,
-    isDarkColor,
     getFieldValueColors,
     getFallbackColor,
     renderOptionTag,
@@ -327,22 +325,6 @@ export const DynamicList: React.FC<{
     ], [model.name, model.resource, go, isEmbedded]));
     const { token } = theme.useToken();
     const modelTone = useModelTone(model);
-    const valueBackground = isDarkColor(token.colorBgBase || token.colorBgContainer)
-        ? token.colorFillQuaternary
-        : "#F9FFFF";
-    const statsLabelStyle: React.CSSProperties = {
-        background: valueBackground,
-        borderRadius: 4,
-        padding: "2px 6px",
-        display: "inline-block",
-    };
-    const statsHeaderStyle: React.CSSProperties = {
-        background: valueBackground,
-    };
-    const statsTitleStyle: React.CSSProperties = {
-        color: modelTone.solid,
-        margin: 0,
-    };
     const searchField = model.fields.find(f => f.type === 'string' && !f.key.includes('_id') && !f.key.includes('eid'))
         || model.fields.find(f => f.type === 'string')
         || model.fields[0];
@@ -423,10 +405,6 @@ export const DynamicList: React.FC<{
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
     const [analyzeOpen, setAnalyzeOpen] = useState(isEmbedded);
     const analyzeTouchedRef = useRef(false);
-    const analyzePrefsTouchedRef = useRef(false);
-    const analyzePrefsLoadedRef = useRef(false);
-    const [analyzePrefsReady, setAnalyzePrefsReady] = useState(false);
-    const analyzePrefsResourceRef = useRef<string | null>(null);
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
 
     const defaultDisplayFields = useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
@@ -445,19 +423,29 @@ export const DynamicList: React.FC<{
             .filter((field): field is FieldDef => Boolean(field));
     }, [defaultDisplayFields, model.fields, orderedColumnKeys]);
     const useLocalSearch = true;
-    const [categoryField1, setCategoryField1] = useState<string | null>(null);
-    const [categoryField2, setCategoryField2] = useState<string | null | undefined>(undefined);
-    // Excel-style filter dropdowns shown above the crosstab body (crosstab/editable-crosstab views).
-    const [crosstabFilterFields, setCrosstabFilterFields] = useState<string[]>([]);
+    // Analyze section configuration and its saved preferences (shared with relation views).
+    const analyzeSettings = useAnalyzeSettings({
+        model,
+        apiUrl,
+        prefsResourceKey: prefsKey,
+        currentViewName,
+    });
+    const {
+        numericFields,
+        categoryField1,
+        categoryField2,
+        categoryField3,
+        crosstabFilterFields,
+        summaryFn,
+        selectedSeriesKeys,
+        analyzePrefsReady,
+        resetPrefsTracking,
+        resetAnalyzeDefaults,
+        persistAnalyzePreferences,
+    } = analyzeSettings;
     // Live staged edits for editable-crosstab cells (recordId -> fieldKey -> value).
     const [crosstabStaged, setCrosstabStaged] = useState<Record<string, Record<string, number>>>({});
     const [crosstabSaving, setCrosstabSaving] = useState(false);
-    const [chartType, setChartType] = useState<"bar" | "line" | "area" | "stacked" | "pie" | "donut" | "bar-horizontal" | "stacked-horizontal" | "area-horizontal" | "scatter" | "bubble" | "histogram" | "box" | "boxplot" | "waterfall" | "heatmap" | "crosstab" | "radar" | "combo" | "3d">("area");
-    const [summaryFn, setSummaryFn] = useState<"sum" | "avg" | "count" | "max" | "min" | "stddev">("sum");
-    const [selectedSeriesKeys, setSelectedSeriesKeys] = useState<string[] | null>(null);
-    const [rankingMode, setRankingMode] = useState<"none" | "top" | "bottom">("none");
-    const [rankingFieldKey, setRankingFieldKey] = useState<string | null>(null);
-    const [rankingN, setRankingN] = useState<number>(10);
     // Force-opened by a Help action (?import=1), same pattern as columnsSelectorOpen above.
     const [importModalOpen, setImportModalOpen] = useState(() => searchParams.get("import") === "1");
     useEffect(() => {
@@ -465,12 +453,6 @@ export const DynamicList: React.FC<{
     }, [searchParams]);
     const [exportLoading, setExportLoading] = useState(false);
     const [exportRequested, setExportRequested] = useState(false);
-    const [isStatsFlipped, setIsStatsFlipped] = useState(false);
-    const [isSavingAnalyzePrefs, setIsSavingAnalyzePrefs] = useState(false);
-    const chartSvgRef = useRef<SVGSVGElement | null>(null);
-    const [chartAnimationKey, setChartAnimationKey] = useState(0);
-    const [chartAnimationStage, setChartAnimationStage] = useState<"enter" | "update">("enter");
-    const skipNextAnimationRef = useRef(false);
     const [isSavingLayoutPrefs, setIsSavingLayoutPrefs] = useState(false);
     const layoutPrefsTouchedRef = useRef(false);
     const layoutPrefsLoadedRef = useRef(false);
@@ -557,7 +539,7 @@ export const DynamicList: React.FC<{
         return result;
     }, [filter?.field, filter?.operator, filter?.value, urlPreFilters]);
 
-    const { tableProps, searchFormProps, filters: activeFilters, setFilters } = useTable({
+    const { tableProps, searchFormProps, filters: activeFilters, setFilters, ...listTable } = useTable({
         resource: resourceIdentifier,
         syncWithLocation: !isEmbedded,
         pagination: { pageSize, hideOnSinglePage: true, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } as any,
@@ -577,6 +559,16 @@ export const DynamicList: React.FC<{
             return [{ field: searchField.key, operator: "contains", value }];
         },
     });
+
+    // Rows matching the list's server-side filters (the list endpoint's total). Above the
+    // analyzeServerAggregationThreshold view setting, the Analyze section asks the server to
+    // aggregate instead of downloading every row into the browser.
+    const listQuery = (listTable as any).tableQuery ?? (listTable as any).tableQueryResult;
+    const serverListTotal = Number(listQuery?.data?.total ?? 0);
+    const analyzeServerAggregationThreshold = viewSettings?.analyzeServerAggregationThreshold ?? DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD;
+    const serverAnalyzeEnabled = analyzeOpen && serverListTotal > analyzeServerAggregationThreshold;
+    // The Analyze section only needs every row in the browser when it aggregates there.
+    const analyzeNeedsAllRows = analyzeOpen && !serverAnalyzeEnabled;
 
     const [allRowsData, setAllRowsData] = useState<any[]>([]);
     const [isAllRowsLoading, setIsAllRowsLoading] = useState(false);
@@ -814,6 +806,36 @@ export const DynamicList: React.FC<{
         );
     }, [filteredDataSource, columnFiltersSelected, model.fields]);
 
+    // Above the threshold: the server aggregates, with the list's filters, search and column filters.
+    const serverAnalyze = useServerAnalyze({
+        enabled: serverAnalyzeEnabled,
+        apiUrl,
+        resourcePath: resolveResourcePath(model.resource || model.name, allModels),
+        fields: model.fields,
+        filters: isClientFiltering
+            ? [...tableFilters, ...buildServerFiltersFromRules(filterRules, model.fields, resolveRelativeDate)]
+            : (activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters),
+        search: localSearch,
+        columnFilters: columnFiltersSelected,
+        categoryKeys: [analyzeSettings.categoryField1, analyzeSettings.categoryField2, analyzeSettings.categoryField3],
+        seriesKeys: resolveSeries(numericFields, selectedSeriesKeys).seriesKeys,
+        summaryFn: analyzeSettings.summaryFn,
+        rankingMode: analyzeSettings.rankingMode,
+        rankingFieldKey: analyzeSettings.rankingFieldKey,
+        rankingN: analyzeSettings.rankingN,
+        statsKeys: displayFields.map((field) => field.key),
+    });
+
+    // Chart data, statistics and exports of the Analyze section, built from the rows shown in the
+    // table -- or, above the threshold, from the server's aggregation.
+    const analyze = useAnalyzeResults(analyzeSettings, {
+        rows: columnFilteredDataSource,
+        statsFields: displayFields,
+        labelCache,
+        server: serverAnalyzeEnabled ? serverAnalyze : null,
+    });
+    const { formatCategoryValue, setIsStatsFlipped } = analyze;
+
     useEffect(() => {
         setGalleryPage(1);
     }, [localSearch, filterRules, resolvedListViewType]);
@@ -850,10 +872,6 @@ export const DynamicList: React.FC<{
         setSelectedColumnKeys(defaults);
         setColumnOrder(defaults);
     }, [defaultDisplayFields, selectedColumnKeys]);
-
-    const markAnalyzePrefsTouched = useCallback(() => {
-        analyzePrefsTouchedRef.current = true;
-    }, []);
 
     const markLayoutPrefsTouched = useCallback(() => {
         layoutPrefsTouchedRef.current = true;
@@ -923,14 +941,6 @@ export const DynamicList: React.FC<{
         };
     }, [handleTablePageChange, isClientFiltering, pageSize, tableProps.pagination]);
 
-    const categoricalFields = useMemo(() => {
-        return model.fields.filter((field) => isPkField(field, model) || (field.type !== "number" || field.reference));
-    }, [model.fields]);
-
-    const numericFields = useMemo(() => {
-        return model.fields.filter((field) => !isPkField(field, model) && field.type === "number" && !field.reference);
-    }, [model.fields]);
-
     const hasActiveRangeColumnFilter = useMemo(() => {
         return Object.values(columnFiltersSelected).some(
             (vals) => vals.some((v) => v.startsWith("__range__:"))
@@ -941,43 +951,14 @@ export const DynamicList: React.FC<{
         return Boolean(
             localSearch.trim().length > 0 ||
             hasActiveFilterRules ||
-            analyzeOpen ||
+            analyzeNeedsAllRows ||
             exportRequested ||
             isTotalsDetailsView ||
             isCrosstabView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeOpen, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, localSearch]);
-
-    useEffect(() => {
-        if (!categoryField1 && categoricalFields.length > 0) {
-            setCategoryField1(categoricalFields[0].key);
-        }
-        if (categoryField2 === undefined && categoricalFields.length > 1) {
-            setCategoryField2(categoricalFields[1].key);
-        }
-    }, [categoricalFields, categoryField1, categoryField2]);
-
-    useEffect(() => {
-        if (selectedSeriesKeys !== null) return;
-        if (numericFields.length > 0) {
-            setSelectedSeriesKeys(numericFields.map((field) => field.key));
-        } else {
-            setSelectedSeriesKeys(["__count__"]);
-        }
-    }, [numericFields, selectedSeriesKeys]);
-
-    useEffect(() => {
-        if (numericFields.length === 0) {
-            if (rankingFieldKey !== null) setRankingFieldKey(null);
-            if (rankingMode !== "none") setRankingMode("none");
-            return;
-        }
-        if (!rankingFieldKey || !numericFields.some((field) => field.key === rankingFieldKey)) {
-            setRankingFieldKey(numericFields[0].key);
-        }
-    }, [numericFields, rankingFieldKey, rankingMode]);
+    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, localSearch]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
@@ -1004,18 +985,6 @@ export const DynamicList: React.FC<{
         }, 200);
         return () => { clearInterval(interval); };
     }, [listVisible, defaultListVisible]);
-
-    const resetAnalyzeDefaults = useCallback(() => {
-        setCategoryField1(categoricalFields[0]?.key ?? null);
-        setCategoryField2(categoricalFields.length > 1 ? categoricalFields[1].key : null);
-        setChartType("area");
-        setSummaryFn("sum");
-        setSelectedSeriesKeys(null);
-        setRankingMode("none");
-        setRankingFieldKey(numericFields[0]?.key ?? null);
-        setRankingN(10);
-        setCrosstabFilterFields([]);
-    }, [categoricalFields, numericFields]);
 
     const persistCurrentViewNames = useCallback(async (nextSelected: string[], nextCurrent: string) => {
         try {
@@ -1229,39 +1198,6 @@ export const DynamicList: React.FC<{
         }
     }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
 
-    const persistAnalyzePreferences = useCallback(async (viewName: string) => {
-        const resourceKey = prefsKey;
-        const resolvedViewName = normalizeViewName(viewName);
-        const preferences = {
-            categoryField1,
-            categoryField2: categoryField2 ?? null,
-            chartType,
-            summaryFn,
-            selectedSeriesKeys: selectedSeriesKeys ?? [],
-            rankingMode,
-            rankingFieldKey,
-            rankingN,
-            crosstabFilterFields,
-            custom_view_name: resolvedViewName,
-        };
-        setIsSavingAnalyzePrefs(true);
-        try {
-            const response = await authenticatedFetch(`${apiUrl}/views/preferences`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ resource: resourceKey, preferenceType: "Analyze", preferences }),
-            });
-            if (!response.ok) {
-                throw new Error(`Save failed (${response.status})`);
-            }
-            message.success(_("Analyze preferences saved."));
-        } catch (error) {
-            message.error(error instanceof Error ? error.message : _("Failed to save analyze preferences."));
-        } finally {
-            setIsSavingAnalyzePrefs(false);
-        }
-    }, [apiUrl, categoryField1, categoryField2, chartType, selectedSeriesKeys, summaryFn, rankingMode, rankingFieldKey, rankingN, crosstabFilterFields, model.name, model.resource, allModels, preferencesResourceOverride]);
-
     const handleConfirmSaveView = useCallback(async () => {
         if (!pendingSaveTarget) return;
         const viewName = normalizeViewName(saveViewName || currentViewName);
@@ -1302,9 +1238,8 @@ export const DynamicList: React.FC<{
         // where the reset fires after the fetch and wipes the loaded values.
         const viewChanged = prevViewNameForResetRef.current !== null && prevViewNameForResetRef.current !== currentViewName;
         prevViewNameForResetRef.current = currentViewName;
-        analyzePrefsTouchedRef.current = false;
+        resetPrefsTracking();
         layoutPrefsTouchedRef.current = false;
-        analyzePrefsLoadedRef.current = false;
         layoutPrefsLoadedRef.current = false;
         setColumnsSelectorOpen(false);
         setSaveViewName(currentViewName);
@@ -1314,62 +1249,7 @@ export const DynamicList: React.FC<{
             resetLayoutDefaults();
             resetAnalyzeDefaults();
         }
-    }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, viewNamesLoaded]);
-
-    useEffect(() => {
-        const resourceKey = prefsKey;
-        const viewKey = `${resourceKey}::${currentViewName}`;
-        if (analyzePrefsResourceRef.current !== viewKey) {
-            analyzePrefsLoadedRef.current = false;
-            setAnalyzePrefsReady(false);
-            analyzePrefsResourceRef.current = viewKey;
-        }
-        if (analyzePrefsLoadedRef.current) return;
-        let cancelled = false;
-        const loadPreferences = async () => {
-            try {
-                const response = await authenticatedFetch(`${apiUrl}/views/preferences?resource=${encodeURIComponent(resourceKey)}&preference_type=Analyze&custom_view_name=${encodeURIComponent(currentViewName)}`);
-                if (!response.ok) {
-                    throw new Error(`Load failed (${response.status})`);
-                }
-                const data = await response.json();
-                if (cancelled || analyzePrefsTouchedRef.current) return;
-                const prefs = data?.preferences;
-                if (!prefs || typeof prefs !== "object") {
-                    analyzePrefsLoadedRef.current = true;
-                    if (!cancelled) setAnalyzePrefsReady(true);
-                    return;
-                }
-                if ("categoryField1" in prefs) setCategoryField1(prefs.categoryField1 ?? null);
-                if ("categoryField2" in prefs) setCategoryField2(prefs.categoryField2 ?? null);
-                if ("chartType" in prefs) setChartType(prefs.chartType);
-                if ("summaryFn" in prefs) setSummaryFn(prefs.summaryFn);
-                if ("selectedSeriesKeys" in prefs) {
-                    setSelectedSeriesKeys(Array.isArray(prefs.selectedSeriesKeys) ? prefs.selectedSeriesKeys : []);
-                }
-                if ("rankingMode" in prefs && (prefs.rankingMode === "none" || prefs.rankingMode === "top" || prefs.rankingMode === "bottom")) {
-                    setRankingMode(prefs.rankingMode);
-                }
-                if ("rankingFieldKey" in prefs) setRankingFieldKey(prefs.rankingFieldKey ?? null);
-                if ("rankingN" in prefs) {
-                    const nextRankingN = Number(prefs.rankingN);
-                    setRankingN(Number.isFinite(nextRankingN) && nextRankingN > 0 ? Math.floor(nextRankingN) : 10);
-                }
-                if ("crosstabFilterFields" in prefs && Array.isArray(prefs.crosstabFilterFields)) {
-                    setCrosstabFilterFields(prefs.crosstabFilterFields);
-                }
-                analyzePrefsLoadedRef.current = true;
-                if (!cancelled) setAnalyzePrefsReady(true);
-            } catch {
-                // Silent failure on auto-load.
-                if (!cancelled) setAnalyzePrefsReady(true);
-            }
-        };
-        loadPreferences();
-        return () => {
-            cancelled = true;
-        };
-    }, [apiUrl, currentViewName, model.name, model.resource, allModels, preferencesResourceOverride]);
+    }, [currentViewName, resetAnalyzeDefaults, resetLayoutDefaults, resetPrefsTracking, viewNamesLoaded]);
 
     useEffect(() => {
         if (!resolvedLayoutPreferenceType) return;
@@ -1471,17 +1351,9 @@ export const DynamicList: React.FC<{
         let allRows: any[] = [];
         try {
             while (true) {
-                const params = new URLSearchParams();
+                const params = buildListFilterParams(filtersToApply);
                 params.set("_start", String(start));
                 params.set("_end", String(start + pageSize));
-                filtersToApply.forEach((filterItem: any) => {
-                    if (!filterItem?.field || filterItem?.value === undefined || filterItem?.value === null) return;
-                    const vals = Array.isArray(filterItem.value) ? filterItem.value : [filterItem.value];
-                    if (vals.some((v: any) => String(v).startsWith("__range__:"))) return;
-                    const op = filterItem.operator;
-                    const suffix = op && op !== "eq" ? `_${op}` : "";
-                    params.append(`${filterItem.field}${suffix}`, String(filterItem.value));
-                });
                 const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
                 const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
                 const data = await response.json();
@@ -1510,10 +1382,10 @@ export const DynamicList: React.FC<{
                 value: filterItem?.value,
             })),
         });
-        if (lastAllRowsSignature.current === signature && !exportRequested && !analyzeOpen && !shouldLoadAllRows) return;
+        if (lastAllRowsSignature.current === signature && !exportRequested && !analyzeNeedsAllRows && !shouldLoadAllRows) return;
         lastAllRowsSignature.current = signature;
         fetchAllRows();
-    }, [activeFilters, analyzeOpen, exportRequested, fetchAllRows, model.name, shouldLoadAllRows, tableFilters]);
+    }, [activeFilters, analyzeNeedsAllRows, exportRequested, fetchAllRows, model.name, shouldLoadAllRows, tableFilters]);
 
     useEffect(() => {
         if (!allRowsLoaded) return;
@@ -1528,197 +1400,10 @@ export const DynamicList: React.FC<{
 
     useEffect(() => {
         if (!hasActiveFilterRules || isClientFiltering) return;
-        const resolveServerDate = (val: any, forRange: boolean) => {
-            if (val?.mode === "relative") {
-                const resolved = resolveRelativeDate(val, forRange);
-                if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
-                return { date: resolved.date?.toISOString() };
-            }
-            const date = dayjs(val?.date || val);
-            if (!date.isValid()) return {};
-            if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
-            return { date: date.startOf("day").toISOString() };
-        };
-        const serverFilters = filterRules
-            .filter((rule) => rule.fieldKey && rule.operator && rule.value !== undefined && rule.value !== null && rule.value !== "")
-            .flatMap((rule) => {
-                const field = model.fields.find((f) => f.key === rule.fieldKey);
-                if (!field) return [];
-                const fieldKey = field.key;
-                const op = rule.operator;
-                if (field.type === "string") {
-                    return [{
-                        field: fieldKey,
-                        operator: op === "contains" ? "contains" : "eq",
-                        value: rule.value,
-                    }];
-                }
-                if (field.type === "number") {
-                    if (op === "between") {
-                        return [
-                            { field: fieldKey, operator: "gte", value: rule.value },
-                            { field: fieldKey, operator: "lte", value: rule.value2 },
-                        ];
-                    }
-                    return [{
-                        field: fieldKey,
-                        operator: op!,
-                        value: rule.value,
-                    }];
-                }
-                if (field.type === "boolean") {
-                    return [{ field: fieldKey, operator: "eq", value: Boolean(rule.value) }];
-                }
-                if (field.type === "date" || field.type === "datetime") {
-                    if (op === "between") {
-                        const start = resolveServerDate(rule.value, true).start;
-                        const end = resolveServerDate(rule.value2, true).end;
-                        return [
-                            { field: fieldKey, operator: "gte", value: start },
-                            { field: fieldKey, operator: "lte", value: end },
-                        ];
-                    }
-                    const operatorMap: Record<string, string> = { before: "lt", after: "gt", on: "eq" };
-                    const dateVal = resolveServerDate(rule.value, false).date;
-                    return [{
-                        field: fieldKey,
-                        operator: (op && operatorMap[op]) || "eq",
-                        value: dateVal,
-                    }];
-                }
-                return [];
-            });
+        const serverFilters = buildServerFiltersFromRules(filterRules, model.fields, resolveRelativeDate);
         const combined = [...tableFilters, ...serverFilters];
         setFilters(combined as any, "replace");
-    }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, setFilters, tableFilters]);
-
-    const formatCategoryValue = useCallback((field: FieldDef | undefined, record: any) => {
-        if (!field) return _("All");
-        const raw = record?.[field.key];
-        if (raw === undefined || raw === null) return "-";
-        if (isPkField(field, model) && record?._label) return record._label;
-        if (field.reference) {
-            const cacheKey = `${field.reference}:${raw}`;
-            return labelCache[cacheKey] || String(raw);
-        }
-        if (field.options) {
-            return field.options.find((option) => option && option.value === raw)?.label || String(raw);
-        }
-        if (field.type === "boolean") return raw ? _("Yes") : _("No");
-        if (field.type === "date") return formatDateValue(raw);
-        if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
-        if (field.type === "time") return formatTimeValue(raw);
-        return String(raw);
-    }, [labelCache]);
-
-    const chartData = useMemo(() => {
-        const data = Array.isArray(columnFilteredDataSource) ? columnFilteredDataSource : [];
-        const cat1Field = categoryField1 ? model.fields.find((field) => field.key === categoryField1) : undefined;
-        const cat2Field = categoryField2 ? model.fields.find((field) => field.key === categoryField2) : undefined;
-        const groupMap = new Map<string, { key: string; label: string; values: Record<string, number> }>();
-        const numericFieldMap = new Map<string, FieldDef>(
-            numericFields.map((field) => [field.key, field])
-        );
-        const rawSeriesKeys = numericFields.length > 0 ? numericFields.map((field) => field.key) : ["__count__"];
-        const selectedSeriesKeysValid = (selectedSeriesKeys || []).filter((key) => {
-            if (key === "__count__" && numericFields.length === 0) return true;
-            return numericFieldMap.has(key);
-        });
-        const seriesKeys = selectedSeriesKeysValid.length > 0 ? selectedSeriesKeysValid : rawSeriesKeys;
-        const rankingSeriesKey = rankingFieldKey && numericFieldMap.has(rankingFieldKey) ? rankingFieldKey : null;
-        const aggregationKeys = Array.from(new Set([...(seriesKeys || []), ...(rankingSeriesKey ? [rankingSeriesKey] : [])]));
-        const statsMap = new Map<string, Record<string, number[]>>();
-        data.forEach((record: any) => {
-            const cat1Value = formatCategoryValue(cat1Field, record);
-            const cat2Value = cat2Field ? formatCategoryValue(cat2Field, record) : null;
-            const label = cat2Field ? `${cat1Value} • ${cat2Value}` : `${cat1Value}`;
-            const groupKey = label;
-            if (!groupMap.has(groupKey)) {
-                groupMap.set(groupKey, { key: groupKey, label, values: Object.fromEntries(aggregationKeys.map((key) => [key, 0])) });
-                statsMap.set(groupKey, Object.fromEntries(aggregationKeys.map((key) => [key, []])));
-            }
-            const stats = statsMap.get(groupKey)!;
-            if (numericFields.length === 0) {
-                if (stats["__count__"]) {
-                    stats["__count__"].push(1);
-                }
-            } else {
-                aggregationKeys.forEach((key) => {
-                    const field = numericFieldMap.get(key);
-                    if (!field) return;
-                    const value = Number(record?.[field.key]);
-                    if (!Number.isNaN(value) && stats[key]) {
-                        stats[key].push(value);
-                    }
-                });
-            }
-        });
-        groupMap.forEach((group, groupKey) => {
-            const stats = statsMap.get(groupKey);
-            if (!stats) return;
-            aggregationKeys.forEach((key) => {
-                const values = stats[key] || [];
-                if (values.length === 0) {
-                    group.values[key] = 0;
-                    return;
-                }
-                switch (summaryFn) {
-                    case "count":
-                        group.values[key] = values.length;
-                        return;
-                    case "avg":
-                        group.values[key] = values.reduce((acc, val) => acc + val, 0) / values.length;
-                        return;
-                    case "max":
-                        group.values[key] = Math.max(...values);
-                        return;
-                    case "min":
-                        group.values[key] = Math.min(...values);
-                        return;
-                    case "stddev": {
-                        const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-                        const variance = values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
-                        group.values[key] = Math.sqrt(variance);
-                        return;
-                    }
-                    case "sum":
-                    default:
-                        group.values[key] = values.reduce((acc, val) => acc + val, 0);
-                }
-            });
-        });
-        const seriesLabels = numericFields.length > 0
-            ? numericFields.reduce<Record<string, string>>((acc, field) => {
-                acc[field.key] = field.label;
-                return acc;
-            }, { "__count__": _("Count") })
-            : { "__count__": _("Count") };
-        const baseGroups = Array.from(groupMap.values());
-        let groups = baseGroups;
-        if (rankingMode !== "none" && rankingFieldKey) {
-            const limit = Math.max(1, Math.floor(rankingN || 10));
-            const ranked = [...baseGroups].sort((a, b) => {
-                const aVal = Number(a.values[rankingFieldKey] ?? 0);
-                const bVal = Number(b.values[rankingFieldKey] ?? 0);
-                if (aVal === bVal) return a.label.localeCompare(b.label);
-                return rankingMode === "top" ? bVal - aVal : aVal - bVal;
-            });
-            groups = ranked.slice(0, limit);
-        }
-        const allowedGroupKeys = new Set(groups.map((group) => group.key));
-        const filteredRawRows = data.filter((record: any) => {
-            const cat1Value = formatCategoryValue(cat1Field, record);
-            const cat2Value = cat2Field ? formatCategoryValue(cat2Field, record) : null;
-            const label = cat2Field ? `${cat1Value} • ${cat2Value}` : `${cat1Value}`;
-            return allowedGroupKeys.has(label);
-        });
-        return {
-            groups,
-            seriesKeys,
-            seriesLabels,
-            filteredRawRows,
-        };
-    }, [columnFilteredDataSource, categoryField1, categoryField2, model.fields, numericFields, formatCategoryValue, summaryFn, selectedSeriesKeys, rankingMode, rankingFieldKey, rankingN]);
+    }, [filterRules, hasActiveFilterRules, isClientFiltering, model.fields, resolveRelativeDate, setFilters, tableFilters]);
 
     // ---- Crosstab view body (DynamicList path: one-to-many relations & top-level lists) ----
     const crosstabBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
@@ -1818,95 +1503,8 @@ export const DynamicList: React.FC<{
         return buildColumnFilterOptions({ fields, data, rangeCount });
     }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
 
-    const crosstabSummaryOptions = [
-        { label: _("Sum"), value: "sum" },
-        { label: _("Average"), value: "avg" },
-        { label: _("Count"), value: "count" },
-        { label: _("Max"), value: "max" },
-        { label: _("Min"), value: "min" },
-        { label: _("Std Dev"), value: "stddev" },
-    ];
-
     const crosstabConfigPanel = (
-        <Collapse
-            size="small"
-            defaultActiveKey={[]}
-            style={{ marginBottom: 12 }}
-            items={[{
-                key: "crosstab-config",
-                label: <Tooltip title={_("Crosstab configuration")}><span><SettingOutlined /></span></Tooltip>,
-                children: (
-                    <div style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                            <div style={{ minWidth: 200, flex: 1 }}>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 1 (rows)")}</div>
-                                <Select
-                                    value={categoryField1 || undefined}
-                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField1(value); }}
-                                    style={{ width: "100%" }}
-                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
-                                    placeholder={_("Select category")}
-                                />
-                            </div>
-                            <div style={{ minWidth: 200, flex: 1 }}>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 2 (columns)")}</div>
-                                <Select
-                                    value={categoryField2 || "__none__"}
-                                    onChange={(value) => { markAnalyzePrefsTouched(); setCategoryField2(value === "__none__" ? null : value); }}
-                                    style={{ width: "100%" }}
-                                    options={[
-                                        { label: _("None"), value: "__none__" },
-                                        ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key })),
-                                    ]}
-                                />
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                            <div style={{ minWidth: 200, flex: 1 }}>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Cell fields")}</div>
-                                <Select
-                                    mode="multiple"
-                                    allowClear
-                                    value={selectedSeriesKeys || []}
-                                    onChange={(value) => { markAnalyzePrefsTouched(); setSelectedSeriesKeys(value); }}
-                                    style={{ width: "100%" }}
-                                    options={model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key }))}
-                                    placeholder={_("All numeric fields")}
-                                    maxTagCount="responsive"
-                                />
-                            </div>
-                            <div style={{ minWidth: 150 }}>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Summary")}</div>
-                                <Select
-                                    value={summaryFn}
-                                    onChange={(value) => { markAnalyzePrefsTouched(); setSummaryFn(value as typeof summaryFn); }}
-                                    style={{ width: "100%" }}
-                                    options={crosstabSummaryOptions}
-                                />
-                            </div>
-                            <div style={{ minWidth: 200, flex: 1 }}>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Filter fields")}</div>
-                                <Select
-                                    mode="multiple"
-                                    allowClear
-                                    value={crosstabFilterFields}
-                                    onChange={(value) => { markAnalyzePrefsTouched(); setCrosstabFilterFields(value); }}
-                                    style={{ width: "100%" }}
-                                    options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
-                                    placeholder={_("Select filter fields")}
-                                    maxTagCount="responsive"
-                                />
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                            <Tooltip title={_("Save configuration")}>
-                                <Button size="small" icon={<SaveOutlined />} onClick={() => openSaveViewModalFor("analyze")} loading={isSavingAnalyzePrefs} aria-label={_("Save configuration")} />
-                            </Tooltip>
-                        </div>
-                    </div>
-                ),
-            }]}
-        />
+        <CrosstabConfigPanel analyze={analyzeSettings} model={model} onSaveClick={() => openSaveViewModalFor("analyze")} />
     );
 
     const crosstabFilterRow = crosstabFilterFields.length > 0 ? (
@@ -1953,6 +1551,7 @@ export const DynamicList: React.FC<{
                 rows={columnFilteredDataSource}
                 rowField={categoryField1}
                 colField={categoryField2 ?? null}
+                colField3={categoryField3}
                 cellFieldKeys={(selectedSeriesKeys && selectedSeriesKeys.length > 0) ? selectedSeriesKeys : numericFields.map((f) => f.key)}
                 cellFieldLabels={Object.fromEntries(model.fields.map((f) => [f.key, f.label]))}
                 allFields={model.fields}
@@ -1969,24 +1568,6 @@ export const DynamicList: React.FC<{
             />
         </div>
     );
-
-    const chartSignature = useMemo(() => {
-        return JSON.stringify({
-            chartType,
-            summaryFn,
-            categoryField1,
-            categoryField2,
-            rankingMode,
-            rankingFieldKey,
-            rankingN,
-            seriesKeys: chartData.seriesKeys,
-            groups: chartData.groups,
-        });
-    }, [chartType, summaryFn, categoryField1, categoryField2, rankingMode, rankingFieldKey, rankingN, chartData]);
-
-    const statsSummary = useMemo(() => {
-        return buildStatsSummary(columnFilteredDataSource, displayFields, labelCache);
-    }, [columnFilteredDataSource, displayFields, labelCache]);
 
     // --- totals-details boxes (reuses allRows + displayFields) ---
     const tdCategoricalBoxes = useMemo(() => {
@@ -2048,18 +1629,9 @@ export const DynamicList: React.FC<{
                 .map((row) => Number(row?.[field.key]))
                 .filter((v) => !Number.isNaN(v) && Number.isFinite(v));
             if (values.length === 0) return 0;
-            switch (fn) {
-                case "count": return values.length;
-                case "avg": return values.reduce((a, b) => a + b, 0) / values.length;
-                case "max": return Math.max(...values);
-                case "min": return Math.min(...values);
-                case "stddev": {
-                    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-                    return Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / values.length);
-                }
-                case "distinct": return new Set(values).size;
-                default: return values.reduce((a, b) => a + b, 0);
-            }
+            if (fn === "distinct") return new Set(values).size;
+            // Same summary calculation as the Analyze section (sample std dev).
+            return summarizeValues(values, fn);
         }
         const rawValues = (allRows || []).map((row) => row?.[field.key]);
         if (fn === "count") return rawValues.length;
@@ -2178,50 +1750,6 @@ export const DynamicList: React.FC<{
         return maxes;
     }, [allRows, displayFields]);
 
-    const statsNumericMaxes = useMemo(() => {
-        const stats = statsSummary.numericStats;
-        const maxAbs = (values: Array<number | null>) => {
-            const absValues = values.filter((val): val is number => typeof val === "number").map((val) => Math.abs(val));
-            return absValues.length > 0 ? Math.max(...absValues) : 0;
-        };
-        return {
-            sum: maxAbs(stats.map((row) => row.sum)),
-            avg: maxAbs(stats.map((row) => row.avg)),
-            min: maxAbs(stats.map((row) => row.min)),
-            max: maxAbs(stats.map((row) => row.max)),
-            stddev: maxAbs(stats.map((row) => row.stddev)),
-        };
-    }, [statsSummary.numericStats]);
-
-    useEffect(() => {
-        if (!analyzeOpen) return;
-        skipNextAnimationRef.current = true;
-        setChartAnimationStage("enter");
-        setChartAnimationKey((key) => key + 1);
-    }, [analyzeOpen]);
-
-    useEffect(() => {
-        if (!analyzeOpen) return;
-        if (skipNextAnimationRef.current) {
-            skipNextAnimationRef.current = false;
-            return;
-        }
-        setChartAnimationStage("update");
-        setChartAnimationKey((key) => key + 1);
-    }, [analyzeOpen, chartSignature]);
-
-    const fieldByKey = useMemo(() => {
-        return new Map(model.fields.map((field) => [field.key, field]));
-    }, [model.fields]);
-
-    const chartTitle = useMemo(() => {
-        const cat1Label = categoryField1 ? fieldByKey.get(categoryField1)?.label : "All";
-        const cat2Label = categoryField2 ? fieldByKey.get(categoryField2)?.label : null;
-        const parts = [model.label || model.name, cat1Label];
-        if (cat2Label) parts.push(cat2Label);
-        return parts.filter(Boolean).join(" • ");
-    }, [categoryField1, categoryField2, fieldByKey, model.label, model.name]);
-
     const formatValueForExport = useCallback((field: FieldDef, record: any) => {
         const raw = record?.[field.key];
         if (raw === undefined || raw === null) return "";
@@ -2266,71 +1794,6 @@ export const DynamicList: React.FC<{
         URL.revokeObjectURL(url);
         setExportRequested(false);
     }, [exportRequested, isAllRowsLoading, allRows, model.fields, model.name, formatValueForExport]);
-
-    const exportChartImage = () => {
-        const svg = chartSvgRef.current;
-        if (!svg) return;
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svg);
-        const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-        img.onload = () => {
-            const width = svg.viewBox.baseVal.width || svg.clientWidth || 1000;
-            const height = svg.viewBox.baseVal.height || svg.clientHeight || 420;
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            URL.revokeObjectURL(url);
-            canvas.toBlob((blob) => {
-                if (!blob) return;
-                const pngUrl = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = pngUrl;
-                link.download = `${model.name}-chart.png`;
-                link.click();
-                URL.revokeObjectURL(pngUrl);
-            }, "image/png");
-        };
-        img.src = url;
-    };
-    const exportChartPdf = () => {
-        const svg = chartSvgRef.current;
-        if (!svg) return;
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svg);
-        const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-        img.onload = () => {
-            const width = svg.viewBox.baseVal.width || svg.clientWidth || 1000;
-            const height = svg.viewBox.baseVal.height || svg.clientHeight || 420;
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            URL.revokeObjectURL(url);
-            const dataUrl = canvas.toDataURL("image/png");
-            const chartHeading = chartTitle || `${model.label} Chart`;
-            openPdfWindow(
-                `${model.name}-chart`,
-                `<h2>${escapeHtml(chartHeading)}</h2><img src="${dataUrl}" style="width: 100%; height: auto;" />`
-            );
-        };
-        img.src = url;
-    };
-    const exportStatsPdf = () => {
-        openPdfWindow(`${model.name}-stats`, buildStatsHtml(statsSummary));
-    };
 
     const getRowKey = (record: any, index?: number) => {
         // Named queries may have duplicate eids (e.g. one row per Project×Task);
@@ -4542,330 +4005,27 @@ export const DynamicList: React.FC<{
                 )}
                 {analyzeOpen && !isEmptyTable && analyzePrefsReady && (!isTotalsDetailsView || isTdFlipped) && (
                     <div style={analyzeContainerStyle}>
-                        <Card
-                            size="small"
-                            title={<span style={{ color: modelTone.text, fontWeight: 600 }}>{_("Analyze")}</span>}
-                            styles={{
-                                header: {
-                                    background: `linear-gradient(135deg, ${modelTone.solid}18 0%, ${modelTone.solid}0a 100%)`,
-                                },
-                                body: { padding: 0 },
-                            }}
-                        >
-                            <div style={{ perspective: 1600, padding: 12 }}>
-                                <div
-                                    style={{
-                                        display: "grid",
-                                        transformStyle: "preserve-3d",
-                                        transition: "transform 0.6s",
-                                        transform: isStatsFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                                    }}
-                                >
-                                    <Card
-                                        size="small"
-                                        style={{
-                                            gridArea: "1 / 1",
-                                            backfaceVisibility: "hidden",
-                                            pointerEvents: isStatsFlipped ? "none" : "auto",
-                                        }}
-                                        styles={{ body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } }}
-                                    >
-                                        <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }}>
-                                            <Tooltip title={_("Save preferences")}>
-                                                <Button size="small" icon={<SaveOutlined />} onClick={() => openSaveViewModalFor("analyze")} loading={isSavingAnalyzePrefs} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Stats")}>
-                                                <Button size="small" icon={<FileTextOutlined />} onClick={() => setIsStatsFlipped(true)} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Export chart PDF")}>
-                                                <Button size="small" icon={<FilePdfOutlined />} onClick={exportChartPdf} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Export chart PNG")}>
-                                                <Button size="small" icon={<DownloadOutlined />} onClick={exportChartImage} aria-label={_("Export chart")} />
-                                            </Tooltip>
+                        <AnalyzePanel
+                            analyze={analyze}
+                            allFields={model.fields}
+                            tone={modelTone}
+                            numericBarColor={numericBarColor}
+                            onSaveClick={() => openSaveViewModalFor("analyze")}
+                            customizeFooter={(
+                                <>
+                                    {isAllRowsLoading && (
+                                        <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>
+                                            {_("Loading all rows for analysis...")}
                                         </div>
-                                        <AnalysisChart
-                                            data={chartData.groups}
-                                            seriesKeys={chartData.seriesKeys}
-                                            seriesLabels={chartData.seriesLabels}
-                                            chartType={chartType}
-                                            svgRef={chartSvgRef}
-                                            animationKey={chartAnimationKey}
-                                            animationStage={chartAnimationStage}
-                                            rawRows={chartData.filteredRawRows}
-                                            numericFields={numericFields}
-                                            categoryField1={categoryField1}
-                                            categoryField2={categoryField2}
-                                            formatCategoryValue={formatCategoryValue}
-                                            summaryFn={summaryFn}
-                                            allFields={model.fields}
-                                            title={chartTitle}
-                                            numericBarColor={numericBarColor}
-                                        />
-                                        <Collapse
-                                            size="small"
-                                            defaultActiveKey={[]}
-                                            items={[
-                                                {
-                                                    key: "configure-chart",
-                                                    label: _("Customize chart"),
-                                                    children: (
-                                                        <div style={{ display: "grid", gap: 16 }}>
-                                                            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                                                                <div style={{ minWidth: 220, flex: 1 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 1")}</div>
-                                                                    <Select
-                                                                        value={categoryField1 || undefined}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setCategoryField1(value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={categoricalFields.map((field) => ({ label: field.label, value: field.key }))}
-                                                                        placeholder={_("Select category")}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 220, flex: 1 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Category 2")}</div>
-                                                                    <Select
-                                                                        value={categoryField2 || "__none__"}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setCategoryField2(value === "__none__" ? null : value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={[
-                                                                            { label: _("None"), value: "__none__" },
-                                                                            ...categoricalFields
-                                                                                .filter((field) => field.key !== categoryField1)
-                                                                                .map((field) => ({ label: field.label, value: field.key })),
-                                                                        ]}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 160 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Chart Type")}</div>
-                                                                    <Select
-                                                                        value={chartType}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setChartType(value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={[
-                                                                            { label: _("Area"), value: "area" },
-                                                                            { label: _("Horizontal Area"), value: "area-horizontal" },
-                                                                            { label: _("Bars"), value: "bar" },
-                                                                            { label: _("Stacked Bars"), value: "stacked" },
-                                                                            { label: _("Horizontal Bars"), value: "bar-horizontal" },
-                                                                            { label: _("Horizontal Stacked"), value: "stacked-horizontal" },
-                                                                            { label: _("Lines"), value: "line" },
-                                                                            { label: _("Pie"), value: "pie" },
-                                                                            { label: _("Donut"), value: "donut" },
-                                                                            { label: _("Scatter"), value: "scatter" },
-                                                                            { label: _("Bubble"), value: "bubble" },
-                                                                            { label: _("Histogram"), value: "histogram" },
-                                                                            { label: _("Box Plot"), value: "box" },
-                                                                            { label: _("Waterfall"), value: "waterfall" },
-                                                                            { label: _("Heatmap"), value: "heatmap" },
-                                                                            { label: _("Crosstab"), value: "crosstab" },
-                                                                            { label: _("Radar"), value: "radar" },
-                                                                            { label: _("Combo (Bar + Line)"), value: "combo" },
-                                                                            { label: _("3D Scatter"), value: "3d" },
-                                                                        ]}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 200 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Summary")}</div>
-                                                                    <Select
-                                                                        value={summaryFn}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setSummaryFn(value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={[
-                                                                            { label: _("Sum"), value: "sum" },
-                                                                            { label: _("Average"), value: "avg" },
-                                                                            { label: _("Count"), value: "count" },
-                                                                            { label: _("Max"), value: "max" },
-                                                                            { label: _("Min"), value: "min" },
-                                                                            { label: _("Std Dev"), value: "stddev" },
-                                                                        ]}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 180 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Ranking Filter")}</div>
-                                                                    <Select
-                                                                        value={rankingMode}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setRankingMode(value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={[
-                                                                            { label: _("None"), value: "none" },
-                                                                            { label: _("Top N"), value: "top" },
-                                                                            { label: _("Bottom N"), value: "bottom" },
-                                                                        ]}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 220 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("Ranking Column")}</div>
-                                                                    <Select
-                                                                        value={rankingFieldKey || undefined}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            setRankingFieldKey(value);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        options={numericFields.map((field) => ({ label: field.label, value: field.key }))}
-                                                                        placeholder={_("Select numeric column")}
-                                                                        disabled={rankingMode === "none" || numericFields.length === 0}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ minWidth: 120 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>{_("N")}</div>
-                                                                    <InputNumber
-                                                                        min={1}
-                                                                        value={rankingN}
-                                                                        onChange={(value) => {
-                                                                            markAnalyzePrefsTouched();
-                                                                            const nextN = Number(value);
-                                                                            setRankingN(Number.isFinite(nextN) && nextN > 0 ? Math.floor(nextN) : 10);
-                                                                        }}
-                                                                        style={{ width: "100%" }}
-                                                                        disabled={rankingMode === "none"}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-                                                                    <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{_("Series")}</div>
-                                                                    <Tooltip title={_("Unselect All")}>
-                                                                        <Button
-                                                                            size="small"
-                                                                            icon={<CloseCircleOutlined />}
-                                                                            onClick={() => {
-                                                                                markAnalyzePrefsTouched();
-                                                                                setSelectedSeriesKeys([]);
-                                                                            }}
-                                                                        />
-                                                                    </Tooltip>
-                                                                </div>
-                                                                <Checkbox.Group
-                                                                    value={selectedSeriesKeys || []}
-                                                                    onChange={(values) => {
-                                                                        markAnalyzePrefsTouched();
-                                                                        setSelectedSeriesKeys(values as string[]);
-                                                                    }}
-                                                                    options={
-                                                                        (numericFields.length > 0
-                                                                            ? numericFields.map((field) => ({ label: field.label, value: field.key }))
-                                                                            : [{ label: _("Count"), value: "__count__" }])
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            {isAllRowsLoading && (
-                                                                <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>
-                                                                    {_("Loading all rows for analysis...")}
-                                                                </div>
-                                                            )}
-                                                            {allRowsError && (
-                                                                <div style={{ color: token.colorError, fontSize: 12 }}>
-                                                                    {allRowsError}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ),
-                                                },
-                                            ]}
-                                        />
-                                    </Card>
-                                    <Card
-                                        size="small"
-                                        style={{
-                                            gridArea: "1 / 1",
-                                            backfaceVisibility: "hidden",
-                                            transform: "rotateY(180deg)",
-                                            pointerEvents: isStatsFlipped ? "auto" : "none",
-                                        }}
-                                        styles={{ body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } }}
-                                    >
-                                        <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }}>
-                                            <Tooltip title={_("Analysis")}>
-                                                <Button size="small" icon={<BarChartOutlined />} onClick={() => setIsStatsFlipped(false)} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Export stats PDF")}>
-                                                <Button size="small" icon={<FilePdfOutlined />} onClick={exportStatsPdf} />
-                                            </Tooltip>
+                                    )}
+                                    {allRowsError && (
+                                        <div style={{ color: token.colorError, fontSize: 12 }}>
+                                            {allRowsError}
                                         </div>
-                                        <div style={{ display: "grid", gap: 16 }}>
-                                            {statsSummary.numericStats.length > 0 && (
-                                                <Card size="small" title={<span style={statsTitleStyle}>{_("Numeric columns")}</span>}>
-                                                    <Table
-                                                        dataSource={statsSummary.numericStats}
-                                                        size="small"
-                                                        pagination={false}
-                                                        rowKey={(row) => row.key}
-                                                    >
-                                                        <Table.Column
-                                                            title={_("Field")}
-                                                            dataIndex="label"
-                                                            key="label"
-                                                            render={(label: string) => <span style={statsLabelStyle}>{label}</span>}
-                                                            onHeaderCell={() => ({ style: statsHeaderStyle })}
-                                                        />
-                                                        <Table.Column title={_("Sum")} key="sum" align="right" render={(_unused, row: any) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue)} onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                        <Table.Column title={_("Average")} key="avg" align="right" render={(_unused, row: any) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue)} onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                        <Table.Column title={_("Min")} key="min" align="right" render={(_unused, row: any) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue)} onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                        <Table.Column title={_("Max")} key="max" align="right" render={(_unused, row: any) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue)} onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                        <Table.Column title={_("Std Dev")} key="stddev" align="right" render={(_unused, row: any) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue)} onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                    </Table>
-                                                </Card>
-                                            )}
-                                            {statsSummary.categoricalStats.length > 0 && (
-                                                <Collapse
-                                                    size="small"
-                                                    defaultActiveKey={[]}
-                                                    items={[
-                                                        {
-                                                            key: "categorical-columns",
-                                                            label: <span style={statsTitleStyle}>{_("Categorical columns (distinct < 20)")}</span>,
-                                                            children: statsSummary.categoricalStats.map((field) => (
-                                                                <div key={field.key} style={{ marginBottom: 12 }}>
-                                                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                                                                        <span style={statsLabelStyle}>{field.label}</span>
-                                                                    </div>
-                                                                    <Table
-                                                                        dataSource={field.counts}
-                                                                        size="small"
-                                                                        pagination={false}
-                                                                        rowKey={(row) => row.value}
-                                                                    >
-                                                                        <Table.Column title={_("Value")} dataIndex="value" key="value" onHeaderCell={() => ({ style: statsHeaderStyle })} />
-                                                                        <Table.Column
-                                                                            title={_("Count")}
-                                                                            dataIndex="count"
-                                                                            key="count"
-                                                                            align="right"
-                                                                            onHeaderCell={() => ({ style: statsHeaderStyle })}
-                                                                            render={(value: number) => {
-                                                                                const maxCount = Math.max(1, ...field.counts.map((entry) => entry.count));
-                                                                                return renderStatBar(value, maxCount, (val) => formatNumberValue(val));
-                                                                            }}
-                                                                        />
-                                                                    </Table>
-                                                                </div>
-                                                            )),
-                                                        },
-                                                    ]}
-                                                />
-                                            )}
-                                        </div>
-                                    </Card>
-                                </div>
-                            </div>
-                        </Card>
+                                    )}
+                                </>
+                            )}
+                        />
                     </div>
                 )}
             </div>

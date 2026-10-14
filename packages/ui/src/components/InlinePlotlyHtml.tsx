@@ -1,39 +1,110 @@
 import React, { useEffect, useRef } from "react";
+import { theme } from "antd";
+import { ensurePlotly, getPlotly } from "../utils/plotlyLoader";
+import { applyChartThemeToGraph } from "./DynamicResource/analysis/chartTheme";
+import { isDarkColor } from "./DynamicResource/utils/colors";
 
 let instanceCounter = 0;
 
-// Global Plotly loader — avoids duplicate <script> tags across component instances.
-// Loads the vendored runtime from the framework's core static mount
-// (backend/veloiq_framework/static_assets/plotly.min.js, served at
-// /veloiq-assets/plotly.min.js in every host app) instead of the cdn.plot.ly CDN,
-// so chart rendering never depends on internet access.
-let _plotlyLoadPromise: Promise<void> | null = null;
-const ensurePlotly = (): Promise<void> => {
-    if ((window as any).Plotly) return Promise.resolve();
-    if (_plotlyLoadPromise) return _plotlyLoadPromise;
-    _plotlyLoadPromise = new Promise<void>((resolve) => {
-        const existing = document.querySelector('script[data-jm-plotly-loader="1"]');
-        if (existing) {
-            existing.addEventListener('load', () => resolve());
-            return;
-        }
-        const s = document.createElement('script');
-        s.src = '/veloiq-assets/plotly.min.js';
-        s.async = true;
-        s.setAttribute('data-jm-plotly-loader', '1');
-        s.onload = () => resolve();
-        s.onerror = () => resolve(); // don't block forever on CDN failure
-        document.head.appendChild(s);
-    });
-    return _plotlyLoadPromise;
-};
+// ---------------------------------------------------------------------------
+// Resize-churn circuit breaker
+// ---------------------------------------------------------------------------
+// A Plotly chart (or flip-card) redrawn against an "auto"-height grid row can,
+// if Plotly's own auto-margin computation doesn't converge in one corrective
+// pass, keep nudging its own container's natural content height on every
+// resize. That re-triggers this file's ResizeObservers, which schedule another
+// corrective resize, indefinitely (seen as a grid cell that keeps growing and
+// shrinking, with "<rect> attribute height: Expected length, 'NaN'" console
+// errors). Cap how many corrective-resize attempts any single element gets
+// within a short rolling window; the window resets after a quiet period, so a
+// later genuine resize (a real container-size change, a browser window resize)
+// still gets its own fresh attempts.
+const RESIZE_CHURN_LIMIT = 6;
+const RESIZE_CHURN_WINDOW_MS = 3000;
+const resizeChurnTracker = new WeakMap<HTMLElement, { count: number; windowStart: number }>();
+
+/** True while `el` still has corrective-resize attempts left in the current window. */
+function allowResizeAttempt(el: HTMLElement): boolean {
+    const now = Date.now();
+    const entry = resizeChurnTracker.get(el);
+    if (!entry || now - entry.windowStart > RESIZE_CHURN_WINDOW_MS) {
+        resizeChurnTracker.set(el, { count: 1, windowStart: now });
+        return true;
+    }
+    entry.count += 1;
+    return entry.count <= RESIZE_CHURN_LIMIT;
+}
+
+// Shared, deduplicated resize scheduler across every <InlinePlotlyHtml>
+// instance on the page. When many grid cells' ResizeObservers fire around the
+// same moment (a density switch, a carousel settling), independent per-instance
+// debounces land a few ms apart and resize the SAME chart several times in a
+// row, re-triggering Plotly's auto-margin computation before it converges
+// ("WARN: Too many auto-margin redraws"). One global debounce with a Set
+// resizes each chart div at most once per settle cycle.
+const pendingPlotlyResizeDivs = new Set<HTMLElement>();
+let plotlyResizeFlushTimer: number | null = null;
+/** Queue a Plotly.Plots.resize() of `div` for the next shared settle cycle. */
+function schedulePlotlyResize(div: HTMLElement) {
+    if (!allowResizeAttempt(div)) return;
+    pendingPlotlyResizeDivs.add(div);
+    if (plotlyResizeFlushTimer) window.clearTimeout(plotlyResizeFlushTimer);
+    plotlyResizeFlushTimer = window.setTimeout(() => {
+        plotlyResizeFlushTimer = null;
+        const Plotly = (window as any).Plotly;
+        const divs = Array.from(pendingPlotlyResizeDivs);
+        pendingPlotlyResizeDivs.clear();
+        if (!Plotly?.Plots?.resize) return;
+        divs.forEach((plotDiv) => {
+            if (!plotDiv.isConnected) return;
+            try { Plotly.Plots.resize(plotDiv); } catch { /* a graph mid-(re)render can throw; the next tick retries */ }
+        });
+    }, 400);
+}
+
+// Same idea as schedulePlotlyResize, for the flip-card sizing script the
+// backend embeds (jm_render_flipping_card_initialization_scripts, defining
+// window.optimizeCardSizeInViewPort). That script measures the card's clipping
+// ancestor only a few times right after it first runs and bakes the result into
+// the card's `--card-height`; nothing re-runs it when the available space later
+// changes (a cell maximized or restored, a density switch). Re-running it
+// whenever the container genuinely resizes keeps the card in step.
+const pendingCardResizeContainers = new Set<HTMLElement>();
+let cardResizeFlushTimer: number | null = null;
+/** Queue a re-run of the flip-card sizing script for every card inside `container`. */
+function scheduleCardResize(container: HTMLElement) {
+    if (!allowResizeAttempt(container)) return;
+    pendingCardResizeContainers.add(container);
+    if (cardResizeFlushTimer) window.clearTimeout(cardResizeFlushTimer);
+    cardResizeFlushTimer = window.setTimeout(() => {
+        cardResizeFlushTimer = null;
+        const optimize = (window as any).optimizeCardSizeInViewPort;
+        const containers = Array.from(pendingCardResizeContainers);
+        pendingCardResizeContainers.clear();
+        if (typeof optimize !== "function") return;
+        containers.forEach((cardsContainer) => {
+            if (!cardsContainer.isConnected) return;
+            cardsContainer.querySelectorAll<HTMLElement>('.container[id^="cardContainer"]').forEach((cardEl) => {
+                const suffix = cardEl.id.slice("cardContainer".length);
+                if (!suffix) return;
+                try { optimize(suffix); } catch { /* noop */ }
+            });
+        });
+    }, 400);
+}
+
 
 /**
- * Renders Plotly HTML inline (no iframe) by:
- * 1. Stripping Plotly CDN <script> tags (loaded dynamically below)
+ * Renders backend-built HTML (Plotly charts, flipping answer cards) inline (no iframe) by:
+ * 1. Stripping Plotly.js loader <script> tags (loaded once globally below)
  * 2. Making card button IDs unique per instance to avoid DOM ID conflicts
  * 3. Injecting the remaining HTML via dangerouslySetInnerHTML
- * 4. Ensuring Plotly is loaded before executing inline <script> tags
+ * 4. Ensuring Plotly is loaded, and the container has a real size, before
+ *    executing inline <script> tags
+ * 5. Keeping charts and cards sized to their container as it resizes
+ * 6. Re-colouring the charts for the page's light/dark theme (chartTheme)
+ *
+ * This is the one Plotly host component for VeloIQ and its extensions.
  */
 // Default floor: below this, a shrunk card is judged too small to be usable
 // and the component falls back to letting the outer wrapper's overflow:auto
@@ -46,8 +117,17 @@ const DEFAULT_MIN_CARD_SCALE = 0.6;
 export const InlinePlotlyHtml: React.FC<{
     html: string;
     style?: React.CSSProperties;
+    /** Smallest CSS scale scale-to-fit may shrink plain card HTML to. */
     minScale?: number;
-}> = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE }) => {
+    /**
+     * Shrink plain card HTML so it fits the outer box's height (dashboard cells).
+     * Pass false where the content should keep its natural size and the page
+     * scrolls instead (e.g. IQVigilant's NL Sentence and NL Chat pages).
+     */
+    scaleToFit?: boolean;
+}> = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE, scaleToFit = true }) => {
+    const { token } = theme.useToken();
+    const dark = isDarkColor(token.colorBgContainer);
     // `outerRef` is the sized box the dashboard grid hands us (its height
     // tracks the cell-size slider in ViewsGrid.tsx); `containerRef` holds
     // the injected HTML at its natural size. Keeping them separate is what
@@ -70,11 +150,12 @@ export const InlinePlotlyHtml: React.FC<{
     }
     const instanceId = instanceIdRef.current;
 
-    // Strip the vendored/local (and, for any already-cached older HTML, CDN)
-    // Plotly loader <script src="..."> tag — Plotly.js is loaded once globally
-    // via ensurePlotly() above instead.
+    // Strip any Plotly.js loader <script src="..."> tag — the CDN one or a
+    // vendored plotly.min.js copy, which older stored HTML (e.g. saved NL
+    // answers) may still reference — Plotly.js is loaded once globally via
+    // ensurePlotly() (utils/plotlyLoader) instead.
     let cleanedHtml = html.replace(
-        /<script[^>]*src=["'][^"']*(?:cdn\.plot\.ly|\/veloiq-assets\/plotly\.min\.js)[^"']*["'][^>]*><\/script>/gi,
+        /<script[^>]*src=["'][^"']*(?:cdn\.plot\.ly|\/plotly\.min\.js)[^"']*["'][^>]*><\/script>/gi,
         "",
     );
 
@@ -143,15 +224,63 @@ export const InlinePlotlyHtml: React.FC<{
             }
         };
 
+        // A Plotly chart drawn while this container is mid-layout (width or
+        // height still 0) gets built from a 0-size bounding box: Plotly then
+        // emits <rect height="NaN"> and the chart never recovers. Wait for a
+        // real, non-zero size before running any embedded script (Plotly or
+        // not) instead of racing that transient state.
+        let cancelled = false;
+        let sizeObserver: ResizeObserver | null = null;
+        const runWhenSized = (fn: () => void) => {
+            const rect = container.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                fn();
+                return;
+            }
+            sizeObserver = new ResizeObserver((entries) => {
+                if (cancelled) return;
+                for (const entry of entries) {
+                    if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                        sizeObserver?.disconnect();
+                        sizeObserver = null;
+                        fn();
+                        return;
+                    }
+                }
+            });
+            sizeObserver.observe(container);
+        };
+
         if (!needsPlotly) {
-            executeScripts();
-            return;
+            runWhenSized(executeScripts);
+        } else {
+            // Plotly scripts need the library loaded first.
+            // Load it once globally, then execute all scripts.
+            ensurePlotly().then(() => {
+                if (cancelled) return;
+                runWhenSized(executeScripts);
+            });
         }
 
-        // Plotly scripts need the library loaded first.
-        // Load it once globally, then execute all scripts.
-        ensurePlotly().then(executeScripts);
+        return () => {
+            cancelled = true;
+            sizeObserver?.disconnect();
+        };
     }, [html, instanceId]);
+
+    // Backend charts are drawn with the light theme's colours; re-colour them for the page
+    // theme once they have been drawn (scripts run asynchronously, after Plotly loads and the
+    // container has a size) and again whenever the theme changes.
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const applyTheme = () => {
+            const Plotly = getPlotly();
+            container.querySelectorAll<HTMLElement>(".js-plotly-plot").forEach((graphDiv) => applyChartThemeToGraph(graphDiv, dark, Plotly));
+        };
+        const timers = [0, 400, 1500].map((delay) => window.setTimeout(applyTheme, delay));
+        return () => timers.forEach((timer) => window.clearTimeout(timer));
+    }, [html, dark, instanceId]);
 
     // The dashboard grid's cell-size slider (ViewsGrid.tsx) changes this
     // component's outer box size by adjusting the CSS grid's row track
@@ -159,7 +288,8 @@ export const InlinePlotlyHtml: React.FC<{
     //
     // - A real Plotly figure never repaints itself on a container resize
     //   unless explicitly told to, so re-run Plotly's own resize routine on
-    //   any graph divs found.
+    //   any graph divs found (through the shared, churn-limited scheduler).
+    //   Flipping cards' own sizing script is re-run the same way.
     // - Plain server-rendered card HTML (IQVigilant's NL Sentence cards,
     //   Advanced Development's journey cards) has no such API — instead,
     //   shrink it uniformly with a CSS transform so it fits the available
@@ -183,8 +313,17 @@ export const InlinePlotlyHtml: React.FC<{
         if (!outer || !content || !scaleWrapper) return;
 
         const recompute = () => {
-            const plotly = (window as any).Plotly;
             const graphDivs = content.querySelectorAll<HTMLElement>(".js-plotly-plot");
+            graphDivs.forEach((graphDiv) => schedulePlotlyResize(graphDiv));
+            scheduleCardResize(content);
+
+            if (!scaleToFit) {
+                // Natural size: no transform and no height cap; the page scrolls.
+                content.style.transform = "";
+                scaleWrapper.style.height = "";
+                scaleWrapper.style.maxHeight = "";
+                return;
+            }
 
             const outerStyle = window.getComputedStyle(outer);
             const verticalPadding = parseFloat(outerStyle.paddingTop || "0") + parseFloat(outerStyle.paddingBottom || "0");
@@ -206,16 +345,6 @@ export const InlinePlotlyHtml: React.FC<{
                 content.style.transform = "";
                 scaleWrapper.style.height = "";
                 scaleWrapper.style.maxHeight = availableHeight > 0 ? `${Math.floor(availableHeight)}px` : "";
-                if (plotly?.Plots?.resize) {
-                    graphDivs.forEach((graphDiv) => {
-                        try {
-                            plotly.Plots.resize(graphDiv);
-                        } catch {
-                            // A graph mid-(re)render can throw here; safe to
-                            // ignore since the next resize tick will retry.
-                        }
-                    });
-                }
                 return;
             }
 
@@ -248,11 +377,11 @@ export const InlinePlotlyHtml: React.FC<{
         observer.observe(outer);
         observer.observe(content);
         return () => observer.disconnect();
-    }, [html, minScale]);
+    }, [html, minScale, scaleToFit]);
 
     return (
         <div ref={outerRef} style={style}>
-            <div ref={scaleWrapperRef} style={{ overflow: "hidden" }}>
+            <div ref={scaleWrapperRef} style={{ overflow: scaleToFit ? "hidden" : "visible" }}>
                 <div
                     ref={containerRef}
                     dangerouslySetInnerHTML={{ __html: cleanedHtml }}

@@ -1710,6 +1710,24 @@ def jm_extract_column_names_from_SQL(sql_statement):
     return list_of_column_names
 
 
+# A result column whose SELECT expression is an aggregate call (e.g.
+# ``COUNT(application.id) as application__eid``) holds the aggregated measure,
+# not an object's primary key, even when its alias follows the ``<type>__eid``
+# naming convention.
+_SQL_AGGREGATE_ALIAS_RE = re.compile(
+    r"\b(?:COUNT|SUM|AVG|MIN|MAX|TOTAL|GROUP_CONCAT)\s*\((?:[^()]|\([^()]*\))*\)\s+AS\s+(?:\"([^\"]+)\"|(\w+))",
+    re.IGNORECASE)
+
+
+def jm_aggregate_column_aliases_from_SQL(sql_statement) -> set:
+    """Return the lowercased aliases of result columns computed by an aggregate
+    function in *sql_statement*, so they are never treated as object eid columns."""
+    return {
+        (quoted or bare).strip().lower()
+        for quoted, bare in _SQL_AGGREGATE_ALIAS_RE.findall(str(sql_statement or ""))
+    }
+
+
 def jm_pretty_df_column_names(rset_df_columns, strings_to_replace = ['_','-'], capitalize_column_names = True):
     """
     Reformats a DataFrame's column names.
@@ -1721,12 +1739,17 @@ def jm_pretty_df_column_names(rset_df_columns, strings_to_replace = ['_','-'], c
 
     pretty_df_columns = []
     for pretty_df_column in rset_df_columns:
-        new_pretty_df_column = pretty_df_column
+        # Chain replacements onto the accumulated result (not the original
+        # column name each time) -- with the default ['_','-'], replacing
+        # from the original on every iteration meant only the LAST entry's
+        # replacement ever survived (e.g. "actor_id" stayed "Actor_id",
+        # since the '-' pass re-read the original, still-underscored
+        # string and found nothing to replace). Confirmed live.
+        new_pretty_df_column = str(pretty_df_column)
         for string_to_replace in strings_to_replace:
-            if capitalize_column_names:
-                new_pretty_df_column = str(pretty_df_column).replace(string_to_replace,' ').capitalize()
-            else:
-                new_pretty_df_column = str(pretty_df_column).replace(string_to_replace,' ')
+            new_pretty_df_column = new_pretty_df_column.replace(string_to_replace, ' ')
+        if capitalize_column_names:
+            new_pretty_df_column = new_pretty_df_column.capitalize()
         pretty_df_columns.append(new_pretty_df_column)
 
     return pretty_df_columns

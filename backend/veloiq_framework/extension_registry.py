@@ -134,6 +134,9 @@ _VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
     "gallery_image_height": ("galleryImageHeight", int),
     "relations_max_rows_to_load": ("relationsMaxRowsToLoad", int),
     "max_distinct_column_filter_values_to_ranges": ("maxDistinctColumnFilterValuesToRanges", int),
+    # Above this many rows, the Analyze section of a list aggregates on the server
+    # (POST /api/<resource>/analyze) instead of downloading every row into the browser.
+    "analyze_server_aggregation_threshold": ("analyzeServerAggregationThreshold", int),
     "general_actions_button_position": ("generalActionsButtonPosition", str),
     "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
     # Right-side detail panes: layout mode ("stack" | "breadcrumb" | "overlay" |

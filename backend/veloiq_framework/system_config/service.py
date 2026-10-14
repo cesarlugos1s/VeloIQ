@@ -147,6 +147,10 @@ VIEWS_KEY_COMMENTS: dict[str, str] = {
         "# numeric values, the filter offers range-based selection instead of\n"
         "# individual values (default: 20).\n"
     ),
+    "analyze_server_aggregation_threshold": (
+        "# Above this many rows, the Analyze section of a list aggregates on the server\n"
+        "# instead of downloading every row into the browser (default: 10000).\n"
+    ),
     "general_actions_button_position": (
         '# Where the general action buttons are rendered on model pages:\n'
         '# "top-right", "left", or "right" (default: "top-right").\n'

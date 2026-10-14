@@ -1,6 +1,7 @@
 import React from "react";
 import type { FieldDef } from "../types";
 import { escapeHtml, formatNumberValue, formatDateValue } from "./formatting";
+import { summarizeValues } from "../analysis/aggregation";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -143,8 +144,11 @@ export const buildStatsSummary = (
 
     fields.forEach((field) => {
         if (field.type === "number" && !field.reference) {
+            // Empty cells are skipped (not counted as 0), as every summary in both layers does.
             const values = rows
-                .map((row) => Number(row?.[field.key]))
+                .map((row) => row?.[field.key])
+                .filter((value) => value !== undefined && value !== null && value !== "")
+                .map((value) => Number(value))
                 .filter((value) => !Number.isNaN(value));
             if (values.length === 0) {
                 numericStats.push({
@@ -158,13 +162,12 @@ export const buildStatsSummary = (
                 });
                 return;
             }
-            const count = values.length;
-            const sum = values.reduce((acc, val) => acc + val, 0);
-            const avg = sum / count;
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            const variance = values.reduce((acc, val) => acc + (val - avg) ** 2, 0) / count;
-            const stddev = Math.sqrt(variance);
+            // Same summary calculation as the Analyze chart (sample standard deviation).
+            const sum = summarizeValues(values, "sum");
+            const avg = summarizeValues(values, "avg");
+            const min = summarizeValues(values, "min");
+            const max = summarizeValues(values, "max");
+            const stddev = summarizeValues(values, "stddev");
             numericStats.push({
                 key: field.key,
                 label: field.label,

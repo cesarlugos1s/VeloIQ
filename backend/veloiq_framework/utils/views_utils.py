@@ -5,7 +5,7 @@ Functions/constants below are extracted verbatim from JuiceMantics'
 reaches). They run unchanged against VeloIQ; only the module header is curated
 (app.* imports dropped, engine resolved lazily, optional deps guarded).
 """
-import decimal, json, random, html, re, time, sys, os, colorsys
+import decimal, json, random, html, re, time, sys, os, colorsys, traceback
 from math import ceil
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -36,8 +36,227 @@ from veloiq_framework.utils.data_mgmt_utils import (
     jm_log,
     jm_identify_date_period_columns, jm_obtain_model_by_name,
     jm_extract_column_names_from_SQL, replace_query_results_with_object_labels,
-    _parse_entity_type_from_column,
+    _parse_entity_type_from_column, jm_aggregate_column_aliases_from_SQL, jm_pretty_df_column_names,
 )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chart catalogue, theme and summary functions
+#
+# The backend's single definition of what every chart uses. The frontend keeps
+# its own definition with the same values (packages/ui .../analysis/chartCatalog.ts,
+# chartTheme.ts and aggregation.ts), and test-fixtures/charts.json checks both
+# layers against the same catalogue, theme and aggregation cases.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Every chart type: ID, untranslated label (translate with jm_chart_type_label), the
+# @ant-design/icons icon the UI shows for it (rotated for horizontal variants), and
+# which layer offers it. Seasonal and Trend need statsmodels and exist in the backend only.
+JM_CHART_TYPES = (
+    {'id': 'bar', 'label': 'Bars', 'icon': 'BarChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'bar_stacked', 'label': 'Stacked Bars', 'icon': 'BuildOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'bar_h', 'label': 'Horizontal Bars', 'icon': 'BarChartOutlined', 'iconRotate': 90, 'frontend': True, 'backend': True},
+    {'id': 'bar_h_stacked', 'label': 'Horizontal Stacked', 'icon': 'BuildOutlined', 'iconRotate': 90, 'frontend': True, 'backend': True},
+    {'id': 'line', 'label': 'Lines', 'icon': 'LineChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'area', 'label': 'Area', 'icon': 'AreaChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'area_h', 'label': 'Horizontal Area', 'icon': 'AreaChartOutlined', 'iconRotate': 90, 'frontend': True, 'backend': True},
+    {'id': 'pie', 'label': 'Pie', 'icon': 'PieChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'donut', 'label': 'Donut', 'icon': 'PieChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'scatter', 'label': 'Scatter', 'icon': 'DotChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'bubble', 'label': 'Bubble', 'icon': 'DotChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'histogram', 'label': 'Histogram', 'icon': 'BarChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'box', 'label': 'Box Plot', 'icon': 'BoxPlotOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'waterfall', 'label': 'Waterfall', 'icon': 'FallOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'heatmap', 'label': 'Heatmap', 'icon': 'HeatMapOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'scatterpolar', 'label': 'Radar', 'icon': 'RadarChartOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'combo', 'label': 'Combo (Bar + Line)', 'icon': 'FundOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'crosstab', 'label': 'Crosstab', 'icon': 'TableOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'scatter3d', 'label': '3D Scatter', 'icon': 'DeploymentUnitOutlined', 'iconRotate': 0, 'frontend': True, 'backend': True},
+    {'id': 'seasonal', 'label': 'Seasonal', 'icon': 'StockOutlined', 'iconRotate': 0, 'frontend': False, 'backend': True},
+    {'id': 'trend', 'label': 'Trend', 'icon': 'RiseOutlined', 'iconRotate': 0, 'frontend': False, 'backend': True},
+)
+
+# Chart-type IDs used before the catalogue was unified, mapped to the current ID.
+# Stored NL answers, page configs and older vocabularies may still hold them.
+JM_LEGACY_CHART_TYPE_IDS = {
+    'stacked': 'bar_stacked',
+    'bar-horizontal': 'bar_h',
+    'stacked-horizontal': 'bar_h_stacked',
+    'area-horizontal': 'area_h',
+    'boxplot': 'box',
+    'radar': 'scatterpolar',
+    '3d': 'scatter3d',
+}
+
+_JM_CHART_TYPES_BY_ID = {chart_type['id']: chart_type for chart_type in JM_CHART_TYPES}
+
+JM_DEFAULT_CHART_TYPE = 'area'
+JM_DEFAULT_SUMMARY_FUNCTION = 'sum'
+JM_CATEGORY_LABEL_SEPARATOR = ' • '
+
+# Theme shared with the frontend's chartTheme.ts.
+JM_CHART_COLORWAY = ('#1677ff', '#52c41a', '#faad14', '#eb2f96', '#722ed1',
+                     '#13c2c2', '#f5222d', '#fa8c16', '#2f54eb', '#a0d911')
+JM_CHART_HEATMAP_COLORSCALE = 'Blues'
+JM_CHART_HEATMAP_REVERSESCALE = True  # higher values darker ("Blues" runs dark to light)
+JM_CHART_NUMBER_FORMAT = ',.2f'
+JM_CHART_FONT_FAMILY = 'sans-serif'
+JM_CHART_FONT_SIZE = 12
+# Light-theme text, grid and legend-border colours. The frontend re-colours backend charts
+# for the dark theme when it hosts them (InlinePlotlyHtml), since the server cannot know it.
+JM_CHART_TEXT_COLOR = '#4a5568'
+JM_CHART_GRID_COLOR = 'rgba(128,128,128,0.22)'
+JM_CHART_LEGEND_BORDER_COLOR = 'rgba(128,128,128,0.35)'
+# One horizontal row (wrapping) along the bottom, at most 30% of the chart's height and
+# scrolling beyond that, so a chart with many legend entries keeps its full width.
+JM_CHART_LEGEND = {'orientation': 'h', 'x': 0, 'xanchor': 'left', 'y': 0, 'yanchor': 'bottom',
+                   'yref': 'container', 'maxheight': 0.3}
+JM_CHART_EMPTY_MESSAGE = 'No data available for this chart.'
+
+# Summary functions: the IDs both layers use, and older/pandas spellings accepted for them.
+JM_SUMMARY_FUNCTIONS = ('sum', 'avg', 'count', 'max', 'min', 'stddev')
+_JM_SUMMARY_FUNCTION_ALIASES = {'mean': 'avg', 'average': 'avg', 'std': 'stddev', 'stdev': 'stddev'}
+
+
+def jm_normalize_chart_type_id(chart_type, fallback=None):
+    """
+    Return the current catalogue ID of a chart type that may be a legacy ID.
+
+    :param chart_type: A chart-type ID, current (``'box'``) or legacy (``'boxplot'``).
+    :param fallback: Returned for anything that is not a chart type; ``None`` returns the
+        value unchanged, so non-chart tokens in a chart-types list (e.g. ``'dash'``) survive.
+    :return: The current chart-type ID, or the fallback.
+    """
+    raw = str(chart_type or '').strip()
+    if raw in _JM_CHART_TYPES_BY_ID:
+        return raw
+    if raw in JM_LEGACY_CHART_TYPE_IDS:
+        return JM_LEGACY_CHART_TYPE_IDS[raw]
+    return chart_type if fallback is None else fallback
+
+
+def jm_chart_type_ids(layer=None):
+    """
+    The chart-type IDs of the catalogue, in catalogue order.
+
+    :param layer: ``'frontend'`` or ``'backend'`` to list only the types that layer offers;
+        None lists them all.
+    :return: A list of chart-type IDs.
+    """
+    return [chart_type['id'] for chart_type in JM_CHART_TYPES if layer is None or chart_type.get(layer)]
+
+
+def jm_chart_type_label(chart_type_id):
+    """Translated label of a chart type (e.g. ``_('Box Plot')`` for ``'box'``)."""
+    chart_type = _JM_CHART_TYPES_BY_ID.get(jm_normalize_chart_type_id(chart_type_id))
+    return _(chart_type['label']) if chart_type else str(chart_type_id)
+
+
+def jm_normalize_summary_function(summary_function):
+    """
+    Return the shared ID of a summary function (sum, avg, count, max, min, stddev).
+
+    Accepts the pandas spellings (``'mean'``, ``'std'``); anything else falls back to
+    JM_DEFAULT_SUMMARY_FUNCTION.
+    """
+    raw = str(summary_function or '').strip().lower()
+    raw = _JM_SUMMARY_FUNCTION_ALIASES.get(raw, raw)
+    return raw if raw in JM_SUMMARY_FUNCTIONS else JM_DEFAULT_SUMMARY_FUNCTION
+
+
+def jm_summarize_values(values, summary_function=JM_DEFAULT_SUMMARY_FUNCTION):
+    """
+    Summarise a list of numbers with one summary function -- the backend's single
+    implementation of the rules the frontend's summarizeValues applies:
+
+    * empty values (None, NaN, non-numbers) are skipped, and no values summarise to 0;
+    * Count counts the remaining values;
+    * Std Dev is the sample standard deviation (divisor n - 1, as pandas and Excel's
+      STDEV compute it), and a single value has a standard deviation of 0.
+
+    :param values: An iterable of numbers (a list, a pandas Series...).
+    :param summary_function: sum, avg, count, max, min or stddev (pandas spellings accepted).
+    :return: The summary, as a float (an int for count).
+    """
+    summary_function = jm_normalize_summary_function(summary_function)
+    numbers = []
+    for value in (values if values is not None else []):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if number == number:  # skips NaN
+            numbers.append(number)
+    if not numbers:
+        return 0
+    if summary_function == 'count':
+        return len(numbers)
+    if summary_function == 'avg':
+        return sum(numbers) / len(numbers)
+    if summary_function == 'max':
+        return max(numbers)
+    if summary_function == 'min':
+        return min(numbers)
+    if summary_function == 'stddev':
+        if len(numbers) < 2:
+            return 0
+        mean = sum(numbers) / len(numbers)
+        return (sum((number - mean) ** 2 for number in numbers) / (len(numbers) - 1)) ** 0.5
+    return sum(numbers)
+
+
+def jm_pandas_summary_aggfunc(summary_function=JM_DEFAULT_SUMMARY_FUNCTION):
+    """
+    A pandas ``aggfunc`` (for pivot_table/groupby) that summarises each group with
+    jm_summarize_values, so pivots give the same numbers as the frontend charts.
+    """
+    summary_function = jm_normalize_summary_function(summary_function)
+
+    def summarize_group(group_values):
+        return jm_summarize_values(group_values, summary_function)
+
+    summarize_group.__name__ = summary_function
+    return summarize_group
+
+
+def jm_group_and_summarize(rows, category_columns, value_columns,
+                           summary_function=JM_DEFAULT_SUMMARY_FUNCTION, format_category=None):
+    """
+    Group rows by their category values and summarise each value column per group --
+    the backend counterpart of the frontend's aggregateChartData, used where the server
+    aggregates for a chart.
+
+    Each group is labelled with its category values joined by JM_CATEGORY_LABEL_SEPARATOR
+    (``"Open • High"``); groups keep the order their first row appears in.
+
+    :param rows: A list of dicts, or a pandas DataFrame.
+    :param category_columns: Category column names, in order (Category 1, 2, 3).
+    :param value_columns: Numeric column names to summarise.
+    :param summary_function: sum, avg, count, max, min or stddev.
+    :param format_category: Optional callable(column, value) -> display text of a category
+        value; by default the value as text, with "-" for an empty value.
+    :return: dict {group label: {value column: summary}}.
+    """
+    records = rows.to_dict('records') if isinstance(rows, DataFrame) else list(rows or [])
+    category_columns = [column for column in (category_columns or []) if column]
+
+    def category_text(column, value):
+        if format_category is not None:
+            return format_category(column, value)
+        return '-' if value is None or (isinstance(value, float) and value != value) else str(value)
+
+    grouped = {}
+    for record in records:
+        label = (JM_CATEGORY_LABEL_SEPARATOR.join(category_text(column, record.get(column))
+                                                  for column in category_columns)
+                 if category_columns else _('All'))
+        group = grouped.setdefault(label, {column: [] for column in value_columns})
+        for column in value_columns:
+            group[column].append(record.get(column))
+    return {label: {column: jm_summarize_values(values, summary_function) for column, values in group.items()}
+            for label, group in grouped.items()}
+
+
 def resolve_dashboard_view_type(raw: Optional[str]) -> str:
     normalized = str(raw or "").strip().lower()
     normalized = normalized.replace("_", "").replace("-", "").replace(" ", "")
@@ -345,6 +564,48 @@ def _render_cell_html(value: Any) -> str:
         return str(value)
     return html.escape(str(value))
 
+_MARKDOWN_BLOCK_PATTERN = re.compile(r"(?m)^ {0,3}(#{1,6}\s|[-*+]\s|\d+[.)]\s|>|```)")
+
+_MARKDOWN_INLINE_PATTERN = re.compile(
+    r"\*\*[^*\n]+\*\*|__[^_\n]+__|\[[^\]\n]+\]\([^)\s]+\)|`[^`\n]+`"
+)
+
+_MARKDOWN_SAFE_HREF_PATTERN = re.compile(r"^(https?:|mailto:|/|#|\.)", re.IGNORECASE)
+
+def _looks_like_markdown(value: Any) -> bool:
+    return isinstance(value, str) and bool(
+        _MARKDOWN_BLOCK_PATTERN.search(value) or _MARKDOWN_INLINE_PATTERN.search(value)
+    )
+
+
+def _render_markdown_cell_html(value: Any) -> str:
+    """Render a result cell for the table/list views: Markdown text (e.g. a
+    description field authored in Markdown) as formatted HTML, anything else
+    exactly as _render_cell_html does.
+
+    Cell values come straight from the database, so the Markdown is rendered
+    with raw HTML disabled (any tags in the text stay escaped) and links whose
+    scheme isn't http(s)/mailto/relative (e.g. javascript:) are neutralised.
+    """
+    if not _looks_like_markdown(value) or _looks_like_anchor_html(value):
+        return _render_cell_html(value)
+    import markdown as markdown_lib
+
+    md = markdown_lib.Markdown(extensions=["sane_lists", "nl2br", "fenced_code"])
+    md.preprocessors.deregister("html_block")
+    md.inlinePatterns.deregister("html")
+    rendered = md.convert(value)
+    rendered = re.sub(
+        r'href="([^"]*)"',
+        lambda m: m.group(0) if _MARKDOWN_SAFE_HREF_PATTERN.match(html.unescape(m.group(1)).strip())
+        else 'href="#"',
+        rendered,
+    )
+    rendered = rendered.replace("<a href=", '<a target="_blank" rel="noopener noreferrer" href=')
+    return f'<div class="jm-md">{rendered}</div>'
+
+
+
 
 def _try_parse_numeric_value(value: Any) -> Optional[float]:
     if value is None or isinstance(value, bool):
@@ -440,7 +701,7 @@ def _render_searchable_paginated_table_html(
         row_cells_html: List[str] = []
         for column in sql_columns:
             raw_value = row.get(column, "")
-            rendered_value = _render_cell_html(raw_value)
+            rendered_value = _render_markdown_cell_html(raw_value)
             text_value = _extract_text_from_html(raw_value)
             sort_numeric = _try_parse_numeric_value(raw_value)
             sort_value = str(sort_numeric) if sort_numeric is not None else text_value.lower()
@@ -741,6 +1002,14 @@ def _render_searchable_paginated_table_html(
         f"#{widget_id} .jm-filter-option span {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:400; }}"
         f"#{widget_id} .jm-filter-clear {{ margin-top:8px; width:100%; border:1px solid var(--jm-border-secondary,#d1d5db); border-radius:8px; background:var(--jm-btn-bg,#fff); padding:5px 6px; font-size:12px; cursor:pointer; color:var(--jm-text-secondary,{DASHBOARD_TEXT_SECONDARY}); }}"
         f"#{widget_id} .jm-numeric-cell {{ position:relative; min-height:22px; }}"
+        f"#{widget_id} .jm-md {{ font-size:12px; line-height:1.45; white-space:normal; min-width:220px; }}"
+        f"#{widget_id} .jm-md > :first-child {{ margin-top:0; }}"
+        f"#{widget_id} .jm-md > :last-child {{ margin-bottom:0; }}"
+        f"#{widget_id} .jm-md h1, #{widget_id} .jm-md h2, #{widget_id} .jm-md h3, #{widget_id} .jm-md h4, #{widget_id} .jm-md h5, #{widget_id} .jm-md h6 {{ font-size:13px; font-weight:600; margin:6px 0 2px; }}"
+        f"#{widget_id} .jm-md p {{ margin:2px 0 4px; }}"
+        f"#{widget_id} .jm-md ul, #{widget_id} .jm-md ol {{ margin:2px 0 4px; padding-left:18px; }}"
+        f"#{widget_id} .jm-md blockquote {{ margin:4px 0; padding-left:8px; border-left:3px solid var(--jm-border,#dbe3ef); color:var(--jm-text-secondary,#475569); }}"
+        f"#{widget_id} .jm-md code {{ font-family:monospace; font-size:11px; }}"
         f"#{widget_id} .jm-numeric-bar {{ position:absolute; left:0; top:2px; bottom:2px; background:var(--jm-numeric-bar,rgba(37,99,235,.16)); border-radius:8px; }}"
         f"#{widget_id} .jm-numeric-text {{ position:relative; display:block; text-align:right; padding-right:2px; font-variant-numeric:tabular-nums; }}"
         f"#{widget_id} .jm-pagination {{ display:flex; gap:8px; align-items:center; margin-top:10px; }}"
@@ -789,7 +1058,7 @@ def _render_searchable_paginated_list_html(
         title_parts: List[str] = []
         for i in title_idxs:
             raw = row.get(sql_columns[i], "")
-            title_parts.append(_render_cell_html(raw))
+            title_parts.append(_render_markdown_cell_html(raw))
             search_bits.append(_extract_text_from_html(raw))
 
         detail_parts: List[str] = []
@@ -803,7 +1072,7 @@ def _render_searchable_paginated_list_html(
             detail_parts.append(
                 '<div class="jm-list-field">'
                 f'<span class="jm-list-label">{html.escape(_(str(label)))}</span>'
-                f'<span class="jm-list-value">{_render_cell_html(raw)}</span>'
+                f'<span class="jm-list-value">{_render_markdown_cell_html(raw)}</span>'
                 '</div>'
             )
             search_bits.append(text)
@@ -874,6 +1143,14 @@ def _render_searchable_paginated_list_html(
         "#__WID__ .jm-list-label { color:var(--jm-text-secondary,#475569); font-weight:500; }"
         "#__WID__ .jm-list-label:after { content:':'; }"
         "#__WID__ .jm-list-value { color:var(--jm-text-primary,#0f172a); }"
+        "#__WID__ .jm-md { font-size:12px; line-height:1.45; white-space:normal; min-width:220px; }"
+        "#__WID__ .jm-md > :first-child { margin-top:0; }"
+        "#__WID__ .jm-md > :last-child { margin-bottom:0; }"
+        "#__WID__ .jm-md h1, #__WID__ .jm-md h2, #__WID__ .jm-md h3, #__WID__ .jm-md h4, #__WID__ .jm-md h5, #__WID__ .jm-md h6 { font-size:13px; font-weight:600; margin:6px 0 2px; }"
+        "#__WID__ .jm-md p { margin:2px 0 4px; }"
+        "#__WID__ .jm-md ul, #__WID__ .jm-md ol { margin:2px 0 4px; padding-left:18px; }"
+        "#__WID__ .jm-md blockquote { margin:4px 0; padding-left:8px; border-left:3px solid var(--jm-border,#dbe3ef); color:var(--jm-text-secondary,#475569); }"
+        "#__WID__ .jm-md code { font-family:monospace; font-size:11px; }"
         "#__WID__ .jm-no-results { list-style:none; color:var(--jm-no-results,#6b7280); text-align:center; padding:14px; }"
         "#__WID__ .jm-pagination { display:flex; gap:8px; align-items:center; margin-top:10px; }"
         "#__WID__ .jm-prev, #__WID__ .jm-next { border:1px solid var(--jm-border-secondary,#d1d5db); background:var(--jm-btn-bg,#fff); border-radius:8px; padding:4px 10px; cursor:pointer; color:var(--jm-text-secondary,#475569); }"
@@ -1690,6 +1967,47 @@ def _resolve_select_columns_to_models(sql_statement: str, n_columns: int) -> Dic
     return resolved
 
 
+_LEADING_SQL_FUNCTION_CALL_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+def _aggregate_label_suffix_for_column(col: str, sql_statement: str) -> str:
+    """Return e.g. ``" (max)"`` when *col* was selected via a wrapping SQL
+    aggregate function (``MAX(...)``, ``COUNT(...)``, ``SUM(...)``, ...),
+    else ``""``. Leading space matches the "Label (function)" convention
+    used elsewhere for aggregated column headers in this module (see e.g.
+    the ``schema_entity_type_label + ' (' + _('count') + ')'`` fallback in
+    schema_SRO_parser.py).
+
+    An aggregated entity-reference column (see schema_SRO_parser.py, which
+    wraps an entity's PK in the sentence's aggregate function -- typically
+    MAX(), to pick one representative row per GROUP BY group -- when the
+    entity's title can't be shown directly because it must stay a linkable
+    eid) has its alias renamed below to the model's class name for display,
+    which would otherwise silently drop the " (max)"-style suffix a plain
+    attribute column shows in the same situation. Rather than smuggling that
+    label through a side channel, this reads the aggregate function name
+    directly out of the SQL text already passed in -- it's the actual source
+    of truth for what was applied to this column, so there's nothing to keep
+    in sync separately.
+    """
+    if not sql_statement or not col:
+        return ""
+    sql_clean = sql_statement.replace("\n", " ").replace("\r", " ")
+    select_match = re.search(r"(?i)SELECT\s+(.+?)\s+FROM\b", sql_clean, re.DOTALL)
+    if not select_match:
+        return ""
+    for part in _split_select_columns(select_match.group(1)):
+        part = part.strip()
+        as_match = re.search(r'(?i)\bAS\s+"?([\w ]+?)"?\s*$', part)
+        if not as_match or as_match.group(1).strip().lower() != col.strip().lower():
+            continue
+        expr = part[: as_match.start()].strip()
+        func_match = _LEADING_SQL_FUNCTION_CALL_RE.match(expr)
+        if not func_match:
+            return ""
+        return " (" + _(func_match.group(1).lower()) + ")"
+    return ""
+
+
 def _resolve_entity_eid_cells(
         sql_columns: List[str],
         sql_rows: List[Dict[str, Any]],
@@ -1715,8 +2033,12 @@ def _resolve_entity_eid_cells(
         return
 
     # Pass 1: column-name heuristic (<type>__id / <type>_id patterns).
+    # Aggregate results (COUNT(...) as <type>__eid) are measures, not eids.
     col_models: Dict[str, Any] = {}
+    aggregate_columns = jm_aggregate_column_aliases_from_SQL(sql_statement)
     for col in sql_columns:
+        if str(col).strip().lower() in aggregate_columns:
+            continue
         etype = _parse_entity_type_from_column(col)
         if not etype:
             continue
@@ -1781,9 +2103,15 @@ def _resolve_entity_eid_cells(
 
         # Rename resolved entity columns (e.g. "pricingpolicy__eid") to the model
         # class name so the table header reads "Pricingpolicy" instead of an
-        # internal SQL alias. Mutates sql_columns and the row dicts in place.
+        # internal SQL alias -- appending a " (max)"-style suffix when this
+        # column was selected through a wrapping aggregate function (see
+        # _aggregate_label_suffix_for_column), so the header keeps showing
+        # which aggregate produced this row's value, same as it does for
+        # non-entity attribute columns. Mutates sql_columns and the row
+        # dicts in place.
         for col, model in col_models.items():
-            new_col = model.__name__
+            suffix = _aggregate_label_suffix_for_column(col, sql_statement)
+            new_col = model.__name__ + suffix
             if new_col == col:
                 continue
             try:
@@ -2129,6 +2457,29 @@ def color_df_categorical_text(series):
         return [''] * len(series)
 
 
+def jm_humanize_column_name(column_name):
+    """Return a display name for a result column: translated when the i18n
+    catalogs know it, otherwise humanized.
+
+    Identifier-style names (``PRICING_POLICY_TYPE``, ``item_name``,
+    ``start-date``) are humanized with ``jm_pretty_df_column_names`` (``Pricing
+    policy type``); names that already read as text (``Item name``) are left
+    alone rather than re-cased. The translation is looked up first under the
+    original name and then under the humanized one, so a catalog entry keyed
+    either way is honored; when neither is translated the humanized name is
+    used.
+    """
+    original = str(column_name)
+    is_identifier_style = ('_' in original or '-' in original or
+                           (original.isupper() and original.isalpha()))
+    humanized = jm_pretty_df_column_names([original])[0] if is_identifier_style else original
+    for candidate in dict.fromkeys((original, humanized)):
+        translated = _(candidate)
+        if translated and translated != candidate:
+            return translated
+    return humanized
+
+
 def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
                  , format_decimals=True, show_bars=False, bars_color='WhiteSmoke'
                  , remove_duplicate_columns=True
@@ -2148,6 +2499,9 @@ def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
     :param df_to_format: A pandas DataFrame to pretty format.
     :param include_bars_on_columns: Columns of the DataFrame on which bars should be displayed as background on each of the columns.
                                     All columns in include_bars_on_columns must be numeric.
+    :param reformat_column_names: True to translate/humanize the column names (see
+            ``jm_humanize_column_name``); with ``view_obj`` the legacy ``view_obj._cw._``
+            translation is used instead.
     :param format_decimals: True if decimals should be formatted to a maximum number of decimals.
     :param : Set it ti True if you want to show bars on columns. If True and include_bars_on_columns is empty,
             then it will show bars for all numeric columns.
@@ -2164,8 +2518,9 @@ def jm_pretty_df(df_to_format, include_bars_on_columns=tuple()
                 new_column_name = view_obj._cw._(column)
                 df_to_format = df_to_format.rename(columns={column: new_column_name})
         else:
-            # Keep exact identifier names when no locale translator is available.
-            df_to_format.columns = [str(column) for column in df_to_format.columns]
+            # Translate each column name when the i18n catalogs know it, else humanize it
+            # (PRICING_POLICY_TYPE -> "Pricing policy type"); see jm_humanize_column_name.
+            df_to_format = df_to_format.rename(columns=jm_humanize_column_name)
 
     # Decimal values (e.g. SQL NUMERIC results) arrive as object columns; make them floats so
     # they are rounded, aligned and barred like any other number.
@@ -2350,14 +2705,13 @@ def jm_satinize_custom_html(raw_html: str, apply_sanitization: bool = False) -> 
 
     :param raw_html: The raw HTML string to sanitize.
     :param apply_sanitization: If True, apply the full sanitization logic.
-                               If False (default), return the HTML unchanged
-                               with a note appended.
-    :return: Sanitized HTML string, or the original HTML with a note.
+                               If False (default), return the HTML unchanged: Plotly
+                               charts render correctly once the Plotly.js script is
+                               loaded, so they need no sanitizing.
+    :return: Sanitized HTML string, or the original HTML.
     """
     if not apply_sanitization:
-        if not raw_html:
-            return ""
-        return raw_html + " no sanitize needed on this chart"
+        return raw_html or ""
 
     _JM_DOCTYPE_RE = re.compile(r"(?is)<!doctype[^>]*>")
     _JM_STRIP_TAGS_RE = re.compile(r"(?is)</?(?:html|head|body|meta|title|link)\b[^>]*>")
@@ -2516,6 +2870,8 @@ def jm_banner_content(banner_elements
             .kpi-banner-container:has(.jm-editable-input[data-attr="nl_sentence"]) {{
                 margin-left: auto;
                 margin-right: 0;
+                margin-bottom: 0;
+                padding-bottom: 0;
                 background: var(--jm-kpi-user-bg, #d6f0ff);
                 align-items: flex-end;
             }}
@@ -2523,17 +2879,30 @@ def jm_banner_content(banner_elements
             .kpi-banner-container:has(.jm-editable-input[data-attr="nl_sentence"]) .kpi-value {{
                 text-align: right !important;
             }}
+            /* The buttons portal (voice/clear/delete, injected as the input's next
+               sibling — see useSentenceHtmlInteractivity.tsx) is the bubble's last
+               child, so trimming the bubble's own bottom padding/margin above removes
+               the space that used to sit below those buttons without needing to touch
+               the portal itself. */
+            .kpi-banner-container:has(.jm-editable-input[data-attr="nl_sentence"]) .kpi-item {{
+                padding-bottom: 0;
+            }}
 
             /* Ask sentence bubble */
             .kpi-banner-container:has(.jm-editable-input[data-attr="nl_asks_sentence"]) {{
                 margin-left: auto;
                 margin-right: 0;
+                margin-bottom: 0;
+                padding-bottom: 0;
                 background: var(--jm-kpi-ask-bg, #edf7ff);
                 align-items: flex-end;
             }}
             .kpi-banner-container:has(.jm-editable-input[data-attr="nl_asks_sentence"]) .kpi-label,
             .kpi-banner-container:has(.jm-editable-input[data-attr="nl_asks_sentence"]) .kpi-value {{
                 text-align: right !important;
+            }}
+            .kpi-banner-container:has(.jm-editable-input[data-attr="nl_asks_sentence"]) .kpi-item {{
+                padding-bottom: 0;
             }}
 
             /* Styles for individual KPI items */
@@ -2588,7 +2957,11 @@ def jm_banner_content(banner_elements
 
             .kpi-value .jm-editable-input[data-attr="nl_sentence"],
             .kpi-value .jm-editable-input[data-attr="nl_asks_sentence"] {{
-                min-height: 96px;
+                /* 96px reserved editing room left a large blank gap under most
+                   sentences/asks, which are usually one short line — fit the box
+                   to the text instead; resize:vertical still lets it grow while
+                   typing a longer one. */
+                min-height: 34px;
                 resize: vertical;
                 overflow: auto;
                 background: var(--jm-input-editable-bg, #f3f6f9);
@@ -2716,6 +3089,8 @@ def jm_render_summary_table(
     :param plot_the_summary_table:  If the summary table should be rendered here to the calling iew object calling this function (self parameter above).
     :param shown_by_default:  If the summary table should have shown of hidden by default.
     :param include_totals_in_pivot: If the summary table should show the totals of each numeric column (pivot table margins).
+    :param aggregate_function: How rows sharing a category are summarised (sum, avg, count, max, min,
+            stddev) -- the same rules as the charts (jm_summarize_values).
     :return:
     """
 
@@ -2754,7 +3129,7 @@ def jm_render_summary_table(
                                            , values=pivot_df_numeric_columns_names
                                            , index=pivot_df_index_names
                                            , margins=include_totals_in_pivot
-                                           , aggfunc=aggregate_function)
+                                           , aggfunc=jm_pandas_summary_aggfunc(aggregate_function))
 
             executable_command_df_html = (
                 jm_pretty_df(summary_pivot_df
@@ -2776,31 +3151,126 @@ def jm_render_summary_table(
     return executable_command_df_html
 
 
+def pivot_column_labels(pivot_columns):
+    """Flat axis labels for a pivot table's columns.
+
+    pivot_table with a list of values yields (measure, category) MultiIndex
+    columns; passed as-is, Plotly draws them as a two-level multicategory axis
+    that only labels the measure level. Levels holding a single value carry
+    no information and are dropped; any remaining levels are joined.
+    """
+    if getattr(pivot_columns, 'nlevels', 1) <= 1:
+        return list(pivot_columns)
+    varying_levels = [level for level in range(pivot_columns.nlevels)
+                      if len(set(pivot_columns.get_level_values(level))) > 1] or [pivot_columns.nlevels - 1]
+    return [' / '.join(str(column[level]) for level in varying_levels) for column in pivot_columns]
+
+
+def pivot_heatmap_figure(pivot_df):
+    """Heatmap of a two-dimension pivot table, with each axis titled by the
+    grouping column it shows and its category labels in the user's language."""
+    from veloiq_framework.models import _humanize_model_name
+
+    def localized(value):
+        return _(str(value)) if isinstance(value, str) else value
+
+    def axis_title(column_name):
+        # Entity columns are named after their model class (e.g. "JobPosting"),
+        # whose catalog entry is the spaced form the UI uses ("Job Posting").
+        title = jm_humanize_column_name(column_name or '')
+        return title if title != column_name else _(_humanize_model_name(str(column_name)))
+
+    x_title = axis_title(pivot_df.columns.names[-1])
+    y_title = axis_title(pivot_df.index.name)
+    z_values = [
+        [float(v) if v == v else 0 for v in pivot_df.loc[idx]]
+        for idx in pivot_df.index
+    ]
+    figure = go.Figure(data=go.Heatmap(
+        x=[localized(label) for label in pivot_column_labels(pivot_df.columns)],
+        y=[localized(label) for label in pivot_df.index],
+        z=z_values,
+        colorscale=JM_CHART_HEATMAP_COLORSCALE,
+        reversescale=JM_CHART_HEATMAP_REVERSESCALE,
+        hovertemplate=f'{y_title}: %{{y}}<br>{x_title}: %{{x}}<br>%{{z:{JM_CHART_NUMBER_FORMAT}}}<extra></extra>',
+    ))
+    figure.update_layout(xaxis_title_text=x_title, yaxis_title_text=y_title)
+    return figure
+
+
 def jm_plot_chart_from_DataFrame(self
                                  , df_to_plot, chart_types=['bar']
                                  , plot_the_chart=True, shown_by_default=True
                                  , categorical_column_for_x_axis=[0]
                                  , categorical_column_for_z_axis=[1]
+                                 , categorical_column_for_x_axis_name=[None]
+                                 , categorical_column_for_z_axis_name=[None]
                                  , max_subplot_columns=2
                                  , remove_rows_having_all_numeric_columns_zero=False
                                  , plot_chart_name=''
                                  , plot_chart_title=''
+                                 , summary_function=JM_DEFAULT_SUMMARY_FUNCTION
                                  ):
     """
     Takes a Dataframe and plots is as a Chart.
     :param df_to_plot: The DataFrame with categorical and numeric values to create the chart from.
-    :param chart_types: The type of Chart to plot: (bar, line, 3d, pie)
+    :param chart_types: The chart-type IDs to plot (see JM_CHART_TYPES, e.g. bar, line, scatter3d, pie);
+                        legacy IDs (3d, boxplot, stacked...) are accepted and normalized.
+    :param summary_function: How rows sharing a category are summarised (sum, avg, count, max, min,
+                        stddev) -- the same rules as the frontend charts (jm_summarize_values).
+    :param plot_chart_name: Name of the chart (kept for callers; not drawn).
+    :param plot_chart_title: Title drawn above the chart ('' for none).
     :param plot_the_summary_table:  If the summary table should be rendered here to the calling view object
                                     which is calling this function (self parameter above).
     :param shown_by_default:  If the summary table should have shown of hidden by default.
-    :param categorical_column_for_x_axis: The sequence number of the column to use as x_axis for the plot.
+    :param categorical_column_for_x_axis: The sequence number of the column to use as x_axis for the plot,
+                                            as a position within the CALLER's own column list -- may not
+                                            align with df_to_plot's column list (e.g. after this function's
+                                            own numeric/categorical filtering), so prefer the *_name variant
+                                            below when available.
     :param categorical_column_for_z_axis: The sequence number of the column to use as z_axis for the plot.
-                                            Only useful for 3D charts.
+                                            Only useful for 3D charts. Same caveat as x_axis above.
+    :param categorical_column_for_x_axis_name: The actual column name to use as x_axis, resolved by the
+                                            caller against its own column list. Preferred over the
+                                            position-based parameter above when both are given.
+    :param categorical_column_for_z_axis_name: Same as x_axis_name, for the z_axis (3D charts only).
     :return: an HTML with the plot.
     """
 
     def resolve_numeric_col(cols, n):
         return cols[min(n, len(cols) - 1)] if len(cols) > 0 else None
+
+    def is_entity_id_anchor_column(col_name, allow_uppercase_name_check=True):
+        """True for a column holding a joined entity's own id/PK rather than real
+        attribute data, per the any_clause composer's two entity-id alias conventions
+        (schema_SRO_parser.py): a bare ALL-CAPS entity var name with no title attribute
+        configured (e.g. "TASK", "PROJECT" -- falls back to the raw PK column, ~line 5775)
+        or an entity name with an '_id'/'__id'/'__eid' suffix from the relation-type
+        branch (~line 5571-5579, e.g. "task__eid"). These are join anchors, not
+        chart-able measures -- left in, they can outrank the real numeric field
+        (e.g. plotting an averaged PROJECT id instead of actual_work_hours) whenever a
+        chart auto-picks "the" numeric column, since pivot_table's value columns come
+        back alphabetically sorted, not in original SELECT order.
+
+        :param allow_uppercase_name_check: Set False on the categorical side (see its
+            call site) -- a bare ALL-CAPS name only ever signals a raw numeric id/PK when
+            the column actually holds one, and a column that holds one is already numeric
+            dtype, so it is filtered out of the CATEGORICAL column list before this
+            function ever sees it (pivot_df_categorical_columns_names is built as "every
+            df_to_plot column not in pivot_df_numeric_columns_names"). An ALL-CAPS name
+            that DOES reach the categorical side therefore always means the entity's own
+            title attribute (e.g. location.name) was aliased directly to the entity's var
+            name (e.g. "LOCATION") -- real display text, not an id anchor. Confirmed
+            live: "...agrupando el hospital" (chain encounter -> location -> facility)
+            produced a "LOCATION" column holding location.name text, wrongly excluded by
+            this same uppercase-name rule, silently falling the chart's x-axis back to an
+            unrelated MAX-aggregated column instead of the requested location grouping.
+        """
+        name = str(col_name)
+        if allow_uppercase_name_check and name.isalpha() and name.isupper():
+            return True
+        lowered = name.lower()
+        return lowered.endswith('_id') or lowered.endswith('__id') or lowered.endswith('__eid')
 
     def resolve_categorical_col(cols, n, synthetic_name='Totals'):
         if not cols:
@@ -2809,12 +3279,51 @@ def jm_plot_chart_from_DataFrame(self
             return synthetic_name
         return cols[min(n, len(cols) - 1)]
 
+    def resolve_axis_categorical_column(pivot_df_categorical_columns_names, axis_index_list, axis_name_list,
+                                         sequence_index=0, synthetic_name='Totals'):
+        """Resolve which column to use for a chart axis (x or z) -- the ONE shared
+        implementation every chart type should call, instead of each chart type
+        reimplementing (and independently re-breaking) this resolution.
+
+        Prefers the caller-resolved column NAME in axis_name_list (reliable --
+        comes straight from the GROUP BY schema, e.g. "status") over a
+        position-based index in axis_index_list (fragile: that index is a
+        position within df_to_plot's FULL column list, which can differ in
+        length/order from pivot_df_categorical_columns_names once THIS
+        function's own numeric/categorical filtering has run -- confirmed live
+        this silently picks the wrong column, or goes out of bounds, whenever a
+        numeric column precedes the intended categorical one).
+
+        Falls back, in order: the index-based derivation (for callers that
+        don't have a resolved name), then the first available categorical
+        column, then a synthetic constant column (via resolve_categorical_col)
+        so a chart with zero categorical columns still gets an axis.
+
+        This exact bug was fixed once already for the generic pivot-table path
+        below, then found again, unfixed, in boxplot's own separate copy of the
+        same logic -- hence one shared function instead of one per chart type.
+        """
+        name = axis_name_list[sequence_index] if sequence_index < len(axis_name_list) else None
+
+        if name not in pivot_df_categorical_columns_names:
+            df_columns = list(df_to_plot.columns)
+            index = axis_index_list[sequence_index] if sequence_index < len(axis_index_list) else 0
+            name = df_columns[index] if 0 <= index < len(df_columns) else None
+
+        if name in pivot_df_categorical_columns_names:
+            return name
+
+        return resolve_categorical_col(pivot_df_categorical_columns_names, 0, synthetic_name=synthetic_name)
+
     def obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
                                      , categorical_column_for_x_axis, categorical_column_for_z_axis
                                      , prioritize_date_or_period_columns_for_x_axis=False
-                                     , aggregate_function='mean'):
+                                     , aggregate_function=None):
 
         executable_command_pivot_df = DataFrame()
+        # Rows sharing a category are summarised with the shared rules (jm_summarize_values).
+        if aggregate_function is None:
+            aggregate_function = jm_pandas_summary_aggfunc(summary_function)
 
         # Convert decimal columns to float, so _get_numeric_data function of the DataFrame recognizes them.
         # The _get_numeric_data() method in pandas DataFrames is designed to return columns
@@ -2822,11 +3331,29 @@ def jm_plot_chart_from_DataFrame(self
         # It typically excludes columns with the Decimal dtype from the decimal module.
         if len(df_to_plot.index) > 0:
             for col in df_to_plot.columns:
-                if type(df_to_plot.at[0, col]) == decimal.Decimal:
+                # Only checking row-index-label 0 silently skipped this conversion whenever
+                # THAT row happened to be NULL/None for a Decimal-typed SQL column (row order
+                # is query-dependent, so this could flip between re-runs of the same sentence) --
+                # confirmed: a NULL-at-row-0 numeric column left as dtype=object, which
+                # _get_numeric_data() then excludes, silently falling back to a synthetic 'Count'
+                # column and losing the real numeric values for the chart. Check the column's
+                # first non-null value instead of a fixed row position.
+                non_null_values = df_to_plot[col].dropna()
+                if len(non_null_values) > 0 and isinstance(non_null_values.iloc[0], decimal.Decimal):
                     df_to_plot[col] = df_to_plot[col].astype('Float64')
 
         pivot_df_numeric_columns_names = df_to_plot._get_numeric_data().columns.tolist()
         # pivot_df_numeric_columns_names = df_to_plot.select_dtypes(include=['number']).columns.tolist()
+
+        # Exclude entity id/PK anchor columns from the numeric measures a chart can pick
+        # from -- e.g. a "TASK"/"PROJECT" id column pulled in only to join a relation must
+        # never be treated as the field to plot. Only applied when it leaves at least one
+        # real numeric column, so a result set that is genuinely all ids still charts.
+        _non_id_numeric_columns_names = [
+            col for col in pivot_df_numeric_columns_names if not is_entity_id_anchor_column(col)
+        ]
+        if _non_id_numeric_columns_names:
+            pivot_df_numeric_columns_names = _non_id_numeric_columns_names
 
         # If no numeric columns, add a count column, so the pivot tables and charts show counts summaries.
         if len(pivot_df_numeric_columns_names) == 0:
@@ -2848,25 +3375,39 @@ def jm_plot_chart_from_DataFrame(self
             pivot_df_categorical_columns_names = \
                 [column for column in df_to_plot.columns if column not in pivot_df_numeric_columns_names]
 
+        # Same exclusion as the numeric measures above, applied to the categorical/label
+        # side: an entity-id-anchor column (e.g. "CUSTOMER", pulled in only to join a
+        # relation) is not real display data, so it must not outrank the actual
+        # descriptive attribute (e.g. customer.last_name) as the chart's x-axis label --
+        # confirmed live this was happening: resolve_categorical_col always takes the
+        # FIRST categorical column in original SELECT order, and the id-anchor column is
+        # typically selected before the attribute a "grouping the <attribute>" clause
+        # pulls in. Only applied when it leaves at least one real categorical column, so
+        # a result set that is genuinely all ids still gets a (id-based) label.
+        _non_id_categorical_columns_names = [
+            col for col in pivot_df_categorical_columns_names
+            if not is_entity_id_anchor_column(col, allow_uppercase_name_check=False)
+        ]
+        if _non_id_categorical_columns_names:
+            pivot_df_categorical_columns_names = _non_id_categorical_columns_names
+
         # If no categorical columns, add a Totals column, so the pivot tables and charts show total summaries.
         if len(pivot_df_categorical_columns_names) == 0:
             if 'Totals' not in df_to_plot.columns:
                 df_to_plot['Totals'] = 'Totals'
                 pivot_df_categorical_columns_names = ['Totals']
 
-        if chart_type in ('3d', 'heatmap'):
-            # We need 2 columns for x and z axis as Indexes.
-            # resolve_categorical_col falls back to the last available column, and uses a distinct
-            # synthetic name for z so pivot_table always receives two different dimension columns.
-            x_cat = resolve_categorical_col(
-                pivot_df_categorical_columns_names,
-                categorical_column_for_x_axis[my_chart_sequence]
-            )
-            z_cat = resolve_categorical_col(
-                pivot_df_categorical_columns_names,
-                categorical_column_for_z_axis[my_chart_sequence],
-                synthetic_name='Totals_z'
-            )
+        if chart_type == 'heatmap':
+            # We need 2 columns for x and z axis as Indexes. resolve_axis_categorical_column
+            # falls back to the last available column, and uses a distinct synthetic name for
+            # z so pivot_table always receives two different dimension columns.
+            x_cat = resolve_axis_categorical_column(
+                pivot_df_categorical_columns_names, categorical_column_for_x_axis,
+                categorical_column_for_x_axis_name, sequence_index=my_chart_sequence)
+            z_cat = resolve_axis_categorical_column(
+                pivot_df_categorical_columns_names, categorical_column_for_z_axis,
+                categorical_column_for_z_axis_name, sequence_index=my_chart_sequence,
+                synthetic_name='Totals_z')
             if x_cat == z_cat:
                 if 'Totals_z' not in df_to_plot.columns:
                     df_to_plot['Totals_z'] = 'Totals_z'
@@ -2880,17 +3421,35 @@ def jm_plot_chart_from_DataFrame(self
                                                               , columns=z_cat
                                                               , aggfunc=aggregate_function)
                 except Exception as e:
+                    # A bare jm_log(1, e) here previously gave no traceback, so a pivot_table
+                    # failure (e.g. an incompatible dtype) silently produced an empty
+                    # executable_command_pivot_df -- surfacing downstream only as the generic
+                    # "not enough columns or rows to show this Chart" message, with no way to
+                    # tell that from a genuinely empty/too-small result set. Log the traceback.
                     jm_log(1, 'An exception has occurred in catim views jm_plot_chart_from_DataFrame. ')
                     jm_log(1, e)
+                    jm_log(1, traceback.format_exc())
 
             my_chart_sequence += 1
 
         else:
-            # We only need 1 column x-axis as Pivot Table Index.
+            # We only need 1 column x-axis as Pivot Table Index. See
+            # resolve_axis_categorical_column's docstring for why this must be resolved
+            # by column NAME (from the caller's GROUP BY schema) rather than by a
+            # position-based index -- categorical_column_for_x_axis is a position within
+            # a DIFFERENT column list than pivot_df_categorical_columns_names.
+            target_col_name = resolve_axis_categorical_column(
+                pivot_df_categorical_columns_names, categorical_column_for_x_axis,
+                categorical_column_for_x_axis_name)
+
+            resolved_position = (
+                pivot_df_categorical_columns_names.index(target_col_name)
+                if target_col_name in pivot_df_categorical_columns_names else 0)
+
             pivot_df_index_names = (
-                list(pivot_df_categorical_columns_names[categorical_column_for_x_axis[0]
+                list(pivot_df_categorical_columns_names[resolved_position
                                                         : min(len(pivot_df_categorical_columns_names)
-                                                              , categorical_column_for_x_axis[0] + 1)])
+                                                              , resolved_position + 1)])
             )
 
             # Only create Pivot table Dataframe if we have at least 1 numeric and 1 categorical columns.
@@ -2919,8 +3478,34 @@ def jm_plot_chart_from_DataFrame(self
 
     df_to_plot.fillna(0, inplace=True)
 
+    # Accept legacy chart-type IDs (3d, boxplot, stacked...) and use the catalogue's IDs from here on.
+    chart_types = [jm_normalize_chart_type_id(chart_type) for chart_type in (chart_types or [])]
     if len(chart_types) == 0:
         chart_types = ['bar']
+
+    # Pie, boxplot and donut charts draw on a subplot grid of their own (one cell per numeric
+    # column), which replaces the grid the other chart types are placed on: a later chart type
+    # of the same sentence then went to a cell that grid doesn't have ("The (row, col) pair sent
+    # is out of range" for "Create a boxplot chart for the distribution of X", which asks for a
+    # boxplot and a histogram). With one of them among several chart types, each is drawn alone.
+    own_grid_chart_types = ('pie', 'box', 'donut')
+    if len(chart_types) > 1 and 'dash' not in chart_types and any(
+            own_grid_chart_type == chart_type
+            for chart_type in chart_types for own_grid_chart_type in own_grid_chart_types):
+        return ''.join(
+            jm_plot_chart_from_DataFrame(
+                self, df_to_plot.copy(), [chart_type]
+                , plot_the_chart=plot_the_chart, shown_by_default=shown_by_default
+                , categorical_column_for_x_axis=categorical_column_for_x_axis
+                , categorical_column_for_z_axis=categorical_column_for_z_axis
+                , categorical_column_for_x_axis_name=categorical_column_for_x_axis_name
+                , categorical_column_for_z_axis_name=categorical_column_for_z_axis_name
+                , max_subplot_columns=max_subplot_columns
+                , remove_rows_having_all_numeric_columns_zero=remove_rows_having_all_numeric_columns_zero
+                , plot_chart_name=plot_chart_name
+                , plot_chart_title=plot_chart_title
+                , summary_function=summary_function)
+            for chart_type in chart_types)
 
     if len(chart_types) > 0:
 
@@ -2946,7 +3531,7 @@ def jm_plot_chart_from_DataFrame(self
 
             for chart_type in chart_types:
 
-                if 'bar' in chart_type and 'horizontal' not in chart_type:
+                if chart_type == 'bar':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -2980,7 +3565,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'stacked' in chart_type and 'horizontal' not in chart_type:
+                if chart_type == 'bar_stacked':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3017,7 +3602,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'line' in chart_type:
+                if chart_type == 'line':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3049,7 +3634,7 @@ def jm_plot_chart_from_DataFrame(self
 
                         my_chart_sequence += 1
 
-                if 'bubble' in chart_type:
+                if chart_type == 'bubble':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3065,23 +3650,39 @@ def jm_plot_chart_from_DataFrame(self
                                 executable_command_pivot_df)[
                                 (executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
 
-                        if executable_command_pivot_df[bubble_size_column_name].max() != 0:
-                            scale_factor_for_bubble_size = 100 / executable_command_pivot_df[
-                                bubble_size_column_name].max()
-                        else:
-                            scale_factor_for_bubble_size = 100
+                        # Bubble area is proportional to |Series 3|, the largest bubble 40px across --
+                        # the same sizing as the frontend's bubble chart.
+                        abs_max = executable_command_pivot_df[bubble_size_column_name].abs().max()
+                        bubble_sizeref = 2.0 * (abs_max if abs_max else 1) / (40 ** 2)
 
+                        bubble_legend_group_title = x_column_name + ' / ' + y_column_name + ' / ' + bubble_size_column_name
                         for index_element in executable_command_pivot_df.index:
+                            bubble_size_value = executable_command_pivot_df.at[index_element, bubble_size_column_name]
                             fig_plot.add_trace(go.Scatter(
                                 x=[executable_command_pivot_df.at[index_element, x_column_name]]
                                 , y=[executable_command_pivot_df.at[index_element, y_column_name]]
                                 , name=index_element
                                 , text=index_element
-                                , marker_size=[executable_command_pivot_df.at[index_element, bubble_size_column_name]
-                                               * scale_factor_for_bubble_size],
+                                # Every point is its own trace (named after its category), so there is
+                                # no single trace whose "name" could carry the 3 measures (x/y/size) --
+                                # group all points under one legend heading naming them instead.
+                                , legendgroup='bubble_measures'
+                                , legendgrouptitle_text=bubble_legend_group_title
+                                , marker=dict(size=[abs(bubble_size_value)], sizemode='area'
+                                              , sizeref=bubble_sizeref, sizemin=3)
+                                # The trace name is only the category (index_element) -- none of the
+                                # three measures encoded as x/y/bubble size say what they represent by
+                                # default, only their bare numbers. Label all three explicitly.
+                                , hovertemplate=(
+                                    '%{fullData.name}<br>'
+                                    + x_column_name + ': %{x:' + JM_CHART_NUMBER_FORMAT + '}<br>'
+                                    + y_column_name + ': %{y:' + JM_CHART_NUMBER_FORMAT + '}<br>'
+                                    + bubble_size_column_name + ': '
+                                    + format(float(bubble_size_value), JM_CHART_NUMBER_FORMAT)
+                                    + '<extra></extra>')
                             ))
 
-                        fig_plot.update_traces(mode='markers + text')  # , marker=dict(sizemode='area', line_width=2))
+                        fig_plot.update_traces(mode='markers')
 
                         fig_plot.update_layout(
                             xaxis=dict(
@@ -3105,7 +3706,7 @@ def jm_plot_chart_from_DataFrame(self
 
                         my_chart_sequence += 1
 
-                if 'seasonal' in chart_type:
+                if chart_type == 'seasonal':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3188,7 +3789,7 @@ def jm_plot_chart_from_DataFrame(self
 
                         my_chart_sequence += 1
 
-                if 'trend' in chart_type:
+                if chart_type == 'trend':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3262,7 +3863,7 @@ def jm_plot_chart_from_DataFrame(self
                         my_chart_sequence += 1
 
                 # compose pie chart plot with sub-plots, each for one of the numeric variables to plot a pie for.
-                if 'pie' in chart_type:
+                if chart_type == 'pie':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3315,6 +3916,15 @@ def jm_plot_chart_from_DataFrame(self
                                     labels=list(executable_command_pivot_df.index),
                                     values=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
                                     name=pivot_df_numeric_columns_name,
+                                    # A Pie trace's legend entries are always its slice labels (from
+                                    # `labels=`), never the trace's own `name` -- unlike bar/scatter,
+                                    # there is no separate legend slot showing what measure this pie
+                                    # represents (the subplot title above the chart already does, but
+                                    # that's easy to miss and is a different UI element from the legend
+                                    # widget itself). legendgrouptitle adds that as a heading inside the
+                                    # legend, above this pie's own slice entries.
+                                    legendgroup=pivot_df_numeric_columns_name,
+                                    legendgrouptitle_text=pivot_df_numeric_columns_name,
                                     textinfo='label+percent',
                                     insidetextorientation='radial'
                                 ),
@@ -3327,7 +3937,7 @@ def jm_plot_chart_from_DataFrame(self
                         my_chart_sequence += 1
 
                 # compose boxplot chart plot with sub-plots, each for one of the numeric variables to plot a pie for.
-                if 'boxplot' in chart_type:
+                if chart_type == 'box':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3352,13 +3962,15 @@ def jm_plot_chart_from_DataFrame(self
                         jm_log(1, "rows, cols for BOXPLOT subplot:", boxplotsubplots_rows, boxplotsubplots_cols)
 
                         # using plotly 'specs' argument to make_subplots must be a 2D list of dictionaries with dimensions (1 x 1)
-                        # For pie charts, we need to specify domain for each subplot,
-                        # where each subplot will contain a pie for a numeric column.
+                        # Box traces are cartesian (x/y axes), not domain-type -- 'domain' is for
+                        # pie/sunburst-style traces with no axes. This was copy-pasted from the pie
+                        # chart block above; using it here put box traces into domain-type subplot
+                        # cells, which suppresses their normal axes/legend/hover behavior.
                         type_domain_specs = []
                         for row in range(0, boxplotsubplots_rows):
                             type_domain_specs_col = []
                             for col in range(0, boxplotsubplots_cols):
-                                type_domain_specs_col.append({'type': 'domain'})
+                                type_domain_specs_col.append({'type': 'xy'})
                             type_domain_specs.append(type_domain_specs_col)
 
                         # Specify the name of each Pie subplot with the name of the numeric column we are plotting on each.
@@ -3371,22 +3983,36 @@ def jm_plot_chart_from_DataFrame(self
                                                  # , horizontal_spacing = 0.25
                                                  )
 
+                        # Was its own separate, independently-drifting copy of this exact
+                        # resolution (confirmed live it still picked the wrong column, e.g. task
+                        # title, instead of the intended "grouping" one, e.g. priority, even after
+                        # the generic pivot-table path's copy of the same logic was fixed) --
+                        # now the one shared helper every chart type uses.
+                        boxplot_categorical_column_name = resolve_axis_categorical_column(
+                            pivot_df_categorical_columns_names, categorical_column_for_x_axis,
+                            categorical_column_for_x_axis_name)
+
                         for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
 
                             distinct_categorical_values = (
-                                df_to_plot[pivot_df_categorical_columns_names[categorical_column_for_x_axis[0]]].unique())
+                                df_to_plot[boxplot_categorical_column_name].unique())
 
                             for distinct_categorical_value in distinct_categorical_values:
 
                                 dt_to_plot_subset = (
-                                    df_to_plot[df_to_plot[pivot_df_categorical_columns_names[categorical_column_for_x_axis[0]]]
+                                    df_to_plot[df_to_plot[boxplot_categorical_column_name]
                                                == distinct_categorical_value] )
 
                                 fig_plot.add_trace(
                                     go.Box(
                                         y = list(dt_to_plot_subset[pivot_df_numeric_columns_name]),
-                                        x = list(dt_to_plot_subset[pivot_df_categorical_columns_names[categorical_column_for_x_axis[0]]]),
+                                        x = list(dt_to_plot_subset[boxplot_categorical_column_name]),
                                         name = pivot_df_numeric_columns_name + ' ' + str(distinct_categorical_value),
+                                        # Group every category's box for this measure under one legend
+                                        # heading, so the measure name reads clearly even when its own
+                                        # per-trace name is truncated by the legend's available width.
+                                        legendgroup=pivot_df_numeric_columns_name,
+                                        legendgrouptitle_text=pivot_df_numeric_columns_name,
                                         boxpoints='all', # can also be outliers, or suspectedoutliers, or False
                                         jitter=0.3, # add some jitter for a better separation between points
                                         pointpos=-1.8 # relative position of points wrt box
@@ -3398,7 +4024,7 @@ def jm_plot_chart_from_DataFrame(self
 
                         my_chart_sequence += 1
 
-                if '3d' in chart_type:
+                if chart_type == 'scatter3d':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3413,17 +4039,33 @@ def jm_plot_chart_from_DataFrame(self
 
                         if len(executable_command_pivot_df) > 0:
 
-                            fig_plot = go.Figure(data=[go.Scatter3d(
-                                x=list(executable_command_pivot_df.index),
-                                y=list(executable_command_pivot_df.columns),
-                                z=list(executable_command_pivot_df[pivot_df_numeric_columns_names]),
-                                mode='markers')])
+                            # Numeric axes come from the Series (Series 1-3 as X, Y and Z); categories
+                            # only group and label -- one trace per category, as in the frontend.
+                            x_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 0)
+                            y_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 1)
+                            z_column_name = resolve_numeric_col(pivot_df_numeric_columns_names, 2)
+                            fig_plot = go.Figure()
+                            for index_element in executable_command_pivot_df.index:
+                                fig_plot.add_trace(go.Scatter3d(
+                                    x=[executable_command_pivot_df.at[index_element, x_column_name]],
+                                    y=[executable_command_pivot_df.at[index_element, y_column_name]],
+                                    z=[executable_command_pivot_df.at[index_element, z_column_name]],
+                                    name=str(index_element),
+                                    mode='markers',
+                                    marker=dict(size=4),
+                                    hovertemplate=('%{fullData.name}<br>'
+                                                   + x_column_name + ': %{x:' + JM_CHART_NUMBER_FORMAT + '}<br>'
+                                                   + y_column_name + ': %{y:' + JM_CHART_NUMBER_FORMAT + '}<br>'
+                                                   + z_column_name + ': %{z:' + JM_CHART_NUMBER_FORMAT + '}'
+                                                   + '<extra></extra>')))
+                            fig_plot.update_layout(scene=dict(xaxis_title=x_column_name, yaxis_title=y_column_name
+                                                              , zaxis_title=z_column_name))
 
                             charts_rendered += 1
 
                         my_chart_sequence += 1
 
-                if 'area' in chart_type and 'horizontal' not in chart_type:
+                if chart_type == 'area':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3456,7 +4098,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'donut' in chart_type:
+                if chart_type == 'donut':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3494,6 +4136,10 @@ def jm_plot_chart_from_DataFrame(self
                                     labels=list(executable_command_pivot_df.index),
                                     values=list(executable_command_pivot_df[pivot_df_numeric_columns_name]),
                                     name=pivot_df_numeric_columns_name,
+                                    # See the equivalent comment on the pie chart block above -- a Pie
+                                    # trace's legend is always its slice labels, never its own name.
+                                    legendgroup=pivot_df_numeric_columns_name,
+                                    legendgrouptitle_text=pivot_df_numeric_columns_name,
                                     hole=0.4,
                                     textinfo='label+percent',
                                     insidetextorientation='radial',
@@ -3506,7 +4152,7 @@ def jm_plot_chart_from_DataFrame(self
 
                         my_chart_sequence += 1
 
-                if 'bar-horizontal' in chart_type:
+                if chart_type == 'bar_h':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3539,7 +4185,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'stacked-horizontal' in chart_type:
+                if chart_type == 'bar_h_stacked':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3574,7 +4220,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'area-horizontal' in chart_type:
+                if chart_type == 'area_h':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3607,7 +4253,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'scatter' in chart_type and 'bubble' not in chart_type:
+                if chart_type == 'scatter':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3648,7 +4294,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'histogram' in chart_type:
+                if chart_type == 'histogram':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3674,7 +4320,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'waterfall' in chart_type:
+                if chart_type == 'waterfall':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3709,7 +4355,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'heatmap' in chart_type:
+                if chart_type == 'heatmap':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3722,23 +4368,13 @@ def jm_plot_chart_from_DataFrame(self
                                 executable_command_pivot_df)[(
                                     executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
 
-                        z_values = [
-                            [float(v) if v == v else 0 for v in executable_command_pivot_df.loc[idx]]
-                            for idx in executable_command_pivot_df.index
-                        ]
-
-                        fig_plot = go.Figure(data=go.Heatmap(
-                            x=list(executable_command_pivot_df.columns),
-                            y=list(executable_command_pivot_df.index),
-                            z=z_values,
-                            colorscale='Blues',
-                        ))
+                        fig_plot = pivot_heatmap_figure(executable_command_pivot_df)
 
                         charts_rendered += 1
 
                     my_chart_sequence += 1
 
-                if 'crosstab' in chart_type:
+                if chart_type == 'crosstab':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3751,23 +4387,13 @@ def jm_plot_chart_from_DataFrame(self
                                 executable_command_pivot_df)[(
                                     executable_command_pivot_df[pivot_df_numeric_columns_names] != 0).any(axis=1)]
 
-                        z_values = [
-                            [float(v) if v == v else 0 for v in executable_command_pivot_df.loc[idx]]
-                            for idx in executable_command_pivot_df.index
-                        ]
-
-                        fig_plot = go.Figure(data=go.Heatmap(
-                            x=list(executable_command_pivot_df.columns),
-                            y=list(executable_command_pivot_df.index),
-                            z=z_values,
-                            colorscale='Blues',
-                        ))
+                        fig_plot = pivot_heatmap_figure(executable_command_pivot_df)
 
                         charts_rendered += 1
 
                     my_chart_sequence += 1
 
-                if 'radar' in chart_type:
+                if chart_type == 'scatterpolar':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3775,7 +4401,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     if len(pivot_df_numeric_columns_names) > 0:
 
-                        # Ensure at least 3 spokes by cycling available columns, matching frontend fallback.
+                        # Ensure at least 3 spokes by cycling available columns.
                         spoke_cols = list(pivot_df_numeric_columns_names)
                         while len(spoke_cols) < 3:
                             spoke_cols.append(spoke_cols[len(spoke_cols) % len(pivot_df_numeric_columns_names)])
@@ -3806,7 +4432,7 @@ def jm_plot_chart_from_DataFrame(self
 
                     my_chart_sequence += 1
 
-                if 'combo' in chart_type:
+                if chart_type == 'combo':
 
                     executable_command_pivot_df, pivot_df_numeric_columns_names, pivot_df_categorical_columns_names = (
                         obtain_pivot_table_for_chart(df_to_plot, chart_type, my_chart_sequence
@@ -3852,36 +4478,42 @@ def jm_plot_chart_from_DataFrame(self
 
             if charts_rendered > 0:
 
-                fig_plot.update_layout(
-                    margin_b=90,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False, automargin=True),
-                    yaxis=dict(gridcolor='rgba(128,128,128,0.22)', zeroline=False, automargin=True),
-                    font=dict(
-                        family="sans-serif",
-                        size=10,
-                        color="#8a97a5"
-                    ),
-                    legend=go.layout.Legend(
-                        orientation="h",
-                        bgcolor='rgba(0,0,0,0)',
-                        bordercolor='rgba(128,128,128,0.35)',
-                        borderwidth=1,
-                        yanchor="bottom",
-                        xanchor="right",
-                        y=1.2,
-                        x=1,
-                        font=dict(
-                            family="sans-serif",
-                            size=10,
-                            color="#8a97a5"
-                        ),
-                    )
-                )
+                # The same palette, fonts, grid, legend position (a scrolling row along the
+                # bottom, so long legend-group titles such as "planned_cost(max)" are never
+                # clipped) and number formatting as every other chart, frontend included.
+                jm_apply_standard_chart_layout(fig_plot, title=plot_chart_title or '')
+                # Percentages that don't fit inside their slice are hidden, as in the frontend.
+                fig_plot.update_traces(textposition='inside', selector=dict(type='pie'))
 
-                # fig_plot.update_xaxes(title_text='Element', tickfont=dict(family='sans-serif', color='gray', size=12))
-                # fig_plot.update_yaxes(title_text=related_uom(self,entity), tickfont=dict(family='sans-serif', color='gray', size=12))
+                # fig_plot.update_xaxes(title_text='Element', tickfont=dict(family='sans-serif', color='#4a5568', size=12))
+                # fig_plot.update_yaxes(title_text=related_uom(self,entity), tickfont=dict(family='sans-serif', color='#4a5568', size=12))
+
+                # Plotly's own defaults hide the legend (layout.showlegend defaults to
+                # true only "if there is more than one trace") and, following the same
+                # single-vs-multi-trace heuristic, the hover tooltip's name swatch --
+                # so a chart with only one measure (e.g. "Create a bar chart for all
+                # tasks and their actual work hours") showed bare values with nothing
+                # indicating what they represent. Force both explicitly rather than
+                # relying on that ambiguous default, for every chart regardless of how
+                # many measures it ends up with.
+                fig_plot.update_layout(showlegend=True)
+
+                def _ensure_single_measure_name_visible(a_trace):
+                    if a_trace.showlegend is None:
+                        a_trace.showlegend = True
+                    if a_trace.hovertemplate is None:
+                        if a_trace.type == 'box':
+                            a_trace.hovertemplate = '%{fullData.name}<br>%{y:' + JM_CHART_NUMBER_FORMAT + '}<extra></extra>'
+                        elif a_trace.type in ('bar', 'scatter'):
+                            a_trace.hovertemplate = '%{fullData.name}<br>%{x}: %{y:' + JM_CHART_NUMBER_FORMAT + '}<extra></extra>'
+                        elif a_trace.type == 'pie':
+                            # Pie/donut traces are named after the measure (e.g. "planned_cost")
+                            # but their default hover only shows the slice's label/value/percent --
+                            # nothing ties that back to which measure this pie is for.
+                            a_trace.hovertemplate = (
+                                '%{fullData.name}<br>%{label}: %{value:' + JM_CHART_NUMBER_FORMAT + '} (%{percent})<extra></extra>')
+
+                fig_plot.for_each_trace(_ensure_single_measure_name_visible)
 
                 try:
                     plot_chart_HTML = pyo.plot(fig_plot, include_plotlyjs=False, output_type='div')
@@ -3899,21 +4531,17 @@ def jm_plot_chart_from_DataFrame(self
                     render_results_details_footer(self)
 
             else:
-                plot_chart_HTML += ' '.join(chart_types) + ': '
-                plot_chart_HTML += _('There are not enough columns or rows to show this Chart.')
+                # The same empty-state message as every other chart, frontend included.
+                plot_chart_HTML += _(JM_CHART_EMPTY_MESSAGE)
                 plot_chart_HTML += '<br>'
-                plot_chart_HTML += (plot_chart_HTML)
 
         if plot_dash:
             #plot_chart_in_plotly_dash(df_to_plot, chart_types)
             pass
 
     else:
-        plot_chart_HTML += ' '.join(chart_types) + ': '
-        plot_chart_HTML += _(
-            'There are not enough columns to show this Chart. Try with more columns or a low dimensional chart like Bar or Line.')
+        plot_chart_HTML += _(JM_CHART_EMPTY_MESSAGE)
         plot_chart_HTML += '<br>'
-        plot_chart_HTML += (plot_chart_HTML)
 
     return jm_satinize_custom_html(plot_chart_HTML)
 
@@ -4065,6 +4693,12 @@ def jm_position_within_table_with_max_columns(element_sequence, max_columns):
 
     :return: row, col
     """
+
+    # max_columns is nullable in the DB (NLSentence/NLChat.maximum_chart_columns); a stored
+    # NULL reaches here as None and previously raised "unsupported operand type(s) for //:
+    # 'int' and 'NoneType'" -- fall back to the same default (2) used elsewhere for this field.
+    if not max_columns:
+        max_columns = 2
 
     row = element_sequence // max_columns + 1
     col = element_sequence % (max_columns) + 1
@@ -4386,11 +5020,13 @@ def jm_render_flipping_card_styles(view):
         top: 0;
         z-index: 4;
         width: 100%;
-        min-height: 34px;
+        height: 24px;
+        min-height: 24px;
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        padding: 8px 12px 2px 12px;
+        padding: 2px 12px;
         box-sizing: border-box;
         background: linear-gradient(180deg, var(--jm-card-header-from, #f5fbff) 0%, var(--jm-card-header-to, #eff8ff) 100%);
     }}
@@ -4461,6 +5097,15 @@ def jm_render_flipping_card_styles(view):
     .back {{
         transform: rotateY(180deg);
         min-height: 1px;
+        /* Collapsed by default so the back's own (usually larger) content
+           can never affect the container's height while the front is
+           showing -- only .card.is-flipped below expands it back to a
+           normal box, right as the flip toggles. */
+        display: none;
+    }}
+
+    .card.is-flipped .back {{
+        display: block;
     }}
 
     /* Larger Content for the Back */
@@ -4495,6 +5140,19 @@ def jm_render_flipping_card_resizing_scripts(view):
     view_content += (
         f'''
 <script>
+// Small fixed slack added on top of every measured/baked-in --card-height (see
+// its uses below) -- the forced-visible measurement in getMaxContentHeight
+// consistently lands a few px short of the face's real rendered height
+// regardless of content size, leaving a tiny bottom scrollbar without it.
+// var, not const: this script gets re-embedded (and re-executed via
+// replaceChild) every time the card grid re-renders -- e.g. once per
+// streamed/re-answered NL sentence -- and a top-level const throws
+// "already declared" on the second injection, aborting the whole script
+// (including every function below it) and breaking card
+// flip/resize/optimize entirely. var's redeclaration in the same scope is
+// a harmless no-op, unlike const/let.
+var CARD_HEIGHT_SAFETY_MARGIN_PX = 10;
+
 /*
 =========================================================
 4. JavaScript Functionality: Toggle flip class AND manage height
@@ -4503,10 +5161,10 @@ def jm_render_flipping_card_resizing_scripts(view):
 /**
  * Calculates the maximum offsetWidth among an element and all its descendants.
  * @param {{HTMLElement}} element - The parent element to measure.
- 
+
  * @returns {{number}} The maximum width in pixels.
  */
- 
+
 function isCardFlipped(id_unique_suffix) {{
     const CardElement = document.getElementById('myCard' + id_unique_suffix);
 
@@ -4535,8 +5193,13 @@ function getMaxContentWidth(element) {{
     // Filter out potential non-finite values before calculating max.
     const validWidths = childrenWidths.filter(w => isFinite(w) && w > 0);
 
-    // Use Math.max with the spread operator. If validWidths is empty, return 0.
-    return validWidths.length > 0 ? Math.max(...validWidths) : 0;
+    // Reduce instead of Math.max(...validWidths): a card with a large answer table
+    // (thousands of cells) makes validWidths long enough that spreading it as call
+    // arguments to Math.max exceeds the JS engine's argument/stack limit, throwing
+    // "Maximum call stack size exceeded" -- which aborted this function before its
+    // caller could restore the element's temporarily-forced display/visibility,
+    // leaving the card permanently hidden.
+    return validWidths.length > 0 ? validWidths.reduce((max, w) => (w > max ? w : max), 0) : 0;
     }}
 
 /**
@@ -4557,9 +5220,9 @@ function getMaxContentHeight(element) {{
     
     // Filter out potential non-finite values before calculating max.
     const validHeights = childrenHeights.filter(h => isFinite(h) && h > 0);
-    
-    // Use Math.max with the spread operator. If validHeights is empty, return 0.
-    return validHeights.length > 0 ? Math.max(...validHeights) : 0;
+
+    // Reduce instead of Math.max(...validHeights) -- see getMaxContentWidth above.
+    return validHeights.length > 0 ? validHeights.reduce((max, h) => (h > max ? h : max), 0) : 0;
     }}
 
 function maximizeCardSize(id_unique_suffix) {{
@@ -4583,17 +5246,26 @@ function maximizeCardSize(id_unique_suffix) {{
         const originalDisplay = FacingSize.style.display;
         const originalVisibility = FacingSize.style.visibility;
     
-        // Show element to force reflow and get correct dimensions.
-        FacingSize.style.setProperty('display', 'block', 'important');
+        // Show element to force reflow and get correct dimensions. Match the
+        // face's own real display (flex for .front, block for .back) -- forcing
+        // .front to 'block' collapsed its flex-column layout during measurement,
+        // undermeasuring its real rendered height by a few percent.
+        FacingSize.style.setProperty('display', FacingSize.classList.contains('front') ? 'flex' : 'block', 'important');
         FacingSize.style.setProperty('visibility', 'hidden', 'important');
-    
-        let cardHeight = getMaxContentHeight(FacingSize);
-        let cardWidth = getMaxContentWidth(FacingSize);
-    
-        // --- RESTORE: Restore original display/visibility status. ---
-        FacingSize.style.display = originalDisplay;
-        FacingSize.style.visibility = originalVisibility;
-    
+
+        // try/finally: an error thrown while measuring must not skip the RESTORE
+        // below, or the element is left forced hidden ("!important") forever --
+        // the card would render once, then vanish and never come back.
+        let cardHeight, cardWidth;
+        try {{
+            cardHeight = getMaxContentHeight(FacingSize);
+            cardWidth = getMaxContentWidth(FacingSize);
+        }} finally {{
+            // --- RESTORE: Restore original display/visibility status. ---
+            FacingSize.style.display = originalDisplay;
+            FacingSize.style.visibility = originalVisibility;
+        }}
+
         // Fallback for safety, though getMaxContent should handle this now.
         cardHeight = cardHeight || FacingSize.offsetHeight || minHeight; // Use minimum safe height if 0 is returned
         cardWidth = cardWidth || FacingSize.offsetWidth || minWidth;   // Use minimum safe width if 0 is returned
@@ -4602,7 +5274,11 @@ function maximizeCardSize(id_unique_suffix) {{
         // .jm-card-header in the container. Add the header height so the bottom of the
         // content (e.g. pagination bar) is not clipped.
         const headerEl = CardContainerElement.querySelector('.jm-card-header');
-        cardHeight = cardHeight + (headerEl ? (headerEl.offsetHeight || 0) : 0);
+        // Small safety margin -- getMaxContentHeight's forced-visible measurement still
+        // consistently comes in a few px short of the face's real rendered height (seen
+        // even on short fronts, so it's a fixed rounding/measurement slack, not a
+        // percentage of content), leaving a tiny bottom scrollbar without this.
+        cardHeight = cardHeight + (headerEl ? (headerEl.offsetHeight || 0) : 0) + CARD_HEIGHT_SAFETY_MARGIN_PX;
 
         // Apply the maximum size to the container using CSS variables.
         CardContainerElement.style.setProperty('--card-height', `${{cardHeight}}px`);
@@ -4635,26 +5311,38 @@ function minimizeCardSize(id_unique_suffix){{
         const originalDisplay = FacingSize.style.display;
         const originalVisibility = FacingSize.style.visibility;
     
-        // Show element to force reflow and get correct dimensions.
-        FacingSize.style.setProperty('display', 'block', 'important');
+        // Show element to force reflow and get correct dimensions. Match the
+        // face's own real display (flex for .front, block for .back) -- forcing
+        // .front to 'block' collapsed its flex-column layout during measurement,
+        // undermeasuring its real rendered height by a few percent.
+        FacingSize.style.setProperty('display', FacingSize.classList.contains('front') ? 'flex' : 'block', 'important');
         FacingSize.style.setProperty('visibility', 'hidden', 'important');
-    
-        let cardHeight = Math.min(minHeight, getMaxContentHeight(FacingSize));
-        let cardWidth = Math.min(minWidth, getMaxContentWidth(FacingSize));
-    
-        // --- RESTORE: Restore original display/visibility status. ---
-        FacingSize.style.display = originalDisplay;
-        FacingSize.style.visibility = originalVisibility;
-    
+
+        // try/finally -- see maximizeCardSize above.
+        let cardHeight, cardWidth;
+        try {{
+            cardHeight = Math.min(minHeight, getMaxContentHeight(FacingSize));
+            cardWidth = Math.min(minWidth, getMaxContentWidth(FacingSize));
+        }} finally {{
+            // --- RESTORE: Restore original display/visibility status. ---
+            FacingSize.style.display = originalDisplay;
+            FacingSize.style.visibility = originalVisibility;
+        }}
+
         // Fallback for safety, though getMaxContent should handle this now.
         cardHeight = cardHeight || FacingSize.offsetHeight || minHeight; // Use minimum safe height if 0 is returned
         cardWidth = cardWidth || FacingSize.offsetWidth || minWidth;   // Use minimum safe width if 0 is returned
-    
+
+        // Account for the sticky .jm-card-header height (see maximizeCardSize above)
+        // plus the same CARD_HEIGHT_SAFETY_MARGIN_PX margin, for the same reasons.
+        const headerEl = CardContainerElement.querySelector('.jm-card-header');
+        cardHeight = cardHeight + (headerEl ? (headerEl.offsetHeight || 0) : 0) + CARD_HEIGHT_SAFETY_MARGIN_PX;
+
         // Apply the maximum size to the container using CSS variables.
         CardContainerElement.style.setProperty('--card-height', `${{cardHeight}}px`);
         CardContainerElement.style.setProperty('--card-width', `${{cardWidth}}px`);
-    }} 
-    else 
+    }}
+    else
     {{
         console.error('FacingSize element not found.');
     }}
@@ -4686,26 +5374,76 @@ function optimizeCardSizeInViewPort(id_unique_suffix){{
         // Temporarily make the element visible for accurate measurement. ---
         const originalDisplay = FacingSize.style.display;
         const originalVisibility = FacingSize.style.visibility;
-    
-        // Show element to force reflow and get correct dimensions.
-        FacingSize.style.setProperty('display', 'block', 'important');
+
+        // Show element to force reflow and get correct dimensions. Match the
+        // face's own real display (flex for .front, block for .back) -- forcing
+        // .front to 'block' collapsed its flex-column layout during measurement,
+        // undermeasuring its real rendered height by a few percent.
+        FacingSize.style.setProperty('display', FacingSize.classList.contains('front') ? 'flex' : 'block', 'important');
         FacingSize.style.setProperty('visibility', 'hidden', 'important');
-    
-        let cardHeight = Math.min(getMaxContentHeight(FacingSize), viewportHeight * 0.8);
-        let cardWidth = Math.min(getMaxContentWidth(FacingSize), viewportWidth * 0.7);
-    
-        // --- RESTORE: Restore original display/visibility status. ---
-        FacingSize.style.display = originalDisplay;
-        FacingSize.style.visibility = originalVisibility;
-    
+
+        // try/finally -- see maximizeCardSize above: an error thrown anywhere
+        // in this measurement block must not skip the RESTORE below, or the
+        // card is left forced hidden ("!important") forever.
+        let cardHeight, cardWidth, headerHeight = 0;
+        try {{
+
+        // If this card is embedded inside a smaller, explicitly scrollable
+        // container (e.g. a VeloIQ dashboard cell) rather than filling the
+        // whole page, size against THAT container's real available space
+        // instead of the page viewport. Without this, a card confined to a
+        // small cell still computes a height sized for up to 80% of the
+        // entire browser window, guaranteeing it overflows its own cell
+        // (and, since the cell's own overflow:auto then has to scroll the
+        // whole card, produces a redundant second scrollbar on top of this
+        // card's own internal one). Walking up for the nearest ancestor
+        // that actually clips (overflow auto/scroll) and is shorter than
+        // the viewport finds that real constraint, if any; a full-page
+        // Show view has no such ancestor and falls through to the
+        // viewport-based sizing exactly as before.
+        let constrainedHeight = null;
+        let constrainedWidth = null;
+        let sizeConstrainingAncestor = CardContainerElement.parentElement;
+        while (sizeConstrainingAncestor && sizeConstrainingAncestor !== document.body) {{
+            const ancestorStyle = window.getComputedStyle(sizeConstrainingAncestor);
+            const ancestorClips = ancestorStyle.overflowY === 'auto' || ancestorStyle.overflowY === 'scroll';
+            if (ancestorClips && sizeConstrainingAncestor.clientHeight > 0 && sizeConstrainingAncestor.clientHeight < viewportHeight) {{
+                const ancestorVerticalPadding = parseFloat(ancestorStyle.paddingTop || '0') + parseFloat(ancestorStyle.paddingBottom || '0');
+                const ancestorHorizontalPadding = parseFloat(ancestorStyle.paddingLeft || '0') + parseFloat(ancestorStyle.paddingRight || '0');
+                constrainedHeight = sizeConstrainingAncestor.clientHeight - ancestorVerticalPadding;
+                constrainedWidth = sizeConstrainingAncestor.clientWidth - ancestorHorizontalPadding;
+                break;
+            }}
+            sizeConstrainingAncestor = sizeConstrainingAncestor.parentElement;
+        }}
+
+        // Measured up front (rather than after applying the cap below) so a
+        // constrainedHeight cap can budget for it: cardHeight gets this
+        // header height added back on afterward, so a cap that doesn't
+        // reserve room for it would let the final --card-height (content +
+        // header) exceed the available space by the header's own height —
+        // still overflowing the ancestor this cap exists to fit inside.
+        const headerEl = CardContainerElement.querySelector('.jm-card-header');
+        headerHeight = headerEl ? (headerEl.offsetHeight || 0) : 0;
+        const constrainedContentHeight = constrainedHeight !== null ? Math.max(0, constrainedHeight - headerHeight) : Infinity;
+
+        cardHeight = Math.min(getMaxContentHeight(FacingSize), viewportHeight * 0.8, constrainedContentHeight);
+        cardWidth = Math.min(getMaxContentWidth(FacingSize), viewportWidth * 0.7, constrainedWidth !== null ? constrainedWidth : Infinity);
+
+        }} finally {{
+            // --- RESTORE: Restore original display/visibility status. ---
+            FacingSize.style.display = originalDisplay;
+            FacingSize.style.visibility = originalVisibility;
+        }}
+
         // Fallback for safety, though getMaxContent should handle this now.
         cardHeight = cardHeight || FacingSize.offsetHeight || minHeight; // Use minimum safe height if 0 is returned
         cardWidth = cardWidth || FacingSize.offsetWidth || minWidth;   // Use minimum safe width if 0 is returned
 
         // Account for the sticky .jm-card-header height so the bottom of the content
-        // (e.g. pagination bar) is not clipped.
-        const headerEl = CardContainerElement.querySelector('.jm-card-header');
-        cardHeight = cardHeight + (headerEl ? (headerEl.offsetHeight || 0) : 0);
+        // (e.g. pagination bar) is not clipped. See CARD_HEIGHT_SAFETY_MARGIN_PX above
+        // for why a small margin is added on top of that.
+        cardHeight = cardHeight + headerHeight + CARD_HEIGHT_SAFETY_MARGIN_PX;
 
         // Apply the maximum size to the container using CSS variables.
         CardContainerElement.style.setProperty('--card-height', `${{cardHeight}}px`);
@@ -4812,9 +5550,22 @@ def jm_render_flipping_card_initialization_scripts(view, id_unique_suffix, actio
         view_content += (
             f'''
     <script>
-    
+
+    // Sizing walks up for a clipping ancestor (e.g. the dashboard cell's own
+    // wrapper) and caps the card's height to that ancestor's clientHeight.
+    // When several NL Sentence cards render into a CSS grid whose row
+    // tracks are still settling (each card's own insertion can itself
+    // trigger more layout), a card that measures on this very first,
+    // synchronous pass can catch its ancestor mid-collapse and lock in a
+    // too-small height with no later re-measurement -- there is no
+    // ResizeObserver on this path (unlike the real-Plotly-graph resize
+    // above, which already retries at 0/200/700ms for exactly this reason).
+    // Mirror that same retry pattern here instead of measuring only once.
     optimizeCardSizeInViewPort({id_unique_suffix})
-    
+    setTimeout(function() {{ optimizeCardSizeInViewPort({id_unique_suffix}) }}, 0)
+    setTimeout(function() {{ optimizeCardSizeInViewPort({id_unique_suffix}) }}, 200)
+    setTimeout(function() {{ optimizeCardSizeInViewPort({id_unique_suffix}) }}, 700)
+
     </script>
     '''
         )
@@ -4920,6 +5671,7 @@ def jm_render_views(view, entity
                     , render_style = 'tabular'
                     , include_view_buttons = True
                     , view_initialization_actions = ('optimize card',)
+                    , card_header_extras_renderer = None
                     ):
     """
     Renders multiple views in a table or rows with carousel, within a view (self), organized in specified rows and columns.
@@ -4942,22 +5694,28 @@ def jm_render_views(view, entity
 
     :param render_using_function: A function to be used to render the content in jm_render_views_content, if any.
     :param render_using_flipping_cards: True if we need the views to be rendered as flipping cards.
+    :param card_header_extras_renderer: Optional callable that receives one card's
+        jm_render_view_content dict and returns HTML to show in that card's header, after its
+        buttons (e.g. an extension's status badges). None adds nothing.
 
     :return: None.
     """
 
-    def render_card_buttons(view):
+    def render_card_buttons(view, jm_render_view_content = None):
         """
         Renders the buttons associated to the card: flip the card, auto size the card, and increase and decrease its width.
+        Also appends the HTML returned by card_header_extras_renderer, if any, after the last button.
 
         :param view: The view calling this function.
+        :param jm_render_view_content: The current card's jm_render_view_content dict, passed to
+            card_header_extras_renderer. None renders no extras.
 
         :return: None
         """
 
         view_content = ''
         button_style = (
-            'style="height:24px; width:24px; min-width:24px; padding:0; '
+            'style="height:20px; width:20px; min-width:20px; padding:0; '
             'border:1px solid var(--jm-btn-border, #d9d9d9); border-radius:6px; background:var(--jm-btn-bg, #fff); '
             'cursor:pointer; font-size:12px; line-height:1; '
             'display:inline-flex; align-items:center; justify-content:center; '
@@ -4997,7 +5755,15 @@ def jm_render_views(view, entity
                f'onclick="flipCard({str(id_unique_suffix)})">'
                f'{_(" 📚 ")}'
                f'</button>')
-        view_content += ('</div></div>')
+        view_content += ('</div>')  # close .jm-card-buttons
+
+        # Extras are rendered as a sibling of .jm-card-buttons (not nested inside it), so
+        # they can control their own visibility independently of the buttons' hover reveal
+        # (a parent with opacity:0 would hide any child regardless of the child's own opacity).
+        if jm_render_view_content is not None and card_header_extras_renderer is not None:
+            view_content += card_header_extras_renderer(jm_render_view_content)
+
+        view_content += ('</div>')  # close .jm-card-header
 
         return view_content
 
@@ -5009,7 +5775,7 @@ def jm_render_views(view, entity
     #try:
     if True:
         jm_config = jm_obtain_config()
-        show_back_of_cards = jm_config.getboolean('views', 'show_back_of_cards')
+        show_back_of_cards = jm_config.getboolean('views', 'show_back_of_cards') if jm_config.has_section('views') else True
 
         rows_columns = [jm_render_view_content['row_column'] for jm_render_view_content in jm_render_views_content]
 
@@ -5038,8 +5804,12 @@ def jm_render_views(view, entity
             for column in range(1, max_columns + 1):
                 rendered_elements_in_column_count = 0
                 for element_idx, jm_render_view_content in enumerate(jm_render_views_content):
+                    # row and column must use different multipliers -- sharing one (both *100)
+                    # let (row=1, col=0) and (row=0, col=1) collide onto the same suffix, so
+                    # every getElementById('cardContainer'+suffix)/'myCard'+suffix) lookup and
+                    # resize/flip button for one of those cards silently targeted the other.
                     pk = getattr(entity, 'id', None) or getattr(entity, 'eid', None) or 1
-                    id_unique_suffix = pk * 10000000 + row * 100 + column * 100 + element_idx
+                    id_unique_suffix = pk * 10_000_000 + row * 1_000 + column * 100 + element_idx
                     if jm_render_view_content['row_column'][0] == row:
                         if jm_render_view_content['row_column'][1] == column:
                             # Render the element or relation in this column of the row.
@@ -5067,7 +5837,7 @@ def jm_render_views(view, entity
                                     if render_using_flipping_cards:
                                         view_content += (f'<div class="container" id="cardContainer{id_unique_suffix}">')
                                         if include_view_buttons:
-                                            view_content += render_card_buttons(view)
+                                            view_content += render_card_buttons(view, jm_render_view_content)
                                         view_content += (f'<div class="card" id="myCard{id_unique_suffix}">')
 
                                         view_content += ('<div class="front">')
@@ -5078,7 +5848,14 @@ def jm_render_views(view, entity
                                             if len(jm_render_view_content['element_to_render_as_view']) > 0:
                                                 content_to_render['answer_view_content'] = jm_render_view_content['element_to_render_as_view']
                                             else:
-                                                content_to_render['answer_view_content'] = jm_render_view_content["element_support_content"]
+                                                # The back-of-card support content (database/confidence/SVO-match
+                                                # table, query, knowledge graph) must never be shown as a stand-in
+                                                # for a missing front-of-card answer -- confirmed live this was
+                                                # happening for "Summarize" sentences whose result had no non-id
+                                                # categorical column to pivot on, leaving the front blank. Show a
+                                                # plain "no answer" message instead, same fallback text already
+                                                # used throughout this rendering pipeline for empty results.
+                                                content_to_render['answer_view_content'] = _('No results found for this ask. (9).')
                                             view_content += (
                                                 render_using_function(content_to_render
                                                                       , view_content = ''
@@ -5163,9 +5940,6 @@ def jm_render_views(view, entity
                     view_content += (f'<button class="carousel-nav-button carousel-next-button" aria-label="{_("Next Slide")}"> &gt; </button>')
                 view_content += ('</div>') # carousel-container
                 view_content += ('</td>') # carousel's td
-
-            if rendered_elements_in_row_count > 0:
-                view_content += ('<br>') # As a separator at the end of each row.
 
             view_content += ('</tr>')
             view_content += ('</table>')
@@ -5372,8 +6146,8 @@ def add_nodes_to_cause_effect_elements(
         # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
         # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
         # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-        colorscale='Blues',
-        reversescale=False,
+        colorscale=JM_CHART_HEATMAP_COLORSCALE,
+        reversescale=JM_CHART_HEATMAP_REVERSESCALE,
         color=[],
         size=45,
 
@@ -5538,8 +6312,8 @@ def plot_cause_effect_chart(
             # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
             # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
             # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-            colorscale='Blues',
-            reversescale=False,
+            colorscale=JM_CHART_HEATMAP_COLORSCALE,
+            reversescale=JM_CHART_HEATMAP_REVERSESCALE,
             symbol=node_marker_symbols,
             color=node_marker_colors,
             size=node_marker_sizes,
@@ -5582,7 +6356,7 @@ def plot_cause_effect_chart(
                         ),
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family="sans-serif", size=12, color="#8a97a5"),
+                        font=dict(family="sans-serif", size=12, color="#4a5568"),
                         showlegend=False,
                         hovermode='closest',
                         margin=dict(b=20, l=5, r=5, t=40),
@@ -5595,6 +6369,9 @@ def plot_cause_effect_chart(
                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
 
                     )
+    # Same palette, fonts and theme as every other chart; this network keeps its own
+    # hidden axes, no legend and tight margins.
+    jm_apply_standard_chart_layout(fig, showlegend=False, hovermode='closest', margin=dict(b=20, l=5, r=5, t=40))
 
     # Write the line_labels for the edge lines.
     for edge_label_sequence, edge_label in enumerate(edge_labels):
@@ -5625,7 +6402,7 @@ def plot_cause_effect_chart(
             font=dict(
                 # family="sans serif",
                 size=10,
-                color="gray"
+                color="#4a5568"
             ),
             showarrow=True,
             arrowhead=1,
@@ -5651,6 +6428,8 @@ def __getattr__(name):
         from veloiq_framework.db import get_engine
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 def jm_apply_standard_chart_layout(
     fig,
     title: str = "",
@@ -5662,31 +6441,46 @@ def jm_apply_standard_chart_layout(
     **extra_layout,
 ) -> None:
     """
-    Apply the standard JM chart layout to a Plotly figure in-place.
+    Apply the standard chart layout -- the same look as every frontend chart -- to a
+    Plotly figure in place.
 
-    Sets compact margins (l=8, r=8, t=36, b=8), transparent backgrounds,
-    font size 12, subtle grid lines on both axes, and a transparent legend.
-    Chart-specific parameters (title, axis labels, barmode, hovermode,
-    annotations) are forwarded to update_layout; additional keyword
-    arguments in extra_layout are merged last so callers can override any
-    standard value.  Tick font size 12 is applied to all axes.
+    Sets the shared palette (JM_CHART_COLORWAY), transparent backgrounds, the shared
+    font, subtle grid lines, value hover formatting (JM_CHART_NUMBER_FORMAT, 2 decimals),
+    the shared legend position (JM_CHART_LEGEND) and full trace names in hover labels.
+    Chart-specific parameters (title, axis labels, barmode, hovermode, annotations) are
+    forwarded to update_layout; additional keyword arguments in extra_layout are merged
+    last so callers can override any standard value.
+
+    Every backend chart -- jm_plot_chart_from_DataFrame's and extensions' custom figures
+    alike -- goes through this function.
     """
+    def style_axis(axis):
+        """Shared grid, colours and fonts; hover numbers in the axis's own unit format
+        (e.g. ".0%" for a probability axis) or, by default, JM_CHART_NUMBER_FORMAT."""
+        axis.update(gridcolor=JM_CHART_GRID_COLOR, zeroline=False, automargin=True, color=JM_CHART_TEXT_COLOR,
+                    tickfont=dict(size=JM_CHART_FONT_SIZE, color=JM_CHART_TEXT_COLOR))
+        if axis.hoverformat is None:
+            axis.hoverformat = axis.tickformat or JM_CHART_NUMBER_FORMAT
+
     layout: dict = dict(
-        margin=dict(l=8, r=8, t=36, b=8),
+        colorway=list(JM_CHART_COLORWAY),
+        margin=dict(l=8, r=8, t=44 if title else 16, b=8),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(size=12, color="#666666"),
-        xaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False, automargin=True),
-        yaxis=dict(gridcolor="rgba(128,128,128,0.22)", zeroline=False, automargin=True),
+        font=dict(family=JM_CHART_FONT_FAMILY, size=JM_CHART_FONT_SIZE, color=JM_CHART_TEXT_COLOR),
+        showlegend=True,
         legend=dict(
+            **JM_CHART_LEGEND,
             bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(128,128,128,0.35)",
+            bordercolor=JM_CHART_LEGEND_BORDER_COLOR,
             borderwidth=1,
-            font=dict(size=12, color="#666666"),
+            font=dict(size=JM_CHART_FONT_SIZE, color=JM_CHART_TEXT_COLOR),
         ),
+        hoverlabel=dict(namelength=-1),
+        uniformtext=dict(mode='hide', minsize=10),
     )
     if title:
-        layout["title"] = title
+        layout["title"] = dict(text=title, x=0, xanchor='left', font=dict(size=14, color=JM_CHART_TEXT_COLOR))
     if xaxis_title:
         layout["xaxis_title"] = xaxis_title
     if yaxis_title:
@@ -5699,6 +6493,5 @@ def jm_apply_standard_chart_layout(
         layout["annotations"] = annotations
     layout.update(extra_layout)
     fig.update_layout(**layout)
-    fig.update_xaxes(tickfont=dict(size=12, color="#666666"), automargin=True)
-    fig.update_yaxes(tickfont=dict(size=12, color="#666666"), automargin=True)
-
+    fig.for_each_xaxis(style_axis)
+    fig.for_each_yaxis(style_axis)

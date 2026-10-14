@@ -1,0 +1,384 @@
+{
+  "_comment": "Shared by the TypeScript (packages/ui, vitest) and Python (backend, pytest) chart implementations: both must produce these values and use this catalogue and theme.",
+  "chart_types": [
+    {
+      "id": "bar",
+      "label": "Bars",
+      "icon": "BarChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "bar_stacked",
+      "label": "Stacked Bars",
+      "icon": "BuildOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "bar_h",
+      "label": "Horizontal Bars",
+      "icon": "BarChartOutlined",
+      "iconRotate": 90,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "bar_h_stacked",
+      "label": "Horizontal Stacked",
+      "icon": "BuildOutlined",
+      "iconRotate": 90,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "line",
+      "label": "Lines",
+      "icon": "LineChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "area",
+      "label": "Area",
+      "icon": "AreaChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "area_h",
+      "label": "Horizontal Area",
+      "icon": "AreaChartOutlined",
+      "iconRotate": 90,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "pie",
+      "label": "Pie",
+      "icon": "PieChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "donut",
+      "label": "Donut",
+      "icon": "PieChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "scatter",
+      "label": "Scatter",
+      "icon": "DotChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "bubble",
+      "label": "Bubble",
+      "icon": "DotChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "histogram",
+      "label": "Histogram",
+      "icon": "BarChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "box",
+      "label": "Box Plot",
+      "icon": "BoxPlotOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "waterfall",
+      "label": "Waterfall",
+      "icon": "FallOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "heatmap",
+      "label": "Heatmap",
+      "icon": "HeatMapOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "scatterpolar",
+      "label": "Radar",
+      "icon": "RadarChartOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "combo",
+      "label": "Combo (Bar + Line)",
+      "icon": "FundOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "crosstab",
+      "label": "Crosstab",
+      "icon": "TableOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "scatter3d",
+      "label": "3D Scatter",
+      "icon": "DeploymentUnitOutlined",
+      "iconRotate": 0,
+      "frontend": true,
+      "backend": true
+    },
+    {
+      "id": "seasonal",
+      "label": "Seasonal",
+      "icon": "StockOutlined",
+      "iconRotate": 0,
+      "frontend": false,
+      "backend": true
+    },
+    {
+      "id": "trend",
+      "label": "Trend",
+      "icon": "RiseOutlined",
+      "iconRotate": 0,
+      "frontend": false,
+      "backend": true
+    }
+  ],
+  "legacy_chart_type_ids": {
+    "stacked": "bar_stacked",
+    "bar-horizontal": "bar_h",
+    "stacked-horizontal": "bar_h_stacked",
+    "area-horizontal": "area_h",
+    "boxplot": "box",
+    "radar": "scatterpolar",
+    "3d": "scatter3d"
+  },
+  "default_chart_type": "area",
+  "default_summary_function": "sum",
+  "category_label_separator": " • ",
+  "theme": {
+    "colorway": [
+      "#1677ff",
+      "#52c41a",
+      "#faad14",
+      "#eb2f96",
+      "#722ed1",
+      "#13c2c2",
+      "#f5222d",
+      "#fa8c16",
+      "#2f54eb",
+      "#a0d911"
+    ],
+    "heatmap_colorscale": "Blues",
+    "number_format": ",.2f",
+    "font_family": "sans-serif",
+    "font_size": 12,
+    "empty_message": "No data available for this chart.",
+    "legend": {
+      "orientation": "h",
+      "x": 0,
+      "xanchor": "left",
+      "y": 0,
+      "yanchor": "bottom",
+      "yref": "container",
+      "maxheight": 0.3
+    },
+    "heatmap_reversescale": true
+  },
+  "summary_cases": [
+    {
+      "name": "several values",
+      "values": [
+        2,
+        4,
+        4,
+        4,
+        5,
+        5,
+        7,
+        9
+      ],
+      "expected": {
+        "sum": 40,
+        "avg": 5.0,
+        "count": 8,
+        "max": 9,
+        "min": 2,
+        "stddev": 2.138089935299395
+      }
+    },
+    {
+      "name": "a single value",
+      "values": [
+        5
+      ],
+      "expected": {
+        "sum": 5,
+        "avg": 5.0,
+        "count": 1,
+        "max": 5,
+        "min": 5,
+        "stddev": 0
+      }
+    },
+    {
+      "name": "no values",
+      "values": [],
+      "expected": {
+        "sum": 0,
+        "avg": 0,
+        "count": 0,
+        "max": 0,
+        "min": 0,
+        "stddev": 0
+      }
+    },
+    {
+      "name": "negative and decimal values",
+      "values": [
+        -1.5,
+        2.25,
+        0
+      ],
+      "expected": {
+        "sum": 0.75,
+        "avg": 0.25,
+        "count": 3,
+        "max": 2.25,
+        "min": -1.5,
+        "stddev": 1.8874586088176875
+      }
+    }
+  ],
+  "grouping_rows": [
+    {
+      "status": "Open",
+      "priority": "High",
+      "hours": 2
+    },
+    {
+      "status": "Open",
+      "priority": "Low",
+      "hours": 4
+    },
+    {
+      "status": "Closed",
+      "priority": "High",
+      "hours": 10
+    },
+    {
+      "status": "Closed",
+      "priority": "High",
+      "hours": null
+    },
+    {
+      "status": "Open",
+      "priority": "High",
+      "hours": null
+    },
+    {
+      "status": "Open",
+      "priority": "High",
+      "hours": 7
+    }
+  ],
+  "grouping_cases": [
+    {
+      "categories": [
+        "status"
+      ],
+      "series": "hours",
+      "expected": {
+        "sum": {
+          "Open": 13,
+          "Closed": 10
+        },
+        "avg": {
+          "Open": 4.333333333333333,
+          "Closed": 10.0
+        },
+        "count": {
+          "Open": 3,
+          "Closed": 1
+        },
+        "max": {
+          "Open": 7,
+          "Closed": 10
+        },
+        "min": {
+          "Open": 2,
+          "Closed": 10
+        },
+        "stddev": {
+          "Open": 2.516611478423583,
+          "Closed": 0
+        }
+      }
+    },
+    {
+      "categories": [
+        "status",
+        "priority"
+      ],
+      "series": "hours",
+      "expected": {
+        "sum": {
+          "Open • High": 9,
+          "Open • Low": 4,
+          "Closed • High": 10
+        },
+        "avg": {
+          "Open • High": 4.5,
+          "Open • Low": 4.0,
+          "Closed • High": 10.0
+        },
+        "count": {
+          "Open • High": 2,
+          "Open • Low": 1,
+          "Closed • High": 1
+        },
+        "max": {
+          "Open • High": 7,
+          "Open • Low": 4,
+          "Closed • High": 10
+        },
+        "min": {
+          "Open • High": 2,
+          "Open • Low": 4,
+          "Closed • High": 10
+        },
+        "stddev": {
+          "Open • High": 3.5355339059327378,
+          "Open • Low": 0,
+          "Closed • High": 0
+        }
+      }
+    }
+  ]
+}

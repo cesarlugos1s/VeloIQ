@@ -70,6 +70,8 @@ export type PanesLayoutMode = "stack" | "breadcrumb" | "overlay" | "scroll";
 export const DEFAULT_PANES_LAYOUT_MODE: PanesLayoutMode = "stack";
 export const DEFAULT_PANES_MAX_VISIBLE = 2;
 export const DEFAULT_PANES_FIXED_WIDTH = 480;
+/** Rows above which a list's Analyze section aggregates on the server (System Configuration). */
+export const DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD = 10000;
 
 export type ViewSettings = {
     showViewType: string;
@@ -80,6 +82,8 @@ export type ViewSettings = {
     galleryImageHeight: number;
     relationsMaxRowsToLoad: number;
     maxDistinctColumnFilterValuesToRanges: number;
+    /** Above this many rows, a list's Analyze section aggregates on the server instead of in the browser. */
+    analyzeServerAggregationThreshold: number;
     modulesColorSchema: string;
     modelsColorSchema: string;
     generalActionsButtonPosition: GeneralActionsButtonPosition;
@@ -140,6 +144,8 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                     galleryImageHeight: Number(data?.galleryImageHeight || 140),
                     relationsMaxRowsToLoad: Number(data?.relationsMaxRowsToLoad || 1000),
                     maxDistinctColumnFilterValuesToRanges: Number(data?.maxDistinctColumnFilterValuesToRanges ?? 20),
+                    analyzeServerAggregationThreshold: normalizePositiveInt(
+                        data?.analyzeServerAggregationThreshold, DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD),
                     modulesColorSchema,
                     modelsColorSchema,
                     generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),

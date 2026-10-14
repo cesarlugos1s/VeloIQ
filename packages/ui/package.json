@@ -21,7 +21,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "@ant-design/icons": ">=5.0.0",
@@ -52,7 +53,8 @@
     "react-resizable-panels": "^4.11.1",
     "react-router-dom": "^6.22.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "qrcode.react": "^4.2.0",
