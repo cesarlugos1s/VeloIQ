@@ -288,6 +288,17 @@
       ],
       "tabs": []
     },
+    "SummaryProbedfff0c7b:show": {
+      "model": "SummaryProbedfff0c7b",
+      "view_type": "show",
+      "sections": [
+        {
+          "name": "S",
+          "entries": []
+        }
+      ],
+      "tabs": []
+    },
     "Task:show": {
       "model": "Task",
       "view_type": "show",

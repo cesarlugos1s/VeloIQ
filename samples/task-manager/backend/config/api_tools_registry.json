@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-10-02T22:30:58.310535+00:00",
+  "updated_at": "2026-10-13T22:52:20.671972+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -31,6 +31,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -67,6 +69,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -90,6 +94,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -121,6 +127,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -151,6 +159,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -189,6 +199,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -227,6 +239,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -258,6 +272,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -302,8 +318,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "action_id"
       ],
+      "output_field_aliases": {
+        "action_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -340,6 +360,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -363,6 +385,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -392,8 +416,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "action_id"
       ],
+      "output_field_aliases": {
+        "action_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -423,7 +451,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "action_id"
+      ],
+      "output_field_aliases": {
+        "action_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -460,8 +494,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "action_id"
       ],
+      "output_field_aliases": {
+        "action_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -498,8 +536,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "action_id"
       ],
+      "output_field_aliases": {
+        "action_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -528,9 +570,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.action",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -569,6 +611,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -605,6 +649,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -628,6 +674,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -659,6 +707,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -689,6 +739,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -727,6 +779,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -765,6 +819,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -796,6 +852,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -834,6 +892,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -870,6 +930,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -893,6 +955,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -924,6 +988,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -954,6 +1020,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -992,6 +1060,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1030,6 +1100,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1061,6 +1133,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1099,6 +1173,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1135,6 +1211,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1158,6 +1236,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1189,6 +1269,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1219,6 +1301,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1257,6 +1341,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1295,6 +1381,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1326,6 +1414,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1370,8 +1460,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiontype_id"
       ],
+      "output_field_aliases": {
+        "exceptiontype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1408,6 +1502,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1431,6 +1527,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1460,8 +1558,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiontype_id"
       ],
+      "output_field_aliases": {
+        "exceptiontype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1491,7 +1593,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "exceptiontype_id"
+      ],
+      "output_field_aliases": {
+        "exceptiontype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1528,8 +1636,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiontype_id"
       ],
+      "output_field_aliases": {
+        "exceptiontype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1566,8 +1678,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiontype_id"
       ],
+      "output_field_aliases": {
+        "exceptiontype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1596,9 +1712,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1643,8 +1759,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptionalert_id",
+        "exception_def_eid"
       ],
+      "output_field_aliases": {
+        "exceptionalert_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1681,6 +1802,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1704,6 +1827,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1733,8 +1858,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptionalert_id",
+        "exception_def_eid"
       ],
+      "output_field_aliases": {
+        "exceptionalert_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1764,7 +1894,14 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "exceptionalert_id",
+        "exception_def_eid"
+      ],
+      "output_field_aliases": {
+        "exceptionalert_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1801,8 +1938,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptionalert_id",
+        "exception_def_eid"
       ],
+      "output_field_aliases": {
+        "exceptionalert_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1839,8 +1981,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptionalert_id",
+        "exception_def_eid"
       ],
+      "output_field_aliases": {
+        "exceptionalert_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1869,9 +2016,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1916,8 +2063,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiondef_id",
+        "exception_type_eid"
       ],
+      "output_field_aliases": {
+        "exceptiondef_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1954,6 +2106,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -1977,6 +2131,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2006,8 +2162,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiondef_id",
+        "exception_type_eid"
       ],
+      "output_field_aliases": {
+        "exceptiondef_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2037,7 +2198,14 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "exceptiondef_id",
+        "exception_type_eid"
+      ],
+      "output_field_aliases": {
+        "exceptiondef_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2074,8 +2242,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiondef_id",
+        "exception_type_eid"
       ],
+      "output_field_aliases": {
+        "exceptiondef_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2112,8 +2285,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "exceptiondef_id",
+        "exception_type_eid"
       ],
+      "output_field_aliases": {
+        "exceptiondef_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2142,9 +2320,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2168,6 +2346,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2197,6 +2377,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.exception_alert",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2220,6 +2402,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.license",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2243,6 +2427,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.license",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2268,6 +2454,8 @@
       "output_fields": [
         "key_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.license",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2298,6 +2486,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.license",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2329,6 +2519,8 @@
       "output_fields": [
         "key_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.license",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -2337,6 +2529,88 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__iqvigilant__license__onboarding": {
+      "http_method": "GET",
+      "path": "/iqvigilant/license/onboarding",
+      "summary": "GET /iqvigilant/license/onboarding",
+      "description": "Usage-count consent, trial and sign-up link for the first-start prompt.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.license",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
+      "status": "active"
+    },
+    "POST__iqvigilant__license__onboarding__consent": {
+      "http_method": "POST",
+      "path": "/iqvigilant/license/onboarding/consent",
+      "summary": "POST /iqvigilant/license/onboarding/consent",
+      "description": "Turn anonymous usage counts on or off (admin only). Starts or ends the trial.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "request_body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.license",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
+      "status": "active"
+    },
+    "GET__iqvigilant__license__onboarding__report-preview": {
+      "http_method": "GET",
+      "path": "/iqvigilant/license/onboarding/report-preview",
+      "summary": "GET /iqvigilant/license/onboarding/report-preview",
+      "description": "Exactly what a usage report sent now would contain.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.license",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
       "status": "active"
     },
     "GET__jm_results_in_relation": {
@@ -2367,6 +2641,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2403,6 +2679,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2426,6 +2704,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2457,6 +2737,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2487,6 +2769,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2525,6 +2809,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2563,6 +2849,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2594,6 +2882,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2632,6 +2922,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2668,6 +2960,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2691,6 +2985,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2722,6 +3018,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2752,6 +3050,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2790,6 +3090,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2828,6 +3130,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2859,6 +3163,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2895,8 +3201,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_result_id"
       ],
+      "output_field_aliases": {
+        "mechanism_result_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2933,6 +3243,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2956,6 +3268,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -2985,8 +3299,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_result_id"
       ],
+      "output_field_aliases": {
+        "mechanism_result_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3016,7 +3334,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "mechanism_result_id"
+      ],
+      "output_field_aliases": {
+        "mechanism_result_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3053,8 +3377,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_result_id"
       ],
+      "output_field_aliases": {
+        "mechanism_result_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3091,8 +3419,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_result_id"
       ],
+      "output_field_aliases": {
+        "mechanism_result_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3121,9 +3453,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3160,8 +3492,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_id"
       ],
+      "output_field_aliases": {
+        "mechanism_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3198,6 +3534,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3221,6 +3559,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3250,8 +3590,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_id"
       ],
+      "output_field_aliases": {
+        "mechanism_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3281,7 +3625,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "mechanism_id"
+      ],
+      "output_field_aliases": {
+        "mechanism_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3318,8 +3668,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_id"
       ],
+      "output_field_aliases": {
+        "mechanism_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3356,8 +3710,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "mechanism_id"
       ],
+      "output_field_aliases": {
+        "mechanism_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3386,9 +3744,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3418,6 +3776,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -3447,6 +3807,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -3476,6 +3838,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.mechanism",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -3520,8 +3884,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlchat_id"
       ],
+      "output_field_aliases": {
+        "nlchat_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3558,6 +3926,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3581,6 +3951,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3610,8 +3982,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlchat_id"
       ],
+      "output_field_aliases": {
+        "nlchat_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3641,7 +4017,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "nlchat_id"
+      ],
+      "output_field_aliases": {
+        "nlchat_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3678,8 +4060,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlchat_id"
       ],
+      "output_field_aliases": {
+        "nlchat_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3716,8 +4102,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlchat_id"
       ],
+      "output_field_aliases": {
+        "nlchat_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3746,9 +4136,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3793,8 +4183,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlsentence_id"
       ],
+      "output_field_aliases": {
+        "nlsentence_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3831,6 +4225,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3854,6 +4250,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3883,8 +4281,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlsentence_id"
       ],
+      "output_field_aliases": {
+        "nlsentence_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3914,7 +4316,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "nlsentence_id"
+      ],
+      "output_field_aliases": {
+        "nlsentence_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3951,8 +4359,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlsentence_id"
       ],
+      "output_field_aliases": {
+        "nlsentence_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -3989,8 +4401,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlsentence_id"
       ],
+      "output_field_aliases": {
+        "nlsentence_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4019,9 +4435,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4066,8 +4482,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "db_connector_id"
       ],
+      "output_field_aliases": {
+        "db_connector_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4104,6 +4524,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4127,6 +4549,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4156,8 +4580,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "db_connector_id"
       ],
+      "output_field_aliases": {
+        "db_connector_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4187,7 +4615,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "db_connector_id"
+      ],
+      "output_field_aliases": {
+        "db_connector_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4224,8 +4658,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "db_connector_id"
       ],
+      "output_field_aliases": {
+        "db_connector_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4262,8 +4700,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "db_connector_id"
       ],
+      "output_field_aliases": {
+        "db_connector_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4292,9 +4734,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4339,8 +4781,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlanswer_id"
       ],
+      "output_field_aliases": {
+        "nlanswer_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4377,6 +4823,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4400,6 +4848,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4429,8 +4879,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlanswer_id"
       ],
+      "output_field_aliases": {
+        "nlanswer_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4460,7 +4914,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "nlanswer_id"
+      ],
+      "output_field_aliases": {
+        "nlanswer_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4497,8 +4957,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlanswer_id"
       ],
+      "output_field_aliases": {
+        "nlanswer_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4535,8 +4999,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "nlanswer_id"
       ],
+      "output_field_aliases": {
+        "nlanswer_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4565,9 +5033,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -4606,6 +5074,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4642,6 +5112,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4665,6 +5137,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4696,6 +5170,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4726,6 +5202,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4764,6 +5242,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4802,6 +5282,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4833,6 +5315,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4871,6 +5355,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4907,6 +5393,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4930,6 +5418,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4961,6 +5451,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -4991,6 +5483,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5029,6 +5523,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5067,6 +5563,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5098,6 +5596,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5136,6 +5636,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5172,6 +5674,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5195,6 +5699,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5226,6 +5732,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5256,6 +5764,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5294,6 +5804,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5332,6 +5844,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5363,6 +5877,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5411,6 +5927,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5459,6 +5977,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5513,6 +6033,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5521,6 +6043,37 @@
         "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__nlsentence__nl_sentence_eid__answering-progress": {
+      "http_method": "GET",
+      "path": "/nlsentence/{nl_sentence_eid}/answering-progress",
+      "summary": "GET /nlsentence/{nl_sentence_eid}/answering-progress",
+      "description": "The step a sentence being answered is on (``{\"status\": str | None}``).\n\nPolled by the NL Chat page's \"Processing this sentence…\" cell; see\n``nlp_chat_logic/answering_progress.py``. Reads memory only, no database.",
+      "parameters": {
+        "path": [
+          {
+            "name": "nl_sentence_eid",
+            "type": "int",
+            "required": true
+          }
+        ],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-08T18:02:35.592585+00:00",
       "status": "active"
     },
     "GET__nlsentence__nl_sentence_eid__chart": {
@@ -5549,6 +6102,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5585,6 +6140,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5621,6 +6178,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5662,6 +6221,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5691,6 +6252,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5720,6 +6283,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5749,6 +6314,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5791,6 +6358,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5833,6 +6402,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5863,6 +6434,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5892,6 +6465,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5928,6 +6503,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -5964,6 +6541,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6000,6 +6579,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6036,6 +6617,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6077,6 +6660,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6113,6 +6698,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6155,6 +6742,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6203,6 +6792,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6232,6 +6823,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6261,6 +6854,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6290,6 +6885,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6326,6 +6923,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6362,6 +6961,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6398,6 +6999,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6421,6 +7024,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6451,6 +7056,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6481,6 +7088,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6525,6 +7134,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6548,6 +7159,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6579,6 +7192,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6609,6 +7224,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6647,6 +7264,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6678,6 +7297,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6708,6 +7329,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6752,6 +7375,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6783,6 +7408,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6814,6 +7441,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6844,6 +7473,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6882,6 +7513,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6924,6 +7557,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -6966,6 +7601,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7008,6 +7645,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7050,6 +7689,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7092,6 +7733,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7134,6 +7777,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7176,6 +7821,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7218,6 +7865,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7260,6 +7909,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7302,6 +7953,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7344,6 +7997,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7386,6 +8041,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7428,6 +8085,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7470,6 +8129,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7512,6 +8173,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7554,6 +8217,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7596,6 +8261,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7638,6 +8305,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7680,6 +8349,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7722,6 +8393,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7753,6 +8426,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7791,6 +8466,8 @@
       "output_fields": [
         "plan_key"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7821,6 +8498,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7831,17 +8510,190 @@
       "first_discovered": "2026-08-12T16:07:01.473688+00:00",
       "status": "active"
     },
+    "GET__tool-dependency-graph__status": {
+      "http_method": "GET",
+      "path": "/tool-dependency-graph/status",
+      "summary": "GET /tool-dependency-graph/status",
+      "description": "Whether the graph is ready, when it was built, its size, unresolved and\ntied parameters, pins, blocks and stale overrides. Starts a build when none\nis ready.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-05T20:55:42.540153+00:00",
+      "status": "active"
+    },
+    "POST__tool-dependency-graph__rebuild": {
+      "http_method": "POST",
+      "path": "/tool-dependency-graph/rebuild",
+      "summary": "POST /tool-dependency-graph/rebuild",
+      "description": "Discard the saved graph and build it again in the background.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-05T20:55:42.540153+00:00",
+      "status": "active"
+    },
+    "GET__tool-dependency-graph__tools": {
+      "http_method": "GET",
+      "path": "/tool-dependency-graph/tools",
+      "summary": "GET /tool-dependency-graph/tools",
+      "description": "API tools in the graph whose name or description contains ``q``, for the\nAI Management Console's tool picker: ``[{tool_key, description}]``.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "q",
+            "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "required": false,
+            "default": 50
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-05T20:55:42.540153+00:00",
+      "status": "active"
+    },
+    "GET__api-tools__tool_key:path__dependencies": {
+      "http_method": "GET",
+      "path": "/api-tools/{tool_key:path}/dependencies",
+      "summary": "GET /api-tools/{tool_key:path}/dependencies",
+      "description": "A tool's dependencies: per required parameter, the provider tools that can\nsupply it (provider tool, output field, score, source, pinned), its pins and\nblocks, and whether it has no provider or tied providers; plus the tools it\nprovides for.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "parameter"
+      ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-05T20:55:42.540153+00:00",
+      "status": "active"
+    },
+    "PUT__api-tools__tool_key:path__dependencies__parameter": {
+      "http_method": "PUT",
+      "path": "/api-tools/{tool_key:path}/dependencies/{parameter}",
+      "summary": "PUT /api-tools/{tool_key:path}/dependencies/{parameter}",
+      "description": "Set the pin and the blocked links of one parameter of a tool.\n\nBody: ``{\"pin\": {\"provider_tool\", \"output_field\"} | null,\n\"block\": [{\"provider_tool\", \"output_field\"}, ...]}``. A pin or block must\nname a tool requiring the parameter and a provider returning the field.",
+      "parameters": {
+        "path": [
+          {
+            "name": "parameter",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [
+          {
+            "name": "body",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [
+        "parameter"
+      ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-05T20:55:42.540153+00:00",
+      "status": "active"
+    },
     "GET__api-tools": {
       "http_method": "GET",
       "path": "/api-tools",
       "summary": "GET /api-tools",
-      "description": "List all discovered API tools (paginated, searchable).\n\nReturns the full registry including disabled and orphaned tools,\nso admins can manage them from the UI.",
+      "description": "List all discovered API tools (paginated, searchable, filterable).\n\nReturns the full registry including disabled and orphaned tools,\nso admins can manage them from the UI. Repeated ``http_method``,\n``enabled`` and ``links`` values are OR-ed within a filter, AND-ed\nacross filters. ``total``, ``enabled_count`` and ``disabled_count``\ncover every matching tool, not just the returned page.",
       "parameters": {
         "path": [],
         "query": [
           {
             "name": "search",
             "type": "Optional[str]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "http_method",
+            "type": "Optional[List[str]]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "enabled",
+            "type": "Optional[List[bool]]",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "links",
+            "type": "Optional[List[Literal['no_outputs', 'unresolved', 'ambiguous']]]",
             "required": true,
             "default": null
           },
@@ -7862,7 +8714,11 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "parameter"
+      ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7885,7 +8741,11 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "parameter"
+      ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7916,6 +8776,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7946,6 +8808,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -7976,6 +8840,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8006,6 +8872,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8029,6 +8897,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8052,6 +8922,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8082,6 +8954,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8105,6 +8979,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8147,6 +9023,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8170,6 +9048,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8200,6 +9080,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8223,6 +9105,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8253,6 +9137,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8283,6 +9169,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8325,6 +9213,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8348,6 +9238,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8378,6 +9270,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8407,6 +9301,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8437,6 +9333,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8467,6 +9365,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8475,6 +9375,37 @@
         "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__ai-config__i18n__locale": {
+      "http_method": "GET",
+      "path": "/ai-config/i18n/{locale}",
+      "summary": "GET /ai-config/i18n/{locale}",
+      "description": "IQVigilant's bundled translations for ``locale``, for its frontend pages.\n\nThe browser's ``window._`` only reads the host app's catalogs (``/i18n/{locale}.json``),\nso IQVigilant's own ``locales/<locale>/LC_MESSAGES/messages.po`` never reached its\npages. A page loads this catalog and uses it for what the host doesn't translate --\nthe same precedence the backend ``_()`` applies (``platform/i18n_utils.py``).\n\n:param locale: The UI locale, e.g. ``es``.\n:return: ``{msgid: msgstr}``; empty when IQVigilant ships no catalog for the locale.",
+      "parameters": {
+        "path": [
+          {
+            "name": "locale",
+            "type": "str",
+            "required": true
+          }
+        ],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
+      ],
+      "first_discovered": "2026-10-08T18:02:35.592585+00:00",
       "status": "active"
     },
     "GET__ai-config__ini": {
@@ -8490,6 +9421,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8520,6 +9453,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8556,6 +9491,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8570,7 +9507,7 @@
       "http_method": "GET",
       "path": "/ai-config/synonyms/{locale}",
       "summary": "GET /ai-config/synonyms/{locale}",
-      "description": "Return the synonyms CSV rows for a given locale (term, synonym, keyword_type, interpretation).",
+      "description": "Return the synonyms rows answering uses for a given locale (term, synonym, keyword_type, interpretation,\nand source: 'package' for the packaged generic rows, 'host' for the host's own).",
       "parameters": {
         "path": [
           {
@@ -8585,6 +9522,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8599,7 +9538,7 @@
       "http_method": "PUT",
       "path": "/ai-config/synonyms/{locale}",
       "summary": "PUT /ai-config/synonyms/{locale}",
-      "description": "Overwrite the host's synonyms CSV for a given locale.\n\nBody: { \"rows\": [{ \"term\": \"...\", \"synonym\": \"...\", \"keyword_type\": \"...\", \"interpretation\": \"...\" }, ...] }\n\nEvery ``colloquial_term`` row is validated first, the way answering will use it (see\ncolloquial_terms.validate_colloquial_term_definitions): one invalid row blocks the whole save\nwith a 422 whose ``detail.colloquial_terms`` lists each row's errors. On success the response's\n``colloquial_terms`` carries each definition's SQL, matching row count and sample rows.",
+      "description": "Overwrite the host's synonyms CSV for a given locale.\n\nBody: { \"rows\": [{ \"term\": \"...\", \"synonym\": \"...\", \"keyword_type\": \"...\", \"interpretation\": \"...\" }, ...] }:\nthe whole vocabulary as the editor shows it. Only the rows that are not packaged generic rows as shipped are\nwritten (host_rows_to_save): the packaged ones keep coming from the package, merged under the host's rows. A\npackaged row removed from ``rows`` comes back (a host can override it, not remove it); the response's\n``package_rows_kept`` counts them.\n\nEvery ``colloquial_term`` row is validated first, the way answering will use it (see\ncolloquial_terms.validate_colloquial_term_definitions): one invalid row blocks the whole save\nwith a 422 whose ``detail.colloquial_terms`` lists each row's errors. On success the response's\n``colloquial_terms`` carries each definition's SQL, matching row count and sample rows.",
       "parameters": {
         "path": [
           {
@@ -8621,6 +9560,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8644,6 +9585,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8674,6 +9617,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8697,6 +9642,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8727,6 +9674,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8757,6 +9706,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8780,6 +9731,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8803,6 +9756,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8845,6 +9800,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8868,6 +9825,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8891,6 +9850,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8914,6 +9875,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8937,6 +9900,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -8966,6 +9931,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.nlp",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -9004,6 +9971,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9040,6 +10009,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9063,6 +10034,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9094,6 +10067,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9124,6 +10099,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9162,6 +10139,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9200,6 +10179,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9231,6 +10212,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9269,6 +10252,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9305,6 +10290,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9328,6 +10315,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9359,6 +10348,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9389,6 +10380,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9427,6 +10420,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9465,6 +10460,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9496,6 +10493,8 @@
       "output_fields": [
         "record_id"
       ],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9540,8 +10539,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocesstype_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocesstype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9578,6 +10581,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9601,6 +10606,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9630,8 +10637,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocesstype_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocesstype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9661,7 +10672,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "vigilantprocesstype_id"
+      ],
+      "output_field_aliases": {
+        "vigilantprocesstype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9698,8 +10715,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocesstype_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocesstype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9736,8 +10757,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocesstype_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocesstype_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9766,9 +10791,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9813,8 +10838,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocessexec_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocessexec_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9851,6 +10880,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9874,6 +10905,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9903,8 +10936,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocessexec_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocessexec_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9934,7 +10971,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "vigilantprocessexec_id"
+      ],
+      "output_field_aliases": {
+        "vigilantprocessexec_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -9971,8 +11014,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocessexec_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocessexec_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10009,8 +11056,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "vigilantprocessexec_id"
       ],
+      "output_field_aliases": {
+        "vigilantprocessexec_id": "eid"
+      },
+      "output_fields_source": "crud_model",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10039,9 +11090,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "iqvigilant.modules.vigilant_process",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10078,8 +11129,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "project_id",
+        "owner_id"
       ],
+      "output_field_aliases": {
+        "project_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10116,6 +11172,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10139,6 +11197,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10168,8 +11228,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "project_id",
+        "owner_id"
       ],
+      "output_field_aliases": {
+        "project_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10199,7 +11264,14 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "project_id",
+        "owner_id"
+      ],
+      "output_field_aliases": {
+        "project_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10236,8 +11308,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "project_id",
+        "owner_id"
       ],
+      "output_field_aliases": {
+        "project_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10274,8 +11351,13 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "project_id",
+        "owner_id"
       ],
+      "output_field_aliases": {
+        "project_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10304,9 +11386,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.projects",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10343,10 +11425,15 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
+        "task_id",
         "project_id",
-        "record_id",
-        "task_id"
+        "assignee_id",
+        "parent_task_id"
       ],
+      "output_field_aliases": {
+        "task_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10383,6 +11470,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10406,6 +11495,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10435,8 +11526,15 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "task_id",
+        "project_id",
+        "assignee_id",
+        "parent_task_id"
       ],
+      "output_field_aliases": {
+        "task_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10466,7 +11564,16 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "task_id",
+        "project_id",
+        "assignee_id",
+        "parent_task_id"
+      ],
+      "output_field_aliases": {
+        "task_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10503,8 +11610,15 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "task_id",
+        "project_id",
+        "assignee_id",
+        "parent_task_id"
       ],
+      "output_field_aliases": {
+        "task_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10541,8 +11655,15 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "task_id",
+        "project_id",
+        "assignee_id",
+        "parent_task_id"
       ],
+      "output_field_aliases": {
+        "task_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10571,9 +11692,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10602,9 +11723,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "task_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10633,9 +11754,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "project_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.tasks",
       "source_file": "custom_api.py",
       "source": "auto-discovered",
@@ -10672,8 +11793,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "team_member_id"
       ],
+      "output_field_aliases": {
+        "team_member_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10710,6 +11835,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10733,6 +11860,8 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10762,8 +11891,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "team_member_id"
       ],
+      "output_field_aliases": {
+        "team_member_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10793,7 +11926,13 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [],
+      "output_fields": [
+        "team_member_id"
+      ],
+      "output_field_aliases": {
+        "team_member_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10830,8 +11969,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "team_member_id"
       ],
+      "output_field_aliases": {
+        "team_member_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10868,8 +12011,12 @@
       "request_body": null,
       "response_type": "object",
       "output_fields": [
-        "record_id"
+        "team_member_id"
       ],
+      "output_field_aliases": {
+        "team_member_id": "id"
+      },
+      "output_fields_source": "crud_model",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10898,9 +12045,9 @@
       },
       "request_body": null,
       "response_type": "object",
-      "output_fields": [
-        "record_id"
-      ],
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
       "module": "app.modules.team",
       "source_file": "api.py",
       "source": "auto-discovered",
@@ -10909,82 +12056,6 @@
         "Admin"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__iqvigilant__license__onboarding": {
-      "http_method": "GET",
-      "path": "/iqvigilant/license/onboarding",
-      "summary": "GET /iqvigilant/license/onboarding",
-      "description": "Usage-count consent, trial and sign-up link for the first-start prompt.",
-      "parameters": {
-        "path": [],
-        "query": [],
-        "body": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.license",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
-      "status": "active"
-    },
-    "POST__iqvigilant__license__onboarding__consent": {
-      "http_method": "POST",
-      "path": "/iqvigilant/license/onboarding/consent",
-      "summary": "POST /iqvigilant/license/onboarding/consent",
-      "description": "Turn anonymous usage counts on or off (admin only). Starts or ends the trial.",
-      "parameters": {
-        "path": [],
-        "query": [
-          {
-            "name": "request_body",
-            "type": "dict",
-            "required": true,
-            "default": null
-          }
-        ],
-        "body": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.license",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "Admin"
-      ],
-      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
-      "status": "active"
-    },
-    "GET__iqvigilant__license__onboarding__report-preview": {
-      "http_method": "GET",
-      "path": "/iqvigilant/license/onboarding/report-preview",
-      "summary": "GET /iqvigilant/license/onboarding/report-preview",
-      "description": "Exactly what a usage report sent now would contain.",
-      "parameters": {
-        "path": [],
-        "query": [],
-        "body": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "module": "iqvigilant.modules.license",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
-      ],
-      "first_discovered": "2026-10-02T22:14:33.332331+00:00",
       "status": "active"
     },
     "GET__system-config": {

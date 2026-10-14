@@ -14,8 +14,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 20203,
-            "output_tokens": 875
+            "input_tokens": 9618,
+            "output_tokens": 1304
         }
     }
 ,
@@ -132,8 +132,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 20203,
-            "output_tokens": 1249
+            "input_tokens": 10363,
+            "output_tokens": 1960
         }
     }
 ,
@@ -153,8 +153,8 @@
             }
         },
         "agentic_planner_tokens": {
-            "input_tokens": 20210,
-            "output_tokens": 1222
+            "input_tokens": 10128,
+            "output_tokens": 1306
         }
     }
 ,
@@ -176,6 +176,27 @@
         "agentic_planner_tokens": {
             "input_tokens": 20200,
             "output_tokens": 1062
+        }
+    }
+,
+
+    "GET__project": {
+        "description": "Find or list Project records. A container for related tasks with an owner and a lifecycle status. Fields: name, description, status, owner_id.",
+        "start_node": "step_1_GET__project",
+        "nodes": {
+            "step_1_GET__project": {
+                "id": "step_1_GET__project",
+                "tool": "GET__project",
+                "purpose": "Execute GET__project",
+                "transitions": {
+                    "default": "__end__",
+                    "paths": []
+                }
+            }
+        },
+        "agentic_planner_tokens": {
+            "input_tokens": 12285,
+            "output_tokens": 1559
         }
     }
 ,
