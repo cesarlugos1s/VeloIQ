@@ -1761,3 +1761,142 @@ msgstr "Umbral de agregación en el servidor de Analizar (filas)"
 
 msgid "Above this many rows, the Analyze section of a list aggregates on the server and receives only the grouped values, instead of downloading every row into the browser. The chart shows the same numbers either way. Default: 10000."
 msgstr "Por encima de este número de filas, la sección Analizar de una lista agrega en el servidor y recibe solo los valores agrupados, en lugar de descargar todas las filas en el navegador. El gráfico muestra los mismos números en ambos casos. Valor predeterminado: 10000."
+
+# Role access policies
+msgid "A module entry applies to every model in it; a model entry overrides its module's entry for that model."
+msgstr "Una entrada de módulo se aplica a todos sus modelos; una entrada de modelo reemplaza la de su módulo para ese modelo."
+
+msgid "Access Control"
+msgstr "Control de acceso"
+
+msgid "Access Policies"
+msgstr "Políticas de acceso"
+
+msgid "Access policy removed."
+msgstr "Política de acceso eliminada."
+
+msgid "Access policy saved."
+msgstr "Política de acceso guardada."
+
+msgid "Add a module or model"
+msgstr "Agregar un módulo o modelo"
+
+msgid "Allowlist"
+msgstr "Lista de permitidos"
+
+msgid "Blocking Read also requires blocking Create, Update and Delete."
+msgstr "Bloquear Leer también requiere bloquear Crear, Actualizar y Eliminar."
+
+msgid "Blocklist"
+msgstr "Lista de bloqueados"
+
+msgid "Change"
+msgstr "Cambio"
+
+msgid "Change history"
+msgstr "Historial de cambios"
+
+msgid "Changed by"
+msgstr "Cambiado por"
+
+msgid "Could not load access policies."
+msgstr "No se pudieron cargar las políticas de acceso."
+
+msgid "Could not save the access policy."
+msgstr "No se pudo guardar la política de acceso."
+
+msgid "Create, Update or Delete can't be granted without Read."
+msgstr "No se puede conceder Crear, Actualizar o Eliminar sin Leer."
+
+msgid "Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses."
+msgstr "Decida qué módulos y modelos puede crear, leer, actualizar y eliminar cada rol. Una política solo puede restringir: nunca concede más que los permisos del propio rol o las licencias de la instalación."
+
+msgid "Discard changes"
+msgstr "Descartar cambios"
+
+msgid "Each module or model can appear only once in a policy."
+msgstr "Cada módulo o modelo solo puede aparecer una vez en una política."
+
+msgid "Full access"
+msgstr "Acceso total"
+
+msgid "Invalid access policy."
+msgstr "Política de acceso no válida."
+
+msgid "Module or model"
+msgstr "Módulo o modelo"
+
+msgid "No Access"
+msgstr "Sin acceso"
+
+msgid "No changes recorded yet."
+msgstr "Aún no hay cambios registrados."
+
+msgid "No modules or models listed yet."
+msgstr "Aún no hay módulos ni modelos en la lista."
+
+msgid "No policy"
+msgstr "Sin política"
+
+msgid "Read"
+msgstr "Leer"
+
+msgid "Read access added to the role's methods"
+msgstr "Acceso de lectura agregado a los métodos del rol"
+
+msgid "Remove policy"
+msgstr "Eliminar política"
+
+msgid "Remove this role's access policy?"
+msgstr "¿Eliminar la política de acceso de este rol?"
+
+msgid "Role deleted"
+msgstr "Rol eliminado"
+
+msgid "Role not found"
+msgstr "Rol no encontrado"
+
+msgid "Roles"
+msgstr "Roles"
+
+msgid "Select a role"
+msgstr "Seleccione un rol"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "The Admin role always has full access and can't be given an access policy."
+msgstr "El rol Admin siempre tiene acceso total y no se le puede asignar una política de acceso."
+
+msgid "The Admin role can't be given an access policy."
+msgstr "No se puede asignar una política de acceso al rol Admin."
+
+msgid "The policy mode must be allowlist or blocklist."
+msgstr "El modo de la política debe ser lista de permitidos o lista de bloqueados."
+
+msgid "This allowlist is empty: users with this role will lose access to every module."
+msgstr "Esta lista de permitidos está vacía: los usuarios con este rol perderán el acceso a todos los módulos."
+
+msgid "Unknown module or model in the access policy."
+msgstr "Módulo o modelo desconocido en la política de acceso."
+
+msgid "Update"
+msgstr "Actualizar"
+
+msgid "Users with this role can use every module and model their role and licenses allow."
+msgstr "Los usuarios con este rol pueden usar todos los módulos y modelos que su rol y las licencias permiten."
+
+msgid "Users with this role can use everything except the checked actions on the listed modules and models."
+msgstr "Los usuarios con este rol pueden usar todo excepto las acciones marcadas en los módulos y modelos de la lista."
+
+msgid "Users with this role can use only the listed modules and models, and only the checked actions."
+msgstr "Los usuarios con este rol solo pueden usar los módulos y modelos de la lista, y solo las acciones marcadas."
+
+msgid "When"
+msgstr "Cuándo"
+
+msgid "You do not have permission to open this page. Please contact your administrator."
+msgstr "No tiene permiso para abrir esta página. Comuníquese con su administrador."
+
+msgid "You do not have permission to perform this action."
+msgstr "No tiene permiso para realizar esta acción."

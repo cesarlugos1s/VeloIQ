@@ -237,15 +237,24 @@ def create_veloiq_app(
     # ── Module loading ────────────────────────────────────────────────────────
     load_modules(app, admin, cfg, extensions=extensions)
 
+    # ── Access policies on SQLAdmin views (all modules are registered now) ───
+    from veloiq_framework.access.sqladmin import patch_admin_views
+    patch_admin_views(admin, cfg)
+
     # ── Table creation & seeding (after all modules + extensions loaded) ──────
     if cfg.create_tables_on_startup and not _alembic_owns_schema(engine):
         # Ensure auth tables are registered before create_all
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
         from veloiq_framework.help import models as _help_models  # noqa: F401
+        from veloiq_framework.access import models as _access_models  # noqa: F401
         _create_tables_safe(engine)
         _sync_schema(engine)
     from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
     seed_roles(engine, cfg.roles)
+    # GET is now checked against role methods; give it once to roles that
+    # never had it so they keep reading as before.
+    from veloiq_framework.access.store import migrate_role_read_methods
+    migrate_role_read_methods(engine)
     seed_admin_user_if_needed(engine, cfg.admin_username, cfg.admin_password)
     from veloiq_framework.help.seed import seed_help_documents
     seed_help_documents(engine)
@@ -473,18 +482,23 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         method = request.method.upper()
         path = request.url.path
 
-        # GET/OPTIONS/HEAD: no role check at middleware level.
-        # GET auth is enforced by auth_middleware (outermost); model-level
-        # permission exceptions are enforced at route level via _check_model_permissions.
-        if method in ("GET", "OPTIONS", "HEAD"):
+        # OPTIONS (CORS preflight) is never subject to role checks. GET and
+        # HEAD are checked like writes: read access is part of the role's
+        # methods (evaluation step 3). Module, policy and model rules run at
+        # route level through veloiq_framework.access.can_access.
+        if method == "OPTIONS":
             return await call_next(request)
         if any(path.startswith(p) for p in _rbac_exempt):
             return await call_next(request)
 
-        # Write methods on non-exempt paths: auth_middleware (outermost) must
-        # have set user already. Explicit 401 here is defense-in-depth.
+        # Non-exempt paths: auth_middleware (outermost) must have set user
+        # already. Explicit 401 here is defense-in-depth.
         user = getattr(request.state, "user", None)
         if user is None:
+            if method in ("GET", "HEAD"):
+                # In production SPA mode only data APIs require a JWT; every
+                # other GET (React routes, static assets) is served without one.
+                return await call_next(request)
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Authentication required"},
@@ -493,9 +507,10 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         from veloiq_framework.auth.utils import check_rbac
         roles = user.get("roles", [])
         if not check_rbac(roles, method):
+            from veloiq_framework.utils.i18n_utils import _
             return JSONResponse(
                 status_code=403,
-                content={"detail": "Insufficient permissions"},
+                content={"detail": _("You do not have permission to perform this action.")},
             )
         return await call_next(request)
 
@@ -980,6 +995,18 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
                 return v
         return str(row.get("id", ""))
 
+    def _can_read_table(request: Request, table_name: str) -> bool:
+        """True if the request's user may Read the model stored in *table_name*.
+
+        Indirect read paths (pinned records, recent activity, bulk reads for
+        relation tables) go through the shared access decision too (AC-D3).
+        """
+        user = getattr(request.state, "user", None)
+        if user is None:
+            return True
+        from veloiq_framework.access.decision import can_access
+        return can_access(user, None, table_name, "read").allowed
+
     @core_api.get("/dashboard/pinned-records/check")
     async def check_pinned_record(request: Request, resource: str, record_id: str):
         from sqlmodel import Session as _SMSession, select as _sm_select
@@ -1066,7 +1093,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
         with _SMSession(engine) as session:
             for resource, resource_pins in by_resource.items():
                 table = SQLModel.metadata.tables.get(resource)
-                if table is None:
+                if table is None or not _can_read_table(request, resource):
                     continue
                 record_ids = [p.record_id for p in resource_pins]
                 try:
@@ -1105,7 +1132,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
             return val
 
     @core_api.get("/dashboard/recent-activity")
-    async def get_dashboard_recent_activity(days: int | None = None):
+    async def get_dashboard_recent_activity(request: Request, days: int | None = None):
         """Return records modified within the last N days, grouped by model."""
         from datetime import datetime, timedelta, timezone
         from sqlalchemy.orm import Session as _SASession
@@ -1142,6 +1169,8 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
         with _SASession(engine) as session:
             for table_name, table in SQLModel.metadata.tables.items():
                 if any(table_name.startswith(p) for p in _SKIP_PREFIXES):
+                    continue
+                if not _can_read_table(request, table_name):
                     continue
                 if "created_at" not in table.c or "updated_at" not in table.c:
                     continue
@@ -1326,6 +1355,9 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
 
         # Strip leading slash if present (frontend may include it)
         resource = resource.lstrip("/")
+        if not _can_read_table(request, resource):
+            from veloiq_framework.access.decision import denied_exception
+            raise denied_exception()
 
         def _to_json(v: object) -> object:
             if isinstance(v, (_dt, _date)):

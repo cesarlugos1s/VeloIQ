@@ -3,6 +3,7 @@ import { AutoComplete, Input, Typography, Space, Spin, theme } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useMenu } from "@refinedev/core";
+import { filterMenuItemsByAccess, useAccess } from "../hooks/useAccess";
 import { useRecordSearch } from "../hooks/useRecordSearch";
 import type { ModelSearchResult } from "../hooks/useRecordSearch";
 
@@ -50,7 +51,12 @@ export const GlobalSearch: React.FC = () => {
     const { results: backendResults, searching, search, clear } = useRecordSearch();
     const { token } = theme.useToken();
 
-    const searchableResources = useMemo(() => flattenMenuItems(menuItems), [menuItems]);
+    const access = useAccess();
+    // Only resources the user can Read are offered (AC-D3 global search).
+    const searchableResources = useMemo(
+        () => flattenMenuItems(filterMenuItemsByAccess(menuItems, access)),
+        [menuItems, access],
+    );
 
     const resourceResults = useMemo((): SearchGroup[] => {
         const q = searchText.toLowerCase().trim();

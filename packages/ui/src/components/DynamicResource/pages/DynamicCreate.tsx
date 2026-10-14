@@ -47,6 +47,7 @@ import {
 } from "../relations/helpers";
 import { renderRelationBlock } from "../../DynamicResource";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
+import { ResourceAccessGate } from "../../AccessGate";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
@@ -58,7 +59,7 @@ export interface JourneyCallbacks {
     onCancel: () => void;
 }
 
-export const DynamicCreate: React.FC<{
+const DynamicCreatePage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
     journeyCallbacks?: JourneyCallbacks;
@@ -753,3 +754,13 @@ export const DynamicCreate: React.FC<{
         </div>
     );
 };
+
+/**
+ * DynamicCreate behind the shared access check: a user who may not Create this
+ * model gets the "no access" page instead of a broken page (AC-E3).
+ */
+export const DynamicCreate: React.FC<React.ComponentProps<typeof DynamicCreatePage>> = (props) => (
+    <ResourceAccessGate resource={props.model.resource || props.model.name} action="create">
+        <DynamicCreatePage {...props} />
+    </ResourceAccessGate>
+);

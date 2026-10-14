@@ -1762,3 +1762,142 @@ msgstr ""
 
 msgid "Above this many rows, the Analyze section of a list aggregates on the server and receives only the grouped values, instead of downloading every row into the browser. The chart shows the same numbers either way. Default: 10000."
 msgstr ""
+
+# Role access policies
+msgid "A module entry applies to every model in it; a model entry overrides its module's entry for that model."
+msgstr ""
+
+msgid "Access Control"
+msgstr ""
+
+msgid "Access Policies"
+msgstr ""
+
+msgid "Access policy removed."
+msgstr ""
+
+msgid "Access policy saved."
+msgstr ""
+
+msgid "Add a module or model"
+msgstr ""
+
+msgid "Allowlist"
+msgstr ""
+
+msgid "Blocking Read also requires blocking Create, Update and Delete."
+msgstr ""
+
+msgid "Blocklist"
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
+msgid "Change history"
+msgstr ""
+
+msgid "Changed by"
+msgstr ""
+
+msgid "Could not load access policies."
+msgstr ""
+
+msgid "Could not save the access policy."
+msgstr ""
+
+msgid "Create, Update or Delete can't be granted without Read."
+msgstr ""
+
+msgid "Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses."
+msgstr ""
+
+msgid "Discard changes"
+msgstr ""
+
+msgid "Each module or model can appear only once in a policy."
+msgstr ""
+
+msgid "Full access"
+msgstr ""
+
+msgid "Invalid access policy."
+msgstr ""
+
+msgid "Module or model"
+msgstr ""
+
+msgid "No Access"
+msgstr ""
+
+msgid "No changes recorded yet."
+msgstr ""
+
+msgid "No modules or models listed yet."
+msgstr ""
+
+msgid "No policy"
+msgstr ""
+
+msgid "Read"
+msgstr ""
+
+msgid "Read access added to the role's methods"
+msgstr ""
+
+msgid "Remove policy"
+msgstr ""
+
+msgid "Remove this role's access policy?"
+msgstr ""
+
+msgid "Role deleted"
+msgstr ""
+
+msgid "Role not found"
+msgstr ""
+
+msgid "Roles"
+msgstr ""
+
+msgid "Select a role"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "The Admin role always has full access and can't be given an access policy."
+msgstr ""
+
+msgid "The Admin role can't be given an access policy."
+msgstr ""
+
+msgid "The policy mode must be allowlist or blocklist."
+msgstr ""
+
+msgid "This allowlist is empty: users with this role will lose access to every module."
+msgstr ""
+
+msgid "Unknown module or model in the access policy."
+msgstr ""
+
+msgid "Update"
+msgstr ""
+
+msgid "Users with this role can use every module and model their role and licenses allow."
+msgstr ""
+
+msgid "Users with this role can use everything except the checked actions on the listed modules and models."
+msgstr ""
+
+msgid "Users with this role can use only the listed modules and models, and only the checked actions."
+msgstr ""
+
+msgid "When"
+msgstr ""
+
+msgid "You do not have permission to open this page. Please contact your administrator."
+msgstr ""
+
+msgid "You do not have permission to perform this action."
+msgstr ""

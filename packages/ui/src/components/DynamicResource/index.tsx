@@ -194,6 +194,7 @@ import { isInlineRelationViewType, usesTableRelationBehavior } from "./relations
 
 
 
+import { ResourceAccessGate } from "../AccessGate";
 import {
     ToneSharedStyles,
     toneScopeStyle,
@@ -245,7 +246,7 @@ import { useRoleFilteredModel } from "./utils/roleAccess";
 
 
 
-export const DynamicList: React.FC<{
+const DynamicListPage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
     filter?: any;
@@ -281,8 +282,11 @@ export const DynamicList: React.FC<{
     const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
     const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
     const { data: canEditData } = useCan({ resource: resourceIdentifier, action: "edit" });
+    const { data: canCreateData } = useCan({ resource: resourceIdentifier, action: "create" });
     const canBulkDelete = canDeleteData?.can !== false;
     const canBulkEdit = canEditData?.can !== false;
+    // Create, clone and "create and relate" need Create (AC-E2).
+    const canCreate = canCreateData?.can !== false;
     const { settings: viewSettings } = useViewSettings();
     const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
     const [actionsBarEl, setActionsBarEl] = useState<HTMLDivElement | null>(null);
@@ -1538,7 +1542,7 @@ export const DynamicList: React.FC<{
 
     const crosstabBodyNode = (
         <div>
-            {editableCrosstab && (
+            {editableCrosstab && canBulkEdit && (
                 <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
                     <Tooltip title={_("Save")}>
                         <Button size="small" type="primary" icon={<SaveOutlined />} onClick={saveCrosstabEdits} loading={crosstabSaving} disabled={!crosstabHasPendingEdits} aria-label={_("Save")} />
@@ -1559,7 +1563,7 @@ export const DynamicList: React.FC<{
                 summaryFn={summaryFn}
                 formatCategoryValue={formatCategoryValue}
                 numericBarColor={crosstabBarColor}
-                editable={editableCrosstab ? {
+                editable={editableCrosstab && canBulkEdit ? {
                     pkField: model.pkField || "eid",
                     getStagedValue: getCrosstabStagedValue,
                     onCommitCell: stageCrosstabCellEdits,
@@ -2159,9 +2163,8 @@ export const DynamicList: React.FC<{
         opts.push({ label: _("Navigate to related"), value: "__navigate_to_related__" });
         // Append related list below the current one (stacked)
         opts.push({ label: _("Append related list"), value: "__append_related_list__" });
-        // Bulk clone/duplicate requires create permission (reuse edit as proxy since useCan
-        // doesn't distinguish create easily here; always shown if user can edit)
-        if (canBulkEdit) {
+        // Bulk clone/duplicate creates records, so it requires Create.
+        if (canCreate) {
             opts.push({ label: _("Clone / Duplicate selected"), value: "__clone__" });
         }
         // Custom model actions (always shown; they are special operations, not CRUD)
@@ -2176,7 +2179,7 @@ export const DynamicList: React.FC<{
             opts.push({ label: _("Delete selected"), value: "__delete__" });
         }
         return opts;
-    }, [bulkActions, canBulkDelete, canBulkEdit]);
+    }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
 
     const bulkChangeField = bulkChangeFieldKey
         ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null
@@ -2620,7 +2623,7 @@ export const DynamicList: React.FC<{
         </Tooltip>
     );
 
-    const createRelationButton = isRelationView && showCreate ? (
+    const createRelationButton = isRelationView && showCreate && canCreate ? (
         <Tooltip title={_("Add relation")}>
             <Button
                 size="small"
@@ -2640,6 +2643,7 @@ export const DynamicList: React.FC<{
 
     const associateExistingFkButton = isRelationView
         && showCreate
+        && canBulkEdit
         && filter?.field
         && filter?.value !== undefined
         && filter?.value !== null
@@ -2668,6 +2672,7 @@ export const DynamicList: React.FC<{
         : null;
     const createNewAndRelateButton = isRelationView
         && showCreate
+        && canCreate
         && relationConfig?.otherResource
         && relationConfig?.otherKey
         && (relationConfig?.targetKey || filter?.field)
@@ -4129,6 +4134,16 @@ export const DynamicList: React.FC<{
         </div>
     );
 };
+
+/**
+ * DynamicList behind the shared access check: a user who may not Read this
+ * model gets the "no access" page instead of a broken page (AC-E3).
+ */
+export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>> = (props) => (
+    <ResourceAccessGate resource={props.model.resource || props.model.name} action="read" embedded={Boolean(props.isEmbedded)}>
+        <DynamicListPage {...props} />
+    </ResourceAccessGate>
+);
 
 
 

@@ -23,10 +23,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlmodel import Session, func, select
 
 from veloiq_framework.crud import (
-    _check_model_permissions,
     _coerce_filter_value,
     _filter_write_payload,
     _get_user_roles,
+    _require_model_access,
     _sanitize,
 )
 from veloiq_framework.db import get_session
@@ -57,7 +57,7 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
     def _rbac_check(request: Request) -> None:
         """Raise 403 if any participating model denies the GET action."""
         for model_cls in q.participating_models:
-            _check_model_permissions(request, model_cls, "GET")
+            _require_model_access(request, model_cls, "read")
 
     def _build_query_filters(query_params) -> list:
         """Return WHERE clauses matching query params to named-query fields."""
@@ -297,7 +297,7 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
         session: Session = Depends(get_session),
     ):
         for model_cls in q.participating_models:
-            _check_model_permissions(request, model_cls, "PUT")
+            _require_model_access(request, model_cls, "update")
         return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
 
     @router.patch("/{record_id}", summary=f"Partial update {q.name}")
@@ -308,7 +308,13 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
         session: Session = Depends(get_session),
     ):
         for model_cls in q.participating_models:
-            _check_model_permissions(request, model_cls, "PATCH")
+            _require_model_access(request, model_cls, "update")
         return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
+
+    # Access is checked per participating model in the handlers above.
+    from veloiq_framework.access.dependencies import mark_model_checked
+    for _route in router.routes:
+        if getattr(_route, "endpoint", None) is not None:
+            mark_model_checked(_route.endpoint)
 
     return router

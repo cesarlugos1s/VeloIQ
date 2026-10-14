@@ -4,6 +4,7 @@ import "./offlineMode";
 export { LayoutWrapper } from "./components/LayoutWrapper";
 export type { LayoutWrapperProps } from "./components/LayoutWrapper";
 export { LicenseGate } from "./components/LicenseGate";
+export { NoAccessResult, ResourceAccessGate } from "./components/AccessGate";
 export { CommandCenterPortal } from "./components/CommandCenterPortal";
 export type { CommandCenterPortalProps } from "./components/CommandCenterPortal";
 
@@ -86,6 +87,26 @@ export { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 export { useRecordSearch } from "./hooks/useRecordSearch";
 export type { RecordResult, ModelSearchResult, UseRecordSearchReturn } from "./hooks/useRecordSearch";
 export { useLicensePool } from "./hooks/useLicensePool";
+// Shared access decision (licensing + role methods + access policies + @model_access).
+export { useAccess, filterMenuItemsByAccess, useAccessQueryInvalidation } from "./hooks/useAccess";
+export type { UseAccessReturn } from "./hooks/useAccess";
+export {
+    evaluateAccess,
+    isModuleLicensedIn,
+    isModuleWriteAllowedIn,
+    moduleKeyForName,
+    ACCESS_ACTIONS,
+    REFINE_TO_ACTION,
+} from "./access/evaluateAccess";
+export type {
+    AccessAction,
+    AccessContext,
+    AccessDecision,
+    AccessPolicy,
+    AccessPolicyEntry,
+} from "./access/evaluateAccess";
+export { refreshAccess, getAccessSnapshot, clearAccess } from "./access/accessStore";
+export type { EffectivePermissions } from "./access/accessStore";
 export { useBottomOverlayInset, BOTTOM_OVERLAY_ATTR } from "./hooks/useBottomOverlayInset";
 export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 

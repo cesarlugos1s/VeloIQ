@@ -21,7 +21,7 @@ import { NavConfigContext } from "../contexts/NavConfigContext";
 import { HelpContext } from "../contexts/HelpContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
-import { useLicensePool } from "../hooks/useLicensePool";
+import { filterMenuItemsByAccess, useAccess, useAccessQueryInvalidation } from "../hooks/useAccess";
 
 const API_URL = "/api";
 
@@ -76,26 +76,11 @@ const DefaultLogo: React.FC<{
 const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
-    const { isModuleLicensed } = useLicensePool();
-
-    const extractModuleName = (item: any): string | null => {
-        let key = String(item?.key ?? item?.name ?? "");
-        if (key.startsWith("/")) key = key.slice(1);
-        if (key.startsWith("module:")) return key.slice("module:".length);
-        return null;
-    };
+    const access = useAccess();
 
     const licensedMenuItems = React.useMemo(
-        () => {
-            if (!Array.isArray(menuItems)) return [];
-            return menuItems.filter((item) => {
-                const moduleName = extractModuleName(item);
-                if (moduleName === null) return true;
-                if (moduleName === "access_control") return true;
-                return isModuleLicensed(moduleName);
-            });
-        },
-        [menuItems, isModuleLicensed],
+        () => filterMenuItemsByAccess(menuItems, access),
+        [menuItems, access],
     );
 
     const transformItems = (items: any[]): any[] => {
@@ -152,9 +137,11 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         setHelpPageKeyState(key);
         setHelpRecordId(recordId);
     }, []);
-    const { isModuleLicensed } = useLicensePool();
+    const { canModule } = useAccess();
+    // Keep Refine's cached button permissions in step with policy changes.
+    useAccessQueryInvalidation();
 
-    // ── License-aware filtering of extension user-menu items ──────────────
+    // ── Access-aware filtering of extension user-menu items ───────────────
     // Recursively walks the menu tree and removes items whose ``module``
     // field references an unlicensed module.  Items without a ``module``
     // field (including all built-in items and pre-existing extension items)
@@ -167,7 +154,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                     if (typeof item !== "object" || item === null) return true;
                     // Only filter leaf items with an explicit ``module`` field.
                     if (!item.module) return true;
-                    return isModuleLicensed(item.module);
+                    return canModule(item.module, "read");
                 })
                 .map((item) => {
                     if (Array.isArray(item.children)) {
@@ -176,7 +163,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                     return item;
                 });
         },
-        [isModuleLicensed],
+        [canModule],
     );
 
     // ── Role-aware filtering of extension user-menu items ──────────────────

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useForm } from "@refinedev/antd";
+import { useCan } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { useKeyboardShortcuts } from "../../../hooks/useKeyboardShortcuts";
 
@@ -22,15 +23,19 @@ export const useShowEditableForm = (
     });
     const record = queryResult?.data?.data;
     const recordId = record?.eid ?? record?.id ?? id;
+    // Inline editing on the show page needs Update (AC-E2): without it the
+    // form is read-only and its save button disabled.
+    const { data: canEditData } = useCan({ resource, action: "edit" });
+    const canEdit = canEditData?.can !== false;
 
     useKeyboardShortcuts(useMemo(() => [
-        { key: "s", ctrl: true, handler: () => (formProps as any)?.form?.submit() },
+        { key: "s", ctrl: true, handler: () => { if (canEdit) (formProps as any)?.form?.submit(); } },
         { key: "Escape", handler: () => navigate(-1) },
-    ], [(formProps as any)?.form, navigate]));
+    ], [(formProps as any)?.form, navigate, canEdit]));
 
     return {
-        formProps,
-        saveButtonProps,
+        formProps: canEdit ? formProps : { ...formProps, disabled: true },
+        saveButtonProps: canEdit ? saveButtonProps : { ...saveButtonProps, disabled: true },
         queryResult: queryResult!,
         record,
         recordId,

@@ -7,12 +7,12 @@
  */
 
 import type { AuthProvider } from "@refinedev/core";
+import { clearAccess, refreshAccess } from "../access/accessStore";
 
 const AUTH_BASE = "/auth";
 const TOKEN_KEY = "jm_access_token";
 const USER_KEY = "jm_user";
 const ROLE_PERMISSIONS_KEY = "jm_role_permissions";
-const RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -45,9 +45,10 @@ export const authProvider: AuthProvider = {
             // Fetch and cache role + resource permissions for the access control provider.
             const token = data.access_token;
             try {
-                const [rolesRes, resourceRes] = await Promise.all([
+                const [rolesRes] = await Promise.all([
                     fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
-                    fetch(`${AUTH_BASE}/resource-permissions`, { headers: { Authorization: `Bearer ${token}` } }),
+                    // Effective permissions for the shared access check (stored by accessStore).
+                    refreshAccess(),
                 ]);
                 if (rolesRes.ok) {
                     const roles: Array<{ name: string; allowed_actions: string[] }> = await rolesRes.json();
@@ -56,10 +57,6 @@ export const authProvider: AuthProvider = {
                         permsMap[role.name] = role.allowed_actions;
                     }
                     localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
-                }
-                if (resourceRes.ok) {
-                    const resourcePerms = await resourceRes.json();
-                    localStorage.setItem(RESOURCE_PERMISSIONS_KEY, JSON.stringify(resourcePerms));
                 }
             } catch {
                 // Non-critical — accessControlProvider falls back to built-in defaults.
@@ -84,7 +81,7 @@ export const authProvider: AuthProvider = {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem(ROLE_PERMISSIONS_KEY);
-        localStorage.removeItem(RESOURCE_PERMISSIONS_KEY);
+        clearAccess();
         return { success: true, redirectTo: "/login" };
     },
 

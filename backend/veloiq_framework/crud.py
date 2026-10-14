@@ -56,32 +56,19 @@ def _get_user_roles(request: Request) -> list[str]:
     return user.get("roles", [])
 
 
-def _check_model_permissions(request: Request, model_class: type, method: str) -> None:
-    """Raise 403 if no role in the user's token permits *method* on *model_class*.
+def _require_model_access(request: Request, model_class: type, action: str) -> None:
+    """Raise 403 unless the shared access decision allows *action* on *model_class*.
 
-    Only applies when the model has ``__veloiq_permissions__`` set via
-    ``@model_access()``.  Roles not listed there are unrestricted on this model.
-    Access is granted when ANY role either (a) is unlisted (no exception) or
-    (b) is listed and its allowed actions include the requested action.
+    Runs licensing, the role's global methods, the role's access policy and
+    ``@model_access`` through :func:`veloiq_framework.access.can_access`.
+    Requests without a user are left to the auth middleware.
     """
-    model_perms: dict | None = getattr(model_class, "__veloiq_permissions__", None)
-    if not model_perms:
+    user = getattr(request.state, "user", None)
+    if user is None:
         return
-
-    user_roles = _get_user_roles(request)
-    if not user_roles:
-        return  # Auth middleware handles unauthenticated requests.
-
-    from veloiq_framework.auth.permissions import HTTP_TO_REFINE
-    actions = HTTP_TO_REFINE.get(method.upper(), set())
-
-    for role in user_roles:
-        if role not in model_perms:
-            return  # This role has no model-level exception — Layer 1 applies.
-        if actions & set(model_perms[role]):
-            return  # This role's exception explicitly permits the action.
-
-    raise HTTPException(status_code=403, detail="Access denied for this resource")
+    from veloiq_framework.access.decision import can_access_model, denied_exception
+    if not can_access_model(user, model_class, action):
+        raise denied_exception()
 
 
 def _get_field_permissions(model_class: type) -> dict[str, dict]:
@@ -398,7 +385,7 @@ def create_crud_router(
         _end: int = Query(25, alias="_end"),
         session: Session = Depends(get_session),
     ):
-        _check_model_permissions(request, model_class, "GET")
+        _require_model_access(request, model_class, "read")
         user = getattr(request.state, "user", None) or {}
         where_clauses = _build_where_clauses(model_class, request.query_params)
         rebac_clause = _build_rebac_clause(model_class, user, session)
@@ -481,7 +468,7 @@ def create_crud_router(
         column name). Rows are validated via Pydantic/SQLModel and inserted in a
         single batch. ``dry_run=true`` validates and reports without committing.
         """
-        _check_model_permissions(request, model_class, "POST")
+        _require_model_access(request, model_class, "create")
         user = getattr(request.state, "user", None) or {}
         user_roles = user.get("roles", [])
 
@@ -501,6 +488,15 @@ def create_crud_router(
         total_rows = 0
 
         if loader_fn is not None:
+            # A custom loader may upsert: updating existing rows also needs
+            # Update (AC-D4). Whether a row updates is only known once the
+            # loader has run, so the whole import is rolled back if it does
+            # and Update is denied.
+            from veloiq_framework.access.decision import can_access_model, denied_exception
+            update_allowed = (
+                getattr(request.state, "user", None) is None
+                or can_access_model(user, model_class, "update").allowed
+            )
             inserted = 0
             updated = 0
             for i, row in enumerate(reader, start=1):
@@ -511,6 +507,9 @@ def create_crud_router(
                     updated += upd
                 except Exception as exc:
                     errors.append({"row": i, "message": str(exc)})
+                if updated and not update_allowed:
+                    session.rollback()
+                    raise denied_exception()
             if dry_run:
                 session.rollback()
             else:
@@ -613,7 +612,7 @@ def create_crud_router(
         above). Respects the same query-param filters and ReBAC rules as the list
         endpoint, unlike the client-side "quick export" of currently-loaded rows.
         """
-        _check_model_permissions(request, model_class, "GET")
+        _require_model_access(request, model_class, "read")
         user = getattr(request.state, "user", None) or {}
         user_roles = user.get("roles", [])
         where_clauses = _build_where_clauses(model_class, request.query_params)
@@ -676,7 +675,7 @@ def create_crud_router(
         from veloiq_framework.analyze import jm_analyze_rows, reference_titles_for
         from veloiq_framework.extension_registry import read_views_config
 
-        _check_model_permissions(request, model_class, "GET")
+        _require_model_access(request, model_class, "read")
         user = getattr(request.state, "user", None) or {}
         user_roles = user.get("roles", [])
         stmt = select(model_class)
@@ -724,7 +723,7 @@ def create_crud_router(
 
     @router.get("/{record_id}", summary=f"Get {tablename}")
     def get_item(record_id: pk_type, request: Request, session: Session = Depends(get_session)):  # type: ignore[valid-type]
-        _check_model_permissions(request, model_class, "GET")
+        _require_model_access(request, model_class, "read")
         user = getattr(request.state, "user", None) or {}
         row = _get_rebac_record(record_id, session, user)
         if row is None:
@@ -735,7 +734,7 @@ def create_crud_router(
 
     @router.post("", status_code=201, summary=f"Create {tablename}")
     def create_item(payload: dict, request: Request, session: Session = Depends(get_session)):
-        _check_model_permissions(request, model_class, "POST")
+        _require_model_access(request, model_class, "create")
         user = getattr(request.state, "user", None) or {}
         user_roles = user.get("roles", [])
         payload.pop(pk_field, None)
@@ -804,7 +803,7 @@ def create_crud_router(
         request: Request,
         session: Session = Depends(get_session),
     ):
-        _check_model_permissions(request, model_class, "PUT")
+        _require_model_access(request, model_class, "update")
         return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
 
     @router.patch("/{record_id}", summary=f"Partial update {tablename}")
@@ -814,19 +813,26 @@ def create_crud_router(
         request: Request,
         session: Session = Depends(get_session),
     ):
-        _check_model_permissions(request, model_class, "PATCH")
+        _require_model_access(request, model_class, "update")
         return _apply_update(record_id, payload, session, getattr(request.state, "user", None) or {})
 
     # ── Delete ────────────────────────────────────────────────────────────────
 
     @router.delete("/{record_id}", status_code=204, summary=f"Delete {tablename}")
     def delete_item(record_id: pk_type, request: Request, session: Session = Depends(get_session)):  # type: ignore[valid-type]
-        _check_model_permissions(request, model_class, "DELETE")
+        _require_model_access(request, model_class, "delete")
         user = getattr(request.state, "user", None) or {}
         row = _get_rebac_record(record_id, session, user)
         if row is None:
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
         session.delete(row)
         session.commit()
+
+    # These routes check module and model together in the handler, so the
+    # module-level access dependency added by the loader skips them.
+    from veloiq_framework.access.dependencies import mark_model_checked
+    for _route in router.routes:
+        if getattr(_route, "endpoint", None) is not None:
+            mark_model_checked(_route.endpoint)
 
     return router

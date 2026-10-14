@@ -170,6 +170,11 @@ def load_modules(
     # ── Pass 1: APIs ──────────────────────────────────────────────────────────
     registered_router_ids: set[int] = set()
 
+    from veloiq_framework.access.dependencies import make_module_access_dependency
+    from veloiq_framework.access.registry import HOST_SOURCE, register_module, set_extensions
+
+    set_extensions(extensions)
+
     for folder_name in module_folders:
         exempt = folder_name in license_exempt_modules
         lic_dep = (
@@ -177,6 +182,10 @@ def load_modules(
             if (license_dependency_factory and not exempt)
             else None
         )
+        # Module-level access check (licensing, role methods, access policy)
+        # for every route of the module; CRUD routes check per model instead.
+        module_key = register_module(HOST_SOURCE, folder_name, f"{module_prefix}.{folder_name}")
+        access_dep = Depends(make_module_access_dependency(module_key))
 
         for sub in ("custom_api", "api"):
             dotted = f"{module_prefix}.{folder_name}.{sub}"
@@ -188,10 +197,14 @@ def load_modules(
                         # custom_api.py imported the same router object from api.py;
                         # it is already registered — skip to avoid duplicate operation IDs.
                         continue
-                    if lic_dep is not None:
-                        router.dependencies.append(lic_dep)
+                    # Passed to include_router: dependencies appended to
+                    # router.dependencies after its routes exist never apply.
+                    inc_deps = [lic_dep] if lic_dep is not None else []
+                    inc_deps.append(access_dep)
                     tag = "CUSTOM" if sub == "custom_api" else folder_name.upper()
-                    app.include_router(router, prefix="/api", tags=[folder_name.upper(), tag])
+                    app.include_router(
+                        router, prefix="/api", tags=[folder_name.upper(), tag], dependencies=inc_deps,
+                    )
                     registered_router_ids.add(id(router))
                     print(f"  ✅ {sub}: {folder_name}")
             except ModuleNotFoundError as exc:
@@ -450,6 +463,9 @@ def _load_extension_modules(
                 print(f"  ⚠️  Could not load license registry from {pkg}.{candidate}: {exc}")
 
     # Pass 1: APIs.
+    from veloiq_framework.access.dependencies import make_module_access_dependency
+    from veloiq_framework.access.registry import register_module
+
     for folder_name in submodule_names:
         exempt = folder_name in ext_exempt
         lic_dep = (
@@ -457,6 +473,8 @@ def _load_extension_modules(
             if (ext_lic_factory and not exempt)
             else None
         )
+        module_key = register_module(ext.name, folder_name, f"{pkg}.{folder_name}")
+        access_dep = Depends(make_module_access_dependency(module_key))
         for sub in ("custom_api", "api"):
             dotted = f"{pkg}.{folder_name}.{sub}"
             try:
@@ -466,6 +484,7 @@ def _load_extension_modules(
                     if id(router) in registered_router_ids:
                         continue
                     inc_deps = [lic_dep] if lic_dep is not None else []
+                    inc_deps.append(access_dep)
                     app.include_router(
                         router,
                         prefix="/api",

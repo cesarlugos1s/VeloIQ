@@ -1,0 +1,1158 @@
+{
+  "_comment": "Shared access-decision cases. Run by backend/tests/test_access_fixtures.py and packages/ui/src/access/evaluateAccess.test.ts. Each case's context is `base` shallow-merged with the case's `with`.",
+  "base": {
+    "admin_role": "Admin",
+    "role_methods": {
+      "Admin": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "Manager": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "Viewer": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "Clerk": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ]
+    },
+    "policies": {},
+    "model_access": {
+      "subtask": {
+        "Viewer": []
+      },
+      "invoice": {
+        "Manager": [
+          "list",
+          "show"
+        ]
+      }
+    },
+    "license": {
+      "module_groups": {
+        "jobs_group": [
+          "jobs"
+        ]
+      },
+      "licensed_modules": [
+        "jobs"
+      ],
+      "write_allowed_modules": [
+        "jobs"
+      ],
+      "group_statuses": {
+        "jobs_group": "active"
+      }
+    },
+    "registry": {
+      "modules": {
+        "app:projects": {
+          "source": "app",
+          "name": "projects",
+          "models": [
+            "project"
+          ]
+        },
+        "app:tasks": {
+          "source": "app",
+          "name": "tasks",
+          "models": [
+            "subtask",
+            "task"
+          ]
+        },
+        "app:billing": {
+          "source": "app",
+          "name": "billing",
+          "models": [
+            "invoice"
+          ]
+        },
+        "ext_a:jobs": {
+          "source": "ext_a",
+          "name": "jobs",
+          "models": [
+            "job"
+          ]
+        }
+      },
+      "models": {
+        "project": "app:projects",
+        "task": "app:tasks",
+        "subtask": "app:tasks",
+        "invoice": "app:billing",
+        "job": "ext_a:jobs"
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "B2 no policy: Manager reads a model",
+      "with": {
+        "roles": [
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "B2 no policy: Manager creates a model",
+      "with": {
+        "roles": [
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "create",
+      "allowed": true
+    },
+    {
+      "name": "B2 no policy: role methods still deny Manager delete",
+      "with": {
+        "roles": [
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "delete",
+      "allowed": false,
+      "reason": "role_method"
+    },
+    {
+      "name": "B2 no policy: Viewer can't create",
+      "with": {
+        "roles": [
+          "Viewer"
+        ]
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "create",
+      "allowed": false,
+      "reason": "role_method"
+    },
+    {
+      "name": "B2 no policy: module-level read for a custom endpoint",
+      "with": {
+        "roles": [
+          "Viewer"
+        ]
+      },
+      "module_key": "app:projects",
+      "model_key": null,
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "B3 allowlist: listed module, granted action",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "update",
+      "allowed": true
+    },
+    {
+      "name": "B3 allowlist: listed module, action not granted",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "create",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B3 allowlist: unlisted module denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B3 allowlist: unlisted module denied at module level",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": "app:projects",
+      "model_key": null,
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B3 empty allowlist denies everything",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B4 blocklist: blocked action denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:projects",
+                "model_key": null,
+                "can_create": true,
+                "can_read": false,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "update",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B4 blocklist: unblocked action allowed",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:projects",
+                "model_key": null,
+                "can_create": true,
+                "can_read": false,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "B4 blocklist: unlisted module unaffected",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:projects",
+                "model_key": null,
+                "can_create": true,
+                "can_read": false,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "create",
+      "allowed": true
+    },
+    {
+      "name": "B5 module entry applies to every model in it",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              },
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "B5 module entry: action not granted on other model",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              },
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "update",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B5 model entry overrides module entry",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              },
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "subtask",
+      "action": "update",
+      "allowed": true
+    },
+    {
+      "name": "B5 allowlist with only a model entry: model allowed",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "subtask",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "B5 allowlist with only a model entry: sibling model denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B5 allowlist with only a model entry: module-level denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": "subtask",
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": "app:tasks",
+      "model_key": null,
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "B5 blocklist model entry with no flags unblocks that model",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": true,
+                "can_read": false,
+                "can_update": true,
+                "can_delete": true
+              },
+              {
+                "module_key": "app:tasks",
+                "model_key": "task",
+                "can_create": false,
+                "can_read": false,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "update",
+      "allowed": true
+    },
+    {
+      "name": "B5 blocklist module entry still blocks sibling",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": true,
+                "can_read": false,
+                "can_update": true,
+                "can_delete": true
+              },
+              {
+                "module_key": "app:tasks",
+                "model_key": "task",
+                "can_create": false,
+                "can_read": false,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "subtask",
+      "action": "update",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "C1 unlicensed module denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "read",
+      "allowed": false,
+      "reason": "not_licensed"
+    },
+    {
+      "name": "C2 policy can't grant an unlicensed module",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "ext_a:jobs",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        },
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "read",
+      "allowed": false,
+      "reason": "not_licensed"
+    },
+    {
+      "name": "C2 policy can't grant beyond role methods",
+      "with": {
+        "roles": [
+          "Viewer"
+        ],
+        "policies": {
+          "Viewer": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:projects",
+                "model_key": null,
+                "can_create": true,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "create",
+      "allowed": false,
+      "reason": "role_method"
+    },
+    {
+      "name": "C2 modules outside every license group are not gated",
+      "with": {
+        "roles": [
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "create",
+      "allowed": true
+    },
+    {
+      "name": "C5 grace period: read allowed",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [
+            "jobs"
+          ],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "C5 grace period: write denied whatever the policy says",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "ext_a:jobs",
+                "model_key": null,
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        },
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [
+            "jobs"
+          ],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "update",
+      "allowed": false,
+      "reason": "license_read_only"
+    },
+    {
+      "name": "C5 grace period: Admin can't write either",
+      "with": {
+        "roles": [
+          "Admin"
+        ],
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [
+            "jobs"
+          ],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "create",
+      "allowed": false,
+      "reason": "license_read_only"
+    },
+    {
+      "name": "C3 @model_access denies when policy allows",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:billing",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "invoice",
+      "action": "update",
+      "allowed": false,
+      "reason": "model_access"
+    },
+    {
+      "name": "C3 @model_access allows read, policy allows read",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:billing",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "invoice",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "C3 policy denies when @model_access allows",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "app:billing",
+                "model_key": null,
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "invoice",
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "C3 @model_access empty list denies read",
+      "with": {
+        "roles": [
+          "Viewer"
+        ]
+      },
+      "module_key": null,
+      "model_key": "subtask",
+      "action": "read",
+      "allowed": false,
+      "reason": "model_access"
+    },
+    {
+      "name": "C4 any role allowing wins",
+      "with": {
+        "roles": [
+          "Viewer",
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "create",
+      "allowed": true
+    },
+    {
+      "name": "C4 one role's policy denies, the other allows",
+      "with": {
+        "roles": [
+          "Manager",
+          "Clerk"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": false,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "C4 policy of one role doesn't borrow another role's methods",
+      "with": {
+        "roles": [
+          "Viewer",
+          "Clerk"
+        ],
+        "policies": {
+          "Clerk": {
+            "mode": "allow",
+            "entries": [
+              {
+                "module_key": "app:tasks",
+                "model_key": null,
+                "can_create": true,
+                "can_read": true,
+                "can_update": false,
+                "can_delete": false
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "create",
+      "allowed": false,
+      "reason": "role_method"
+    },
+    {
+      "name": "C4 both roles denied",
+      "with": {
+        "roles": [
+          "Manager",
+          "Clerk"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": []
+          },
+          "Clerk": {
+            "mode": "allow",
+            "entries": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "read",
+      "allowed": false,
+      "reason": "policy"
+    },
+    {
+      "name": "A3 Admin skips policies",
+      "with": {
+        "roles": [
+          "Admin"
+        ],
+        "policies": {
+          "Admin": {
+            "mode": "allow",
+            "entries": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "delete",
+      "allowed": true
+    },
+    {
+      "name": "A3 Admin skips @model_access",
+      "with": {
+        "roles": [
+          "Admin"
+        ],
+        "model_access": {
+          "invoice": {
+            "Admin": [
+              "list"
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "invoice",
+      "action": "update",
+      "allowed": true
+    },
+    {
+      "name": "A3 Admin is still subject to licensing",
+      "with": {
+        "roles": [
+          "Admin"
+        ],
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": []
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "read",
+      "allowed": false,
+      "reason": "not_licensed"
+    },
+    {
+      "name": "B8 entry for a removed extension is inactive",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "block",
+            "entries": [
+              {
+                "module_key": "gone_ext:reports",
+                "model_key": null,
+                "can_create": true,
+                "can_read": true,
+                "can_update": true,
+                "can_delete": true
+              }
+            ]
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "project",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "A4 system models are outside policies",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "policies": {
+          "Manager": {
+            "mode": "allow",
+            "entries": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "veloiq_help_document",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "Unknown action denied",
+      "with": {
+        "roles": [
+          "Manager"
+        ]
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "archive",
+      "allowed": false,
+      "reason": "unknown_action"
+    },
+    {
+      "name": "No role denied",
+      "with": {
+        "roles": []
+      },
+      "module_key": null,
+      "model_key": "task",
+      "action": "read",
+      "allowed": false,
+      "reason": "no_role"
+    },
+    {
+      "name": "No license data skips licensing",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "license": null
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "update",
+      "allowed": true
+    }
+  ]
+}

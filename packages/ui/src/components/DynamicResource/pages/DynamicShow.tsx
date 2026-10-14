@@ -17,10 +17,11 @@ import { ShowFooterButtons } from "../ShowFooterButtons";
 import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
+import { ResourceAccessGate } from "../../AccessGate";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
@@ -169,3 +170,13 @@ export const DynamicShow: React.FC<{ model: ModelDef; allModels?: ModelDef[]; id
         </div>
     );
 };
+
+/**
+ * DynamicShow behind the shared access check: a user who may not Read this
+ * model gets the "no access" page instead of a broken page (AC-E3).
+ */
+export const DynamicShow: React.FC<React.ComponentProps<typeof DynamicShowPage>> = (props) => (
+    <ResourceAccessGate resource={props.model.resource || props.model.name} action="read" embedded={Boolean(props.embedded)}>
+        <DynamicShowPage {...props} />
+    </ResourceAccessGate>
+);

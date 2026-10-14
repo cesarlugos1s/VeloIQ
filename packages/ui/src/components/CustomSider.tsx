@@ -7,7 +7,7 @@ import { ColorModeContext } from "../contexts/ColorModeContext";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, resolveNavKey, sortItemsByNavConfig } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
-import { useLicensePool } from "../hooks/useLicensePool";
+import { filterMenuItemsByAccess, useAccess } from "../hooks/useAccess";
 
 const API_URL = "/api";
 // i18n helper — resolved at CALL time so window._ is always current.
@@ -27,31 +27,14 @@ export const CustomSider: React.FC<{
     const { menuItems, selectedKey } = useMenu();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
-    const { isModuleLicensed } = useLicensePool();
+    const access = useAccess();
 
-    // ── License-aware menu filtering ──────────────────────────────────────
-    // Only show modules whose license is active (or in grace period).
-    // Modules not in any licensed group AND the "access_control" module
-    // are always shown.  This filters in one pass — children of filtered
-    // modules are automatically removed.
-    const extractModuleName = (item: any): string | null => {
-        let key = String(item?.key ?? item?.name ?? "");
-        if (key.startsWith("/")) key = key.slice(1);
-        if (key.startsWith("module:")) return key.slice("module:".length);
-        return null;
-    };
-
+    // ── Access-aware menu filtering ───────────────────────────────────────
+    // Menus show only the modules and models the user can Read (AC-E1),
+    // through the shared access check (licensing + role + access policy).
     const licensedMenuItems = useMemo(
-        () => {
-            if (!Array.isArray(menuItems)) return [];
-            return menuItems.filter((item) => {
-                const moduleName = extractModuleName(item);
-                if (moduleName === null) return true; // resource item — keep
-                if (moduleName === "access_control") return true; // always show
-                return isModuleLicensed(moduleName);
-            });
-        },
-        [menuItems, isModuleLicensed],
+        () => filterMenuItemsByAccess(menuItems, access),
+        [menuItems, access],
     );
 
     const getIcon = (item: any): React.ReactNode => {

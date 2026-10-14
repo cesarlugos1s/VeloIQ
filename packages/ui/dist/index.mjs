@@ -1,10 +1,10 @@
-import { onlineManager } from '@tanstack/react-query';
-import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useContext, Suspense, useSyncExternalStore, useId } from 'react';
-import { ThemedLayoutV2, Show, useForm, DeleteButton, useTable, List, RefineThemes, Breadcrumb as Breadcrumb$1, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useInvalidate, useCustom, useLogin, useWarnAboutChange, useResource } from '@refinedev/core';
-import { Typography, Carousel, Empty, Button, theme, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Tabs, Alert, DatePicker, Checkbox, Pagination, Breadcrumb, Tree, Tag, List as List$1, Dropdown, Avatar, TimePicker, Collapse, Upload, Rate, Progress, Popconfirm } from 'antd';
+import { onlineManager, useQueryClient } from '@tanstack/react-query';
+import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, useId } from 'react';
+import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useWarnAboutChange, useInvalidate, useResource } from '@refinedev/core';
+import { Typography, Carousel, Empty, Button, theme, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Dropdown, Avatar, TimePicker, DatePicker, Checkbox, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, DeleteOutlined, EyeOutlined, BugOutlined, EditOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckCircleOutlined, CopyOutlined, ApartmentOutlined, SaveFilled, CalendarOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, CloseCircleOutlined, FilePdfOutlined, InboxOutlined, HomeOutlined, CheckOutlined, FolderOutlined, FileOutlined, CommentOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined, PlusSquareOutlined, FullscreenExitOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, DeleteOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CheckOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -450,57 +450,266 @@ function injectJourneyMenuItems(items, byModule) {
   return walk(items);
 }
 
-// src/providers/constants.ts
-var API_URL2 = "/api";
+// src/access/accessStore.ts
+var ACCESS_STORAGE_KEY = "jm_resource_permissions";
+var RESOURCE_PERMISSIONS_URL = "/auth/resource-permissions";
+var FOCUS_REFRESH_MIN_MS = 5e3;
+var current = null;
+var loaded = false;
+var inFlight = null;
+var lastFetch = 0;
+var focusListenerInstalled = false;
+var listeners = /* @__PURE__ */ new Set();
+function isEffectivePermissions(value) {
+  return !!value && typeof value === "object" && "context" in value && "effective" in value;
+}
+function readStored() {
+  try {
+    const raw = localStorage.getItem(ACCESS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return isEffectivePermissions(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function notify() {
+  listeners.forEach((fn) => fn());
+}
+function getAccessSnapshot() {
+  if (!loaded) {
+    current = readStored();
+    loaded = true;
+  }
+  return current;
+}
+function setAccessPermissions(data) {
+  current = data;
+  loaded = true;
+  try {
+    if (data) localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(data));
+    else localStorage.removeItem(ACCESS_STORAGE_KEY);
+  } catch {
+  }
+  notify();
+}
+function refreshAccess() {
+  if (inFlight) return inFlight;
+  lastFetch = Date.now();
+  inFlight = (async () => {
+    try {
+      const res = await authenticatedFetch(RESOURCE_PERMISSIONS_URL);
+      if (!res.ok) return getAccessSnapshot();
+      const data = await res.json();
+      if (isEffectivePermissions(data)) setAccessPermissions(data);
+      return getAccessSnapshot();
+    } catch {
+      return getAccessSnapshot();
+    } finally {
+      inFlight = null;
+    }
+  })();
+  return inFlight;
+}
+function installFocusListener() {
+  if (focusListenerInstalled || typeof window === "undefined") return;
+  focusListenerInstalled = true;
+  window.addEventListener("focus", () => {
+    if (!localStorage.getItem("jm_access_token")) return;
+    if (Date.now() - lastFetch < FOCUS_REFRESH_MIN_MS) return;
+    void refreshAccess();
+  });
+}
+function subscribeAccess(listener) {
+  installFocusListener();
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+function clearAccess() {
+  setAccessPermissions(null);
+}
 
-// src/hooks/useLicensePool.ts
+// src/access/evaluateAccess.ts
+var ACCESS_ACTIONS = ["create", "read", "update", "delete"];
+var ACTION_METHODS = {
+  read: ["GET", "HEAD"],
+  create: ["POST"],
+  update: ["PUT", "PATCH"],
+  delete: ["DELETE"]
+};
+var ACTION_REFINE = {
+  read: ["list", "show", "field", "clone"],
+  create: ["create"],
+  update: ["edit"],
+  delete: ["delete"]
+};
+var REFINE_TO_ACTION = {
+  list: "read",
+  show: "read",
+  field: "read",
+  create: "create",
+  clone: "create",
+  edit: "update",
+  delete: "delete"
+};
+var DEFAULT_ADMIN_ROLE = "Admin";
 var ALWAYS_ON = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
-function useLicensePool() {
-  const [pool, setPool] = useState(null);
-  const [loading, setLoading] = useState(true);
+var lowerSet = (values) => new Set((values ?? []).map((v) => v.toLowerCase()));
+var inAnyGroup = (key, pool) => Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
+function isModuleLicensedIn(moduleName, pool) {
+  const key = moduleName.toLowerCase();
+  if (ALWAYS_ON.has(key)) return true;
+  if (!inAnyGroup(key, pool)) return true;
+  return lowerSet(pool.licensed_modules).has(key);
+}
+function isModuleWriteAllowedIn(moduleName, pool) {
+  const key = moduleName.toLowerCase();
+  if (ALWAYS_ON.has(key)) return true;
+  if (!inAnyGroup(key, pool)) return true;
+  return lowerSet(pool.write_allowed_modules).has(key);
+}
+function splitModuleKey(moduleKey) {
+  const idx = moduleKey.indexOf(":");
+  return idx < 0 ? ["", moduleKey] : [moduleKey.slice(0, idx), moduleKey.slice(idx + 1)];
+}
+var FLAG = {
+  create: "can_create",
+  read: "can_read",
+  update: "can_update",
+  delete: "can_delete"
+};
+function policyAllows(policy, moduleKey, modelKey, action) {
+  const entries = policy.entries ?? [];
+  let entry;
+  if (modelKey) {
+    entry = entries.find((e) => e.module_key === moduleKey && e.model_key === modelKey);
+  }
+  if (entry === void 0) {
+    entry = entries.find((e) => e.module_key === moduleKey && !e.model_key);
+  }
+  const flag = FLAG[action];
+  if (policy.mode === "allow") return entry !== void 0 && Boolean(entry[flag]);
+  return entry === void 0 || !entry[flag];
+}
+function evaluateRole(ctx, role, moduleKey, modelKey, action) {
+  const methods = new Set(ctx.role_methods?.[role] ?? []);
+  if (!ACTION_METHODS[action].some((m) => methods.has(m))) return "role_method";
+  if (role === (ctx.admin_role ?? DEFAULT_ADMIN_ROLE)) return null;
+  const registeredModules = ctx.registry?.modules ?? {};
+  if (moduleKey && Object.prototype.hasOwnProperty.call(registeredModules, moduleKey)) {
+    const policy = ctx.policies?.[role];
+    if (policy && !policyAllows(policy, moduleKey, modelKey, action)) return "policy";
+  }
+  if (modelKey) {
+    const roleRules = ctx.model_access?.[modelKey]?.[role];
+    if (roleRules !== void 0 && roleRules !== null && !ACTION_REFINE[action].some((a) => roleRules.includes(a))) {
+      return "model_access";
+    }
+  }
+  return null;
+}
+function evaluateAccess(ctx, moduleKey, modelKey, action) {
+  if (!ACCESS_ACTIONS.includes(action)) return { allowed: false, reason: "unknown_action" };
+  const act = action;
+  let module = moduleKey;
+  if (module === null && modelKey) module = ctx.registry?.models?.[modelKey] ?? null;
+  const pool = ctx.license;
+  if (module && pool !== null && pool !== void 0) {
+    const moduleName = splitModuleKey(module)[1];
+    if (!isModuleLicensedIn(moduleName, pool)) return { allowed: false, reason: "not_licensed" };
+    if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool)) {
+      return { allowed: false, reason: "license_read_only" };
+    }
+  }
+  const roles = ctx.roles ?? [];
+  if (roles.length === 0) return { allowed: false, reason: "no_role" };
+  let firstReason = null;
+  for (const role of roles) {
+    const reason = evaluateRole(ctx, role, module, modelKey, act);
+    if (reason === null) return { allowed: true };
+    firstReason = firstReason ?? reason;
+  }
+  return { allowed: false, reason: firstReason ?? void 0 };
+}
+function moduleKeyForName(ctx, moduleName) {
+  const match = Object.entries(ctx.registry?.modules ?? {}).find(([, info]) => info.name === moduleName);
+  return match ? match[0] : `:${moduleName}`;
+}
+
+// src/hooks/useAccess.ts
+function useAccess() {
+  const data = useSyncExternalStore(subscribeAccess, getAccessSnapshot, getAccessSnapshot);
+  const ctx = data?.context ?? null;
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await authenticatedFetch(`${API_URL2}/licensing/status`);
-        if (!cancelled) {
-          setPool(res.ok ? await res.json() : null);
-        }
-      } catch {
-        if (!cancelled) setPool(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (data === null && localStorage.getItem("jm_access_token")) void refreshAccess();
+  }, [data]);
+  const can = useCallback(
+    (resource, action) => ctx === null ? true : evaluateAccess(ctx, null, resource, action).allowed,
+    [ctx]
+  );
+  const canModule = useCallback(
+    (moduleName, action) => ctx === null ? true : evaluateAccess(ctx, moduleKeyForName(ctx, moduleName), null, action).allowed,
+    [ctx]
+  );
   const isModuleLicensed = useCallback(
-    (moduleName) => {
-      const key = moduleName.toLowerCase();
-      if (ALWAYS_ON.has(key)) return true;
-      if (loading || pool === null) return true;
-      const moduleGroups = pool.module_groups ?? {};
-      const inAnyGroup = Object.values(moduleGroups).some(
-        (mods) => mods.map((m) => m.toLowerCase()).includes(key)
-      );
-      if (!inAnyGroup) return true;
-      return (pool.licensed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
-    },
-    [pool, loading]
+    (moduleName) => ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license),
+    [ctx]
   );
-  const isModuleWriteAllowed = useCallback(
-    (moduleName) => {
-      const key = moduleName.toLowerCase();
-      if (ALWAYS_ON.has(key)) return true;
-      if (loading || pool === null) return true;
-      return (pool?.write_allowed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
-    },
-    [pool, loading]
+  return useMemo(
+    () => ({ loading: ctx === null, can, canModule, isModuleLicensed, refresh: () => void refreshAccess() }),
+    [ctx, can, canModule, isModuleLicensed]
   );
-  return { pool, loading, isModuleLicensed, isModuleWriteAllowed };
+}
+var CAN_QUERY_ROOTS = /* @__PURE__ */ new Set(["access", "useCan"]);
+function useAccessQueryInvalidation() {
+  const queryClient = useQueryClient();
+  const data = useSyncExternalStore(subscribeAccess, getAccessSnapshot, getAccessSnapshot);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    void queryClient.invalidateQueries({
+      predicate: (query) => CAN_QUERY_ROOTS.has(String(query.queryKey?.[0]))
+    });
+  }, [data, queryClient]);
+}
+var extractModuleName = (item) => {
+  let key = String(item?.key ?? item?.name ?? "");
+  if (key.startsWith("/")) key = key.slice(1);
+  if (key.startsWith("module:")) return key.slice("module:".length);
+  return null;
+};
+function filterMenuItemsByAccess(items, access) {
+  if (!Array.isArray(items)) return [];
+  const result = [];
+  for (const item of items) {
+    if (typeof item !== "object" || item === null) {
+      result.push(item);
+      continue;
+    }
+    const moduleName = extractModuleName(item);
+    const children = Array.isArray(item.children) ? item.children : null;
+    if (moduleName !== null) {
+      if (moduleName === "access_control") {
+        result.push(item);
+        continue;
+      }
+      if (!access.isModuleLicensed(moduleName)) continue;
+      if (children && children.length > 0) {
+        const kept = filterMenuItemsByAccess(children, access);
+        if (kept.length > 0) result.push({ ...item, children: kept });
+        continue;
+      }
+      if (access.canModule(moduleName, "read")) result.push(item);
+      continue;
+    }
+    const resource = String(item.name ?? "");
+    if (resource && !access.can(resource, "read")) continue;
+    result.push(children ? { ...item, children: filterMenuItemsByAccess(children, access) } : item);
+  }
+  return result;
 }
 var _ = (text) => {
   const t = window._;
@@ -511,24 +720,10 @@ var HorizontalMenu = ({ navConfig = [] }) => {
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
   const journeysByModule = useJourneyMenuItems();
-  const { isModuleLicensed } = useLicensePool();
-  const extractModuleName = (item) => {
-    let key = String(item?.key ?? item?.name ?? "");
-    if (key.startsWith("/")) key = key.slice(1);
-    if (key.startsWith("module:")) return key.slice("module:".length);
-    return null;
-  };
+  const access = useAccess();
   const licensedMenuItems = useMemo(
-    () => {
-      if (!Array.isArray(menuItems)) return [];
-      return menuItems.filter((item) => {
-        const moduleName = extractModuleName(item);
-        if (moduleName === null) return true;
-        if (moduleName === "access_control") return true;
-        return isModuleLicensed(moduleName);
-      });
-    },
-    [menuItems, isModuleLicensed]
+    () => filterMenuItemsByAccess(menuItems, access),
+    [menuItems, access]
   );
   const getIcon = (item) => {
     const key = String(item?.key || "");
@@ -621,24 +816,10 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
   const journeysByModule = useJourneyMenuItems();
-  const { isModuleLicensed } = useLicensePool();
-  const extractModuleName = (item) => {
-    let key = String(item?.key ?? item?.name ?? "");
-    if (key.startsWith("/")) key = key.slice(1);
-    if (key.startsWith("module:")) return key.slice("module:".length);
-    return null;
-  };
+  const access = useAccess();
   const licensedMenuItems = useMemo(
-    () => {
-      if (!Array.isArray(menuItems)) return [];
-      return menuItems.filter((item) => {
-        const moduleName = extractModuleName(item);
-        if (moduleName === null) return true;
-        if (moduleName === "access_control") return true;
-        return isModuleLicensed(moduleName);
-      });
-    },
-    [menuItems, isModuleLicensed]
+    () => filterMenuItemsByAccess(menuItems, access),
+    [menuItems, access]
   );
   const getIcon = (item) => {
     const key = String(item?.key || "");
@@ -794,16 +975,17 @@ var AllModelsProvider = ({
 var useAllModels = () => useContext(AllModelsContext);
 
 // src/hooks/useRecordSearch.ts
-var API_URL3 = "/api";
+var API_URL2 = "/api";
 function useRecordSearch() {
   const allSystemModels = useAllModels();
+  const { can } = useAccess();
   const [searchConfig, setSearchConfig] = useState(null);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
   useEffect(() => {
-    authenticatedFetch(`${API_URL3}/config/search`).then((r) => {
+    authenticatedFetch(`${API_URL2}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((d) => setSearchConfig(d)).catch(() => {
@@ -814,7 +996,7 @@ function useRecordSearch() {
     const entityTypesLower = searchConfig.entity_types.map((e) => e.toLowerCase());
     const preferredFields = searchConfig.attribute_types;
     const useAllStringFields = preferredFields.length === 0;
-    return allSystemModels.filter((m) => entityTypesLower.includes((m.name || "").toLowerCase())).map((m) => {
+    return allSystemModels.filter((m) => entityTypesLower.includes((m.name || "").toLowerCase())).filter((m) => can(m.resource || m.name, "read")).map((m) => {
       const stringFields = (m.fields || []).filter((f) => f.type === "string");
       if (useAllStringFields) {
         return {
@@ -841,7 +1023,7 @@ function useRecordSearch() {
         searchFields: Array.from(matched)
       };
     }).filter((m) => m.searchFields.length > 0);
-  }, [allSystemModels, searchConfig]);
+  }, [allSystemModels, searchConfig, can]);
   const search = useCallback(
     (query) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -861,7 +1043,7 @@ function useRecordSearch() {
           const fetches = searchableModels.slice(0, 8).map(async (m) => {
             try {
               const fieldFetches = m.searchFields.map(async (field) => {
-                const url = `${API_URL3}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
+                const url = `${API_URL2}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
                 const resp = await authenticatedFetch(url, { signal: controller.signal });
                 if (!resp.ok) return [];
                 const data = await resp.json();
@@ -934,7 +1116,11 @@ var GlobalSearch = () => {
   const [searchText, setSearchText] = useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
   const { token } = theme.useToken();
-  const searchableResources = useMemo(() => flattenMenuItems(menuItems), [menuItems]);
+  const access = useAccess();
+  const searchableResources = useMemo(
+    () => flattenMenuItems(filterMenuItemsByAccess(menuItems, access)),
+    [menuItems, access]
+  );
   const resourceResults = useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
@@ -1029,6 +1215,11 @@ var GlobalSearch = () => {
     }
   ) });
 };
+
+// src/providers/constants.ts
+var API_URL3 = "/api";
+
+// src/pages/dashboard/hooks/useRecentActivity.ts
 function useRecentActivity(days) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1036,7 +1227,7 @@ function useRecentActivity(days) {
     setLoading(true);
     try {
       const params = days !== void 0 ? `?days=${days}` : "";
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/recent-activity${params}`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
       if (res.ok) setData(await res.json());
     } catch {
     } finally {
@@ -1079,7 +1270,7 @@ function usePinnedGroups() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
       if (res.ok) {
         const d = await res.json();
         setGroups(d.groups ?? []);
@@ -1145,9 +1336,10 @@ var CommandCenterPortal = ({
 }) => {
   const { menuItems: rawMenuItems } = useMenu();
   const journeysByModule = useJourneyMenuItems();
+  const access = useAccess();
   const menuItems = useMemo(
-    () => injectJourneyMenuItems(rawMenuItems, journeysByModule),
-    [rawMenuItems, journeysByModule]
+    () => injectJourneyMenuItems(filterMenuItemsByAccess(rawMenuItems, access), journeysByModule),
+    [rawMenuItems, journeysByModule, access]
   );
   const go = useGo();
   const searchRef = useRef(null);
@@ -1966,24 +2158,10 @@ var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = fa
 var MobileMenuContent = ({ onClose }) => {
   const { menuItems, selectedKey } = useMenu();
   const go = useGo();
-  const { isModuleLicensed } = useLicensePool();
-  const extractModuleName = (item) => {
-    let key = String(item?.key ?? item?.name ?? "");
-    if (key.startsWith("/")) key = key.slice(1);
-    if (key.startsWith("module:")) return key.slice("module:".length);
-    return null;
-  };
+  const access = useAccess();
   const licensedMenuItems = React6.useMemo(
-    () => {
-      if (!Array.isArray(menuItems)) return [];
-      return menuItems.filter((item) => {
-        const moduleName = extractModuleName(item);
-        if (moduleName === null) return true;
-        if (moduleName === "access_control") return true;
-        return isModuleLicensed(moduleName);
-      });
-    },
-    [menuItems, isModuleLicensed]
+    () => filterMenuItemsByAccess(menuItems, access),
+    [menuItems, access]
   );
   const transformItems = (items) => {
     if (!Array.isArray(items)) return [];
@@ -2041,14 +2219,15 @@ var LayoutWrapper = ({
     setHelpPageKeyState(key);
     setHelpRecordId(recordId);
   }, []);
-  const { isModuleLicensed } = useLicensePool();
+  const { canModule } = useAccess();
+  useAccessQueryInvalidation();
   const filterMenuItemsByLicense = React6.useCallback(
     (items) => {
       if (!Array.isArray(items)) return [];
       return items.filter((item) => {
         if (typeof item !== "object" || item === null) return true;
         if (!item.module) return true;
-        return isModuleLicensed(item.module);
+        return canModule(item.module, "read");
       }).map((item) => {
         if (Array.isArray(item.children)) {
           return { ...item, children: filterMenuItemsByLicense(item.children) };
@@ -2056,7 +2235,7 @@ var LayoutWrapper = ({
         return item;
       });
     },
-    [isModuleLicensed]
+    [canModule]
   );
   const userRoles = identity?.roles ?? [];
   const filterMenuItemsByRole = React6.useCallback(
@@ -2250,7 +2429,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_68, value) {
+                validator(_69, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -2274,29 +2453,53 @@ var _6 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
-var LicenseGate = ({ module: moduleName, children }) => {
+var NoAccessResult = () => {
   const navigate = useNavigate();
-  const { isModuleLicensed, loading } = useLicensePool();
-  if (!moduleName) return /* @__PURE__ */ jsx(Fragment, { children });
-  if (loading) return /* @__PURE__ */ jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, { size: "large" }) });
-  if (isModuleLicensed(moduleName)) return /* @__PURE__ */ jsx(Fragment, { children });
   return /* @__PURE__ */ jsx(
     Result,
     {
       status: "warning",
       icon: /* @__PURE__ */ jsx(LockOutlined, {}),
-      title: _6("Module Not Licensed"),
-      subTitle: _6(
+      title: _6("No Access"),
+      subTitle: _6("You do not have permission to open this page. Please contact your administrator."),
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _6("Go to Dashboard") })
+    }
+  );
+};
+var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
+  const { can } = useAccess();
+  if (can(resource, action)) return /* @__PURE__ */ jsx(Fragment, { children });
+  return embedded ? null : /* @__PURE__ */ jsx(NoAccessResult, {});
+};
+var _7 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var LicenseGate = ({ module: moduleName, children }) => {
+  const navigate = useNavigate();
+  const { isModuleLicensed, canModule, loading } = useAccess();
+  if (!moduleName) return /* @__PURE__ */ jsx(Fragment, { children });
+  if (loading) return /* @__PURE__ */ jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, { size: "large" }) });
+  if (isModuleLicensed(moduleName)) {
+    return canModule(moduleName, "read") ? /* @__PURE__ */ jsx(Fragment, { children }) : /* @__PURE__ */ jsx(NoAccessResult, {});
+  }
+  return /* @__PURE__ */ jsx(
+    Result,
+    {
+      status: "warning",
+      icon: /* @__PURE__ */ jsx(LockOutlined, {}),
+      title: _7("Module Not Licensed"),
+      subTitle: _7(
         `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
       ),
-      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _6("Go to Dashboard") })
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _7("Go to Dashboard") })
     }
   );
 };
 var PANE_TOOLBAR_HEIGHT = 28;
 var PaneNavigationContext = createContext(null);
 var usePaneNavigation = () => useContext(PaneNavigationContext);
-var _7 = window._ || ((text) => text);
+var _8 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
   const [narrow, setNarrow] = useState(
@@ -2367,7 +2570,7 @@ var VerticalActionsLayout = ({ position, onBarMount, children }) => {
           [sideKey]: sideOffset,
           zIndex: 1001
         },
-        children: /* @__PURE__ */ jsx(Tooltip, { title: _7("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
+        children: /* @__PURE__ */ jsx(Tooltip, { title: _8("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -2390,7 +2593,7 @@ var VerticalActionsLayout = ({ position, onBarMount, children }) => {
     useDrawer && /* @__PURE__ */ jsx(
       Drawer,
       {
-        title: _7("Actions"),
+        title: _8("Actions"),
         placement: sideKey,
         open: drawerOpen,
         onClose: () => setDrawerOpen(false),
@@ -2566,7 +2769,7 @@ var getNavigableRelations = (model, allModels) => {
 };
 
 // src/components/DynamicResource/utils/i18n.ts
-var _8 = (text) => {
+var _9 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2582,7 +2785,7 @@ var asDisplayText = (value, fallback = "") => {
 var translateText = (key, fallback) => {
   const safeKey = asDisplayText(key, "");
   if (!safeKey) return fallback ?? "";
-  const translated = _8(safeKey);
+  const translated = _9(safeKey);
   return asDisplayText(translated, fallback ?? safeKey);
 };
 var MODULE_LABEL_OVERRIDES = {
@@ -2653,7 +2856,7 @@ var translateRelationKey = (rawKey) => {
 };
 var getRelationLabel = (rel) => {
   const relationKey = String(rel.relationName || rel.resource || "").trim();
-  if (!relationKey) return _8(rel.label || "");
+  if (!relationKey) return _9(rel.label || "");
   const translatedByKey = translateRelationKey(relationKey);
   if (translatedByKey && translatedByKey !== relationKey) return translatedByKey;
   const withoutRelationSuffix = relationKey.replace(/_relation$/, "");
@@ -2744,9 +2947,9 @@ window.ddlTrace = ddlTrace;
 window.ddlTraceClear = ddlTraceClear;
 
 // src/components/DynamicResource/utils/viewConfig.ts
-var _9 = window._ || ((text) => text);
+var _10 = window._ || ((text) => text);
 var DETAILS_TAB_NAME = "Details";
-var getDefaultViewName = () => _9("default view");
+var getDefaultViewName = () => _10("default view");
 var normalizeViewName = (name) => {
   const trimmed = String(name ?? "").trim();
   return trimmed || getDefaultViewName();
@@ -2963,7 +3166,7 @@ var resolveFieldFromConfig = (model, item) => {
   const key = item.object_name || item.name;
   return {
     key,
-    label: _9(key),
+    label: _10(key),
     type: "string"
   };
 };
@@ -3189,7 +3392,7 @@ var applyRelationViewOverride = (rel, item, mode) => {
   ddlTrace("applyRelationViewOverride CUSTOM-PAGE", { relKey: rel.relationName || rel.resource || rel.label || "?", mode, trimmed });
   return mode === "show" ? { ...rel, showViewType: "primary", showViewTypeFromCsv: true, showCustomPageName: trimmed } : { ...rel, editViewType: "primary", editViewTypeFromCsv: true, editCustomPageName: trimmed };
 };
-var _10 = window._ || ((text) => text);
+var _11 = window._ || ((text) => text);
 var extractButtonLabel = (node) => {
   if (node === null || node === void 0 || typeof node === "boolean") return null;
   if (typeof node === "string" || typeof node === "number") return String(node);
@@ -3207,12 +3410,12 @@ var extractButtonLabel = (node) => {
 };
 var renderIconOnlyButtons = (nodes) => {
   const fallbackLabels = {
-    EditButton: _10("Edit"),
-    DeleteButton: _10("Delete"),
-    ListButton: _10("List"),
-    CreateButton: _10("Create"),
-    ShowButton: _10("Show"),
-    SaveButton: _10("Save")
+    EditButton: _11("Edit"),
+    DeleteButton: _11("Delete"),
+    ListButton: _11("List"),
+    CreateButton: _11("Create"),
+    ShowButton: _11("Show"),
+    SaveButton: _11("Save")
   };
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
@@ -3278,7 +3481,7 @@ var ResponsiveHeaderButtons = ({ children }) => {
   );
 };
 var { Text } = Typography;
-var _11 = window._ || ((text) => text);
+var _12 = window._ || ((text) => text);
 var DataDetailSlider = ({ detailState }) => {
   if (!detailState) return null;
   const [open, setOpen] = useState(false);
@@ -3290,7 +3493,7 @@ var DataDetailSlider = ({ detailState }) => {
     marks[i] = /* @__PURE__ */ jsx(Tooltip, { title: levelTooltips[i], children: /* @__PURE__ */ jsx("span", { children: levelLabels[i] }) });
   }
   const popoverContent = /* @__PURE__ */ jsxs("div", { style: { width: 580, padding: "8px 4px" }, children: [
-    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text, { strong: true, children: _11("Data Detail Level") }) }),
+    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text, { strong: true, children: _12("Data Detail Level") }) }),
     /* @__PURE__ */ jsx(
       Slider,
       {
@@ -3303,7 +3506,7 @@ var DataDetailSlider = ({ detailState }) => {
         tooltip: { formatter: (val) => levelTooltips[val ?? 0] }
       }
     ),
-    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text, { type: "secondary", children: _11("Adjust how relations are displayed on this page.") }) })
+    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text, { type: "secondary", children: _12("Adjust how relations are displayed on this page.") }) })
   ] });
   return /* @__PURE__ */ jsx(
     Popover,
@@ -3540,7 +3743,7 @@ var StandardList = ({ headerButtons, ...props }) => {
   }, [resource]);
   const { Title: ATitle } = Typography;
   const renderList = () => /* @__PURE__ */ jsx(
-    List,
+    List$1,
     {
       ...props,
       breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
@@ -3677,7 +3880,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_68, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_69, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -3717,17 +3920,17 @@ var normalizeSorterPayload = (sorter) => {
   const items = Array.isArray(sorter) ? sorter : [sorter];
   return normalizeColumnSortPreference(items);
 };
-var resolveNextColumnSort = (current, sorterPayload, sortIntent) => {
+var resolveNextColumnSort = (current2, sorterPayload, sortIntent) => {
   const nextFromTable = normalizeSorterPayload(sorterPayload);
   if (!sortIntent) {
-    return nextFromTable.length > 0 ? nextFromTable : current;
+    return nextFromTable.length > 0 ? nextFromTable : current2;
   }
   const { fieldKey, additive } = sortIntent;
   const clickedSort = nextFromTable.find((item) => item.fieldKey === fieldKey);
   if (!additive) {
     return clickedSort ? [clickedSort] : [];
   }
-  const withoutClicked = current.filter((item) => item.fieldKey !== fieldKey);
+  const withoutClicked = current2.filter((item) => item.fieldKey !== fieldKey);
   return clickedSort ? [...withoutClicked, clickedSort] : withoutClicked;
 };
 var getSortPriority = (columnSort, fieldKey) => {
@@ -3836,19 +4039,19 @@ var renderSharedGalleryCard = ({
 };
 
 // src/components/DynamicResource/analysis/aggregation.ts
-var _12 = (text) => {
+var _13 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
 var COUNT_SERIES_KEY = "__count__";
 var CATEGORY_LABEL_SEPARATOR = " \u2022 ";
 var getSummaryFnOptions = () => [
-  { label: _12("Sum"), value: "sum" },
-  { label: _12("Average"), value: "avg" },
-  { label: _12("Count"), value: "count" },
-  { label: _12("Max"), value: "max" },
-  { label: _12("Min"), value: "min" },
-  { label: _12("Std Dev"), value: "stddev" }
+  { label: _13("Sum"), value: "sum" },
+  { label: _13("Average"), value: "avg" },
+  { label: _13("Count"), value: "count" },
+  { label: _13("Max"), value: "max" },
+  { label: _13("Min"), value: "min" },
+  { label: _13("Std Dev"), value: "stddev" }
 ];
 var summarizeValues = (values, fn) => {
   if (values.length === 0) return 0;
@@ -3916,7 +4119,7 @@ var resolveSeries = (numericFields, selectedSeriesKeys) => {
   const seriesLabels = numericFields.reduce((acc, field) => {
     acc[field.key] = field.label;
     return acc;
-  }, { [COUNT_SERIES_KEY]: _12("Count") });
+  }, { [COUNT_SERIES_KEY]: _13("Count") });
   return { seriesKeys: selectedValid.length > 0 ? selectedValid : rawSeriesKeys, seriesLabels };
 };
 var aggregateChartData = ({
@@ -3981,7 +4184,7 @@ var aggregateChartData = ({
   const filteredRawRows = data.filter((record) => allowedGroupKeys.has(groupLabelOf(record)));
   return { groups, seriesKeys, seriesLabels, filteredRawRows };
 };
-var _13 = window._ || ((text) => text);
+var _14 = window._ || ((text) => text);
 var openPdfWindow = (title, bodyHtml) => {
   const pdfWindow = window.open("", "_blank", "width=960,height=720");
   if (!pdfWindow) return;
@@ -4027,16 +4230,16 @@ var buildStatsHtml = (statsSummary) => {
             </tr>
         `).join("");
   const numericSection = statsSummary.numericStats.length > 0 ? `
-            <h3>${_13("Numeric columns")}</h3>
+            <h3>${_14("Numeric columns")}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>${_13("Field")}</th>
-                  <th>${_13("Sum")}</th>
-                  <th>${_13("Average")}</th>
-                  <th>${_13("Min")}</th>
-                  <th>${_13("Max")}</th>
-                  <th>${_13("Std Dev")}</th>
+                  <th>${_14("Field")}</th>
+                  <th>${_14("Sum")}</th>
+                  <th>${_14("Average")}</th>
+                  <th>${_14("Min")}</th>
+                  <th>${_14("Max")}</th>
+                  <th>${_14("Std Dev")}</th>
                 </tr>
               </thead>
               <tbody>${numericRows}</tbody>
@@ -4054,8 +4257,8 @@ var buildStatsHtml = (statsSummary) => {
                     <table>
                       <thead>
                         <tr>
-                          <th>${_13("Value")}</th>
-                          <th>${_13("Count")}</th>
+                          <th>${_14("Value")}</th>
+                          <th>${_14("Count")}</th>
                         </tr>
                       </thead>
                       <tbody>${countRows}</tbody>
@@ -4063,7 +4266,7 @@ var buildStatsHtml = (statsSummary) => {
                 `;
   }).join("") : "";
   return `
-        <h2>${_13("Stats")}</h2>
+        <h2>${_14("Stats")}</h2>
         ${numericSection}
         ${categoricalSection}
     `;
@@ -4080,7 +4283,7 @@ var buildStatsSummary = (rows, fields, labelCache) => {
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _13("Yes") : _13("No");
+    if (field.type === "boolean") return raw ? _14("Yes") : _14("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   };
@@ -4399,7 +4602,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
     }
   );
 };
-var _14 = window._ || ((text) => text);
+var _15 = window._ || ((text) => text);
 var StorageFieldValue = ({ storageKey }) => {
   const [busy, setBusy] = useState(false);
   const filename = storageKey.split("/").slice(1).join("/") || storageKey;
@@ -4408,7 +4611,7 @@ var StorageFieldValue = ({ storageKey }) => {
     try {
       const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
       const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
-      if (!res.ok) throw new Error(_14("Download failed."));
+      if (!res.ok) throw new Error(_15("Download failed."));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -4417,7 +4620,7 @@ var StorageFieldValue = ({ storageKey }) => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      message.error(err?.message || _14("Download failed."));
+      message.error(err?.message || _15("Download failed."));
     } finally {
       setBusy(false);
     }
@@ -4425,7 +4628,7 @@ var StorageFieldValue = ({ storageKey }) => {
   return /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), loading: busy, onClick: handleDownload, children: filename });
 };
 dayjs10.extend(relativeTime2);
-var _15 = window._ || ((text) => text);
+var _16 = window._ || ((text) => text);
 var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
@@ -4535,7 +4738,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
         value: value === null || value === void 0 ? "" : String(value),
         autoSize: { minRows: 3, maxRows: 18 },
         style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _15(field.key),
+        placeholder: _16(field.key),
         readOnly: true
       }
     );
@@ -4568,7 +4771,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
   }
   return value ?? "-";
 };
-var _16 = window._ || ((text) => text);
+var _17 = window._ || ((text) => text);
 var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
 var COUNT_KEY = "__count__";
 var CrosstabTable = ({
@@ -4594,7 +4797,7 @@ var CrosstabTable = ({
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
   const seriesLabel = useCallback(
     (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _16("Count");
+      if (seriesKey === COUNT_KEY) return _17("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
@@ -4736,15 +4939,15 @@ var CrosstabTable = ({
       if (!editable || newAggregate === null || Number.isNaN(newAggregate)) return;
       const records = contributingRecords(rowLabel, colLabel, seriesKey);
       if (records.length === 0) return;
-      const current = cellAggregate(rowLabel, colLabel, seriesKey);
-      if (current !== null && Math.abs(current - newAggregate) < 1e-9) return;
+      const current2 = cellAggregate(rowLabel, colLabel, seriesKey);
+      if (current2 !== null && Math.abs(current2 - newAggregate) < 1e-9) return;
       const updates = computeProration(records, seriesKey, newAggregate);
       if (records.length > 1 && editable.confirmProration !== false) {
         Modal.confirm({
-          title: _16("Distribute value across records"),
+          title: _17("Distribute value across records"),
           width: 520,
           content: /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _16("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _17("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
             /* @__PURE__ */ jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
               /* @__PURE__ */ jsx("span", { children: rec?._label ?? recordId(rec) }),
               /* @__PURE__ */ jsxs("span", { style: { color: token.colorTextTertiary }, children: [
@@ -4754,8 +4957,8 @@ var CrosstabTable = ({
               ] })
             ] }, String(recordId(rec)))) })
           ] }),
-          okText: _16("Apply"),
-          cancelText: _16("Cancel"),
+          okText: _17("Apply"),
+          cancelText: _17("Cancel"),
           onOk: () => editable.onCommitCell(updates)
         });
         return;
@@ -4765,10 +4968,10 @@ var CrosstabTable = ({
     [editable, contributingRecords, cellAggregate, computeProration, recordId, effectiveValue, token.colorTextTertiary]
   );
   if (!rowField && !colField) {
-    return /* @__PURE__ */ jsx(Empty, { description: _16("Crosstab needs at least one category field.") });
+    return /* @__PURE__ */ jsx(Empty, { description: _17("Crosstab needs at least one category field.") });
   }
   if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _16("No data available for this view.") });
+    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _17("No data available for this view.") });
   }
   const headerCellStyle = {
     background: token.colorBgLayout,
@@ -4933,7 +5136,7 @@ var ensurePlotly = () => {
 var getPlotly = () => window.Plotly;
 
 // src/components/DynamicResource/analysis/chartTheme.ts
-var _17 = (text) => {
+var _18 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -4968,7 +5171,7 @@ var CHART_THEME_COLORS = {
   dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
-var getChartEmptyMessage = () => _17(CHART_EMPTY_MESSAGE);
+var getChartEmptyMessage = () => _18(CHART_EMPTY_MESSAGE);
 var buildStandardChartLayout = (dark, title, overrides = {}) => {
   const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
   const axis = {
@@ -5350,7 +5553,7 @@ var AnalysisChart = (props) => {
 };
 
 // src/components/DynamicResource/analysis/chartCatalog.ts
-var _18 = (text) => {
+var _19 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -5394,7 +5597,7 @@ var normalizeChartTypeId = (id, fallback = DEFAULT_CHART_TYPE) => {
   return LEGACY_CHART_TYPE_IDS[raw] ?? fallback;
 };
 var getChartTypeDef = (id) => CHART_TYPE_BY_ID.get(id);
-var getChartTypeLabel = (id) => _18(CHART_TYPE_BY_ID.get(id)?.label ?? id);
+var getChartTypeLabel = (id) => _19(CHART_TYPE_BY_ID.get(id)?.label ?? id);
 var getFrontendChartTypes = () => CHART_TYPES.filter((def) => def.frontend);
 var ICONS = {
   AreaChartOutlined,
@@ -5419,7 +5622,7 @@ var ChartTypeIcon = ({ chartType }) => {
   if (!Icon) return null;
   return /* @__PURE__ */ jsx(Icon, { rotate: def?.iconRotate || void 0 });
 };
-var _19 = window._ || ((text) => text);
+var _20 = window._ || ((text) => text);
 var getChartTypeOptions = () => getFrontendChartTypes().map((def) => ({
   value: def.id,
   title: getChartTypeLabel(def.id),
@@ -5493,21 +5696,21 @@ var AnalyzePanel = ({
   const plotsIndividualRows = ["scatter", "bubble", "scatter3d", "histogram", "box"].includes(chartType);
   const waitingForServer = Boolean(serverAggregation && !serverAggregation.hasResult && !serverAggregation.error);
   const axisRoles = {
-    scatter: [_19("X"), _19("Y")],
-    bubble: [_19("X"), _19("Y"), _19("Bubble size")],
-    scatter3d: [_19("X"), _19("Y"), _19("Z")]
+    scatter: [_20("X"), _20("Y")],
+    bubble: [_20("X"), _20("Y"), _20("Bubble size")],
+    scatter3d: [_20("X"), _20("Y"), _20("Z")]
   };
   const axisSeries = chartData.seriesKeys.filter((key) => key !== COUNT_SERIES_KEY);
   const axisHint = axisRoles[chartType] && axisSeries.length > 0 ? axisRoles[chartType].map((role, index) => `${role}: ${chartData.seriesLabels[axisSeries[Math.min(index, axisSeries.length - 1)]] || ""}`).join(" \xB7 ") : null;
   const category3Options = [
-    { label: _19("None"), value: "__none__" },
+    { label: _20("None"), value: "__none__" },
     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
   ];
   return /* @__PURE__ */ jsx(
     Card,
     {
       size: "small",
-      title: /* @__PURE__ */ jsx("span", { style: { color: tone.text, fontWeight: 600 }, children: _19("Analyze") }),
+      title: /* @__PURE__ */ jsx("span", { style: { color: tone.text, fontWeight: 600 }, children: _20("Analyze") }),
       styles: {
         header: {
           background: `linear-gradient(135deg, ${tone.solid}18 0%, ${tone.solid}0a 100%)`
@@ -5536,15 +5739,15 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _19("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _19("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _19("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _19("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _19("Export chart") }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _20("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _20("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _20("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _20("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _20("Export chart") }) })
                   ] }),
                   serverAggregation?.error && /* @__PURE__ */ jsx(Alert, { type: "error", showIcon: true, message: serverAggregation.error }),
                   waitingForServer ? /* @__PURE__ */ jsxs("div", { style: { padding: 48, textAlign: "center", color: token.colorTextSecondary }, children: [
                     /* @__PURE__ */ jsx(Spin, {}),
-                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _19("Aggregating on the server...") })
+                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _20("Aggregating on the server...") })
                   ] }) : isCrosstab ? /* @__PURE__ */ jsx(
                     CrosstabTable,
                     {
@@ -5578,7 +5781,7 @@ var AnalyzePanel = ({
                       graphRef: chartGraphRef
                     }
                   ),
-                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _19("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
+                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _20("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
                   /* @__PURE__ */ jsx(
                     Collapse,
                     {
@@ -5587,11 +5790,11 @@ var AnalyzePanel = ({
                       items: [
                         {
                           key: "configure-chart",
-                          label: _19("Customize chart"),
+                          label: _20("Customize chart"),
                           children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                             /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Category 1") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 1") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5602,12 +5805,12 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _19("Select category")
+                                    placeholder: _20("Select category")
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Category 2") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 2") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5618,14 +5821,14 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _19("None"), value: "__none__" },
+                                      { label: _20("None"), value: "__none__" },
                                       ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Category 3") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 3") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5640,7 +5843,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Chart Type") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Chart Type") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5658,7 +5861,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Summary") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Summary") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5673,7 +5876,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 180 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Ranking Filter") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Ranking Filter") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5684,15 +5887,15 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _19("None"), value: "none" },
-                                      { label: _19("Top N"), value: "top" },
-                                      { label: _19("Bottom N"), value: "bottom" }
+                                      { label: _20("None"), value: "none" },
+                                      { label: _20("Top N"), value: "top" },
+                                      { label: _20("Bottom N"), value: "bottom" }
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("Ranking Column") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Ranking Column") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -5703,13 +5906,13 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _19("Select numeric column"),
+                                    placeholder: _20("Select numeric column"),
                                     disabled: rankingMode === "none" || numericFields.length === 0
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 120 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _19("N") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("N") }),
                                 /* @__PURE__ */ jsx(
                                   InputNumber,
                                   {
@@ -5728,8 +5931,8 @@ var AnalyzePanel = ({
                             ] }),
                             /* @__PURE__ */ jsxs("div", { children: [
                               /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _19("Series") }),
-                                /* @__PURE__ */ jsx(Tooltip, { title: _19("Unselect All"), children: /* @__PURE__ */ jsx(
+                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _20("Series") }),
+                                /* @__PURE__ */ jsx(Tooltip, { title: _20("Unselect All"), children: /* @__PURE__ */ jsx(
                                   Button,
                                   {
                                     size: "small",
@@ -5749,7 +5952,7 @@ var AnalyzePanel = ({
                                     markAnalyzePrefsTouched();
                                     setSelectedSeriesKeys(values);
                                   },
-                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _19("Count"), value: COUNT_SERIES_KEY }]
+                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _20("Count"), value: COUNT_SERIES_KEY }]
                                 }
                               ),
                               axisHint && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary, marginTop: 6 }, children: axisHint })
@@ -5776,11 +5979,11 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _19("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _19("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _20("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _20("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _19("Numeric columns") }), children: /* @__PURE__ */ jsxs(
+                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _20("Numeric columns") }), children: /* @__PURE__ */ jsxs(
                       Table,
                       {
                         dataSource: statsSummary.numericStats,
@@ -5791,18 +5994,18 @@ var AnalyzePanel = ({
                           /* @__PURE__ */ jsx(
                             Table.Column,
                             {
-                              title: _19("Field"),
+                              title: _20("Field"),
                               dataIndex: "label",
                               render: (label) => /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: label }),
                               onHeaderCell: () => ({ style: statsHeaderStyle })
                             },
                             "label"
                           ),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _19("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _19("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _19("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _19("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _19("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                          /* @__PURE__ */ jsx(Table.Column, { title: _20("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _20("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _20("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _20("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _20("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                         ]
                       }
                     ) }),
@@ -5814,7 +6017,7 @@ var AnalyzePanel = ({
                         items: [
                           {
                             key: "categorical-columns",
-                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _19("Categorical columns (distinct < 20)") }),
+                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _20("Categorical columns (distinct < 20)") }),
                             children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12 }, children: [
                               /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: field.label }) }),
                               /* @__PURE__ */ jsxs(
@@ -5825,11 +6028,11 @@ var AnalyzePanel = ({
                                   pagination: false,
                                   rowKey: (row) => row.value,
                                   children: [
-                                    /* @__PURE__ */ jsx(Table.Column, { title: _19("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                    /* @__PURE__ */ jsx(Table.Column, { title: _20("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                     /* @__PURE__ */ jsx(
                                       Table.Column,
                                       {
-                                        title: _19("Count"),
+                                        title: _20("Count"),
                                         dataIndex: "count",
                                         align: "right",
                                         onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -5858,7 +6061,7 @@ var AnalyzePanel = ({
     }
   );
 };
-var _20 = window._ || ((text) => text);
+var _21 = window._ || ((text) => text);
 var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
   const { token } = theme.useToken();
   const {
@@ -5887,11 +6090,11 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
       style: { marginBottom: 12 },
       items: [{
         key: "crosstab-config",
-        label: /* @__PURE__ */ jsx(Tooltip, { title: _20("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+        label: /* @__PURE__ */ jsx(Tooltip, { title: _21("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 1 (rows)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Category 1 (rows)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5902,12 +6105,12 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _20("Select category")
+                  placeholder: _21("Select category")
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 2 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Category 2 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5918,14 +6121,14 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _20("None"), value: "__none__" },
+                    { label: _21("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Category 3 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Category 3 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5936,7 +6139,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _20("None"), value: "__none__" },
+                    { label: _21("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
@@ -5945,7 +6148,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Cell fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Cell fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5958,13 +6161,13 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _20("All numeric fields"),
+                  placeholder: _21("All numeric fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Summary") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Summary") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5979,7 +6182,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _20("Filter fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _21("Filter fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -5992,19 +6195,19 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _20("Select filter fields"),
+                  placeholder: _21("Select filter fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _20("Save configuration"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _20("Save configuration") }) }) })
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _21("Save configuration"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _21("Save configuration") }) }) })
         ] })
       }]
     }
   );
 };
-var _21 = window._ || ((text) => text);
+var _22 = window._ || ((text) => text);
 var useAnalyzeSettings = ({
   model,
   apiUrl,
@@ -6075,9 +6278,9 @@ var useAnalyzeSettings = ({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      message.success(_21("Analyze preferences saved."));
+      message.success(_22("Analyze preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _21("Failed to save analyze preferences."));
+      message.error(error instanceof Error ? error.message : _22("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -6218,7 +6421,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     return merged;
   }, [pageLabelCache, serverResult, model.fields]);
   const formatCategoryValue = useCallback((field, record) => {
-    if (!field) return _21("All");
+    if (!field) return _22("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -6229,7 +6432,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _21("Yes") : _21("No");
+    if (field.type === "boolean") return raw ? _22("Yes") : _22("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -6290,7 +6493,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const sampleInfo = serverResult && (serverResult.sample_rows || []).length < serverResult.total_rows ? { shown: serverResult.sample_rows.length, total: serverResult.total_rows } : null;
   const chartTitle = useMemo(() => {
     const labelOf = (key) => key ? model.fields.find((field) => field.key === key)?.label : null;
-    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _21("All")];
+    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _22("All")];
     [categoryField2, categoryField3].forEach((key) => {
       const label = labelOf(key);
       if (label) parts.push(label);
@@ -6469,7 +6672,7 @@ var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => 
 };
 
 // src/components/DynamicResource/analysis/useServerAnalyze.ts
-var _22 = (text) => {
+var _23 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -6531,7 +6734,7 @@ var useServerAnalyze = (options) => {
         setError(null);
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : _22("Failed to aggregate on the server."));
+        setError(e instanceof Error ? e.message : _23("Failed to aggregate on the server."));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -6543,6 +6746,54 @@ var useServerAnalyze = (options) => {
   }, [request]);
   return { result, loading, error };
 };
+var ALWAYS_ON2 = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
+function useLicensePool() {
+  const [pool, setPool] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await authenticatedFetch(`${API_URL3}/licensing/status`);
+        if (!cancelled) {
+          setPool(res.ok ? await res.json() : null);
+        }
+      } catch {
+        if (!cancelled) setPool(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const isModuleLicensed = useCallback(
+    (moduleName) => {
+      const key = moduleName.toLowerCase();
+      if (ALWAYS_ON2.has(key)) return true;
+      if (loading || pool === null) return true;
+      const moduleGroups = pool.module_groups ?? {};
+      const inAnyGroup2 = Object.values(moduleGroups).some(
+        (mods) => mods.map((m) => m.toLowerCase()).includes(key)
+      );
+      if (!inAnyGroup2) return true;
+      return (pool.licensed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
+    },
+    [pool, loading]
+  );
+  const isModuleWriteAllowed = useCallback(
+    (moduleName) => {
+      const key = moduleName.toLowerCase();
+      if (ALWAYS_ON2.has(key)) return true;
+      if (loading || pool === null) return true;
+      return (pool?.write_allowed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
+    },
+    [pool, loading]
+  );
+  return { pool, loading, isModuleLicensed, isModuleWriteAllowed };
+}
 var SampleRowsTable = ({ rows }) => {
   if (!rows.length) return null;
   return /* @__PURE__ */ jsx(
@@ -6562,7 +6813,7 @@ var SampleRowsTable = ({ rows }) => {
     }
   );
 };
-var _23 = window._ || ((text) => text);
+var _24 = window._ || ((text) => text);
 var SMART_IMPORT_EXPORT_MODULE = "data_import_export";
 var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
   const [file, setFile] = useState(null);
@@ -6610,7 +6861,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           detail = JSON.parse(bodyText)?.detail || bodyText;
         } catch {
         }
-        throw new Error(detail || _23("Import failed."));
+        throw new Error(detail || _24("Import failed."));
       }
       return await response.json();
     } finally {
@@ -6622,7 +6873,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       const report = await runImport(true);
       setPreview(report);
     } catch (err) {
-      message.error(err?.message || _23("Import failed."));
+      message.error(err?.message || _24("Import failed."));
     }
   };
   const handleConfirm = async () => {
@@ -6632,13 +6883,13 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       setConfirmed(true);
       onImported?.();
     } catch (err) {
-      message.error(err?.message || _23("Import failed."));
+      message.error(err?.message || _24("Import failed."));
     }
   };
   return /* @__PURE__ */ jsx(
     Modal,
     {
-      title: _23("Import CSV"),
+      title: _24("Import CSV"),
       open,
       onCancel: handleClose,
       footer: null,
@@ -6662,17 +6913,17 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
             disabled: busy,
             children: [
               /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(InboxOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _23("Click or drag a CSV file here") }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _23("Headers must match the model's field names exactly.") })
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _24("Click or drag a CSV file here") }),
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _24("Headers must match the model's field names exactly.") })
             ]
           }
         ),
         !confirmed && !preview && localFileInfo && /* @__PURE__ */ jsxs(Typography.Text, { style: { fontSize: 12, color: "#888" }, children: [
           localFileInfo.rowCount,
           " ",
-          _23("rows detected"),
+          _24("rows detected"),
           " \u2014 ",
-          _23("headers"),
+          _24("headers"),
           ": ",
           localFileInfo.headers.join(", ")
         ] }),
@@ -6681,18 +6932,18 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           {
             type: preview.errors.length > 0 ? "warning" : "success",
             showIcon: true,
-            message: confirmed ? _23("Import complete") : _23("Preview (no changes made yet)"),
+            message: confirmed ? _24("Import complete") : _24("Preview (no changes made yet)"),
             description: /* @__PURE__ */ jsxs(Fragment, { children: [
               /* @__PURE__ */ jsxs(Typography.Text, { children: [
-                _23("Rows"),
+                _24("Rows"),
                 ": ",
                 preview.total_rows,
                 " \u2014 ",
-                _23("Valid"),
+                _24("Valid"),
                 ": ",
                 preview.inserted + preview.updated,
                 " \u2014 ",
-                _23("Errors"),
+                _24("Errors"),
                 ": ",
                 preview.errors.length
               ] }),
@@ -6716,14 +6967,14 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                     )
                   },
                   columns: [
-                    { title: _23("Row"), dataIndex: "row", width: 80 },
-                    { title: _23("Error"), dataIndex: "message", ellipsis: true }
+                    { title: _24("Row"), dataIndex: "row", width: 80 },
+                    { title: _24("Error"), dataIndex: "message", ellipsis: true }
                   ]
                 }
               ),
               !!preview.sample_rows?.length && /* @__PURE__ */ jsxs(Fragment, { children: [
                 /* @__PURE__ */ jsxs(Typography.Text, { style: { display: "block", marginTop: 12 }, children: [
-                  _23("Sample of rows that will be loaded"),
+                  _24("Sample of rows that will be loaded"),
                   " (",
                   preview.sample_rows.length,
                   "/",
@@ -6746,9 +6997,9 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               borderRadius: 4
             },
             children: [
-              _23("Validation error, or custom/messy headers?"),
+              _24("Validation error, or custom/messy headers?"),
               " ",
-              _23("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
+              _24("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
               " ",
               /* @__PURE__ */ jsx(
                 Typography.Link,
@@ -6757,7 +7008,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                   href: isSmartTierInstalled ? `/data-import-export?model=${encodeURIComponent(resourcePath)}` : "https://www.juicemantics.com/iqvigilant",
                   target: isSmartTierInstalled ? void 0 : "_blank",
                   rel: isSmartTierInstalled ? void 0 : "noreferrer",
-                  children: _23("Open in IQVigilant Workbench \u2192")
+                  children: _24("Open in IQVigilant Workbench \u2192")
                 }
               )
             ]
@@ -6772,7 +7023,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: !file || busy,
               loading: busy && !preview,
               onClick: handlePreview,
-              children: _23("Preview")
+              children: _24("Preview")
             }
           ),
           !confirmed && preview && /* @__PURE__ */ jsx(
@@ -6782,10 +7033,10 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: busy,
               loading: busy,
               onClick: handleConfirm,
-              children: _23("Confirm import")
+              children: _24("Confirm import")
             }
           ),
-          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _23("Close") })
+          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _24("Close") })
         ] })
       ] })
     }
@@ -7143,7 +7394,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 };
 
 // src/components/DynamicResource/relations/helpers.ts
-var _24 = window._ || ((text) => text);
+var _25 = window._ || ((text) => text);
 var INLINE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
 var TABLE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["table", "totals-details", "crosstab", "editable-crosstab"]);
 var CROSSTAB_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["crosstab", "editable-crosstab"]);
@@ -7182,7 +7433,7 @@ var getRelationTabName = (rel, mode, fallback) => {
       return fallback;
     }
   }
-  const translatedExplicit = _24(explicit);
+  const translatedExplicit = _25(explicit);
   if (translatedExplicit !== explicit) return explicit;
   const relationKey = rel.relationName || rel.resource || "";
   if (relationKey) {
@@ -7195,11 +7446,11 @@ var getRelationTabName = (rel, mode, fallback) => {
   return explicit;
 };
 var getTabDisplayLabel = (tabName) => {
-  const direct = _24(tabName);
+  const direct = _25(tabName);
   if (direct !== tabName) return direct;
   return translateRelationKey(tabName);
 };
-var _25 = window._ || ((text) => text);
+var _26 = window._ || ((text) => text);
 var DARK_GRAY = "#444";
 var { Title } = Typography;
 var MetadataModal = ({ model, allModels, open, onClose }) => {
@@ -7230,7 +7481,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       const relations = (model.relations || []).map((r) => {
         const targetName = r.otherResource || r.resource;
         const relModel = findRelatedModel(targetName);
-        const other_label = relModel ? _25(getModelLabel(relModel)) : _25(targetName || "");
+        const other_label = relModel ? _26(getModelLabel(relModel)) : _26(targetName || "");
         return {
           relation_name: r.relationName || r.resource,
           relation_label: getRelationLabel(r),
@@ -7276,41 +7527,41 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   }, [navigate, onClose]);
   const fieldColumns = [
     {
-      title: _25("Field"),
+      title: _26("Field"),
       dataIndex: "label",
       key: "label",
       width: 160,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: tone.solid }, children: getFieldLabel(row) })
     },
     {
-      title: _25("Type"),
+      title: _26("Type"),
       dataIndex: "type",
       key: "type",
       width: 90,
-      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _25(v) })
+      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _26(v) })
     },
     {
-      title: _25("Required"),
+      title: _26("Required"),
       dataIndex: "required",
       key: "required",
       width: 80,
       render: (v) => v ? /* @__PURE__ */ jsx(CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
     },
     {
-      title: _25("Description"),
+      title: _26("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _25(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _26(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _25("Constraints"),
+      title: _26("Constraints"),
       dataIndex: "constraints",
       key: "constraints",
       width: 180,
       render: (v) => v?.length ? v.map((c, i) => /* @__PURE__ */ jsx(Tag, { style: { fontSize: 11, color: DARK_GRAY }, children: c }, i)) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _25("Valid Values"),
+      title: _26("Valid Values"),
       dataIndex: "options",
       key: "options",
       width: 200,
@@ -7324,7 +7575,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _25("Default"),
+      title: _26("Default"),
       key: "default",
       width: 120,
       render: (_v, row) => {
@@ -7334,7 +7585,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _25("Formula"),
+      title: _26("Formula"),
       dataIndex: "formula",
       key: "formula",
       render: (v) => v ? /* @__PURE__ */ jsx("code", { style: { fontSize: 12, color: DARK_GRAY }, children: v }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
@@ -7342,14 +7593,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   ];
   const relationColumns = [
     {
-      title: _25("Relation"),
+      title: _26("Relation"),
       dataIndex: "label",
       key: "label",
       width: 200,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: getRelationLabel(row) })
     },
     {
-      title: _25("Related Model"),
+      title: _26("Related Model"),
       dataIndex: "otherResource",
       key: "otherResource",
       width: 160,
@@ -7365,15 +7616,15 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
               size: "small",
               style: { padding: 0, color: relTone.solid, fontWeight: 500 },
               onClick: () => setNestedModel(related),
-              children: _25(v)
+              children: _26(v)
             }
           );
         }
-        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _25(v) });
+        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _26(v) });
       }
     },
     {
-      title: _25("Keys"),
+      title: _26("Keys"),
       key: "keys",
       width: 170,
       render: (_val, row) => /* @__PURE__ */ jsxs("span", { style: { fontSize: 12, fontFamily: "monospace", color: DARK_GRAY }, children: [
@@ -7382,25 +7633,25 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
           " \u2192 ",
           row.otherKey
         ] }) : null,
-        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _25("recursive") }) : null
+        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _26("recursive") }) : null
       ] })
     },
     {
-      title: _25("Description"),
+      title: _26("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _25(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _26(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     }
   ];
   const knowledgeGraphChildren = /* @__PURE__ */ jsxs(Fragment, { children: [
     graphLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
-    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _25("Error loading knowledge graph"), description: graphError }),
+    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _26("Error loading knowledge graph"), description: graphError }),
     graphHtml && !graphLoading && /* @__PURE__ */ jsx(ExecutableHtml, { html: graphHtml, style: { minHeight: 400 } })
   ] });
   const tabItems = [
     {
       key: "fields",
-      label: _25("Fields"),
+      label: _26("Fields"),
       children: /* @__PURE__ */ jsx(
         Table,
         {
@@ -7415,14 +7666,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     },
     ...model.relations?.length ? [{
       key: "relations",
-      label: _25("Relations"),
+      label: _26("Relations"),
       children: (() => {
         const sortByName = (a, b) => getRelationLabel(a).localeCompare(getRelationLabel(b));
         const reverseRels = (model.relations || []).filter((r) => isReverseRelation(r)).sort(sortByName);
         const forwardRels = (model.relations || []).filter((r) => !isReverseRelation(r)).sort(sortByName);
         return /* @__PURE__ */ jsxs(Fragment, { children: [
           reverseRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _25("Reverse Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _26("Reverse Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -7437,7 +7688,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             )
           ] }),
           forwardRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _25("Forward Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _26("Forward Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -7455,7 +7706,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     }] : [],
     {
       key: "knowledge_graph",
-      label: _25("Knowledge Graph"),
+      label: _26("Knowledge Graph"),
       children: knowledgeGraphChildren
     }
   ];
@@ -7466,7 +7717,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       {
         title: /* @__PURE__ */ jsxs("span", { style: { color: tone.solid }, children: [
           /* @__PURE__ */ jsx(InfoCircleOutlined, { style: { marginRight: 8 } }),
-          _25("Metadata"),
+          _26("Metadata"),
           " \u2014 ",
           moduleLabel ? `${moduleLabel} \u203A ` : "",
           modelLabel
@@ -7486,7 +7737,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             marginBottom: 16,
             fontStyle: "italic",
             border: "none"
-          }, children: _25(model.description) }),
+          }, children: _26(model.description) }),
           /* @__PURE__ */ jsx(Tabs, { items: tabItems, size: "small", activeKey: activeTab, onChange: setActiveTab })
         ]
       }
@@ -7502,17 +7753,17 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     )
   ] });
 };
-var _26 = window._ || ((text) => text);
+var _27 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = useState(initialOpen);
   useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
-  const metadataButton = /* @__PURE__ */ jsx(Tooltip, { title: _26("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
+  const metadataButton = /* @__PURE__ */ jsx(Tooltip, { title: _27("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
-var _27 = window._ || ((text) => text);
+var _28 = window._ || ((text) => text);
 var useShowEditableForm = (resource, id) => {
   const navigate = useNavigate();
   const { formProps, saveButtonProps, queryResult } = useForm({
@@ -7521,19 +7772,23 @@ var useShowEditableForm = (resource, id) => {
     id,
     redirect: false,
     successNotification: () => ({
-      message: _27("Changes saved."),
+      message: _28("Changes saved."),
       type: "success"
     })
   });
   const record = queryResult?.data?.data;
   const recordId = record?.eid ?? record?.id ?? id;
+  const { data: canEditData } = useCan({ resource, action: "edit" });
+  const canEdit = canEditData?.can !== false;
   useKeyboardShortcuts(useMemo(() => [
-    { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
+    { key: "s", ctrl: true, handler: () => {
+      if (canEdit) formProps?.form?.submit();
+    } },
     { key: "Escape", handler: () => navigate(-1) }
-  ], [formProps?.form, navigate]));
+  ], [formProps?.form, navigate, canEdit]));
   return {
-    formProps,
-    saveButtonProps,
+    formProps: canEdit ? formProps : { ...formProps, disabled: true },
+    saveButtonProps: canEdit ? saveButtonProps : { ...saveButtonProps, disabled: true },
     queryResult,
     record,
     recordId
@@ -7557,12 +7812,12 @@ var buildShowTabFormOptions = (formProps, model, allModels) => {
     effectiveFields
   };
 };
-var _28 = window._ || ((text) => text);
+var _29 = window._ || ((text) => text);
 var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
   const navigate = useNavigate();
   const allModelsList = allModels || [];
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }, children: [
-    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _28("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _29("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.name,
@@ -7571,7 +7826,7 @@ var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
         onSuccess: () => navigate(`/${resolveResourcePath(model.resource || model.name, allModelsList)}`)
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _28("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _29("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
   ] });
 };
 var renderModelHeading = ({
@@ -7731,7 +7986,7 @@ var RelatedObjectPreview = ({ resource, id, model, allModels, fallbackLabel }) =
     }
   );
 };
-var _29 = window._ || ((text) => text);
+var _30 = window._ || ((text) => text);
 var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = useApiUrl();
   const go = useGo();
@@ -7827,7 +8082,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
                 node: {
                   title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                     relationLabelNode,
-                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _29("Error") })
+                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _30("Error") })
                   ] }),
                   key: rel.relationName || rel.resource,
                   selectable: false,
@@ -7868,7 +8123,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
             node: {
               title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                 relationLabelNode,
-                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _29("Error") })
+                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _30("Error") })
               ] }),
               key: rel.relationName || rel.resource,
               selectable: false,
@@ -7903,12 +8158,12 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, {});
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, alignItems: "flex-start" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _29("Forward Relations") }),
-      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _29("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _30("Forward Relations") }),
+      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _30("None") })
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _29("Reverse Relations") }),
-      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _29("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _30("Reverse Relations") }),
+      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _30("None") })
     ] })
   ] });
 };
@@ -7919,7 +8174,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
-      `${API_URL2}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
     ).then((r) => r.json()).then((d) => {
       if (!cancelled) setPinned(Boolean(d.pinned));
     }).catch(() => {
@@ -7933,7 +8188,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
-      await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`, {
+      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resource, record_id: String(recordId) })
@@ -7948,7 +8203,7 @@ function usePinRecord(resource, recordId) {
     setLoading(true);
     try {
       await authenticatedFetch(
-        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
         { method: "DELETE" }
       );
       setPinned(false);
@@ -7963,13 +8218,13 @@ async function unpinRecords(resource, recordIds) {
   await Promise.all(
     recordIds.map(
       (id) => authenticatedFetch(
-        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
         { method: "DELETE" }
       )
     )
   );
 }
-var _30 = window._ || ((text) => text);
+var _31 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef, initialExploreOpen = false) => {
   const apiUrl = useApiUrl();
   const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -8037,7 +8292,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const configureLayoutRow = configureLayoutButtonRef?.current;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _30("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _31("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -8051,7 +8306,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _30("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _31("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -8080,7 +8335,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _30("Save")
+        children: _31("Save")
       }
     )
   ] });
@@ -8097,9 +8352,9 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
     metadataButton,
     metadataModal,
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _30("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _31("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsx("span", { style: { marginInlineStart: 10 } }),
-    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _30("Unpin") : _30("Pin to dashboard"), children: /* @__PURE__ */ jsx(
+    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _31("Unpin") : _31("Pin to dashboard"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -8108,14 +8363,14 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         loading: pinLoading
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _30("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
+    /* @__PURE__ */ jsx(Tooltip, { title: _31("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsx(
       Modal,
       {
         open: exploreOpen,
         onCancel: () => setExploreOpen(false),
         footer: null,
-        title: _30("Explore"),
+        title: _31("Explore"),
         width: "90vw",
         styles: { body: { height: "80vh", overflowY: "auto" } },
         destroyOnClose: true,
@@ -8123,7 +8378,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _30("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
+    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _31("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
   ] });
   return {
     actionsState: { showActions: showRelationActions, showCreate: showRelationCreate },
@@ -8302,8 +8557,8 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
-var _31 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_31("Sun"), _31("Mon"), _31("Tue"), _31("Wed"), _31("Thu"), _31("Fri"), _31("Sat")];
+var _32 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_32("Sun"), _32("Mon"), _32("Tue"), _32("Wed"), _32("Thu"), _32("Fri"), _32("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
 var isCalendarDateField = (field) => {
   const rawType = String(field?.type || "").trim().toLowerCase();
@@ -8359,8 +8614,8 @@ function useRoleFilteredModel(model) {
     return { ...model, fields: filtered };
   }, [model, userRoles]);
 }
-var _32 = window._ || ((text) => text);
-var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+var _33 = window._ || ((text) => text);
+var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -8373,7 +8628,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : id ?? null);
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_32("Show")} ${modelDisplayLabel}`) : `${_32("Show")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_33("Show")} ${modelDisplayLabel}`) : `${_33("Show")} ${modelDisplayLabel}`;
   const saveLayoutRef = useRef(() => {
   });
   const configureLayoutButtonRef = useRef(null);
@@ -8401,7 +8656,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
   );
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-    /* @__PURE__ */ jsx("span", { children: _32("Configure page layout") }),
+    /* @__PURE__ */ jsx("span", { children: _33("Configure page layout") }),
     /* @__PURE__ */ jsx(
       Button,
       {
@@ -8451,7 +8706,7 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _32("Show"),
+          actionLabel: _33("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: combinedHeaderButtons,
@@ -8472,7 +8727,8 @@ var DynamicShow = ({ model: modelProp, allModels, idOverride, embedded, beforeTa
     )
   ] });
 };
-var _33 = window._ || ((text) => text);
+var DynamicShow = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.embedded), children: /* @__PURE__ */ jsx(DynamicShowPage, { ...props }) });
+var _34 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
   const optionLabel = "_label";
@@ -8527,7 +8783,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
       }
     ),
     isCapped && /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }, children: [
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _33("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _34("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -8536,13 +8792,13 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
           style: { fontSize: 11, padding: 0 },
           loading: queryResult?.isLoading || queryResult?.isFetching,
           onClick: () => setLoadAll(true),
-          children: _33("Load all")
+          children: _34("Load all")
         }
       )
     ] })
   ] });
 };
-var _34 = window._ || ((text) => text);
+var _35 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = Form.useFormInstance();
   const [uploading, setUploading] = useState(false);
@@ -8551,7 +8807,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
     if (!recordId) {
-      message.error(_34("Save the record first before uploading a file."));
+      message.error(_35("Save the record first before uploading a file."));
       return false;
     }
     setUploading(true);
@@ -8575,9 +8831,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
         data_hash: result.data_hash
       });
       setFileName(result.data_name || file.name);
-      message.success(_34("File uploaded successfully."));
+      message.success(_35("File uploaded successfully."));
     } catch (err) {
-      message.error(err?.message || _34("File upload failed."));
+      message.error(err?.message || _35("File upload failed."));
     } finally {
       setUploading(false);
     }
@@ -8594,9 +8850,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       style: { padding: "8px 16px" },
       children: [
         /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _34("Uploading...") : _34("Click or drag a file here to upload") }),
+        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _35("Uploading...") : _35("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
-          _34("Current"),
+          _35("Current"),
           ": ",
           displayName
         ] })
@@ -8604,7 +8860,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
     }
   ) });
 };
-var _35 = window._ || ((text) => text);
+var _36 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
@@ -8664,19 +8920,19 @@ var AsyncSelectInput = ({
       options,
       value,
       onChange,
-      placeholder: placeholder || _35("Select..."),
+      placeholder: placeholder || _36("Select..."),
       style: { width: "100%" },
       filterOption: (input, option) => String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
     }
   );
 };
-var _36 = window._ || ((text) => text);
+var _37 = window._ || ((text) => text);
 var STORAGE_FIELD_BASE = "/api/advanced-development/media/storage-field";
 var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
   const [busy, setBusy] = useState(false);
   const handleUpload = async (file) => {
     if (!pk) {
-      message.error(_36("Save the record first before attaching a file."));
+      message.error(_37("Save the record first before attaching a file."));
       return false;
     }
     if (!modelName || !fieldName) return false;
@@ -8709,7 +8965,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
           body: file,
           headers: { "Content-Type": file.type || "application/octet-stream" }
         });
-        if (!put.ok) throw new Error(_36("Upload to storage failed."));
+        if (!put.ok) throw new Error(_37("Upload to storage failed."));
         const confirm = await authenticatedFetch(`${STORAGE_FIELD_BASE}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -8723,9 +8979,9 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
       } else {
         throw new Error(await direct.text());
       }
-      message.success(_36("File uploaded."));
+      message.success(_37("File uploaded."));
     } catch (err) {
-      message.error(err?.message || _36("File upload failed."));
+      message.error(err?.message || _37("File upload failed."));
     } finally {
       setBusy(false);
     }
@@ -8739,7 +8995,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
         const res = await authenticatedFetch(`${STORAGE_FIELD_BASE}?${qs.toString()}`, { method: "DELETE" });
         if (!res.ok) throw new Error(await res.text());
       } catch (err) {
-        message.error(err?.message || _36("Could not remove the file."));
+        message.error(err?.message || _37("Could not remove the file."));
         setBusy(false);
         return;
       }
@@ -8748,25 +9004,25 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
     onChange?.(null);
   };
   if (!pk) {
-    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _36("Save the record first, then attach a file here.") });
+    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _37("Save the record first, then attach a file here.") });
   }
   const attachedName = value ? value.split("/").slice(1).join("/") || value : null;
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs(Upload.Dragger, { beforeUpload: handleUpload, showUploadList: false, multiple: false, disabled: busy, style: { padding: "8px 16px" }, children: [
       /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _36("Uploading...") : _36("Click or drag a file here to upload") })
+      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _37("Uploading...") : _37("Click or drag a file here to upload") })
     ] }),
     attachedName && /* @__PURE__ */ jsxs("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12 }, children: [
       /* @__PURE__ */ jsxs("span", { style: { color: "#666" }, children: [
-        _36("Attached"),
+        _37("Attached"),
         ": ",
         attachedName
       ] }),
-      /* @__PURE__ */ jsx(Popconfirm, { title: _36("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
+      /* @__PURE__ */ jsx(Popconfirm, { title: _37("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
     ] })
   ] });
 };
-var _37 = window._ || ((text) => text);
+var _38 = window._ || ((text) => text);
 var ReactMarkdown3 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
   const [activeTab, setActiveTab] = useState("preview");
@@ -8780,12 +9036,12 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       items: [
         {
           key: "preview",
-          label: _37("Preview"),
+          label: _38("Preview"),
           children: /* @__PURE__ */ jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown3, { children: value }) }) })
         },
         {
           key: "edit",
-          label: _37("Edit"),
+          label: _38("Edit"),
           children: /* @__PURE__ */ jsx(
             Input.TextArea,
             {
@@ -8912,7 +9168,7 @@ var renderInput = (field, allModels, model, currentId) => {
     return /* @__PURE__ */ jsx(FileUploadInput, {});
   }
   const isNlSentenceField = resolvedField.key === "nl_sentence" || resolvedField.key === "nl_asks_sentence";
-  const sentenceFieldHelper = _37(resolvedField.key);
+  const sentenceFieldHelper = _38(resolvedField.key);
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsx(
       Input.TextArea,
@@ -8941,15 +9197,15 @@ var renderInput = (field, allModels, model, currentId) => {
     const isSelfRef = refResource && modelResource && refResource === modelResource;
     return /* @__PURE__ */ jsx(RelationSelect, { field: resolvedField, allModels, excludeId: isSelfRef ? currentId : void 0 });
   }
-  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_37("Select")} ${_37(resolvedField.label)}...` });
+  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_38("Select")} ${_38(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsx(Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
     case "boolean":
       return /* @__PURE__ */ jsx(Checkbox, {});
     case "date":
-      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _37("Select date") });
+      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _38("Select date") });
     case "datetime":
-      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _37("Select date and time") });
+      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _38("Select date and time") });
     case "time":
       return /* @__PURE__ */ jsx(TimePicker, { style: { width: "100%" } });
     case "number":
@@ -8958,10 +9214,10 @@ var renderInput = (field, allModels, model, currentId) => {
       return /* @__PURE__ */ jsx(Input, {});
   }
 };
-var _38 = window._ || ((text) => text);
+var _39 = window._ || ((text) => text);
 var { Title: Title2 } = Typography;
 var requiredMark = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
-var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
+var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -9018,7 +9274,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       if (canAutoRelate && relateResource && relateTargetKey && relateOtherKey && relateTargetId) {
         try {
           if (createdId === void 0 || createdId === null) {
-            throw new Error(_38("Could not resolve the new record id to create the relation."));
+            throw new Error(_39("Could not resolve the new record id to create the relation."));
           }
           const relationPayload = {
             [relateTargetKey]: relateTargetId,
@@ -9033,7 +9289,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
             throw new Error(`Failed to create relation (${relationResponse.status})`);
           }
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _38("Failed to create relation."));
+          message.error(error instanceof Error ? error.message : _39("Failed to create relation."));
         }
       }
       const hasModelRelations = (model.relations || []).length > 0;
@@ -9048,7 +9304,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
       }
     },
     successNotification: () => ({
-      message: _38("Changes saved."),
+      message: _39("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -9178,8 +9434,8 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   }, [createdRecord, model.name, model.resource, go]);
   const renderHeaderButtons = ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons);
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(Tooltip, { title: _38("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
-    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _38("Done") })
+    /* @__PURE__ */ jsx(Tooltip, { title: _39("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
+    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _39("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
   const relationTabEntries = useMemo(() => {
@@ -9205,7 +9461,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const hasRelationTabs = relationTabEntries.length > 0;
   const renderFormCell = (item, index) => {
     if (item.attribute_or_relation_type === "relation") {
-      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _38("Available after saving") }, `${item.name}-rel-ph-${index}`);
+      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _39("Available after saving") }, `${item.name}-rel-ph-${index}`);
     }
     const key = item.object_name || item.name;
     const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
@@ -9302,8 +9558,8 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     const maxCol = Math.max(1, ...normalized.map((r) => r.column));
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
-      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _38(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_68, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_69, colIdx) => {
+      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _39(section) }),
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -9370,7 +9626,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         {
           type: "info",
           showIcon: true,
-          message: _38("Save the record first to add relations."),
+          message: _39("Save the record first to add relations."),
           style: { marginTop: 8 }
         }
       );
@@ -9404,7 +9660,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
   const tabItems = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_38("Details"), modelTone),
+      label: renderToneTabLabel(_39("Details"), modelTone),
       children: detailsContent
     },
     ...relationTabEntries.map(({ tabName, tone }) => ({
@@ -9425,7 +9681,7 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         {
           saveButtonProps: { ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" },
           headerButtons: renderHeaderButtons,
-          title: renderWrappedPageTitle(`${_38("Create")} ${modelDisplayLabel}`),
+          title: renderWrappedPageTitle(`${_39("Create")} ${modelDisplayLabel}`),
           children: /* @__PURE__ */ jsx(
             Form,
             {
@@ -9444,12 +9700,12 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
                       body: JSON.stringify({ eid_from: eidFrom, eid_to: eidTo })
                     });
                     if (res.ok) successCount++;
-                    else message.error(`${_38("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
+                    else message.error(`${_39("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
                   } catch {
-                    message.error(`${_38("Failed to create relation for")} eid_to=${eidTo}`);
+                    message.error(`${_39("Failed to create relation for")} eid_to=${eidTo}`);
                   }
                 }
-                if (successCount > 0) message.success(`${successCount} ${_38("relation(s) created.")}`);
+                if (successCount > 0) message.success(`${successCount} ${_39("relation(s) created.")}`);
                 if (returnTo) navigate(returnTo);
               },
               children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !f.isPk && !f.formula).map((field) => {
@@ -9480,14 +9736,14 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
         saveButtonProps: isPostCreate ? { ...saveButtonProps, style: { display: "none" }, hideText: true } : { ...saveButtonProps, hideText: true },
         headerButtons: isPostCreate ? renderPostCreateHeaderButtons : renderHeaderButtons,
         title: renderWrappedPageTitle(
-          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_38("Create")} ${modelDisplayLabel}`
+          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_39("Create")} ${modelDisplayLabel}`
         ),
         children: [
           isPostCreate && /* @__PURE__ */ jsx(
             Alert,
             {
               type: "success",
-              message: _38("Record created. You can now manage relations below."),
+              message: _39("Record created. You can now manage relations below."),
               showIcon: true,
               style: { marginBottom: 12 }
             }
@@ -9506,17 +9762,18 @@ var DynamicCreate = ({ model: modelProp, allModels, journeyCallbacks, injectedVa
     )
   ] });
 };
-var _39 = (text) => translateText(text, text);
+var DynamicCreate = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "create", children: /* @__PURE__ */ jsx(DynamicCreatePage, { ...props }) });
+var _40 = (text) => translateText(text, text);
 var { Text: Text2 } = Typography;
 var VIEW_TYPE_OPTIONS = [
-  { label: _39("Default (from model schema)"), value: "" },
-  { label: _39("Table"), value: "table" },
-  { label: _39("Gallery"), value: "gallery" },
-  { label: _39("Image"), value: "image" },
-  { label: _39("Calendar"), value: "calendar" },
-  { label: _39("Totals / Details"), value: "totals-details" },
-  { label: _39("Primary"), value: "primary" },
-  { label: _39("List"), value: "list" }
+  { label: _40("Default (from model schema)"), value: "" },
+  { label: _40("Table"), value: "table" },
+  { label: _40("Gallery"), value: "gallery" },
+  { label: _40("Image"), value: "image" },
+  { label: _40("Calendar"), value: "calendar" },
+  { label: _40("Totals / Details"), value: "totals-details" },
+  { label: _40("Primary"), value: "primary" },
+  { label: _40("List"), value: "list" }
 ];
 var nextGridPosition = (cells) => {
   if (!cells.length) return { row: 0, col: 0 };
@@ -9602,53 +9859,53 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     onSave({ ...config, tabs: nextTabs });
     onClose();
   };
-  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _39(t.name) }));
+  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _40(t.name) }));
   return /* @__PURE__ */ jsx(
     Drawer,
     {
-      title: cell?.source_type === "plotly_chart" ? `${_39("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" ? `${_39("Configure section")}: ${cell?.section_name ? _39(cell.section_name) : cell?.model ?? ""}` : `${_39("Configure cell")}: ${cell?.model ?? ""}`,
+      title: cell?.source_type === "plotly_chart" ? `${_40("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" ? `${_40("Configure section")}: ${cell?.section_name ? _40(cell.section_name) : cell?.model ?? ""}` : `${_40("Configure cell")}: ${cell?.model ?? ""}`,
       placement: "right",
       width: 380,
       open,
       onClose,
       footer: /* @__PURE__ */ jsxs(Space, { style: { justifyContent: "flex-end", width: "100%", display: "flex" }, children: [
-        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _39("Cancel") }),
-        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _39("Save") })
+        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _40("Cancel") }),
+        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _40("Save") })
       ] }),
       children: /* @__PURE__ */ jsxs(Form, { form, layout: "vertical", size: "small", children: [
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("Tab") }),
-        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _39("Tab name"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("Tab") }),
+        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _40("Tab name"), children: /* @__PURE__ */ jsx(
           AutoComplete,
           {
             options: tabOptions,
             filterOption: false,
-            placeholder: _39("Select existing or type a new name")
+            placeholder: _40("Select existing or type a new name")
           }
         ) }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("Position") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("Position") }),
         /* @__PURE__ */ jsxs(Space, { children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _39("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _39("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _40("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _40("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
         ] }),
         (cell?.source_type === "model" || cell?.source_type === "named_query") && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("View") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _39("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("View") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _40("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
         ] }),
         cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("Chart") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _39("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _39("e.g. Confidence by Month") }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _39("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("Chart") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _40("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _40("e.g. Confidence by Month") }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _40("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("Size") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("Size") }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _39("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _39("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _40("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _40("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
         ] }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, style: { marginTop: 8 }, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _39("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _39("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _40("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _40("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _39("Style") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _40("Style") }),
         /* @__PURE__ */ jsx(
           Form.Item,
           {
@@ -9784,8 +10041,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_68) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _68(text) });
+function buildGridDensityMarks(_69) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _69(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -9796,15 +10053,15 @@ function buildGridDensityMarks(_68) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_68) {
+function buildGridDensityLabelText(_69) {
   return {
-    original: _68("Original"),
-    small: _68("Small"),
-    fit: _68("Page"),
-    "fit-row": _68("Row"),
-    "fit-cell": _68("Cell"),
-    medium: _68("Medium"),
-    large: _68("Large")
+    original: _69("Original"),
+    small: _69("Small"),
+    fit: _69("Page"),
+    "fit-row": _69("Row"),
+    "fit-cell": _69("Cell"),
+    medium: _69("Medium"),
+    large: _69("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -9832,11 +10089,11 @@ function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPaddin
     if (!el) return;
     const effectiveRows = gridDensity === "fit" ? numRows : 1;
     const findScrollableAncestor = (node) => {
-      let current = node.parentElement;
-      while (current && current !== document.body) {
-        const overflowY = window.getComputedStyle(current).overflowY;
-        if (overflowY === "auto" || overflowY === "scroll") return current;
-        current = current.parentElement;
+      let current2 = node.parentElement;
+      while (current2 && current2 !== document.body) {
+        const overflowY = window.getComputedStyle(current2).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return current2;
+        current2 = current2.parentElement;
       }
       return null;
     };
@@ -9867,8 +10124,8 @@ function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPaddin
   }, [gridDensity, numRows]);
   return fitRowHeight;
 }
-var _40 = (text) => translateText(text, text);
-var CarouselPositionBadge = ({ corner, current, total }) => {
+var _41 = (text) => translateText(text, text);
+var CarouselPositionBadge = ({ corner, current: current2, total }) => {
   const { token } = theme.useToken();
   const positionStyle = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
   return /* @__PURE__ */ jsxs("div", { style: {
@@ -9882,12 +10139,12 @@ var CarouselPositionBadge = ({ corner, current, total }) => {
     color: token.colorTextSecondary,
     border: `1px solid ${token.colorBorderSecondary}`
   }, children: [
-    current,
+    current2,
     " / ",
     total
   ] });
 };
-var RowPositionToolbar = ({ current, total, onFirst, onLast, onPrevRow }) => {
+var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow }) => {
   const { token } = theme.useToken();
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [
     onPrevRow && /* @__PURE__ */ jsx(Button, { shape: "circle", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), onClick: onPrevRow }),
@@ -9902,7 +10159,7 @@ var RowPositionToolbar = ({ current, total, onFirst, onLast, onPrevRow }) => {
       color: token.colorTextSecondary,
       border: `1px solid ${token.colorBorderSecondary}`
     }, children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _40("Go to first row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _41("Go to first row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -9912,12 +10169,12 @@ var RowPositionToolbar = ({ current, total, onFirst, onLast, onPrevRow }) => {
           style: { height: 18, minWidth: 18, padding: 0 }
         }
       ) }),
-      current !== void 0 && /* @__PURE__ */ jsxs("span", { style: { padding: "0 2px" }, children: [
-        current,
+      current2 !== void 0 && /* @__PURE__ */ jsxs("span", { style: { padding: "0 2px" }, children: [
+        current2,
         " / ",
         total
       ] }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _40("Go to last row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _41("Go to last row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -10070,7 +10327,7 @@ var FitRowCellCarousel = React6.forwardRef(({ cellsByRow, gridDensity, rowHeight
   );
 });
 FitRowCellCarousel.displayName = "FitRowCellCarousel";
-var _41 = (text) => translateText(text, text);
+var _42 = (text) => translateText(text, text);
 var SECTIONS_ORIGINAL_MIN_ROW_PX = 80;
 var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onMove, onResize, children }) => {
   const { token } = theme.useToken();
@@ -10187,15 +10444,15 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
       )
     ] }),
     isConfiguring && /* @__PURE__ */ jsxs("div", { className: "jm-cell-toolbar", style: toolbarStyle, children: [
-      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _41(cell.section_name) : cell.id }),
+      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _42(cell.section_name) : cell.id }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _41("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _41("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _41("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _41("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _41("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _41("Restore") : _41("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _41("Restore") : _41("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
+        /* @__PURE__ */ jsx(Tooltip, { title: _42("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _42("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _42("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _42("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _42("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _42("Restore") : _42("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _42("Restore") : _42("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
       ] })
     ] }),
     (!isMinimized || !isConfiguring) && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children })
@@ -10242,7 +10499,7 @@ var SectionsGrid = React6.forwardRef(({ cells, config, tabId, renderContent, onC
     boxSizing: "border-box"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _41("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _42("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;
   const renderCell = (cell) => /* @__PURE__ */ jsx(
@@ -10318,7 +10575,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_68, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -10353,7 +10610,7 @@ var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabel
     }
   );
 };
-var _42 = window._ || ((text) => text);
+var _43 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(void 0);
@@ -10387,19 +10644,19 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
           excludeId: isSelfRef ? currentId : void 0
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _42("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _42("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _43("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _43("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
     ] });
   }
   if (!value) {
     return /* @__PURE__ */ jsxs("div", { style: row, children: [
       /* @__PURE__ */ jsx("span", { children: "-" }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _42("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _43("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
     ] });
   }
   return /* @__PURE__ */ jsxs("div", { style: row, children: [
     /* @__PURE__ */ jsx(ReferenceField, { id: value, resource }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _42("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _43("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
 var NLSentenceBlock = ({
@@ -10463,7 +10720,7 @@ var NLSentenceBlock = ({
     !loading && html !== null && /* @__PURE__ */ jsx(ExecutableHtml, { html })
   ] });
 };
-var _43 = window._ || ((text) => text);
+var _44 = window._ || ((text) => text);
 var { Title: Title3 } = Typography;
 var requiredMark2 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 function coerce(v) {
@@ -10691,10 +10948,10 @@ var SectionCellContent = ({
     return { css, html };
   }, [rawSnippet]);
   return /* @__PURE__ */ jsxs("div", { style: { padding: "4px 6px" }, children: [
-    /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _43(sectionName) }),
+    /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _44(sectionName) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_68, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_69, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -10836,7 +11093,7 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
   }, [isConfiguring]);
   return { config, loading, save, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange };
 }
-var _44 = window._ || ((text) => text);
+var _45 = window._ || ((text) => text);
 var SCALABLE_SHOW = /* @__PURE__ */ new Set([
   "csv",
   "read-and-edit-csv",
@@ -10889,22 +11146,22 @@ var LEVEL_TO_EDIT = {
   6: "editable-table"
 };
 var DATA_DETAIL_LEVEL_LABELS = [
-  _44("Original"),
-  _44("Minimal"),
-  _44("Compact"),
-  _44("Summary"),
-  _44("Expandable"),
-  _44("Expanded"),
-  _44("Analyze")
+  _45("Original"),
+  _45("Minimal"),
+  _45("Compact"),
+  _45("Summary"),
+  _45("Expandable"),
+  _45("Expanded"),
+  _45("Analyze")
 ];
 var DATA_DETAIL_LEVEL_TOOLTIPS = [
-  _44("Shows each relation using its original configured view type with no slider overrides applied."),
-  _44("Sets all relations to CSV view. Great for summary quick reading."),
-  _44("Sets all relations to List view. Great for quick reading."),
-  _44("Sets relations to Crosstab. Great for analyzing trends."),
-  _44("Sets relations to Totals-Details. Great for going from summaries to details."),
-  _44("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
-  _44("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
+  _45("Shows each relation using its original configured view type with no slider overrides applied."),
+  _45("Sets all relations to CSV view. Great for summary quick reading."),
+  _45("Sets all relations to List view. Great for quick reading."),
+  _45("Sets relations to Crosstab. Great for analyzing trends."),
+  _45("Sets relations to Totals-Details. Great for going from summaries to details."),
+  _45("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
+  _45("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
 ];
 function getViewTypeLevel(viewType, mode) {
   const map = mode === "show" ? SHOW_VIEW_LEVELS : EDIT_VIEW_LEVELS;
@@ -11080,7 +11337,7 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
     isActive
   };
 }
-var _45 = window._ || ((text) => text);
+var _46 = window._ || ((text) => text);
 var requiredMark3 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var emptyLayoutConfig = {
   isConfiguring: false,
@@ -11124,12 +11381,12 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
   const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_45), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_45);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_46), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_46);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _45("Cell size"),
+      label: _46("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -11218,7 +11475,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const items = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_45("Details"), modelTone),
+      label: renderToneTabLabel(_46("Details"), modelTone),
       children: /* @__PURE__ */ jsxs("div", { style: { paddingBottom: 2 }, children: [
         configLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
         !configLoading && !hasConfig && /* @__PURE__ */ jsx(Form, { ...editFormProps, size: "small", children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginTop: 0 }, children: effectiveFields.filter((f) => !f.isPk).map((field) => /* @__PURE__ */ jsxs(
@@ -11332,7 +11589,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_45(tabName), modelTone),
+      label: renderToneTabLabel(_46(tabName), modelTone),
       children: tabChildren
     };
   });
@@ -11341,8 +11598,8 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig, cellSizeControl };
 };
-var _46 = window._ || ((text) => text);
-var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+var _47 = window._ || ((text) => text);
+var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -11383,7 +11640,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       }
     } : {},
     successNotification: () => ({
-      message: _46("Changes saved."),
+      message: _47("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -11404,7 +11661,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_46("Edit")} ${modelDisplayLabel}`) : `${_46("Edit")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_47("Edit")} ${modelDisplayLabel}`) : `${_47("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
   const [showRelationActions, setShowRelationActions] = useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
@@ -11498,13 +11755,13 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       }
       message.success(
-        withRelations ? _46("Object duplicated with relations.") : _46("Object duplicated.")
+        withRelations ? _47("Object duplicated with relations.") : _47("Object duplicated.")
       );
       if (newId) {
         go({ to: { resource: model.resource || model.name, action: "edit", id: newId } });
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _46("Failed to duplicate object."));
+      message.error(error instanceof Error ? error.message : _47("Failed to duplicate object."));
     } finally {
       setIsDuplicating(false);
     }
@@ -11553,7 +11810,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
   const canConfigureLayout = canLayoutData?.can !== false;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _46("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _47("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -11567,7 +11824,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _46("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _47("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -11583,7 +11840,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     hasConfig && canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
       /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-        /* @__PURE__ */ jsx("span", { children: _46("Configure page layout") }),
+        /* @__PURE__ */ jsx("span", { children: _47("Configure page layout") }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -11607,7 +11864,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _46("Save")
+        children: _47("Save")
       }
     )
   ] });
@@ -11628,9 +11885,9 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
-    recordId && /* @__PURE__ */ jsx(Tooltip, { title: _46("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
+    recordId && /* @__PURE__ */ jsx(Tooltip, { title: _47("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
     record && /* @__PURE__ */ jsxs(Fragment, { children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _46("Duplicate"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _47("Duplicate"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -11639,7 +11896,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
           loading: isDuplicating
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _46("Duplicate with relations"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _47("Duplicate with relations"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -11649,9 +11906,9 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         }
       ) })
     ] }),
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _46("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _47("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
-    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _46("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _47("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.resource || model.name,
@@ -11660,7 +11917,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _46("Save"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _47("Save"), children: /* @__PURE__ */ jsx(
       Button,
       {
         ...saveButtonProps,
@@ -11683,7 +11940,7 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _46("Edit"),
+          actionLabel: _47("Edit"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: renderHeaderButtons,
@@ -11695,7 +11952,8 @@ var DynamicEdit = ({ model: modelProp, allModels, topContent, extraHeaderButtons
     )
   ] });
 };
-var _47 = window._ || ((text) => text);
+var DynamicEdit = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "update", children: /* @__PURE__ */ jsx(DynamicEditPage, { ...props }) });
+var _48 = window._ || ((text) => text);
 var requiredMark4 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var emptyLayoutConfig2 = {
   isConfiguring: false,
@@ -11735,12 +11993,12 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
   const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_47), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_47);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_48), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_48);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _47("Cell size"),
+      label: _48("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -11828,7 +12086,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   };
   const detailsTab = {
     key: "details",
-    label: renderToneTabLabel(_47("Details"), modelTone),
+    label: renderToneTabLabel(_48("Details"), modelTone),
     children: /* @__PURE__ */ jsxs(
       Form,
       {
@@ -11993,7 +12251,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_47(tabName), { text: token.colorText, border: token.colorBorder }),
+      label: renderToneTabLabel(_48(tabName), { text: token.colorText, border: token.colorBorder }),
       children: tabChildren
     };
   });
@@ -12361,7 +12619,7 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
     paginationProps && /* @__PURE__ */ jsx(Pagination, { ...paginationProps })
   ] });
 };
-var _48 = window._ || ((text) => text);
+var _49 = window._ || ((text) => text);
 var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   useGo();
   const { token } = theme.useToken();
@@ -12424,13 +12682,13 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     return grouped;
   }, [calendarEntries]);
   const rangeDays = useMemo(() => {
-    const current = calendarAnchorDate.startOf(calendarMode);
+    const current2 = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
-      const start2 = current.startOf("week");
+      const start2 = current2.startOf("week");
       return Array.from({ length: 7 }, (_unused, offset) => start2.add(offset, "day"));
     }
-    const start = current.startOf("month").startOf("week");
-    const end = current.endOf("month").endOf("week");
+    const start = current2.startOf("month").startOf("week");
+    const end = current2.endOf("month").endOf("week");
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
@@ -12444,8 +12702,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   }, [calendarAnchorDate, calendarMode]);
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _48("No date/datetime fields available for calendar view.") });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _48("No related records available.") });
+  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _49("No date/datetime fields available for calendar view.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _49("No related records available.") });
   const selectedDateField = relatedModel.fields.find((field) => field.key === calendarDateField);
   const selectedLabel = selectedDateField?.label || calendarDateField;
   return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
@@ -12458,8 +12716,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: calendarMode,
             onChange: (value) => setCalendarMode(value),
             options: [
-              { label: _48("Monthly"), value: "month" },
-              { label: _48("Weekly"), value: "week" }
+              { label: _49("Monthly"), value: "month" },
+              { label: _49("Weekly"), value: "week" }
             ],
             style: { minWidth: 120 }
           }
@@ -12472,35 +12730,35 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             onChange: (value) => setCalendarDateField(value),
             options: dateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
             style: { minWidth: 220 },
-            placeholder: _48("Date field")
+            placeholder: _49("Date field")
           }
         )
       ] }),
       /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _48("Previous"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _49("Previous"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-            "aria-label": _48("Previous"),
+            "aria-label": _49("Previous"),
             onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _48("Today"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _49("Today"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-            "aria-label": _48("Today"),
+            "aria-label": _49("Today"),
             onClick: () => setCalendarAnchorDate(dayjs10().startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _48("Next"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _49("Next"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-            "aria-label": _48("Next"),
+            "aria-label": _49("Next"),
             onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
           }
         ) })
@@ -12593,12 +12851,12 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     )
   ] });
 };
-var _49 = window._ || ((text) => text);
+var _50 = window._ || ((text) => text);
 var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName }) => {
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _49("No related objects.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _50("No related objects.") });
   return /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 8 }, children: records.map((item) => {
     const id = item?.eid ?? item?.id;
     return /* @__PURE__ */ jsx(
@@ -12613,7 +12871,7 @@ var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName
     );
   }) });
 };
-var _50 = window._ || ((text) => text);
+var _51 = window._ || ((text) => text);
 var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "gallery" }) => {
   const fill = variant === "image";
   const apiUrl = useApiUrl();
@@ -12629,7 +12887,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!records.length) return /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
     /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-    _50("No images available")
+    _51("No images available")
   ] });
   return /* @__PURE__ */ jsx("div", { style: fill ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
     const id = getGalleryItemId(item);
@@ -12654,7 +12912,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
     });
   }) });
 };
-var _51 = window._ || ((text) => text);
+var _52 = window._ || ((text) => text);
 var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const go = useGo();
   const paneNav = usePaneNavigation();
@@ -12753,7 +13011,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
               const d = String(body.detail);
               if (d.toLowerCase().includes("unique") || d.toLowerCase().includes("duplicate")) {
                 const optLabel = allOptions.find((o) => o.id === id)?.label ?? String(id);
-                detail = `"${optLabel}" ${_51("is already linked to another record and cannot be added here.")}`;
+                detail = `"${optLabel}" ${_52("is already linked to another record and cannot be added here.")}`;
               } else {
                 detail = d;
               }
@@ -12772,9 +13030,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSelectedIds(new Set(newBaseline));
       if (errors.length > 0) {
         message.error(errors[0], 6);
-        if (errors.length > 1) message.warning(`${errors.length - 1} ${_51("other error(s) occurred.")}`, 4);
+        if (errors.length > 1) message.warning(`${errors.length - 1} ${_52("other error(s) occurred.")}`, 4);
       } else {
-        message.success(_51("Changes saved."));
+        message.success(_52("Changes saved."));
         setEditing(false);
         setSearchText("");
       }
@@ -12782,7 +13040,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       const newItems = allOptions.filter((opt) => newBaseline.has(opt.id)).map((opt) => ({ id: opt.id, label: opt.label, resource: otherResource }));
       setLocalItems(newItems);
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _51("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _52("Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -12802,7 +13060,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
     const relatedModel = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
     const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
     if (!relatedResource) {
-      message.warning(_51("No create route for the related model. Opening relation create form."));
+      message.warning(_52("No create route for the related model. Opening relation create form."));
       params.append(rel.targetKey, String(recordId));
       const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
       if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -12821,7 +13079,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!editing) {
     return /* @__PURE__ */ jsxs("div", { style: { minHeight: 22 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _51("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
+      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _52("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
       items.length === 0 && total === 0 ? /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontStyle: "italic" }, children: "\u2014" }) : /* @__PURE__ */ jsxs(Fragment, { children: [
         /* @__PURE__ */ jsx("ul", { style: { margin: 0, paddingLeft: 16 }, children: items.map((item, index) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(
           "a",
@@ -12860,7 +13118,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_68, newPageSize) => {
+            onShowSizeChange: (_69, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -12892,7 +13150,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
         Input,
         {
           prefix: /* @__PURE__ */ jsx(SearchOutlined, { style: { color: token.colorTextSecondary } }),
-          placeholder: _51("Search..."),
+          placeholder: _52("Search..."),
           value: searchText,
           onChange: (e) => setSearchText(e.target.value),
           allowClear: true,
@@ -12900,9 +13158,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
           style: { flex: 1 }
         }
       ),
-      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _51("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
+      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _52("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
     ] }),
-    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _51("No options") }) : sortedOptions.map((opt) => {
+    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _52("No options") }) : sortedOptions.map((opt) => {
       const checked = selectedIds.has(opt.id);
       return /* @__PURE__ */ jsxs(
         "div",
@@ -12939,12 +13197,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       );
     }) }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }, children: [
-      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _51("Cancel") }),
-      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _51("Save") })
+      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _52("Cancel") }),
+      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _52("Save") })
     ] })
   ] });
 };
-var _52 = window._ || ((text) => text);
+var _53 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
@@ -13024,7 +13282,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!rel.otherResource || !rel.otherKey) {
-    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _52("editable-csv requires a many-to-many relation"), showIcon: true });
+    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _53("editable-csv requires a many-to-many relation"), showIcon: true });
   }
   return /* @__PURE__ */ jsx(
     Select,
@@ -13035,14 +13293,14 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       options: allOptions,
       loading: optionsLoading || saving,
       style: { width: "100%" },
-      placeholder: `${_52("Select")} ${_52(rel.label)}...`,
+      placeholder: `${_53("Select")} ${_53(rel.label)}...`,
       optionFilterProp: "label",
       showSearch: true,
       allowClear: true
     }
   );
 };
-var _53 = window._ || ((text) => text);
+var _54 = window._ || ((text) => text);
 var { Title: Title4 } = Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
@@ -13293,9 +13551,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_53("Layout preferences saved."));
+      message.success(_54("Layout preferences saved."));
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _53("Failed to save layout preferences."));
+      message.error(error2 instanceof Error ? error2.message : _54("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -13382,11 +13640,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_53("View name already exists. Choose a new name."));
+      message.error(_54("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_53('Choose a new name or enable "Save as new view".'));
+      message.error(_54('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -13442,7 +13700,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_53("View name already exists."));
+      message.error(_54("View name already exists."));
       return;
     }
     try {
@@ -13455,18 +13713,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_53("View renamed."));
+      message.success(_54("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _53("Failed to rename view."));
+      message.error(error2 instanceof Error ? error2.message : _54("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _53(_53("Delete view")),
+      title: _54(_54("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _53("Delete"),
+      okText: _54("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -13479,10 +13737,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_53("View deleted."));
+          message.success(_54("View deleted."));
           await loadViewNames();
         } catch (error2) {
-          message.error(error2 instanceof Error ? error2.message : _53("Failed to delete view."));
+          message.error(error2 instanceof Error ? error2.message : _54("Failed to delete view."));
         }
       }
     });
@@ -13859,9 +14117,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
     Modal.confirm({
-      title: _53("Delete"),
-      content: _53("Are you sure you want to delete this relation?"),
-      okText: _53("Delete"),
+      title: _54("Delete"),
+      content: _54("Are you sure you want to delete this relation?"),
+      okText: _54("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -13882,9 +14140,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             const itemDeleteId = rel.targetKey && rel.otherKey ? `${itemRelationRow[rel.targetKey]}:${itemRelationRow[rel.otherKey]}` : itemRelationRow?.id ?? itemRelationRow?.eid;
             return String(itemDeleteId) !== String(deleteId);
           }));
-          message.success(_53("Relation deleted."));
+          message.success(_54("Relation deleted."));
         } catch (err) {
-          message.error(err instanceof Error ? err.message : _53("Failed to delete relation."));
+          message.error(err instanceof Error ? err.message : _54("Failed to delete relation."));
         }
       }
     });
@@ -14234,7 +14492,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _53("All"),
+          placeholder: _54("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -14294,7 +14552,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _53("Yes") : _53("No");
+    if (field.type === "boolean") return raw ? _54("Yes") : _54("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -14406,7 +14664,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _53("Yes") : _53("No");
+    if (field.type === "boolean") return raw ? _54("Yes") : _54("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -14464,13 +14722,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const getSummaryFunctionDisplayText = (fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _53("Sum"),
-      avg: _53("Average"),
-      count: _53("Count"),
-      max: _53("Max"),
-      min: _53("Min"),
-      stddev: _53("Std Dev"),
-      distinct: _53("Distinct")
+      sum: _54("Sum"),
+      avg: _54("Average"),
+      count: _54("Count"),
+      max: _54("Max"),
+      min: _54("Min"),
+      stddev: _54("Std Dev"),
+      distinct: _54("Distinct")
     };
     return labels[fn] || fn;
   };
@@ -14546,12 +14804,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             ]
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _53("Show totals") : _53("Show details"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _54("Show totals") : _54("Show details"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-            "aria-label": isTotalsDetailsFlipped ? _53("Show totals") : _53("Show details"),
+            "aria-label": isTotalsDetailsFlipped ? _54("Show totals") : _54("Show details"),
             onClick: () => setIsTotalsDetailsFlipped((prev) => !prev),
             style: {
               flexShrink: 0,
@@ -14563,7 +14821,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         ) })
       ] }),
       relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _53("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _54("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -14574,7 +14832,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               setFullDataLoaded(false);
               setLoadAllRelatedRequested(true);
             },
-            children: _53("Load all related")
+            children: _54("Load all related")
           }
         )
       ] })
@@ -14585,7 +14843,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _53("Hide view configuration") : _53("Show view configuration"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _54("Hide view configuration") : _54("Show view configuration"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -14597,11 +14855,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 return next;
               });
             },
-            "aria-label": columnsSelectorOpen ? _53("Hide view configuration") : _53("Show view configuration")
+            "aria-label": columnsSelectorOpen ? _54("Hide view configuration") : _54("Show view configuration")
           }
         ) }),
         showCreate && recordId !== void 0 && recordId !== null && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _53("Associate existing") : _53("Add relation"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _54("Associate existing") : _54("Add relation"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -14634,7 +14892,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               }
             }
           ) }),
-          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _53("Create new and relate"), children: /* @__PURE__ */ jsx(
+          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _54("Create new and relate"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -14648,7 +14906,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 const relatedModel2 = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
                 const relatedResource = relatedModel2 ? resolveResourcePath(relatedModel2.resource || relatedModel2.name, allModels) : null;
                 if (!relatedResource) {
-                  message.warning(_53("No create route for the related model. Opening relation create form."));
+                  message.warning(_54("No create route for the related model. Opening relation create form."));
                   params.append(rel.targetKey, String(recordId));
                   if (allowInlineEdit) params.append("inline", "1");
                   const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
@@ -14667,7 +14925,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ) })
         ] }),
-        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _53("Save"), children: /* @__PURE__ */ jsx(
+        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _54("Save"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -14675,10 +14933,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
             onClick: saveAllEdits,
             loading: savingAll,
-            "aria-label": _53("Save")
+            "aria-label": _54("Save")
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _53("Export CSV"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _54("Export CSV"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -14693,20 +14951,20 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: saveViewModalOpen,
-        title: _53("Save view"),
+        title: _54("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _53("Save layout") : _53("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _54("Save layout") : _54("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _53("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _54("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _53("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _54("Save as new view") })
         ] })
       }
     ),
@@ -14714,10 +14972,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: renameViewModalOpen,
-        title: _53("Rename view"),
+        title: _54("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _53("Rename"),
+        okText: _54("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -14727,11 +14985,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _53("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _54("Filters") }),
           /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(
             Input,
             {
-              placeholder: _53("Search all fields..."),
+              placeholder: _54("Search all fields..."),
               prefix: /* @__PURE__ */ jsx(SearchOutlined, {}),
               allowClear: true,
               value: localSearch,
@@ -14749,31 +15007,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _53("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _54("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _53("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _53("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _54("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _54("No filters yet.") }) : filterRules.map((rule) => {
                 const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _53("="), value: "eq" },
-                  { label: _53(">"), value: "gt" },
-                  { label: _53(">="), value: "gte" },
-                  { label: _53("<"), value: "lt" },
-                  { label: _53("<="), value: "lte" },
-                  { label: _53("Between"), value: "between" }
+                  { label: _54("="), value: "eq" },
+                  { label: _54(">"), value: "gt" },
+                  { label: _54(">="), value: "gte" },
+                  { label: _54("<"), value: "lt" },
+                  { label: _54("<="), value: "lte" },
+                  { label: _54("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _53("On"), value: "on" },
-                  { label: _53("After"), value: "after" },
-                  { label: _53("Before"), value: "before" },
-                  { label: _53("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _53("Is"), value: "is" }] : [
-                  { label: _53("Contains"), value: "contains" },
-                  { label: _53("Equals"), value: "equals" }
+                  { label: _54("On"), value: "on" },
+                  { label: _54("After"), value: "after" },
+                  { label: _54("Before"), value: "before" },
+                  { label: _54("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _54("Is"), value: "is" }] : [
+                  { label: _54("Contains"), value: "contains" },
+                  { label: _54("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -14786,9 +15044,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _53("Previous"), value: "previous" },
-                            { label: _53("Current"), value: "current" },
-                            { label: _53("Next"), value: "next" }
+                            { label: _54("Previous"), value: "previous" },
+                            { label: _54("Current"), value: "current" },
+                            { label: _54("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -14798,11 +15056,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _53("Days"), value: "days" },
-                            { label: _53("Weeks"), value: "weeks" },
-                            { label: _53("Months"), value: "months" },
-                            { label: _53("Quarters"), value: "quarters" },
-                            { label: _53("Years"), value: "years" }
+                            { label: _54("Days"), value: "days" },
+                            { label: _54("Weeks"), value: "weeks" },
+                            { label: _54("Months"), value: "months" },
+                            { label: _54("Quarters"), value: "quarters" },
+                            { label: _54("Years"), value: "years" }
                           ]
                         }
                       )
@@ -14824,7 +15082,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: relatedModel.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _53("Field")
+                      placeholder: _54("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -14834,7 +15092,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _53("Operator")
+                      placeholder: _54("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -14867,10 +15125,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _53("True"), value: true },
-                        { label: _53("False"), value: false }
+                        { label: _54("True"), value: true },
+                        { label: _54("False"), value: false }
                       ],
-                      placeholder: _53("Value")
+                      placeholder: _54("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -14883,7 +15141,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _53("Value"),
+                      placeholder: _54("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -14896,8 +15154,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _53("Date"), value: "absolute" },
-                        { label: _53("Relative"), value: "relative" }
+                        { label: _54("Date"), value: "absolute" },
+                        { label: _54("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -14910,8 +15168,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _53("Date"), value: "absolute" },
-                        { label: _53("Relative"), value: "relative" }
+                        { label: _54("Date"), value: "absolute" },
+                        { label: _54("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -14921,7 +15179,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _53("Remove")
+                      children: _54("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -14933,14 +15191,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _53("Add Filter")
+                    children: _54("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _53("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _54("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _53("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _54("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -14961,12 +15219,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _53("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _53("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _54("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _54("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _53("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _54("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -14978,7 +15236,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _53("Rename view")
+                  children: _54("Rename view")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -14989,7 +15247,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _53("Delete view")
+                  children: _54("Delete view")
                 }
               ),
               layoutPreferenceType && /* @__PURE__ */ jsx(
@@ -14999,7 +15257,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _53("Save layout")
+                  children: _54("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15011,7 +15269,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _53("Show Filters") : _53("Hide Filters")
+                  children: filtersCollapsed ? _54("Show Filters") : _54("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15023,7 +15281,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setListVisible((prev) => !prev);
                   },
-                  children: _53("View list")
+                  children: _54("View list")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15037,7 +15295,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _53("Analyze")
+                  children: _54("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15049,7 +15307,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _53("Switch orientation")
+                  children: _54("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15061,21 +15319,21 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _53("Switch positions")
+                  children: _54("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _53("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _54("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _53("Reset to default") })
+              }, children: _54("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _53("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _54("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -15087,27 +15345,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _53("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _53("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _54("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _54("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = relatedModel.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _53("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _53("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _54("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _54("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _53("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _53("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _54("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _54("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _53("Sum"), value: "sum" },
-                  { label: _53("Average"), value: "avg" },
-                  { label: _53("Count"), value: "count" },
-                  { label: _53("Max"), value: "max" },
-                  { label: _53("Min"), value: "min" },
-                  { label: _53("Std Dev"), value: "stddev" }
+                  { label: _54("Sum"), value: "sum" },
+                  { label: _54("Average"), value: "avg" },
+                  { label: _54("Count"), value: "count" },
+                  { label: _54("Max"), value: "max" },
+                  { label: _54("Min"), value: "min" },
+                  { label: _54("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -15163,7 +15421,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_68, newPageSize) => {
+                    onShowSizeChange: (_69, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -15172,8 +15430,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   },
                   size: "small",
                   rowKey: (row) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row),
-                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _53("No related records") }) } : void 0,
-                  onChange: (_68, filters, sorter, extra) => {
+                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _54("No related records") }) } : void 0,
+                  onChange: (_69, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -15315,7 +15573,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     showActions && /* @__PURE__ */ jsx(
                       Table.Column,
                       {
-                        title: _53("Actions"),
+                        title: _54("Actions"),
                         width: 140,
                         render: (_unused, row) => {
                           const id = row?.eid ?? row?.id;
@@ -15323,14 +15581,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
                           return /* @__PURE__ */ jsxs(Space, { children: [
                             id && /* @__PURE__ */ jsxs(Fragment, { children: [
-                              /* @__PURE__ */ jsx(Tooltip, { title: _53("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _54("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
                                 if (paneNav?.isInMultiPane) {
                                   paneNav.openDetail(relatedModel.name, id);
                                 } else {
                                   go({ to: { resource: relatedModel.name, action: "show", id } });
                                 }
                               } }) }),
-                              /* @__PURE__ */ jsx(Tooltip, { title: _53("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _54("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
                                 if (allowInlineEdit) {
                                   const params = new URLSearchParams();
                                   params.append("inline", "1");
@@ -15342,7 +15600,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 }
                               } }) })
                             ] }),
-                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _53("Delete"), children: /* @__PURE__ */ jsx(
+                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _54("Delete"), children: /* @__PURE__ */ jsx(
                               Button,
                               {
                                 size: "small",
@@ -15362,7 +15620,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ),
           relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _53("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _54("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
             /* @__PURE__ */ jsx(
               Button,
               {
@@ -15372,7 +15630,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   setFullDataLoaded(false);
                   setLoadAllRelatedRequested(true);
                 },
-                children: _53("Load all related")
+                children: _54("Load all related")
               }
             )
           ] })
@@ -15492,7 +15750,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     }
   );
 };
-var _54 = window._ || ((text) => text);
+var _55 = window._ || ((text) => text);
 function useMillerColumnItems({
   parentId,
   rel,
@@ -15610,7 +15868,7 @@ function useMillerColumnItems({
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
-          setError(err instanceof Error ? err.message : _54("Failed to load items"));
+          setError(err instanceof Error ? err.message : _55("Failed to load items"));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -15662,7 +15920,7 @@ var MillerColumn = ({
         Empty,
         {
           image: Empty.PRESENTED_IMAGE_SIMPLE,
-          description: _54("No items"),
+          description: _55("No items"),
           style: { margin: "32px 0" }
         }
       ),
@@ -15739,12 +15997,12 @@ var DetailPaneContent = ({ node, allModels }) => {
   const model = allModels?.find((m) => m.name === node.resource);
   const showHref = getShowHref(node.resource, node.id, allModels);
   if (!model) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_54("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_55("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }, children: [
       /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0, color: token.colorTextSecondary, fontWeight: 500, flex: 1, minWidth: 0 }, children: node.label }),
-      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _54("Open in new tab"), children: /* @__PURE__ */ jsx(
+      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _55("Open in new tab"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -15850,7 +16108,7 @@ var MillerBrowserLayout = ({
     }
   };
   if (!rootId) {
-    return /* @__PURE__ */ jsx(Empty, { description: _54("No record selected") });
+    return /* @__PURE__ */ jsx(Empty, { description: _55("No record selected") });
   }
   const columnsAreaStyle = columnsWidth !== null ? { width: columnsWidth, flexShrink: 0, flexGrow: 0, minWidth: 200, overflowX: "auto", display: "flex", height: "100%" } : { width: showDetails ? "fit-content" : "100%", maxWidth: showDetails ? "50%" : "100%", flexShrink: 0, minWidth: 240, overflowX: "auto", display: "flex", height: "100%" };
   return /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -15913,7 +16171,7 @@ var MillerBrowserLayout = ({
       showDetails && /* @__PURE__ */ jsx(
         Drawer,
         {
-          title: detailNode?.label ?? _54("Details"),
+          title: detailNode?.label ?? _55("Details"),
           placement: "right",
           open: drawerOpen && !isDesktop,
           onClose: () => setDrawerOpen(false),
@@ -16252,9 +16510,9 @@ var renderRelationBlock = ({
     content
   ] }, rel.resource);
 };
-var _55 = window._ || ((text) => text);
+var _56 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
-var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -16269,8 +16527,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
   const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
   const { data: canEditData } = useCan({ resource: resourceIdentifier, action: "edit" });
+  const { data: canCreateData } = useCan({ resource: resourceIdentifier, action: "create" });
   const canBulkDelete = canDeleteData?.can !== false;
   const canBulkEdit = canEditData?.can !== false;
+  const canCreate = canCreateData?.can !== false;
   const { settings: viewSettings } = useViewSettings();
   viewSettings?.generalActionsButtonPosition || "top-right";
   const [actionsBarEl, setActionsBarEl] = useState(null);
@@ -16440,12 +16700,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           });
         }
       }
-      message.success(_55("Relations added."));
+      message.success(_56("Relations added."));
       if (selectModeReturnTo && selectModeReturnTo.startsWith("/")) {
         navigate(selectModeReturnTo);
       }
     } catch {
-      message.error(_55("Failed to add relations."));
+      message.error(_56("Failed to add relations."));
     } finally {
       setSelectModeAssociating(false);
     }
@@ -16967,7 +17227,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_55("View name already exists."));
+      message.error(_56("View name already exists."));
       return;
     }
     try {
@@ -16980,18 +17240,18 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_55("View renamed."));
+      message.success(_56("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _55("Failed to rename view."));
+      message.error(error instanceof Error ? error.message : _56("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _55(_55("Delete view")),
+      title: _56(_56("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _55("Delete"),
+      okText: _56("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -17004,10 +17264,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_55("View deleted."));
+          message.success(_56("View deleted."));
           await loadViewNames();
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _55("Failed to delete view."));
+          message.error(error instanceof Error ? error.message : _56("Failed to delete view."));
         }
       }
     });
@@ -17049,9 +17309,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_55("Layout preferences saved."));
+      message.success(_56("Layout preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _55("Failed to save layout preferences."));
+      message.error(error instanceof Error ? error.message : _56("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -17061,11 +17321,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_55("View name already exists. Choose a new name."));
+      message.error(_56("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_55('Choose a new name or enable "Save as new view".'));
+      message.error(_56('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -17209,7 +17469,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
       setAllRowsData(allRows2);
     } catch (error) {
-      setAllRowsError(error instanceof Error ? error.message : _55("Failed to fetch all rows"));
+      setAllRowsError(error instanceof Error ? error.message : _56("Failed to fetch all rows"));
     } finally {
       setIsAllRowsLoading(false);
       setAllRowsLoaded(true);
@@ -17277,10 +17537,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
       }
       setCrosstabStaged({});
-      message.success(_55("Changes saved."));
+      message.success(_56("Changes saved."));
       invalidate({ resource: model.resource || model.name, invalidates: ["list"] });
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _55("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _56("Failed to save changes."));
     } finally {
       setCrosstabSaving(false);
     }
@@ -17345,7 +17605,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _55("All"),
+          placeholder: _56("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -17355,7 +17615,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
   const crosstabBodyNode = /* @__PURE__ */ jsxs("div", { children: [
-    editableCrosstab && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _55("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _55("Save") }) }) }),
+    editableCrosstab && canBulkEdit && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _56("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _56("Save") }) }) }),
     crosstabConfigPanel,
     crosstabFilterRow,
     /* @__PURE__ */ jsx(
@@ -17372,7 +17632,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         summaryFn,
         formatCategoryValue,
         numericBarColor: crosstabBarColor,
-        editable: editableCrosstab ? {
+        editable: editableCrosstab && canBulkEdit ? {
           pkField: model.pkField || "eid",
           getStagedValue: getCrosstabStagedValue,
           onCommitCell: stageCrosstabCellEdits,
@@ -17395,7 +17655,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           } else if (field.options) {
             label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
           } else if (field.type === "boolean") {
-            label = raw ? _55("Yes") : _55("No");
+            label = raw ? _56("Yes") : _56("No");
           } else if (field.type === "date") {
             label = formatDateValue(raw);
           } else if (field.type === "datetime") {
@@ -17441,13 +17701,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const getSummaryFunctionDisplayText = useCallback((fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _55("Sum"),
-      avg: _55("Average"),
-      count: _55("Count"),
-      max: _55("Max"),
-      min: _55("Min"),
-      stddev: _55("Std Dev"),
-      distinct: _55("Distinct")
+      sum: _56("Sum"),
+      avg: _56("Average"),
+      count: _56("Count"),
+      max: _56("Max"),
+      min: _56("Min"),
+      stddev: _56("Std Dev"),
+      distinct: _56("Distinct")
     };
     return labels[fn] || fn;
   }, []);
@@ -17508,12 +17768,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           `td-num-${item.key}`
         )) })
       ] }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _55("Show totals") : _55("Show details"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _56("Show totals") : _56("Show details"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
           icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-          "aria-label": isTdFlipped ? _55("Show totals") : _55("Show details"),
+          "aria-label": isTdFlipped ? _56("Show totals") : _56("Show details"),
           onClick: () => setIsTdFlipped((prev) => !prev),
           style: {
             flexShrink: 0,
@@ -17549,7 +17809,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _55("Yes") : _55("No");
+    if (field.type === "boolean") return raw ? _56("Yes") : _56("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -17686,7 +17946,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         for (const actionKey of apiActionKeys) {
           if (actionKey === "__delete__") {
             const resp = await authenticatedFetch(`${apiUrl}/${resource}/${id}`, { method: "DELETE" });
-            if (!resp.ok) throw new Error(`${_55("Delete failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_56("Delete failed for record")} ${id}`);
           } else if (actionKey === "__change_field__") {
             if (!bulkChangeFieldKey) continue;
             const payload = { ...record, [bulkChangeFieldKey]: bulkChangeFieldValue };
@@ -17696,7 +17956,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
-            if (!resp.ok) throw new Error(`${_55("Update failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_56("Update failed for record")} ${id}`);
           } else if (actionKey === "__clone__") {
             const clonePayload = { ...record };
             delete clonePayload.eid;
@@ -17708,7 +17968,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(clonePayload)
             });
-            if (!resp.ok) throw new Error(`${_55("Clone failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_56("Clone failed for record")} ${id}`);
           } else if (actionKey === "__pin__") {
             await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
               method: "POST",
@@ -17727,11 +17987,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
       message.success(
-        _55("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
+        _56("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
       );
     } catch (e) {
       errorOccurred = true;
-      message.error(e?.message || _55("Bulk action failed"));
+      message.error(e?.message || _56("Bulk action failed"));
     } finally {
       setIsBulkExecuting(false);
       setBulkActionModalOpen(false);
@@ -17849,7 +18109,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       Table.SELECTION_NONE,
       {
         key: "select-all-filtered",
-        text: _55("Select all filtered rows"),
+        text: _56("Select all filtered rows"),
         onSelect: handleSelectAllFiltered
       }
     ]
@@ -17858,24 +18118,24 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const bulkActionsAvailable = useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
-      opts.push({ label: _55("Change field value"), value: "__change_field__" });
+      opts.push({ label: _56("Change field value"), value: "__change_field__" });
     }
-    opts.push({ label: _55("Export selected (CSV)"), value: "__export_csv__" });
-    opts.push({ label: _55("Navigate to related"), value: "__navigate_to_related__" });
-    opts.push({ label: _55("Append related list"), value: "__append_related_list__" });
-    if (canBulkEdit) {
-      opts.push({ label: _55("Clone / Duplicate selected"), value: "__clone__" });
+    opts.push({ label: _56("Export selected (CSV)"), value: "__export_csv__" });
+    opts.push({ label: _56("Navigate to related"), value: "__navigate_to_related__" });
+    opts.push({ label: _56("Append related list"), value: "__append_related_list__" });
+    if (canCreate) {
+      opts.push({ label: _56("Clone / Duplicate selected"), value: "__clone__" });
     }
     if (bulkActions && bulkActions.length > 0) {
-      bulkActions.forEach((a) => opts.push({ label: _55(a.label), value: a.key }));
+      bulkActions.forEach((a) => opts.push({ label: _56(a.label), value: a.key }));
     }
-    opts.push({ label: _55("Pin selected"), value: "__pin__" });
-    opts.push({ label: _55("Unpin selected"), value: "__unpin__" });
+    opts.push({ label: _56("Pin selected"), value: "__pin__" });
+    opts.push({ label: _56("Unpin selected"), value: "__unpin__" });
     if (canBulkDelete) {
-      opts.push({ label: _55("Delete selected"), value: "__delete__" });
+      opts.push({ label: _56("Delete selected"), value: "__delete__" });
     }
     return opts;
-  }, [bulkActions, canBulkDelete, canBulkEdit]);
+  }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
   const bulkChangeField = bulkChangeFieldKey ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null : null;
   const preFilterBanner = urlPreFilters.length > 0 ? (() => {
     const filterLabels = [];
@@ -17913,7 +18173,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       background: token.colorPrimaryBg,
       border: `1px solid ${token.colorPrimaryBorder}`
     }, children: [
-      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _55("Filtered by: {relation}").replace("{relation}", filterDescription) }),
+      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _56("Filtered by: {relation}").replace("{relation}", filterDescription) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -17926,7 +18186,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             const newSearch = newParams.toString();
             navigate({ search: newSearch ? `?${newSearch}` : "" }, { replace: true });
           },
-          children: _55("Clear filter")
+          children: _56("Clear filter")
         }
       )
     ] });
@@ -17943,9 +18203,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     background: token.colorWarningBg,
     border: `1px solid ${token.colorWarningBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _55("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _55("Select rows to associate") }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _56("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _56("Select rows to associate") }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _55("Cancel") }),
+      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _56("Cancel") }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -17954,7 +18214,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           disabled: bulkSelectedRowKeys.length === 0,
           loading: selectModeAssociating,
           onClick: handleAssociateSelected,
-          children: _55("Associate selected")
+          children: _56("Associate selected")
         }
       )
     ] })
@@ -17970,7 +18230,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     background: token.colorInfoBg,
     border: `1px solid ${token.colorInfoBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _55("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _56("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
     bulkSelectedRowKeys.length < filteredTotalCount && /* @__PURE__ */ jsx(
       Button,
       {
@@ -17979,16 +18239,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: selectAllFilteredPending && isAllRowsLoading,
         onClick: handleSelectAllFiltered,
         style: { padding: 0 },
-        children: _55("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
+        children: _56("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
       }
     ),
-    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _55("Clear selection") }),
+    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _56("Clear selection") }),
     /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 180 }, children: /* @__PURE__ */ jsx(
       Select,
       {
         mode: "multiple",
         size: "small",
-        placeholder: _55("Actions"),
+        placeholder: _56("Actions"),
         style: { width: "100%" },
         value: bulkActionsToApply,
         onChange: (values) => {
@@ -18022,7 +18282,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         Select,
         {
           size: "small",
-          placeholder: _55("Select field"),
+          placeholder: _56("Select field"),
           style: { minWidth: 160 },
           value: bulkChangeFieldKey ?? void 0,
           onChange: (v) => {
@@ -18037,7 +18297,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         Select,
         {
           size: "small",
-          placeholder: _55("Select value"),
+          placeholder: _56("Select value"),
           style: { minWidth: 180 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
@@ -18048,11 +18308,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         Select,
         {
           size: "small",
-          placeholder: _55("Select value"),
+          placeholder: _56("Select value"),
           style: { minWidth: 120 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
-          options: [{ label: _55("True"), value: true }, { label: _55("False"), value: false }],
+          options: [{ label: _56("True"), value: true }, { label: _56("False"), value: false }],
           allowClear: true
         }
       ) : bulkChangeField.type === "date" ? /* @__PURE__ */ jsx(
@@ -18066,7 +18326,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         InputNumber,
         {
           size: "small",
-          placeholder: _55("Value"),
+          placeholder: _56("Value"),
           value: bulkChangeFieldValue,
           onChange: (v) => setBulkChangeFieldValue(v),
           style: { minWidth: 120 }
@@ -18075,7 +18335,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         Input,
         {
           size: "small",
-          placeholder: _55("Value"),
+          placeholder: _56("Value"),
           value: bulkChangeFieldValue ?? "",
           onChange: (e) => setBulkChangeFieldValue(e.target.value),
           style: { minWidth: 160 }
@@ -18090,7 +18350,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         Select,
         {
           size: "small",
-          placeholder: isAppend ? _55("Select relation to append") : _55("Select relation"),
+          placeholder: isAppend ? _56("Select relation to append") : _56("Select relation"),
           style: { minWidth: 220 },
           showSearch: true,
           value: currentRelation ? `${currentRelation.targetResource}|${currentRelation.filterKey}` : void 0,
@@ -18160,7 +18420,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             setBulkActionModalOpen(true);
           }
         },
-        children: _55("Apply")
+        children: _56("Apply")
       }
     )
   ] }) : null;
@@ -18168,16 +18428,16 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     Modal,
     {
       open: bulkActionModalOpen,
-      title: _55("Confirm bulk action"),
+      title: _56("Confirm bulk action"),
       onCancel: () => {
         if (!isBulkExecuting) setBulkActionModalOpen(false);
       },
       footer: [
-        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _55("Cancel") }, "cancel"),
-        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _55("Confirm") }, "ok")
+        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _56("Cancel") }, "cancel"),
+        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _56("Confirm") }, "ok")
       ],
       children: [
-        /* @__PURE__ */ jsx("p", { children: _55("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+        /* @__PURE__ */ jsx("p", { children: _56("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
         /* @__PURE__ */ jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
           const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
@@ -18193,7 +18453,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const listTitle = !isEmbedded ? renderModelHeading({
     model,
     title: modelDisplayLabel,
-    actionLabel: _55("List"),
+    actionLabel: _56("List"),
     moduleLabel: model.module ? getModuleLabel(model.module) : void 0
   }) : void 0;
   const numericBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
@@ -18217,7 +18477,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, modelTone) }))
     }
   ) : null;
-  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _55("View list"), children: /* @__PURE__ */ jsx(
+  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _56("View list"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18234,7 +18494,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
       const response = await authenticatedFetch(`${apiUrl}/${resourcePath}/export-csv`);
       if (!response.ok) {
-        message.error(_55("Export failed."));
+        message.error(_56("Export failed."));
         return;
       }
       const blob = await response.blob();
@@ -18250,7 +18510,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+  const exportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18259,7 +18519,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18268,7 +18528,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       loading: exportRequested && isAllRowsLoading
     }
   ) }) : null;
-  const importButton = !isEmbedded && !model.isNamedQuery ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Import CSV"), children: /* @__PURE__ */ jsx(
+  const importButton = !isEmbedded && !model.isNamedQuery ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Import CSV"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18276,7 +18536,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _55("Hide view configuration") : _55("Show view configuration"), children: /* @__PURE__ */ jsx(
+  const columnsToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _56("Hide view configuration") : _56("Show view configuration"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18288,10 +18548,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           return next;
         });
       },
-      "aria-label": columnsSelectorOpen ? _55("Hide view configuration") : _55("Show view configuration")
+      "aria-label": columnsSelectorOpen ? _56("Hide view configuration") : _56("Show view configuration")
     }
   ) });
-  const createRelationButton = isRelationView && showCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Add relation"), children: /* @__PURE__ */ jsx(
+  const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Add relation"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18307,7 +18567,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     }
   ) }) : null;
-  const associateExistingFkButton = isRelationView && showCreate && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Associate existing"), children: /* @__PURE__ */ jsx(
+  const associateExistingFkButton = isRelationView && showCreate && canBulkEdit && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Associate existing"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18327,7 +18587,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     }
   ) }) : null;
-  const createNewAndRelateButton = isRelationView && showCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _55("Create new and relate"), children: /* @__PURE__ */ jsx(
+  const createNewAndRelateButton = isRelationView && showCreate && canCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _56("Create new and relate"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -18343,7 +18603,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         const relatedModel = findModelByName(allModels, relationConfig?.otherResource || relationConfig?.otherResourcePath);
         const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
         if (!relatedResource) {
-          message.warning(_55("No create route for the related model. Opening relation create form."));
+          message.warning(_56("No create route for the related model. Opening relation create form."));
           params.append(targetKey, String(targetId));
           const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
           if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -18363,7 +18623,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   const embeddedActionBar = isEmbedded ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: [
     columnsToggleButton,
     listToggleButton,
-    /* @__PURE__ */ jsx(Tooltip, { title: _55("Analyze"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _56("Analyze"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18376,7 +18636,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _55("Switch orientation"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _56("Switch orientation"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18387,7 +18647,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _55("Switch positions"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _56("Switch positions"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18398,7 +18658,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(Tooltip, { title: _55("Save layout"), children: /* @__PURE__ */ jsx(
+    resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(Tooltip, { title: _56("Save layout"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18410,7 +18670,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     associateExistingFkButton,
     createRelationButton,
     createNewAndRelateButton,
-    /* @__PURE__ */ jsx(Tooltip, { title: _55("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _56("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18419,7 +18679,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: exportLoading
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _55("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _56("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18428,7 +18688,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
         loading: exportRequested && isAllRowsLoading
       }
     ) }),
-    !model.isNamedQuery && /* @__PURE__ */ jsx(Tooltip, { title: _55("Import CSV"), children: /* @__PURE__ */ jsx(
+    !model.isNamedQuery && /* @__PURE__ */ jsx(Tooltip, { title: _56("Import CSV"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -18719,13 +18979,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     return grouped;
   }, [calendarEntries]);
   const calendarRangeDays = useMemo(() => {
-    const current = calendarAnchorDate.startOf(calendarMode);
+    const current2 = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
-      const start2 = current.startOf("week");
+      const start2 = current2.startOf("week");
       return Array.from({ length: 7 }, (_unused, offset) => start2.add(offset, "day"));
     }
-    const start = current.startOf("month").startOf("week");
-    const end = current.endOf("month").endOf("week");
+    const start = current2.startOf("month").startOf("week");
+    const end = current2.endOf("month").endOf("week");
     const totalDays = end.diff(start, "day") + 1;
     return Array.from({ length: totalDays }, (_unused, offset) => start.add(offset, "day"));
   }, [calendarAnchorDate, calendarMode]);
@@ -18754,7 +19014,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
   };
   const renderCalendarView = () => {
     if (calendarDateFieldOptions.length === 0) {
-      return /* @__PURE__ */ jsx(Empty, { description: _55("No date/datetime fields available for calendar view.") });
+      return /* @__PURE__ */ jsx(Empty, { description: _56("No date/datetime fields available for calendar view.") });
     }
     const selectedDateField = model.fields.find((field) => field.key === calendarDateField);
     const selectedLabel = selectedDateField?.label || calendarDateField;
@@ -18768,8 +19028,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               value: calendarMode,
               onChange: (value) => setCalendarMode(value),
               options: [
-                { label: _55("Monthly"), value: "month" },
-                { label: _55("Weekly"), value: "week" }
+                { label: _56("Monthly"), value: "month" },
+                { label: _56("Weekly"), value: "week" }
               ],
               style: { minWidth: 120 }
             }
@@ -18782,35 +19042,35 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               onChange: (value) => setCalendarDateField(value),
               options: calendarDateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
               style: { minWidth: 220 },
-              placeholder: _55("Date field")
+              placeholder: _56("Date field")
             }
           )
         ] }),
         /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _55("Previous"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _56("Previous"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-              "aria-label": _55("Previous"),
+              "aria-label": _56("Previous"),
               onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _55("Today"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _56("Today"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-              "aria-label": _55("Today"),
+              "aria-label": _56("Today"),
               onClick: () => setCalendarAnchorDate(dayjs10().startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _55("Next"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _56("Next"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-              "aria-label": _55("Next"),
+              "aria-label": _56("Next"),
               onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
             }
           ) })
@@ -18895,20 +19155,20 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       Modal,
       {
         open: saveViewModalOpen,
-        title: _55("Save view"),
+        title: _56("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _55("Save layout") : _55("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _56("Save layout") : _56("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _55("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _56("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _55("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _56("Save as new view") })
         ] })
       }
     ),
@@ -18916,10 +19176,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       Modal,
       {
         open: renameViewModalOpen,
-        title: _55("Rename view"),
+        title: _56("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _55("Rename"),
+        okText: _56("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -18929,7 +19189,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _55("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("Filters") }),
           /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: !filtersCollapsed && searchField && /* @__PURE__ */ jsx(
             Form,
             {
@@ -18943,7 +19203,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                 }
                 searchFormProps.onFinish?.(values);
               },
-              children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _55("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
+              children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _56("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
             }
           ) })
         ] }),
@@ -18956,31 +19216,31 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _55("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _55("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _55("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _56("No filters yet.") }) : filterRules.map((rule) => {
                 const field = model.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _55("="), value: "eq" },
-                  { label: _55(">"), value: "gt" },
-                  { label: _55(">="), value: "gte" },
-                  { label: _55("<"), value: "lt" },
-                  { label: _55("<="), value: "lte" },
-                  { label: _55("Between"), value: "between" }
+                  { label: _56("="), value: "eq" },
+                  { label: _56(">"), value: "gt" },
+                  { label: _56(">="), value: "gte" },
+                  { label: _56("<"), value: "lt" },
+                  { label: _56("<="), value: "lte" },
+                  { label: _56("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _55("On"), value: "on" },
-                  { label: _55("After"), value: "after" },
-                  { label: _55("Before"), value: "before" },
-                  { label: _55("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _55("Is"), value: "is" }] : [
-                  { label: _55("Contains"), value: "contains" },
-                  { label: _55("Equals"), value: "equals" }
+                  { label: _56("On"), value: "on" },
+                  { label: _56("After"), value: "after" },
+                  { label: _56("Before"), value: "before" },
+                  { label: _56("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _56("Is"), value: "is" }] : [
+                  { label: _56("Contains"), value: "contains" },
+                  { label: _56("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -18993,9 +19253,9 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _55("Previous"), value: "previous" },
-                            { label: _55("Current"), value: "current" },
-                            { label: _55("Next"), value: "next" }
+                            { label: _56("Previous"), value: "previous" },
+                            { label: _56("Current"), value: "current" },
+                            { label: _56("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -19005,11 +19265,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _55("Days"), value: "days" },
-                            { label: _55("Weeks"), value: "weeks" },
-                            { label: _55("Months"), value: "months" },
-                            { label: _55("Quarters"), value: "quarters" },
-                            { label: _55("Years"), value: "years" }
+                            { label: _56("Days"), value: "days" },
+                            { label: _56("Weeks"), value: "weeks" },
+                            { label: _56("Months"), value: "months" },
+                            { label: _56("Quarters"), value: "quarters" },
+                            { label: _56("Years"), value: "years" }
                           ]
                         }
                       )
@@ -19031,7 +19291,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: model.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _55("Field")
+                      placeholder: _56("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -19041,7 +19301,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _55("Operator")
+                      placeholder: _56("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -19074,10 +19334,10 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _55("True"), value: true },
-                        { label: _55("False"), value: false }
+                        { label: _56("True"), value: true },
+                        { label: _56("False"), value: false }
                       ],
-                      placeholder: _55("Value")
+                      placeholder: _56("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -19090,7 +19350,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _55("Value"),
+                      placeholder: _56("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -19103,8 +19363,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _55("Date"), value: "absolute" },
-                        { label: _55("Relative"), value: "relative" }
+                        { label: _56("Date"), value: "absolute" },
+                        { label: _56("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -19117,8 +19377,8 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _55("Date"), value: "absolute" },
-                        { label: _55("Relative"), value: "relative" }
+                        { label: _56("Date"), value: "absolute" },
+                        { label: _56("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -19128,7 +19388,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _55("Remove")
+                      children: _56("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -19140,14 +19400,14 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _55("Add Filter")
+                    children: _56("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _55("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _56("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _55("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -19168,12 +19428,12 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _55("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _55("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _56("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _56("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _55("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -19185,7 +19445,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _55("Rename view")
+                  children: _56("Rename view")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -19196,7 +19456,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _55("Delete view")
+                  children: _56("Delete view")
                 }
               ),
               resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(
@@ -19206,7 +19466,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _55("Save layout")
+                  children: _56("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -19218,7 +19478,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _55("Show Filters") : _55("Hide Filters")
+                  children: filtersCollapsed ? _56("Show Filters") : _56("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -19232,7 +19492,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _55("Analyze")
+                  children: _56("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -19244,7 +19504,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _55("Switch orientation")
+                  children: _56("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -19256,21 +19516,21 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _55("Switch positions")
+                  children: _56("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _55("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _55("Reset to default") })
+              }, children: _56("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _55("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -19282,27 +19542,27 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _55("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _55("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _56("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = model.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _55("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _55("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _56("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _56("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             isTotalsDetailsView && /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _55("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _55("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _56("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _55("Sum"), value: "sum" },
-                  { label: _55("Average"), value: "avg" },
-                  { label: _55("Count"), value: "count" },
-                  { label: _55("Max"), value: "max" },
-                  { label: _55("Min"), value: "min" },
-                  { label: _55("Std Dev"), value: "stddev" }
+                  { label: _56("Sum"), value: "sum" },
+                  { label: _56("Average"), value: "avg" },
+                  { label: _56("Count"), value: "count" },
+                  { label: _56("Max"), value: "max" },
+                  { label: _56("Min"), value: "min" },
+                  { label: _56("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -19330,19 +19590,19 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       listVisible && /* @__PURE__ */ jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isGalleryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         galleryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _55("No images available")
+          _56("No images available")
         ] }) : /* @__PURE__ */ jsx("div", { style: isImageView ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...galleryPaginationProps }) })
       ] }) : isCrosstabView ? crosstabBodyNode : isPrimaryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         primaryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _55("No records available")
+          _56("No records available")
         ] }) : primaryRows.map((record, index) => renderPrimaryItem(record, index)),
         primaryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...primaryPaginationProps }) })
       ] }) : isListView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         listRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _55("No records available")
+          _56("No records available")
         ] }) : /* @__PURE__ */ jsx("ul", { style: { margin: 0, padding: 0 }, children: listRows.map((record, index) => renderListItem(record, index)) }),
         listPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...listPaginationProps }) })
       ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -19418,13 +19678,13 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
                             selectable: false,
                             onClick: handleContextMenuClick,
                             items: [
-                              { key: "__open_show__", label: _55("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
-                              { key: "__open_new_tab__", label: _55("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
-                              { key: "__open_new_window__", label: _55("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_show__", label: _56("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
+                              { key: "__open_new_tab__", label: _56("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_new_window__", label: _56("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
                               { type: "divider" },
                               ...(bulkActionsAvailable ?? []).map((action) => ({
                                 key: action.value,
-                                label: _55(action.label)
+                                label: _56(action.label)
                               }))
                             ]
                           }
@@ -19574,17 +19834,17 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               showActions && /* @__PURE__ */ jsx(
                 Table.Column,
                 {
-                  title: _55("Actions"),
+                  title: _56("Actions"),
                   width: 140,
                   render: (_unused, record) => {
                     const { resource, id, isLinkRow } = getTargetInfo(record);
-                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_55("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
+                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_56("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxs(Space, { children: [
-                      /* @__PURE__ */ jsx(Tooltip, { title: _55("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _55("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _55("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
+                      /* @__PURE__ */ jsx(Tooltip, { title: _56("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
+                      /* @__PURE__ */ jsx(Tooltip, { title: _56("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      /* @__PURE__ */ jsx(Tooltip, { title: _56("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
                 },
@@ -19603,7 +19863,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
           numericBarColor,
           onSaveClick: () => openSaveViewModalFor("analyze"),
           customizeFooter: /* @__PURE__ */ jsxs(Fragment, { children: [
-            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _55("Loading all rows for analysis...") }),
+            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _56("Loading all rows for analysis...") }),
             allRowsError && /* @__PURE__ */ jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
           ] })
         }
@@ -19623,11 +19883,11 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
             relatedModel.label || relatedModel.name,
             /* @__PURE__ */ jsxs(Typography.Text, { type: "secondary", style: { fontSize: 13, marginLeft: 8 }, children: [
               "(",
-              _55("filtered by"),
+              _56("filtered by"),
               " ",
               entry.filterIds.length,
               " ",
-              _55("rows"),
+              _56("rows"),
               ")"
             ] })
           ] }),
@@ -19637,7 +19897,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
               size: "small",
               icon: /* @__PURE__ */ jsx(CloseOutlined, {}),
               onClick: () => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id)),
-              children: _55("Take this list out")
+              children: _56("Take this list out")
             }
           )
         ] }),
@@ -19684,7 +19944,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
       }
     ),
     isRelationView ? /* @__PURE__ */ jsx(VerticalActionsLayout, { position: "top-right", onBarMount: setActionsBarEl, children: /* @__PURE__ */ jsxs(
-      List,
+      List$1,
       {
         title: renderWrappedPageTitle(listTitle),
         resource: model.resource || model.name,
@@ -19708,6 +19968,7 @@ var DynamicList = ({ model: modelProp, allModels, filter, relationConfig, isEmbe
     )
   ] });
 };
+var DynamicList = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.isEmbedded), children: /* @__PURE__ */ jsx(DynamicListPage, { ...props }) });
 
 // src/components/MultiPane/paneUtils.ts
 function parsePanes(searchParams) {
@@ -19818,11 +20079,11 @@ function useBottomOverlayInset() {
     let observed = [];
     const update = () => {
       setInset(measureBottomOverlays());
-      const current = Array.from(document.querySelectorAll(`[${BOTTOM_OVERLAY_ATTR}]`));
-      if (resizeObserver && (current.length !== observed.length || current.some((el, i) => el !== observed[i]))) {
+      const current2 = Array.from(document.querySelectorAll(`[${BOTTOM_OVERLAY_ATTR}]`));
+      if (resizeObserver && (current2.length !== observed.length || current2.some((el, i) => el !== observed[i]))) {
         resizeObserver.disconnect();
-        current.forEach((el) => resizeObserver.observe(el));
-        observed = current;
+        current2.forEach((el) => resizeObserver.observe(el));
+        observed = current2;
       }
     };
     update();
@@ -19837,7 +20098,7 @@ function useBottomOverlayInset() {
   }, []);
   return inset;
 }
-var _56 = window._ || ((text) => text);
+var _57 = window._ || ((text) => text);
 var FakeRouteProvider = ({ model, id, children }) => {
   const existingRouteContext = useContext(UNSAFE_RouteContext);
   const fakeRouteContext = useMemo(() => ({
@@ -19870,7 +20131,7 @@ var useMainPaneLabel = (allModels) => {
     id: id ?? "",
     queryOptions: { enabled: Boolean(resourceName && id) }
   });
-  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _56("Back to list")));
+  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _57("Back to list")));
   const recordLabel = data?.data?._label;
   return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
@@ -19926,7 +20187,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
   const { token } = theme.useToken();
   const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
   const href = `/${resourcePath}/show/${pane.id}`;
-  const restoreTitle = hoverToExpand ? _56("Restore pane (also re-enables hover-to-expand)") : _56("Restore pane");
+  const restoreTitle = hoverToExpand ? _57("Restore pane (also re-enables hover-to-expand)") : _57("Restore pane");
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -19947,7 +20208,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
       children: [
         leading && /* @__PURE__ */ jsx("div", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden" }, children: leading }),
         /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _56("Open in full page"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _57("Open in full page"), children: /* @__PURE__ */ jsx(
             "a",
             {
               href,
@@ -19957,7 +20218,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } })
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _56("Minimize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _57("Minimize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -19974,7 +20235,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _56("Maximize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _57("Maximize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -19991,7 +20252,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _56("Close pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _57("Close pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -20024,7 +20285,7 @@ var PaneBody = ({ resolved, allModels, navContext, PrimaryShowRenderer, maximize
   ),
   PrimaryShowRenderer && /* @__PURE__ */ jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) })
 ] });
-var _57 = window._ || ((text) => text);
+var _58 = window._ || ((text) => text);
 var FlexPaneLayout = ({
   mode,
   entries,
@@ -20102,11 +20363,11 @@ var FlexPaneLayout = ({
     const trail = active && /* @__PURE__ */ jsx(
       Breadcrumb,
       {
-        "aria-label": _57("Panel trail"),
+        "aria-label": _58("Panel trail"),
         style: { fontSize: 12, whiteSpace: "nowrap" },
         items: [
           {
-            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _57("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
+            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _58("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
           },
           ...entries.map((e, i) => ({
             title: i === activeIdx ? /* @__PURE__ */ jsx("span", { style: { fontWeight: 600 }, children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) }) : /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(e.idx + 1), children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) })
@@ -22032,19 +22293,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _68 }) => _68).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_68) => {
-        if (_68.collapsible) {
+      const ut = R.panels.map(({ id: _69 }) => _69).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_69) => {
+        if (_69.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _68.collapsedSize,
-              ce[_68.panelId]
+              _69.collapsedSize,
+              ce[_69.panelId]
             ), dt = I(
-              _68.collapsedSize,
-              ge[_68.panelId]
+              _69.collapsedSize,
+              ge[_69.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_68.panelId] = ge[_68.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_69.panelId] = ge[_69.panelId]);
           }
         }
       });
@@ -22844,10 +23105,10 @@ var MultiPaneLayout = ({ children }) => {
       beforeNavigateRef.current?.();
       setSearchParams(
         (prev) => {
-          const current = parsePanes(prev);
+          const current2 = parsePanes(prev);
           const resolved = resolveResourcePath(resource, allModels);
           const next = [
-            ...current.slice(0, fromPaneIndex),
+            ...current2.slice(0, fromPaneIndex),
             { resource: resolved || resource.toLowerCase(), id: String(id) }
           ];
           return applyPanesToSearchParams(prev, next);
@@ -22862,8 +23123,8 @@ var MultiPaneLayout = ({ children }) => {
       beforeNavigateRef.current?.();
       setSearchParams(
         (prev) => {
-          const current = parsePanes(prev);
-          return applyPanesToSearchParams(prev, current.slice(0, fromArrayIndex));
+          const current2 = parsePanes(prev);
+          return applyPanesToSearchParams(prev, current2.slice(0, fromArrayIndex));
         },
         { replace: false }
       );
@@ -22879,7 +23140,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_68, idx) => ({
+    () => panes.map((_69, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -22904,7 +23165,7 @@ var MultiPaneLayout = ({ children }) => {
   )) });
 };
 var { Title: Title7 } = Typography;
-var _58 = window._ || ((text) => text);
+var _59 = window._ || ((text) => text);
 var HierarchyView = ({ resource, recordId, fallback }) => {
   const go = useGo();
   const { data: ancestorsData, isLoading: ancestorsLoading, error: ancestorsError } = useCustom({
@@ -22957,15 +23218,15 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
   }
   if (ancestorsError || descendantsError) {
     if (fallback) return /* @__PURE__ */ jsx(Fragment, { children: fallback });
-    return /* @__PURE__ */ jsx(Alert, { message: _58("Error loading hierarchy data"), type: "error" });
+    return /* @__PURE__ */ jsx(Alert, { message: _59("Error loading hierarchy data"), type: "error" });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     ancestorsList.length > 0 && /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _58("Parent Hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _59("Parent Hierarchy") }),
       /* @__PURE__ */ jsx(Breadcrumb, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsx(Breadcrumb.Item, { children: /* @__PURE__ */ jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
     ] }),
     treeData.length > 0 && /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _58("Sub-hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _59("Sub-hierarchy") }),
       /* @__PURE__ */ jsx(
         Tree,
         {
@@ -23192,8 +23453,7 @@ var AUTH_BASE = "/auth";
 var TOKEN_KEY2 = "jm_access_token";
 var USER_KEY2 = "jm_user";
 var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
-var RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
-var _59 = window._ || ((text) => text);
+var _60 = window._ || ((text) => text);
 var authProvider = {
   /**
    * Authenticate by username + password.
@@ -23211,8 +23471,8 @@ var authProvider = {
         return {
           success: false,
           error: {
-            name: _59("Login failed"),
-            message: body?.detail || _59("Invalid credentials")
+            name: _60("Login failed"),
+            message: body?.detail || _60("Invalid credentials")
           }
         };
       }
@@ -23221,9 +23481,10 @@ var authProvider = {
       localStorage.setItem(USER_KEY2, JSON.stringify(data.user));
       const token = data.access_token;
       try {
-        const [rolesRes, resourceRes] = await Promise.all([
+        const [rolesRes] = await Promise.all([
           fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${AUTH_BASE}/resource-permissions`, { headers: { Authorization: `Bearer ${token}` } })
+          // Effective permissions for the shared access check (stored by accessStore).
+          refreshAccess()
         ]);
         if (rolesRes.ok) {
           const roles = await rolesRes.json();
@@ -23233,10 +23494,6 @@ var authProvider = {
           }
           localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
         }
-        if (resourceRes.ok) {
-          const resourcePerms = await resourceRes.json();
-          localStorage.setItem(RESOURCE_PERMISSIONS_KEY, JSON.stringify(resourcePerms));
-        }
       } catch {
       }
       return { success: true, redirectTo: "/" };
@@ -23244,8 +23501,8 @@ var authProvider = {
       return {
         success: false,
         error: {
-          name: _59("Login failed"),
-          message: err?.message || _59("Network error")
+          name: _60("Login failed"),
+          message: err?.message || _60("Network error")
         }
       };
     }
@@ -23257,7 +23514,7 @@ var authProvider = {
     localStorage.removeItem(TOKEN_KEY2);
     localStorage.removeItem(USER_KEY2);
     localStorage.removeItem(ROLE_PERMISSIONS_KEY);
-    localStorage.removeItem(RESOURCE_PERMISSIONS_KEY);
+    clearAccess();
     return { success: true, redirectTo: "/login" };
   },
   /**
@@ -23325,8 +23582,8 @@ var authProvider = {
 // src/providers/accessControlProvider.ts
 var USER_KEY3 = "jm_user";
 var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
-var RESOURCE_PERMISSIONS_KEY2 = "jm_resource_permissions";
-var _60 = window._ || ((text) => text);
+var ADMIN_ROLE = "Admin";
+var _61 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
   Admin: ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
   Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
@@ -23345,52 +23602,40 @@ function getRoleActions() {
     Object.entries(source).map(([k, v]) => [k, new Set(v)])
   );
 }
-function getResourcePermissions() {
-  const cached = localStorage.getItem(RESOURCE_PERMISSIONS_KEY2);
-  if (!cached) return {};
-  try {
-    return JSON.parse(cached);
-  } catch {
-    return {};
-  }
-}
 var accessControlProvider = {
   can: async ({ action, resource }) => {
     const cached = localStorage.getItem(USER_KEY3);
     if (!cached) {
-      return { can: false, reason: _60("Not authenticated") };
+      return { can: false, reason: _61("Not authenticated") };
     }
     let user;
     try {
       user = JSON.parse(cached);
     } catch {
-      return { can: false, reason: _60("Not authenticated") };
+      return { can: false, reason: _61("Not authenticated") };
     }
     const roles = user?.roles ?? [];
-    if (roles.some((r) => r.toLowerCase() === "admin")) {
+    const accessAction = REFINE_TO_ACTION[action];
+    const access = getAccessSnapshot();
+    if (accessAction && access) {
+      const decision = evaluateAccess(access.context, null, resource ?? null, accessAction);
+      return decision.allowed ? { can: true } : { can: false, reason: _61("You do not have permission to perform this action.") };
+    }
+    if (roles.includes(ADMIN_ROLE)) {
       return { can: true };
     }
     const roleActions = getRoleActions();
-    const resourcePerms = getResourcePermissions();
     for (const role of roles) {
       const roleKey = Object.keys(roleActions).find(
         (k) => k.toLowerCase() === role.toLowerCase()
       ) ?? role;
-      if (resource && resourcePerms[resource]?.[roleKey] !== void 0) {
-        const allowedByException = resourcePerms[resource][roleKey];
-        if (allowedByException.includes(action)) {
-          return { can: true };
-        }
-        continue;
-      }
-      const globalActions = roleActions[roleKey];
-      if (globalActions?.has(action)) {
+      if (roleActions[roleKey]?.has(action)) {
         return { can: true };
       }
     }
     return {
       can: false,
-      reason: _60("Access denied \u2014 insufficient role for this action")
+      reason: _61("Access denied \u2014 insufficient role for this action")
     };
   },
   options: {
@@ -23495,7 +23740,7 @@ var ResourceContext = createContext({
   allResources: [],
   allSystemModels: []
 });
-var _61 = window._ || ((text) => text);
+var _62 = window._ || ((text) => text);
 var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
   const { mutate: login, isLoading, error } = useLogin();
   const [form] = Form.useForm();
@@ -23524,14 +23769,14 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
             /* @__PURE__ */ jsxs("div", { style: { textAlign: "center" }, children: [
               logo && /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle, style: { height: 48, width: "auto" } }) : logo }),
               /* @__PURE__ */ jsx(Typography.Title, { level: 3, style: { marginBottom: 4 }, children: appTitle }),
-              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _61("Sign in to your account") })
+              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _62("Sign in to your account") })
             ] }),
             error && /* @__PURE__ */ jsx(
               Alert,
               {
                 type: "error",
-                message: error?.name || _61("Login failed"),
-                description: error?.message || _61("Invalid credentials"),
+                message: error?.name || _62("Login failed"),
+                description: error?.message || _62("Invalid credentials"),
                 showIcon: true
               }
             ),
@@ -23547,13 +23792,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     Form.Item,
                     {
                       name: "username",
-                      label: _61("Username"),
-                      rules: [{ required: true, message: _61("Please enter your username") }],
+                      label: _62("Username"),
+                      rules: [{ required: true, message: _62("Please enter your username") }],
                       children: /* @__PURE__ */ jsx(
                         Input,
                         {
                           prefix: /* @__PURE__ */ jsx(UserOutlined, {}),
-                          placeholder: _61("Username"),
+                          placeholder: _62("Username"),
                           size: "large"
                         }
                       )
@@ -23563,13 +23808,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     Form.Item,
                     {
                       name: "password",
-                      label: _61("Password"),
-                      rules: [{ required: true, message: _61("Please enter your password") }],
+                      label: _62("Password"),
+                      rules: [{ required: true, message: _62("Please enter your password") }],
                       children: /* @__PURE__ */ jsx(
                         Input.Password,
                         {
                           prefix: /* @__PURE__ */ jsx(LockOutlined, {}),
-                          placeholder: _61("Password"),
+                          placeholder: _62("Password"),
                           size: "large"
                         }
                       )
@@ -23583,7 +23828,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                       loading: isLoading,
                       block: true,
                       size: "large",
-                      children: _61("Login")
+                      children: _62("Login")
                     }
                   ) })
                 ]
@@ -23645,7 +23890,7 @@ function useHelpContent(pageKey) {
   };
   return { loading, doc, fetchContent };
 }
-var _62 = window._ || ((text) => text);
+var _63 = window._ || ((text) => text);
 var ReactMarkdown4 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardCellHelp = ({ resource }) => {
   const { token } = theme.useToken();
@@ -23665,61 +23910,7 @@ var DashboardCellHelp = ({ resource }) => {
       Empty,
       {
         image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _62("No help written for this cell yet."),
-        children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "link",
-            size: "small",
-            onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _62("Write help for this")
-          }
-        )
-      }
-    )
-  ] });
-  return /* @__PURE__ */ jsx(
-    Popover,
-    {
-      open,
-      onOpenChange: handleOpenChange,
-      trigger: "click",
-      placement: "bottomRight",
-      content,
-      children: /* @__PURE__ */ jsx(
-        Button,
-        {
-          type: "text",
-          size: "small",
-          icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _62("Dashboard cell help"),
-          title: _62("Dashboard cell help"),
-          style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-        }
-      )
-    }
-  );
-};
-var _63 = window._ || ((text) => text);
-var ReactMarkdown5 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var DashboardTabHelp = ({ tabId }) => {
-  const navigate = useNavigate();
-  const pageKey = `dashboard-tab:${tabId}`;
-  const { loading, doc, fetchContent } = useHelpContent(pageKey);
-  const [open, setOpen] = useState(false);
-  const { data: canCreateHelpDoc } = useCan({ resource: "veloiq_help_document", action: "create" });
-  const handleOpenChange = (next) => {
-    setOpen(next);
-    if (next) fetchContent();
-  };
-  const content = /* @__PURE__ */ jsxs("div", { style: { width: 280 }, children: [
-    loading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }),
-    !loading && doc?.found && /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }), children: /* @__PURE__ */ jsx(ReactMarkdown5, { children: doc.body || "" }) }),
-    !loading && doc && !doc.found && /* @__PURE__ */ jsx(
-      Empty,
-      {
-        image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _63("No help written for this tab yet."),
+        description: _63("No help written for this cell yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
           Button,
           {
@@ -23746,8 +23937,62 @@ var DashboardTabHelp = ({ tabId }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _63("Dashboard tab help"),
-          title: _63("Dashboard tab help"),
+          "aria-label": _63("Dashboard cell help"),
+          title: _63("Dashboard cell help"),
+          style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+        }
+      )
+    }
+  );
+};
+var _64 = window._ || ((text) => text);
+var ReactMarkdown5 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var DashboardTabHelp = ({ tabId }) => {
+  const navigate = useNavigate();
+  const pageKey = `dashboard-tab:${tabId}`;
+  const { loading, doc, fetchContent } = useHelpContent(pageKey);
+  const [open, setOpen] = useState(false);
+  const { data: canCreateHelpDoc } = useCan({ resource: "veloiq_help_document", action: "create" });
+  const handleOpenChange = (next) => {
+    setOpen(next);
+    if (next) fetchContent();
+  };
+  const content = /* @__PURE__ */ jsxs("div", { style: { width: 280 }, children: [
+    loading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }),
+    !loading && doc?.found && /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }), children: /* @__PURE__ */ jsx(ReactMarkdown5, { children: doc.body || "" }) }),
+    !loading && doc && !doc.found && /* @__PURE__ */ jsx(
+      Empty,
+      {
+        image: Empty.PRESENTED_IMAGE_SIMPLE,
+        description: _64("No help written for this tab yet."),
+        children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
+          Button,
+          {
+            type: "link",
+            size: "small",
+            onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
+            children: _64("Write help for this")
+          }
+        )
+      }
+    )
+  ] });
+  return /* @__PURE__ */ jsx(
+    Popover,
+    {
+      open,
+      onOpenChange: handleOpenChange,
+      trigger: "click",
+      placement: "bottomRight",
+      content,
+      children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          type: "text",
+          size: "small",
+          icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
+          "aria-label": _64("Dashboard tab help"),
+          title: _64("Dashboard tab help"),
           onClick: (e) => e.stopPropagation(),
           style: { padding: "0 2px", height: 18, minWidth: 18 }
         }
@@ -23755,7 +24000,7 @@ var DashboardTabHelp = ({ tabId }) => {
     }
   );
 };
-var _64 = (text) => translateText(text, text);
+var _65 = (text) => translateText(text, text);
 var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
 var FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
 var FIT_CARD_MIN_SCALE = 0.15;
@@ -23767,7 +24012,7 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
     setLoading(true);
     setError("");
     try {
-      const apiUrl = typeof API_URL2 === "string" ? API_URL2 : "";
+      const apiUrl = typeof API_URL3 === "string" ? API_URL3 : "";
       const chartPath = apiUrl && chartUrl.startsWith(`${apiUrl}/`) ? chartUrl.slice(apiUrl.length) : chartUrl;
       const fullUrl = chartPath.startsWith("http") ? chartPath : `${apiUrl}${chartPath}`;
       const sep = fullUrl.includes("?") ? "&" : "?";
@@ -23795,10 +24040,10 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
     return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }, children: /* @__PURE__ */ jsx(Spin, {}) });
   }
   if (error) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_64("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_65("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   if (!chartHtml) {
-    return /* @__PURE__ */ jsx(Empty, { description: _64("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _65("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" }, minScale });
 };
@@ -23850,7 +24095,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   const isPlotlyChart = cell.source_type === "plotly_chart";
   const resource = model?.resource || cell.model;
   const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
-  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _64(cell.section_name) : cell.model;
+  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _65(cell.section_name) : cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
   const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
   const isNlSentenceCell = isPlotlyChart && typeof cell.model === "string" && cell.model.toLowerCase().includes("nlsentence");
@@ -23970,7 +24215,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
       }, children: cellTitle }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
         canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _64("Move left"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _65("Move left"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -23980,7 +24225,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _64("Move up"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _65("Move up"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -23990,7 +24235,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _64("Move down"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _65("Move down"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24000,7 +24245,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _64("Move right"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _65("Move right"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24010,7 +24255,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _64("Configure cell"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _65("Configure cell"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24023,8 +24268,8 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ] }),
         isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null,
         isModelLike && resource ? /* @__PURE__ */ jsx(DashboardCellHelp, { resource }) : null,
-        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _64("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _64("Restore") : _64("Maximize"), children: /* @__PURE__ */ jsx(
+        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _65("Restore") : _65("Maximize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -24034,7 +24279,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _64("Restore") : _64("Minimize"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _65("Restore") : _65("Minimize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -24066,7 +24311,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) : /* @__PURE__ */ jsx(
           Empty,
           {
-            description: _64('Model "{model}" not found').replace("{model}", cell.model),
+            description: _65('Model "{model}" not found').replace("{model}", cell.model),
             style: { padding: 24 },
             image: Empty.PRESENTED_IMAGE_SIMPLE
           }
@@ -24095,7 +24340,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     overflowX: "auto"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _64("No models in this tab"), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _65("No models in this tab"), style: { padding: 48 } });
   }
   const renderCell = (cell) => /* @__PURE__ */ jsx(
     DashboardGridCell,
@@ -24158,8 +24403,8 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = useState(null);
   const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_64), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_64);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_65), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_65);
   const handleOpenDrawer = useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
@@ -24177,7 +24422,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        _64(tab.name),
+        _65(tab.name),
         tabExtraActions ? tabExtraActions(tab, allModels) : null,
         /* @__PURE__ */ jsx(DashboardTabHelp, { tabId: tab.id })
       ] }),
@@ -24202,7 +24447,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
   );
   if (!config.tabs.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _64("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _65("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
   }
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
@@ -24216,7 +24461,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
           right: /* @__PURE__ */ jsx(
             CellSizeSelector,
             {
-              label: _64("Cell size"),
+              label: _65("Cell size"),
               stepCount: GRID_DENSITY_STEPS.length,
               marks: gridDensityMarks,
               value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -24248,23 +24493,23 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_68, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
 }
-var _65 = (text) => translateText(text, text);
+var _66 = (text) => translateText(text, text);
 var { Text: Text4, Title: Title8 } = Typography;
 function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
-  if (mins < 1) return _65("just now");
-  if (mins < 60) return _65("{count}m ago").replace("{count}", String(mins));
+  if (mins < 1) return _66("just now");
+  if (mins < 60) return _66("{count}m ago").replace("{count}", String(mins));
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return _65("{count}h ago").replace("{count}", String(hrs));
+  if (hrs < 24) return _66("{count}h ago").replace("{count}", String(hrs));
   const days = Math.floor(hrs / 24);
-  if (days < 30) return _65("{count}d ago").replace("{count}", String(days));
+  if (days < 30) return _66("{count}d ago").replace("{count}", String(days));
   return new Date(iso).toLocaleDateString();
 }
 var RecentActivityPanel = () => {
@@ -24275,7 +24520,7 @@ var RecentActivityPanel = () => {
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsx(Text4, { type: "secondary", children: _65("Show activity from the last") }),
+      /* @__PURE__ */ jsx(Text4, { type: "secondary", children: _66("Show activity from the last") }),
       /* @__PURE__ */ jsx(
         InputNumber,
         {
@@ -24287,20 +24532,20 @@ var RecentActivityPanel = () => {
           size: "small"
         }
       ),
-      /* @__PURE__ */ jsx(Text4, { type: "secondary", children: _65("days") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _65("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Text4, { type: "secondary", children: _66("days") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _66("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      data && /* @__PURE__ */ jsx(Text4, { type: "secondary", style: { fontSize: 12 }, children: _65("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
+      data && /* @__PURE__ */ jsx(Text4, { type: "secondary", style: { fontSize: 12 }, children: _66("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : groups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
-        description: _65("No activity in the last {days} days").replace("{days}", String(days)),
+        description: _66("No activity in the last {days} days").replace("{days}", String(days)),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
         style: { padding: 48 }
       }
@@ -24328,7 +24573,7 @@ var RecentActivityPanel = () => {
           /* @__PURE__ */ jsx(Tag, { color: tone.solid, style: { marginLeft: "auto", fontSize: 11 }, children: group.records.length })
         ] }),
         /* @__PURE__ */ jsx(
-          List$1,
+          List,
           {
             size: "small",
             dataSource: group.records,
@@ -24336,7 +24581,7 @@ var RecentActivityPanel = () => {
               const timestamp = rec.updated_at || rec.created_at;
               const isNew = rec.created_at === rec.updated_at;
               return /* @__PURE__ */ jsxs(
-                List$1.Item,
+                List.Item,
                 {
                   style: {
                     padding: "4px 8px",
@@ -24358,7 +24603,7 @@ var RecentActivityPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _65("new") }),
+                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _66("new") }),
                       /* @__PURE__ */ jsx(Text4, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
@@ -24371,7 +24616,7 @@ var RecentActivityPanel = () => {
     }) })
   ] });
 };
-var _66 = (text) => translateText(text, text);
+var _67 = (text) => translateText(text, text);
 var { Text: AntText, Title: AntTitle } = Typography;
 function usePinnedRecords() {
   const [groups, setGroups] = useState([]);
@@ -24379,7 +24624,7 @@ function usePinnedRecords() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups ?? []);
@@ -24417,28 +24662,28 @@ var PinnedRecordsPanel = () => {
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
       /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
-      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _66("Records you've pinned across the app") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _66("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _67("Records you've pinned across the app") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _67("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _66("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
+      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _67("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : visibleGroups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _66("No pinned records yet."),
+          _67("No pinned records yet."),
           /* @__PURE__ */ jsx("br", {}),
           /* @__PURE__ */ jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
-            _66("Open any record and click the"),
+            _67("Open any record and click the"),
             " ",
             /* @__PURE__ */ jsx(PushpinOutlined, {}),
             " ",
-            _66("pin button to pin it here.")
+            _67("pin button to pin it here.")
           ] })
         ] }),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
@@ -24468,14 +24713,14 @@ var PinnedRecordsPanel = () => {
           /* @__PURE__ */ jsx(Tag, { color: tone.solid, style: { marginLeft: "auto", fontSize: 11 }, children: group.records.length })
         ] }),
         /* @__PURE__ */ jsx(
-          List$1,
+          List,
           {
             size: "small",
             dataSource: group.records,
             renderItem: (rec) => {
               const key = `${group.resource}:${rec.id}`;
               return /* @__PURE__ */ jsxs(
-                List$1.Item,
+                List.Item,
                 {
                   style: {
                     padding: "4px 8px",
@@ -24499,7 +24744,7 @@ var PinnedRecordsPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _66("Unpin"), children: /* @__PURE__ */ jsx(
+                      /* @__PURE__ */ jsx(Tooltip, { title: _67("Unpin"), children: /* @__PURE__ */ jsx(
                         Button,
                         {
                           className: "jm-unpin-btn",
@@ -24523,7 +24768,7 @@ var PinnedRecordsPanel = () => {
   ] });
 };
 var { Text: Text5 } = Typography;
-var _67 = window._ || ((text) => text);
+var _68 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
   const { token } = theme.useToken();
@@ -24564,14 +24809,14 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
         image: /* @__PURE__ */ jsx(DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
         imageStyle: { height: 60 },
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _67("No dashboard configured."),
+          _68("No dashboard configured."),
           /* @__PURE__ */ jsx("br", {}),
           /* @__PURE__ */ jsxs(Text5, { type: "secondary", children: [
-            _67("Run"),
+            _68("Run"),
             " ",
             /* @__PURE__ */ jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
             " ",
-            _67("to get started.")
+            _68("to get started.")
           ] })
         ] })
       }
@@ -24580,7 +24825,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const tabs = [
     {
       key: "models_grid",
-      label: _67("Models Grid"),
+      label: _68("Models Grid"),
       children: /* @__PURE__ */ jsx("div", { ref: contentRef, style: contentAreaStyle, children: /* @__PURE__ */ jsx(
         ViewsGrid,
         {
@@ -24594,12 +24839,12 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     },
     {
       key: "recent_activity",
-      label: _67("Recent Activity"),
+      label: _68("Recent Activity"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(RecentActivityPanel, {}) })
     },
     {
       key: "pinned_records",
-      label: _67("Pinned Records"),
+      label: _68("Pinned Records"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
     }
   ];
@@ -24849,6 +25094,6 @@ var helpSystemModels = [
   }
 ];
 
-export { API_URL2 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, RecentActivityPanel, ReferenceField, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, generateResources, getActiveLocale, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, normalizeToneKey, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL3 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, NoAccessResult, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, clearAccess, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, refreshAccess, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

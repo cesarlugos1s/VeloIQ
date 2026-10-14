@@ -109,9 +109,16 @@ def _fetch_curated_dashboard_doc(session) -> tuple[str, list[str]] | None:
 def _build_markdown(engine, extensions: list, nav_entries: list[dict]) -> str:
     from sqlmodel import Session
 
-    from veloiq_framework.licensing_utils import aggregate_license_pool, is_module_licensed
+    from veloiq_framework.access.decision import ACTION_READ, ADMIN_ROLE, build_context, evaluate_access
+    from veloiq_framework.access.registry import get_modules, make_module_key
+    from veloiq_framework.licensing_utils import aggregate_license_pool
 
-    pool = aggregate_license_pool(extensions)
+    # One guide serves every reader, so it is filtered by licensing only:
+    # evaluated through the shared access decision as the Admin role, which
+    # skips access policies and @model_access.
+    ctx = build_context({"roles": [ADMIN_ROLE]}, include_license=False)
+    ctx["license"] = aggregate_license_pool(extensions)
+    module_keys_by_name = {info.name: key for key, info in get_modules().items()}
     groups = _group_by_module(nav_entries)
 
     lines: list[str] = ["# User Guide\n"]
@@ -128,7 +135,8 @@ def _build_markdown(engine, extensions: list, nav_entries: list[dict]) -> str:
                 lines.append("")
 
         for module_key, module_label, model_entries in groups:
-            if not is_module_licensed(module_key, pool):
+            namespaced_key = module_keys_by_name.get(module_key) or make_module_key("", module_key)
+            if not evaluate_access(ctx, namespaced_key, None, ACTION_READ).allowed:
                 continue
 
             module_sections: list[str] = []

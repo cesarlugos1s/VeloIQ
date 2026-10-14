@@ -281,10 +281,20 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
 
     @router.get("/auth/resource-permissions")
     def get_resource_permissions(request: Request):
+        """Return the signed-in user's access context and effective permissions.
+
+        Combines licensing, role methods, the user's roles' access policies
+        and ``@model_access`` (see ``veloiq_framework.access``). The frontend
+        refetches it on login, on window focus and after a policy is saved.
+        """
         engine = get_engine()
-        get_current_user(request, engine, cfg.auth_secret)
-        from veloiq_framework.auth.permissions import _MODEL_PERMISSIONS
-        return _MODEL_PERMISSIONS
+        user = get_current_user(request, engine, cfg.auth_secret)
+        from veloiq_framework.access.router import build_effective_permissions
+        return jsonable_encoder(build_effective_permissions(user))
+
+    # ── Access policies (Admin only) ──────────────────────────────────────────
+    from veloiq_framework.access.router import make_access_policy_router
+    router.include_router(make_access_policy_router(cfg))
 
     # ── Assign / remove role ──────────────────────────────────────────────────
 
@@ -539,6 +549,9 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             session.commit()
             session.refresh(role)
         _invalidate_rbac_cache()
+        # Policies are cached by role name; a rename must not keep the old entry.
+        from veloiq_framework.access.store import invalidate_access_cache
+        invalidate_access_cache()
         return _role_to_dict(role)
 
     @crud_router.delete("/role/{role_id}", status_code=204, summary="Delete role")
@@ -549,8 +562,17 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             role = session.get(Role, role_id)
             if role is None:
                 raise HTTPException(status_code=404, detail="Role not found")
-            session.delete(role)
-            session.commit()
+        # Deleting a role deletes its access policy (AC-B8). Done explicitly
+        # because SQLite only enforces the FK cascade with foreign keys on.
+        from veloiq_framework.access.store import EVENT_ROLE_DELETED, delete_policy
+        delete_policy(engine, role_id, getattr(request.state, "user", None), event=EVENT_ROLE_DELETED)
+        with Session(engine) as session:
+            role = session.get(Role, role_id)
+            if role is not None:
+                session.delete(role)
+                session.commit()
+        from veloiq_framework.auth.utils import _invalidate_rbac_cache
+        _invalidate_rbac_cache()
 
     # ── Tenant CRUD ───────────────────────────────────────────────────────────
 

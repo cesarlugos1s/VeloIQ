@@ -20,6 +20,7 @@ import { useMetadataModal } from "../hooks/useMetadataModal";
 import { renderModelHeading } from "../ModelHeading";
 import { useStandardEditTabs } from "../hooks/useStandardEditTabs";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
+import { ResourceAccessGate } from "../../AccessGate";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -28,7 +29,7 @@ export interface JourneyCallbacks {
     onCancel: () => void;
 }
 
-export const DynamicEdit: React.FC<{
+const DynamicEditPage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
     topContent?: React.ReactNode;
@@ -417,3 +418,13 @@ export const DynamicEdit: React.FC<{
         </div>
     );
 };
+
+/**
+ * DynamicEdit behind the shared access check: a user who may not Update this
+ * model gets the "no access" page instead of a broken page (AC-E3).
+ */
+export const DynamicEdit: React.FC<React.ComponentProps<typeof DynamicEditPage>> = (props) => (
+    <ResourceAccessGate resource={props.model.resource || props.model.name} action="update">
+        <DynamicEditPage {...props} />
+    </ResourceAccessGate>
+);

@@ -2,7 +2,8 @@ import React from "react";
 import { Result, Button, Spin } from "antd";
 import { LockOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useLicensePool } from "../hooks/useLicensePool";
+import { useAccess } from "../hooks/useAccess";
+import { NoAccessResult } from "./AccessGate";
 
 // i18n helper — resolved at CALL time so window._ is always current.
 const _ = (text: string): string => {
@@ -11,24 +12,27 @@ const _ = (text: string): string => {
 };
 
 /**
- * License-gated route wrapper.
+ * Access-gated route wrapper for module pages.
  *
- * When ``module`` is set and that module is not licensed, the component
- * renders a "not licensed" placeholder instead of ``children``.
- * When ``module`` is omitted or the module is licensed, ``children``
- * are rendered normally — fully backwards compatible with routes that
- * do not declare a license dependency.
+ * When ``module`` is set, the page needs Read on that module through the
+ * shared access check (licensing, role methods, access policies). An
+ * unlicensed module shows the "not licensed" placeholder; a module the user's
+ * role may not read shows the "no access" page. When ``module`` is omitted,
+ * ``children`` render normally — backwards compatible with routes that
+ * declare no module.
  */
 export const LicenseGate: React.FC<{
     module?: string;
     children: React.ReactNode;
 }> = ({ module: moduleName, children }) => {
     const navigate = useNavigate();
-    const { isModuleLicensed, loading } = useLicensePool();
+    const { isModuleLicensed, canModule, loading } = useAccess();
 
     if (!moduleName) return <>{children}</>;
     if (loading) return <div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>;
-    if (isModuleLicensed(moduleName)) return <>{children}</>;
+    if (isModuleLicensed(moduleName)) {
+        return canModule(moduleName, "read") ? <>{children}</> : <NoAccessResult />;
+    }
 
     return (
         <Result

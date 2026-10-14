@@ -126,3 +126,21 @@ def is_module_licensed(module_name: str, pool: dict) -> bool:
         return True
     licensed = {m.lower() for m in (pool.get("licensed_modules") or [])}
     return key in licensed
+
+
+def is_module_write_allowed(module_name: str, pool: dict) -> bool:
+    """True if ``module_name`` may be written to under ``pool``.
+
+    Same rules as :func:`is_module_licensed`, except that a gated module must
+    appear in ``write_allowed_modules``: a license in its grace period stays
+    read-only (AC-C5 of the access-policy feature).
+    """
+    key = module_name.lower()
+    if key in _ALWAYS_ON_MODULES:
+        return True
+    module_groups = pool.get("module_groups") or {}
+    in_any_group = any(key in {m.lower() for m in mods} for mods in module_groups.values())
+    if not in_any_group:
+        return True
+    write_allowed = {m.lower() for m in (pool.get("write_allowed_modules") or [])}
+    return key in write_allowed

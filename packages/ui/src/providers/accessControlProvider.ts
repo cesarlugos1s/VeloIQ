@@ -1,23 +1,29 @@
 /**
  * Refine AccessControlProvider for VeloIQ.
  *
- * Three-layer permission model (mirrors the backend):
- *   Layer 1 — Role global permissions (fetched from /auth/roles on login,
- *              stored as jm_role_permissions in localStorage).
- *   Layer 2 — Model-level exceptions (fetched from /auth/resource-permissions
- *              on login, stored as jm_resource_permissions).
- *   Layer 3 — Field-level exceptions (readRoles/writeRoles emitted by the
- *              schema generator into FieldDef; handled by CanAccess wrappers).
+ * CRUD actions (list/show/field → Read, create/clone → Create, edit →
+ * Update, delete → Delete) go through `evaluateAccess`, the frontend twin of
+ * the backend's shared access decision: licensing, the role's global
+ * methods, the role's access policy and `@model_access` (fetched from
+ * /auth/resource-permissions on login, on window focus and after a policy
+ * is saved). The Admin role is exempt from access policies and
+ * `@model_access` but not from licensing — the same rule as the backend.
  *
- * Falls back to built-in Admin/Manager/Viewer defaults when the cached
- * permissions are absent (e.g. on first load before a login).
+ * Other actions (e.g. `configure_layout`) keep the role-global check from
+ * /auth/roles. Field-level rules (readRoles/writeRoles) stay with the
+ * CanAccess wrappers.
+ *
+ * Falls back to built-in Admin/Manager/Viewer defaults when nothing has been
+ * fetched yet (e.g. on first load before a login).
  */
 
 import type { AccessControlProvider } from "@refinedev/core";
+import { getAccessSnapshot } from "../access/accessStore";
+import { REFINE_TO_ACTION, evaluateAccess } from "../access/evaluateAccess";
 
 const USER_KEY = "jm_user";
 const ROLE_PERMISSIONS_KEY = "jm_role_permissions";
-const RESOURCE_PERMISSIONS_KEY = "jm_resource_permissions";
+const ADMIN_ROLE = "Admin";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -41,16 +47,6 @@ function getRoleActions(): Record<string, Set<string>> {
     );
 }
 
-/**
- * Returns the model-level permission exceptions map:
- *   { "<resource>": { "<RoleName>": ["list", "show", ...] } }
- */
-function getResourcePermissions(): Record<string, Record<string, string[]>> {
-    const cached = localStorage.getItem(RESOURCE_PERMISSIONS_KEY);
-    if (!cached) return {};
-    try { return JSON.parse(cached); } catch { return {}; }
-}
-
 export const accessControlProvider: AccessControlProvider = {
     can: async ({ action, resource }) => {
         const cached = localStorage.getItem(USER_KEY);
@@ -67,34 +63,29 @@ export const accessControlProvider: AccessControlProvider = {
 
         const roles: string[] = user?.roles ?? [];
 
-        // Admin always wins — bypass all checks.
-        if (roles.some((r) => r.toLowerCase() === "admin")) {
+        // CRUD actions: the shared access decision.
+        const accessAction = REFINE_TO_ACTION[action];
+        const access = getAccessSnapshot();
+        if (accessAction && access) {
+            const decision = evaluateAccess(access.context, null, resource ?? null, accessAction);
+            return decision.allowed
+                ? { can: true }
+                : { can: false, reason: _("You do not have permission to perform this action.") };
+        }
+
+        // Admin exemption for non-CRUD actions (same role the backend exempts).
+        if (roles.includes(ADMIN_ROLE)) {
             return { can: true };
         }
 
+        // Non-CRUD actions, or permissions not loaded yet: role global methods.
         const roleActions = getRoleActions();
-        const resourcePerms = getResourcePermissions();
-
-        // Walk each role: if any role grants access, allow.
         for (const role of roles) {
             // Find the canonical casing stored in the permissions map.
             const roleKey = Object.keys(roleActions).find(
                 (k) => k.toLowerCase() === role.toLowerCase()
             ) ?? role;
-
-            // Layer 2: check model-level exception for this resource.
-            if (resource && resourcePerms[resource]?.[roleKey] !== undefined) {
-                const allowedByException = resourcePerms[resource][roleKey];
-                if (allowedByException.includes(action)) {
-                    return { can: true };
-                }
-                // This role is restricted on this resource — do not fall through to Layer 1.
-                continue;
-            }
-
-            // Layer 1: use global role permissions.
-            const globalActions = roleActions[roleKey];
-            if (globalActions?.has(action)) {
+            if (roleActions[roleKey]?.has(action)) {
                 return { can: true };
             }
         }

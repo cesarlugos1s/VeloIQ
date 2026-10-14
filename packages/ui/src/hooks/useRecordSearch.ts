@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useAccess } from "./useAccess";
 import { useAllModels } from "../contexts/AllModelsContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 
@@ -30,6 +31,7 @@ export interface UseRecordSearchReturn {
 
 export function useRecordSearch(): UseRecordSearchReturn {
     const allSystemModels = useAllModels();
+    const { can } = useAccess();
     const [searchConfig, setSearchConfig] = useState<SearchConfig | null>(null);
     const [results, setResults] = useState<ModelSearchResult[]>([]);
     const [searching, setSearching] = useState(false);
@@ -51,6 +53,8 @@ export function useRecordSearch(): UseRecordSearchReturn {
 
         return allSystemModels
             .filter((m: any) => entityTypesLower.includes((m.name || "").toLowerCase()))
+            // Global search only queries models the user can Read (AC-D3).
+            .filter((m: any) => can(m.resource || m.name, "read"))
             .map((m: any) => {
                 const stringFields = (m.fields || []).filter((f: any) => f.type === "string");
                 if (useAllStringFields) {
@@ -79,7 +83,7 @@ export function useRecordSearch(): UseRecordSearchReturn {
                 };
             })
             .filter((m) => m.searchFields.length > 0);
-    }, [allSystemModels, searchConfig]);
+    }, [allSystemModels, searchConfig, can]);
 
     const search = useCallback(
         (query: string) => {

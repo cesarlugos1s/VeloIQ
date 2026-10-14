@@ -159,6 +159,22 @@ def _get_role_methods(engine, role_name: str) -> set[str]:
     return methods
 
 
+def get_role_methods_cached(role_name: str, engine=None) -> set[str]:
+    """Return *role_name*'s allowed HTTP methods through the 30 s RBAC cache.
+
+    Used by the shared access decision (``veloiq_framework.access``). Returns
+    an empty set when no engine is available yet.
+    """
+    _engine = engine
+    if _engine is None:
+        try:
+            from veloiq_framework.db import get_engine
+            _engine = get_engine()
+        except Exception:
+            return set()
+    return _get_role_methods(_engine, role_name)
+
+
 def check_rbac(roles: List[str], method: str, engine=None) -> bool:
     """Return True when at least one role permits *method*.
 
