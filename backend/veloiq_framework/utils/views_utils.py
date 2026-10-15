@@ -3992,7 +3992,15 @@ def jm_plot_chart_from_DataFrame(self
                             pivot_df_categorical_columns_names, categorical_column_for_x_axis,
                             categorical_column_for_x_axis_name)
 
-                        for pivot_df_numeric_columns_name in pivot_df_numeric_columns_names:
+                        for my_boxplot_sequence, pivot_df_numeric_columns_name in enumerate(
+                                pivot_df_numeric_columns_names):
+
+                            # Each measure's boxes go in that measure's own subplot cell (titled
+                            # with its name above); without row/col every box landed in the
+                            # first cell and the others were left empty.
+                            boxplot_subplot_row, boxplot_subplot_col = (
+                                jm_position_within_table_with_max_columns(
+                                    my_boxplot_sequence, boxplotsubplots_cols))
 
                             distinct_categorical_values = (
                                 df_to_plot[boxplot_categorical_column_name].unique())
@@ -4017,6 +4025,7 @@ def jm_plot_chart_from_DataFrame(self
                                         jitter=0.3, # add some jitter for a better separation between points
                                         pointpos=-1.8 # relative position of points wrt box
                                     ),
+                                    row=boxplot_subplot_row, col=boxplot_subplot_col
                                 )
 
                         if len(executable_command_pivot_df) > 0:

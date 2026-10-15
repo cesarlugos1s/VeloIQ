@@ -32,3 +32,18 @@ def test_each_own_grid_chart_type_is_drawn_on_its_own_figure(chart_types, figure
         categorical_column_for_x_axis=[2], categorical_column_for_z_axis=[0],
         categorical_column_for_x_axis_name=['date'], categorical_column_for_z_axis_name=[None])
     assert html.count('plotly-graph-div') == figures
+
+
+def test_each_boxplot_measure_is_drawn_in_its_own_subplot_cell():
+    """Two measures give two boxplot cells, each holding its own measure's boxes
+    (every box used to land in the first cell, leaving the second one empty)."""
+    df = pd.DataFrame({
+        'aging days': [47.0, 0.0, 31.0, 44.0],
+        'balance due': [120.5, 80.0, 300.0, 55.0],
+        'status': ['open', 'paid', 'partial', 'overdue'],
+    })
+    html = jm_plot_chart_from_DataFrame(
+        None, df, ['boxplot'],
+        categorical_column_for_x_axis=[2], categorical_column_for_z_axis=[0],
+        categorical_column_for_x_axis_name=['status'], categorical_column_for_z_axis_name=[None])
+    assert '"xaxis":"x2"' in html.replace(' ', '')
