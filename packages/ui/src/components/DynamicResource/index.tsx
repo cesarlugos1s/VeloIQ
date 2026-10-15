@@ -471,6 +471,8 @@ const DynamicListPage: React.FC<{
     // --- Bulk selection state ---
     const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = useState<React.Key[]>([]);
     const bulkSelectedRowsMapRef = useRef<Map<React.Key, any>>(new Map());
+    // Last clicked row — kept highlighted so the user can see which record the side pane shows.
+    const [activeRowKey, setActiveRowKey] = useState<React.Key | null>(null);
 
     // --- Select mode: associate-existing handler (needs bulkSelectedRowKeys) ---
     const [selectModeAssociating, setSelectModeAssociating] = useState(false);
@@ -3851,11 +3853,18 @@ const DynamicListPage: React.FC<{
                             locale={isEmptyTable ? { emptyText: null } : undefined}
                             rowKey={getRowKey}
                             rowSelection={internalRowSelection}
+                            rowClassName={(record) => (activeRowKey !== null && getRowKey(record) === activeRowKey ? "jm-row-active" : "")}
                             onRow={(record) => {
                                 const { resource, id } = getTargetInfo(record);
                                 return {
-                                    onClick: (event) => handleRowClick(record, event),
-                                    onContextMenu: (event) => handleRowRightClick(record, event),
+                                    onClick: (event) => {
+                                        setActiveRowKey(getRowKey(record));
+                                        handleRowClick(record, event);
+                                    },
+                                    onContextMenu: (event) => {
+                                        setActiveRowKey(getRowKey(record));
+                                        handleRowRightClick(record, event);
+                                    },
                                     style: { cursor: resource && id !== undefined && id !== null ? "pointer" : "default" },
                                 };
                             }}

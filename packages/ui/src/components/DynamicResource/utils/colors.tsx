@@ -31,6 +31,12 @@ export const ToneSharedStyles = () => (
             .jm-tone-scope .ant-table-thead > tr > th.ant-table-cell-fix-right {
                 background: inherit !important;
             }
+            body.jm-light .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
+                background-color: var(--jm-row-active-bg, #f0f0f0) !important;
+            }
+            body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
+                background-color: var(--jm-row-active-bg, rgba(255, 255, 255, 0.08)) !important;
+            }
             .jm-tone-scope .ant-table-filter-dropdown {
                 min-width: 420px !important;
                 padding: 8px !important;

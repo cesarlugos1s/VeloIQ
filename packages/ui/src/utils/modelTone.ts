@@ -203,8 +203,13 @@ export const setColorSchemas = (schemas: {
                     body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarLightText} !important;
                     }
+                    body.jm-light {
+                        --jm-row-active-bg: ${lightBgElements};
+                    }
+                    body.jm-light .ant-table-wrapper .ant-table {
+                        background-color: #ffffff !important;
+                    }
                     body.jm-light .ant-card,
-                    body.jm-light .ant-table-wrapper .ant-table,
                     body.jm-light .ant-table-thead > tr > th,
                     body.jm-light .ant-tabs-nav,
                     body.jm-light .ant-tabs-nav::before,
@@ -256,6 +261,9 @@ export const setColorSchemas = (schemas: {
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark {
+                        --jm-row-active-bg: ${darkBgHover};
                     }
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,

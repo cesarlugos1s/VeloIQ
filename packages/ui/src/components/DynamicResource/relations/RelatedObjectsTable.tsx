@@ -235,6 +235,9 @@ export const RelatedObjectsTable: React.FC<{
     const apiUrl = useApiUrl();
     const go = useGo();
     const paneNav = usePaneNavigation();
+    // Last clicked row — kept highlighted so the user can see which record the side pane shows.
+    const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
+    const relationRowKey = (row: any) => String(row?.__relationKey || row?.eid || row?.id || JSON.stringify(row));
     const navigate = useNavigate();
     const location = useLocation();
     const { token } = theme.useToken();
@@ -2445,7 +2448,11 @@ export const RelatedObjectsTable: React.FC<{
                                 },
                             }}
                             size="small"
-                            rowKey={(row: any) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row)}
+                            rowKey={relationRowKey}
+                            rowClassName={(row: any) => (activeRowKey !== null && relationRowKey(row) === activeRowKey ? "jm-row-active" : "")}
+                            onRow={(row: any) => ({
+                                onClick: () => setActiveRowKey(relationRowKey(row)),
+                            })}
                             locale={filteredRows.length === 0 ? { emptyText: <span style={{ display: "inline-block", fontSize: 12, color: "#8c8c8c" }}>{_("No related records")}</span> } : undefined}
                             onChange={(_, filters, sorter, extra) => {
                                 const nextFilters: Record<string, string[]> = {};

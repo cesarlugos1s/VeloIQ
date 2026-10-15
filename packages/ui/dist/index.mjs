@@ -182,8 +182,13 @@ var setColorSchemas = (schemas) => {
                     body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarLightText} !important;
                     }
+                    body.jm-light {
+                        --jm-row-active-bg: ${lightBgElements};
+                    }
+                    body.jm-light .ant-table-wrapper .ant-table {
+                        background-color: #ffffff !important;
+                    }
                     body.jm-light .ant-card,
-                    body.jm-light .ant-table-wrapper .ant-table,
                     body.jm-light .ant-table-thead > tr > th,
                     body.jm-light .ant-tabs-nav,
                     body.jm-light .ant-tabs-nav::before,
@@ -235,6 +240,9 @@ var setColorSchemas = (schemas) => {
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarDarkText} !important;
+                    }
+                    body.jm-dark {
+                        --jm-row-active-bg: ${darkBgHover};
                     }
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,
@@ -4439,6 +4447,12 @@ var ToneSharedStyles = () => /* @__PURE__ */ jsx("style", { children: `
             .jm-tone-scope .ant-table-thead > tr > th.ant-table-cell-fix-right {
                 background: inherit !important;
             }
+            body.jm-light .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
+                background-color: var(--jm-row-active-bg, #f0f0f0) !important;
+            }
+            body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
+                background-color: var(--jm-row-active-bg, rgba(255, 255, 255, 0.08)) !important;
+            }
             .jm-tone-scope .ant-table-filter-dropdown {
                 min-width: 420px !important;
                 padding: 8px !important;
@@ -5167,8 +5181,8 @@ var CHART_NUMBER_FORMAT = ",.2f";
 var CHART_FONT_FAMILY = "sans-serif";
 var CHART_FONT_SIZE = 12;
 var CHART_THEME_COLORS = {
-  light: { text: "#4a5568", grid: "rgba(128,128,128,0.22)", legendBorder: "rgba(128,128,128,0.35)" },
-  dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)" }
+  light: { text: "#4a5568", grid: "rgba(128,128,128,0.22)", legendBorder: "rgba(128,128,128,0.35)", surface: "#ffffff" },
+  dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
 var getChartEmptyMessage = () => _18(CHART_EMPTY_MESSAGE);
@@ -5547,7 +5561,12 @@ var AnalysisChart = (props) => {
         containerRef.current = el;
         props.graphRef.current = el;
       },
-      style: { width: "100%", height: CHART_HEIGHT }
+      style: {
+        width: "100%",
+        height: CHART_HEIGHT,
+        background: (dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light).surface,
+        borderRadius: 8
+      }
     }
   );
 };
@@ -5710,13 +5729,8 @@ var AnalyzePanel = ({
     Card,
     {
       size: "small",
-      title: /* @__PURE__ */ jsx("span", { style: { color: tone.text, fontWeight: 600 }, children: _20("Analyze") }),
-      styles: {
-        header: {
-          background: `linear-gradient(135deg, ${tone.solid}18 0%, ${tone.solid}0a 100%)`
-        },
-        body: { padding: 0 }
-      },
+      "aria-label": _20("Analyze"),
+      styles: { body: { padding: 0 } },
       children: /* @__PURE__ */ jsx("div", { style: { perspective: 1600, padding: 12 }, children: /* @__PURE__ */ jsxs(
         "div",
         {
@@ -13413,6 +13427,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const apiUrl = useApiUrl();
   const go = useGo();
   const paneNav = usePaneNavigation();
+  const [activeRowKey, setActiveRowKey] = useState(null);
+  const relationRowKey = (row) => String(row?.__relationKey || row?.eid || row?.id || JSON.stringify(row));
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = theme.useToken();
@@ -15429,7 +15445,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     }
                   },
                   size: "small",
-                  rowKey: (row) => row?.__relationKey || row?.eid || row?.id || JSON.stringify(row),
+                  rowKey: relationRowKey,
+                  rowClassName: (row) => activeRowKey !== null && relationRowKey(row) === activeRowKey ? "jm-row-active" : "",
+                  onRow: (row) => ({
+                    onClick: () => setActiveRowKey(relationRowKey(row))
+                  }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _54("No related records") }) } : void 0,
                   onChange: (_69, filters, sorter, extra) => {
                     const nextFilters = {};
@@ -16674,6 +16694,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const prevViewNameForResetRef = useRef(null);
   const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = useState([]);
   const bulkSelectedRowsMapRef = useRef(/* @__PURE__ */ new Map());
+  const [activeRowKey, setActiveRowKey] = useState(null);
   const [selectModeAssociating, setSelectModeAssociating] = useState(false);
   const handleAssociateSelected = useCallback(async () => {
     if (!selectModeRelateResource || !selectModeRelateTargetKey || !selectModeRelateTargetId) return;
@@ -19710,11 +19731,18 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
             locale: isEmptyTable ? { emptyText: null } : void 0,
             rowKey: getRowKey,
             rowSelection: internalRowSelection,
+            rowClassName: (record) => activeRowKey !== null && getRowKey(record) === activeRowKey ? "jm-row-active" : "",
             onRow: (record) => {
               const { resource, id } = getTargetInfo(record);
               return {
-                onClick: (event) => handleRowClick(record, event),
-                onContextMenu: (event) => handleRowRightClick(record, event),
+                onClick: (event) => {
+                  setActiveRowKey(getRowKey(record));
+                  handleRowClick(record, event);
+                },
+                onContextMenu: (event) => {
+                  setActiveRowKey(getRowKey(record));
+                  handleRowRightClick(record, event);
+                },
                 style: { cursor: resource && id !== void 0 && id !== null ? "pointer" : "default" }
               };
             },
