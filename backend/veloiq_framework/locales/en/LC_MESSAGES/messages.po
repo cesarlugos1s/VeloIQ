@@ -715,6 +715,12 @@ msgstr ""
 msgid "Date field"
 msgstr ""
 
+msgid "No heatmap"
+msgstr ""
+
+msgid "Heatmap field"
+msgstr ""
+
 msgid "Previous"
 msgstr ""
 

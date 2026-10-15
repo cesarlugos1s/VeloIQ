@@ -52,7 +52,7 @@ import { useSearchParams, useNavigate, useParams, useLocation } from "react-rout
 import dayjs from "dayjs";
 import { HierarchyView } from "../HierarchyView";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { getContrastingTextColor, getModelTone, setColorSchemas, useModelTone, type ModelTone } from "../../utils/modelTone";
+import { getContrastingTextColor, getModelTone, getPlainColorBaseHex, setColorSchemas, useModelTone, type ModelTone } from "../../utils/modelTone";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -236,6 +236,10 @@ import {
     isCalendarDateField,
     getCalendarDateFieldOptions,
     getCalendarRecordDate,
+    getCalendarHeatmapFieldOptions,
+    getCalendarHeatmapTotals,
+    getCalendarHeatmapBackground,
+    formatCalendarHeatmapTotal,
 } from "./utils/calendar";
 
 import { extractButtonLabel, renderIconOnlyButtons } from "./utils/buttons";
@@ -356,6 +360,7 @@ const DynamicListPage: React.FC<{
     const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
     const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
     const calendarDateFieldOptions = useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
+    const calendarHeatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(model.fields), [model.fields]);
 
     const [localSearch, setLocalSearch] = useState("");
     const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
@@ -365,6 +370,7 @@ const DynamicListPage: React.FC<{
     const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
     const [calendarDateField, setCalendarDateField] = useState<string>(() => calendarDateFieldOptions[0]?.key || "");
     const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs().startOf("month"));
+    const [calendarHeatmapField, setCalendarHeatmapField] = useState<string>("");
     const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
     const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [filterRules, setFilterRules] = useState<Array<{
@@ -3121,6 +3127,10 @@ const DynamicListPage: React.FC<{
         }
         return calendarAnchorDate.startOf("month").format("MMMM YYYY");
     }, [calendarAnchorDate, calendarMode]);
+    const calendarHeatmapTotals = useMemo(
+        () => getCalendarHeatmapTotals(calendarEntriesByDate, calendarRangeDays.map((day) => day.format("YYYY-MM-DD")), calendarHeatmapField),
+        [calendarEntriesByDate, calendarHeatmapField, calendarRangeDays]
+    );
     const renderCalendarItem = (entry: (typeof calendarEntries)[number], index: number) => {
         if (!entry.resource || entry.id === undefined || entry.id === null) {
             return (
@@ -3168,6 +3178,19 @@ const DynamicListPage: React.FC<{
                             style={{ minWidth: 220 }}
                             placeholder={_("Date field")}
                         />
+                        {calendarHeatmapFieldOptions.length > 0 && (
+                            <Select
+                                size="small"
+                                value={calendarHeatmapField}
+                                onChange={(value) => setCalendarHeatmapField(value)}
+                                options={[
+                                    { label: _("No heatmap"), value: "" },
+                                    ...calendarHeatmapFieldOptions.map((field) => ({ label: field.label, value: field.key })),
+                                ]}
+                                style={{ minWidth: 180 }}
+                                placeholder={_("Heatmap field")}
+                            />
+                        )}
                     </Space>
                     <Space size={8}>
                         <Tooltip title={_("Previous")}>
@@ -3228,6 +3251,8 @@ const DynamicListPage: React.FC<{
                         const entries = calendarEntriesByDate.get(dayKey) || [];
                         const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
                         const isToday = day.isSame(dayjs(), "day");
+                        const heatmapTotal = calendarHeatmapTotals.get(dayKey);
+                        const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
                         return (
                             <div
                                 key={dayKey}
@@ -3236,7 +3261,7 @@ const DynamicListPage: React.FC<{
                                     padding: 8,
                                     borderTop: `1px solid ${token.colorBorderSecondary}`,
                                     borderRight: day.day() === 6 ? "none" : `1px solid ${token.colorBorderSecondary}`,
-                                    background: isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer,
+                                    background: heatmapBackground || (isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer),
                                     opacity: isOutsideCurrentMonth ? 0.75 : 1,
                                     display: "grid",
                                     alignContent: "start",
@@ -3245,12 +3270,16 @@ const DynamicListPage: React.FC<{
                             >
                                 <div
                                     style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 4,
                                         fontSize: 12,
                                         fontWeight: isToday ? 700 : 600,
                                         color: isToday ? token.colorPrimary : token.colorTextSecondary,
                                     }}
                                 >
-                                    {day.format("D")}
+                                    <span>{day.format("D")}</span>
+                                    {heatmapTotal !== undefined && <span>{formatCalendarHeatmapTotal(heatmapTotal)}</span>}
                                 </div>
                                 <div style={{ display: "grid", gap: 2 }}>
                                     {entries.map((entry, index) => renderCalendarItem(entry, index))}

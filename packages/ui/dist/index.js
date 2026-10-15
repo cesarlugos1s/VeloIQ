@@ -87,6 +87,8 @@ var _modulesColorSchema = typeof localStorage !== "undefined" && localStorage.ge
 var _modelsColorSchema = typeof localStorage !== "undefined" && localStorage.getItem("jm_modelsColorSchema") || "plain-color";
 var _customPlainToneLight = null;
 var _customPlainToneDark = null;
+var _plainColorBaseHex = typeof localStorage !== "undefined" && localStorage.getItem("jm_plainColorBaseHex") || "";
+var getPlainColorBaseHex = () => _plainColorBaseHex;
 var _colorSchemaListeners = [];
 var onColorSchemaChange = (listener) => {
   _colorSchemaListeners.push(listener);
@@ -128,6 +130,7 @@ var setColorSchemas = (schemas) => {
     }
   }
   if (schemas.plainColorBaseHex) {
+    _plainColorBaseHex = schemas.plainColorBaseHex;
     try {
       localStorage.setItem("jm_plainColorBaseHex", schemas.plainColorBaseHex);
     } catch (_e3) {
@@ -8631,6 +8634,36 @@ var getCalendarRecordDate = (record, fieldKey) => {
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
+var isCalendarHeatmapField = (field) => field.type === "number" && !field.reference;
+var getCalendarHeatmapFieldOptions = (fields) => fields.filter(isCalendarHeatmapField);
+var toHeatmapNumber = (value) => {
+  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+var getCalendarHeatmapTotals = (entriesByDate, dayKeys, fieldKey) => {
+  const totals = /* @__PURE__ */ new Map();
+  if (!fieldKey) return totals;
+  dayKeys.forEach((dayKey) => {
+    let total = null;
+    (entriesByDate.get(dayKey) || []).forEach((entry) => {
+      const value = toHeatmapNumber(entry.record?.[fieldKey]);
+      if (value !== null) total = (total ?? 0) + value;
+    });
+    if (total !== null) totals.set(dayKey, total);
+  });
+  return totals;
+};
+var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
+  if (total === void 0 || totals.size === 0) return void 0;
+  const values = Array.from(totals.values());
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const ratio = max === min ? 1 : (total - min) / (max - min);
+  const percent = Math.round(8 + ratio * 37);
+  return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
+};
+var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
 var USER_KEY = "jm_user";
 function getCurrentUserRoles() {
   try {
@@ -12667,9 +12700,11 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   const resource = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
   const dateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
+  const heatmapFieldOptions = React6.useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => dateFieldOptions[0]?.key || "");
   const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs10__default.default().startOf("month"));
+  const [heatmapField, setHeatmapField] = React6.useState("");
   const dateFieldKeySet = React6.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   React6.useEffect(() => {
     if (calendarDateField && dateFieldKeySet.has(calendarDateField)) return;
@@ -12685,6 +12720,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
       const id = item?.eid ?? item?.id;
       entries.push({
         key: id ?? getRecordDisplayLabel(item),
+        record: item,
         date: recordDate,
         id,
         label: getRecordDisplayLabel(item)
@@ -12741,6 +12777,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     return calendarAnchorDate.startOf("month").format("MMMM YYYY");
   }, [calendarAnchorDate, calendarMode]);
+  const heatmapTotals = React6.useMemo(
+    () => getCalendarHeatmapTotals(entriesByDate, rangeDays.map((day) => day.format("YYYY-MM-DD")), heatmapField),
+    [entriesByDate, heatmapField, rangeDays]
+  );
   if (loading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", message: error, showIcon: true });
   if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _49("No date/datetime fields available for calendar view.") });
@@ -12772,6 +12812,20 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             options: dateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
             style: { minWidth: 220 },
             placeholder: _49("Date field")
+          }
+        ),
+        heatmapFieldOptions.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Select,
+          {
+            size: "small",
+            value: heatmapField,
+            onChange: (value) => setHeatmapField(value),
+            options: [
+              { label: _49("No heatmap"), value: "" },
+              ...heatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
+            ],
+            style: { minWidth: 180 },
+            placeholder: _49("Heatmap field")
           }
         )
       ] }),
@@ -12841,6 +12895,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
             const isToday = day.isSame(dayjs10__default.default(), "day");
+            const heatmapTotal = heatmapTotals.get(dayKey);
+            const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
             return /* @__PURE__ */ jsxRuntime.jsxs(
               "div",
               {
@@ -12849,22 +12905,28 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
                   padding: 8,
                   borderTop: `1px solid ${token.colorBorderSecondary}`,
                   borderRight: day.day() === 6 ? "none" : `1px solid ${token.colorBorderSecondary}`,
-                  background: isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer,
+                  background: heatmapBackground || (isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer),
                   opacity: isOutsideCurrentMonth ? 0.75 : 1,
                   display: "grid",
                   alignContent: "start",
                   gap: 4
                 },
                 children: [
-                  /* @__PURE__ */ jsxRuntime.jsx(
+                  /* @__PURE__ */ jsxRuntime.jsxs(
                     "div",
                     {
                       style: {
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 4,
                         fontSize: 12,
                         fontWeight: isToday ? 700 : 600,
                         color: isToday ? token.colorPrimary : token.colorTextSecondary
                       },
-                      children: day.format("D")
+                      children: [
+                        /* @__PURE__ */ jsxRuntime.jsx("span", { children: day.format("D") }),
+                        heatmapTotal !== void 0 && /* @__PURE__ */ jsxRuntime.jsx("span", { children: formatCalendarHeatmapTotal(heatmapTotal) })
+                      ]
                     }
                   ),
                   /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 2 }, children: entries.map((entry, index) => {
@@ -16633,6 +16695,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
   const calendarDateFieldOptions = React6.useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
+  const calendarHeatmapFieldOptions = React6.useMemo(() => getCalendarHeatmapFieldOptions(model.fields), [model.fields]);
   const [localSearch, setLocalSearch] = React6.useState("");
   const [listVisible, setListVisible] = React6.useState(defaultListVisible ?? true);
   const [isTdFlipped, setIsTdFlipped] = React6.useState(false);
@@ -16641,6 +16704,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
   const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs10__default.default().startOf("month"));
+  const [calendarHeatmapField, setCalendarHeatmapField] = React6.useState("");
   const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
   const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
   const [filterRules, setFilterRules] = React6.useState([]);
@@ -19045,6 +19109,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     }
     return calendarAnchorDate.startOf("month").format("MMMM YYYY");
   }, [calendarAnchorDate, calendarMode]);
+  const calendarHeatmapTotals = React6.useMemo(
+    () => getCalendarHeatmapTotals(calendarEntriesByDate, calendarRangeDays.map((day) => day.format("YYYY-MM-DD")), calendarHeatmapField),
+    [calendarEntriesByDate, calendarHeatmapField, calendarRangeDays]
+  );
   const renderCalendarItem = (entry, index) => {
     if (!entry.resource || entry.id === void 0 || entry.id === null) {
       return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, lineHeight: 1.3 }, children: entry.label }, `${entry.key}-${index}`);
@@ -19091,6 +19159,20 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               options: calendarDateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
               style: { minWidth: 220 },
               placeholder: _56("Date field")
+            }
+          ),
+          calendarHeatmapFieldOptions.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Select,
+            {
+              size: "small",
+              value: calendarHeatmapField,
+              onChange: (value) => setCalendarHeatmapField(value),
+              options: [
+                { label: _56("No heatmap"), value: "" },
+                ...calendarHeatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
+              ],
+              style: { minWidth: 180 },
+              placeholder: _56("Heatmap field")
             }
           )
         ] }),
@@ -19160,6 +19242,8 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
               const isToday = day.isSame(dayjs10__default.default(), "day");
+              const heatmapTotal = calendarHeatmapTotals.get(dayKey);
+              const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
               return /* @__PURE__ */ jsxRuntime.jsxs(
                 "div",
                 {
@@ -19168,22 +19252,28 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     padding: 8,
                     borderTop: `1px solid ${token.colorBorderSecondary}`,
                     borderRight: day.day() === 6 ? "none" : `1px solid ${token.colorBorderSecondary}`,
-                    background: isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer,
+                    background: heatmapBackground || (isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer),
                     opacity: isOutsideCurrentMonth ? 0.75 : 1,
                     display: "grid",
                     alignContent: "start",
                     gap: 4
                   },
                   children: [
-                    /* @__PURE__ */ jsxRuntime.jsx(
+                    /* @__PURE__ */ jsxRuntime.jsxs(
                       "div",
                       {
                         style: {
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 4,
                           fontSize: 12,
                           fontWeight: isToday ? 700 : 600,
                           color: isToday ? token.colorPrimary : token.colorTextSecondary
                         },
-                        children: day.format("D")
+                        children: [
+                          /* @__PURE__ */ jsxRuntime.jsx("span", { children: day.format("D") }),
+                          heatmapTotal !== void 0 && /* @__PURE__ */ jsxRuntime.jsx("span", { children: formatCalendarHeatmapTotal(heatmapTotal) })
+                        ]
                       }
                     ),
                     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 2 }, children: entries.map((entry, index) => renderCalendarItem(entry, index)) })

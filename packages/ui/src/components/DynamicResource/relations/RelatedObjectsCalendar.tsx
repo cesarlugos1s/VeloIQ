@@ -6,7 +6,16 @@ import dayjs from "dayjs";
 import type { ModelDef, RelationDef } from "../types";
 import { resolveResourcePath, getRecordDisplayLabel } from "../utils/model";
 import { getShowHref } from "../utils/navigation";
-import { CALENDAR_WEEKDAYS, getCalendarDateFieldOptions, getCalendarRecordDate } from "../utils/calendar";
+import {
+    CALENDAR_WEEKDAYS,
+    getCalendarDateFieldOptions,
+    getCalendarRecordDate,
+    getCalendarHeatmapFieldOptions,
+    getCalendarHeatmapTotals,
+    getCalendarHeatmapBackground,
+    formatCalendarHeatmapTotal,
+} from "../utils/calendar";
+import { getPlainColorBaseHex } from "../../../utils/modelTone";
 import { useRelatedGalleryRecords } from "./hooks";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
@@ -22,9 +31,11 @@ export const RelatedObjectsCalendar: React.FC<{
     const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
     const resource = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const dateFieldOptions = useMemo(() => getCalendarDateFieldOptions(relatedModel.fields), [relatedModel.fields]);
+    const heatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
     const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
     const [calendarDateField, setCalendarDateField] = useState<string>(() => dateFieldOptions[0]?.key || "");
     const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs().startOf("month"));
+    const [heatmapField, setHeatmapField] = useState<string>("");
     const dateFieldKeySet = useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
 
     useEffect(() => {
@@ -35,13 +46,14 @@ export const RelatedObjectsCalendar: React.FC<{
 
     const calendarEntries = useMemo(() => {
         if (!calendarDateField) return [];
-        const entries: Array<{ key: string | number; date: ReturnType<typeof dayjs>; id: any; label: string }> = [];
+        const entries: Array<{ key: string | number; record: any; date: ReturnType<typeof dayjs>; id: any; label: string }> = [];
         records.forEach((item) => {
             const recordDate = getCalendarRecordDate(item, calendarDateField);
             if (!recordDate) return;
             const id = item?.eid ?? item?.id;
             entries.push({
                 key: id ?? getRecordDisplayLabel(item),
+                record: item,
                 date: recordDate,
                 id,
                 label: getRecordDisplayLabel(item),
@@ -98,6 +110,10 @@ export const RelatedObjectsCalendar: React.FC<{
         }
         return calendarAnchorDate.startOf("month").format("MMMM YYYY");
     }, [calendarAnchorDate, calendarMode]);
+    const heatmapTotals = useMemo(
+        () => getCalendarHeatmapTotals(entriesByDate, rangeDays.map((day) => day.format("YYYY-MM-DD")), heatmapField),
+        [entriesByDate, heatmapField, rangeDays]
+    );
 
     if (loading) return <Spin size="small" />;
     if (error) return <Alert type="error" message={error} showIcon />;
@@ -128,6 +144,19 @@ export const RelatedObjectsCalendar: React.FC<{
                         style={{ minWidth: 220 }}
                         placeholder={_("Date field")}
                     />
+                    {heatmapFieldOptions.length > 0 && (
+                        <Select
+                            size="small"
+                            value={heatmapField}
+                            onChange={(value) => setHeatmapField(value)}
+                            options={[
+                                { label: _("No heatmap"), value: "" },
+                                ...heatmapFieldOptions.map((field) => ({ label: field.label, value: field.key })),
+                            ]}
+                            style={{ minWidth: 180 }}
+                            placeholder={_("Heatmap field")}
+                        />
+                    )}
                 </Space>
                 <Space size={8}>
                     <Tooltip title={_("Previous")}>
@@ -188,6 +217,8 @@ export const RelatedObjectsCalendar: React.FC<{
                     const entries = entriesByDate.get(dayKey) || [];
                     const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
                     const isToday = day.isSame(dayjs(), "day");
+                    const heatmapTotal = heatmapTotals.get(dayKey);
+                    const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
                     return (
                         <div
                             key={dayKey}
@@ -196,7 +227,7 @@ export const RelatedObjectsCalendar: React.FC<{
                                 padding: 8,
                                 borderTop: `1px solid ${token.colorBorderSecondary}`,
                                 borderRight: day.day() === 6 ? "none" : `1px solid ${token.colorBorderSecondary}`,
-                                background: isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer,
+                                background: heatmapBackground || (isOutsideCurrentMonth ? token.colorFillAlter : token.colorBgContainer),
                                 opacity: isOutsideCurrentMonth ? 0.75 : 1,
                                 display: "grid",
                                 alignContent: "start",
@@ -205,12 +236,16 @@ export const RelatedObjectsCalendar: React.FC<{
                         >
                             <div
                                 style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 4,
                                     fontSize: 12,
                                     fontWeight: isToday ? 700 : 600,
                                     color: isToday ? token.colorPrimary : token.colorTextSecondary,
                                 }}
                             >
-                                {day.format("D")}
+                                <span>{day.format("D")}</span>
+                                {heatmapTotal !== undefined && <span>{formatCalendarHeatmapTotal(heatmapTotal)}</span>}
                             </div>
                             <div style={{ display: "grid", gap: 2 }}>
                                 {entries.map((entry, index) => {

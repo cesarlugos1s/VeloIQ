@@ -55,6 +55,10 @@ let _modelsColorSchema: string = (typeof localStorage !== "undefined" && localSt
 // Store the generated custom plain tones
 let _customPlainToneLight: ModelTone | null = null;
 let _customPlainToneDark: ModelTone | null = null;
+let _plainColorBaseHex: string = (typeof localStorage !== "undefined" && localStorage.getItem("jm_plainColorBaseHex")) || "";
+
+/** The application's configured base UI color (views config plainColorBaseHex), or "" when none is set. */
+export const getPlainColorBaseHex = () => _plainColorBaseHex;
 
 // ── Subscription mechanism ─────────────────────────────────────────────────
 // setColorSchemas() updates module-level variables outside of React's
@@ -110,6 +114,7 @@ export const setColorSchemas = (schemas: {
     }
 
     if (schemas.plainColorBaseHex) {
+        _plainColorBaseHex = schemas.plainColorBaseHex;
         try { localStorage.setItem("jm_plainColorBaseHex", schemas.plainColorBaseHex); } catch (_e) { /* quota */ }
         const rgb = hexToRgb(schemas.plainColorBaseHex);
         if (rgb) {

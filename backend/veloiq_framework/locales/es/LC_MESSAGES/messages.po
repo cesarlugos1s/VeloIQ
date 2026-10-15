@@ -714,6 +714,12 @@ msgstr "Semanal"
 msgid "Date field"
 msgstr "Campo de fecha"
 
+msgid "No heatmap"
+msgstr "Sin mapa de calor"
+
+msgid "Heatmap field"
+msgstr "Campo de mapa de calor"
+
 msgid "Previous"
 msgstr "Anterior"
 

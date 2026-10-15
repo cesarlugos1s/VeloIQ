@@ -38,3 +38,51 @@ export const getCalendarRecordDate = (record: any, fieldKey: string) => {
     if (!parsed.isValid()) return null;
     return parsed.startOf("day");
 };
+
+export const isCalendarHeatmapField = (field: FieldDef) => field.type === "number" && !field.reference;
+
+export const getCalendarHeatmapFieldOptions = (fields: FieldDef[]) => fields.filter(isCalendarHeatmapField);
+
+const toHeatmapNumber = (value: any) => {
+    if (value === undefined || value === null || value === "" || typeof value === "boolean") return null;
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+/** Sum of the heatmap field per visible day; days without a numeric value are left out. */
+export const getCalendarHeatmapTotals = (
+    entriesByDate: Map<string, Array<{ record: any }>>,
+    dayKeys: string[],
+    fieldKey: string,
+) => {
+    const totals = new Map<string, number>();
+    if (!fieldKey) return totals;
+    dayKeys.forEach((dayKey) => {
+        let total: number | null = null;
+        (entriesByDate.get(dayKey) || []).forEach((entry) => {
+            const value = toHeatmapNumber(entry.record?.[fieldKey]);
+            if (value !== null) total = (total ?? 0) + value;
+        });
+        if (total !== null) totals.set(dayKey, total);
+    });
+    return totals;
+};
+
+/** Soft background for a day cell: the accent color mixed into the cell background in proportion to the day's total. */
+export const getCalendarHeatmapBackground = (
+    total: number | undefined,
+    totals: Map<string, number>,
+    accentColor: string,
+    baseColor: string,
+) => {
+    if (total === undefined || totals.size === 0) return undefined;
+    const values = Array.from(totals.values());
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const ratio = max === min ? 1 : (total - min) / (max - min);
+    const percent = Math.round(8 + ratio * 37);
+    return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
+};
+
+export const formatCalendarHeatmapTotal = (total: number) =>
+    total.toLocaleString(undefined, { maximumFractionDigits: 2 });
