@@ -15,9 +15,12 @@ try:
 except ImportError:
     pass
 
-# Import framework auth models so their tables are always included
+# Import every framework module that declares tables so autogenerate always includes them.
+# Once Alembic owns the database, VeloIQ no longer creates tables on startup, so a table
+# missing here never gets created (tests/test_alembic_scaffold.py guards this list).
 import veloiq_framework.auth.models  # noqa: F401
 import veloiq_framework.help.models  # noqa: F401
+import veloiq_framework.access.models  # noqa: F401  (role access policies: veloiq_role_access_*)
 
 # Auto-discover and import all app module models so autogenerate can detect them.
 _modules_dir = Path(__file__).parent.parent / "app" / "modules"

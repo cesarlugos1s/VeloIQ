@@ -324,14 +324,20 @@ def _add_many_to_many(
 
 # ── Disambiguation helpers ─────────────────────────────────────────────────────
 
-def _get_class_body(text: str, class_name: str) -> str:
-    """Return only the text from `class ClassName(` to the next class definition (or EOF)."""
+def _class_span(text: str, class_name: str) -> Optional[tuple[int, int]]:
+    """Return the (start, end) offsets from `class ClassName(` to the next class definition (or EOF)."""
     m = re.search(rf'^class\s+{re.escape(class_name)}\s*\(', text, re.M | re.I)
     if not m:
-        return text  # fallback: whole-file
-    after = text[m.start():]
-    next_cls = re.search(r'^class\s+\w+\s*\(', after[1:], re.M)
-    return after[: 1 + next_cls.start()] if next_cls else after
+        return None
+    next_cls = re.search(r'^class\s+\w+\s*\(', text[m.start() + 1:], re.M)
+    end = m.start() + 1 + next_cls.start() if next_cls else len(text)
+    return m.start(), end
+
+
+def _get_class_body(text: str, class_name: str) -> str:
+    """Return only the text from `class ClassName(` to the next class definition (or EOF)."""
+    span = _class_span(text, class_name)
+    return text[span[0]:span[1]] if span else text  # fallback: whole-file
 
 
 def _has_fk_to(text: str, table: str) -> bool:
@@ -359,12 +365,22 @@ def _find_back_populates(text: str, attr_name: str) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def _patch_rel_foreign_keys(text: str, attr_name: str, fk_expr: str) -> str:
+def _patch_rel_foreign_keys(text: str, attr_name: str, fk_expr: str, class_name: Optional[str] = None) -> str:
     """
     Inject sa_relationship_kwargs={"foreign_keys": fk_expr} into an existing jm_relationship.
     Skips if foreign_keys already present; skips if sa_relationship_kwargs present (to avoid
     overwriting deliberate custom kwargs).
+
+    With `class_name`, only that class's body is searched, so an attribute with the same
+    name in another class of the same models.py is never patched.
     """
+    if class_name:
+        span = _class_span(text, class_name)
+        if not span:
+            return text
+        start, end = span
+        return text[:start] + _patch_rel_foreign_keys(text[start:end], attr_name, fk_expr) + text[end:]
+
     lines = text.splitlines(keepends=True)
     start = -1
     for i, ln in enumerate(lines):
@@ -413,52 +429,38 @@ def _patch_existing_rels_for_disambig(
     """
     Patch all existing jm_relationship attrs between src and tgt to include explicit foreign_keys.
     Called when a second FK path is being introduced between the two tables.
+
+    Only the bodies of SrcClass (in src_text) and TgtClass (in tgt_text) are scanned: other
+    classes in the same files may reference TgtClass/SrcClass through their own FK columns,
+    and must not be pointed at SrcClass's or TgtClass's.
     """
-    # Rels in src that reference TgtClass — FK is on src side: [SrcClass.{attr}_id]
-    for ra in re.findall(
-        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
-        src_text, re.M,
-    ):
-        src_text = _patch_rel_foreign_keys(src_text, ra, f"[{src_class}.{ra}_id]")
-
-    # List["TgtClass"] in src — reverse relationship; FK is on tgt side: [TgtClass.{bp}_id]
-    for ra in re.findall(
-        rf'^\s+(\w+)\s*:\s*List\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
-        src_text, re.M,
-    ):
-        bp = _find_back_populates(src_text, ra)
-        if bp:
-            src_text = _patch_rel_foreign_keys(src_text, ra, f"[{tgt_class}.{bp}_id]")
-
-    # Rels in tgt that reference SrcClass — FK on tgt side: [TgtClass.{attr}_id]
-    for ra in re.findall(
-        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
-        tgt_text, re.M,
-    ):
-        tgt_text = _patch_rel_foreign_keys(tgt_text, ra, f"[{tgt_class}.{ra}_id]")
-
-    # List["SrcClass"] in tgt — FK is on src side: [SrcClass.{bp}_id]
-    for ra in re.findall(
-        rf'^\s+(\w+)\s*:\s*List\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
-        tgt_text, re.M,
-    ):
-        bp = _find_back_populates(tgt_text, ra)
-        if bp:
-            tgt_text = _patch_rel_foreign_keys(tgt_text, ra, f"[{src_class}.{bp}_id]")
-
+    src_text = _patch_class_rels_to(src_text, src_class, tgt_class)
+    tgt_text = _patch_class_rels_to(tgt_text, tgt_class, src_class)
     return src_text, tgt_text
 
 
-def _find_owning_class(text: str, attr_match: re.Match) -> str:
-    """Return the PascalCase class name that owns the matched attribute line."""
-    pos = attr_match.start()
-    prefix = text[:pos]
-    m = re.search(r'^class\s+(\w+)\s*\(', prefix, re.M)
-    # Take the last class definition before the attribute (reverse search)
-    last = None
-    for m in re.finditer(r'^class\s+(\w+)\s*\(', prefix, re.M):
-        last = m
-    return last.group(1) if last else "Unknown"
+def _patch_class_rels_to(text: str, owner_class: str, other_class: str) -> str:
+    """
+    Add explicit foreign_keys to every jm_relationship declared in `owner_class` that points
+    at `other_class`:
+
+    - Optional["OtherClass"] — the FK column is on the owner:  [OwnerClass.{attr}_id]
+    - List["OtherClass"]     — the FK column is on the other:  [OtherClass.{back_populates}_id]
+    """
+    body = _get_class_body(text, owner_class)
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(other_class)}"\]\s*=\s*jm_relationship',
+        body, re.M,
+    ):
+        text = _patch_rel_foreign_keys(text, ra, f"[{owner_class}.{ra}_id]", owner_class)
+    for ra in re.findall(
+        rf'^\s+(\w+)\s*:\s*List\["{re.escape(other_class)}"\]\s*=\s*jm_relationship',
+        body, re.M,
+    ):
+        bp = _find_back_populates(body, ra)
+        if bp:
+            text = _patch_rel_foreign_keys(text, ra, f"[{other_class}.{bp}_id]", owner_class)
+    return text
 
 
 def _patch_same_file_disambig(
@@ -467,42 +469,9 @@ def _patch_same_file_disambig(
     src_table: str, tgt_table: str,
 ) -> str:
     """Like _patch_existing_rels_for_disambig but for a single file containing both models."""
-    # Optional["TgtClass"] — FK is on the owning class: [OwningClass.{attr}_id]
-    for m in re.finditer(
-        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
-        text, re.M,
-    ):
-        ra = m.group(1)
-        owner = _find_owning_class(text, m)
-        fk = f"[{owner}.{ra}_id]"
-        text = _patch_rel_foreign_keys(text, ra, fk)
-    # List["TgtClass"] — FK is on the target class: [TgtClass.{bp}_id]
-    for m in re.finditer(
-        rf'^\s+(\w+)\s*:\s*List\["{re.escape(tgt_class)}"\]\s*=\s*jm_relationship',
-        text, re.M,
-    ):
-        ra = m.group(1)
-        bp = _find_back_populates(text, ra)
-        if bp:
-            text = _patch_rel_foreign_keys(text, ra, f"[{tgt_class}.{bp}_id]")
-    # Optional["SrcClass"] — FK is on the owning class: [OwningClass.{attr}_id]
-    for m in re.finditer(
-        rf'^\s+(\w+)\s*:\s*Optional\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
-        text, re.M,
-    ):
-        ra = m.group(1)
-        owner = _find_owning_class(text, m)
-        fk = f"[{owner}.{ra}_id]"
-        text = _patch_rel_foreign_keys(text, ra, fk)
-    # List["SrcClass"] — FK is on the source class: [SrcClass.{bp}_id]
-    for m in re.finditer(
-        rf'^\s+(\w+)\s*:\s*List\["{re.escape(src_class)}"\]\s*=\s*jm_relationship',
-        text, re.M,
-    ):
-        ra = m.group(1)
-        bp = _find_back_populates(text, ra)
-        if bp:
-            text = _patch_rel_foreign_keys(text, ra, f"[{src_class}.{bp}_id]")
+    text = _patch_class_rels_to(text, src_class, tgt_class)
+    if tgt_class != src_class:
+        text = _patch_class_rels_to(text, tgt_class, src_class)
     return text
 
 
