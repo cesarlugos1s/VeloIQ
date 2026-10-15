@@ -41,7 +41,7 @@ export interface AnalyzePanelProps {
     analyze: AnalyzeState;
     /** Every field of the analysed model (the chart resolves category fields from them). */
     allFields: FieldDef[];
-    /** Colour tone of the analysed model, used for the card header and statistics titles. */
+    /** Colour tone of the analysed model, used for the statistics titles. */
     tone: ModelTone;
     /** Fill colour of the in-cell value bars (crosstab chart type). */
     numericBarColor: string;
@@ -153,13 +153,10 @@ export const AnalyzePanel: React.FC<AnalyzePanelProps> = ({
     return (
         <Card
             size="small"
-            title={<span style={{ color: tone.text, fontWeight: 600 }}>{_("Analyze")}</span>}
-            styles={{
-                header: {
-                    background: `linear-gradient(135deg, ${tone.solid}18 0%, ${tone.solid}0a 100%)`,
-                },
-                body: { padding: 0 },
-            }}
+            // No header bar: its title was always "Analyze", and the chart carries its own
+            // title and toolbar. The label stays for screen readers.
+            aria-label={_("Analyze")}
+            styles={{ body: { padding: 0 } }}
         >
             <div style={{ perspective: 1600, padding: 12 }}>
                 <div

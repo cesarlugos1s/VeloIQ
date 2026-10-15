@@ -15,6 +15,7 @@ import {
     CHART_HEATMAP_COLORSCALE,
     CHART_HEATMAP_REVERSESCALE,
     CHART_NUMBER_FORMAT,
+    CHART_THEME_COLORS,
     buildStandardChartLayout,
     getChartEmptyMessage,
 } from "./chartTheme";
@@ -354,7 +355,12 @@ export const AnalysisChart: React.FC<AnalysisChartProps> = (props) => {
                 containerRef.current = el;
                 props.graphRef.current = el;
             }}
-            style={{ width: "100%", height: CHART_HEIGHT }}
+            style={{
+                width: "100%",
+                height: CHART_HEIGHT,
+                background: (dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light).surface,
+                borderRadius: 8,
+            }}
         />
     );
 };

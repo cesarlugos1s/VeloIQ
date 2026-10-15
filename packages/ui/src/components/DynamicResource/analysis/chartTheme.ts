@@ -48,10 +48,17 @@ export const CHART_FONT_FAMILY = "sans-serif";
 /** Font size of chart text, in px. */
 export const CHART_FONT_SIZE = 12;
 
-/** Text, grid and legend-border colours for the light and the dark theme. */
+/**
+ * Text, grid, legend-border and surface colours for the light and the dark theme.
+ *
+ * `surface` is what the chart is drawn on. Plotly's own backgrounds stay
+ * transparent; in the light theme the colour schema paints every card grey, so
+ * a frontend chart gets the white of the backend's answer cards (--jm-card-bg),
+ * which the backend's charts are shown on.
+ */
 export const CHART_THEME_COLORS = {
-    light: { text: "#4a5568", grid: "rgba(128,128,128,0.22)", legendBorder: "rgba(128,128,128,0.35)" },
-    dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)" },
+    light: { text: "#4a5568", grid: "rgba(128,128,128,0.22)", legendBorder: "rgba(128,128,128,0.35)", surface: "#ffffff" },
+    dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" },
 } as const;
 
 /** Untranslated empty-state message; translate with getChartEmptyMessage(). */
