@@ -577,10 +577,11 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             role = session.get(Role, role_id)
             if role is None:
                 raise HTTPException(status_code=404, detail="Role not found")
-        # Deleting a role deletes its access policy (AC-B8). Done explicitly
+        # Deleting a role deletes its access and feature policies (AC-B8). Done explicitly
         # because SQLite only enforces the FK cascade with foreign keys on.
-        from veloiq_framework.access.store import EVENT_ROLE_DELETED, delete_policy
+        from veloiq_framework.access.store import EVENT_ROLE_DELETED, delete_feature_policy, delete_policy
         delete_policy(engine, role_id, getattr(request.state, "user", None), event=EVENT_ROLE_DELETED)
+        delete_feature_policy(engine, role_id, getattr(request.state, "user", None), event=EVENT_ROLE_DELETED)
         with Session(engine) as session:
             role = session.get(Role, role_id)
             if role is not None:

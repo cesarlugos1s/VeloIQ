@@ -15,6 +15,13 @@ their roles allows it (AC-C4), the same way ``check_rbac`` and
 ``_check_model_permissions`` combine roles. The Admin role skips steps 4 and
 5 but is still subject to licensing and its methods (AC-A3, AC-C2).
 
+Features (registered capabilities such as an extension's answering methods)
+are decided by :func:`can_use_feature`: the role's feature policy, with the
+same any-role-wins rule and the same Admin exemption. :func:`feature_is_enabled`
+is what feature code calls: the feature's configuration switch is on *and*
+:func:`can_use_feature` allows it for the user whose request is served
+(:func:`set_feature_user`).
+
 The algorithm itself lives in :func:`evaluate_access`, a pure function over
 plain data. The frontend implements the same function in
 ``@juicemantics/veloiq-ui`` (``evaluateAccess``) and both are checked against
@@ -22,6 +29,7 @@ the shared cases in ``test-fixtures/access.json``.
 """
 from __future__ import annotations
 
+import contextvars
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -70,6 +78,7 @@ REASON_LICENSE_READ_ONLY = "license_read_only"
 REASON_ROLE_METHOD = "role_method"
 REASON_POLICY = "policy"
 REASON_MODEL_ACCESS = "model_access"
+REASON_FEATURE_POLICY = "feature_policy"
 
 
 @dataclass(frozen=True)
@@ -190,7 +199,49 @@ def evaluate_access(ctx: Mapping[str, Any], module_key: str | None,
     return AccessDecision(False, first_reason)
 
 
+def _feature_policy_allows(policy: Mapping[str, Any], feature_key: str) -> bool:
+    """Apply one role's feature policy to *feature_key*.
+
+    Allowlist: only listed features pass. Blocklist: every feature passes
+    except the listed ones.
+    """
+    listed = any(e.get("feature_key") == feature_key for e in policy.get("entries") or [])
+    if policy.get("mode") == "allow":
+        return listed
+    return not listed
+
+
+def evaluate_feature_access(ctx: Mapping[str, Any], feature_key: str) -> AccessDecision:
+    """Decide whether the user described by *ctx* may use *feature_key*.
+
+    *ctx* holds ``roles``, ``admin_role``, ``feature_policies`` (role →
+    ``{"mode", "entries": [{"feature_key"}]}``) and ``features`` (the
+    registered feature keys). A user gets the feature when any of their roles
+    allows it: the Admin role always does, a role with no feature policy
+    does, and so does any role when the feature isn't registered (a policy
+    can only name registered features).
+    """
+    roles = list(ctx.get("roles") or [])
+    if not roles:
+        return AccessDecision(False, REASON_NO_ROLE)
+    if feature_key not in (ctx.get("features") or {}):
+        return ALLOW
+    policies = ctx.get("feature_policies") or {}
+    for role in roles:
+        if role == ctx.get("admin_role", ADMIN_ROLE):
+            return ALLOW
+        policy = policies.get(role)
+        if policy is None or _feature_policy_allows(policy, feature_key):
+            return ALLOW
+    return AccessDecision(False, REASON_FEATURE_POLICY)
+
+
 # ── Live evaluation ──────────────────────────────────────────────────────────
+
+def _feature_policies_for(roles: list[str]) -> dict:
+    """Return ``{role: feature policy}`` for the *roles* that have one (cached)."""
+    from veloiq_framework.access.store import get_role_feature_policy
+    return {r: p for r in roles if (p := get_role_feature_policy(r)) is not None}
 
 def build_context(user: Mapping[str, Any] | None, *, include_license: bool = True) -> dict:
     """Assemble the evaluation context for *user* from the live sources.
@@ -254,3 +305,89 @@ def require_access(user: Mapping[str, Any] | None, module_key: str | None,
     """Raise the 403 from :func:`denied_exception` unless :func:`can_access` allows."""
     if not can_access(user, module_key, model_key, action):
         raise denied_exception()
+
+
+def can_use_feature(user: Mapping[str, Any] | None, feature_key: str) -> AccessDecision:
+    """The shared decision function for features, for a signed-in *user*.
+
+    *user* is the request user dict (``roles`` is what matters); a user with
+    no role is denied. Only the roles' feature policies are read, so the call
+    is cheap enough for answering code to make once per decision.
+    """
+    from veloiq_framework.access.registry import get_features
+
+    roles = list((user or {}).get("roles") or [])
+    ctx = {
+        "roles": roles,
+        "admin_role": ADMIN_ROLE,
+        "feature_policies": _feature_policies_for(roles),
+        "features": get_features(),
+    }
+    return evaluate_feature_access(ctx, feature_key)
+
+
+# ── Feature switches: configuration + role access ───────────────────────────
+
+# The signed-in user (the request user dict, with its ``roles``) whose request
+# the feature code in this context serves; None when there is none (a
+# scheduled job, a background task).
+_feature_user: contextvars.ContextVar = contextvars.ContextVar("veloiq_feature_user", default=None)
+
+#: Default of :func:`feature_is_enabled`'s *user*: the one set by :func:`set_feature_user`.
+CURRENT_USER = object()
+
+
+def set_feature_user(user: Mapping[str, Any] | None):
+    """Set the user whose request the feature code in this context serves.
+
+    Call it where the request is received (an endpoint), so code deep in the
+    call chain can call :func:`feature_is_enabled` without passing the user
+    along. Returns the ContextVar token, for ``reset_feature_user``.
+    """
+    return _feature_user.set(dict(user) if isinstance(user, Mapping) else None)
+
+
+def reset_feature_user(token) -> None:
+    """Restore the feature user that was set before :func:`set_feature_user` returned *token*."""
+    _feature_user.reset(token)
+
+
+def current_feature_user() -> dict | None:
+    """Return the user set by :func:`set_feature_user` in this context, or ``None``."""
+    return _feature_user.get()
+
+
+def feature_is_enabled(feature_key: str, *, config_section: str | None = None,
+                       config_key: str | None = None, fallback: bool = False,
+                       jm_config=None, user: Any = CURRENT_USER) -> bool:
+    """Return whether the feature *feature_key* may be used now.
+
+    Both must hold:
+
+    1. its configuration switch, ``[config_section] config_key`` of
+       ``jm_config.ini`` (read with :func:`jm_obtain_config` unless
+       *jm_config* is given; *fallback* when the key is missing), is on --
+       skipped when the feature has no switch (no *config_key*);
+    2. :func:`can_use_feature` allows it for *user*, by default the one set
+       by :func:`set_feature_user`. With no user there is no role to
+       restrict, so only the switch applies.
+
+    This is the one place that decides whether a feature is used, so feature
+    code calls it instead of reading its switch itself.
+    """
+    if config_key:
+        if jm_config is None:
+            from veloiq_framework.utils.data_mgmt_utils import jm_obtain_config
+            jm_config = jm_obtain_config()
+        if not jm_config.getboolean(config_section, config_key, fallback=fallback):
+            return False
+    if user is CURRENT_USER:
+        user = current_feature_user()
+    if user is None:
+        return True
+    if not can_use_feature(user, feature_key):
+        from veloiq_framework.utils.data_mgmt_utils import jm_log
+        jm_log(1, f"🚫 Feature '{feature_key}' is not allowed for user '{user.get('username', '')}' "
+                  f"by the access control of their roles.", text_color='YELLOW')
+        return False
+    return True

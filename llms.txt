@@ -205,6 +205,30 @@ Run `veloiq generate` after changing `veloiq_field` annotations — it emits
 `readRoles`/`writeRoles` into the TypeScript schema so the UI hides/disables
 restricted fields automatically.
 
+### Role access policies and feature access (runtime, Admin-managed)
+
+An Admin gives a role an allowlist or a blocklist on its Role pages:
+- **Access Policy** tab: modules and models, with CRUD flags per entry.
+- **Feature Access** tab: features that extensions register.
+
+A role has at most one policy of each kind. With no policy the role is
+unrestricted, Admin is exempt, any of a user's roles allowing is enough, and every
+change is audited. Endpoints: `/auth/access-policies` (`.../{role_id}/features`
+for feature policies).
+
+```python
+from veloiq_framework.access import register_feature, feature_is_enabled, set_feature_user
+
+register_feature("my_ext", "bulk_export", "Bulk export", group="Exports")   # once, at import
+set_feature_user(request.state.user)                                         # in the endpoint
+if feature_is_enabled("my_ext:bulk_export",                                  # anywhere below it
+                      config_section="exports", config_key="bulk_export_enabled"):
+    ...
+```
+
+`feature_is_enabled` = the `jm_config.ini` switch is on AND `can_use_feature(user,
+key)` allows it. With no user (background job), only the switch applies.
+
 ### ReBAC — Row-level access control (`@rebac`)
 
 Filters which rows a user can see/edit/delete based on data ownership or relationships:

@@ -292,6 +292,16 @@ class Document(TimestampedModel, table=True):
 
 For a full walkthrough see [Section 4 (RBAC)](./tutorial-task-manager.md#section-4--role-based-access-control-rbac) and [Section 5 (ReBAC)](./tutorial-task-manager.md#section-5--row-level-access-control-rebac) in the tutorial.
 
+**Role access policies — set at runtime by an Admin**
+
+On each Role's Show and Edit pages, an Admin can give the role an allowlist or a
+blocklist of modules and models (**Access Policy** tab) and, separately, of the
+features extensions register, such as IQVigilant's answering methods
+(**Feature Access** tab). A role with no policy keeps its unrestricted access, and
+every change is audited. Extension code checks a feature with
+`feature_is_enabled(...)`. See
+[Role access policies](./module-authoring.md#role-access-policies--runtime-allowlists-and-blocklists-admin-managed).
+
 ---
 
 ## Project Explorer

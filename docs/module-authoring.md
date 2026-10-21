@@ -196,7 +196,8 @@ invoices: List["Invoice"] = jm_relationship(
 ## Access control
 
 VeloIQ provides four layers of access control.  All are opt-in per model
-and can be combined freely.
+and can be combined freely.  On top of them, an Admin can restrict each role at
+runtime with [role access policies](#role-access-policies--runtime-allowlists-and-blocklists-admin-managed).
 
 ### Layer 1 — Configurable roles (global)
 
@@ -332,6 +333,90 @@ Key characteristics:
 - Inaccessible rows return **404**, not 403, to avoid leaking which IDs exist.
 - Multiple patterns (`filter`, `owner_field`, `tenant_field`) on one decorator
   are **OR-combined**: a row is visible if any pattern allows it.
+
+### Role access policies — runtime allowlists and blocklists (Admin-managed)
+
+The layers above are written in code. Access policies are set at runtime by an
+Admin, on each Role's Show and Edit pages, and stored in the database. A role has
+at most one policy of each kind, and each policy is either an **allowlist** (the
+role may use only what it lists) or a **blocklist** (the role may use everything
+except what it lists). A role with no policy keeps its unrestricted access. The
+Admin role can't be given a policy, and a user with several roles gets what any
+one of their roles allows. Every change is recorded in an audit trail, shown on
+the tab as the change history.
+
+| Kind | Role tab | Lists | Stored in |
+|---|---|---|---|
+| Module and model policy | **Access Policy** | Modules or models, with Create/Read/Update/Delete per entry | `veloiq_role_access_policy`, `veloiq_role_access_entry` |
+| Feature policy | **Feature Access** | Features registered by extensions (see below) | `veloiq_role_feature_policy`, `veloiq_role_feature_entry` |
+
+Both kinds write their audit rows to `veloiq_role_access_audit`. The admin-only
+endpoints live under `/auth/access-policies`:
+
+| Method and path | Purpose |
+|---|---|
+| `GET /auth/access-policies/resources` | The modules, models and features a policy can name (feature texts translated) |
+| `GET /auth/access-policies` · `GET /auth/access-policies/{role_id}` | Every role, or one, with its `policy` and `feature_policy` |
+| `PUT` · `DELETE /auth/access-policies/{role_id}` | Save or remove a role's module and model policy |
+| `PUT` · `DELETE /auth/access-policies/{role_id}/features` | Save or remove a role's feature policy: `{"mode": "allow" \| "block", "entries": [{"feature_key": "..."}]}` |
+| `GET /auth/access-policies/audit?role_id=` | Change history |
+
+`/auth/resource-permissions` returns the signed-in user's effective permissions,
+`effective.features` included (`{feature_key: true | false}`).
+
+#### Features — capabilities that are neither a module nor a model
+
+A feature is something an extension can do that an administrator may want to
+allow for some roles only, such as each of IQVigilant's NLP answering methods.
+The extension registers it once at import time, for example in a module's
+`custom_api.py`:
+
+```python
+from veloiq_framework.access import register_feature
+
+register_feature("my_extension", "bulk_export", "Bulk export",
+                 group="Exports", description="Export every record at once")
+```
+
+Its key is `<source>:<name>` (`my_extension:bulk_export`). The label, group and
+description are msgids: VeloIQ translates them with `_()` when it serves them, so
+keep their translations in the extension's catalog.
+
+Code that uses the feature asks **`feature_is_enabled`** instead of reading its
+configuration switch itself. It is the one place that decides, so a change to that
+rule is made in one place for every feature:
+
+```python
+from veloiq_framework.access import feature_is_enabled, set_feature_user
+
+# Where the request is received (an endpoint):
+set_feature_user(request.state.user)
+
+# Anywhere below it in the call chain:
+if feature_is_enabled("my_extension:bulk_export",
+                      config_section="exports", config_key="bulk_export_enabled"):
+    ...
+```
+
+`feature_is_enabled` returns `True` only when both of these hold:
+
+1. **The switch is on.** `[config_section] config_key` in `jm_config.ini` is on.
+   Pass `fallback=` for a missing key and `jm_config=` to reuse a configuration
+   you've already read. Leave out `config_key` for a feature with no switch.
+2. **The roles allow it.** `can_use_feature(user, feature_key)` allows it for the
+   user set with `set_feature_user`, or the one passed as `user=`. With **no user**
+   (a scheduled job, a background task) there is no role to restrict, so only the
+   switch applies. A user with no roles is denied.
+
+A feature that isn't registered is never restricted. A feature policy can only list
+registered features; entries whose extension has been removed are kept and shown
+as inactive. `can_use_feature` and its pure counterpart `evaluate_feature_access`
+are exported from `veloiq_framework.access` too.
+
+The feature policy tables are created on startup like any other framework table.
+On an Alembic-managed database, add them with
+`veloiq db migrate -m "add role feature policies"` followed by `veloiq db upgrade`.
+Until then, every feature stays allowed, but saving a feature policy fails.
 
 ---
 

@@ -1,6 +1,9 @@
 /**
  * The Role model's "Access Policy" tab: one allowlist or one blocklist of
  * modules and models per role, with Create/Read/Update/Delete per entry.
+ * And its "Feature Access" tab: one allowlist or one blocklist of the
+ * features extensions register (such as answering methods), kept apart
+ * from the module policy.
  *
  * Show page: the saved policy (read-only) and its change history.
  * Edit page: the policy editor, saved by the page's own Save button
@@ -57,11 +60,22 @@ interface Policy {
     entries: Entry[];
 }
 
+interface FeatureEntry {
+    feature_key: string;
+    active?: boolean;
+}
+
+interface FeaturePolicy {
+    mode: "allow" | "block";
+    entries: FeatureEntry[];
+}
+
 interface RoleRow {
     role_id: number;
     role_name: string;
     is_admin: boolean;
     policy: Policy | null;
+    feature_policy: FeaturePolicy | null;
 }
 
 interface ResourceModule {
@@ -76,8 +90,18 @@ interface AuditRow {
     event: string;
     actor_username: string;
     created_at: string | null;
-    before: { mode?: string; entries?: Entry[] } | null;
-    after: { mode?: string; entries?: Entry[] } | null;
+    before: { mode?: string; entries?: unknown[] } | null;
+    after: { mode?: string; entries?: unknown[] } | null;
+}
+
+/** A registered feature, as `/auth/access-policies/resources` lists it (texts translated). */
+interface ResourceFeature {
+    key: string;
+    source: string;
+    name: string;
+    label: string;
+    group: string;
+    description: string;
 }
 
 const ACTIONS: { action: Action; flag: keyof Entry; label: string }[] = [
@@ -149,7 +173,19 @@ const AdminNote: React.FC = () => (
     />
 );
 
-const ChangeHistory: React.FC<{ roleId: number }> = ({ roleId }) => {
+/** Audit event codes of feature policies (shown on the Feature Access tab). */
+const FEATURE_EVENTS = ["feature_save", "feature_delete"];
+
+/**
+ * A role's change history. `events`, when given, keeps only those event
+ * codes; `excludeEvents` drops them. The Access Policy tab leaves out the
+ * feature policy events, which the Feature Access tab shows instead.
+ */
+const ChangeHistory: React.FC<{ roleId: number; events?: string[]; excludeEvents?: string[] }> = ({
+    roleId,
+    events,
+    excludeEvents,
+}) => {
     const [audit, setAudit] = useState<AuditRow[]>([]);
     useEffect(() => {
         let cancelled = false;
@@ -159,6 +195,12 @@ const ChangeHistory: React.FC<{ roleId: number }> = ({ roleId }) => {
         })();
         return () => { cancelled = true; };
     }, [roleId]);
+
+    const rows = useMemo(
+        () => audit.filter((row) =>
+            (!events || events.includes(row.event)) && !(excludeEvents ?? []).includes(row.event)),
+        [audit, events, excludeEvents],
+    );
 
     const describeChange = (row: AuditRow) => {
         if (row.event === "role_get_migration") return _("Read access added to the role's methods");
@@ -172,7 +214,7 @@ const ChangeHistory: React.FC<{ roleId: number }> = ({ roleId }) => {
         <Table
             size="small"
             rowKey="id"
-            dataSource={audit}
+            dataSource={rows}
             pagination={{ pageSize: 10, hideOnSinglePage: true }}
             locale={{ emptyText: _("No changes recorded yet.") }}
             columns={[
@@ -247,7 +289,7 @@ export const RoleAccessPolicyView: React.FC<{ record: any }> = ({ record }) => {
                 </div>
             )}
             <Typography.Title level={5} style={{ margin: 0 }}>{_("Change history")}</Typography.Title>
-            <ChangeHistory roleId={row.role_id} />
+            <ChangeHistory roleId={row.role_id} excludeEvents={FEATURE_EVENTS} />
         </Space>
     );
 };
@@ -467,4 +509,213 @@ export const roleAccessPolicyTab: ModelExtraTab = {
     label: "Access Policy",
     show: RoleAccessPolicyView,
     edit: RoleAccessPolicyEditor,
+};
+
+
+// ── Feature Access tab ──────────────────────────────────────────────────────
+
+const featureModeHelp = (mode: Mode) =>
+    mode === "allow"
+        ? _("Users with this role can use only the listed features.")
+        : mode === "block"
+            ? _("Users with this role can use every feature except the listed ones.")
+            : _("Users with this role can use every feature.");
+
+/** Payload comparison key for the feature editor. */
+const featurePolicyKey = (mode: Mode, keys: string[]) =>
+    mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
+
+/** Load the registered features (labels, groups and descriptions translated by the backend). */
+function useRegisteredFeatures() {
+    const [features, setFeatures] = useState<ResourceFeature[]>([]);
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const res = await authenticatedFetch(`${BASE_URL}/resources`);
+            if (!cancelled && res.ok) setFeatures((await res.json()).features ?? []);
+        })();
+        return () => { cancelled = true; };
+    }, []);
+    return features;
+}
+
+interface FeatureRow {
+    key: string;
+    label: string;
+    group: string;
+    description: string;
+    active: boolean;
+}
+
+/**
+ * One table row per registered feature, plus any saved entry whose feature
+ * is no longer registered (kept, shown as inactive).
+ */
+function featureRows(features: ResourceFeature[], saved: FeatureEntry[]): FeatureRow[] {
+    const rows: FeatureRow[] = features.map((f) => ({
+        key: f.key, label: f.label, group: f.group, description: f.description, active: true,
+    }));
+    const known = new Set(rows.map((r) => r.key));
+    for (const e of saved) {
+        if (!known.has(e.feature_key)) {
+            rows.push({ key: e.feature_key, label: e.feature_key, group: "", description: "", active: false });
+        }
+    }
+    return rows;
+}
+
+const featureColumns = () => [
+    {
+        title: _("Feature"),
+        key: "label",
+        render: (_value: unknown, r: FeatureRow) => (
+            <Space size={6} wrap>
+                <span>{r.label}</span>
+                {!r.active && <Tag>{_("Inactive")}</Tag>}
+            </Space>
+        ),
+    },
+    { title: _("Group"), dataIndex: "group", key: "group" },
+    { title: _("Description"), dataIndex: "description", key: "description" },
+];
+
+/** Show page: the saved feature policy, read-only, and its change history. */
+export const RoleFeatureAccessView: React.FC<{ record: any }> = ({ record }) => {
+    const { row, loading, forbidden } = useRolePolicy(record?.id);
+    const features = useRegisteredFeatures();
+    if (forbidden) return null;
+    if (loading && !row) return <div style={{ padding: 24, textAlign: "center" }}><Spin /></div>;
+    if (!row) return null;
+    if (row.is_admin) return <AdminNote />;
+
+    const mode: Mode = row.feature_policy?.mode ?? "none";
+    const saved = row.feature_policy?.entries ?? [];
+    const listed = new Set(saved.map((e) => e.feature_key));
+    const rows = featureRows(features, saved).filter((r) => listed.has(r.key));
+
+    return (
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Space size={8} wrap>
+                <Tag color={mode === "none" ? undefined : "blue"}>{modeLabel(mode)}</Tag>
+                <Typography.Text type="secondary">{featureModeHelp(mode)}</Typography.Text>
+            </Space>
+            {mode !== "none" && (
+                <div style={{ overflowX: "auto" }}>
+                    <Table
+                        size="small"
+                        rowKey="key"
+                        columns={featureColumns()}
+                        dataSource={rows}
+                        pagination={false}
+                        locale={{ emptyText: _("No features listed yet.") }}
+                    />
+                </div>
+            )}
+            <Typography.Title level={5} style={{ margin: 0 }}>{_("Change history")}</Typography.Title>
+            <ChangeHistory roleId={row.role_id} events={FEATURE_EVENTS} />
+        </Space>
+    );
+};
+
+/** Edit page: the feature policy editor, saved by the page's Save button. */
+export const RoleFeatureAccessEditor: React.FC<{ record: any }> = ({ record }) => {
+    const { row, loading, forbidden, reload } = useRolePolicy(record?.id);
+    const features = useRegisteredFeatures();
+    const [mode, setMode] = useState<Mode>("none");
+    const [keys, setKeys] = useState<string[]>([]);
+
+    const resetToSaved = useCallback(() => {
+        setMode(row?.feature_policy?.mode ?? "none");
+        setKeys((row?.feature_policy?.entries ?? []).map((e) => e.feature_key));
+    }, [row]);
+
+    // Start the editor from the saved feature policy whenever it (re)loads.
+    useEffect(() => { resetToSaved(); }, [resetToSaved]);
+
+    const savedKeys = (row?.feature_policy?.entries ?? []).map((e) => e.feature_key);
+    const dirty = row !== null
+        && featurePolicyKey(mode, keys) !== featurePolicyKey(row.feature_policy?.mode ?? "none", savedKeys);
+
+    useBeforeEditSave(async () => {
+        if (!row || row.is_admin || !dirty) return;
+        const url = `${BASE_URL}/${row.role_id}/features`;
+        const res = mode === "none"
+            ? await authenticatedFetch(url, { method: "DELETE" })
+            : await authenticatedFetch(url, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode, entries: keys.map((k) => ({ feature_key: k })) }),
+            });
+        if (!res.ok) {
+            const body = await readJson(res);
+            message.error(typeof body?.detail === "string" ? body.detail : _("Could not save the feature access."));
+            throw new Error("feature policy not saved");
+        }
+        message.success(mode === "none" ? _("Feature access removed.") : _("Feature access saved."));
+        await reload();
+        void refreshAccess();
+    });
+
+    if (forbidden) return null;
+    if (loading && !row) return <div style={{ padding: 24, textAlign: "center" }}><Spin /></div>;
+    if (!row) return null;
+    if (row.is_admin) return <AdminNote />;
+
+    const rows = featureRows(features, row.feature_policy?.entries ?? []);
+
+    return (
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+                {_("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.")}
+            </Typography.Paragraph>
+            <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
+                <Radio.Button value="none">{_("No policy")}</Radio.Button>
+                <Radio.Button value="allow">{_("Allowlist")}</Radio.Button>
+                <Radio.Button value="block">{_("Blocklist")}</Radio.Button>
+            </Radio.Group>
+            <Typography.Text type="secondary">{featureModeHelp(mode)}</Typography.Text>
+
+            {mode === "none" && row.feature_policy && (
+                <Alert type="warning" showIcon message={_("This role's feature access will be removed when you save.")} />
+            )}
+            {mode === "allow" && keys.length === 0 && (
+                <Alert
+                    type="warning"
+                    showIcon
+                    message={_("This allowlist is empty: users with this role will not be able to use any feature.")}
+                />
+            )}
+
+            {mode !== "none" && (
+                <div style={{ overflowX: "auto" }}>
+                    <Table
+                        size="small"
+                        rowKey="key"
+                        columns={featureColumns()}
+                        dataSource={rows}
+                        pagination={false}
+                        rowSelection={{
+                            selectedRowKeys: keys,
+                            onChange: (selected) => setKeys(selected.map(String)),
+                        }}
+                        locale={{ emptyText: _("No features are registered.") }}
+                    />
+                </div>
+            )}
+
+            {dirty && (
+                <Button onClick={resetToSaved} style={{ alignSelf: "flex-start" }}>
+                    {_("Discard changes")}
+                </Button>
+            )}
+        </Space>
+    );
+};
+
+/** The Role model's Feature Access Show/Edit tab. */
+export const roleFeatureAccessTab: ModelExtraTab = {
+    key: "feature_access",
+    label: "Feature Access",
+    show: RoleFeatureAccessView,
+    edit: RoleFeatureAccessEditor,
 };

@@ -1912,3 +1912,53 @@ msgstr "No tiene permiso para abrir esta página. Comuníquese con su administra
 
 msgid "You do not have permission to perform this action."
 msgstr "No tiene permiso para realizar esta acción."
+
+# Role feature access (feature policies)
+
+msgid "Each feature can appear only once in a policy."
+msgstr "Cada función puede aparecer solo una vez en una política."
+
+msgid "Unknown feature in the access policy."
+msgstr "Función desconocida en la política de acceso."
+
+msgid "Users with this role can use only the listed features."
+msgstr "Los usuarios con este rol solo pueden usar las funciones listadas."
+
+msgid "Users with this role can use every feature except the listed ones."
+msgstr "Los usuarios con este rol pueden usar todas las funciones excepto las listadas."
+
+msgid "Users with this role can use every feature."
+msgstr "Los usuarios con este rol pueden usar todas las funciones."
+
+msgid "Feature"
+msgstr "Función"
+
+msgid "Group"
+msgstr "Grupo"
+
+msgid "No features listed yet."
+msgstr "Aún no hay funciones listadas."
+
+msgid "Could not save the feature access."
+msgstr "No se pudo guardar el acceso a funciones."
+
+msgid "Feature access removed."
+msgstr "Acceso a funciones eliminado."
+
+msgid "Feature access saved."
+msgstr "Acceso a funciones guardado."
+
+msgid "Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used."
+msgstr "Decida qué funciones, como los métodos de respuesta, puede usar cada rol. Una función también debe estar activada en la configuración para poder usarse."
+
+msgid "This role's feature access will be removed when you save."
+msgstr "El acceso a funciones de este rol se eliminará al guardar."
+
+msgid "This allowlist is empty: users with this role will not be able to use any feature."
+msgstr "Esta lista de permitidos está vacía: los usuarios con este rol no podrán usar ninguna función."
+
+msgid "No features are registered."
+msgstr "No hay funciones registradas."
+
+msgid "Feature Access"
+msgstr "Acceso a funciones"

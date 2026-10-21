@@ -4,6 +4,28 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ## [Unreleased]
 
+### Added
+
+- **Feature access per role** — besides modules and models, a role's access can
+  now name **features**: capabilities extensions register with
+  `register_feature(source, name, label, group=, description=)`, such as
+  IQVigilant's NLP answering methods. On the new **Feature Access** tab of the Role
+  Show/Edit pages, an Admin gives a role an allowlist or a blocklist of features,
+  separate from its module and model policy, or none (unrestricted). Changes are
+  audited in the same trail, with `feature_save`/`feature_delete` events. Admin
+  endpoints: `PUT`/`DELETE /auth/access-policies/{role_id}/features`; the
+  resources listing and role rows now include features and `feature_policy`, and
+  `/auth/resource-permissions` returns `effective.features`.
+- **`feature_is_enabled(feature_key, config_section=, config_key=, fallback=,
+  jm_config=, user=)`** — the one function feature code calls. It is true only
+  when the feature's `jm_config.ini` switch is on and `can_use_feature` allows it
+  for the user set with `set_feature_user` (with no user, only the switch
+  applies). Also exported: `can_use_feature`, `evaluate_feature_access`,
+  `set_feature_user`, `reset_feature_user`, `current_feature_user`.
+- New tables `veloiq_role_feature_policy` and `veloiq_role_feature_entry`, created on
+  startup; on an Alembic-managed database run `veloiq db migrate` and
+  `veloiq db upgrade`.
+
 ### Changed
 
 - **Every chart is drawn with Plotly, with one catalogue, theme and set of

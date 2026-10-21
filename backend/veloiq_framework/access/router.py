@@ -1,11 +1,13 @@
 """Admin-only endpoints for role access policies, under ``/auth/access-policies``.
 
-* ``GET    /auth/access-policies/resources`` — modules and models a policy can name
+* ``GET    /auth/access-policies/resources`` — modules, models and features a policy can name
 * ``GET    /auth/access-policies``           — every role with its policy
 * ``GET    /auth/access-policies/audit``     — change history (``?role_id=`` optional)
 * ``GET    /auth/access-policies/{role_id}`` — one role's policy
 * ``PUT    /auth/access-policies/{role_id}`` — create or replace a role's policy
 * ``DELETE /auth/access-policies/{role_id}`` — remove a role's policy
+* ``PUT    /auth/access-policies/{role_id}/features`` — create or replace a role's feature policy
+* ``DELETE /auth/access-policies/{role_id}/features`` — remove a role's feature policy
 
 Only the Admin role may call them (AC-A1). The user is read from the Bearer
 token on each call, like the other ``/auth/*`` endpoints, because ``/auth/``
@@ -23,15 +25,18 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from veloiq_framework.access.decision import (
     ACTIONS,
     ADMIN_ROLE,
+    _feature_policies_for,
     build_context,
     evaluate_access,
+    evaluate_feature_access,
 )
 from veloiq_framework.utils.i18n_utils import _
 
 
 def _resources_payload() -> dict:
-    """Return the resource picker's data: installed, non-system modules and their models."""
-    from veloiq_framework.access.registry import get_modules
+    """Return the resource pickers' data: installed, non-system modules and
+    their models, and the registered features with translated texts."""
+    from veloiq_framework.access.registry import get_features, get_modules
 
     modules = []
     for key, info in sorted(get_modules().items()):
@@ -41,7 +46,18 @@ def _resources_payload() -> dict:
             "name": info.name,
             "models": [{"key": m} for m in sorted(info.models)],
         })
-    return {"modules": modules, "actions": list(ACTIONS)}
+    features = [
+        {
+            "key": key,
+            "source": info.source,
+            "name": info.name,
+            "label": _(info.label),
+            "group": _(info.group) if info.group else "",
+            "description": _(info.description) if info.description else "",
+        }
+        for key, info in sorted(get_features().items())
+    ]
+    return {"modules": modules, "actions": list(ACTIONS), "features": features}
 
 
 def _policy_with_status(policy: dict | None) -> dict | None:
@@ -58,19 +74,37 @@ def _policy_with_status(policy: dict | None) -> dict | None:
     }
 
 
+def _feature_policy_with_status(policy: dict | None) -> dict | None:
+    """Add an ``active`` flag to each feature entry: inactive when the feature isn't registered."""
+    from veloiq_framework.access.registry import is_registered_feature
+
+    if policy is None:
+        return None
+    return {
+        **policy,
+        "entries": [
+            {**e, "active": is_registered_feature(e["feature_key"])} for e in policy["entries"]
+        ],
+    }
+
+
 def build_effective_permissions(user: dict) -> dict:
     """Return the signed-in user's access context and effective permissions.
 
     ``context`` holds the inputs the frontend's ``evaluateAccess`` needs
     (roles, role methods, the user's own roles' policies, ``@model_access``,
-    the license pool and the module/model registry). ``effective`` lists, for
-    every registered module and every model the backend knows rules for, the
-    CRUD actions the shared decision function allows.
+    the license pool, the module/model registry, the user's roles' feature
+    policies and the registered features). ``effective`` lists, for every
+    registered module and every model the backend knows rules for, the CRUD
+    actions the shared decision function allows, and for every registered
+    feature whether the user may use it.
     """
-    from veloiq_framework.access.registry import registry_snapshot
+    from veloiq_framework.access.registry import features_snapshot, registry_snapshot
 
     ctx = build_context(user)
     ctx["registry"] = registry_snapshot()
+    ctx["features"] = features_snapshot()
+    ctx["feature_policies"] = _feature_policies_for(ctx["roles"])
     effective_modules = {
         key: {a: evaluate_access(ctx, key, None, a).allowed for a in ACTIONS}
         for key in ctx["registry"]["modules"]
@@ -80,9 +114,16 @@ def build_effective_permissions(user: dict) -> dict:
         key: {a: evaluate_access(ctx, None, key, a).allowed for a in ACTIONS}
         for key in sorted(model_keys)
     }
+    effective_features = {
+        key: evaluate_feature_access(ctx, key).allowed for key in ctx["features"]
+    }
     return {
         "context": ctx,
-        "effective": {"modules": effective_modules, "models": effective_models},
+        "effective": {
+            "modules": effective_modules,
+            "models": effective_models,
+            "features": effective_features,
+        },
     }
 
 
@@ -111,11 +152,14 @@ def make_access_policy_router(cfg) -> APIRouter:
 
     def _role_row(session, role: Role) -> dict:
         policy, entries = store._load_policy(session, role.id)
+        feature_policy, feature_entries = store._load_feature_policy(session, role.id)
         return {
             "role_id": role.id,
             "role_name": role.name,
             "is_admin": role.name == ADMIN_ROLE,
             "policy": _policy_with_status(store.policy_to_dict(policy, entries)),
+            "feature_policy": _feature_policy_with_status(
+                store.feature_policy_to_dict(feature_policy, feature_entries)),
         }
 
     @router.get("/auth/access-policies/resources")
@@ -156,5 +200,21 @@ def make_access_policy_router(cfg) -> APIRouter:
         with Session(engine) as session:
             _role_or_404(session, role_id)
         store.delete_policy(engine, role_id, actor)
+
+    @router.put("/auth/access-policies/{role_id}/features")
+    def put_feature_policy(role_id: int, request: Request, payload: Any = Body(...)):
+        actor = _require_admin(request)
+        engine = get_engine()
+        store.save_feature_policy(engine, role_id, payload, actor)
+        with Session(engine) as session:
+            return _role_row(session, _role_or_404(session, role_id))
+
+    @router.delete("/auth/access-policies/{role_id}/features", status_code=204)
+    def delete_feature_policy(role_id: int, request: Request):
+        actor = _require_admin(request)
+        engine = get_engine()
+        with Session(engine) as session:
+            _role_or_404(session, role_id)
+        store.delete_feature_policy(engine, role_id, actor)
 
     return router

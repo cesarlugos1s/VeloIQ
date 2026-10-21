@@ -20,7 +20,7 @@ except ImportError:
 # missing here never gets created (tests/test_alembic_scaffold.py guards this list).
 import veloiq_framework.auth.models  # noqa: F401
 import veloiq_framework.help.models  # noqa: F401
-import veloiq_framework.access.models  # noqa: F401  (role access policies: veloiq_role_access_*)
+import veloiq_framework.access.models  # noqa: F401  (role access policies: veloiq_role_access_*, veloiq_role_feature_*)
 
 # Auto-discover and import all app module models so autogenerate can detect them.
 _modules_dir = Path(__file__).parent.parent / "app" / "modules"

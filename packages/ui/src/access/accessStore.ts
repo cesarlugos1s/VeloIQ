@@ -22,6 +22,8 @@ export interface EffectivePermissions {
     effective: {
         modules: Record<string, Record<AccessAction, boolean>>;
         models: Record<string, Record<AccessAction, boolean>>;
+        /** Registered features (e.g. an extension's answering methods) → may the user use it. */
+        features?: Record<string, boolean>;
     };
 }
 

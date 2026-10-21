@@ -5,6 +5,11 @@ A role has zero or one :class:`RoleAccessPolicy`. Its ``mode`` is ``allow``
 :class:`RoleAccessEntry` rows, one per module or model. Every change made
 through the Access Policies endpoints is recorded in :class:`RoleAccessAudit`.
 
+Apart from it, a role has zero or one :class:`RoleFeaturePolicy`: an
+allowlist or a blocklist of registered features (capabilities such as an
+extension's answering methods), one :class:`RoleFeatureEntry` per feature.
+Its changes are recorded in the same audit table.
+
 Tables follow the framework's ``veloiq_`` prefix convention.
 """
 from datetime import datetime, timezone
@@ -74,12 +79,60 @@ class RoleAccessEntry(SQLModel, table=True):
     can_delete: bool = Field(default=False)
 
 
+class RoleFeaturePolicy(SQLModel, table=True):
+    """A role's single feature rule set (allowlist or blocklist of features).
+
+    Kept apart from :class:`RoleAccessPolicy`, so a role can restrict its
+    modules and its features independently, each with its own mode.
+    """
+    __tablename__ = "veloiq_role_feature_policy"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # Unique: a role has at most one feature policy. Cascade: deleting the
+    # role deletes its feature policy.
+    role_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("veloiq_role.id", ondelete="CASCADE"),
+            unique=True,
+            nullable=False,
+        )
+    )
+    mode: str = Field(sa_column=Column(String(10), nullable=False))
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class RoleFeatureEntry(SQLModel, table=True):
+    """One feature listed by a feature policy.
+
+    A feature has a single action, using it, so the entry has no flags: in an
+    allowlist a listed feature is allowed, in a blocklist it is denied.
+    """
+    __tablename__ = "veloiq_role_feature_entry"
+    __table_args__ = (
+        UniqueConstraint("policy_id", "feature_key", name="uq_veloiq_role_feature_entry"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    policy_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("veloiq_role_feature_policy.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    feature_key: str = Field(sa_column=Column(String(200), nullable=False))
+
+
 class RoleAccessAudit(SQLModel, table=True):
     """Audit trail of access-policy changes (AC-A5).
 
     ``before`` and ``after`` hold the policy as JSON (``null`` when there was
-    no policy). ``event`` is a stable code: ``save``, ``delete`` or a system
-    event such as ``role_get_migration``. ``role_id`` is kept as a plain
+    no policy). ``event`` is a stable code: ``save``, ``delete``,
+    ``feature_save``, ``feature_delete`` (feature policies) or a system event
+    such as ``role_get_migration``. ``role_id`` is kept as a plain
     integer (no foreign key) so the history survives the role's deletion;
     ``role_name`` records the name at the time of the change.
     """

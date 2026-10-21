@@ -1,4 +1,4 @@
-"""Reading, validating and saving role access policies.
+"""Reading, validating and saving role access policies and feature policies.
 
 Policies are read through an in-process cache that follows the RBAC cache
 pattern in ``veloiq_framework.auth.utils`` (same 30 s TTL); every save or
@@ -19,23 +19,30 @@ from veloiq_framework.access.models import (
     RoleAccessAudit,
     RoleAccessEntry,
     RoleAccessPolicy,
+    RoleFeatureEntry,
+    RoleFeaturePolicy,
 )
 from veloiq_framework.utils.data_mgmt_utils import jm_log
 from veloiq_framework.utils.i18n_utils import _
 
 # role_name → (policy dict | None, expires_at)
 _policy_cache: dict[str, tuple[dict | None, float]] = {}
+# role_name → (feature policy dict | None, expires_at)
+_feature_policy_cache: dict[str, tuple[dict | None, float]] = {}
 
 #: Audit event codes.
 EVENT_SAVE = "save"
 EVENT_DELETE = "delete"
 EVENT_ROLE_DELETED = "role_deleted"
 EVENT_ROLE_GET_MIGRATION = "role_get_migration"
+EVENT_FEATURE_SAVE = "feature_save"
+EVENT_FEATURE_DELETE = "feature_delete"
 
 
 def invalidate_access_cache() -> None:
-    """Clear the policy cache (call after a policy or a role changes)."""
+    """Clear the policy caches (call after a policy or a role changes)."""
     _policy_cache.clear()
+    _feature_policy_cache.clear()
 
 
 def _cache_ttl() -> float:
@@ -309,6 +316,164 @@ def list_audit(engine, role_id: int | None = None, limit: int = 200) -> list[dic
             }
             for r in rows
         ]
+
+
+# ---------------------------------------------------------------------------
+# Feature policies
+# ---------------------------------------------------------------------------
+
+def feature_policy_to_dict(policy: RoleFeaturePolicy | None, entries: list[RoleFeatureEntry]) -> dict | None:
+    """Serialize a feature policy and its entries (``None`` when there is none)."""
+    if policy is None:
+        return None
+    keys = sorted(e.feature_key for e in entries)
+    return {"mode": policy.mode, "entries": [{"feature_key": k} for k in keys]}
+
+
+def _load_feature_policy(session, role_id: int) -> tuple[RoleFeaturePolicy | None, list[RoleFeatureEntry]]:
+    """Load a role's feature policy row and entries."""
+    from sqlmodel import select
+
+    policy = session.exec(select(RoleFeaturePolicy).where(RoleFeaturePolicy.role_id == role_id)).first()
+    if policy is None:
+        return None, []
+    entries = list(session.exec(select(RoleFeatureEntry).where(RoleFeatureEntry.policy_id == policy.id)).all())
+    return policy, entries
+
+
+def get_role_feature_policy(role_name: str, engine=None) -> dict | None:
+    """Return *role_name*'s feature policy as plain data, or ``None`` (cached 30 s).
+
+    A database without the feature policy tables yet reads as having no
+    feature policies, so every feature stays usable.
+    """
+    now = time.monotonic()
+    cached = _feature_policy_cache.get(role_name)
+    if cached and now < cached[1]:
+        return cached[0]
+
+    from sqlmodel import Session, select
+
+    from veloiq_framework.auth.models import Role
+
+    if engine is None:
+        from veloiq_framework.db import get_engine
+        engine = get_engine()
+    result: dict | None = None
+    try:
+        with Session(engine) as session:
+            role = session.exec(select(Role).where(Role.name == role_name)).first()
+            if role is not None:
+                policy, entries = _load_feature_policy(session, role.id)
+                result = feature_policy_to_dict(policy, entries)
+    except Exception as exc:
+        jm_log(1, f"Feature policies could not be read for role '{role_name}': {exc}")
+        result = None
+    _feature_policy_cache[role_name] = (result, now + _cache_ttl())
+    return result
+
+
+def validate_feature_policy_payload(payload: Any, role_name: str, existing: dict | None) -> tuple[str, list[str]]:
+    """Validate a feature policy sent by the Role's Feature Access tab.
+
+    Returns ``(mode, feature_keys)`` ready to save, or raises 422 when the
+    role is the Admin role, the mode isn't ``allow`` or ``block``, a feature
+    is listed twice, or a feature isn't registered -- except features already
+    saved on this policy whose extension has been removed, which are kept
+    inactive.
+    """
+    from veloiq_framework.access.registry import is_registered_feature
+
+    if role_name == ADMIN_ROLE:
+        raise _unprocessable(_("The Admin role can't be given an access policy."))
+    if not isinstance(payload, dict):
+        raise _unprocessable(_("Invalid access policy."))
+    mode = payload.get("mode")
+    if mode not in POLICY_MODES:
+        raise _unprocessable(_("The policy mode must be allowlist or blocklist."))
+    raw_entries = payload.get("entries") or []
+    if not isinstance(raw_entries, list):
+        raise _unprocessable(_("Invalid access policy."))
+
+    kept_inactive = {e["feature_key"] for e in (existing or {}).get("entries", [])}
+    keys: list[str] = []
+    for raw in raw_entries:
+        if not isinstance(raw, dict) or not isinstance(raw.get("feature_key"), str):
+            raise _unprocessable(_("Invalid access policy."))
+        key = raw["feature_key"]
+        if key in keys:
+            raise _unprocessable(_("Each feature can appear only once in a policy."))
+        if not is_registered_feature(key) and key not in kept_inactive:
+            raise _unprocessable(_("Unknown feature in the access policy."))
+        keys.append(key)
+    return mode, keys
+
+
+def save_feature_policy(engine, role_id: int, payload: Any, actor: dict | None) -> dict:
+    """Validate and save *role_id*'s feature policy, audit it, clear the cache.
+
+    Returns the saved feature policy as plain data.
+    """
+    from datetime import datetime, timezone
+
+    from sqlmodel import Session
+
+    from veloiq_framework.auth.models import Role
+
+    with Session(engine) as session:
+        role = session.get(Role, role_id)
+        if role is None:
+            raise HTTPException(status_code=404, detail=_("Role not found"))
+        policy, old_entries = _load_feature_policy(session, role.id)
+        before = feature_policy_to_dict(policy, old_entries)
+        mode, keys = validate_feature_policy_payload(payload, role.name, before)
+
+        if policy is None:
+            policy = RoleFeaturePolicy(role_id=role.id, mode=mode)
+            session.add(policy)
+            session.flush()
+        else:
+            policy.mode = mode
+            policy.updated_at = datetime.now(timezone.utc)
+            session.add(policy)
+            for old in old_entries:
+                session.delete(old)
+            session.flush()
+        new_entries = [RoleFeatureEntry(policy_id=policy.id, feature_key=k) for k in keys]
+        session.add_all(new_entries)
+        after = feature_policy_to_dict(policy, new_entries)
+        role_name = role.name
+        _write_audit(session, EVENT_FEATURE_SAVE, role.id, role_name, actor, before, after)
+        session.commit()
+    invalidate_access_cache()
+    jm_log(2, f"Feature policy saved for role '{role_name}' ({mode}, {len(keys)} entries)")
+    return after
+
+
+def delete_feature_policy(engine, role_id: int, actor: dict | None, *, event: str = EVENT_FEATURE_DELETE) -> bool:
+    """Delete *role_id*'s feature policy (if any), audit it and clear the cache.
+
+    Returns ``True`` when a feature policy was deleted. Also called when a
+    role is deleted, since SQLite doesn't enforce the foreign-key cascade
+    unless foreign keys are switched on.
+    """
+    from sqlmodel import Session
+
+    from veloiq_framework.auth.models import Role
+
+    with Session(engine) as session:
+        policy, entries = _load_feature_policy(session, role_id)
+        if policy is None:
+            return False
+        role = session.get(Role, role_id)
+        before = feature_policy_to_dict(policy, entries)
+        for entry in entries:
+            session.delete(entry)
+        session.delete(policy)
+        _write_audit(session, event, role_id, role.name if role else "", actor, before, None)
+        session.commit()
+    invalidate_access_cache()
+    return True
 
 
 # ---------------------------------------------------------------------------

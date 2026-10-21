@@ -1913,3 +1913,53 @@ msgstr ""
 
 msgid "You do not have permission to perform this action."
 msgstr ""
+
+# Role feature access (feature policies)
+
+msgid "Each feature can appear only once in a policy."
+msgstr ""
+
+msgid "Unknown feature in the access policy."
+msgstr ""
+
+msgid "Users with this role can use only the listed features."
+msgstr ""
+
+msgid "Users with this role can use every feature except the listed ones."
+msgstr ""
+
+msgid "Users with this role can use every feature."
+msgstr ""
+
+msgid "Feature"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "No features listed yet."
+msgstr ""
+
+msgid "Could not save the feature access."
+msgstr ""
+
+msgid "Feature access removed."
+msgstr ""
+
+msgid "Feature access saved."
+msgstr ""
+
+msgid "Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used."
+msgstr ""
+
+msgid "This role's feature access will be removed when you save."
+msgstr ""
+
+msgid "This allowlist is empty: users with this role will not be able to use any feature."
+msgstr ""
+
+msgid "No features are registered."
+msgstr ""
+
+msgid "Feature Access"
+msgstr ""

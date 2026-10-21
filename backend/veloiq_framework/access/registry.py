@@ -1,4 +1,4 @@
-"""Registry of the modules and models that access policies can name.
+"""Registry of the modules, models and features that access policies can name.
 
 The module loader registers every host-app module and every installed
 extension module here as it loads them. Policies name a module by a
@@ -11,6 +11,12 @@ Framework system modules (auth, help, system configuration) are never
 registered: they live outside the module directories the loader scans. The
 always-on modules from licensing (``license`` and friends) are skipped too,
 so the resource picker only offers what a policy may restrict (AC-A4).
+
+Features are capabilities that are neither a module nor a model, such as the
+answering methods of an extension's NL engine. Extensions register them with
+:func:`register_feature`; a role's feature policy (an allowlist or a blocklist
+of features, kept apart from its module policy) decides who may use each one.
+Features are named ``<source>:<feature>`` like modules.
 """
 from __future__ import annotations
 
@@ -30,7 +36,24 @@ class ModuleInfo:
     models: set[str] = field(default_factory=set)
 
 
+@dataclass
+class FeatureInfo:
+    """A registered feature: a capability a feature policy can allow or block.
+
+    *label*, *group* and *description* are msgids, translated with ``_()``
+    when they are served, so each extension keeps their translations in its
+    own catalog.
+    """
+    key: str
+    source: str
+    name: str
+    label: str
+    group: str = ""
+    description: str = ""
+
+
 _MODULES: dict[str, ModuleInfo] = {}
+_FEATURES: dict[str, FeatureInfo] = {}
 _MODEL_TO_MODULE: dict[str, str] = {}
 _EXTENSIONS: list = []
 # The model scan runs lazily, after every module has been imported.
@@ -81,9 +104,10 @@ def get_extensions() -> list:
 
 
 def clear_registry() -> None:
-    """Forget every registered module (used by tests)."""
+    """Forget every registered module and feature (used by tests)."""
     global _models_resolved
     _MODULES.clear()
+    _FEATURES.clear()
     _MODEL_TO_MODULE.clear()
     _models_resolved = False
 
@@ -168,4 +192,41 @@ def registry_snapshot() -> dict:
             for key, info in sorted(_MODULES.items())
         },
         "models": dict(sorted(_MODEL_TO_MODULE.items())),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Features
+# ---------------------------------------------------------------------------
+
+def register_feature(source: str, name: str, label: str, *, group: str = "",
+                     description: str = "") -> str:
+    """Register one feature a feature policy can name and return its key.
+
+    *source* is the extension's name (``app`` for the host app), *name* the
+    feature's identifier within it. Registering the same key again replaces
+    the earlier registration, so an import that runs twice is harmless.
+    """
+    key = make_module_key(source, name)
+    _FEATURES[key] = FeatureInfo(key=key, source=source, name=name, label=label,
+                                 group=group, description=description)
+    return key
+
+
+def get_features() -> dict[str, FeatureInfo]:
+    """Return every registered feature, keyed by feature key."""
+    return dict(_FEATURES)
+
+
+def is_registered_feature(feature_key: str) -> bool:
+    """True if *feature_key* names a registered feature."""
+    return feature_key in _FEATURES
+
+
+def features_snapshot() -> dict:
+    """Return the registered features as plain data, keyed by feature key."""
+    return {
+        key: {"source": info.source, "name": info.name, "label": info.label,
+              "group": info.group, "description": info.description}
+        for key, info in sorted(_FEATURES.items())
     }

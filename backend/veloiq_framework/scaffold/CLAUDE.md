@@ -173,6 +173,13 @@ class Document(TimestampedModel, table=True):
     folder_id: int
 ```
 
+**Role access policies** (runtime, Admin-managed on the Role pages): each role can
+have an allowlist or a blocklist of modules and models (Access Policy tab) and of
+registered features (Feature Access tab). Don't re-implement these checks in app
+code. Extension code checks a feature with
+`veloiq_framework.access.feature_is_enabled(feature_key, config_section=..., config_key=...)`,
+which combines its `jm_config.ini` switch with the user's role access.
+
 After changing any model annotations run `veloiq generate` to update the API and
 frontend schemas.
 

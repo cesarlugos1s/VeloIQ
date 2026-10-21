@@ -25145,7 +25145,12 @@ var AdminNote = () => /* @__PURE__ */ jsx(
     message: _69("The Admin role always has full access and can't be given an access policy.")
   }
 );
-var ChangeHistory = ({ roleId }) => {
+var FEATURE_EVENTS = ["feature_save", "feature_delete"];
+var ChangeHistory = ({
+  roleId,
+  events,
+  excludeEvents
+}) => {
   const [audit, setAudit] = useState([]);
   useEffect(() => {
     let cancelled = false;
@@ -25157,6 +25162,10 @@ var ChangeHistory = ({ roleId }) => {
       cancelled = true;
     };
   }, [roleId]);
+  const rows = useMemo(
+    () => audit.filter((row) => (!events || events.includes(row.event)) && !(excludeEvents ?? []).includes(row.event)),
+    [audit, events, excludeEvents]
+  );
   const describeChange = (row) => {
     if (row.event === "role_get_migration") return _69("Read access added to the role's methods");
     if (row.event === "role_deleted") return _69("Role deleted");
@@ -25168,7 +25177,7 @@ var ChangeHistory = ({ roleId }) => {
     {
       size: "small",
       rowKey: "id",
-      dataSource: audit,
+      dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
       locale: { emptyText: _69("No changes recorded yet.") },
       columns: [
@@ -25233,7 +25242,7 @@ var RoleAccessPolicyView = ({ record }) => {
       }
     ) }),
     /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _69("Change history") }),
-    /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id })
+    /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
 var RoleAccessPolicyEditor = ({ record }) => {
@@ -25419,6 +25428,158 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
+var featureModeHelp = (mode) => mode === "allow" ? _69("Users with this role can use only the listed features.") : mode === "block" ? _69("Users with this role can use every feature except the listed ones.") : _69("Users with this role can use every feature.");
+var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
+function useRegisteredFeatures() {
+  const [features, setFeatures] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authenticatedFetch(`${BASE_URL}/resources`);
+      if (!cancelled && res.ok) setFeatures((await res.json()).features ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return features;
+}
+function featureRows(features, saved) {
+  const rows = features.map((f) => ({
+    key: f.key,
+    label: f.label,
+    group: f.group,
+    description: f.description,
+    active: true
+  }));
+  const known = new Set(rows.map((r) => r.key));
+  for (const e of saved) {
+    if (!known.has(e.feature_key)) {
+      rows.push({ key: e.feature_key, label: e.feature_key, group: "", description: "", active: false });
+    }
+  }
+  return rows;
+}
+var featureColumns = () => [
+  {
+    title: _69("Feature"),
+    key: "label",
+    render: (_value, r) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
+      /* @__PURE__ */ jsx("span", { children: r.label }),
+      !r.active && /* @__PURE__ */ jsx(Tag, { children: _69("Inactive") })
+    ] })
+  },
+  { title: _69("Group"), dataIndex: "group", key: "group" },
+  { title: _69("Description"), dataIndex: "description", key: "description" }
+];
+var RoleFeatureAccessView = ({ record }) => {
+  const { row, loading, forbidden } = useRolePolicy(record?.id);
+  const features = useRegisteredFeatures();
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
+  const mode = row.feature_policy?.mode ?? "none";
+  const saved = row.feature_policy?.entries ?? [];
+  const listed = new Set(saved.map((e) => e.feature_key));
+  const rows = featureRows(features, saved).filter((r) => listed.has(r.key));
+  return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsxs(Space, { size: 8, wrap: true, children: [
+      /* @__PURE__ */ jsx(Tag, { color: mode === "none" ? void 0 : "blue", children: modeLabel(mode) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) })
+    ] }),
+    mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
+      Table,
+      {
+        size: "small",
+        rowKey: "key",
+        columns: featureColumns(),
+        dataSource: rows,
+        pagination: false,
+        locale: { emptyText: _69("No features listed yet.") }
+      }
+    ) }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _69("Change history") }),
+    /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
+  ] });
+};
+var RoleFeatureAccessEditor = ({ record }) => {
+  const { row, loading, forbidden, reload } = useRolePolicy(record?.id);
+  const features = useRegisteredFeatures();
+  const [mode, setMode] = useState("none");
+  const [keys, setKeys] = useState([]);
+  const resetToSaved = useCallback(() => {
+    setMode(row?.feature_policy?.mode ?? "none");
+    setKeys((row?.feature_policy?.entries ?? []).map((e) => e.feature_key));
+  }, [row]);
+  useEffect(() => {
+    resetToSaved();
+  }, [resetToSaved]);
+  const savedKeys = (row?.feature_policy?.entries ?? []).map((e) => e.feature_key);
+  const dirty = row !== null && featurePolicyKey(mode, keys) !== featurePolicyKey(row.feature_policy?.mode ?? "none", savedKeys);
+  useBeforeEditSave(async () => {
+    if (!row || row.is_admin || !dirty) return;
+    const url = `${BASE_URL}/${row.role_id}/features`;
+    const res = mode === "none" ? await authenticatedFetch(url, { method: "DELETE" }) : await authenticatedFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, entries: keys.map((k) => ({ feature_key: k })) })
+    });
+    if (!res.ok) {
+      const body = await readJson(res);
+      message.error(typeof body?.detail === "string" ? body.detail : _69("Could not save the feature access."));
+      throw new Error("feature policy not saved");
+    }
+    message.success(mode === "none" ? _69("Feature access removed.") : _69("Feature access saved."));
+    await reload();
+    void refreshAccess();
+  });
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
+  const rows = featureRows(features, row.feature_policy?.entries ?? []);
+  return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _69("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _69("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _69("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _69("Blocklist") })
+    ] }),
+    /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _69("This role's feature access will be removed when you save.") }),
+    mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsx(
+      Alert,
+      {
+        type: "warning",
+        showIcon: true,
+        message: _69("This allowlist is empty: users with this role will not be able to use any feature.")
+      }
+    ),
+    mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
+      Table,
+      {
+        size: "small",
+        rowKey: "key",
+        columns: featureColumns(),
+        dataSource: rows,
+        pagination: false,
+        rowSelection: {
+          selectedRowKeys: keys,
+          onChange: (selected) => setKeys(selected.map(String))
+        },
+        locale: { emptyText: _69("No features are registered.") }
+      }
+    ) }),
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _69("Discard changes") })
+  ] });
+};
+var roleFeatureAccessTab = {
+  key: "feature_access",
+  label: "Feature Access",
+  show: RoleFeatureAccessView,
+  edit: RoleFeatureAccessEditor
+};
 
 // src/models/authModels.ts
 var authSystemModels = [
@@ -25479,7 +25640,7 @@ var authSystemModels = [
       { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." },
       { key: "access_policy", label: "Access Policy", type: "string", readOnly: true, readRoles: ["Admin"] }
     ],
-    extraTabs: [roleAccessPolicyTab],
+    extraTabs: [roleAccessPolicyTab, roleFeatureAccessTab],
     relations: [
       {
         resource: "user",
