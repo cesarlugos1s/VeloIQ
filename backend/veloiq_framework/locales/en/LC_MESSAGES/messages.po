@@ -1779,6 +1779,12 @@ msgstr ""
 msgid "Access Policies"
 msgstr ""
 
+msgid "Access Policy"
+msgstr "Access Policy"
+
+msgid "This role's access policy will be removed when you save."
+msgstr "This role's access policy will be removed when you save."
+
 msgid "Access policy removed."
 msgstr ""
 

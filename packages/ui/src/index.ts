@@ -52,6 +52,9 @@ export type {
     MillerLeafConfig,
     DataDetailLevelState,
 } from "./components/DynamicResource";
+export type { ModelExtraTab } from "./components/DynamicResource/types";
+export { useBeforeEditSave } from "./components/DynamicResource/hooks/useBeforeEditSave";
+export type { BeforeEditSave } from "./components/DynamicResource/hooks/useBeforeEditSave";
 
 // ── Providers ──────────────────────────────────────────────────────────────
 export { authProvider } from "./providers/authProvider";

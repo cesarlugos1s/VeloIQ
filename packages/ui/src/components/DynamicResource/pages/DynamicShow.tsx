@@ -87,13 +87,24 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
         : headerButtons;
     const [activeTabKey, setActiveTabKey] = useState("details");
 
-    const { tabs: items, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
+    const { tabs: standardItems, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
         model,
         record,
         allModelsList,
         actionsState,
         { formProps: showFormProps, effectiveFields },
     );
+    const items = useMemo(() => {
+        const extraTabs = (model.extraTabs ?? []).filter((tab) => tab.show);
+        if (!record || extraTabs.length === 0) return standardItems;
+        return [
+            ...standardItems,
+            ...extraTabs.map((tab) => {
+                const TabContent = tab.show!;
+                return { key: tab.key, label: _(tab.label), children: <TabContent record={record} /> };
+            }),
+        ];
+    }, [standardItems, model.extraTabs, record]);
 
     // Update refs during render so the Actions popover always reads the latest values.
     saveLayoutRef.current = layoutConfig.saveLayout;

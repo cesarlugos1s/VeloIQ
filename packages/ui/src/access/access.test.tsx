@@ -52,26 +52,35 @@ describe("AC-E1 menus hide what the user can't Read", () => {
     ];
 
     async function accessFor(roles: string[], policies: Record<string, unknown>, license = FIXTURES.base.license) {
-        const { evaluateAccess, isModuleLicensedIn, moduleKeyForName } = await import("./evaluateAccess");
+        const { evaluateAccess, hasAdminRole, isModuleLicensedIn, moduleKeyForName } = await import("./evaluateAccess");
         const ctx = { ...FIXTURES.base, roles, policies, license };
         return {
             can: (resource: string, action: any) => evaluateAccess(ctx, null, resource, action).allowed,
             canModule: (name: string, action: any) => evaluateAccess(ctx, moduleKeyForName(ctx, name), null, action).allowed,
             isModuleLicensed: (name: string) => isModuleLicensedIn(name, ctx.license),
+            isAdmin: hasAdminRole(roles),
         };
     }
 
     it("keeps everything without a policy", async () => {
         const { filterMenuItemsByAccess } = await import("../hooks/useAccess");
         const kept = filterMenuItemsByAccess(menu, await accessFor(["Manager"], {}));
-        expect(kept.map((i: any) => i.key)).toEqual(["module:projects", "module:tasks", "module:jobs", "module:access_control", "dashboard"]);
+        expect(kept.map((i: any) => i.key)).toEqual(["module:projects", "module:tasks", "module:jobs", "dashboard"]);
+    });
+
+    it("shows the Access Control menu to Admins only", async () => {
+        const { filterMenuItemsByAccess } = await import("../hooks/useAccess");
+        const forAdmin = filterMenuItemsByAccess(menu, await accessFor(["Admin"], {}));
+        expect(forAdmin.map((i: any) => i.key)).toContain("module:access_control");
+        const forManager = filterMenuItemsByAccess(menu, await accessFor(["Manager"], {}));
+        expect(forManager.map((i: any) => i.key)).not.toContain("module:access_control");
     });
 
     it("drops denied modules and models, keeps a module shown through one allowed model", async () => {
         const { filterMenuItemsByAccess } = await import("../hooks/useAccess");
         const policies = { Manager: { mode: "allow", entries: [{ module_key: "app:tasks", model_key: "subtask", can_create: false, can_read: true, can_update: false, can_delete: false }] } };
         const kept = filterMenuItemsByAccess(menu, await accessFor(["Manager"], policies));
-        expect(kept.map((i: any) => i.key)).toEqual(["module:tasks", "module:access_control", "dashboard"]);
+        expect(kept.map((i: any) => i.key)).toEqual(["module:tasks", "dashboard"]);
         const tasks = kept.find((i: any) => i.key === "module:tasks");
         expect(tasks.children.map((c: any) => c.name)).toEqual(["subtask"]);
     });

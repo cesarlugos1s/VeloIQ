@@ -465,3 +465,19 @@ def test_e4_effective_permissions_follow_policy_changes(client, auth, clerk_auth
     assert data["effective"]["modules"]["app:tasks"]["read"] is True
     assert data["context"]["policies"][CLERK_ROLE]["mode"] == "allow"
     assert "app:tasks" in data["context"]["registry"]["modules"]
+
+
+# ── Role list: each role's policy, for Admins only ──────────────────────────
+
+def test_role_list_shows_each_roles_policy_to_admins_only(client, auth, clerk_auth, clerk_role_id):
+    def policy_of(role_name, headers):
+        rows = client.get("/api/role?_start=0&_end=500", headers=headers).json()
+        return next(r for r in rows if r["name"] == role_name).get("access_policy")
+
+    assert policy_of(CLERK_ROLE, auth) == _("No policy")
+    assert policy_of("Admin", auth) == _("Full access")
+    _set_policy(client, auth, clerk_role_id, "block", [_entry("app:tasks", c=True)])
+    assert policy_of(CLERK_ROLE, auth) == _("Blocklist")
+    assert client.get(f"/api/role/{clerk_role_id}", headers=auth).json()["access_policy"] == _("Blocklist")
+    # Non-admins can still list roles (e.g. for FK pickers) but don't see policies.
+    assert policy_of(CLERK_ROLE, clerk_auth) is None

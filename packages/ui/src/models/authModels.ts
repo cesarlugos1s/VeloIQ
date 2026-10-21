@@ -1,4 +1,5 @@
 import type { ModelDef } from "../components/DynamicResource/types";
+import { roleAccessPolicyTab } from "../access/RoleAccessPolicyTab";
 
 export const authSystemModels: ModelDef[] = [
     {
@@ -56,7 +57,9 @@ export const authSystemModels: ModelDef[] = [
             { key: "description", label: "Description", type: "string" },
             { key: "allowed_methods", label: "Allowed Methods", type: "string", readRoles: ["Admin"], writeRoles: ["Admin"], description: "JSON array of permitted HTTP methods, e.g. [\"GET\",\"POST\",\"PUT\",\"PATCH\",\"DELETE\"]" },
             { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." },
+            { key: "access_policy", label: "Access Policy", type: "string", readOnly: true, readRoles: ["Admin"] },
         ],
+        extraTabs: [roleAccessPolicyTab],
         relations: [
             {
                 resource: "user",

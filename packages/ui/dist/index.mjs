@@ -2,9 +2,9 @@ import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useWarnAboutChange, useInvalidate, useResource } from '@refinedev/core';
-import { Typography, Carousel, Empty, Button, theme, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Dropdown, Avatar, TimePicker, DatePicker, Checkbox, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
+import { Typography, Carousel, Empty, Button, theme, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, DeleteOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CheckOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -565,6 +565,9 @@ var REFINE_TO_ACTION = {
 };
 var DEFAULT_ADMIN_ROLE = "Admin";
 var ALWAYS_ON = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
+function hasAdminRole(roles, adminRole = DEFAULT_ADMIN_ROLE) {
+  return roles.includes(adminRole);
+}
 var lowerSet = (values) => new Set((values ?? []).map((v) => v.toLowerCase()));
 var inAnyGroup = (key, pool) => Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
 function isModuleLicensedIn(moduleName, pool) {
@@ -666,9 +669,17 @@ function useAccess() {
     (moduleName) => ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license),
     [ctx]
   );
+  const isAdmin = useMemo(() => {
+    if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
+    try {
+      return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+    } catch {
+      return false;
+    }
+  }, [ctx]);
   return useMemo(
-    () => ({ loading: ctx === null, can, canModule, isModuleLicensed, refresh: () => void refreshAccess() }),
-    [ctx, can, canModule, isModuleLicensed]
+    () => ({ loading: ctx === null, can, canModule, isModuleLicensed, isAdmin, refresh: () => void refreshAccess() }),
+    [ctx, can, canModule, isModuleLicensed, isAdmin]
   );
 }
 var CAN_QUERY_ROOTS = /* @__PURE__ */ new Set(["access", "useCan"]);
@@ -704,7 +715,7 @@ function filterMenuItemsByAccess(items, access) {
     const children = Array.isArray(item.children) ? item.children : null;
     if (moduleName !== null) {
       if (moduleName === "access_control") {
-        result.push(item);
+        if (access.isAdmin) result.push(item);
         continue;
       }
       if (!access.isModuleLicensed(moduleName)) continue;
@@ -2440,7 +2451,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_69, value) {
+                validator(_70, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -3891,7 +3902,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_69, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_70, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -8694,13 +8705,24 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
     (headerButtons ?? renderStandardShowHeaderButtons)(args)
   ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = useState("details");
-  const { tabs: items, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
+  const { tabs: standardItems, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
     model,
     record,
     allModelsList,
     actionsState,
     { formProps: showFormProps, effectiveFields }
   );
+  const items = useMemo(() => {
+    const extraTabs = (model.extraTabs ?? []).filter((tab) => tab.show);
+    if (!record || extraTabs.length === 0) return standardItems;
+    return [
+      ...standardItems,
+      ...extraTabs.map((tab) => {
+        const TabContent = tab.show;
+        return { key: tab.key, label: _33(tab.label), children: /* @__PURE__ */ jsx(TabContent, { record }) };
+      })
+    ];
+  }, [standardItems, model.extraTabs, record]);
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
     /* @__PURE__ */ jsx("span", { children: _33("Configure page layout") }),
@@ -9606,7 +9628,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _39(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIdx) => {
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_70, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_71, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -10088,8 +10110,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_69) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _69(text) });
+function buildGridDensityMarks(_70) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _70(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -10100,15 +10122,15 @@ function buildGridDensityMarks(_69) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_69) {
+function buildGridDensityLabelText(_70) {
   return {
-    original: _69("Original"),
-    small: _69("Small"),
-    fit: _69("Page"),
-    "fit-row": _69("Row"),
-    "fit-cell": _69("Cell"),
-    medium: _69("Medium"),
-    large: _69("Large")
+    original: _70("Original"),
+    small: _70("Small"),
+    fit: _70("Page"),
+    "fit-row": _70("Row"),
+    "fit-cell": _70("Cell"),
+    medium: _70("Medium"),
+    large: _70("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -10622,7 +10644,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_70, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -10998,7 +11020,7 @@ var SectionCellContent = ({
     /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _44(sectionName) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_70, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_71, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -11645,6 +11667,13 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig, cellSizeControl };
 };
+var BeforeEditSaveContext = createContext(null);
+function useBeforeEditSave(handler) {
+  const register = useContext(BeforeEditSaveContext);
+  const latest = useRef(handler);
+  latest.current = handler;
+  useEffect(() => register?.(() => latest.current()), [register]);
+}
 var _47 = window._ || ((text) => text);
 var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const model = useRoleFilteredModel(modelProp);
@@ -11693,12 +11722,26 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
     })
   });
   const record = queryResult?.data?.data;
+  const beforeSaveHandlers = useRef(/* @__PURE__ */ new Set());
+  const registerBeforeSave = useCallback((handler) => {
+    beforeSaveHandlers.current.add(handler);
+    return () => {
+      beforeSaveHandlers.current.delete(handler);
+    };
+  }, []);
   const editFormProps = useMemo(() => {
-    if (!isFileModel(model)) return formProps;
     const originalOnFinish = formProps.onFinish;
     return {
       ...formProps,
-      onFinish: (values) => {
+      onFinish: async (values) => {
+        for (const handler of beforeSaveHandlers.current) {
+          try {
+            await handler();
+          } catch {
+            return;
+          }
+        }
+        if (!isFileModel(model)) return originalOnFinish?.(values);
         const { data: _binaryData, ...rest } = values || {};
         return originalOnFinish?.(rest);
       }
@@ -11915,18 +11958,23 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       }
     )
   ] });
+  const extraEditTabs = useMemo(() => (model.extraTabs ?? []).filter((tab) => tab.edit), [model.extraTabs]);
+  const allItems = useMemo(
+    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _47(tab.label), children: null }))],
+    [items, extraEditTabs]
+  );
   const [activeTabKey, setActiveTabKey] = useState("main_data");
   useEffect(() => {
-    if (!items.find((item) => item.key === activeTabKey)) {
-      setActiveTabKey(items[0]?.key || "main_data");
+    if (!allItems.find((item) => item.key === activeTabKey)) {
+      setActiveTabKey(allItems[0]?.key || "main_data");
     }
-  }, [activeTabKey, items]);
+  }, [activeTabKey, allItems]);
   const lazyItems = useMemo(
-    () => items.map((item) => ({
+    () => allItems.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
     })),
-    [activeTabKey, items]
+    [activeTabKey, allItems]
   );
   const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
     extraHeaderButtons,
@@ -11977,7 +12025,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       }
     ) })
   ] });
-  return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+  return /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxs(
       StandardEdit,
@@ -11993,11 +12041,15 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         headerButtons: renderHeaderButtons,
         children: [
           topContent,
-          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } })
+          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
+          record && extraEditTabs.map((tab) => {
+            const TabContent = tab.edit;
+            return /* @__PURE__ */ jsx("div", { hidden: activeTabKey !== tab.key, children: /* @__PURE__ */ jsx(TabContent, { record }) }, tab.key);
+          })
         ]
       }
     )
-  ] });
+  ] }) });
 };
 var DynamicEdit = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "update", children: /* @__PURE__ */ jsx(DynamicEditPage, { ...props }) });
 var _48 = window._ || ((text) => text);
@@ -13194,7 +13246,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_69, newPageSize) => {
+            onShowSizeChange: (_70, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -15499,7 +15551,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_69, newPageSize) => {
+                    onShowSizeChange: (_70, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -15513,7 +15565,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _54("No related records") }) } : void 0,
-                  onChange: (_69, filters, sorter, extra) => {
+                  onChange: (_70, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -22411,19 +22463,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _69 }) => _69).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_69) => {
-        if (_69.collapsible) {
+      const ut = R.panels.map(({ id: _70 }) => _70).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_70) => {
+        if (_70.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _69.collapsedSize,
-              ce[_69.panelId]
+              _70.collapsedSize,
+              ce[_70.panelId]
             ), dt = I(
-              _69.collapsedSize,
-              ge[_69.panelId]
+              _70.collapsedSize,
+              ge[_70.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_69.panelId] = ge[_69.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_70.panelId] = ge[_70.panelId]);
           }
         }
       });
@@ -23258,7 +23310,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_69, idx) => ({
+    () => panes.map((_70, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -24611,7 +24663,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_70, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -25037,6 +25089,336 @@ function generateResources(models, moduleName, options = {}) {
   });
   return [parentEntry, ...children];
 }
+var _69 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var BASE_URL = "/auth/access-policies";
+var ACTIONS = [
+  { action: "create", flag: "can_create", label: "Create" },
+  { action: "read", flag: "can_read", label: "Read" },
+  { action: "update", flag: "can_update", label: "Update" },
+  { action: "delete", flag: "can_delete", label: "Delete" }
+];
+var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
+var resourceLabel = (e) => {
+  const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
+  return e.model_key ? `${_69(moduleName)} \u203A ${_69(e.model_key)}` : _69(moduleName);
+};
+var modeLabel = (mode) => mode === "allow" ? _69("Allowlist") : mode === "block" ? _69("Blocklist") : _69("No policy");
+var modeHelp = (mode) => mode === "allow" ? _69("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _69("Users with this role can use everything except the checked actions on the listed modules and models.") : _69("Users with this role can use every module and model their role and licenses allow.");
+var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
+async function readJson(res) {
+  return res.json().catch(() => ({}));
+}
+function useRolePolicy(roleId) {
+  const [row, setRow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
+  const load = useCallback(async () => {
+    if (roleId === void 0 || roleId === null) return;
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${BASE_URL}/${roleId}`);
+      if (res.status === 403) {
+        setForbidden(true);
+        return;
+      }
+      if (!res.ok) throw new Error();
+      setRow(await res.json());
+    } catch {
+      message.error(_69("Could not load access policies."));
+    } finally {
+      setLoading(false);
+    }
+  }, [roleId]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  return { row, loading, forbidden, reload: load };
+}
+var AdminNote = () => /* @__PURE__ */ jsx(
+  Alert,
+  {
+    type: "info",
+    showIcon: true,
+    message: _69("The Admin role always has full access and can't be given an access policy.")
+  }
+);
+var ChangeHistory = ({ roleId }) => {
+  const [audit, setAudit] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authenticatedFetch(`${BASE_URL}/audit?role_id=${roleId}&limit=50`);
+      if (!cancelled && res.ok) setAudit(await res.json());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId]);
+  const describeChange = (row) => {
+    if (row.event === "role_get_migration") return _69("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _69("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _69("No policy");
+    return `${side(row.before)} \u2192 ${side(row.after)}`;
+  };
+  return /* @__PURE__ */ jsx(
+    Table,
+    {
+      size: "small",
+      rowKey: "id",
+      dataSource: audit,
+      pagination: { pageSize: 10, hideOnSinglePage: true },
+      locale: { emptyText: _69("No changes recorded yet.") },
+      columns: [
+        {
+          title: _69("When"),
+          key: "created_at",
+          render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
+        },
+        {
+          title: _69("Changed by"),
+          key: "actor",
+          render: (_v, row) => row.actor_username || _69("System")
+        },
+        {
+          title: _69("Change"),
+          key: "change",
+          render: (_v, row) => describeChange(row)
+        }
+      ]
+    }
+  );
+};
+var resourceColumn = () => ({
+  title: _69("Module or model"),
+  key: "resource",
+  render: (_value, e) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
+    /* @__PURE__ */ jsx("span", { children: resourceLabel(e) }),
+    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _69("Inactive") })
+  ] })
+});
+var RoleAccessPolicyView = ({ record }) => {
+  const { row, loading, forbidden } = useRolePolicy(record?.id);
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
+  const mode = row.policy?.mode ?? "none";
+  const columns = [
+    resourceColumn(),
+    ...ACTIONS.map(({ action, flag, label }) => ({
+      title: _69(label),
+      key: action,
+      width: 90,
+      align: "center",
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _69(label) }) : null
+    }))
+  ];
+  return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsxs(Space, { size: 8, wrap: true, children: [
+      /* @__PURE__ */ jsx(Tag, { color: mode === "none" ? void 0 : "blue", children: modeLabel(mode) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) })
+    ] }),
+    mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
+      Table,
+      {
+        size: "small",
+        rowKey: entryId,
+        columns,
+        dataSource: row.policy?.entries ?? [],
+        pagination: false,
+        locale: { emptyText: _69("No modules or models listed yet.") }
+      }
+    ) }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _69("Change history") }),
+    /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id })
+  ] });
+};
+var RoleAccessPolicyEditor = ({ record }) => {
+  const { row, loading, forbidden, reload } = useRolePolicy(record?.id);
+  const [modules, setModules] = useState([]);
+  const [mode, setMode] = useState("none");
+  const [entries, setEntries] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authenticatedFetch(`${BASE_URL}/resources`);
+      if (!cancelled && res.ok) setModules((await res.json()).modules ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const resetToSaved = useCallback(() => {
+    setMode(row?.policy?.mode ?? "none");
+    setEntries(row?.policy?.entries ?? []);
+  }, [row]);
+  useEffect(() => {
+    resetToSaved();
+  }, [resetToSaved]);
+  const dirty = row !== null && policyKey(mode, entries) !== policyKey(row.policy?.mode ?? "none", row.policy?.entries ?? []);
+  useBeforeEditSave(async () => {
+    if (!row || row.is_admin || !dirty) return;
+    const res = mode === "none" ? await authenticatedFetch(`${BASE_URL}/${row.role_id}`, { method: "DELETE" }) : await authenticatedFetch(`${BASE_URL}/${row.role_id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) })
+    });
+    if (!res.ok) {
+      const body = await readJson(res);
+      message.error(typeof body?.detail === "string" ? body.detail : _69("Could not save the access policy."));
+      throw new Error("access policy not saved");
+    }
+    message.success(mode === "none" ? _69("Access policy removed.") : _69("Access policy saved."));
+    await reload();
+    void refreshAccess();
+  });
+  const usedIds = useMemo(() => new Set(entries.map(entryId)), [entries]);
+  const treeData = useMemo(
+    () => modules.map((m) => ({
+      title: _69(m.name),
+      value: entryId({ module_key: m.key, model_key: null }),
+      disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
+      children: m.models.map((model) => ({
+        title: _69(model.key),
+        value: entryId({ module_key: m.key, model_key: model.key }),
+        disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
+      }))
+    })),
+    [modules, usedIds]
+  );
+  const addEntry = (value) => {
+    const [moduleKey, modelKey] = value.split("|");
+    setEntries((prev) => [...prev, {
+      module_key: moduleKey,
+      model_key: modelKey || null,
+      can_create: false,
+      can_read: mode === "allow",
+      can_update: false,
+      can_delete: false,
+      active: true
+    }]);
+  };
+  const toggle = (id, action, checked) => {
+    setEntries((prev) => prev.map((e) => {
+      if (entryId(e) !== id) return e;
+      const next = { ...e, [`can_${action}`]: checked };
+      if (mode === "allow") {
+        if (action === "read" && !checked) {
+          next.can_create = next.can_update = next.can_delete = false;
+        } else if (action !== "read" && checked) {
+          next.can_read = true;
+        }
+      } else if (mode === "block") {
+        if (action === "read" && checked) {
+          next.can_create = next.can_update = next.can_delete = true;
+        } else if (action !== "read" && !checked) {
+          next.can_read = false;
+        }
+      }
+      return next;
+    }));
+  };
+  const changeMode = (next) => {
+    setMode(next);
+    setEntries((prev) => prev.map((e) => ({
+      ...e,
+      can_create: false,
+      can_read: next === "allow",
+      can_update: false,
+      can_delete: false
+    })));
+  };
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
+  const columns = [
+    resourceColumn(),
+    ...ACTIONS.map(({ action, flag, label }) => ({
+      title: _69(label),
+      key: action,
+      width: 90,
+      align: "center",
+      render: (_value, e) => /* @__PURE__ */ jsx(
+        Checkbox,
+        {
+          checked: Boolean(e[flag]),
+          onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
+          "aria-label": `${_69(label)} ${resourceLabel(e)}`
+        }
+      )
+    })),
+    {
+      title: "",
+      key: "remove",
+      width: 56,
+      render: (_value, e) => /* @__PURE__ */ jsx(
+        Button,
+        {
+          type: "text",
+          icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
+          "aria-label": _69("Remove"),
+          onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
+        }
+      )
+    }
+  ];
+  return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _69("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _69("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _69("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _69("Blocklist") })
+    ] }),
+    /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _69("This role's access policy will be removed when you save.") }),
+    mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsx(
+      Alert,
+      {
+        type: "warning",
+        showIcon: true,
+        message: _69("This allowlist is empty: users with this role will lose access to every module.")
+      }
+    ),
+    mode !== "none" && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(
+        TreeSelect,
+        {
+          style: { width: "100%" },
+          treeData,
+          value: null,
+          placeholder: _69("Add a module or model"),
+          onChange: (value) => value && addEntry(value),
+          showSearch: true,
+          treeNodeFilterProp: "title",
+          treeDefaultExpandAll: false
+        }
+      ),
+      /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
+        Table,
+        {
+          size: "small",
+          rowKey: entryId,
+          columns,
+          dataSource: entries,
+          pagination: false,
+          locale: { emptyText: _69("No modules or models listed yet.") }
+        }
+      ) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _69("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+    ] }),
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _69("Discard changes") })
+  ] });
+};
+var roleAccessPolicyTab = {
+  key: "access_policy",
+  label: "Access Policy",
+  show: RoleAccessPolicyView,
+  edit: RoleAccessPolicyEditor
+};
 
 // src/models/authModels.ts
 var authSystemModels = [
@@ -25094,8 +25476,10 @@ var authSystemModels = [
       { key: "name", label: "Name", type: "string", required: true, unique: true },
       { key: "description", label: "Description", type: "string" },
       { key: "allowed_methods", label: "Allowed Methods", type: "string", readRoles: ["Admin"], writeRoles: ["Admin"], description: 'JSON array of permitted HTTP methods, e.g. ["GET","POST","PUT","PATCH","DELETE"]' },
-      { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." }
+      { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." },
+      { key: "access_policy", label: "Access Policy", type: "string", readOnly: true, readRoles: ["Admin"] }
     ],
+    extraTabs: [roleAccessPolicyTab],
     relations: [
       {
         resource: "user",
@@ -25212,6 +25596,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL3 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, NoAccessResult, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, clearAccess, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, refreshAccess, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL3 as API_URL, AllModelsProvider, AuthenticatedImage, BOTTOM_OVERLAY_ATTR, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelHeading, MultiPaneLayout, NavConfigContext, NoAccessResult, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, authProvider, authSystemModels, authenticatedFetch, buildShowTabFormOptions, clearAccess, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, guessIcon, helpSystemModels, httpClient, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, refreshAccess, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

@@ -71,6 +71,29 @@ def _load_policy(session, role_id: int) -> tuple[RoleAccessPolicy | None, list[R
     return policy, entries
 
 
+def policy_summaries(session, roles) -> dict[int, str]:
+    """Return ``{role_id: label}`` naming each role's policy, for the Role list.
+
+    The Admin role reads "Full access"; other roles read their policy mode or
+    "No policy". A database without the policy tables yet reads as no policies.
+    """
+    from sqlmodel import select
+
+    try:
+        modes = {
+            policy.role_id: policy.mode
+            for policy in session.exec(select(RoleAccessPolicy)).all()
+        }
+    except Exception as exc:
+        jm_log(1, f"Access policies could not be read for the Role list: {exc}")
+        modes = {}
+    labels = {"allow": _("Allowlist"), "block": _("Blocklist")}
+    return {
+        role.id: _("Full access") if role.name == ADMIN_ROLE else labels.get(modes.get(role.id), _("No policy"))
+        for role in roles
+    }
+
+
 def get_role_policy(role_name: str, engine=None) -> dict | None:
     """Return *role_name*'s policy as plain data, or ``None`` (cached 30 s).
 

@@ -387,10 +387,20 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
 
     # ── Admin-only guard ──────────────────────────────────────────────────────
 
-    def _require_admin(request: Request) -> None:
+    def _is_admin(request: Request) -> bool:
         user = getattr(request.state, "user", None)
-        if user is None or "Admin" not in user.get("roles", []):
+        return user is not None and "Admin" in user.get("roles", [])
+
+    def _require_admin(request: Request) -> None:
+        if not _is_admin(request):
             raise HTTPException(status_code=403, detail="Admin role required")
+
+    def _add_access_policy(session, roles, items: list[dict]) -> None:
+        """Add each role's policy summary (Admin-only data) as ``access_policy``."""
+        from veloiq_framework.access.store import policy_summaries
+        labels = policy_summaries(session, roles)
+        for role, item in zip(roles, items):
+            item["access_policy"] = labels.get(role.id)
 
     # ── User CRUD (with password_hash excluded) ───────────────────────────────
     # We build a custom list/get so password_hash is never serialized.
@@ -499,8 +509,11 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             stmt = select(Role)
             total = session.exec(select(func.count()).select_from(Role)).one()
             rows = session.exec(stmt.offset(_start).limit(max(0, _end - _start))).all()
+            items = [_role_to_dict(r) for r in rows]
+            if _is_admin(request):
+                _add_access_policy(session, rows, items)
             return JSONResponse(
-                content=jsonable_encoder([_role_to_dict(r) for r in rows]),
+                content=jsonable_encoder(items),
                 headers={
                     "x-total-count": str(total),
                     "content-range": f"items {_start}-{min(_end, total)}/{total}",
@@ -515,7 +528,9 @@ def make_auth_router(cfg) -> tuple[APIRouter, APIRouter]:
             role = session.get(Role, role_id)
             if role is None:
                 raise HTTPException(status_code=404, detail="Role not found")
-            return _role_to_dict(role)
+            item = _role_to_dict(role)
+            _add_access_policy(session, [role], [item])
+            return item
 
     @crud_router.post("/role", status_code=201, summary="Create role")
     def create_role(request: Request, payload: dict):

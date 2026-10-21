@@ -96,6 +96,11 @@ const DEFAULT_ADMIN_ROLE = "Admin";
 /** Modules always accessible regardless of licensing (backend `_ALWAYS_ON_MODULES`). */
 const ALWAYS_ON = new Set(["authobjs", "lib", "license"]);
 
+/** True when one of the user's roles is the admin role. */
+export function hasAdminRole(roles: string[], adminRole: string = DEFAULT_ADMIN_ROLE): boolean {
+    return roles.includes(adminRole);
+}
+
 const lowerSet = (values: string[] | undefined): Set<string> => new Set((values ?? []).map((v) => v.toLowerCase()));
 
 const inAnyGroup = (key: string, pool: AccessLicensePool): boolean =>

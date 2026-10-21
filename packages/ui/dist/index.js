@@ -592,6 +592,9 @@ var REFINE_TO_ACTION = {
 };
 var DEFAULT_ADMIN_ROLE = "Admin";
 var ALWAYS_ON = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
+function hasAdminRole(roles, adminRole = DEFAULT_ADMIN_ROLE) {
+  return roles.includes(adminRole);
+}
 var lowerSet = (values) => new Set((values ?? []).map((v) => v.toLowerCase()));
 var inAnyGroup = (key, pool) => Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
 function isModuleLicensedIn(moduleName, pool) {
@@ -693,9 +696,17 @@ function useAccess() {
     (moduleName) => ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license),
     [ctx]
   );
+  const isAdmin = React6.useMemo(() => {
+    if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
+    try {
+      return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+    } catch {
+      return false;
+    }
+  }, [ctx]);
   return React6.useMemo(
-    () => ({ loading: ctx === null, can, canModule, isModuleLicensed, refresh: () => void refreshAccess() }),
-    [ctx, can, canModule, isModuleLicensed]
+    () => ({ loading: ctx === null, can, canModule, isModuleLicensed, isAdmin, refresh: () => void refreshAccess() }),
+    [ctx, can, canModule, isModuleLicensed, isAdmin]
   );
 }
 var CAN_QUERY_ROOTS = /* @__PURE__ */ new Set(["access", "useCan"]);
@@ -731,7 +742,7 @@ function filterMenuItemsByAccess(items, access) {
     const children = Array.isArray(item.children) ? item.children : null;
     if (moduleName !== null) {
       if (moduleName === "access_control") {
-        result.push(item);
+        if (access.isAdmin) result.push(item);
         continue;
       }
       if (!access.isModuleLicensed(moduleName)) continue;
@@ -2467,7 +2478,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_69, value) {
+                validator(_70, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -3918,7 +3929,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_69, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_70, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -8721,13 +8732,24 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
     (headerButtons ?? renderStandardShowHeaderButtons)(args)
   ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = React6.useState("details");
-  const { tabs: items, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
+  const { tabs: standardItems, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
     model,
     record,
     allModelsList,
     actionsState,
     { formProps: showFormProps, effectiveFields }
   );
+  const items = React6.useMemo(() => {
+    const extraTabs = (model.extraTabs ?? []).filter((tab) => tab.show);
+    if (!record || extraTabs.length === 0) return standardItems;
+    return [
+      ...standardItems,
+      ...extraTabs.map((tab) => {
+        const TabContent = tab.show;
+        return { key: tab.key, label: _33(tab.label), children: /* @__PURE__ */ jsxRuntime.jsx(TabContent, { record }) };
+      })
+    ];
+  }, [standardItems, model.extraTabs, record]);
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
     /* @__PURE__ */ jsxRuntime.jsx("span", { children: _33("Configure page layout") }),
@@ -9633,7 +9655,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _39(section) }),
-      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIdx) => {
+      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_70, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_71, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -10115,8 +10137,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_69) {
-  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _69(text) });
+function buildGridDensityMarks(_70) {
+  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _70(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -10127,15 +10149,15 @@ function buildGridDensityMarks(_69) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_69) {
+function buildGridDensityLabelText(_70) {
   return {
-    original: _69("Original"),
-    small: _69("Small"),
-    fit: _69("Page"),
-    "fit-row": _69("Row"),
-    "fit-cell": _69("Cell"),
-    medium: _69("Medium"),
-    large: _69("Large")
+    original: _70("Original"),
+    small: _70("Small"),
+    fit: _70("Page"),
+    "fit-row": _70("Row"),
+    "fit-cell": _70("Cell"),
+    medium: _70("Medium"),
+    large: _70("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -10649,7 +10671,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_70, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -11025,7 +11047,7 @@ var SectionCellContent = ({
     /* @__PURE__ */ jsxRuntime.jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _44(sectionName) }),
     parsedSnippet.css && /* @__PURE__ */ jsxRuntime.jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsxRuntime.jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_69, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_70, colIndex) => {
+    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_70, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_71, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -11672,6 +11694,13 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig, cellSizeControl };
 };
+var BeforeEditSaveContext = React6.createContext(null);
+function useBeforeEditSave(handler) {
+  const register = React6.useContext(BeforeEditSaveContext);
+  const latest = React6.useRef(handler);
+  latest.current = handler;
+  React6.useEffect(() => register?.(() => latest.current()), [register]);
+}
 var _47 = window._ || ((text) => text);
 var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const model = useRoleFilteredModel(modelProp);
@@ -11720,12 +11749,26 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
     })
   });
   const record = queryResult?.data?.data;
+  const beforeSaveHandlers = React6.useRef(/* @__PURE__ */ new Set());
+  const registerBeforeSave = React6.useCallback((handler) => {
+    beforeSaveHandlers.current.add(handler);
+    return () => {
+      beforeSaveHandlers.current.delete(handler);
+    };
+  }, []);
   const editFormProps = React6.useMemo(() => {
-    if (!isFileModel(model)) return formProps;
     const originalOnFinish = formProps.onFinish;
     return {
       ...formProps,
-      onFinish: (values) => {
+      onFinish: async (values) => {
+        for (const handler of beforeSaveHandlers.current) {
+          try {
+            await handler();
+          } catch {
+            return;
+          }
+        }
+        if (!isFileModel(model)) return originalOnFinish?.(values);
         const { data: _binaryData, ...rest } = values || {};
         return originalOnFinish?.(rest);
       }
@@ -11942,18 +11985,23 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       }
     )
   ] });
+  const extraEditTabs = React6.useMemo(() => (model.extraTabs ?? []).filter((tab) => tab.edit), [model.extraTabs]);
+  const allItems = React6.useMemo(
+    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _47(tab.label), children: null }))],
+    [items, extraEditTabs]
+  );
   const [activeTabKey, setActiveTabKey] = React6.useState("main_data");
   React6.useEffect(() => {
-    if (!items.find((item) => item.key === activeTabKey)) {
-      setActiveTabKey(items[0]?.key || "main_data");
+    if (!allItems.find((item) => item.key === activeTabKey)) {
+      setActiveTabKey(allItems[0]?.key || "main_data");
     }
-  }, [activeTabKey, items]);
+  }, [activeTabKey, allItems]);
   const lazyItems = React6.useMemo(
-    () => items.map((item) => ({
+    () => allItems.map((item) => ({
       ...item,
       children: item.key === activeTabKey ? item.children : null
     })),
-    [activeTabKey, items]
+    [activeTabKey, allItems]
   );
   const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     extraHeaderButtons,
@@ -12004,7 +12052,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       }
     ) })
   ] });
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+  return /* @__PURE__ */ jsxRuntime.jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxRuntime.jsxs(
       StandardEdit,
@@ -12020,11 +12068,15 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         headerButtons: renderHeaderButtons,
         children: [
           topContent,
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
+          record && extraEditTabs.map((tab) => {
+            const TabContent = tab.edit;
+            return /* @__PURE__ */ jsxRuntime.jsx("div", { hidden: activeTabKey !== tab.key, children: /* @__PURE__ */ jsxRuntime.jsx(TabContent, { record }) }, tab.key);
+          })
         ]
       }
     )
-  ] });
+  ] }) });
 };
 var DynamicEdit = (props) => /* @__PURE__ */ jsxRuntime.jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "update", children: /* @__PURE__ */ jsxRuntime.jsx(DynamicEditPage, { ...props }) });
 var _48 = window._ || ((text) => text);
@@ -13221,7 +13273,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_69, newPageSize) => {
+            onShowSizeChange: (_70, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -15526,7 +15578,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_69, newPageSize) => {
+                    onShowSizeChange: (_70, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -15540,7 +15592,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _54("No related records") }) } : void 0,
-                  onChange: (_69, filters, sorter, extra) => {
+                  onChange: (_70, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -22438,19 +22490,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _69 }) => _69).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_69) => {
-        if (_69.collapsible) {
+      const ut = R.panels.map(({ id: _70 }) => _70).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_70) => {
+        if (_70.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _69.collapsedSize,
-              ce[_69.panelId]
+              _70.collapsedSize,
+              ce[_70.panelId]
             ), dt = I(
-              _69.collapsedSize,
-              ge[_69.panelId]
+              _70.collapsedSize,
+              ge[_70.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_69.panelId] = ge[_69.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_70.panelId] = ge[_70.panelId]);
           }
         }
       });
@@ -23285,7 +23337,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = React6.useMemo(
-    () => panes.map((_69, idx) => ({
+    () => panes.map((_70, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -24638,7 +24690,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_69, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_70, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -25064,6 +25116,336 @@ function generateResources(models, moduleName, options = {}) {
   });
   return [parentEntry, ...children];
 }
+var _69 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var BASE_URL = "/auth/access-policies";
+var ACTIONS = [
+  { action: "create", flag: "can_create", label: "Create" },
+  { action: "read", flag: "can_read", label: "Read" },
+  { action: "update", flag: "can_update", label: "Update" },
+  { action: "delete", flag: "can_delete", label: "Delete" }
+];
+var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
+var resourceLabel = (e) => {
+  const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
+  return e.model_key ? `${_69(moduleName)} \u203A ${_69(e.model_key)}` : _69(moduleName);
+};
+var modeLabel = (mode) => mode === "allow" ? _69("Allowlist") : mode === "block" ? _69("Blocklist") : _69("No policy");
+var modeHelp = (mode) => mode === "allow" ? _69("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _69("Users with this role can use everything except the checked actions on the listed modules and models.") : _69("Users with this role can use every module and model their role and licenses allow.");
+var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
+async function readJson(res) {
+  return res.json().catch(() => ({}));
+}
+function useRolePolicy(roleId) {
+  const [row, setRow] = React6.useState(null);
+  const [loading, setLoading] = React6.useState(true);
+  const [forbidden, setForbidden] = React6.useState(false);
+  const load = React6.useCallback(async () => {
+    if (roleId === void 0 || roleId === null) return;
+    setLoading(true);
+    try {
+      const res = await authenticatedFetch(`${BASE_URL}/${roleId}`);
+      if (res.status === 403) {
+        setForbidden(true);
+        return;
+      }
+      if (!res.ok) throw new Error();
+      setRow(await res.json());
+    } catch {
+      antd.message.error(_69("Could not load access policies."));
+    } finally {
+      setLoading(false);
+    }
+  }, [roleId]);
+  React6.useEffect(() => {
+    void load();
+  }, [load]);
+  return { row, loading, forbidden, reload: load };
+}
+var AdminNote = () => /* @__PURE__ */ jsxRuntime.jsx(
+  antd.Alert,
+  {
+    type: "info",
+    showIcon: true,
+    message: _69("The Admin role always has full access and can't be given an access policy.")
+  }
+);
+var ChangeHistory = ({ roleId }) => {
+  const [audit, setAudit] = React6.useState([]);
+  React6.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authenticatedFetch(`${BASE_URL}/audit?role_id=${roleId}&limit=50`);
+      if (!cancelled && res.ok) setAudit(await res.json());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId]);
+  const describeChange = (row) => {
+    if (row.event === "role_get_migration") return _69("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _69("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _69("No policy");
+    return `${side(row.before)} \u2192 ${side(row.after)}`;
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Table,
+    {
+      size: "small",
+      rowKey: "id",
+      dataSource: audit,
+      pagination: { pageSize: 10, hideOnSinglePage: true },
+      locale: { emptyText: _69("No changes recorded yet.") },
+      columns: [
+        {
+          title: _69("When"),
+          key: "created_at",
+          render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
+        },
+        {
+          title: _69("Changed by"),
+          key: "actor",
+          render: (_v, row) => row.actor_username || _69("System")
+        },
+        {
+          title: _69("Change"),
+          key: "change",
+          render: (_v, row) => describeChange(row)
+        }
+      ]
+    }
+  );
+};
+var resourceColumn = () => ({
+  title: _69("Module or model"),
+  key: "resource",
+  render: (_value, e) => /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 6, wrap: true, children: [
+    /* @__PURE__ */ jsxRuntime.jsx("span", { children: resourceLabel(e) }),
+    e.active === false && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _69("Inactive") })
+  ] })
+});
+var RoleAccessPolicyView = ({ record }) => {
+  const { row, loading, forbidden } = useRolePolicy(record?.id);
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsxRuntime.jsx(AdminNote, {});
+  const mode = row.policy?.mode ?? "none";
+  const columns = [
+    resourceColumn(),
+    ...ACTIONS.map(({ action, flag, label }) => ({
+      title: _69(label),
+      key: action,
+      width: 90,
+      align: "center",
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, { "aria-label": _69(label) }) : null
+    }))
+  ];
+  return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 8, wrap: true, children: [
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: mode === "none" ? void 0 : "blue", children: modeLabel(mode) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: modeHelp(mode) })
+    ] }),
+    mode !== "none" && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Table,
+      {
+        size: "small",
+        rowKey: entryId,
+        columns,
+        dataSource: row.policy?.entries ?? [],
+        pagination: false,
+        locale: { emptyText: _69("No modules or models listed yet.") }
+      }
+    ) }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _69("Change history") }),
+    /* @__PURE__ */ jsxRuntime.jsx(ChangeHistory, { roleId: row.role_id })
+  ] });
+};
+var RoleAccessPolicyEditor = ({ record }) => {
+  const { row, loading, forbidden, reload } = useRolePolicy(record?.id);
+  const [modules, setModules] = React6.useState([]);
+  const [mode, setMode] = React6.useState("none");
+  const [entries, setEntries] = React6.useState([]);
+  React6.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authenticatedFetch(`${BASE_URL}/resources`);
+      if (!cancelled && res.ok) setModules((await res.json()).modules ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const resetToSaved = React6.useCallback(() => {
+    setMode(row?.policy?.mode ?? "none");
+    setEntries(row?.policy?.entries ?? []);
+  }, [row]);
+  React6.useEffect(() => {
+    resetToSaved();
+  }, [resetToSaved]);
+  const dirty = row !== null && policyKey(mode, entries) !== policyKey(row.policy?.mode ?? "none", row.policy?.entries ?? []);
+  useBeforeEditSave(async () => {
+    if (!row || row.is_admin || !dirty) return;
+    const res = mode === "none" ? await authenticatedFetch(`${BASE_URL}/${row.role_id}`, { method: "DELETE" }) : await authenticatedFetch(`${BASE_URL}/${row.role_id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) })
+    });
+    if (!res.ok) {
+      const body = await readJson(res);
+      antd.message.error(typeof body?.detail === "string" ? body.detail : _69("Could not save the access policy."));
+      throw new Error("access policy not saved");
+    }
+    antd.message.success(mode === "none" ? _69("Access policy removed.") : _69("Access policy saved."));
+    await reload();
+    void refreshAccess();
+  });
+  const usedIds = React6.useMemo(() => new Set(entries.map(entryId)), [entries]);
+  const treeData = React6.useMemo(
+    () => modules.map((m) => ({
+      title: _69(m.name),
+      value: entryId({ module_key: m.key, model_key: null }),
+      disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
+      children: m.models.map((model) => ({
+        title: _69(model.key),
+        value: entryId({ module_key: m.key, model_key: model.key }),
+        disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
+      }))
+    })),
+    [modules, usedIds]
+  );
+  const addEntry = (value) => {
+    const [moduleKey, modelKey] = value.split("|");
+    setEntries((prev) => [...prev, {
+      module_key: moduleKey,
+      model_key: modelKey || null,
+      can_create: false,
+      can_read: mode === "allow",
+      can_update: false,
+      can_delete: false,
+      active: true
+    }]);
+  };
+  const toggle = (id, action, checked) => {
+    setEntries((prev) => prev.map((e) => {
+      if (entryId(e) !== id) return e;
+      const next = { ...e, [`can_${action}`]: checked };
+      if (mode === "allow") {
+        if (action === "read" && !checked) {
+          next.can_create = next.can_update = next.can_delete = false;
+        } else if (action !== "read" && checked) {
+          next.can_read = true;
+        }
+      } else if (mode === "block") {
+        if (action === "read" && checked) {
+          next.can_create = next.can_update = next.can_delete = true;
+        } else if (action !== "read" && !checked) {
+          next.can_read = false;
+        }
+      }
+      return next;
+    }));
+  };
+  const changeMode = (next) => {
+    setMode(next);
+    setEntries((prev) => prev.map((e) => ({
+      ...e,
+      can_create: false,
+      can_read: next === "allow",
+      can_update: false,
+      can_delete: false
+    })));
+  };
+  if (forbidden) return null;
+  if (loading && !row) return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) });
+  if (!row) return null;
+  if (row.is_admin) return /* @__PURE__ */ jsxRuntime.jsx(AdminNote, {});
+  const columns = [
+    resourceColumn(),
+    ...ACTIONS.map(({ action, flag, label }) => ({
+      title: _69(label),
+      key: action,
+      width: 90,
+      align: "center",
+      render: (_value, e) => /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Checkbox,
+        {
+          checked: Boolean(e[flag]),
+          onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
+          "aria-label": `${_69(label)} ${resourceLabel(e)}`
+        }
+      )
+    })),
+    {
+      title: "",
+      key: "remove",
+      width: 56,
+      render: (_value, e) => /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Button,
+        {
+          type: "text",
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
+          "aria-label": _69("Remove"),
+          onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
+        }
+      )
+    }
+  ];
+  return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _69("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _69("No policy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _69("Allowlist") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _69("Blocklist") })
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: modeHelp(mode) }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _69("This role's access policy will be removed when you save.") }),
+    mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Alert,
+      {
+        type: "warning",
+        showIcon: true,
+        message: _69("This allowlist is empty: users with this role will lose access to every module.")
+      }
+    ),
+    mode !== "none" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntime.jsx(
+        antd.TreeSelect,
+        {
+          style: { width: "100%" },
+          treeData,
+          value: null,
+          placeholder: _69("Add a module or model"),
+          onChange: (value) => value && addEntry(value),
+          showSearch: true,
+          treeNodeFilterProp: "title",
+          treeDefaultExpandAll: false
+        }
+      ),
+      /* @__PURE__ */ jsxRuntime.jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Table,
+        {
+          size: "small",
+          rowKey: entryId,
+          columns,
+          dataSource: entries,
+          pagination: false,
+          locale: { emptyText: _69("No modules or models listed yet.") }
+        }
+      ) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _69("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+    ] }),
+    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _69("Discard changes") })
+  ] });
+};
+var roleAccessPolicyTab = {
+  key: "access_policy",
+  label: "Access Policy",
+  show: RoleAccessPolicyView,
+  edit: RoleAccessPolicyEditor
+};
 
 // src/models/authModels.ts
 var authSystemModels = [
@@ -25121,8 +25503,10 @@ var authSystemModels = [
       { key: "name", label: "Name", type: "string", required: true, unique: true },
       { key: "description", label: "Description", type: "string" },
       { key: "allowed_methods", label: "Allowed Methods", type: "string", readRoles: ["Admin"], writeRoles: ["Admin"], description: 'JSON array of permitted HTTP methods, e.g. ["GET","POST","PUT","PATCH","DELETE"]' },
-      { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." }
+      { key: "is_preset", label: "Is Preset", type: "boolean", readRoles: ["Admin"], writeRoles: ["Admin"], description: "Preset roles are seeded from code on startup and appear in the Roles UI as built-in." },
+      { key: "access_policy", label: "Access Policy", type: "string", readOnly: true, readRoles: ["Admin"] }
     ],
+    extraTabs: [roleAccessPolicyTab],
     relations: [
       {
         resource: "user",
@@ -25315,6 +25699,7 @@ exports.useAccess = useAccess;
 exports.useAccessQueryInvalidation = useAccessQueryInvalidation;
 exports.useAllModels = useAllModels;
 exports.useAuthenticatedFileUrl = useAuthenticatedFileUrl;
+exports.useBeforeEditSave = useBeforeEditSave;
 exports.useBottomOverlayInset = useBottomOverlayInset;
 exports.useDataDetailLevel = useDataDetailLevel;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;

@@ -1778,6 +1778,12 @@ msgstr "Control de acceso"
 msgid "Access Policies"
 msgstr "Políticas de acceso"
 
+msgid "Access Policy"
+msgstr "Política de acceso"
+
+msgid "This role's access policy will be removed when you save."
+msgstr "La política de acceso de este rol se eliminará al guardar."
+
 msgid "Access policy removed."
 msgstr "Política de acceso eliminada."
 

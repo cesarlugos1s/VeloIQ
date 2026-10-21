@@ -79,6 +79,19 @@ export interface RelationDef {
     millerLeafConfigs?: MillerLeafConfig[];
 }
 
+/**
+ * A tab a model adds after the generated tabs of its Show and/or Edit page.
+ * The Edit component stays mounted while the user switches tabs, and can take
+ * part in the page's Save with `useBeforeEditSave`.
+ */
+export interface ModelExtraTab {
+    key: string;
+    /** Catalog msgid, translated when the page renders. */
+    label: string;
+    show?: React.ComponentType<{ record: any }>;
+    edit?: React.ComponentType<{ record: any }>;
+}
+
 export interface ModelDef {
     name: string;
     label: string;
@@ -86,6 +99,8 @@ export interface ModelDef {
     fields: FieldDef[];
     relations?: RelationDef[];
     hideInMenu?: boolean;
+    /** Extra Show/Edit tabs (see ModelExtraTab). */
+    extraTabs?: ModelExtraTab[];
     resource?: string;
     description?: string;
     pkField?: string;

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getAccessSnapshot, refreshAccess, subscribeAccess } from "../access/accessStore";
 import {
     evaluateAccess,
+    hasAdminRole,
     isModuleLicensedIn,
     moduleKeyForName,
     type AccessAction,
@@ -18,6 +19,8 @@ export interface UseAccessReturn {
     canModule: (moduleName: string, action: AccessAction) => boolean;
     /** True if the module is licensed (ignores roles and policies). */
     isModuleLicensed: (moduleName: string) => boolean;
+    /** True if the user has the Admin role. */
+    isAdmin: boolean;
     /** Refetch the user's permissions now. */
     refresh: () => void;
 }
@@ -53,9 +56,20 @@ export function useAccess(): UseAccessReturn {
         [ctx],
     );
 
+    // Before permissions load, fall back to the roles cached at sign-in so
+    // Admin-only menus never flash for other users.
+    const isAdmin = useMemo(() => {
+        if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
+        try {
+            return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+        } catch {
+            return false;
+        }
+    }, [ctx]);
+
     return useMemo(
-        () => ({ loading: ctx === null, can, canModule, isModuleLicensed, refresh: () => void refreshAccess() }),
-        [ctx, can, canModule, isModuleLicensed],
+        () => ({ loading: ctx === null, can, canModule, isModuleLicensed, isAdmin, refresh: () => void refreshAccess() }),
+        [ctx, can, canModule, isModuleLicensed, isAdmin],
     );
 }
 
@@ -97,11 +111,11 @@ const extractModuleName = (item: any): string | null => {
  *   allowlist that names only one model still shows that model's module.
  * - A module item without children stays when the module itself is readable.
  * - An unlicensed module is always removed, children included.
- * The `access_control` module group is always kept, as before.
+ * The `access_control` module group is shown, whole, to Admins only.
  */
 export function filterMenuItemsByAccess<T>(
     items: T[],
-    access: Pick<UseAccessReturn, "can" | "canModule" | "isModuleLicensed">,
+    access: Pick<UseAccessReturn, "can" | "canModule" | "isModuleLicensed" | "isAdmin">,
 ): T[] {
     if (!Array.isArray(items)) return [];
     const result: any[] = [];
@@ -114,7 +128,7 @@ export function filterMenuItemsByAccess<T>(
         const children = Array.isArray(item.children) ? item.children : null;
         if (moduleName !== null) {
             if (moduleName === "access_control") {
-                result.push(item);
+                if (access.isAdmin) result.push(item);
                 continue;
             }
             if (!access.isModuleLicensed(moduleName)) continue;

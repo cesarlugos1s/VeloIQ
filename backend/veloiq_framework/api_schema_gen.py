@@ -1151,12 +1151,9 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     # Built-in System Configuration page (General Configuration submenu),
     # delivered the same way.
     from veloiq_framework.system_config.menu import get_system_config_menu_manifest
-    # Built-in Access Policies screen (Access Control submenu, Admin only).
-    from veloiq_framework.access.menu import get_access_policies_menu_manifest
     extensions = extensions + [
         get_help_menu_manifest(),
         get_system_config_menu_manifest(),
-        get_access_policies_menu_manifest(),
     ]
 
     pages_dir = frontend_src / "pages"

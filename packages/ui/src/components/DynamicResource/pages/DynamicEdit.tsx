@@ -19,6 +19,7 @@ import { DEFAULT_EDIT_RELATION_ROW_ACTIONS, DEFAULT_RELATION_CREATE_ACTIONS } fr
 import { useMetadataModal } from "../hooks/useMetadataModal";
 import { renderModelHeading } from "../ModelHeading";
 import { useStandardEditTabs } from "../hooks/useStandardEditTabs";
+import { BeforeEditSaveContext, type BeforeEditSave } from "../hooks/useBeforeEditSave";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 import { ResourceAccessGate } from "../../AccessGate";
 
@@ -88,12 +89,27 @@ const DynamicEditPage: React.FC<{
     });
     const record = queryResult?.data?.data;
 
+    // Extra tabs registered through useBeforeEditSave save their own data
+    // first; if one throws, the record is not saved.
+    const beforeSaveHandlers = useRef(new Set<BeforeEditSave>());
+    const registerBeforeSave = useCallback((handler: BeforeEditSave) => {
+        beforeSaveHandlers.current.add(handler);
+        return () => { beforeSaveHandlers.current.delete(handler); };
+    }, []);
+
     const editFormProps = useMemo(() => {
-        if (!isFileModel(model)) return formProps;
         const originalOnFinish = formProps.onFinish;
         return {
             ...formProps,
-            onFinish: (values: any) => {
+            onFinish: async (values: any) => {
+                for (const handler of beforeSaveHandlers.current) {
+                    try {
+                        await handler();
+                    } catch {
+                        return;
+                    }
+                }
+                if (!isFileModel(model)) return originalOnFinish?.(values);
                 const { data: _binaryData, ...rest } = values || {};
                 return originalOnFinish?.(rest);
             },
@@ -326,18 +342,25 @@ const DynamicEditPage: React.FC<{
         </div>
     );
 
+    // The model's extra Edit tabs render below <Tabs> and stay mounted, so
+    // their unsaved changes survive switching tabs until the page's Save.
+    const extraEditTabs = useMemo(() => (model.extraTabs ?? []).filter((tab) => tab.edit), [model.extraTabs]);
+    const allItems = useMemo(
+        () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _(tab.label), children: null }))],
+        [items, extraEditTabs]
+    );
     const [activeTabKey, setActiveTabKey] = useState("main_data");
     useEffect(() => {
-        if (!items.find((item) => item.key === activeTabKey)) {
-            setActiveTabKey(items[0]?.key || "main_data");
+        if (!allItems.find((item) => item.key === activeTabKey)) {
+            setActiveTabKey(allItems[0]?.key || "main_data");
         }
-    }, [activeTabKey, items]);
+    }, [activeTabKey, allItems]);
     const lazyItems = useMemo(
-        () => items.map((item) => ({
+        () => allItems.map((item) => ({
             ...item,
             children: item.key === activeTabKey ? item.children : null,
         })),
-        [activeTabKey, items]
+        [activeTabKey, allItems]
     );
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
@@ -399,6 +422,7 @@ const DynamicEditPage: React.FC<{
         </>
     );
     return (
+        <BeforeEditSaveContext.Provider value={registerBeforeSave}>
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardEdit
@@ -414,8 +438,17 @@ const DynamicEditPage: React.FC<{
             >
                 {topContent}
                 <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
+                {record && extraEditTabs.map((tab) => {
+                    const TabContent = tab.edit!;
+                    return (
+                        <div key={tab.key} hidden={activeTabKey !== tab.key}>
+                            <TabContent record={record} />
+                        </div>
+                    );
+                })}
             </StandardEdit>
         </div>
+        </BeforeEditSaveContext.Provider>
     );
 };
 
