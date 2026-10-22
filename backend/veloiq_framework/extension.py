@@ -197,6 +197,14 @@ class VeloIQExtension:
     #: ``None`` (the default) or a missing file means no packaged config.
     config_file: Optional[str] = None
 
+    #: Path *relative to the installed package directory* of the extension's
+    #: packaged ``banners.json`` (collapsible model-based banners, see
+    #: ``veloiq_framework.banners``). The framework merges it below the host
+    #: app's ``config/banners.json``, so a host app can override or disable any
+    #: of the extension's banners by key. ``None`` or a missing file means the
+    #: extension ships no banners.
+    banners_file: Optional[str] = None
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
@@ -247,6 +255,13 @@ class VeloIQExtension:
         if not self.config_file:
             return None
         p = self.package_dir() / self.config_file
+        return p if p.is_file() else None
+
+    def resolved_banners_file(self) -> Optional[Path]:
+        """Return the absolute path to the packaged ``banners.json``, or None."""
+        if not self.banners_file:
+            return None
+        p = self.package_dir() / self.banners_file
         return p if p.is_file() else None
 
     # ── Validation ────────────────────────────────────────────────────────────

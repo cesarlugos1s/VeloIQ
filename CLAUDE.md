@@ -87,6 +87,7 @@ pip install -e backend/
 - `generateResources(models, moduleName)` — builds Refine resource definitions from ModelDef arrays
 - `authSystemModels` — static ModelDef definitions for User, Role, Tenant CRUD pages
 - Analyze section (`components/DynamicResource/analysis/`) — shared by list pages and relation views: `useAnalyzeSettings`/`useAnalyzeResults` hooks, `AnalyzePanel`, Plotly `AnalysisChart`, `aggregation.ts` (the only summary calculation), `chartCatalog.ts` and `chartTheme.ts` (must match `JM_CHART_TYPES` and the chart theme in `views_utils.py`; `test-fixtures/charts.json` checks both layers via `npm test` and `backend/tests/test_chart_fixtures.py`), `useServerAnalyze` (server-side aggregation above `analyze_server_aggregation_threshold`)
+- Collapsible banners (`src/banner/`, also the light entry `@juicemantics/veloiq-ui/banner`) — `CollapsibleBanner`, `ModelBanner`, `BannerHost`; `AppBannerHost` is rendered by `LayoutWrapper`. Backend: `veloiq_framework/banners/` reads `banners.json` (extension `banners_file` + host `config/banners.json`) and serves `GET /api/veloiq/banners`. See `docs/banners.md`
 - `InlinePlotlyHtml` — the one host component for backend-built Plotly HTML (loads `/veloiq-assets/plotly.min.js`, sizes and themes the charts)
 - Auth providers: `authProvider`, `accessControlProvider`, `httpClient`
 

@@ -1963,3 +1963,27 @@ msgstr ""
 
 msgid "Feature Access"
 msgstr ""
+
+msgid "Move banner"
+msgstr ""
+
+msgid "Move to the left edge"
+msgstr ""
+
+msgid "Move to the center"
+msgstr ""
+
+msgid "Move to the right edge"
+msgstr ""
+
+msgid "Move to the top"
+msgstr ""
+
+msgid "Move to the middle"
+msgstr ""
+
+msgid "Move to the bottom"
+msgstr ""
+
+msgid "View all"
+msgstr ""

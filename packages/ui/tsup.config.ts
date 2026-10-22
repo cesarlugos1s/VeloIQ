@@ -1,7 +1,8 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  // "banner" is the light entry point for external websites (React + antd only).
+  entry: { index: "src/index.ts", banner: "src/banner/index.ts" },
   format: ["esm", "cjs"],
   dts: true,
   splitting: false,

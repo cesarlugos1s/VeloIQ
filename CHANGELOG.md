@@ -6,6 +6,25 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ### Added
 
+- **Collapsible banners** — badges over the page content that expand into a list
+  of rows, defined only in `banners.json` (an extension's packaged file, named by
+  the new manifest attribute `banners_file`, merged by key below the host app's
+  `config/banners.json`). A banner lists a model, a named query or an ORM query
+  (the `jm_build_orm_query_from_spec` dict spec, raw SQL rejected), selected by the
+  List page's Advanced-filter rules (a list value matches any of its values; rules
+  on an ORM source apply before `group_by`). It shows on all pages, on the pages of
+  some models or modules, or on external websites (`show_on.sites`), at one of nine
+  positions of the content area, with collapsed and expanded sizes in percent of
+  that area; banners sharing a position stack instead of overlapping, and arrows
+  move a banner for the session. Endpoint: `GET /api/veloiq/banners`. The host app
+  shows banners through `LayoutWrapper` (new props `showBanners`, `bannerModels`);
+  external websites import `BannerHost` from the new light entry point
+  `@juicemantics/veloiq-ui/banner` (React and Ant Design only). Also exported:
+  `CollapsibleBanner`, `ModelBanner`, `AppBannerHost`, `useContentRect` and the
+  layout helpers. See [docs/banners.md](docs/banners.md).
+- **`get_named_query(name)`** — every loaded named query (host app and extensions,
+  `queries.py` and `named_queries.json`) can be found by name.
+
 - **Feature access per role** — besides modules and models, a role's access can
   now name **features**: capabilities extensions register with
   `register_feature(source, name, label, group=, description=)`, such as
@@ -27,6 +46,10 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   `veloiq db upgrade`.
 
 ### Changed
+
+- `@juicemantics/veloiq-ui`: the Refine, react-query, router, axios and dayjs peer
+  dependencies are optional, so an external website using only
+  `@juicemantics/veloiq-ui/banner` doesn't install them. Host apps already list them.
 
 - **Every chart is drawn with Plotly, with one catalogue, theme and set of
   summary rules** — the Analyze section of list pages and relation views

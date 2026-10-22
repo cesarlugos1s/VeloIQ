@@ -9,6 +9,11 @@
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./banner": {
+      "types": "./dist/banner.d.ts",
+      "import": "./dist/banner.mjs",
+      "require": "./dist/banner.js"
     }
   },
   "license": "MIT",
@@ -36,6 +41,29 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
     "react-router-dom": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@refinedev/antd": {
+      "optional": true
+    },
+    "@refinedev/core": {
+      "optional": true
+    },
+    "@refinedev/react-router-v6": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "axios": {
+      "optional": true
+    },
+    "dayjs": {
+      "optional": true
+    },
+    "react-router-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@ant-design/icons": "^5.3.0",

@@ -111,6 +111,11 @@ export type {
 export { refreshAccess, getAccessSnapshot, clearAccess } from "./access/accessStore";
 export type { EffectivePermissions } from "./access/accessStore";
 export { useBottomOverlayInset, BOTTOM_OVERLAY_ATTR } from "./hooks/useBottomOverlayInset";
+
+// ── Collapsible model-based banners (also at "@juicemantics/veloiq-ui/banner") ──
+export * from "./banner";
+export { AppBannerHost, pageContextFromPath } from "./components/AppBannerHost";
+export type { AppBannerHostProps } from "./components/AppBannerHost";
 export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 
 // ── Utilities ──────────────────────────────────────────────────────────────

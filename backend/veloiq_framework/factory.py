@@ -125,6 +125,13 @@ def create_veloiq_app(
         f for f in (ext.resolved_config_file() for ext in _ordered_extensions) if f is not None
     ])
 
+    # ── banners.json layers ──────────────────────────────────────────────────
+    # Each enabled extension's packaged banners.json, then the host app's own.
+    from veloiq_framework.banners.definitions import configure_banner_files
+    configure_banner_files([
+        f for f in (ext.resolved_banners_file() for ext in _ordered_extensions) if f is not None
+    ])
+
     # ── Lifespan ──────────────────────────────────────────────────────────────
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -625,6 +632,10 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     # System Configuration Console endpoints (GET/PUT /api/system-config).
     from veloiq_framework.system_config.router import router as _system_config_router
     core_api.include_router(_system_config_router)
+
+    # Collapsible model-based banners defined in banners.json (GET /api/veloiq/banners).
+    from veloiq_framework.banners.router import router as _banners_router
+    core_api.include_router(_banners_router)
 
     # --- UI configuration stubs ---
     # The frontend reads these endpoints on every page load.  When not configured

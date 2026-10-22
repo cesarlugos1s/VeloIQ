@@ -145,3 +145,28 @@ class NamedQuery:
         for f in self.fields:
             if f.source_model is None:
                 f.source_model = self.primary_model
+
+
+# ---------------------------------------------------------------------------
+# Registry of the loaded named queries
+# ---------------------------------------------------------------------------
+
+#: Every NamedQuery the loader has mounted, keyed by its ``name``. Filled by
+#: :func:`veloiq_framework.query_crud.create_query_router`, so hand-written
+#: (``queries.py``) and declarative (``named_queries.json``) queries of the host
+#: app and of every extension are all present once the app has started.
+_NAMED_QUERY_REGISTRY: dict[str, NamedQuery] = {}
+
+
+def register_named_query(named_query: NamedQuery) -> None:
+    """Record *named_query* so other framework features can find it by name.
+
+    A later registration with the same name replaces the earlier one, matching
+    the router order in which the loader mounts them.
+    """
+    _NAMED_QUERY_REGISTRY[named_query.name] = named_query
+
+
+def get_named_query(name: str) -> NamedQuery | None:
+    """Return the loaded NamedQuery called *name*, or None when there is none."""
+    return _NAMED_QUERY_REGISTRY.get(name)

@@ -146,7 +146,7 @@ export default function App() {
                                     <Route
                                         element={
                                             <Authenticated key="auth" redirectOnFail="/login">
-                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems} helpButtonTexts={{ list: globalListHeaderButtonHelp, show: globalShowHeaderButtonHelp }} globalHeaderComponents={globalHeaderComponents}>
+                                                <LayoutWrapper navConfig={navConfigData as NavConfig} extraUserMenuItems={extensionUserMenuItems} helpButtonTexts={{ list: globalListHeaderButtonHelp, show: globalShowHeaderButtonHelp }} globalHeaderComponents={globalHeaderComponents} bannerModels={allSystemModels}>
                                                     <Outlet />
                                                 </LayoutWrapper>
                                                 {exceptionAlertBannerComponent && createElement(exceptionAlertBannerComponent)}

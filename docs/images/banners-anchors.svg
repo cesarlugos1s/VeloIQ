@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" height="400" font-family="system-ui, sans-serif" font-size="12">
+<rect width="720" height="400" fill="#ffffff"/>
+<rect x="0" y="0" width="120" height="400" fill="#e8edf3"/>
+<text x="60.0" y="200.0" text-anchor="middle" fill="#5d6678">Side menu</text>
+<rect x="120" y="0" width="600" height="48" fill="#f0f2f6"/>
+<text x="136" y="29" fill="#5d6678">Header</text>
+<rect x="120.5" y="48.5" width="599" height="351" fill="none" stroke="#9aa2b4" stroke-dasharray="4 4"/>
+<text x="290.0" y="290.0" text-anchor="middle" fill="#9aa2b4">Content area (sizes are % of it)</text>
+<circle cx="136" cy="64" r="4" fill="#2f5bd3"/>
+<text x="144" y="82" text-anchor="start" fill="#5d6678">top left</text>
+<circle cx="136" cy="224.0" r="4" fill="#2f5bd3"/>
+<text x="144" y="214.0" text-anchor="start" fill="#5d6678">middle left</text>
+<circle cx="136" cy="384" r="4" fill="#2f5bd3"/>
+<circle cx="420.0" cy="64" r="4" fill="#2f5bd3"/>
+<text x="420.0" y="82" text-anchor="middle" fill="#5d6678">top center</text>
+<circle cx="420.0" cy="224.0" r="4" fill="#2f5bd3"/>
+<text x="420.0" y="214.0" text-anchor="middle" fill="#5d6678">middle center</text>
+<circle cx="420.0" cy="384" r="4" fill="#2f5bd3"/>
+<text x="420.0" y="374" text-anchor="middle" fill="#5d6678">bottom center</text>
+<circle cx="704" cy="64" r="4" fill="#2f5bd3"/>
+<text x="696" y="82" text-anchor="end" fill="#5d6678">top right</text>
+<circle cx="704" cy="224.0" r="4" fill="#2f5bd3"/>
+<circle cx="704" cy="384" r="4" fill="#2f5bd3"/>
+<text x="696" y="374" text-anchor="end" fill="#5d6678">bottom right</text>
+<rect x="136" y="360" width="58" height="24" rx="12" fill="#fff3df" stroke="#b26a00"/>
+<text x="165" y="376" text-anchor="middle" fill="#b26a00" font-weight="600">▲ 7</text>
+<rect x="136" y="328" width="58" height="24" rx="12" fill="#fde8e8" stroke="#c0392b"/>
+<text x="165" y="344" text-anchor="middle" fill="#c0392b" font-weight="600">● 3</text>
+<text x="204" y="344" fill="#5d6678">Same position: stacked by priority</text>
+<rect x="474" y="159.0" width="230" height="130" rx="8" fill="#eef3ff" stroke="#2f5bd3"/>
+<rect x="474" y="159.0" width="230" height="3" fill="#2f5bd3"/>
+<text x="486" y="181.0" fill="#1d2230" font-weight="600">Expanded (12)</text>
+<text x="692" y="181.0" text-anchor="end" fill="#5d6678">← ↔ → ↑ ↕ ↓  ✕</text>
+<text x="486" y="207.0" fill="#1d2230">Row text · Label: value</text>
+<text x="486" y="227.0" fill="#1d2230">Row text · Label: value</text>
+<text x="486" y="247.0" fill="#1d2230">Row text · Label: value</text>
+<text x="486" y="277.0" fill="#2f5bd3">View all</text>
+</svg>

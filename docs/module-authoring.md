@@ -836,6 +836,7 @@ class ExtensionManifest(VeloIQExtension):
     modules_package = "myext.modules"     # Python package containing module sub-packages
     static_dir = "static"                  # relative to installed package dir; served at /ext/myext/
     frontend_pages_dir = "frontend/pages"  # relative to installed package dir; copied by veloiq generate
+    banners_file = "modules/alerts/banners.json"  # optional; collapsible banners, see docs/banners.md
 ```
 
 The `pyproject.toml` entry point wires the manifest to the framework:
@@ -865,6 +866,10 @@ Files written only if missing (developer customisations are preserved):
 For module screens that cannot be expressed as schema-driven CRUD (e.g. a drag-and-drop page builder or a conversational AI interface), the extension ships pre-built JS bundles in `static/`.  The framework serves them at `/ext/{name}/{filename}`.  The host app's frontend loads them lazily via dynamic `import()`.
 
 Modules whose screens are standard CRUD do not need any static bundles — the host app's existing `DynamicList`, `DynamicShow`, `DynamicCreate`, and `DynamicEdit` components render them from the schema files.
+
+### Shipping collapsible banners
+
+An extension shows banners (a badge over the page content that expands into a list of rows, like IQVigilant's Exception Alerts) by shipping a `banners.json` and naming it in `banners_file`. No Python or React code is needed: each banner names a model, named query or ORM query, Advanced-filter rules, the pages it shows on, and its position and sizes. Host apps override or disable an extension's banners by key in their own `config/banners.json`. See [docs/banners.md](banners.md).
 
 ### Adding buttons to every resource's default List/Show page
 

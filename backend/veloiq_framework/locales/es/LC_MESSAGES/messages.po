@@ -1962,3 +1962,27 @@ msgstr "No hay funciones registradas."
 
 msgid "Feature Access"
 msgstr "Acceso a funciones"
+
+msgid "Move banner"
+msgstr "Mover el banner"
+
+msgid "Move to the left edge"
+msgstr "Mover al borde izquierdo"
+
+msgid "Move to the center"
+msgstr "Mover al centro"
+
+msgid "Move to the right edge"
+msgstr "Mover al borde derecho"
+
+msgid "Move to the top"
+msgstr "Mover arriba"
+
+msgid "Move to the middle"
+msgstr "Mover a la mitad"
+
+msgid "Move to the bottom"
+msgstr "Mover abajo"
+
+msgid "View all"
+msgstr "Ver todos"

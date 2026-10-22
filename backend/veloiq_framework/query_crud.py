@@ -45,6 +45,9 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
         A fully configured :class:`~veloiq_framework.queries.NamedQuery` instance.
     """
     q = named_query
+    # Make the query findable by name (e.g. by banners whose source is a named query).
+    from veloiq_framework.queries import register_named_query
+    register_named_query(q)
     pk_field = get_pk_field_name(q.primary_model)
     primary_tablename = getattr(q.primary_model, "__tablename__", q.primary_model.__name__.lower())
 

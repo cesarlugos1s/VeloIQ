@@ -16,6 +16,8 @@ import { GlobalSearch } from "./GlobalSearch";
 import { CommandCenterPortal } from "./CommandCenterPortal";
 import { HelpButton } from "./Help/HelpButton";
 import { HelpDrawer } from "./Help/HelpDrawer";
+import { AppBannerHost } from "./AppBannerHost";
+import type { ModelDef } from "./DynamicResource/types";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import { NavConfigContext } from "../contexts/NavConfigContext";
 import { HelpContext } from "../contexts/HelpContext";
@@ -46,6 +48,10 @@ export interface LayoutWrapperProps {
     helpButtonTexts?: { list?: (string | null)[]; show?: (string | null)[] };
     /** Extension-contributed persistent header icon buttons (e.g. a chat launcher), from extensions.gen.tsx's globalHeaderComponents. Rendered next to Global Search on every page. */
     globalHeaderComponents?: React.ComponentType<{}>[];
+    /** Draw the collapsible banners of banners.json over the page content (default true). */
+    showBanners?: boolean;
+    /** The app's models, so banners targeting a module also show on that module's pages. */
+    bannerModels?: ReadonlyArray<ModelDef>;
 }
 
 const DefaultLogo: React.FC<{
@@ -106,7 +112,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     children, logo, appTitle, extraUserMenuItems = [], navConfig = [], helpButtonTexts,
-    globalHeaderComponents = [],
+    globalHeaderComponents = [], showBanners = true, bannerModels,
 }) => {
     const [layoutMode, setLayoutMode] = useState<"vertical" | "horizontal">(() =>
         (localStorage.getItem("layoutMode") as "vertical" | "horizontal") || "vertical"
@@ -322,6 +328,8 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             >
                 {children}
             </ThemedLayoutV2>
+
+            {showBanners && <AppBannerHost allModels={bannerModels} />}
 
             <CommandCenterPortal
                 open={portalOpen}
