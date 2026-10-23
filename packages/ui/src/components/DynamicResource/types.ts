@@ -144,6 +144,8 @@ export interface ModelDef {
     isSingleRecord?: boolean;
     /** The key fields of a row. With more than one, `pkField` is "eid" (built from them by the backend). */
     pkFields?: string[];
+    /** A non-model data resource whose source assigns new rows' keys (key fields aren't asked for on create). */
+    sourceGeneratesKeys?: boolean;
     /**
      * False hides the Analyze section (charts and summaries) and its toggle on the
      * resource's lists, e.g. for configuration lists where it adds nothing.
@@ -170,6 +172,8 @@ export interface RowActionDef {
     isVisible?: (record: any) => boolean;
     /** Other resources whose lists the action changes, refreshed after it runs. */
     refreshesResources?: string[];
+    /** Asked before the action runs (a catalog msgid), e.g. for actions that can't be undone. */
+    confirmMessage?: string;
 }
 
 export interface BulkActionDef {

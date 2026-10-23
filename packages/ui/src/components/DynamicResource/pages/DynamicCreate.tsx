@@ -182,6 +182,14 @@ const DynamicCreatePage: React.FC<{
     ], [(formProps as any)?.form, navigate, isPostCreate, journeyCallbacks]));
 
     const effectiveFields = useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+
+    // Key fields are left out of the form, except a non-model data resource's keys the
+
+    // user types (e.g. an identity provider's slug), when its source doesn't generate them.
+
+    const keyFieldsEnteredOnCreate = Boolean(model.isNonModelData && !model.sourceGeneratesKeys);
+
+    const isFormKeyFieldSkipped = (field: FieldDef) => Boolean(field.isPk) && !keyFieldsEnteredOnCreate;
     const fieldByKey = useMemo(
         () => new Map(effectiveFields.map((field) => [field.key, field])),
         [effectiveFields]
@@ -231,7 +239,7 @@ const DynamicCreatePage: React.FC<{
         const fromQuery: Record<string, any> = {};
         const hidden: string[] = [];
         effectiveFields.forEach((field) => {
-            if (field.isPk) return;
+            if (isFormKeyFieldSkipped(field)) return;
             const defaultValue = field.defaultValue ?? field.default_value ?? field.default;
             if (defaultValue !== undefined) {
                 defaults[field.key] = normalizeFieldValue(field, defaultValue);
@@ -363,7 +371,7 @@ const DynamicCreatePage: React.FC<{
         }
         const key = item.object_name || item.name;
         const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
-        if (field.isPk) return null;
+        if (isFormKeyFieldSkipped(field)) return null;
         if (field.formula) return null;
         const isHidden = hiddenFields.includes(field.key);
         const showLabel = item.show_label !== false;
@@ -440,7 +448,7 @@ const DynamicCreatePage: React.FC<{
             );
         }
         const field = resolveFieldFromConfig(model, item);
-        if (field.isPk) return null;
+        if (isFormKeyFieldSkipped(field)) return null;
         const showLabel = item.show_label !== false;
         const readonlyValueStyle: React.CSSProperties = {
             padding: "2px 4px", lineHeight: 1.15, background: valueBackground, borderRadius: 6,
@@ -504,7 +512,7 @@ const DynamicCreatePage: React.FC<{
                     <div style={{ position: "absolute", left: "212px", right: 0, top: 0, bottom: 0, background: valueBackground, borderRadius: 6 }} />
                     <Form {...formProps} size="small" initialValues={initialValues} style={{ position: "relative" }}>
                         <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }}>
-                            {effectiveFields.filter(f => !f.isPk && !f.formula).map((field) => {
+                            {effectiveFields.filter(f => !isFormKeyFieldSkipped(f) && !f.formula).map((field) => {
                                 const isHidden = hiddenFields.includes(field.key);
                                 if (isHidden) {
                                     return (
@@ -534,7 +542,7 @@ const DynamicCreatePage: React.FC<{
                 <div style={{ position: "relative", marginTop: 0 }}>
                     <div style={{ position: "absolute", left: "212px", right: 0, top: 0, bottom: 0, background: valueBackground, borderRadius: 6 }} />
                     <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }}>
-                        {effectiveFields.filter(f => !f.isPk).map((field) => (
+                        {effectiveFields.filter(f => !isFormKeyFieldSkipped(f)).map((field) => (
                             <div key={field.key} style={{ display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }}>
                                 <span style={labelStyle}>{field.label}</span>
                                 <div style={{ padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }}>
@@ -692,7 +700,7 @@ const DynamicCreatePage: React.FC<{
                         }}
                     >
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            {effectiveFields.filter(f => !f.isPk && !f.formula).map((field) => {
+                            {effectiveFields.filter(f => !isFormKeyFieldSkipped(f) && !f.formula).map((field) => {
                                 const isHidden = hiddenFields.includes(field.key);
                                 const isOtherKey = field.key === "eid_to";
                                 if (isHidden) {

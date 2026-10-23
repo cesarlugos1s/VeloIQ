@@ -38,7 +38,19 @@ __all__ = [
     "get_non_model_data_resources",
     "mount_non_model_data_resource",
     "mount_module_non_model_data_resources",
+    "check_shared_non_model_data_resource_access",
 ]
+
+
+def check_shared_non_model_data_resource_access(request: Any, data_resource: NonModelDataResource, action: str) -> None:
+    """Raise 403 unless licensing and the role's access policy allow *action* on *data_resource*.
+
+    For a resource's own ``access_check`` that adds a rule (e.g. Admin only) and keeps
+    the shared decision it would otherwise replace.
+    """
+    from .non_model_data_resource_api_router import check_shared_non_model_data_resource_access as check_shared_access
+
+    check_shared_access(request, data_resource, action)
 
 
 def mount_non_model_data_resource(app_or_router: Any, data_resource: NonModelDataResource, prefix: str = "/api") -> None:

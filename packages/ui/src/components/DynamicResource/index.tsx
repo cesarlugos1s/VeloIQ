@@ -46,7 +46,8 @@ import {
     Pagination,
     Upload,
     Menu,
-    message
+    message,
+    Popconfirm,
 } from "antd";
 import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
@@ -374,6 +375,9 @@ const DynamicListPage: React.FC<{
     // A key made of several fields: each key column shows its own value (the
     // record's title stands in for the key only when the key is one field).
     const hasCompositeKey = (model.pkFields?.length ?? 0) > 1;
+    // A key column shows the record's title instead of a model's internal id; a non-model
+    // data resource's key is its data (e.g. a slug), shown as it is.
+    const keyColumnShowsTitle = !hasCompositeKey && !model.isNonModelData;
     // The rows' custom actions (given, or registered for the resource); shown even
     // where the standard View/Edit/Delete buttons are turned off (e.g. relation lists).
     const effectiveRowActions = rowActions ?? registeredResourceRowActions(model.resource || model.name);
@@ -2930,7 +2934,7 @@ const DynamicListPage: React.FC<{
                 />
             );
         }
-        if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
+        if (isPkField(field, model) && keyColumnShowsTitle && record._label) return record._label;
         if (field.type === 'boolean') return <Checkbox checked={value} disabled />;
         if (field.type === 'number' && !field.reference) return formatNumberValue(value);
         if (field.type === 'date') return formatDateValue(value);
@@ -4058,7 +4062,7 @@ const DynamicListPage: React.FC<{
                                                     />
                                                 );
                                             }
-                                            if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
+                                            if (isPkField(field, model) && keyColumnShowsTitle && record._label) return record._label;
                                             if (cellField.type === 'boolean') return <Checkbox checked={value} disabled />;
                                             if (cellField.type === 'number' && !field.reference) {
                                                 const formatted = formatNumberValue(value);
@@ -4106,21 +4110,40 @@ const DynamicListPage: React.FC<{
                                                       : id;
                                                       return (
                                                       <Space>
-                                                          {effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => (
-                                                              <Tooltip key={action.key} title={_(action.label)}>
-                                                                  <Button size="small" icon={action.icon} aria-label={_(action.label)} onClick={async (event) => {
-                                                                      event.stopPropagation();
-                                                                      try {
-                                                                          await action.onExecute(record);
-                                                                          for (const refreshed of [model.resource || model.name, ...(action.refreshesResources || [])]) {
-                                                                              invalidate({ resource: refreshed, invalidates: ["list"] });
-                                                                          }
-                                                                      } catch (error) {
-                                                                          message.error(error instanceof Error ? error.message : _("Failed to save changes."));
+                                                          {effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
+                                                              const executeRowAction = async () => {
+                                                                  try {
+                                                                      await action.onExecute(record);
+                                                                      for (const refreshed of [model.resource || model.name, ...(action.refreshesResources || [])]) {
+                                                                          invalidate({ resource: refreshed, invalidates: ["list"] });
                                                                       }
+                                                                  } catch (error) {
+                                                                      message.error(error instanceof Error ? error.message : _("Failed to save changes."));
+                                                                  }
+                                                              };
+                                                              const button = (
+                                                                  <Button size="small" icon={action.icon} aria-label={_(action.label)} onClick={(event) => {
+                                                                      event.stopPropagation();
+                                                                      // An action with a confirmation runs from the confirmation's OK.
+                                                                      if (!action.confirmMessage) void executeRowAction();
                                                                   }} />
-                                                              </Tooltip>
-                                                          ))}
+                                                              );
+                                                              return (
+                                                                  <Tooltip key={action.key} title={_(action.label)}>
+                                                                      {action.confirmMessage ? (
+                                                                          <Popconfirm
+                                                                              title={_(action.confirmMessage)}
+                                                                              okText={_("Confirm")}
+                                                                              cancelText={_("Cancel")}
+                                                                              onConfirm={(event) => { event?.stopPropagation(); void executeRowAction(); }}
+                                                                              onCancel={(event) => event?.stopPropagation()}
+                                                                          >
+                                                                              {button}
+                                                                          </Popconfirm>
+                                                                      ) : button}
+                                                                  </Tooltip>
+                                                              );
+                                                          })}
                                                           {showActions && (
                                                               <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => (paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }))} /></Tooltip>
                                                           )}

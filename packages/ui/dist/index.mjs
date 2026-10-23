@@ -2,7 +2,7 @@ import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, useResource } from '@refinedev/core';
-import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
+import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
@@ -10468,6 +10468,8 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, isPostCreate, journeyCallbacks]));
   const effectiveFields = useMemo(() => applyRelationFieldOverrides(model, allModelsList), [model, allModelsList]);
+  const keyFieldsEnteredOnCreate = Boolean(model.isNonModelData && !model.sourceGeneratesKeys);
+  const isFormKeyFieldSkipped = (field) => Boolean(field.isPk) && !keyFieldsEnteredOnCreate;
   const fieldByKey = useMemo(
     () => new Map(effectiveFields.map((field) => [field.key, field])),
     [effectiveFields]
@@ -10517,7 +10519,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const fromQuery = {};
     const hidden = [];
     effectiveFields.forEach((field) => {
-      if (field.isPk) return;
+      if (isFormKeyFieldSkipped(field)) return;
       const defaultValue = field.defaultValue ?? field.default_value ?? field.default;
       if (defaultValue !== void 0) {
         defaults[field.key] = normalizeFieldValue(field, defaultValue);
@@ -10620,7 +10622,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     }
     const key = item.object_name || item.name;
     const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
-    if (field.isPk) return null;
+    if (isFormKeyFieldSkipped(field)) return null;
     if (field.formula) return null;
     const isHidden = hiddenFields.includes(field.key);
     const showLabel = item.show_label !== false;
@@ -10687,7 +10689,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
       }) }, `${item.name}-${item.row}-${item.column}`);
     }
     const field = resolveFieldFromConfig(model, item);
-    if (field.isPk) return null;
+    if (isFormKeyFieldSkipped(field)) return null;
     const showLabel = item.show_label !== false;
     const readonlyValueStyle = {
       padding: "2px 4px",
@@ -10726,7 +10728,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     configLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
     !configLoading && !hasConfig && !isPostCreate && /* @__PURE__ */ jsxs("div", { style: { position: "relative", marginTop: 0 }, children: [
       /* @__PURE__ */ jsx("div", { style: { position: "absolute", left: "212px", right: 0, top: 0, bottom: 0, background: valueBackground, borderRadius: 6 } }),
-      /* @__PURE__ */ jsx(Form, { ...formProps, size: "small", initialValues, style: { position: "relative" }, children: /* @__PURE__ */ jsx("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }, children: effectiveFields.filter((f) => !f.isPk && !f.formula).map((field) => {
+      /* @__PURE__ */ jsx(Form, { ...formProps, size: "small", initialValues, style: { position: "relative" }, children: /* @__PURE__ */ jsx("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }, children: effectiveFields.filter((f) => !isFormKeyFieldSkipped(f) && !f.formula).map((field) => {
         const isHidden = hiddenFields.includes(field.key);
         if (isHidden) {
           return /* @__PURE__ */ jsx(Form.Item, { name: field.key, hidden: true, rules: field.required ? [{ required: true }] : [], children: renderInput(field, allModels, model) }, field.key);
@@ -10742,7 +10744,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     ] }),
     !configLoading && !hasConfig && isPostCreate && /* @__PURE__ */ jsxs("div", { style: { position: "relative", marginTop: 0 }, children: [
       /* @__PURE__ */ jsx("div", { style: { position: "absolute", left: "212px", right: 0, top: 0, bottom: 0, background: valueBackground, borderRadius: 6 } }),
-      /* @__PURE__ */ jsx("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }, children: effectiveFields.filter((f) => !f.isPk).map((field) => /* @__PURE__ */ jsxs("div", { style: { display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }, children: [
+      /* @__PURE__ */ jsx("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 4, padding: 0 }, children: effectiveFields.filter((f) => !isFormKeyFieldSkipped(f)).map((field) => /* @__PURE__ */ jsxs("div", { style: { display: "grid", gridTemplateColumns: "200px 1fr", justifyContent: "start", alignItems: "start", columnGap: 6 }, children: [
         /* @__PURE__ */ jsx("span", { style: labelStyle, children: field.label }),
         /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: renderFieldValue(field, createdRecord, allModels) })
       ] }, field.key)) })
@@ -10863,7 +10865,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
                 if (successCount > 0) message.success(`${successCount} ${_44("relation(s) created.")}`);
                 if (returnTo) navigate(returnTo);
               },
-              children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !f.isPk && !f.formula).map((field) => {
+              children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !isFormKeyFieldSkipped(f) && !f.formula).map((field) => {
                 const isHidden = hiddenFields.includes(field.key);
                 const isOtherKey = field.key === "eid_to";
                 if (isHidden) {
@@ -17864,6 +17866,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const isPrimaryView = resolvedListViewType === "primary";
   const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
   const hasCompositeKey = (model.pkFields?.length ?? 0) > 1;
+  const keyColumnShowsTitle = !hasCompositeKey && !model.isNonModelData;
   const effectiveRowActions = rowActions ?? registeredResourceRowActions(model.resource || model.name);
   const canInlineEdit = INLINE_EDIT_LIST_VIEW_TYPES.has(resolvedListViewType) && canBulkEdit && model.capabilities?.update !== false;
   const inlineRowEdits = useInlineRowEdits(
@@ -20069,7 +20072,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       );
     }
-    if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
+    if (isPkField(field, model) && keyColumnShowsTitle && record._label) return record._label;
     if (field.type === "boolean") return /* @__PURE__ */ jsx(Checkbox, { checked: value, disabled: true });
     if (field.type === "number" && !field.reference) return formatNumberValue(value);
     if (field.type === "date") return formatDateValue(value);
@@ -21148,7 +21151,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                           }
                         );
                       }
-                      if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
+                      if (isPkField(field, model) && keyColumnShowsTitle && record._label) return record._label;
                       if (cellField.type === "boolean") return /* @__PURE__ */ jsx(Checkbox, { checked: value, disabled: true });
                       if (cellField.type === "number" && !field.reference) {
                         const formatted = formatNumberValue(value);
@@ -21194,17 +21197,36 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxs(Space, { children: [
-                      effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => /* @__PURE__ */ jsx(Tooltip, { title: _62(action.label), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _62(action.label), onClick: async (event) => {
-                        event.stopPropagation();
-                        try {
-                          await action.onExecute(record);
-                          for (const refreshed of [model.resource || model.name, ...action.refreshesResources || []]) {
-                            invalidate({ resource: refreshed, invalidates: ["list"] });
+                      effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
+                        const executeRowAction = async () => {
+                          try {
+                            await action.onExecute(record);
+                            for (const refreshed of [model.resource || model.name, ...action.refreshesResources || []]) {
+                              invalidate({ resource: refreshed, invalidates: ["list"] });
+                            }
+                          } catch (error) {
+                            message.error(error instanceof Error ? error.message : _62("Failed to save changes."));
                           }
-                        } catch (error) {
-                          message.error(error instanceof Error ? error.message : _62("Failed to save changes."));
-                        }
-                      } }) }, action.key)),
+                        };
+                        const button = /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _62(action.label), onClick: (event) => {
+                          event.stopPropagation();
+                          if (!action.confirmMessage) void executeRowAction();
+                        } });
+                        return /* @__PURE__ */ jsx(Tooltip, { title: _62(action.label), children: action.confirmMessage ? /* @__PURE__ */ jsx(
+                          Popconfirm,
+                          {
+                            title: _62(action.confirmMessage),
+                            okText: _62("Confirm"),
+                            cancelText: _62("Cancel"),
+                            onConfirm: (event) => {
+                              event?.stopPropagation();
+                              void executeRowAction();
+                            },
+                            onCancel: (event) => event?.stopPropagation(),
+                            children: button
+                          }
+                        ) : button }, action.key);
+                      }),
                       showActions && /* @__PURE__ */ jsx(Tooltip, { title: _62("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
                       showActions && canBulkEdit && /* @__PURE__ */ jsx(Tooltip, { title: _62("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
                       showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && /* @__PURE__ */ jsx(Tooltip, { title: _62("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })

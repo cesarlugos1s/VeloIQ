@@ -330,6 +330,8 @@ class NonModelDataResource:
             model_def["titleFields"] = list(self.title_fields)
         if not self.show_analyze_section:
             model_def["showAnalyzeSection"] = False
+        if self.source_generates_keys:
+            model_def["sourceGeneratesKeys"] = True
         return model_def
 
 

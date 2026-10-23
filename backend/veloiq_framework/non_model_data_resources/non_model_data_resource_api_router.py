@@ -71,6 +71,16 @@ def check_non_model_data_resource_access(request: Request, data_resource: NonMod
     if data_resource.access_check is not None:
         data_resource.access_check(request, action)
         return
+    check_shared_non_model_data_resource_access(request, data_resource, action)
+
+
+def check_shared_non_model_data_resource_access(request: Request, data_resource: NonModelDataResource, action: str) -> None:
+    """Raise 403 unless the shared access decision (licensing, the role's methods and
+    access policy for the resource's module and name) allows *action*.
+
+    A resource's own ``access_check`` replaces this decision; one that adds a rule
+    (e.g. Admin only) and keeps licensing calls this too.
+    """
     user = getattr(request.state, "user", None)
     if user is None:
         return
