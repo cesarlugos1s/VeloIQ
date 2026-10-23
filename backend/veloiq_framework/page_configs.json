@@ -114,7 +114,8 @@
           "entries": [
             {"kind": "field", "key": "general_actions_button_position", "row": 1, "column": 1},
             {"kind": "field", "key": "add_tabs_for_non_configured_relations", "row": 1, "column": 2},
-            {"kind": "field", "key": "show_back_of_cards", "row": 2, "column": 1}
+            {"kind": "field", "key": "show_back_of_cards", "row": 2, "column": 1},
+            {"kind": "field", "key": "show_dashboard_menu_entry", "row": 2, "column": 2}
           ]
         },
         {

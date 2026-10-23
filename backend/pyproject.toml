@@ -123,6 +123,7 @@ include = ["veloiq_framework*"]
     "scaffold/.continue/*",
     "scaffold/backend/.env.example",
     "alembic_scaffold/**/*",
+    "portal_scaffold/**/*",
     "alembic_scaffold.ini",
     "studio/static/index.html",
     "studio/static/assets/*",

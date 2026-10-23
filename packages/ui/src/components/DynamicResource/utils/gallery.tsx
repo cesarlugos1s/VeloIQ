@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { FileTextOutlined } from "@ant-design/icons";
+import { readAccessToken } from "../../../utils/signInStorageKeys";
 
-const _TOKEN_KEY = "jm_access_token";
 
 export function useAuthenticatedFileUrl(rawUrl: string): string {
     const [src, setSrc] = useState("");
     useEffect(() => {
         if (!rawUrl) { setSrc(""); return; }
         if (!rawUrl.includes("/api/file/")) { setSrc(rawUrl); return; }
-        const token = localStorage.getItem(_TOKEN_KEY) || "";
+        const token = readAccessToken() || "";
         const controller = new AbortController();
         let objectUrl = "";
         fetch(rawUrl, {

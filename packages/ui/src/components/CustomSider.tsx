@@ -1,20 +1,19 @@
 import React, { useContext, useMemo } from "react";
-import { useMenu, useGo } from "@refinedev/core";
-import { Layout, Menu, theme, Typography } from "antd";
+import { useGo } from "@refinedev/core";
+import { Layout, Menu, theme, Typography, ConfigProvider } from "antd";
 import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, resolveNavKey, sortItemsByNavConfig } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
-import { filterMenuItemsByAccess, useAccess } from "../hooks/useAccess";
+import { useLayoutMenuItems } from "../hooks/useLayoutMenuItems";
+import { translateMenuLabel } from "../utils/translateMenuLabel";
 
 const API_URL = "/api";
-// i18n helper — resolved at CALL time so window._ is always current.
-const _ = (text: string): string => {
-    const t = (window as any)._;
-    return typeof t === "function" ? (t(text) as string) : text;
-};
+
+/** AntD Menu sizes of the collapsed sider: shorter rows and smaller gaps than the defaults (40px rows, 4px gaps). */
+const COLLAPSED_MENU_COMPACT_TOKENS = { itemHeight: 32, itemMarginBlock: 1, itemMarginInline: 4 };
 
 export const CustomSider: React.FC<{
     collapsed?: boolean;
@@ -24,18 +23,10 @@ export const CustomSider: React.FC<{
 }> = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     const { token } = theme.useToken();
     const { mode } = useContext(ColorModeContext);
-    const { menuItems, selectedKey } = useMenu();
+    // The layout's entries: only what the user can Read (AC-E1), and the layout's menu settings.
+    const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
-    const access = useAccess();
-
-    // ── Access-aware menu filtering ───────────────────────────────────────
-    // Menus show only the modules and models the user can Read (AC-E1),
-    // through the shared access check (licensing + role + access policy).
-    const licensedMenuItems = useMemo(
-        () => filterMenuItemsByAccess(menuItems, access),
-        [menuItems, access],
-    );
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -64,23 +55,7 @@ export const CustomSider: React.FC<{
     };
 
     const renderLabel = (item: any, depth: number, hasChildren: boolean) => {
-        const rawLabel = String(item?.label || item?.name || item?.key || "");
-        // Translate at call time. If no exact translation exists and the label
-        // looks like a raw slug (contains _ or -), retry with a humanized
-        // version so "exception_alert" → "Exception Alert" can match the PO
-        // catalog. Already-translated labels (no _/-) are never re-humanized,
-        // so accented output like "Alerta de Excepción" is preserved verbatim.
-        let label = _(rawLabel);
-        if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-            const humanized = rawLabel.replace(/[_-]+/g, " ").trim()
-                .split(/\s+/).filter(Boolean)
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" ");
-            if (humanized && humanized !== rawLabel) {
-                const humanizedLabel = _(humanized);
-                if (humanizedLabel !== humanized) label = humanizedLabel;
-            }
-        }
+        const label = translateMenuLabel(item);
         const isModule = depth === 0 || hasChildren;
         const tone = isModule
             ? getModelTone(`module:${item?.key || label}`)
@@ -107,12 +82,18 @@ export const CustomSider: React.FC<{
         return items.map((item) => {
             const safeChildren: any[] = Array.isArray(item?.children) ? item.children : [];
             const hasChildren = safeChildren.length > 0;
+            const children = hasChildren ? transformItems(item.children, depth + 1) : undefined;
+            // Collapsed, a module's popup is titled with its name above its entries
+            // (single entries already show theirs in a tooltip).
+            const titledPopup = collapsed && depth === 0 && hasChildren;
             return {
                 key: item.key,
                 label: renderLabel(item, depth, hasChildren),
                 icon: getIcon(item),
                 onClick: hasChildren ? undefined : () => go({ to: item.route }),
-                children: hasChildren ? transformItems(item.children, depth + 1) : undefined,
+                children: titledPopup
+                    ? [{ type: "group" as const, key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }]
+                    : children,
             };
         });
     };
@@ -127,7 +108,7 @@ export const CustomSider: React.FC<{
         [sortedMenuItems, journeysByModule],
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const items = useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
+    const items = useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig, collapsed]);
     return (
         <Layout.Sider
             width={280} // Slightly wider to fit the name nicely
@@ -190,13 +171,16 @@ export const CustomSider: React.FC<{
                         paddingBottom: 12,
                     }}
                 >
-                    <Menu
-                        mode="inline"
-                        inlineCollapsed={collapsed}
-                        selectedKeys={[selectedKey]}
-                        items={items}
-                        style={{ borderRight: "none", marginTop: "8px" }}
-                    />
+                    {/* Collapsed (icons only), the entries sit closer together so more of them fit. */}
+                    <ConfigProvider theme={collapsed ? { components: { Menu: COLLAPSED_MENU_COMPACT_TOKENS } } : undefined}>
+                        <Menu
+                            mode="inline"
+                            inlineCollapsed={collapsed}
+                            selectedKeys={[selectedKey]}
+                            items={items}
+                            style={{ borderRight: "none", marginTop: "8px" }}
+                        />
+                    </ConfigProvider>
                 </div>
             </div>
         </Layout.Sider>

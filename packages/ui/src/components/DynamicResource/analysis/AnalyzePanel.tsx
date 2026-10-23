@@ -46,7 +46,8 @@ export interface AnalyzePanelProps {
     /** Fill colour of the in-cell value bars (crosstab chart type). */
     numericBarColor: string;
     /** Opens the page's "save view" dialog for the Analyze preferences. */
-    onSaveClick: () => void;
+    /** Saves the configuration as a view; without it (saved views switched off) there is no save button. */
+    onSaveClick?: () => void;
     /** Optional status lines shown under the chart controls (for example a loading message). */
     customizeFooter?: React.ReactNode;
 }
@@ -178,7 +179,7 @@ export const AnalyzePanel: React.FC<AnalyzePanelProps> = ({
                     >
                         <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }}>
                             <Tooltip title={_("Save preferences")}>
-                                <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} />
+                                {onSaveClick && <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} />}
                             </Tooltip>
                             <Tooltip title={_("Stats")}>
                                 <Button size="small" icon={<FileTextOutlined />} onClick={() => setIsStatsFlipped(true)} />

@@ -9,8 +9,8 @@ import axios from "axios";
 import { getActiveLocale } from "../utils/activeLocale";
 import { ROW_REVISIONS_RESPONSE_HEADER, rememberRowRevisions, rowRevisionFor } from "../utils/trackRowRevisions";
 import { answerInPageRowsRequest } from "../utils/serveInPageRowsStores";
+import { readAccessToken } from "../utils/signInStorageKeys";
 
-const TOKEN_KEY = "jm_access_token";
 
 export const httpClient = axios.create();
 
@@ -36,7 +36,7 @@ httpClient.defaults.adapter = (config) => {
 };
 
 httpClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = readAccessToken();
     if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
     }

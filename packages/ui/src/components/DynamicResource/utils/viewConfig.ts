@@ -88,6 +88,8 @@ export type ViewSettings = {
     modelsColorSchema: string;
     generalActionsButtonPosition: GeneralActionsButtonPosition;
     addTabsForNonConfiguredRelations: boolean;
+    /** Show the Dashboard entry in the app's menus (default true). */
+    showDashboardMenuEntry: boolean;
     /** Layout mode of the right-side detail panes. */
     panesLayoutMode: PanesLayoutMode;
     /** "stack" mode: cap of fully visible panes; older ones collapse to spines. */
@@ -150,6 +152,7 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                     modelsColorSchema,
                     generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),
                     addTabsForNonConfiguredRelations: data?.addTabsForNonConfiguredRelations !== false,
+                    showDashboardMenuEntry: data?.showDashboardMenuEntry !== false,
                     panesLayoutMode: normalizePanesLayoutMode(data?.panesLayoutMode),
                     panesMaxVisible: normalizePositiveInt(data?.panesMaxVisible, DEFAULT_PANES_MAX_VISIBLE),
                     panesFixedWidth: normalizePositiveInt(data?.panesFixedWidth, DEFAULT_PANES_FIXED_WIDTH),

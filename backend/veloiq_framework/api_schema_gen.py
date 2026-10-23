@@ -108,6 +108,8 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
     from sqlmodel import SQLModel
 
     generated: list[str] = []
+    # Entity models of each generated module (also the input of the portals' page schemas).
+    module_entity_models: dict[str, list] = {}
 
     # Pre-load auth models so veloiq_user / veloiq_role / veloiq_tenant tables
     # are registered in SQLAlchemy's MetaData before any app module is imported.
@@ -176,6 +178,7 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         # Link tables need CRUD endpoints (for RelationsExplorer M2M queries)
         # but must NOT appear as entity models in the frontend schema / navigation.
         entity_models = [m for m in module_models if not _is_link_model(m)]
+        module_entity_models[module_name] = entity_models
 
         # ── Generate backend api.py ───────────────────────────────────────
         api_py = mod_dir / "api.py"
@@ -208,6 +211,10 @@ def _run_builtin(modules_dir: Path, frontend_src: Path) -> None:
         generated.append(module_name)
 
     _write_all_models(generated, frontend_src)
+
+    # ── External portals: their own page schemas and (first time) menus ──────
+    from veloiq_framework.portals.generate_portal_page_schemas import generate_portal_page_schemas
+    generate_portal_page_schemas(backend_dir.parent, module_entity_models)
 
     # Collect model names per module for navConfig (order matches generated order)
     module_model_names: dict[str, list[str]] = {}
@@ -284,8 +291,20 @@ def _build_ts_schema(module_name: str, models: list) -> str:
     return "\n".join(lines)
 
 
-def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
+def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[str] | None = None,
+                           generated_header: str = "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.") -> list[str]:
+    """Return the lines of ``{module}Schema.gen.ts`` for *models* (without the closing ``];``).
+
+    :param portal_roles: For an external portal's schema: keep only the fields
+        these roles can read (``veloiq_field(read_roles=…)``) and the relations to
+        models they can read (``@model_access``), as the server does for them.
+    :param generated_header: First line of the file.
+    """
     from sqlalchemy.inspection import inspect as sa_inspect
+    from veloiq_framework.portals.portal_role_read_access import (
+        field_readable_by_roles,
+        tablename_readable_by_roles,
+    )
     from sqlmodel import SQLModel as _SM_all
 
     # Build a global set of link/junction table names across ALL loaded modules.
@@ -297,7 +316,7 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
             _all_link_table_names.add(_cls.__tablename__)
 
     lines = [
-        "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
+        generated_header,
         "import type { ModelDef } from '@juicemantics/veloiq-ui';",
         "",
         f"export const {module_name}ModelsGen: ModelDef[] = [",
@@ -321,6 +340,8 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 if p.key == pk_field:
                     continue
                 if p.key in _SYSTEM_ONLY_KEYS:
+                    continue
+                if portal_roles is not None and not field_readable_by_roles(model, p.key, portal_roles):
                     continue
                 col = p.columns[0]
                 ts_type = _col_to_ts_type(col, field_key=p.key)
@@ -487,6 +508,8 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 rel_label = rel.key.replace("_", " ").title()
                 other_cls = rel.mapper.class_
                 other_tablename = getattr(other_cls, "__tablename__", other_cls.__name__.lower())
+                if portal_roles is not None and not tablename_readable_by_roles(other_tablename, portal_roles):
+                    continue
                 if rel.direction == ONETOMANY:
                     # Skip link/junction tables — their back-refs are
                     # infrastructure, not meaningful entity relations.
@@ -519,6 +542,8 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                 elif rel.direction == MANYTOMANY and rel.secondary is not None and rel.secondary.name:
                     # Many-to-many via a link/junction table.
                     link_tablename = rel.secondary.name
+                    if portal_roles is not None and not tablename_readable_by_roles(link_tablename, portal_roles):
+                        continue
                     # Determine which link-table FK column references the local entity
                     # (targetKey — used to query the link table for the current record)
                     # and which references the remote entity (otherKey — the record to show).
@@ -580,6 +605,8 @@ def _build_ts_schema_lines(module_name: str, models: list) -> list[str]:
                     continue  # already handled by an ORM relationship declaration
                 if child_table.name in _all_link_table_names:
                     continue  # skip link/junction tables (M2M handled by ORM relations)
+                if portal_roles is not None and not tablename_readable_by_roles(child_table.name, portal_roles):
+                    continue
                 for col in child_table.columns:
                     if not col.foreign_keys:
                         continue
@@ -663,74 +690,8 @@ def _col_to_ts_type(col, field_key: str = "") -> str:
 # Manual schema sidecar + merged schema writers
 # ---------------------------------------------------------------------------
 
-_SCHEMA_TYPE_BLOCK = """\
-import type { ModelDef } from '@juicemantics/veloiq-ui';
-
-type FieldDef = ModelDef['fields'][number];
-type RelationDef = NonNullable<ModelDef['relations']>[number];
-type FieldOverride = Partial<FieldDef> & Pick<FieldDef, 'key'>;
-type RelationOverride = Partial<RelationDef> & ({ resource: string } | { label: string });
-type ModelOverride = Partial<Omit<ModelDef, 'fields' | 'relations'>> & {
-    name: string;
-    fields?: FieldOverride[];
-    relations?: RelationOverride[];
-};\
-"""
-
-_MERGE_FUNCTIONS_BLOCK = """\
-const defaultField = (override: FieldOverride): FieldDef => ({
-    key: override.key,
-    label: override.label ?? override.key,
-    type: override.type ?? 'string',
-    ...override,
-});
-
-const mergeFields = (base: FieldDef[], overrides?: FieldOverride[]): FieldDef[] => {
-    if (!overrides || overrides.length === 0) return base;
-    const merged = [...base];
-    for (const override of overrides) {
-        const idx = merged.findIndex((f) => f.key === override.key);
-        if (idx >= 0) {
-            merged[idx] = { ...merged[idx], ...override };
-        } else {
-            merged.push(defaultField(override));
-        }
-    }
-    return merged;
-};
-
-const relationKey = (r: RelationDef | RelationOverride): string | undefined =>
-    'resource' in r && r.resource ? r.resource : r.label;
-
-const mergeRelations = (
-    base: RelationDef[] | undefined,
-    overrides?: RelationOverride[],
-): RelationDef[] | undefined => {
-    if (!overrides || overrides.length === 0) return base;
-    const merged = base ? [...base] : [];
-    for (const override of overrides) {
-        const key = relationKey(override);
-        if (!key) { merged.push(override as RelationDef); continue; }
-        const idx = merged.findIndex((r) => relationKey(r) === key);
-        if (idx >= 0) {
-            merged[idx] = { ...merged[idx], ...override } as RelationDef;
-        } else {
-            merged.push(override as RelationDef);
-        }
-    }
-    return merged;
-};
-
-const mergeModel = (base: ModelDef, override?: ModelOverride): ModelDef => {
-    if (!override) return base;
-    return {
-        ...base,
-        ...override,
-        fields: mergeFields(base.fields, override.fields),
-        relations: mergeRelations(base.relations, override.relations),
-    };
-};\
-"""
+#: Where generated schemas get the merge of their overrides (one implementation for every app and portal).
+_SCHEMA_MERGE_IMPORT = "import { mergeUiModelSchemas } from '@juicemantics/veloiq-ui';"
 
 
 def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
@@ -738,7 +699,7 @@ def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
     if manual_file.exists():
         return
     lines = [
-        _SCHEMA_TYPE_BLOCK,
+        "import type { ModelOverride } from '@juicemantics/veloiq-ui';",
         "",
         f"export const {module_name}ManualOverrides: ModelOverride[] = [",
         "    // Add field/relation/model overrides here. This file is never overwritten by veloiq generate.",
@@ -748,12 +709,16 @@ def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
         "    //     fields: [",
         "    //         // Override an existing field's view type:",
         "    //         { key: 'description', showViewType: 'read-only-markdown', editViewType: 'editable-markdown' },",
+        "    //         // Leave a field out of this model's pages:",
+        "    //         { key: 'internal_notes', omit: true },",
         "    //         // Add a new virtual field:",
         "    //         { key: 'custom_field', label: 'Custom', type: 'string' },",
         "    //     ],",
         "    //     relations: [",
         "    //         // Override a relation's label:",
         "    //         { resource: 'task', label: 'Project Tasks' },",
+        "    //         // Leave a relation out of this model's pages:",
+        "    //         { resource: 'audit_entry', omit: true },",
         "    //     ],",
         "    // },",
         "];",
@@ -764,7 +729,8 @@ def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
 
 
 def _write_merged_schema(module_name: str, out_dir: Path, with_extension_overrides: bool = False) -> None:
-    """Write ``{module}Schema.ts``: the generated models with the manual overrides applied.
+    """Write ``{module}Schema.ts``: the generated models with the overrides applied by
+    ``mergeUiModelSchemas`` (``@juicemantics/veloiq-ui``).
 
     :param with_extension_overrides: The module comes from an extension that
         ships its own overrides (copied to ``{module}Schema.extensionOverrides.ts``):
@@ -773,6 +739,8 @@ def _write_merged_schema(module_name: str, out_dir: Path, with_extension_overrid
     merged_file = out_dir / f"{module_name}Schema.ts"
     override_lists = [f"{module_name}ManualOverrides"]
     imports = [
+        _SCHEMA_MERGE_IMPORT,
+        "import type { ModelDef } from '@juicemantics/veloiq-ui';",
         f"import {{ {module_name}ModelsGen }} from './{module_name}Schema.gen';",
         f"import {{ {module_name}ManualOverrides }} from './{module_name}Schema.manual';",
     ]
@@ -785,32 +753,9 @@ def _write_merged_schema(module_name: str, out_dir: Path, with_extension_overrid
     lines = [
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
         *imports,
-        _SCHEMA_TYPE_BLOCK,
-        "",
-        _MERGE_FUNCTIONS_BLOCK,
         "",
         "// Overrides in the order they apply (an extension's own first, then the app's).",
-        f"const overrideLists: ModelOverride[][] = [{', '.join(override_lists)}];",
-        "const applyOverrides = (model: ModelDef): ModelDef =>",
-        "    overrideLists.reduce((merged, overrides) => mergeModel(merged, overrides.find((o) => o.name === model.name)), model);",
-        "",
-        f"const baseNames = new Set({module_name}ModelsGen.map((m) => m.name));",
-        "const extraModelNames = Array.from(new Set(overrideLists.flat().map((o) => o.name).filter((name) => !baseNames.has(name))));",
-        "const extraModels: ModelDef[] = extraModelNames.map((name) => {",
-        "    const o = overrideLists.flat().find((override) => override.name === name)!;",
-        "    return applyOverrides({",
-        "        name: o.name,",
-        "        label: o.label ?? o.name,",
-        "        resource: o.resource ?? o.name.toLowerCase(),",
-        "        pkField: o.pkField ?? 'id',",
-        "        fields: [],",
-        "    } as ModelDef);",
-        "});",
-        "",
-        f"export const {module_name}Models: ModelDef[] = [",
-        f"    ...{module_name}ModelsGen.map(applyOverrides),",
-        "    ...extraModels,",
-        "];",
+        f"export const {module_name}Models: ModelDef[] = mergeUiModelSchemas({module_name}ModelsGen, {', '.join(override_lists)});",
         "",
         f"export default {module_name}Models;",
         "",
@@ -1174,9 +1119,13 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     # Built-in System Configuration page (General Configuration submenu),
     # delivered the same way.
     from veloiq_framework.system_config.menu import get_system_config_menu_manifest
+    # Built-in Portals configuration page (General Configuration submenu) and
+    # its "Open portal" Show header button, delivered the same way.
+    from veloiq_framework.portals.menu import get_portals_menu_manifest
     extensions = extensions + [
         get_help_menu_manifest(),
         get_system_config_menu_manifest(),
+        get_portals_menu_manifest(),
     ]
 
     pages_dir = frontend_src / "pages"
@@ -1208,15 +1157,11 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
             dest_dir = pages_dir / module_name
             dest_dir.mkdir(parents=True, exist_ok=True)
 
-            # Copy gen + merged schema (always overwrite — extension owns these).
-            for fname in (
-                f"{module_name}Schema.gen.ts",
-                f"{module_name}Schema.ts",
-            ):
-                src_file = mod_dir / fname
-                if src_file.exists():
-                    shutil.copy2(src_file, dest_dir / fname)
-                    print(f"  ✅ {module_name}/{fname}")
+            # Copy the generated schema (always overwrite — the extension owns it).
+            gen_file = mod_dir / f"{module_name}Schema.gen.ts"
+            if gen_file.exists():
+                shutil.copy2(gen_file, dest_dir / gen_file.name)
+                print(f"  ✅ {module_name}/{gen_file.name}")
 
             # Write manual stub only if missing (developer may have customised it).
             _write_manual_schema_if_missing(module_name, dest_dir)
@@ -1229,8 +1174,9 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
                 shutil.copy2(extension_overrides_file,
                              dest_dir / f"{module_name}Schema.{EXTENSION_OVERRIDES_FILE_SUFFIX}.ts")
                 print(f"  ✅ {module_name}/{module_name}Schema.{EXTENSION_OVERRIDES_FILE_SUFFIX}.ts")
-                if (dest_dir / f"{module_name}Schema.gen.ts").exists():
-                    _write_merged_schema(module_name, dest_dir, with_extension_overrides=True)
+            # The merged schema is always written here, with the shared merge (never the extension's copy).
+            if (dest_dir / f"{module_name}Schema.gen.ts").exists():
+                _write_merged_schema(module_name, dest_dir, with_extension_overrides=extension_overrides_file.exists())
 
             # Copy per-model custom_*.tsx overrides (e.g. Benefit/custom_show.tsx) —
             # always overwrite, extension owns these. The later "scan app module
@@ -1884,6 +1830,18 @@ _APP_TSX_NON_MODEL_DATA_ROUTE = (
 )
 #: The same route as written by an earlier version (no page overrides).
 _APP_TSX_NON_MODEL_DATA_ROUTE_WITHOUT_OVERRIDES = '<Route path="/:nonModelDataResource/*" element={<NonModelDataResourcePages />} />'
+#: The route passing the app's global Show header buttons (App.tsx's ``_globalShowHeaderButtons``).
+_APP_TSX_NON_MODEL_DATA_ROUTE_WITH_SHOW_HEADER_BUTTONS = _APP_TSX_NON_MODEL_DATA_ROUTE.replace(
+    "} />} />", "} showHeaderButtons={_globalShowHeaderButtons} />} />"
+)
+
+
+def _app_tsx_non_model_data_route_with_show_header_buttons(content: str) -> str:
+    """Return *content* whose non-model data route passes the global Show header
+    buttons, when App.tsx defines them (the ``VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS`` block)."""
+    if "const _globalShowHeaderButtons" not in content:
+        return content
+    return content.replace(_APP_TSX_NON_MODEL_DATA_ROUTE, _APP_TSX_NON_MODEL_DATA_ROUTE_WITH_SHOW_HEADER_BUTTONS)
 
 
 #: The marker-delimited block computing the Refine resources with the non-model data resources.
@@ -1980,16 +1938,23 @@ def _ensure_app_tsx_non_model_data_resource_wiring(frontend_src: Path) -> None:
     if hook_block_match:
         # Already wired: update the route, and move the hook block where `resources` is defined.
         content = content.replace(_APP_TSX_NON_MODEL_DATA_ROUTE_WITHOUT_OVERRIDES, _APP_TSX_NON_MODEL_DATA_ROUTE)
+        content = _app_tsx_non_model_data_route_with_show_header_buttons(content)
         without_hook_block = content[:hook_block_match.start()] + content[hook_block_match.end():]
         insertion = _app_tsx_non_model_data_hook_insertion(without_hook_block)
         if insertion:
             offset, indent = insertion
-            content = without_hook_block[:offset] + _app_tsx_non_model_data_hook_block(indent) + without_hook_block[offset:]
+            with_navigation_pages = _app_tsx_has_navigation_config(without_hook_block)
+            content = (without_hook_block[:offset]
+                       + _app_tsx_non_model_data_hook_block(indent, with_navigation_pages)
+                       + without_hook_block[offset:])
+            if with_navigation_pages:
+                content = _ensure_veloiq_ui_named_imports(content, ("useRefineResourcesIncludingNavigationPages",))
         if content != original_content:
             shutil.copy(app_tsx, app_tsx.with_suffix(".tsx.bak"))
             app_tsx.write_text(content)
             print("  🔌 App.tsx updated: brought the non-model data resources' wiring up to date "
-                  "(page overrides on the route; resources hook in the component rendering <Refine>)")
+                  "(page overrides and Show header buttons on the route; resources hook in the component rendering <Refine>; "
+                  "navigation \"page\" entries in the menus)")
         return
 
     import_match = re.search(r'(import\s*\{)([^}]*)(\}\s*from\s*"@juicemantics/veloiq-ui";)', content)
@@ -2011,15 +1976,13 @@ def _ensure_app_tsx_non_model_data_resource_wiring(frontend_src: Path) -> None:
     content = content[:routes_match.start()] + route_block + content[routes_match.start():]
     content = re.sub(r"resources=\{resources\}", "resources={resourcesIncludingNonModelData}", content, count=1)
     offset, hook_indent = _app_tsx_non_model_data_hook_insertion(content)
-    content = content[:offset] + _app_tsx_non_model_data_hook_block(hook_indent) + content[offset:]
-    import_match = re.search(r'(import\s*\{)([^}]*)(\}\s*from\s*"@juicemantics/veloiq-ui";)', content)
-    names = import_match.group(2)
-    added = [name for name in ("NonModelDataResourcePages", "useRefineResourcesIncludingNonModelData")
-             if not re.search(rf"\b{name}\b", names)]
-    if added:
-        separator = "" if names.rstrip().endswith(",") else ","
-        new_names = names.rstrip() + separator + "".join(f"\n    {name}," for name in added) + "\n"
-        content = content[:import_match.start(2)] + new_names + content[import_match.end(2):]
+    with_navigation_pages = _app_tsx_has_navigation_config(content)
+    content = content[:offset] + _app_tsx_non_model_data_hook_block(hook_indent, with_navigation_pages) + content[offset:]
+    imported_names = ("NonModelDataResourcePages", "useRefineResourcesIncludingNonModelData")
+    if with_navigation_pages:
+        imported_names += ("useRefineResourcesIncludingNavigationPages",)
+    content = _ensure_veloiq_ui_named_imports(content, imported_names)
+    content = _app_tsx_non_model_data_route_with_show_header_buttons(content)
 
     bak = app_tsx.with_suffix(".tsx.bak")
     shutil.copy(app_tsx, bak)
@@ -2028,14 +1991,45 @@ def _ensure_app_tsx_non_model_data_resource_wiring(frontend_src: Path) -> None:
           f"/:nonModelDataResource/* route (original backed up → {bak.name})")
 
 
-def _app_tsx_non_model_data_hook_block(indent: str) -> str:
-    """Return the marker-delimited hook block, indented with *indent*."""
+#: The ``navigation.config.json`` import App.tsx files have (the scaffold's), used for the menus' "page" entries.
+_APP_TSX_NAVIGATION_CONFIG_IMPORT_RE = re.compile(r'^import\s+navConfigData\s+from\s+"\./navigation\.config\.json";', re.MULTILINE)
+
+
+def _app_tsx_has_navigation_config(content: str) -> bool:
+    """True when App.tsx imports ``navConfigData`` and uses the ``NavConfig`` type (as the scaffold does)."""
+    return bool(_APP_TSX_NAVIGATION_CONFIG_IMPORT_RE.search(content)) and bool(re.search(r"\bNavConfig\b", content))
+
+
+def _app_tsx_non_model_data_hook_block(indent: str, with_navigation_pages: bool = False) -> str:
+    """Return the marker-delimited hook block, indented with *indent*.
+
+    :param with_navigation_pages: App.tsx imports ``navConfigData``: its "page"
+        entries (non-model and custom pages) are listed in the menus too.
+    """
+    resources_expression = "useRefineResourcesIncludingNonModelData(resources)"
+    if with_navigation_pages:
+        resources_expression = f"useRefineResourcesIncludingNavigationPages({resources_expression}, navConfigData as NavConfig)"
     return (
         f"{indent}// {_APP_TSX_NON_MODEL_DATA_MARKER} — regenerated by `veloiq generate`, do not hand-edit\n"
-        f"{indent}// Non-model data resources (loaded at runtime) get Refine resources and pages like models.\n"
-        f"{indent}const resourcesIncludingNonModelData = useRefineResourcesIncludingNonModelData(resources);\n"
+        f"{indent}// Non-model data resources (loaded at runtime) get Refine resources and pages like models,\n"
+        f"{indent}// and the navigation config's \"page\" entries are listed in the menus.\n"
+        f"{indent}const resourcesIncludingNonModelData = {resources_expression};\n"
         f"{indent}// VELOIQ:NON_MODEL_DATA_RESOURCES:END\n"
     )
+
+
+def _ensure_veloiq_ui_named_imports(content: str, names: tuple[str, ...]) -> str:
+    """Return *content* with *names* in its ``@juicemantics/veloiq-ui`` import (unchanged without one)."""
+    import_match = re.search(r'(import\s*\{)([^}]*)(\}\s*from\s*"@juicemantics/veloiq-ui";)', content)
+    if not import_match:
+        return content
+    imported = import_match.group(2)
+    missing = [name for name in names if not re.search(rf"\b{name}\b", imported)]
+    if not missing:
+        return content
+    separator = "" if imported.rstrip().endswith(",") else ","
+    new_names = imported.rstrip() + separator + "".join(f"\n    {name}," for name in missing) + "\n"
+    return content[:import_match.start(2)] + new_names + content[import_match.end(2):]
 
 
 # Anchors the generate-time App.tsx patch below into the exact literal fallback

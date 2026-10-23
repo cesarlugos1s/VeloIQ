@@ -128,6 +128,16 @@ export { registerResourceRowActions } from "./components/DynamicResource/registe
 // Pages and Refine resources of the non-model data resources (wired once in App.tsx).
 export { NonModelDataResourcePages, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER } from "./components/DynamicResource/pages/NonModelDataResourcePages";
 export { useRefineResourcesIncludingNonModelData } from "./hooks/useRefineResourcesIncludingNonModelData";
+export { useRefineResourcesIncludingNavigationPages } from "./hooks/useRefineResourcesIncludingNavigationPages";
+export { useFrameworkUiFeatures, resetFrameworkUiFeatures } from "./hooks/useFrameworkUiFeatures";
+export type { FrameworkUiFeatures } from "./hooks/useFrameworkUiFeatures";
+export { useLayoutMenuItems } from "./hooks/useLayoutMenuItems";
+// External portals: the site shell, its public settings and the per-site sign-in session.
+export { VeloIQPortalApp } from "./portal/VeloIQPortalApp";
+export type { VeloIQPortalAppProps, PortalModuleRegistration, PortalPageRoute, PortalPageOverrides } from "./portal/VeloIQPortalApp";
+export { usePortalPublicSettings } from "./portal/usePortalPublicSettings";
+export type { PortalPublicSettings, PortalRuntimeConfiguration } from "./portal/usePortalPublicSettings";
+export { setSignInStorageNamespace, signInStorageKeys, readAccessToken, siteScopedStorageKey } from "./utils/signInStorageKeys";
 // Rows that exist only in the page, served to the standard views from a browser store.
 export { useInPageRowsStore } from "./hooks/useInPageRowsStore";
 export type { InPageRowsStoreHandle } from "./hooks/useInPageRowsStore";
@@ -144,3 +154,5 @@ export { authSystemModels } from "./models/authModels";
 
 // ── Help models ────────────────────────────────────────────────────────────
 export { helpSystemModels } from "./models/helpModels";
+export { mergeUiModelSchemas } from "./models/mergeUiModelSchemas";
+export type { FieldOverride, RelationOverride, ModelOverride } from "./models/mergeUiModelSchemas";

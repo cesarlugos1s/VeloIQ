@@ -2077,3 +2077,177 @@ msgstr ""
 
 msgid "Loading all values…"
 msgstr "Loading all values…"
+
+msgid "Expand menu"
+msgstr "Expand menu"
+
+msgid "Collapse menu"
+msgstr "Collapse menu"
+
+msgid "Show the Dashboard menu entry"
+msgstr "Show the Dashboard menu entry"
+
+msgid "If enabled, the app's menus show the Dashboard entry. External portals have their own setting (hidden by default)."
+msgstr "If enabled, the app's menus show the Dashboard entry. External portals have their own setting (hidden by default)."
+
+msgid "This site is not available"
+msgstr "This site is not available"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Portals"
+msgstr "Portals"
+
+msgid "External portals of this app: who uses them, their menu and the list tools they offer."
+msgstr "External portals of this app: who uses them, their menu and the list tools they offer."
+
+msgid "Portal menu entries"
+msgstr "Portal menu entries"
+
+msgid "The entries of each portal's menu (navigation.<site>.config.json)."
+msgstr "The entries of each portal's menu (navigation.<site>.config.json)."
+
+msgid "Portal page overrides"
+msgstr "Portal page overrides"
+
+msgid "Per-field changes to each portal's pages (portalPageOverrides.json)."
+msgstr "Per-field changes to each portal's pages (portalPageOverrides.json)."
+
+msgid "Site"
+msgstr "Site"
+
+msgid "Name of the portal in its address (/portals/<site>/)."
+msgstr "Name of the portal in its address (/portals/<site>/)."
+
+msgid "Shown in the portal's header and sign-in page."
+msgstr "Shown in the portal's header and sign-in page."
+
+msgid "Roles of the portal's users."
+msgstr "Roles of the portal's users."
+
+msgid "Menu layout"
+msgstr "Menu layout"
+
+msgid "Analyze section of lists"
+msgstr "Analyze section of lists"
+
+msgid "CSV export"
+msgstr "CSV export"
+
+msgid "Saved views and page layouts"
+msgstr "Saved views and page layouts"
+
+msgid "Column selector"
+msgstr "Column selector"
+
+msgid "Model metadata"
+msgstr "Model metadata"
+
+msgid "Frontend folder"
+msgstr "Frontend folder"
+
+msgid "Folder of the portal's frontend (veloiq new-portal), relative to the app."
+msgstr "Folder of the portal's frontend (veloiq new-portal), relative to the app."
+
+msgid "Sign-in storage key"
+msgstr "Sign-in storage key"
+
+msgid "Browser storage key of the portal's sign-in session."
+msgstr "Browser storage key of the portal's sign-in session."
+
+msgid "Built"
+msgstr "Built"
+
+msgid "Whether veloiq build has built the portal's frontend."
+msgstr "Whether veloiq build has built the portal's frontend."
+
+msgid "Address"
+msgstr "Address"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Page overrides"
+msgstr "Page overrides"
+
+msgid "Resource of a model entry, module:<name> of a module, any key of a page."
+msgstr "Resource of a model entry, module:<name> of a module, any key of a page."
+
+msgid "Icon"
+msgstr "Icon"
+
+msgid "Ant Design icon name, e.g. HomeOutlined."
+msgstr "Ant Design icon name, e.g. HomeOutlined."
+
+msgid "Sequence"
+msgstr "Sequence"
+
+msgid "Route"
+msgstr "Route"
+
+msgid "Path of a page entry, e.g. /deck."
+msgstr "Path of a page entry, e.g. /deck."
+
+msgid "Parent"
+msgstr "Parent"
+
+msgid "Module of a page entry, e.g. module:matches."
+msgstr "Module of a page entry, e.g. module:matches."
+
+msgid "Model"
+msgstr "Model"
+
+msgid "Model name, e.g. Candidate."
+msgstr "Model name, e.g. Candidate."
+
+msgid "Field key, e.g. description."
+msgstr "Field key, e.g. description."
+
+msgid "Hide on the portal's pages"
+msgstr "Hide on the portal's pages"
+
+msgid "Show view type"
+msgstr "Show view type"
+
+msgid "Edit view type"
+msgstr "Edit view type"
+
+msgid "veloiq.toml not found in project"
+msgstr "veloiq.toml not found in project"
+
+msgid "The site name must start with a letter and use lowercase letters, digits and dashes."
+msgstr "The site name must start with a letter and use lowercase letters, digits and dashes."
+
+msgid "A portal needs at least one role."
+msgstr "A portal needs at least one role."
+
+msgid "Unknown menu layout."
+msgstr "Unknown menu layout."
+
+msgid "A portal with this site name already exists."
+msgstr "A portal with this site name already exists."
+
+msgid "This portal is not declared in veloiq.toml."
+msgstr "This portal is not declared in veloiq.toml."
+
+msgid "The portal's frontend folder does not exist. Create it with veloiq new-portal."
+msgstr "The portal's frontend folder does not exist. Create it with veloiq new-portal."
+
+msgid "This menu already has an entry with this key."
+msgstr "This menu already has an entry with this key."
+
+msgid "Menu entry not found."
+msgstr "Menu entry not found."
+
+msgid "This field already has an override."
+msgstr "This field already has an override."
+
+msgid "Open portal"
+msgstr "Open portal"
+
+msgid "Open the portal in a new tab"
+msgstr "Open the portal in a new tab"
+
+msgid "The portal is not built yet. Run veloiq build."
+msgstr "The portal is not built yet. Run veloiq build."

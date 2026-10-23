@@ -180,10 +180,11 @@ def evaluate_access(ctx: Mapping[str, Any], module_key: str | None,
     # Step 2 — licensing.
     pool = ctx.get("license")
     if module_key and pool is not None:
-        module_name = split_module_key(module_key)[1]
-        if not is_module_licensed(module_name, pool):
+        # A module is licensed by its own source (host app or extension) only.
+        module_source, module_name = split_module_key(module_key)
+        if not is_module_licensed(module_name, pool, module_source or None):
             return AccessDecision(False, REASON_NOT_LICENSED)
-        if action != ACTION_READ and not is_module_write_allowed(module_name, pool):
+        if action != ACTION_READ and not is_module_write_allowed(module_name, pool, module_source or None):
             return AccessDecision(False, REASON_LICENSE_READ_ONLY)
 
     # Steps 3–5 — per role, any role allowing wins.

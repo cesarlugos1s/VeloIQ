@@ -1,34 +1,29 @@
 import React, { useContext, useMemo } from "react";
-import { useMenu, useGo } from "@refinedev/core";
+import { useGo } from "@refinedev/core";
 import { ColorModeContext } from "../contexts/ColorModeContext";
-import { Menu } from "antd";
+import { ConfigProvider, Menu, Tooltip } from "antd";
 import * as AntDIcons from "@ant-design/icons";
 import { getModelTone, normalizeToneKey } from "../utils/modelTone";
 import type { NavConfig } from "../utils/navConfig";
 import { getNavEntry, guessIcon, resolveNavKey, sortItemsByNavConfig } from "../utils/navConfig";
 import { useJourneyMenuItems, injectJourneyMenuItems } from "../utils/journeyMenu";
-import { filterMenuItemsByAccess, useAccess } from "../hooks/useAccess";
+import { useLayoutMenuItems } from "../hooks/useLayoutMenuItems";
+import { translateMenuLabel } from "../utils/translateMenuLabel";
 
-// i18n helper — resolved at CALL time so window._ is always current.
-const _ = (text: string): string => {
-    const t = (window as any)._;
-    return typeof t === "function" ? (t(text) as string) : text;
-};
 
-export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig = [] }) => {
+/** AntD Menu sizes of the minimized horizontal menu: narrower entries than the defaults (20px padding each side). */
+const COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS = { itemPaddingInline: 8, horizontalItemGutter: 0 };
+
+export const HorizontalMenu: React.FC<{
+    navConfig?: NavConfig;
+    /** Minimized: first-level entries show only their icon, with the translated name as a tooltip. */
+    collapsed?: boolean;
+}> = ({ navConfig = [], collapsed = false }) => {
     const { mode } = useContext(ColorModeContext);
-    const { menuItems, selectedKey } = useMenu();
+    // The layout's entries: only what the user can Read (AC-E1), and the layout's menu settings.
+    const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
     const go = useGo();
     const journeysByModule = useJourneyMenuItems();
-    const access = useAccess();
-
-    // ── Access-aware menu filtering ───────────────────────────────────────
-    // Menus show only the modules and models the user can Read (AC-E1),
-    // through the shared access check (licensing + role + access policy).
-    const licensedMenuItems = useMemo(
-        () => filterMenuItemsByAccess(menuItems, access),
-        [menuItems, access],
-    );
 
     const getIcon = (item: any): React.ReactNode => {
         const key = String(item?.key || "");
@@ -56,23 +51,7 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
     };
 
     const renderLabel = (item: any, depth: number, hasChildren: boolean) => {
-        const rawLabel = String(item?.label || item?.name || item?.key || "");
-        // Translate at call time. If no exact translation exists and the label
-        // looks like a raw slug (contains _ or -), retry with a humanized
-        // version so "exception_alert" → "Exception Alert" can match the PO
-        // catalog. Already-translated labels (no _/-) are never re-humanized,
-        // so accented output like "Alerta de Excepción" is preserved verbatim.
-        let label = _(rawLabel);
-        if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-            const humanized = rawLabel.replace(/[_-]+/g, " ").trim()
-                .split(/\s+/).filter(Boolean)
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" ");
-            if (humanized && humanized !== rawLabel) {
-                const humanizedLabel = _(humanized);
-                if (humanizedLabel !== humanized) label = humanizedLabel;
-            }
-        }
+        const label = translateMenuLabel(item);
         const isModule = depth === 0 || hasChildren;
         const tone = isModule
             ? getModelTone(`module:${item?.key || label}`)
@@ -99,12 +78,21 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
         return items.map((item) => {
             const safeChildren: any[] = Array.isArray(item?.children) ? item.children : [];
             const hasChildren = safeChildren.length > 0;
+            // Minimized: a first-level entry is its icon. A module's popup is titled with its
+            // name above its entries (as in the collapsed vertical menu); a single entry, which has
+            // no popup, shows its name in a tooltip.
+            const iconOnly = collapsed && depth === 0;
+            const children = hasChildren ? transformItems(item.children, depth + 1) : undefined;
             return {
                 key: item.key,
-                label: renderLabel(item, depth, hasChildren),
-                icon: getIcon(item),
+                label: iconOnly ? null : renderLabel(item, depth, hasChildren),
+                icon: iconOnly && !hasChildren
+                    ? <Tooltip title={translateMenuLabel(item)} placement="bottom"><span>{getIcon(item)}</span></Tooltip>
+                    : getIcon(item),
                 onClick: hasChildren ? undefined : () => go({ to: item.route }),
-                children: hasChildren ? transformItems(item.children, depth + 1) : undefined,
+                children: iconOnly && hasChildren
+                    ? [{ type: "group" as const, key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }]
+                    : children,
             };
         });
     };
@@ -117,6 +105,8 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
     const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
 
     return (
+        // Minimized (icons only), the entries sit closer together so more of them fit on one line.
+        <ConfigProvider theme={collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : undefined}>
         <Menu
             mode="horizontal"
             theme={mode === "dark" ? "light" : "dark"}
@@ -128,5 +118,6 @@ export const HorizontalMenu: React.FC<{ navConfig?: NavConfig }> = ({ navConfig 
                 background: "transparent",
             }}
         />
+        </ConfigProvider>
     );
 };

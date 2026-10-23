@@ -18,6 +18,7 @@ import math
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from veloiq_framework.portals.framework_ui_features import require_framework_ui_feature
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlmodel import Session, func, select
@@ -184,7 +185,7 @@ def create_query_router(named_query: "NamedQuery") -> APIRouter:
     # route selection), so a static path registered afterward would be
     # permanently shadowed.
 
-    @router.get("/export-csv", summary=f"Export {q.name} to CSV")
+    @router.get("/export-csv", summary=f"Export {q.name} to CSV", dependencies=[Depends(require_framework_ui_feature("csv_export"))])
     def export_csv(request: Request, session: Session = Depends(get_session)):
         """Stream every row matching the request's filters as a CSV file.
 

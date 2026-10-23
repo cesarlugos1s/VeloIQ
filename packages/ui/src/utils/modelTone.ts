@@ -208,6 +208,12 @@ export const setColorSchemas = (schemas: {
                     body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarLightText} !important;
                     }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarLightText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
+                    }
                     body.jm-light {
                         --jm-row-active-bg: ${lightBgElements};
                     }
@@ -266,6 +272,12 @@ export const setColorSchemas = (schemas: {
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarDarkText} !important;
+                    }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarDarkText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
                     }
                     body.jm-dark {
                         --jm-row-active-bg: ${darkBgHover};

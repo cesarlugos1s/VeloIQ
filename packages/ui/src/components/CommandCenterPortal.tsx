@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useMenu, useGo } from "@refinedev/core";
-import { filterMenuItemsByAccess, useAccess } from "../hooks/useAccess";
+import { useGo } from "@refinedev/core";
+import { useLayoutMenuItems } from "../hooks/useLayoutMenuItems";
 import {
     Input, Card, Typography, Row, Col, Space,
     ConfigProvider, theme as antTheme, Divider, Spin,
@@ -152,14 +152,13 @@ export const CommandCenterPortal: React.FC<CommandCenterPortalProps> = ({
     onClose,
     navConfig = [],
 }) => {
-    const { menuItems: rawMenuItems } = useMenu();
+    // The layout's entries (only what the user can Read, AC-E1, and the layout's menu
+    // settings); journeys are then injected under their module alongside its models.
+    const { menuItems: layoutMenuItems } = useLayoutMenuItems();
     const journeysByModule = useJourneyMenuItems();
-    const access = useAccess();
-    // Only modules and models the user can Read (AC-E1); journeys are then
-    // injected under their module so they appear alongside its models.
     const menuItems = useMemo(
-        () => injectJourneyMenuItems(filterMenuItemsByAccess(rawMenuItems, access), journeysByModule),
-        [rawMenuItems, journeysByModule, access],
+        () => injectJourneyMenuItems(layoutMenuItems, journeysByModule),
+        [layoutMenuItems, journeysByModule],
     );
     const go = useGo();
     const searchRef = useRef<any>(null);

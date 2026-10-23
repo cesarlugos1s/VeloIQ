@@ -20,15 +20,14 @@
 import type { AccessControlProvider } from "@refinedev/core";
 import { getAccessSnapshot } from "../access/accessStore";
 import { REFINE_TO_ACTION, evaluateAccess } from "../access/evaluateAccess";
+import { signInStorageKeys } from "../utils/signInStorageKeys";
 
-const USER_KEY = "jm_user";
-const ROLE_PERMISSIONS_KEY = "jm_role_permissions";
 const ADMIN_ROLE = "Admin";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 /**
- * Built-in fallback role→actions map (used when jm_role_permissions is absent).
+ * Built-in fallback role→actions map (used when the role permissions aren't stored yet).
  * Matches the framework's DEFAULT_ROLES.
  */
 const FALLBACK_ROLE_ACTIONS: Record<string, string[]> = {
@@ -38,7 +37,7 @@ const FALLBACK_ROLE_ACTIONS: Record<string, string[]> = {
 };
 
 function getRoleActions(): Record<string, Set<string>> {
-    const cached = localStorage.getItem(ROLE_PERMISSIONS_KEY);
+    const cached = localStorage.getItem(signInStorageKeys().rolePermissions);
     const source: Record<string, string[]> = cached
         ? (() => { try { return JSON.parse(cached); } catch { return FALLBACK_ROLE_ACTIONS; } })()
         : FALLBACK_ROLE_ACTIONS;
@@ -49,7 +48,7 @@ function getRoleActions(): Record<string, Set<string>> {
 
 export const accessControlProvider: AccessControlProvider = {
     can: async ({ action, resource }) => {
-        const cached = localStorage.getItem(USER_KEY);
+        const cached = localStorage.getItem(signInStorageKeys().signedInUser);
         if (!cached) {
             return { can: false, reason: _("Not authenticated") };
         }

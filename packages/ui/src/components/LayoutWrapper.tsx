@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
 import { ThemedLayoutV2 } from "@refinedev/antd";
-import { useGetIdentity, useLogout, useGo, useMenu } from "@refinedev/core";
+import { useGetIdentity, useLogout, useGo } from "@refinedev/core";
 import {
     Layout, Button, Typography, Space, Avatar, Dropdown, Switch, Tooltip, Modal,
     Form, Input, message, theme, Grid, Drawer, Menu,
@@ -20,12 +20,22 @@ import { AppBannerHost } from "./AppBannerHost";
 import type { ModelDef } from "./DynamicResource/types";
 import { ColorModeContext } from "../contexts/ColorModeContext";
 import { NavConfigContext } from "../contexts/NavConfigContext";
+import { LayoutMenuSettingsContext } from "../contexts/LayoutMenuSettingsContext";
+import { useViewSettings } from "./DynamicResource/utils/viewConfig";
 import { HelpContext } from "../contexts/HelpContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
-import { filterMenuItemsByAccess, useAccess, useAccessQueryInvalidation } from "../hooks/useAccess";
+import { useAccess, useAccessQueryInvalidation } from "../hooks/useAccess";
+import { useLayoutMenuItems } from "../hooks/useLayoutMenuItems";
+import { siteScopedStorageKey } from "../utils/signInStorageKeys";
 
 const API_URL = "/api";
+
+// i18n helper — resolved at CALL time so window._ is always current.
+const _ = (text: string): string => {
+    const t = (window as any)._;
+    return typeof t === "function" ? (t(text) as string) : text;
+};
 
 export interface LayoutWrapperProps {
     children?: React.ReactNode;
@@ -52,6 +62,13 @@ export interface LayoutWrapperProps {
     showBanners?: boolean;
     /** The app's models, so banners targeting a module also show on that module's pages. */
     bannerModels?: ReadonlyArray<ModelDef>;
+    /** Show the Dashboard menu entry. Default: the app's `show_dashboard_menu_entry` view setting
+     *  (shown unless set off); external portals pass their own setting (hidden by default). */
+    showDashboardMenuEntry?: boolean;
+    /** Menu layout used until the user picks one with the header toggle (default "vertical"). */
+    defaultLayoutMode?: "vertical" | "horizontal";
+    /** Site key of an external portal, so banners configured for that site show (``show_on.sites``). */
+    bannerSite?: string;
 }
 
 const DefaultLogo: React.FC<{
@@ -80,14 +97,9 @@ const DefaultLogo: React.FC<{
 };
 
 const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { menuItems, selectedKey } = useMenu();
+    // The layout's entries: only what the user can Read, and the layout's menu settings.
+    const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
     const go = useGo();
-    const access = useAccess();
-
-    const licensedMenuItems = React.useMemo(
-        () => filterMenuItemsByAccess(menuItems, access),
-        [menuItems, access],
-    );
 
     const transformItems = (items: any[]): any[] => {
         if (!Array.isArray(items)) return [];
@@ -112,10 +124,22 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     children, logo, appTitle, extraUserMenuItems = [], navConfig = [], helpButtonTexts,
-    globalHeaderComponents = [], showBanners = true, bannerModels,
+    globalHeaderComponents = [], showBanners = true, bannerModels, showDashboardMenuEntry,
+    defaultLayoutMode = "vertical", bannerSite,
 }) => {
+    const { settings: viewSettings } = useViewSettings();
+    const layoutMenuSettings = React.useMemo(() => ({
+        showDashboardMenuEntry: showDashboardMenuEntry ?? viewSettings?.showDashboardMenuEntry ?? true,
+    }), [showDashboardMenuEntry, viewSettings?.showDashboardMenuEntry]);
+    // The horizontal menu, like the vertical one, can be minimized to icon-only first-level entries.
+    const [horizontalMenuCollapsed, setHorizontalMenuCollapsed] = useState(() => localStorage.getItem(siteScopedStorageKey("horizontalMenuCollapsed")) === "true");
+    const toggleHorizontalMenu = () => {
+        const next = !horizontalMenuCollapsed;
+        setHorizontalMenuCollapsed(next);
+        localStorage.setItem(siteScopedStorageKey("horizontalMenuCollapsed"), String(next));
+    };
     const [layoutMode, setLayoutMode] = useState<"vertical" | "horizontal">(() =>
-        (localStorage.getItem("layoutMode") as "vertical" | "horizontal") || "vertical"
+        (localStorage.getItem(siteScopedStorageKey("layoutMode")) as "vertical" | "horizontal") || defaultLayoutMode
     );
     const screens = Grid.useBreakpoint();
     const isMobile = !screens.md;
@@ -130,7 +154,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || (identity as any).username || "User"
         : "User";
 
-    const [siderCollapsed, setSiderCollapsed] = useState(() => localStorage.getItem("siderCollapsed") === "true");
+    const [siderCollapsed, setSiderCollapsed] = useState(() => localStorage.getItem(siteScopedStorageKey("siderCollapsed")) === "true");
     const [pwdModalOpen, setPwdModalOpen] = useState(false);
     const [pwdLoading, setPwdLoading] = useState(false);
     const [pwdForm] = Form.useForm();
@@ -211,7 +235,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     const toggleSider = () => {
         const next = !siderCollapsed;
         setSiderCollapsed(next);
-        localStorage.setItem("siderCollapsed", String(next));
+        localStorage.setItem(siteScopedStorageKey("siderCollapsed"), String(next));
     };
 
     const handleChangePassword = async (values: { current_password: string; new_password: string }) => {
@@ -268,7 +292,16 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                         <div style={{ marginRight: isMobile ? 4 : 10, flexShrink: 0 }}>
                             <DefaultLogo logo={logo} appTitle={appTitle} isHeader hideTitle={isMobile} />
                         </div>
-                        {!isMobile && <div style={{ flex: 1, minWidth: 0 }}><HorizontalMenu navConfig={navConfig} /></div>}
+                        {!isMobile && (
+                            <Tooltip title={horizontalMenuCollapsed ? _("Expand menu") : _("Collapse menu")}>
+                                <Button type="text"
+                                    icon={horizontalMenuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                                    onClick={toggleHorizontalMenu}
+                                    style={{ marginRight: 4, flexShrink: 0 }}
+                                />
+                            </Tooltip>
+                        )}
+                        {!isMobile && <div style={{ flex: 1, minWidth: 0 }}><HorizontalMenu navConfig={navConfig} collapsed={horizontalMenuCollapsed} /></div>}
                     </>
                 )}
             </div>
@@ -285,7 +318,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                             onClick={() => {
                                 const next = layoutMode === "vertical" ? "horizontal" : "vertical";
                                 setLayoutMode(next);
-                                localStorage.setItem("layoutMode", next);
+                                localStorage.setItem(siteScopedStorageKey("layoutMode"), next);
                             }}
                             type="text" />
                     </Tooltip>
@@ -318,6 +351,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         : () => null;
 
     return (
+        <LayoutMenuSettingsContext.Provider value={layoutMenuSettings}>
         <NavConfigContext.Provider value={navConfig}>
         <HelpContext.Provider value={{ pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }}>
             <ThemedLayoutV2
@@ -329,7 +363,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                 {children}
             </ThemedLayoutV2>
 
-            {showBanners && <AppBannerHost allModels={bannerModels} />}
+            {showBanners && <AppBannerHost allModels={bannerModels} site={bannerSite} />}
 
             <CommandCenterPortal
                 open={portalOpen}
@@ -378,5 +412,6 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             </Modal>
         </HelpContext.Provider>
         </NavConfigContext.Provider>
+        </LayoutMenuSettingsContext.Provider>
     );
 };

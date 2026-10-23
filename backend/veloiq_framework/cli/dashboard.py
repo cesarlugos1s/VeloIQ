@@ -261,8 +261,16 @@ def _detect_non_model_data_resource_module(model: str, modules_dir: Path) -> Opt
     folder name.
     """
     from veloiq_framework.system_config.system_config_non_model_data_resource import build_system_config_non_model_data_resource
+    from veloiq_framework.portals.portal_definitions_non_model_data_resource import build_portal_definitions_non_model_data_resource
+    from veloiq_framework.portals.portal_configuration_files_non_model_data_resources import (
+        build_portal_field_overrides_non_model_data_resource,
+        build_portal_menu_entries_non_model_data_resource,
+    )
 
-    for framework_non_model_data_resource in (build_system_config_non_model_data_resource(),):
+    for framework_non_model_data_resource in (build_system_config_non_model_data_resource(),
+                                              build_portal_definitions_non_model_data_resource(),
+                                              build_portal_menu_entries_non_model_data_resource(),
+                                              build_portal_field_overrides_non_model_data_resource()):
         if model == framework_non_model_data_resource.name:
             return framework_non_model_data_resource.module or framework_non_model_data_resource.name
     if not modules_dir.exists():

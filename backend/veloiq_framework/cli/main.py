@@ -11,6 +11,7 @@ from veloiq_framework.cli.db import db
 from veloiq_framework.cli.search import search
 from veloiq_framework.cli.dashboard import add_dashboard
 from veloiq_framework.cli.new_extension import new_extension
+from veloiq_framework.cli.new_portal import new_portal
 from veloiq_framework.cli.add_licensing import add_licensing
 from veloiq_framework.cli.configure_db import configure_db
 from veloiq_framework.cli.scaffold_page import scaffold_page
@@ -46,7 +47,8 @@ def cli(ctx):
       veloiq generate                Generate frontend schemas from backend models
       veloiq migrate                 Upgrade this app to the current framework version
       veloiq run                     Start the development server
-      veloiq build                   Build the frontend for production
+      veloiq build                   Build the frontend (and every portal) for production
+      veloiq new-portal my-site --role R  Scaffold an external portal served at /portals/my-site/
       veloiq db upgrade              Apply Alembic migrations
       veloiq check                   Health-check the project (descriptions, config gaps)
       veloiq worker start            Run the background job queue worker (needs Advanced Development)
@@ -78,6 +80,7 @@ cli.add_command(db)
 cli.add_command(search)
 cli.add_command(add_dashboard)
 cli.add_command(new_extension)
+cli.add_command(new_portal)
 cli.add_command(add_licensing)
 cli.add_command(configure_db)
 cli.add_command(extend_package)

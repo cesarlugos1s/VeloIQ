@@ -1153,6 +1153,336 @@
       "model_key": "job",
       "action": "update",
       "allowed": true
+    },
+    {
+      "name": "C6 a host module is not gated by an extension's module of the same name",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "registry": {
+          "modules": {
+            "app:projects": {
+              "source": "app",
+              "name": "projects",
+              "models": [
+                "project"
+              ]
+            },
+            "app:tasks": {
+              "source": "app",
+              "name": "tasks",
+              "models": [
+                "subtask",
+                "task"
+              ]
+            },
+            "app:billing": {
+              "source": "app",
+              "name": "billing",
+              "models": [
+                "invoice"
+              ]
+            },
+            "ext_a:jobs": {
+              "source": "ext_a",
+              "name": "jobs",
+              "models": [
+                "job"
+              ]
+            },
+            "app:jobs": {
+              "source": "app",
+              "name": "jobs",
+              "models": [
+                "job_posting"
+              ]
+            }
+          },
+          "models": {
+            "project": "app:projects",
+            "task": "app:tasks",
+            "subtask": "app:tasks",
+            "invoice": "app:billing",
+            "job": "ext_a:jobs",
+            "job_posting": "app:jobs"
+          }
+        },
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": [],
+          "module_groups_by_source": {
+            "ext_a": {
+              "jobs_group": [
+                "jobs"
+              ]
+            }
+          },
+          "licensed_modules_by_source": {
+            "ext_a": []
+          },
+          "write_allowed_modules_by_source": {
+            "ext_a": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "job_posting",
+      "action": "update",
+      "allowed": true
+    },
+    {
+      "name": "C6 the extension's own module of that name stays gated",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "registry": {
+          "modules": {
+            "app:projects": {
+              "source": "app",
+              "name": "projects",
+              "models": [
+                "project"
+              ]
+            },
+            "app:tasks": {
+              "source": "app",
+              "name": "tasks",
+              "models": [
+                "subtask",
+                "task"
+              ]
+            },
+            "app:billing": {
+              "source": "app",
+              "name": "billing",
+              "models": [
+                "invoice"
+              ]
+            },
+            "ext_a:jobs": {
+              "source": "ext_a",
+              "name": "jobs",
+              "models": [
+                "job"
+              ]
+            },
+            "app:jobs": {
+              "source": "app",
+              "name": "jobs",
+              "models": [
+                "job_posting"
+              ]
+            }
+          },
+          "models": {
+            "project": "app:projects",
+            "task": "app:tasks",
+            "subtask": "app:tasks",
+            "invoice": "app:billing",
+            "job": "ext_a:jobs",
+            "job_posting": "app:jobs"
+          }
+        },
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": [],
+          "module_groups_by_source": {
+            "ext_a": {
+              "jobs_group": [
+                "jobs"
+              ]
+            }
+          },
+          "licensed_modules_by_source": {
+            "ext_a": []
+          },
+          "write_allowed_modules_by_source": {
+            "ext_a": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "job",
+      "action": "read",
+      "allowed": false,
+      "reason": "not_licensed"
+    },
+    {
+      "name": "C6 Admin reads a host module whose name an unlicensed extension module shares",
+      "with": {
+        "roles": [
+          "Admin"
+        ],
+        "registry": {
+          "modules": {
+            "app:projects": {
+              "source": "app",
+              "name": "projects",
+              "models": [
+                "project"
+              ]
+            },
+            "app:tasks": {
+              "source": "app",
+              "name": "tasks",
+              "models": [
+                "subtask",
+                "task"
+              ]
+            },
+            "app:billing": {
+              "source": "app",
+              "name": "billing",
+              "models": [
+                "invoice"
+              ]
+            },
+            "ext_a:jobs": {
+              "source": "ext_a",
+              "name": "jobs",
+              "models": [
+                "job"
+              ]
+            },
+            "app:jobs": {
+              "source": "app",
+              "name": "jobs",
+              "models": [
+                "job_posting"
+              ]
+            }
+          },
+          "models": {
+            "project": "app:projects",
+            "task": "app:tasks",
+            "subtask": "app:tasks",
+            "invoice": "app:billing",
+            "job": "ext_a:jobs",
+            "job_posting": "app:jobs"
+          }
+        },
+        "license": {
+          "module_groups": {
+            "jobs_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": [],
+          "module_groups_by_source": {
+            "ext_a": {
+              "jobs_group": [
+                "jobs"
+              ]
+            }
+          },
+          "licensed_modules_by_source": {
+            "ext_a": []
+          },
+          "write_allowed_modules_by_source": {
+            "ext_a": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "job_posting",
+      "action": "read",
+      "allowed": true
+    },
+    {
+      "name": "C6 the host app's own license still gates its own module",
+      "with": {
+        "roles": [
+          "Manager"
+        ],
+        "registry": {
+          "modules": {
+            "app:projects": {
+              "source": "app",
+              "name": "projects",
+              "models": [
+                "project"
+              ]
+            },
+            "app:tasks": {
+              "source": "app",
+              "name": "tasks",
+              "models": [
+                "subtask",
+                "task"
+              ]
+            },
+            "app:billing": {
+              "source": "app",
+              "name": "billing",
+              "models": [
+                "invoice"
+              ]
+            },
+            "ext_a:jobs": {
+              "source": "ext_a",
+              "name": "jobs",
+              "models": [
+                "job"
+              ]
+            },
+            "app:jobs": {
+              "source": "app",
+              "name": "jobs",
+              "models": [
+                "job_posting"
+              ]
+            }
+          },
+          "models": {
+            "project": "app:projects",
+            "task": "app:tasks",
+            "subtask": "app:tasks",
+            "invoice": "app:billing",
+            "job": "ext_a:jobs",
+            "job_posting": "app:jobs"
+          }
+        },
+        "license": {
+          "module_groups": {
+            "host_group": [
+              "jobs"
+            ]
+          },
+          "licensed_modules": [],
+          "write_allowed_modules": [],
+          "module_groups_by_source": {
+            "app": {
+              "host_group": [
+                "jobs"
+              ]
+            }
+          },
+          "licensed_modules_by_source": {
+            "app": []
+          },
+          "write_allowed_modules_by_source": {
+            "app": []
+          }
+        }
+      },
+      "module_key": null,
+      "model_key": "job_posting",
+      "action": "read",
+      "allowed": false,
+      "reason": "not_licensed"
     }
   ]
 }

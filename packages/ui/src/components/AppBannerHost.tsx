@@ -10,6 +10,8 @@ import { authenticatedFetch } from "../utils/authenticatedFetch";
 export interface AppBannerHostProps extends Partial<Omit<BannerHostProps, "context">> {
     /** The app's models, to tell which model (and module) the current page belongs to. */
     allModels?: ReadonlyArray<ModelDef>;
+    /** Site key of an external portal, added to the page context (banners whose ``show_on.sites`` lists it). */
+    site?: string;
 }
 
 /**
@@ -31,10 +33,13 @@ export const pageContextFromPath = (pathname: string, allModels: ReadonlyArray<M
  * current), authenticates with the signed-in user's token, and opens a row's
  * Show page or the list from the banner. Rendered once by the host App.tsx.
  */
-export const AppBannerHost: React.FC<AppBannerHostProps> = ({ allModels, ...props }) => {
+export const AppBannerHost: React.FC<AppBannerHostProps> = ({ allModels, site, ...props }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const context = useMemo(() => pageContextFromPath(location.pathname, allModels), [location.pathname, allModels]);
+    const context = useMemo(
+        () => ({ ...pageContextFromPath(location.pathname, allModels), ...(site ? { site } : {}) }),
+        [location.pathname, allModels, site],
+    );
 
     if (location.pathname.startsWith("/login")) return null;
 

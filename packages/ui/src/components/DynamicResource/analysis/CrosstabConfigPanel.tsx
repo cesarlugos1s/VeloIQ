@@ -15,7 +15,8 @@ export interface CrosstabConfigPanelProps {
     /** Model shown in the crosstab. */
     model: ModelDef;
     /** Opens the page's "save view" dialog for the Analyze preferences. */
-    onSaveClick: () => void;
+    /** Saves the configuration as a view; without it (saved views switched off) there is no save button. */
+    onSaveClick?: () => void;
 }
 
 /**
@@ -130,7 +131,7 @@ export const CrosstabConfigPanel: React.FC<CrosstabConfigPanelProps> = ({ analyz
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                             <Tooltip title={_("Save configuration")}>
-                                <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} aria-label={_("Save configuration")} />
+                                {onSaveClick && <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} aria-label={_("Save configuration")} />}
                             </Tooltip>
                         </div>
                     </div>

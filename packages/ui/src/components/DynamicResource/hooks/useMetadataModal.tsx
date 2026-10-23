@@ -3,6 +3,7 @@ import { Button, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import type { ModelDef } from "../types";
 import { MetadataModal } from "../MetadataModal";
+import { useFrameworkUiFeatures } from "../../../hooks/useFrameworkUiFeatures";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -16,13 +17,15 @@ export const useMetadataModal = (model: ModelDef, allModels?: ModelDef[], initia
     useEffect(() => {
         if (initialOpen) setMetadataOpen(true);
     }, [initialOpen]);
-    const metadataButton = (
+    // A role or an external portal can switch the metadata window off (record_metadata).
+    const { record_metadata: metadataAllowed } = useFrameworkUiFeatures();
+    const metadataButton = metadataAllowed ? (
         <Tooltip title={_("Metadata")}>
             <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setMetadataOpen(true)} />
         </Tooltip>
-    );
+    ) : null;
     const metadataModal = (
-        <MetadataModal model={model} allModels={allModels} open={metadataOpen} onClose={() => setMetadataOpen(false)} />
+        <MetadataModal model={model} allModels={allModels} open={metadataOpen && metadataAllowed} onClose={() => setMetadataOpen(false)} />
     );
     return { metadataButton, metadataModal };
 };

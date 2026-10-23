@@ -29,7 +29,8 @@ import io
 from contextlib import contextmanager
 from typing import Any, Iterator, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from veloiq_framework.portals.framework_ui_features import require_framework_ui_feature
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
@@ -217,7 +218,7 @@ def create_non_model_data_resource_router(data_resource: NonModelDataResource) -
 
     # Static paths are registered before "/{eid}", which would otherwise match them.
 
-    @router.get("/export-csv", summary=f"Export {data_resource.name} to CSV")
+    @router.get("/export-csv", summary=f"Export {data_resource.name} to CSV", dependencies=[Depends(require_framework_ui_feature("csv_export"))])
     def export_rows_csv_endpoint(request: Request):
         """Stream every row matching the request's filters as CSV, with the field keys as headers."""
         check_non_model_data_resource_access(request, data_resource, "read")
@@ -239,7 +240,7 @@ def create_non_model_data_resource_router(data_resource: NonModelDataResource) -
         return StreamingResponse(_generate(), media_type="text/csv",
                                  headers={"Content-Disposition": f'attachment; filename="{data_resource.name}.csv"'})
 
-    @router.post("/analyze", summary=f"Aggregate {data_resource.name} for the Analyze section")
+    @router.post("/analyze", summary=f"Aggregate {data_resource.name} for the Analyze section", dependencies=[Depends(require_framework_ui_feature("analyze"))])
     def analyze_rows_endpoint(spec: dict, request: Request):
         """Aggregate the matching rows for the Analyze section (see ``crud.py``'s ``analyze``)."""
         from veloiq_framework.analyze import jm_analyze_rows

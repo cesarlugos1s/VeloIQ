@@ -10,9 +10,11 @@ export interface LoginPageProps {
     appTitle?: string;
     /** Logo element or image URL shown above the title. */
     logo?: React.ReactNode | string;
+    /** Shown under the sign-in button (e.g. a portal's link to its signup page). */
+    footer?: React.ReactNode;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ appTitle = "VeloIQ", logo }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ appTitle = "VeloIQ", logo, footer }) => {
     const { mutate: login, isLoading, error } = useLogin();
     const [form] = Form.useForm();
 
@@ -105,6 +107,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ appTitle = "VeloIQ", logo 
                             </Button>
                         </Form.Item>
                     </Form>
+                    {footer && <div style={{ textAlign: "center" }}>{footer}</div>}
                 </Space>
             </Card>
         </div>

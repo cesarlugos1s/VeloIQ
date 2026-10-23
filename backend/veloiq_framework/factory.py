@@ -255,6 +255,10 @@ def create_veloiq_app(
     # ── Module loading ────────────────────────────────────────────────────────
     load_modules(app, admin, cfg, extensions=extensions)
 
+    # ── The framework's own UI features (role feature policies and portal profiles name them) ──
+    from veloiq_framework.portals import register_framework_ui_features
+    register_framework_ui_features()
+
     # ── Access policies on SQLAdmin views (all modules are registered now) ───
     from veloiq_framework.access.sqladmin import patch_admin_views
     patch_admin_views(admin, cfg)
@@ -282,6 +286,10 @@ def create_veloiq_app(
 
     # ── VeloIQ Studio ─────────────────────────────────────────────────────────
     _mount_studio(app, cfg)
+
+    # ── External portals' built frontends at /portals/<site>/ ─────────────────
+    from veloiq_framework.portals.serve_built_portals import mount_built_portals
+    mount_built_portals(app)
 
     # ── Host app frontend (production) — must be last so API routes win ───────
     _mount_frontend(app, cfg)
@@ -484,8 +492,13 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         "/health",
         "/veloiq-studio",
         "/i18n/",
+        # The external portals' built pages (their data calls go to /api/ with the portal's token).
+        "/portals/",
     )
-    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace", *cfg.auth_exempt_paths)
+    # Framework endpoints read before anyone signs in: an external portal's public settings.
+    from veloiq_framework.portals.portal_settings_api_router import PORTAL_PUBLIC_SETTINGS_PATH_PREFIX
+    _framework_public_paths = (PORTAL_PUBLIC_SETTINGS_PATH_PREFIX,)
+    _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace", *_framework_public_paths, *cfg.auth_exempt_paths)
 
     # In production SPA mode only these prefixes require a JWT; everything else
     # (React Router paths, static assets) is served as HTML/JS and the React app
@@ -539,7 +552,7 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         # Host-app-declared exemptions bypass auth unconditionally, in both
         # SPA/production and dev mode — checked first since the SPA branch
         # below only consults _spa_protected, never _auth_exempt.
-        if any(path.startswith(p) for p in cfg.auth_exempt_paths):
+        if any(path.startswith(p) for p in (*_framework_public_paths, *cfg.auth_exempt_paths)):
             return await call_next(request)
         if cfg.serve_frontend is not None:
             if not any(path.startswith(p) for p in _spa_protected):
@@ -579,7 +592,8 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
 
 def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensions: list | None = None) -> None:
     """Register the minimal set of framework-level REST endpoints."""
-    from fastapi import APIRouter as _APIRouter, Request, HTTPException
+    from fastapi import APIRouter as _APIRouter, Depends, Request, HTTPException
+    from veloiq_framework.portals import require_framework_ui_feature
     from pydantic import BaseModel
 
     # Public endpoints served at root — not behind /api prefix.
@@ -648,10 +662,22 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     from veloiq_framework.system_config.system_config_non_model_data_resource import build_system_config_non_model_data_resource
     core_api.include_router(non_model_data_catalog_router)
     mount_non_model_data_resource(core_api, build_system_config_non_model_data_resource(), prefix="")
+    # The external portals' configuration (veloiq.toml [portals.*]), for administrators.
+    from veloiq_framework.portals.portal_definitions_non_model_data_resource import build_portal_definitions_non_model_data_resource
+    mount_non_model_data_resource(core_api, build_portal_definitions_non_model_data_resource(), prefix="")
+    from veloiq_framework.portals.portal_configuration_files_non_model_data_resources import (
+        build_portal_field_overrides_non_model_data_resource,
+        build_portal_menu_entries_non_model_data_resource,
+    )
+    mount_non_model_data_resource(core_api, build_portal_menu_entries_non_model_data_resource(), prefix="")
+    mount_non_model_data_resource(core_api, build_portal_field_overrides_non_model_data_resource(), prefix="")
 
     # Collapsible model-based banners defined in banners.json (GET /api/veloiq/banners).
     from veloiq_framework.banners.router import router as _banners_router
     core_api.include_router(_banners_router)
+    # Framework UI features of the signed-in user, and the external portals' public settings.
+    from veloiq_framework.portals.portal_settings_api_router import portal_settings_router
+    core_api.include_router(portal_settings_router)
 
     # --- UI configuration stubs ---
     # The frontend reads these endpoints on every page load.  When not configured
@@ -791,7 +817,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
             return {"preferences": bucket[preference_type]}
         return {"preferences": {}}
 
-    @core_api.post("/views/preferences")
+    @core_api.post("/views/preferences", dependencies=[Depends(require_framework_ui_feature("saved_views"))])
     async def save_view_preferences(payload: _PrefsPayload):
         data = _load_prefs()
         data.setdefault(_USER_KEY, {})
@@ -816,7 +842,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
         _save_prefs(data)
         return {"status": "ok"}
 
-    @core_api.post("/views/preferences/view")
+    @core_api.post("/views/preferences/view", dependencies=[Depends(require_framework_ui_feature("saved_views"))])
     async def manage_view(payload: _ManageViewPayload):
         data = _load_prefs()
         data.setdefault(_USER_KEY, {})

@@ -1,16 +1,17 @@
-import { onlineManager, useQueryClient } from '@tanstack/react-query';
-import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, useId } from 'react';
-import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, useResource } from '@refinedev/core';
-import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
+import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
+import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, notificationProvider, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, Refine, Authenticated, useResource } from '@refinedev/core';
+import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
-import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, Routes, Route, UNSAFE_RouteContext } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, Routes, Route, BrowserRouter, Outlet, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import dayjs11 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
 import axios from 'axios';
+import routerProvider from '@refinedev/react-router-v6';
 
 var __typeError = (msg) => {
   throw TypeError(msg);
@@ -185,6 +186,12 @@ var setColorSchemas = (schemas) => {
                     body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarLightText} !important;
                     }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarLightText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
+                    }
                     body.jm-light {
                         --jm-row-active-bg: ${lightBgElements};
                     }
@@ -243,6 +250,12 @@ var setColorSchemas = (schemas) => {
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarDarkText} !important;
+                    }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarDarkText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
                     }
                     body.jm-dark {
                         --jm-row-active-bg: ${darkBgHover};
@@ -372,7 +385,7 @@ function sortItemsByNavConfig(items, navConfig) {
     const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
     const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
     return aSeq - bSeq;
-  });
+  }).map((item) => Array.isArray(item.children) && item.children.length > 0 ? { ...item, children: sortItemsByNavConfig(item.children, navConfig) } : item);
 }
 
 // src/utils/activeLocale.ts
@@ -653,15 +666,42 @@ function answerInPageRowsRequest(url, method, body) {
   return jsonAnswer(405, { detail: _("This action is not available for this list.") });
 }
 
+// src/utils/signInStorageKeys.ts
+var ADMIN_APP_SIGN_IN_STORAGE_KEYS = {
+  accessToken: "jm_access_token",
+  signedInUser: "jm_user",
+  rolePermissions: "jm_role_permissions",
+  resourcePermissions: "jm_resource_permissions"
+};
+var activeSignInStorageKeys = ADMIN_APP_SIGN_IN_STORAGE_KEYS;
+var activeSignInStorageNamespace = null;
+function setSignInStorageNamespace(accessTokenStorageKey) {
+  activeSignInStorageNamespace = accessTokenStorageKey;
+  activeSignInStorageKeys = {
+    accessToken: accessTokenStorageKey,
+    signedInUser: `${accessTokenStorageKey}:user`,
+    rolePermissions: `${accessTokenStorageKey}:role_permissions`,
+    resourcePermissions: `${accessTokenStorageKey}:resource_permissions`
+  };
+}
+function signInStorageKeys() {
+  return activeSignInStorageKeys;
+}
+function readAccessToken() {
+  return localStorage.getItem(activeSignInStorageKeys.accessToken);
+}
+function siteScopedStorageKey(preferenceName) {
+  return activeSignInStorageNamespace ? `${activeSignInStorageNamespace}:${preferenceName}` : preferenceName;
+}
+
 // src/utils/authenticatedFetch.ts
-var TOKEN_KEY = "jm_access_token";
 var authenticatedFetch = (url, options = {}) => {
   const inPageAnswer = answerInPageRowsRequest(url, options.method, options.body);
   if (inPageAnswer) {
     const responseBody = inPageAnswer.body === null || inPageAnswer.status === 204 ? null : typeof inPageAnswer.body === "string" ? inPageAnswer.body : JSON.stringify(inPageAnswer.body);
     return Promise.resolve(new Response(responseBody, { status: inPageAnswer.status, headers: inPageAnswer.headers }));
   }
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = readAccessToken();
   const headers = {
     ...options.headers
   };
@@ -743,9 +783,10 @@ function injectJourneyMenuItems(items, byModule) {
   };
   return walk(items);
 }
+var LayoutMenuSettingsContext = createContext({ showDashboardMenuEntry: true });
+var useLayoutMenuSettings = () => useContext(LayoutMenuSettingsContext);
 
 // src/access/accessStore.ts
-var ACCESS_STORAGE_KEY = "jm_resource_permissions";
 var RESOURCE_PERMISSIONS_URL = "/auth/resource-permissions";
 var FOCUS_REFRESH_MIN_MS = 5e3;
 var current = null;
@@ -759,7 +800,7 @@ function isEffectivePermissions(value) {
 }
 function readStored() {
   try {
-    const raw = localStorage.getItem(ACCESS_STORAGE_KEY);
+    const raw = localStorage.getItem(signInStorageKeys().resourcePermissions);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return isEffectivePermissions(parsed) ? parsed : null;
@@ -781,8 +822,8 @@ function setAccessPermissions(data) {
   current = data;
   loaded = true;
   try {
-    if (data) localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(data));
-    else localStorage.removeItem(ACCESS_STORAGE_KEY);
+    if (data) localStorage.setItem(signInStorageKeys().resourcePermissions, JSON.stringify(data));
+    else localStorage.removeItem(signInStorageKeys().resourcePermissions);
   } catch {
   }
   notify();
@@ -809,7 +850,7 @@ function installFocusListener() {
   if (focusListenerInstalled || typeof window === "undefined") return;
   focusListenerInstalled = true;
   window.addEventListener("focus", () => {
-    if (!localStorage.getItem("jm_access_token")) return;
+    if (!readAccessToken()) return;
     if (Date.now() - lastFetch < FOCUS_REFRESH_MIN_MS) return;
     void refreshAccess();
   });
@@ -852,18 +893,33 @@ function hasAdminRole(roles, adminRole = DEFAULT_ADMIN_ROLE) {
   return roles.includes(adminRole);
 }
 var lowerSet = (values) => new Set((values ?? []).map((v) => v.toLowerCase()));
-var inAnyGroup = (key, pool) => Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
-function isModuleLicensedIn(moduleName, pool) {
-  const key = moduleName.toLowerCase();
-  if (ALWAYS_ON.has(key)) return true;
-  if (!inAnyGroup(key, pool)) return true;
-  return lowerSet(pool.licensed_modules).has(key);
+function licenseListsFor(pool, source) {
+  if (source && pool.module_groups_by_source) {
+    return {
+      moduleGroups: pool.module_groups_by_source[source] ?? {},
+      licensedModules: pool.licensed_modules_by_source?.[source] ?? [],
+      writeAllowedModules: pool.write_allowed_modules_by_source?.[source] ?? []
+    };
+  }
+  return {
+    moduleGroups: pool.module_groups ?? {},
+    licensedModules: pool.licensed_modules ?? [],
+    writeAllowedModules: pool.write_allowed_modules ?? []
+  };
 }
-function isModuleWriteAllowedIn(moduleName, pool) {
+function gatedModuleAllowed(moduleName, moduleGroups, allowedModules) {
   const key = moduleName.toLowerCase();
   if (ALWAYS_ON.has(key)) return true;
-  if (!inAnyGroup(key, pool)) return true;
-  return lowerSet(pool.write_allowed_modules).has(key);
+  if (!Object.values(moduleGroups).some((mods) => lowerSet(mods).has(key))) return true;
+  return lowerSet(allowedModules).has(key);
+}
+function isModuleLicensedIn(moduleName, pool, source) {
+  const { moduleGroups, licensedModules } = licenseListsFor(pool, source);
+  return gatedModuleAllowed(moduleName, moduleGroups, licensedModules);
+}
+function isModuleWriteAllowedIn(moduleName, pool, source) {
+  const { moduleGroups, writeAllowedModules } = licenseListsFor(pool, source);
+  return gatedModuleAllowed(moduleName, moduleGroups, writeAllowedModules);
 }
 function splitModuleKey(moduleKey) {
   const idx = moduleKey.indexOf(":");
@@ -912,9 +968,9 @@ function evaluateAccess(ctx, moduleKey, modelKey, action) {
   if (module === null && modelKey) module = ctx.registry?.models?.[modelKey] ?? null;
   const pool = ctx.license;
   if (module && pool !== null && pool !== void 0) {
-    const moduleName = splitModuleKey(module)[1];
-    if (!isModuleLicensedIn(moduleName, pool)) return { allowed: false, reason: "not_licensed" };
-    if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool)) {
+    const [moduleSource, moduleName] = splitModuleKey(module);
+    if (!isModuleLicensedIn(moduleName, pool, moduleSource || null)) return { allowed: false, reason: "not_licensed" };
+    if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool, moduleSource || null)) {
       return { allowed: false, reason: "license_read_only" };
     }
   }
@@ -938,7 +994,7 @@ function useAccess() {
   const data = useSyncExternalStore(subscribeAccess, getAccessSnapshot, getAccessSnapshot);
   const ctx = data?.context ?? null;
   useEffect(() => {
-    if (data === null && localStorage.getItem("jm_access_token")) void refreshAccess();
+    if (data === null && readAccessToken()) void refreshAccess();
   }, [data]);
   const can = useCallback(
     (resource, action) => ctx === null ? true : evaluateAccess(ctx, null, resource, action).allowed,
@@ -949,13 +1005,17 @@ function useAccess() {
     [ctx]
   );
   const isModuleLicensed = useCallback(
-    (moduleName) => ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license),
+    (moduleName) => {
+      if (ctx === null || !ctx.license) return true;
+      const moduleSource = splitModuleKey(moduleKeyForName(ctx, moduleName))[0];
+      return isModuleLicensedIn(moduleName, ctx.license, moduleSource || null);
+    },
     [ctx]
   );
   const isAdmin = useMemo(() => {
     if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
     try {
-      return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+      return hasAdminRole(JSON.parse(localStorage.getItem(signInStorageKeys().signedInUser) ?? "{}")?.roles ?? []);
     } catch {
       return false;
     }
@@ -1001,13 +1061,12 @@ function filterMenuItemsByAccess(items, access) {
         if (access.isAdmin) result.push(item);
         continue;
       }
-      if (!access.isModuleLicensed(moduleName)) continue;
       if (children && children.length > 0) {
         const kept = filterMenuItemsByAccess(children, access);
         if (kept.length > 0) result.push({ ...item, children: kept });
         continue;
       }
-      if (access.canModule(moduleName, "read")) result.push(item);
+      if (access.isModuleLicensed(moduleName) && access.canModule(moduleName, "read")) result.push(item);
       continue;
     }
     const resource = String(item.name ?? "");
@@ -1016,20 +1075,43 @@ function filterMenuItemsByAccess(items, access) {
   }
   return result;
 }
+
+// src/hooks/useLayoutMenuItems.ts
+var DASHBOARD_MENU_RESOURCE_NAME = "dashboard";
+function useLayoutMenuItems() {
+  const { menuItems, selectedKey } = useMenu();
+  const access = useAccess();
+  const { showDashboardMenuEntry } = useLayoutMenuSettings();
+  const layoutMenuItems = useMemo(() => {
+    const readable = filterMenuItemsByAccess(menuItems, access);
+    return showDashboardMenuEntry ? readable : readable.filter((item) => resolveNavKey(item) !== DASHBOARD_MENU_RESOURCE_NAME);
+  }, [menuItems, access, showDashboardMenuEntry]);
+  return { menuItems: layoutMenuItems, selectedKey };
+}
+
+// src/utils/translateMenuLabel.ts
 var _2 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
-var HorizontalMenu = ({ navConfig = [] }) => {
+function translateMenuLabel(item) {
+  const rawLabel = String(item?.label || item?.name || item?.key || "");
+  let label = _2(rawLabel);
+  if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
+    const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    if (humanized && humanized !== rawLabel) {
+      const humanizedLabel = _2(humanized);
+      if (humanizedLabel !== humanized) label = humanizedLabel;
+    }
+  }
+  return label;
+}
+var COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS = { itemPaddingInline: 8, horizontalItemGutter: 0 };
+var HorizontalMenu = ({ navConfig = [], collapsed = false }) => {
   const { mode } = useContext(ColorModeContext);
-  const { menuItems, selectedKey } = useMenu();
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
   const go = useGo();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
-  const licensedMenuItems = useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -1050,15 +1132,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     return normalizeToneKey(routeCandidate || keyCandidate || label || "default");
   };
   const renderLabel = (item, depth, hasChildren) => {
-    const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _2(rawLabel);
-    if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-      const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _2(humanized);
-        if (humanizedLabel !== humanized) label = humanizedLabel;
-      }
-    }
+    const label = translateMenuLabel(item);
     const isModule = depth === 0 || hasChildren;
     isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsx(
@@ -1082,12 +1156,14 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     return items2.map((item) => {
       const safeChildren = Array.isArray(item?.children) ? item.children : [];
       const hasChildren = safeChildren.length > 0;
+      const iconOnly = collapsed && depth === 0;
+      const children = hasChildren ? transformItems(item.children, depth + 1) : void 0;
       return {
         key: item.key,
-        label: renderLabel(item, depth, hasChildren),
-        icon: getIcon(item),
+        label: iconOnly ? null : renderLabel(item, depth, hasChildren),
+        icon: iconOnly && !hasChildren ? /* @__PURE__ */ jsx(Tooltip, { title: translateMenuLabel(item), placement: "bottom", children: /* @__PURE__ */ jsx("span", { children: getIcon(item) }) }) : getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
-        children: hasChildren ? transformItems(item.children, depth + 1) : void 0
+        children: iconOnly && hasChildren ? [{ type: "group", key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }] : children
       };
     });
   };
@@ -1096,36 +1172,31 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     [licensedMenuItems, navConfig]
   );
   const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
-  return /* @__PURE__ */ jsx(
-    Menu,
-    {
-      mode: "horizontal",
-      theme: mode === "dark" ? "light" : "dark",
-      selectedKeys: [selectedKey],
-      items,
-      style: {
-        borderBottom: "none",
-        flex: 1,
-        background: "transparent"
+  return (
+    // Minimized (icons only), the entries sit closer together so more of them fit on one line.
+    /* @__PURE__ */ jsx(ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsx(
+      Menu,
+      {
+        mode: "horizontal",
+        theme: mode === "dark" ? "light" : "dark",
+        selectedKeys: [selectedKey],
+        items,
+        style: {
+          borderBottom: "none",
+          flex: 1,
+          background: "transparent"
+        }
       }
-    }
+    ) })
   );
 };
-var _3 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
+var COLLAPSED_MENU_COMPACT_TOKENS = { itemHeight: 32, itemMarginBlock: 1, itemMarginInline: 4 };
 var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = theme.useToken();
   const { mode } = useContext(ColorModeContext);
-  const { menuItems, selectedKey } = useMenu();
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
   const go = useGo();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
-  const licensedMenuItems = useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -1146,15 +1217,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     return normalizeToneKey(routeCandidate || keyCandidate || label || "default");
   };
   const renderLabel = (item, depth, hasChildren) => {
-    const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _3(rawLabel);
-    if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-      const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _3(humanized);
-        if (humanizedLabel !== humanized) label = humanizedLabel;
-      }
-    }
+    const label = translateMenuLabel(item);
     const isModule = depth === 0 || hasChildren;
     isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsx(
@@ -1178,12 +1241,14 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     return items2.map((item) => {
       const safeChildren = Array.isArray(item?.children) ? item.children : [];
       const hasChildren = safeChildren.length > 0;
+      const children = hasChildren ? transformItems(item.children, depth + 1) : void 0;
+      const titledPopup = collapsed && depth === 0 && hasChildren;
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
         icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
-        children: hasChildren ? transformItems(item.children, depth + 1) : void 0
+        children: titledPopup ? [{ type: "group", key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }] : children
       };
     });
   };
@@ -1195,7 +1260,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     () => injectJourneyMenuItems(sortedMenuItems, journeysByModule),
     [sortedMenuItems, journeysByModule]
   );
-  const items = useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
+  const items = useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig, collapsed]);
   return /* @__PURE__ */ jsx(
     Layout.Sider,
     {
@@ -1256,7 +1321,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
               overflowX: "hidden",
               paddingBottom: 12
             },
-            children: /* @__PURE__ */ jsx(
+            children: /* @__PURE__ */ jsx(ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsx(
               Menu,
               {
                 mode: "inline",
@@ -1265,7 +1330,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
                 items,
                 style: { borderRight: "none", marginTop: "8px" }
               }
-            )
+            ) })
           }
         )
       ] })
@@ -1277,7 +1342,6 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
 var API_URL2 = "/api";
 
 // src/hooks/useNonModelDataResourceModels.ts
-var TOKEN_KEY2 = "jm_access_token";
 var nonModelDataModelsRequestInFlight = null;
 function fetchNonModelDataResourceModels() {
   if (!nonModelDataModelsRequestInFlight) {
@@ -1288,7 +1352,7 @@ function fetchNonModelDataResourceModels() {
   return nonModelDataModelsRequestInFlight;
 }
 async function requestNonModelDataResourceModels() {
-  if (!localStorage.getItem(TOKEN_KEY2)) return [];
+  if (!readAccessToken()) return [];
   try {
     const response = await authenticatedFetch(`${API_URL2}/veloiq/non-model-data-resources`);
     if (!response.ok) return [];
@@ -1463,7 +1527,7 @@ function useRecordSearch() {
   }, []);
   return { results, searching, search, clear };
 }
-var _4 = window._ || ((text) => text);
+var _3 = window._ || ((text) => text);
 var flattenMenuItems = (items, parentLabel = "") => {
   const result = [];
   for (const item of items) {
@@ -1481,16 +1545,12 @@ var flattenMenuItems = (items, parentLabel = "") => {
   return result;
 };
 var GlobalSearch = () => {
-  const { menuItems } = useMenu();
+  const { menuItems } = useLayoutMenuItems();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
   const { token } = theme.useToken();
-  const access = useAccess();
-  const searchableResources = useMemo(
-    () => flattenMenuItems(filterMenuItemsByAccess(menuItems, access)),
-    [menuItems, access]
-  );
+  const searchableResources = useMemo(() => flattenMenuItems(menuItems), [menuItems]);
   const resourceResults = useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
@@ -1500,7 +1560,7 @@ var GlobalSearch = () => {
     if (matches.length === 0) return [];
     return [
       {
-        label: /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _4("Go to") }),
+        label: /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _3("Go to") }),
         options: matches.slice(0, 10).map((r) => ({
           value: `nav:${r.listPath}`,
           key: `nav-${r.name}`,
@@ -1574,7 +1634,7 @@ var GlobalSearch = () => {
         Input,
         {
           ref: inputRef,
-          placeholder: focused ? `${_4("Search")}...` : "",
+          placeholder: focused ? `${_3("Search")}...` : "",
           prefix: searching ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(SearchOutlined, {}),
           suffix: !focused ? /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 9 }, children: "\u2303K" }) : void 0,
           allowClear: true,
@@ -1699,12 +1759,11 @@ var CommandCenterPortal = ({
   onClose,
   navConfig = []
 }) => {
-  const { menuItems: rawMenuItems } = useMenu();
+  const { menuItems: layoutMenuItems } = useLayoutMenuItems();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
   const menuItems = useMemo(
-    () => injectJourneyMenuItems(filterMenuItemsByAccess(rawMenuItems, access), journeysByModule),
-    [rawMenuItems, journeysByModule, access]
+    () => injectJourneyMenuItems(layoutMenuItems, journeysByModule),
+    [layoutMenuItems, journeysByModule]
   );
   const go = useGo();
   const searchRef = useRef(null);
@@ -2326,7 +2385,7 @@ function useSetHelpPageKey(pageKey, recordId = null) {
     return () => setPageKey(null, null);
   }, [pageKey, recordId, setPageKey]);
 }
-var _5 = window._ || ((text) => text);
+var _4 = window._ || ((text) => text);
 var DASHBOARD_MAIN_PAGE_KEY = "_dashboard:main";
 var TOOLTIP_BY_SUFFIX = {
   list: "List page help",
@@ -2335,13 +2394,13 @@ var TOOLTIP_BY_SUFFIX = {
   create: "Create page help"
 };
 function tooltipForPageKey(pageKey) {
-  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _5("Dashboard help");
+  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _4("Dashboard help");
   if (pageKey) {
     const suffix = pageKey.split(":").pop() || "";
     const label = TOOLTIP_BY_SUFFIX[suffix];
-    if (label) return _5(label);
+    if (label) return _4(label);
   }
-  return _5("Help");
+  return _4("Help");
 }
 var HelpButton = ({ onClick }) => {
   const { pageKey } = useContext(HelpContext);
@@ -2419,7 +2478,7 @@ var HELP_ACTION_CATALOG = {
     description: "Opens the relation explorer for this record."
   }
 };
-var _6 = window._ || ((text) => text);
+var _5 = window._ || ((text) => text);
 var ReactMarkdown = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
   const { pageKey, recordId } = useContext(HelpContext);
@@ -2471,7 +2530,7 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
       title: /* @__PURE__ */ jsxs(Space, { children: [
         /* @__PURE__ */ jsx(QuestionCircleOutlined, {}),
         " ",
-        _6("Help")
+        _5("Help")
       ] }),
       placement: "right",
       mask: false,
@@ -2483,24 +2542,24 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
         !loading && doc?.found && /* @__PURE__ */ jsxs(Fragment, { children: [
           /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true }), children: /* @__PURE__ */ jsx(ReactMarkdown, { children: doc.body || "" }) }),
           !!doc.actions?.length && /* @__PURE__ */ jsxs("div", { style: { marginTop: 16 }, children: [
-            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _6("Click any of these to do it for you:") }),
+            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _5("Click any of these to do it for you:") }),
             /* @__PURE__ */ jsx(Space, { wrap: true, style: { marginTop: 8, display: "flex" }, children: doc.actions.map((a) => {
               const entry = HELP_ACTION_CATALOG[a.action_key];
               const button = /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => runAction(a.action_key), children: a.label }, a.action_key);
-              return entry ? /* @__PURE__ */ jsx(Tooltip, { title: _6(entry.description), children: button }, a.action_key) : button;
+              return entry ? /* @__PURE__ */ jsx(Tooltip, { title: _5(entry.description), children: button }, a.action_key) : button;
             }) })
           ] })
         ] }),
-        !loading && doc && !doc.found && /* @__PURE__ */ jsx(Empty, { description: _6("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsx(
+        !loading && doc && !doc.found && /* @__PURE__ */ jsx(Empty, { description: _5("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsx(
           Button,
           {
             type: "link",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _6("Write help for this")
+            children: _5("Write help for this")
           }
         ) }),
         !!extraTexts?.length && /* @__PURE__ */ jsxs("div", { style: { marginTop: 24 }, children: [
-          /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _6("Related actions") }),
+          /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _5("Related actions") }),
           /* @__PURE__ */ jsx(Suspense, { fallback: null, children: extraTexts.map((t, i) => /* @__PURE__ */ jsx(ReactMarkdown, { children: t }, i)) })
         ] })
       ]
@@ -2573,7 +2632,7 @@ var clipToViewport = (rect, viewportWidth, viewportHeight) => {
   return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
 };
 var { Text } = Typography;
-var _7 = (text) => {
+var _6 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2633,7 +2692,7 @@ var CollapsibleBanner = ({
   const collapsedPx = percentSize(collapsedSize, contentRect);
   const expandedPx = percentSize(expandedSize, contentRect);
   const alignItems = position.horizontal === "left" ? "flex-start" : position.horizontal === "right" ? "flex-end" : "center";
-  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _7("Move banner"), children: bannerMoves(_7).map((move) => /* @__PURE__ */ jsx(Tooltip, { title: move.label, children: /* @__PURE__ */ jsx(
+  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _6("Move banner"), children: bannerMoves(_6).map((move) => /* @__PURE__ */ jsx(Tooltip, { title: move.label, children: /* @__PURE__ */ jsx(
     Button,
     {
       type: "text",
@@ -2677,7 +2736,7 @@ var CollapsibleBanner = ({
             headerExtra
           ] }),
           arrows,
-          /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), "aria-label": _7("Close"), title: _7("Close"), onClick: () => setOpen(false) })
+          /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), "aria-label": _6("Close"), title: _6("Close"), onClick: () => setOpen(false) })
         ] }),
         /* @__PURE__ */ jsx("div", { style: { overflowY: "auto", padding: "0 12px", minHeight: 0 }, children }),
         footer && /* @__PURE__ */ jsx("div", { style: { padding: "6px 12px", borderTop: `1px solid ${colors.border}` }, children: footer })
@@ -2743,7 +2802,7 @@ var CollapsibleBanner = ({
   );
 };
 var { Text: Text2 } = Typography;
-var _8 = (text) => {
+var _7 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2769,7 +2828,7 @@ var ModelBanner = ({
   onViewAll
 }) => {
   const { token } = theme.useToken();
-  const title = _8(banner.title || "");
+  const title = _7(banner.title || "");
   const [mainColumn, ...otherColumns] = banner.columns;
   const collapsedContent = {
     count: String(banner.count),
@@ -2791,7 +2850,7 @@ var ModelBanner = ({
         "(",
         banner.count,
         " ",
-        _8("total"),
+        _7("total"),
         ")"
       ] }),
       position,
@@ -2802,7 +2861,7 @@ var ModelBanner = ({
       onMove,
       expanded,
       onExpandedChange,
-      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsx(Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _8("View all") }) : void 0,
+      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsx(Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _7("View all") }) : void 0,
       children: [
         banner.rows.map((row, i) => {
           const clickable = Boolean(rowResource && onOpenRow && row.eid !== null && row.eid !== void 0);
@@ -2811,7 +2870,7 @@ var ModelBanner = ({
             otherColumns.map((column) => {
               const text = cellText(row[column.key]);
               return text ? /* @__PURE__ */ jsxs(Text2, { type: "secondary", style: { whiteSpace: "nowrap" }, children: [
-                _8(column.label),
+                _7(column.label),
                 ": ",
                 text
               ] }, column.key) : null;
@@ -2977,10 +3036,13 @@ var pageContextFromPath = (pathname, allModels = []) => {
   if (!model) return { resource: segment };
   return { resource: model.resource || model.name, module: model.module };
 };
-var AppBannerHost = ({ allModels, ...props }) => {
+var AppBannerHost = ({ allModels, site, ...props }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const context = useMemo(() => pageContextFromPath(location.pathname, allModels), [location.pathname, allModels]);
+  const context = useMemo(
+    () => ({ ...pageContextFromPath(location.pathname, allModels), ...site ? { site } : {} }),
+    [location.pathname, allModels, site]
+  );
   if (location.pathname.startsWith("/login")) return null;
   return /* @__PURE__ */ jsx(
     BannerHost,
@@ -3001,471 +3063,6 @@ function useNavModules() {
   const navConfig = useNavConfig();
   return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
 }
-var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
-  const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
-  return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
-    logoEl,
-    !collapsed && !hideTitle && appTitle && /* @__PURE__ */ jsx(Typography.Title, { level: 4, style: { margin: 0, whiteSpace: "nowrap", fontWeight: 350, fontSize: "18px" }, children: appTitle })
-  ] });
-};
-var MobileMenuContent = ({ onClose }) => {
-  const { menuItems, selectedKey } = useMenu();
-  const go = useGo();
-  const access = useAccess();
-  const licensedMenuItems = React6.useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
-  const transformItems = (items) => {
-    if (!Array.isArray(items)) return [];
-    return items.map((item) => ({
-      key: item.key,
-      label: item.label || item.name || item.key,
-      icon: item.icon,
-      onClick: item.children?.length ? void 0 : () => {
-        go({ to: item.route });
-        onClose();
-      },
-      children: item.children?.length ? transformItems(item.children) : void 0
-    }));
-  };
-  return /* @__PURE__ */ jsx(
-    Menu,
-    {
-      mode: "inline",
-      selectedKeys: [selectedKey],
-      items: transformItems(licensedMenuItems),
-      style: { borderRight: "none" }
-    }
-  );
-};
-var LayoutWrapper = ({
-  children,
-  logo,
-  appTitle,
-  extraUserMenuItems = [],
-  navConfig = [],
-  helpButtonTexts,
-  globalHeaderComponents = [],
-  showBanners = true,
-  bannerModels
-}) => {
-  const [layoutMode, setLayoutMode] = useState(
-    () => localStorage.getItem("layoutMode") || "vertical"
-  );
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
-  const { mode, setMode } = useContext(ColorModeContext);
-  const { token } = theme.useToken();
-  const { data: identity } = useGetIdentity();
-  const { mutate: logout } = useLogout();
-  useGo();
-  const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
-  const [siderCollapsed, setSiderCollapsed] = useState(() => localStorage.getItem("siderCollapsed") === "true");
-  const [pwdModalOpen, setPwdModalOpen] = useState(false);
-  const [pwdLoading, setPwdLoading] = useState(false);
-  const [pwdForm] = Form.useForm();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [portalOpen, setPortalOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [helpPageKey, setHelpPageKeyState] = useState(null);
-  const [helpRecordId, setHelpRecordId] = useState(null);
-  const setHelpPageKey = React6.useCallback((key, recordId = null) => {
-    setHelpPageKeyState(key);
-    setHelpRecordId(recordId);
-  }, []);
-  const { canModule } = useAccess();
-  useAccessQueryInvalidation();
-  const filterMenuItemsByLicense = React6.useCallback(
-    (items) => {
-      if (!Array.isArray(items)) return [];
-      return items.filter((item) => {
-        if (typeof item !== "object" || item === null) return true;
-        if (!item.module) return true;
-        return canModule(item.module, "read");
-      }).map((item) => {
-        if (Array.isArray(item.children)) {
-          return { ...item, children: filterMenuItemsByLicense(item.children) };
-        }
-        return item;
-      });
-    },
-    [canModule]
-  );
-  const userRoles = identity?.roles ?? [];
-  const filterMenuItemsByRole = React6.useCallback(
-    (items) => {
-      if (!Array.isArray(items)) return [];
-      return items.filter((item) => {
-        if (typeof item !== "object" || item === null) return true;
-        if (!item.roles) return true;
-        return item.roles.some((r) => userRoles.includes(r));
-      }).map((item) => {
-        if (Array.isArray(item.children)) {
-          return { ...item, children: filterMenuItemsByRole(item.children) };
-        }
-        return item;
-      });
-    },
-    [userRoles]
-  );
-  useEffect(() => {
-    const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        setPortalOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-  const toggleSider = () => {
-    const next = !siderCollapsed;
-    setSiderCollapsed(next);
-    localStorage.setItem("siderCollapsed", String(next));
-  };
-  const handleChangePassword = async (values) => {
-    setPwdLoading(true);
-    try {
-      const res = await authenticatedFetch(`/auth/change-password`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values)
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        message.error(body?.detail || "Failed to change password");
-        return;
-      }
-      message.success(body?.message || "Password changed successfully");
-      setPwdModalOpen(false);
-      pwdForm.resetFields();
-    } catch {
-      message.error("Network error");
-    } finally {
-      setPwdLoading(false);
-    }
-  };
-  const userItems = [
-    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsx(LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
-    ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
-    { type: "divider" },
-    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsx(LogoutOutlined, {}), danger: true, onClick: () => logout() }
-  ];
-  const CustomHeader = () => /* @__PURE__ */ jsxs(Layout.Header, { style: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "2px 10px",
-    height: "auto",
-    lineHeight: "normal",
-    background: token.colorBgContainer,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    position: "sticky",
-    top: 0,
-    zIndex: 999
-  }, children: [
-    /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", flex: 1, minWidth: 0 }, children: [
-      layoutMode === "vertical" && /* @__PURE__ */ jsx(Tooltip, { title: isMobile ? "Open menu" : siderCollapsed ? "Expand sidebar" : "Collapse sidebar", children: /* @__PURE__ */ jsx(
-        Button,
-        {
-          type: "text",
-          icon: isMobile ? /* @__PURE__ */ jsx(MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsx(MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsx(MenuFoldOutlined, {}),
-          onClick: isMobile ? () => setDrawerOpen(true) : toggleSider,
-          style: { marginRight: 6, flexShrink: 0 }
-        }
-      ) }),
-      layoutMode === "horizontal" && /* @__PURE__ */ jsxs(Fragment, { children: [
-        isMobile && /* @__PURE__ */ jsx(Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsx(Button, { type: "text", icon: /* @__PURE__ */ jsx(MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
-        /* @__PURE__ */ jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
-        !isMobile && /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsx(HorizontalMenu, { navConfig }) })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsx(GlobalSearch, {}) }),
-    /* @__PURE__ */ jsxs(Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
-      globalHeaderComponents.map((C2, i) => /* @__PURE__ */ jsx(C2, {}, i)),
-      /* @__PURE__ */ jsxs(Space.Compact, { children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsx(LayoutOutlined, {}) : /* @__PURE__ */ jsx(AppstoreOutlined, {}),
-            onClick: () => {
-              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
-              setLayoutMode(next);
-              localStorage.setItem("layoutMode", next);
-            },
-            type: "text"
-          }
-        ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            icon: /* @__PURE__ */ jsx(BorderInnerOutlined, {}),
-            onClick: () => setPortalOpen(true),
-            type: "text"
-          }
-        ) }),
-        /* @__PURE__ */ jsx(HelpButton, { onClick: () => setHelpOpen((prev) => !prev) })
-      ] }),
-      /* @__PURE__ */ jsx(Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsx(
-        Switch,
-        {
-          checkedChildren: "\u{1F31C}",
-          unCheckedChildren: "\u{1F31E}",
-          checked: mode === "dark",
-          onChange: () => setMode(mode === "light" ? "dark" : "light")
-        }
-      ) }),
-      /* @__PURE__ */ jsx(Dropdown, { menu: { items: userItems }, trigger: ["click"], children: /* @__PURE__ */ jsxs(Space, { style: { cursor: "pointer" }, children: [
-        /* @__PURE__ */ jsx(Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsx(UserOutlined, {}) }),
-        !isMobile && /* @__PURE__ */ jsx(Typography.Text, { strong: true, children: displayName }),
-        /* @__PURE__ */ jsx(DownOutlined, { style: { fontSize: 10 } })
-      ] }) })
-    ] })
-  ] });
-  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
-  return /* @__PURE__ */ jsx(NavConfigContext.Provider, { value: navConfig, children: /* @__PURE__ */ jsxs(HelpContext.Provider, { value: { pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }, children: [
-    /* @__PURE__ */ jsx(
-      ThemedLayoutV2,
-      {
-        Title: ({ collapsed }) => /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, collapsed }),
-        Sider: SiderToRender,
-        Header: CustomHeader,
-        children
-      },
-      layoutMode
-    ),
-    showBanners && /* @__PURE__ */ jsx(AppBannerHost, { allModels: bannerModels }),
-    /* @__PURE__ */ jsx(
-      CommandCenterPortal,
-      {
-        open: portalOpen,
-        onClose: () => setPortalOpen(false),
-        navConfig
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      HelpDrawer,
-      {
-        open: helpOpen,
-        onClose: () => setHelpOpen(false),
-        helpButtonTexts
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      Drawer,
-      {
-        title: /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, isHeader: true }),
-        placement: "left",
-        open: drawerOpen,
-        onClose: () => setDrawerOpen(false),
-        width: 280,
-        styles: { body: { padding: 0 } },
-        children: /* @__PURE__ */ jsx(MobileMenuContent, { onClose: () => setDrawerOpen(false) })
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      Modal,
-      {
-        title: "Change Password",
-        open: pwdModalOpen,
-        onCancel: () => {
-          setPwdModalOpen(false);
-          pwdForm.resetFields();
-        },
-        footer: null,
-        destroyOnHidden: true,
-        children: /* @__PURE__ */ jsxs(Form, { form: pwdForm, layout: "vertical", onFinish: handleChangePassword, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) }) }),
-          /* @__PURE__ */ jsx(
-            Form.Item,
-            {
-              name: "confirm_password",
-              label: "Confirm Password",
-              dependencies: ["new_password"],
-              rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_76, value) {
-                  if (!value || getFieldValue("new_password") === value) return Promise.resolve();
-                  return Promise.reject(new Error("Passwords do not match"));
-                }
-              })],
-              children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) })
-            }
-          ),
-          /* @__PURE__ */ jsx(Form.Item, { style: { marginBottom: 0, textAlign: "right" }, children: /* @__PURE__ */ jsxs(Space, { children: [
-            /* @__PURE__ */ jsx(Button, { onClick: () => {
-              setPwdModalOpen(false);
-              pwdForm.resetFields();
-            }, children: "Cancel" }),
-            /* @__PURE__ */ jsx(Button, { type: "primary", htmlType: "submit", loading: pwdLoading, children: "Change Password" })
-          ] }) })
-        ] })
-      }
-    )
-  ] }) });
-};
-var _9 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
-var NoAccessResult = () => {
-  const navigate = useNavigate();
-  return /* @__PURE__ */ jsx(
-    Result,
-    {
-      status: "warning",
-      icon: /* @__PURE__ */ jsx(LockOutlined, {}),
-      title: _9("No Access"),
-      subTitle: _9("You do not have permission to open this page. Please contact your administrator."),
-      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _9("Go to Dashboard") })
-    }
-  );
-};
-var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
-  const { can } = useAccess();
-  if (can(resource, action)) return /* @__PURE__ */ jsx(Fragment, { children });
-  return embedded ? null : /* @__PURE__ */ jsx(NoAccessResult, {});
-};
-var _10 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
-var LicenseGate = ({ module: moduleName, children }) => {
-  const navigate = useNavigate();
-  const { isModuleLicensed, canModule, loading } = useAccess();
-  if (!moduleName) return /* @__PURE__ */ jsx(Fragment, { children });
-  if (loading) return /* @__PURE__ */ jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, { size: "large" }) });
-  if (isModuleLicensed(moduleName)) {
-    return canModule(moduleName, "read") ? /* @__PURE__ */ jsx(Fragment, { children }) : /* @__PURE__ */ jsx(NoAccessResult, {});
-  }
-  return /* @__PURE__ */ jsx(
-    Result,
-    {
-      status: "warning",
-      icon: /* @__PURE__ */ jsx(LockOutlined, {}),
-      title: _10("Module Not Licensed"),
-      subTitle: _10(
-        `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
-      ),
-      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _10("Go to Dashboard") })
-    }
-  );
-};
-var PANE_TOOLBAR_HEIGHT = 28;
-var PaneNavigationContext = createContext(null);
-var usePaneNavigation = () => useContext(PaneNavigationContext);
-var _11 = window._ || ((text) => text);
-var NARROW_BREAKPOINT = 768;
-var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
-  const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
-  );
-  useEffect(() => {
-    const handler = () => setNarrow(window.innerWidth < breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return narrow;
-};
-var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsx(
-  "div",
-  {
-    style: {
-      display: "flex",
-      alignItems: direction === "column" ? "stretch" : "center",
-      flexDirection: direction,
-      gap: 8,
-      flexWrap: direction === "row" ? "wrap" : "nowrap"
-    },
-    children
-  }
-);
-var VerticalActionsLayout = ({ position, onBarMount, children }) => {
-  const { token } = theme.useToken();
-  const narrow = useIsNarrow();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const mountRef = useCallback(
-    (el) => onBarMount(el),
-    [onBarMount]
-  );
-  const isVertical = position === "left" || position === "right";
-  const stickyOffset = 80;
-  const sideOffset = 16;
-  const sideKey = position === "left" ? "left" : "right";
-  const useDrawer = isVertical && narrow;
-  const useFixedBar = isVertical && !narrow;
-  const contentSidePadding = useFixedBar ? 72 : 0;
-  return /* @__PURE__ */ jsxs(Fragment, { children: [
-    useFixedBar && /* @__PURE__ */ jsx(
-      "div",
-      {
-        ref: mountRef,
-        style: {
-          position: "fixed",
-          top: stickyOffset,
-          [sideKey]: sideOffset,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          padding: 8,
-          background: token.colorBgContainer,
-          border: `1px solid ${token.colorBorderSecondary}`,
-          borderRadius: 8,
-          boxShadow: token.boxShadowTertiary,
-          zIndex: 5
-        }
-      }
-    ),
-    useDrawer && /* @__PURE__ */ jsx(
-      "div",
-      {
-        style: {
-          position: "fixed",
-          top: stickyOffset,
-          [sideKey]: sideOffset,
-          zIndex: 1001
-        },
-        children: /* @__PURE__ */ jsx(Tooltip, { title: _11("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
-          Button,
-          {
-            size: "small",
-            icon: /* @__PURE__ */ jsx(MenuOutlined, {}),
-            onClick: () => setDrawerOpen(true)
-          }
-        ) })
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "div",
-      {
-        style: {
-          paddingLeft: sideKey === "left" ? contentSidePadding : 0,
-          paddingRight: sideKey === "right" ? contentSidePadding : 0
-        },
-        children
-      }
-    ),
-    useDrawer && /* @__PURE__ */ jsx(
-      Drawer,
-      {
-        title: _11("Actions"),
-        placement: sideKey,
-        open: drawerOpen,
-        onClose: () => setDrawerOpen(false),
-        width: 240,
-        forceRender: true,
-        children: /* @__PURE__ */ jsx(
-          "div",
-          {
-            ref: mountRef,
-            style: { display: "flex", flexDirection: "column", gap: 8 }
-          }
-        )
-      }
-    )
-  ] });
-};
 
 // src/components/DynamicResource/utils/model.ts
 var getRecordId = (record, fields) => {
@@ -3625,7 +3222,7 @@ var getNavigableRelations = (model, allModels) => {
 };
 
 // src/components/DynamicResource/utils/i18n.ts
-var _12 = (text) => {
+var _8 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -3641,7 +3238,7 @@ var asDisplayText = (value, fallback = "") => {
 var translateText = (key, fallback) => {
   const safeKey = asDisplayText(key, "");
   if (!safeKey) return fallback ?? "";
-  const translated = _12(safeKey);
+  const translated = _8(safeKey);
   return asDisplayText(translated, fallback ?? safeKey);
 };
 var MODULE_LABEL_OVERRIDES = {
@@ -3711,23 +3308,23 @@ var translateRelationKey = (rawKey) => {
   return translateText(key, key);
 };
 var getRelationLabel = (rel) => {
-  const relationKey = String(rel.relationName || rel.resource || "").trim();
-  if (!relationKey) return _12(rel.label || "");
-  const translatedByKey = translateRelationKey(relationKey);
-  if (translatedByKey && translatedByKey !== relationKey) return translatedByKey;
-  const withoutRelationSuffix = relationKey.replace(/_relation$/, "");
-  if (withoutRelationSuffix && withoutRelationSuffix !== relationKey) {
+  const relationKey2 = String(rel.relationName || rel.resource || "").trim();
+  if (!relationKey2) return _8(rel.label || "");
+  const translatedByKey = translateRelationKey(relationKey2);
+  if (translatedByKey && translatedByKey !== relationKey2) return translatedByKey;
+  const withoutRelationSuffix = relationKey2.replace(/_relation$/, "");
+  if (withoutRelationSuffix && withoutRelationSuffix !== relationKey2) {
     const translatedWithoutSuffix = translateRelationKey(withoutRelationSuffix);
     if (translatedWithoutSuffix && translatedWithoutSuffix !== withoutRelationSuffix) {
       return translatedWithoutSuffix;
     }
   }
-  if (relationKey.endsWith("_object")) {
-    const baseKey = relationKey.replace(/_object$/, "");
+  if (relationKey2.endsWith("_object")) {
+    const baseKey = relationKey2.replace(/_object$/, "");
     const translatedBaseKey = translateRelationKey(baseKey);
     if (translatedBaseKey && translatedBaseKey !== baseKey) return translatedBaseKey;
   }
-  return asDisplayText(rel.label, asDisplayText(relationKey, "")) || relationKey;
+  return asDisplayText(rel.label, asDisplayText(relationKey2, "")) || relationKey2;
 };
 var getModelLabel = (model) => {
   const primary = asDisplayText(model.label, "");
@@ -3803,9 +3400,9 @@ window.ddlTrace = ddlTrace;
 window.ddlTraceClear = ddlTraceClear;
 
 // src/components/DynamicResource/utils/viewConfig.ts
-var _13 = window._ || ((text) => text);
+var _9 = window._ || ((text) => text);
 var DETAILS_TAB_NAME = "Details";
-var getDefaultViewName = () => _13("default view");
+var getDefaultViewName = () => _9("default view");
 var normalizeViewName = (name) => {
   const trimmed = String(name ?? "").trim();
   return trimmed || getDefaultViewName();
@@ -3906,6 +3503,7 @@ var useViewSettings = () => {
           modelsColorSchema,
           generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),
           addTabsForNonConfiguredRelations: data?.addTabsForNonConfiguredRelations !== false,
+          showDashboardMenuEntry: data?.showDashboardMenuEntry !== false,
           panesLayoutMode: normalizePanesLayoutMode(data?.panesLayoutMode),
           panesMaxVisible: normalizePositiveInt(data?.panesMaxVisible, DEFAULT_PANES_MAX_VISIBLE),
           panesFixedWidth: normalizePositiveInt(data?.panesFixedWidth, DEFAULT_PANES_FIXED_WIDTH)
@@ -4022,7 +3620,7 @@ var resolveFieldFromConfig = (model, item) => {
   const key = item.object_name || item.name;
   return {
     key,
-    label: _13(key),
+    label: _9(key),
     type: "string"
   };
 };
@@ -4247,6 +3845,492 @@ var applyRelationViewOverride = (rel, item, mode) => {
   }
   ddlTrace("applyRelationViewOverride CUSTOM-PAGE", { relKey: rel.relationName || rel.resource || rel.label || "?", mode, trimmed });
   return mode === "show" ? { ...rel, showViewType: "primary", showViewTypeFromCsv: true, showCustomPageName: trimmed } : { ...rel, editViewType: "primary", editViewTypeFromCsv: true, editCustomPageName: trimmed };
+};
+var _10 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
+  const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
+  return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
+    logoEl,
+    !collapsed && !hideTitle && appTitle && /* @__PURE__ */ jsx(Typography.Title, { level: 4, style: { margin: 0, whiteSpace: "nowrap", fontWeight: 350, fontSize: "18px" }, children: appTitle })
+  ] });
+};
+var MobileMenuContent = ({ onClose }) => {
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
+  const go = useGo();
+  const transformItems = (items) => {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({
+      key: item.key,
+      label: item.label || item.name || item.key,
+      icon: item.icon,
+      onClick: item.children?.length ? void 0 : () => {
+        go({ to: item.route });
+        onClose();
+      },
+      children: item.children?.length ? transformItems(item.children) : void 0
+    }));
+  };
+  return /* @__PURE__ */ jsx(
+    Menu,
+    {
+      mode: "inline",
+      selectedKeys: [selectedKey],
+      items: transformItems(licensedMenuItems),
+      style: { borderRight: "none" }
+    }
+  );
+};
+var LayoutWrapper = ({
+  children,
+  logo,
+  appTitle,
+  extraUserMenuItems = [],
+  navConfig = [],
+  helpButtonTexts,
+  globalHeaderComponents = [],
+  showBanners = true,
+  bannerModels,
+  showDashboardMenuEntry,
+  defaultLayoutMode = "vertical",
+  bannerSite
+}) => {
+  const { settings: viewSettings } = useViewSettings();
+  const layoutMenuSettings = React6.useMemo(() => ({
+    showDashboardMenuEntry: showDashboardMenuEntry ?? viewSettings?.showDashboardMenuEntry ?? true
+  }), [showDashboardMenuEntry, viewSettings?.showDashboardMenuEntry]);
+  const [horizontalMenuCollapsed, setHorizontalMenuCollapsed] = useState(() => localStorage.getItem(siteScopedStorageKey("horizontalMenuCollapsed")) === "true");
+  const toggleHorizontalMenu = () => {
+    const next = !horizontalMenuCollapsed;
+    setHorizontalMenuCollapsed(next);
+    localStorage.setItem(siteScopedStorageKey("horizontalMenuCollapsed"), String(next));
+  };
+  const [layoutMode, setLayoutMode] = useState(
+    () => localStorage.getItem(siteScopedStorageKey("layoutMode")) || defaultLayoutMode
+  );
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const { mode, setMode } = useContext(ColorModeContext);
+  const { token } = theme.useToken();
+  const { data: identity } = useGetIdentity();
+  const { mutate: logout } = useLogout();
+  useGo();
+  const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
+  const [siderCollapsed, setSiderCollapsed] = useState(() => localStorage.getItem(siteScopedStorageKey("siderCollapsed")) === "true");
+  const [pwdModalOpen, setPwdModalOpen] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdForm] = Form.useForm();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpPageKey, setHelpPageKeyState] = useState(null);
+  const [helpRecordId, setHelpRecordId] = useState(null);
+  const setHelpPageKey = React6.useCallback((key, recordId = null) => {
+    setHelpPageKeyState(key);
+    setHelpRecordId(recordId);
+  }, []);
+  const { canModule } = useAccess();
+  useAccessQueryInvalidation();
+  const filterMenuItemsByLicense = React6.useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        if (!item.module) return true;
+        return canModule(item.module, "read");
+      }).map((item) => {
+        if (Array.isArray(item.children)) {
+          return { ...item, children: filterMenuItemsByLicense(item.children) };
+        }
+        return item;
+      });
+    },
+    [canModule]
+  );
+  const userRoles = identity?.roles ?? [];
+  const filterMenuItemsByRole = React6.useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        if (!item.roles) return true;
+        return item.roles.some((r) => userRoles.includes(r));
+      }).map((item) => {
+        if (Array.isArray(item.children)) {
+          return { ...item, children: filterMenuItemsByRole(item.children) };
+        }
+        return item;
+      });
+    },
+    [userRoles]
+  );
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setPortalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+  const toggleSider = () => {
+    const next = !siderCollapsed;
+    setSiderCollapsed(next);
+    localStorage.setItem(siteScopedStorageKey("siderCollapsed"), String(next));
+  };
+  const handleChangePassword = async (values) => {
+    setPwdLoading(true);
+    try {
+      const res = await authenticatedFetch(`/auth/change-password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values)
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        message.error(body?.detail || "Failed to change password");
+        return;
+      }
+      message.success(body?.message || "Password changed successfully");
+      setPwdModalOpen(false);
+      pwdForm.resetFields();
+    } catch {
+      message.error("Network error");
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+  const userItems = [
+    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsx(LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
+    ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
+    { type: "divider" },
+    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsx(LogoutOutlined, {}), danger: true, onClick: () => logout() }
+  ];
+  const CustomHeader = () => /* @__PURE__ */ jsxs(Layout.Header, { style: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "2px 10px",
+    height: "auto",
+    lineHeight: "normal",
+    background: token.colorBgContainer,
+    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    position: "sticky",
+    top: 0,
+    zIndex: 999
+  }, children: [
+    /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", flex: 1, minWidth: 0 }, children: [
+      layoutMode === "vertical" && /* @__PURE__ */ jsx(Tooltip, { title: isMobile ? "Open menu" : siderCollapsed ? "Expand sidebar" : "Collapse sidebar", children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          type: "text",
+          icon: isMobile ? /* @__PURE__ */ jsx(MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsx(MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsx(MenuFoldOutlined, {}),
+          onClick: isMobile ? () => setDrawerOpen(true) : toggleSider,
+          style: { marginRight: 6, flexShrink: 0 }
+        }
+      ) }),
+      layoutMode === "horizontal" && /* @__PURE__ */ jsxs(Fragment, { children: [
+        isMobile && /* @__PURE__ */ jsx(Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsx(Button, { type: "text", icon: /* @__PURE__ */ jsx(MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
+        /* @__PURE__ */ jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
+        !isMobile && /* @__PURE__ */ jsx(Tooltip, { title: horizontalMenuCollapsed ? _10("Expand menu") : _10("Collapse menu"), children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            type: "text",
+            icon: horizontalMenuCollapsed ? /* @__PURE__ */ jsx(MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsx(MenuFoldOutlined, {}),
+            onClick: toggleHorizontalMenu,
+            style: { marginRight: 4, flexShrink: 0 }
+          }
+        ) }),
+        !isMobile && /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsx(HorizontalMenu, { navConfig, collapsed: horizontalMenuCollapsed }) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsx(GlobalSearch, {}) }),
+    /* @__PURE__ */ jsxs(Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
+      globalHeaderComponents.map((C2, i) => /* @__PURE__ */ jsx(C2, {}, i)),
+      /* @__PURE__ */ jsxs(Space.Compact, { children: [
+        /* @__PURE__ */ jsx(Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsx(LayoutOutlined, {}) : /* @__PURE__ */ jsx(AppstoreOutlined, {}),
+            onClick: () => {
+              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
+              setLayoutMode(next);
+              localStorage.setItem(siteScopedStorageKey("layoutMode"), next);
+            },
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            icon: /* @__PURE__ */ jsx(BorderInnerOutlined, {}),
+            onClick: () => setPortalOpen(true),
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsx(HelpButton, { onClick: () => setHelpOpen((prev) => !prev) })
+      ] }),
+      /* @__PURE__ */ jsx(Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsx(
+        Switch,
+        {
+          checkedChildren: "\u{1F31C}",
+          unCheckedChildren: "\u{1F31E}",
+          checked: mode === "dark",
+          onChange: () => setMode(mode === "light" ? "dark" : "light")
+        }
+      ) }),
+      /* @__PURE__ */ jsx(Dropdown, { menu: { items: userItems }, trigger: ["click"], children: /* @__PURE__ */ jsxs(Space, { style: { cursor: "pointer" }, children: [
+        /* @__PURE__ */ jsx(Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsx(UserOutlined, {}) }),
+        !isMobile && /* @__PURE__ */ jsx(Typography.Text, { strong: true, children: displayName }),
+        /* @__PURE__ */ jsx(DownOutlined, { style: { fontSize: 10 } })
+      ] }) })
+    ] })
+  ] });
+  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
+  return /* @__PURE__ */ jsx(LayoutMenuSettingsContext.Provider, { value: layoutMenuSettings, children: /* @__PURE__ */ jsx(NavConfigContext.Provider, { value: navConfig, children: /* @__PURE__ */ jsxs(HelpContext.Provider, { value: { pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }, children: [
+    /* @__PURE__ */ jsx(
+      ThemedLayoutV2,
+      {
+        Title: ({ collapsed }) => /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, collapsed }),
+        Sider: SiderToRender,
+        Header: CustomHeader,
+        children
+      },
+      layoutMode
+    ),
+    showBanners && /* @__PURE__ */ jsx(AppBannerHost, { allModels: bannerModels, site: bannerSite }),
+    /* @__PURE__ */ jsx(
+      CommandCenterPortal,
+      {
+        open: portalOpen,
+        onClose: () => setPortalOpen(false),
+        navConfig
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      HelpDrawer,
+      {
+        open: helpOpen,
+        onClose: () => setHelpOpen(false),
+        helpButtonTexts
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      Drawer,
+      {
+        title: /* @__PURE__ */ jsx(DefaultLogo, { logo, appTitle, isHeader: true }),
+        placement: "left",
+        open: drawerOpen,
+        onClose: () => setDrawerOpen(false),
+        width: 280,
+        styles: { body: { padding: 0 } },
+        children: /* @__PURE__ */ jsx(MobileMenuContent, { onClose: () => setDrawerOpen(false) })
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      Modal,
+      {
+        title: "Change Password",
+        open: pwdModalOpen,
+        onCancel: () => {
+          setPwdModalOpen(false);
+          pwdForm.resetFields();
+        },
+        footer: null,
+        destroyOnHidden: true,
+        children: /* @__PURE__ */ jsxs(Form, { form: pwdForm, layout: "vertical", onFinish: handleChangePassword, children: [
+          /* @__PURE__ */ jsx(Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsx(
+            Form.Item,
+            {
+              name: "confirm_password",
+              label: "Confirm Password",
+              dependencies: ["new_password"],
+              rules: [{ required: true }, ({ getFieldValue }) => ({
+                validator(_78, value) {
+                  if (!value || getFieldValue("new_password") === value) return Promise.resolve();
+                  return Promise.reject(new Error("Passwords do not match"));
+                }
+              })],
+              children: /* @__PURE__ */ jsx(Input.Password, { prefix: /* @__PURE__ */ jsx(LockOutlined, {}) })
+            }
+          ),
+          /* @__PURE__ */ jsx(Form.Item, { style: { marginBottom: 0, textAlign: "right" }, children: /* @__PURE__ */ jsxs(Space, { children: [
+            /* @__PURE__ */ jsx(Button, { onClick: () => {
+              setPwdModalOpen(false);
+              pwdForm.resetFields();
+            }, children: "Cancel" }),
+            /* @__PURE__ */ jsx(Button, { type: "primary", htmlType: "submit", loading: pwdLoading, children: "Change Password" })
+          ] }) })
+        ] })
+      }
+    )
+  ] }) }) });
+};
+var _11 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var NoAccessResult = () => {
+  const navigate = useNavigate();
+  return /* @__PURE__ */ jsx(
+    Result,
+    {
+      status: "warning",
+      icon: /* @__PURE__ */ jsx(LockOutlined, {}),
+      title: _11("No Access"),
+      subTitle: _11("You do not have permission to open this page. Please contact your administrator."),
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _11("Go to Dashboard") })
+    }
+  );
+};
+var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
+  const { can } = useAccess();
+  if (can(resource, action)) return /* @__PURE__ */ jsx(Fragment, { children });
+  return embedded ? null : /* @__PURE__ */ jsx(NoAccessResult, {});
+};
+var _12 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var LicenseGate = ({ module: moduleName, children }) => {
+  const navigate = useNavigate();
+  const { isModuleLicensed, canModule, loading } = useAccess();
+  if (!moduleName) return /* @__PURE__ */ jsx(Fragment, { children });
+  if (loading) return /* @__PURE__ */ jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsx(Spin, { size: "large" }) });
+  if (isModuleLicensed(moduleName)) {
+    return canModule(moduleName, "read") ? /* @__PURE__ */ jsx(Fragment, { children }) : /* @__PURE__ */ jsx(NoAccessResult, {});
+  }
+  return /* @__PURE__ */ jsx(
+    Result,
+    {
+      status: "warning",
+      icon: /* @__PURE__ */ jsx(LockOutlined, {}),
+      title: _12("Module Not Licensed"),
+      subTitle: _12(
+        `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
+      ),
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _12("Go to Dashboard") })
+    }
+  );
+};
+var PANE_TOOLBAR_HEIGHT = 28;
+var PaneNavigationContext = createContext(null);
+var usePaneNavigation = () => useContext(PaneNavigationContext);
+var _13 = window._ || ((text) => text);
+var NARROW_BREAKPOINT = 768;
+var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const handler = () => setNarrow(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return narrow;
+};
+var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsx(
+  "div",
+  {
+    style: {
+      display: "flex",
+      alignItems: direction === "column" ? "stretch" : "center",
+      flexDirection: direction,
+      gap: 8,
+      flexWrap: direction === "row" ? "wrap" : "nowrap"
+    },
+    children
+  }
+);
+var VerticalActionsLayout = ({ position, onBarMount, children }) => {
+  const { token } = theme.useToken();
+  const narrow = useIsNarrow();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const mountRef = useCallback(
+    (el) => onBarMount(el),
+    [onBarMount]
+  );
+  const isVertical = position === "left" || position === "right";
+  const stickyOffset = 80;
+  const sideOffset = 16;
+  const sideKey = position === "left" ? "left" : "right";
+  const useDrawer = isVertical && narrow;
+  const useFixedBar = isVertical && !narrow;
+  const contentSidePadding = useFixedBar ? 72 : 0;
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    useFixedBar && /* @__PURE__ */ jsx(
+      "div",
+      {
+        ref: mountRef,
+        style: {
+          position: "fixed",
+          top: stickyOffset,
+          [sideKey]: sideOffset,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: 8,
+          background: token.colorBgContainer,
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderRadius: 8,
+          boxShadow: token.boxShadowTertiary,
+          zIndex: 5
+        }
+      }
+    ),
+    useDrawer && /* @__PURE__ */ jsx(
+      "div",
+      {
+        style: {
+          position: "fixed",
+          top: stickyOffset,
+          [sideKey]: sideOffset,
+          zIndex: 1001
+        },
+        children: /* @__PURE__ */ jsx(Tooltip, { title: _13("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
+          Button,
+          {
+            size: "small",
+            icon: /* @__PURE__ */ jsx(MenuOutlined, {}),
+            onClick: () => setDrawerOpen(true)
+          }
+        ) })
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "div",
+      {
+        style: {
+          paddingLeft: sideKey === "left" ? contentSidePadding : 0,
+          paddingRight: sideKey === "right" ? contentSidePadding : 0
+        },
+        children
+      }
+    ),
+    useDrawer && /* @__PURE__ */ jsx(
+      Drawer,
+      {
+        title: _13("Actions"),
+        placement: sideKey,
+        open: drawerOpen,
+        onClose: () => setDrawerOpen(false),
+        width: 240,
+        forceRender: true,
+        children: /* @__PURE__ */ jsx(
+          "div",
+          {
+            ref: mountRef,
+            style: { display: "flex", flexDirection: "column", gap: 8 }
+          }
+        )
+      }
+    )
+  ] });
 };
 var _14 = window._ || ((text) => text);
 var extractButtonLabel = (node) => {
@@ -4736,7 +4820,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_76, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_78, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -4793,7 +4877,6 @@ var getSortPriority = (columnSort, fieldKey) => {
   const index = columnSort.findIndex((item) => item.fieldKey === fieldKey);
   return index === -1 ? 1 : columnSort.length - index + 1;
 };
-var _TOKEN_KEY = "jm_access_token";
 function useAuthenticatedFileUrl(rawUrl) {
   const [src, setSrc] = useState("");
   useEffect(() => {
@@ -4805,7 +4888,7 @@ function useAuthenticatedFileUrl(rawUrl) {
       setSrc(rawUrl);
       return;
     }
-    const token = localStorage.getItem(_TOKEN_KEY) || "";
+    const token = readAccessToken() || "";
     const controller = new AbortController();
     let objectUrl = "";
     fetch(rawUrl, {
@@ -6655,7 +6738,7 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
                     /* @__PURE__ */ jsx(Tooltip, { title: _23("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
                     !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _23("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
                     !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _23("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _23("Export chart") }) })
@@ -7117,7 +7200,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _24("Save configuration"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _24("Save configuration") }) }) })
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _24("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _24("Save configuration") }) }) })
         ] })
       }]
     }
@@ -7691,10 +7774,10 @@ function useLicensePool() {
       if (ALWAYS_ON2.has(key)) return true;
       if (loading || pool === null) return true;
       const moduleGroups = pool.module_groups ?? {};
-      const inAnyGroup2 = Object.values(moduleGroups).some(
+      const inAnyGroup = Object.values(moduleGroups).some(
         (mods) => mods.map((m) => m.toLowerCase()).includes(key)
       );
-      if (!inAnyGroup2) return true;
+      if (!inAnyGroup) return true;
       return (pool.licensed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
     },
     [pool, loading]
@@ -8338,25 +8421,25 @@ var getRelationTabName = (rel, mode, fallback) => {
   const explicit = mode === "show" ? rel.showTab : rel.editTab;
   if (!explicit) return fallback;
   if (isReverseRelation(rel)) {
-    const relationKey2 = String(rel.relationName || rel.resource || "").trim().toLowerCase();
+    const relationKey3 = String(rel.relationName || rel.resource || "").trim().toLowerCase();
     const explicitKey = String(explicit).trim().toLowerCase();
     const labelKey = String(getRelationLabel(rel) || rel.label || "").trim().toLowerCase();
-    const baseKey = relationKey2.replace(/_reverse$/, "").replace(/_object$/, "").replace(/_relation$/, "");
+    const baseKey = relationKey3.replace(/_reverse$/, "").replace(/_object$/, "").replace(/_relation$/, "");
     const humanize = (value) => value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
-    const humanRelationKey = humanize(relationKey2);
+    const humanRelationKey = humanize(relationKey3);
     const humanBaseKey = humanize(baseKey);
-    if (explicitKey === labelKey || explicitKey === relationKey2 || explicitKey === baseKey || explicitKey === humanRelationKey || explicitKey === humanBaseKey) {
+    if (explicitKey === labelKey || explicitKey === relationKey3 || explicitKey === baseKey || explicitKey === humanRelationKey || explicitKey === humanBaseKey) {
       return fallback;
     }
   }
   const translatedExplicit = _28(explicit);
   if (translatedExplicit !== explicit) return explicit;
-  const relationKey = rel.relationName || rel.resource || "";
-  if (relationKey) {
-    const translatedRelationKey = translateRelationKey(relationKey);
+  const relationKey2 = rel.relationName || rel.resource || "";
+  if (relationKey2) {
+    const translatedRelationKey = translateRelationKey(relationKey2);
     const likelyHumanizedLabel = explicit.includes(" ") || /[A-Z]/.test(explicit);
-    if (likelyHumanizedLabel && translatedRelationKey !== relationKey) {
-      return relationKey;
+    if (likelyHumanizedLabel && translatedRelationKey !== relationKey2) {
+      return relationKey2;
     }
   }
   return explicit;
@@ -8669,14 +8752,56 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     )
   ] });
 };
+var ALL_FEATURES_OFF = {
+  analyze: false,
+  csv_export: false,
+  saved_views: false,
+  column_selector: false,
+  record_metadata: false
+};
+var frameworkUiFeaturesRequest = null;
+var knownFrameworkUiFeatures = null;
+function fetchFrameworkUiFeatures() {
+  if (!frameworkUiFeaturesRequest) {
+    frameworkUiFeaturesRequest = authenticatedFetch(`${API_URL2}/veloiq/ui-features`).then(async (response) => {
+      if (!response.ok) throw new Error(String(response.status));
+      const body = await response.json();
+      const loaded2 = { ...ALL_FEATURES_OFF, ...body?.features || {} };
+      knownFrameworkUiFeatures = loaded2;
+      return loaded2;
+    }).catch(() => {
+      frameworkUiFeaturesRequest = null;
+      return ALL_FEATURES_OFF;
+    });
+  }
+  return frameworkUiFeaturesRequest;
+}
+function resetFrameworkUiFeatures() {
+  frameworkUiFeaturesRequest = null;
+  knownFrameworkUiFeatures = null;
+}
+function useFrameworkUiFeatures() {
+  const [features, setFeatures] = useState(knownFrameworkUiFeatures ?? ALL_FEATURES_OFF);
+  useEffect(() => {
+    let cancelled = false;
+    fetchFrameworkUiFeatures().then((loaded2) => {
+      if (!cancelled) setFeatures(loaded2);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return features;
+}
 var _30 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = useState(initialOpen);
   useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
-  const metadataButton = /* @__PURE__ */ jsx(Tooltip, { title: _30("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
-  const metadataModal = /* @__PURE__ */ jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
+  const { record_metadata: metadataAllowed } = useFrameworkUiFeatures();
+  const metadataButton = metadataAllowed ? /* @__PURE__ */ jsx(Tooltip, { title: _30("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) }) : null;
+  const metadataModal = /* @__PURE__ */ jsx(MetadataModal, { model, allModels, open: metadataOpen && metadataAllowed, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
 var _31 = window._ || ((text) => text);
@@ -9536,10 +9661,9 @@ var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
   return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
 };
 var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
-var USER_KEY = "jm_user";
 function getCurrentUserRoles() {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(signInStorageKeys().signedInUser);
     if (!raw) return [];
     return JSON.parse(raw)?.roles ?? [];
   } catch {
@@ -10716,7 +10840,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _44(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIdx) => {
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_78, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_79, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -11219,8 +11343,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_76) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _76(text) });
+function buildGridDensityMarks(_78) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _78(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -11231,15 +11355,15 @@ function buildGridDensityMarks(_76) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_76) {
+function buildGridDensityLabelText(_78) {
   return {
-    original: _76("Original"),
-    small: _76("Small"),
-    fit: _76("Page"),
-    "fit-row": _76("Row"),
-    "fit-cell": _76("Cell"),
-    medium: _76("Medium"),
-    large: _76("Large")
+    original: _78("Original"),
+    small: _78("Small"),
+    fit: _78("Page"),
+    "fit-row": _78("Row"),
+    "fit-cell": _78("Cell"),
+    medium: _78("Medium"),
+    large: _78("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -11783,7 +11907,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_78, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -12176,7 +12300,7 @@ var SectionCellContent = ({
     sectionLook?.section_description && /* @__PURE__ */ jsx(Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _50(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_78, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_79, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -14391,7 +14515,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_76, newPageSize) => {
+            onShowSizeChange: (_78, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -14738,7 +14862,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
   const [labelCache, setLabelCache] = useState({});
   const [analyzeOpenPreference, setAnalyzeOpen] = useState(false);
-  const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false;
+  const frameworkUiFeatures = useFrameworkUiFeatures();
+  const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
   const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = useRef(false);
   const analyzeSettings = useAnalyzeSettings({
@@ -15778,7 +15903,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       )
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
-  const crosstabConfigPanel = /* @__PURE__ */ jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model: relatedModel, onSaveClick: () => openSaveViewModalFor("analyze") });
+  const crosstabConfigPanel = /* @__PURE__ */ jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model: relatedModel, onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0 });
   const crosstabBodyNode = /* @__PURE__ */ jsxs("div", { children: [
     crosstabConfigPanel,
     crosstabFilterRow,
@@ -16120,7 +16245,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration"), children: /* @__PURE__ */ jsx(
+        frameworkUiFeatures.column_selector && /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -16505,29 +16630,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
-              /* @__PURE__ */ jsx(
-                Button,
-                {
-                  size: "small",
-                  onClick: () => {
-                    setRenameViewName(currentViewName);
-                    setRenameViewModalOpen(true);
-                  },
-                  children: _60("Rename view")
-                }
-              ),
-              /* @__PURE__ */ jsx(
-                Button,
-                {
-                  size: "small",
-                  danger: true,
-                  icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-                  disabled: availableViewNames.length <= 1,
-                  onClick: confirmDeleteView,
-                  children: _60("Delete view")
-                }
-              ),
-              layoutPreferenceType && /* @__PURE__ */ jsx(
+              frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx(
+                  Button,
+                  {
+                    size: "small",
+                    onClick: () => {
+                      setRenameViewName(currentViewName);
+                      setRenameViewModalOpen(true);
+                    },
+                    children: _60("Rename view")
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  Button,
+                  {
+                    size: "small",
+                    danger: true,
+                    icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
+                    disabled: availableViewNames.length <= 1,
+                    onClick: confirmDeleteView,
+                    children: _60("Delete view")
+                  }
+                )
+              ] }),
+              layoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsx(
                 Button,
                 {
                   size: "small",
@@ -16698,7 +16825,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_76, newPageSize) => {
+                    onShowSizeChange: (_78, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -16712,7 +16839,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _60("No related records") }) } : void 0,
-                  onChange: (_76, filters, sorter, extra) => {
+                  onChange: (_78, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -16924,7 +17051,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allFields: relatedModel.fields,
           tone: relatedModelTone,
           numericBarColor,
-          onSaveClick: () => openSaveViewModalFor("analyze")
+          onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0
         }
       ) })
     ] })
@@ -17797,6 +17924,7 @@ var { Title: Title6 } = Typography;
 var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
+  const frameworkUiFeatures = useFrameworkUiFeatures();
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const navigate = useNavigate();
@@ -17919,7 +18047,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [renameViewName, setRenameViewName] = useState("");
   const [labelCache, setLabelCache] = useState({});
   const [analyzeOpenPreference, setAnalyzeOpen] = useState(isEmbedded);
-  const analyzeSectionAvailable = model.showAnalyzeSection !== false;
+  const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
   const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = useRef(false);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
@@ -18900,7 +19028,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const fields = crosstabFilterFields.map((k) => model.fields.find((f) => f.key === k)).filter((f) => Boolean(f));
     return buildColumnFilterOptions({ fields, data, rangeCount });
   }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
-  const crosstabConfigPanel = /* @__PURE__ */ jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model, onSaveClick: () => openSaveViewModalFor("analyze") });
+  const crosstabConfigPanel = /* @__PURE__ */ jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model, onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0 });
   const crosstabFilterRow = crosstabFilterFields.length > 0 ? /* @__PURE__ */ jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }, children: crosstabFilterFields.map((fieldKey) => {
     const field = model.fields.find((f) => f.key === fieldKey);
     if (!field) return null;
@@ -19436,7 +19564,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (canBulkEdit) {
       opts.push({ label: _62("Change field value"), value: "__change_field__" });
     }
-    opts.push({ label: _62("Export selected (CSV)"), value: "__export_csv__" });
+    if (frameworkUiFeatures.csv_export) opts.push({ label: _62("Export selected (CSV)"), value: "__export_csv__" });
     opts.push({ label: _62("Navigate to related"), value: "__navigate_to_related__" });
     opts.push({ label: _62("Append related list"), value: "__append_related_list__" });
     if (canCreate) {
@@ -19451,7 +19579,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       opts.push({ label: _62("Delete selected"), value: "__delete__" });
     }
     return opts;
-  }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
+  }, [bulkActions, canBulkDelete, canBulkEdit, canCreate, frameworkUiFeatures.csv_export]);
   const bulkChangeField = bulkChangeFieldKey ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null : null;
   const preFilterBanner = urlPreFilters.length > 0 ? (() => {
     const filterLabels = [];
@@ -19829,7 +19957,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+  const exportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19838,7 +19966,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+  const quickExportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19855,7 +19983,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration"), children: /* @__PURE__ */ jsx(
+  const columnsToggleButton = frameworkUiFeatures.column_selector ? /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19869,7 +19997,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       },
       "aria-label": columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration")
     }
-  ) });
+  ) }) : null;
   const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Add relation"), children: /* @__PURE__ */ jsx(
     Button,
     {
@@ -19977,7 +20105,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(Tooltip, { title: _62("Save layout"), children: /* @__PURE__ */ jsx(
+    resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsx(Tooltip, { title: _62("Save layout"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19989,24 +20117,26 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     associateExistingFkButton,
     createRelationButton,
     createNewAndRelateButton,
-    /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
-      Button,
-      {
-        size: "small",
-        icon: /* @__PURE__ */ jsx(DownloadOutlined, {}),
-        onClick: handleExport,
-        loading: exportLoading
-      }
-    ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
-      Button,
-      {
-        size: "small",
-        icon: /* @__PURE__ */ jsx(CameraOutlined, {}),
-        onClick: () => setExportRequested(true),
-        loading: exportRequested && isAllRowsLoading
-      }
-    ) }),
+    frameworkUiFeatures.csv_export && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          size: "small",
+          icon: /* @__PURE__ */ jsx(DownloadOutlined, {}),
+          onClick: handleExport,
+          loading: exportLoading
+        }
+      ) }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          size: "small",
+          icon: /* @__PURE__ */ jsx(CameraOutlined, {}),
+          onClick: () => setExportRequested(true),
+          loading: exportRequested && isAllRowsLoading
+        }
+      ) })
+    ] }),
     !model.isNamedQuery && !model.isNonModelData && /* @__PURE__ */ jsx(Tooltip, { title: _62("Import CSV"), children: /* @__PURE__ */ jsx(
       Button,
       {
@@ -20784,29 +20914,31 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
-              /* @__PURE__ */ jsx(
-                Button,
-                {
-                  size: "small",
-                  onClick: () => {
-                    setRenameViewName(currentViewName);
-                    setRenameViewModalOpen(true);
-                  },
-                  children: _62("Rename view")
-                }
-              ),
-              /* @__PURE__ */ jsx(
-                Button,
-                {
-                  size: "small",
-                  danger: true,
-                  icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-                  disabled: availableViewNames.length <= 1,
-                  onClick: confirmDeleteView,
-                  children: _62("Delete view")
-                }
-              ),
-              resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(
+              frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx(
+                  Button,
+                  {
+                    size: "small",
+                    onClick: () => {
+                      setRenameViewName(currentViewName);
+                      setRenameViewModalOpen(true);
+                    },
+                    children: _62("Rename view")
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  Button,
+                  {
+                    size: "small",
+                    danger: true,
+                    icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
+                    disabled: availableViewNames.length <= 1,
+                    onClick: confirmDeleteView,
+                    children: _62("Delete view")
+                  }
+                )
+              ] }),
+              resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsx(
                 Button,
                 {
                   size: "small",
@@ -21261,7 +21393,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           allFields: model.fields,
           tone: modelTone,
           numericBarColor,
-          onSaveClick: () => openSaveViewModalFor("analyze"),
+          onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0,
           customizeFooter: /* @__PURE__ */ jsxs(Fragment, { children: [
             isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _62("Loading all rows for analysis...") }),
             allRowsError && /* @__PURE__ */ jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
@@ -23697,19 +23829,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _76 }) => _76).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_76) => {
-        if (_76.collapsible) {
+      const ut = R.panels.map(({ id: _78 }) => _78).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_78) => {
+        if (_78.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _76.collapsedSize,
-              ce[_76.panelId]
+              _78.collapsedSize,
+              ce[_78.panelId]
             ), dt = I(
-              _76.collapsedSize,
-              ge[_76.panelId]
+              _78.collapsedSize,
+              ge[_78.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_76.panelId] = ge[_76.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_78.panelId] = ge[_78.panelId]);
           }
         }
       });
@@ -24544,7 +24676,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_76, idx) => ({
+    () => panes.map((_78, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -24854,53 +24986,66 @@ var InlinePlotlyHtml = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE, scaleT
 
 // src/providers/authProvider.ts
 var AUTH_BASE = "/auth";
-var TOKEN_KEY3 = "jm_access_token";
-var USER_KEY2 = "jm_user";
-var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
 var _66 = window._ || ((text) => text);
+async function startSignedInSession(token, signedInUser) {
+  localStorage.setItem(signInStorageKeys().accessToken, token);
+  resetFrameworkUiFeatures();
+  let user = signedInUser;
+  if (!user) {
+    const meResponse = await fetch(`${AUTH_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
+    user = meResponse.ok ? await meResponse.json() : null;
+  }
+  if (user) localStorage.setItem(signInStorageKeys().signedInUser, JSON.stringify(user));
+  else localStorage.removeItem(signInStorageKeys().signedInUser);
+  try {
+    const [rolesRes] = await Promise.all([
+      fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
+      // Effective permissions for the shared access check (stored by accessStore).
+      refreshAccess()
+    ]);
+    if (rolesRes.ok) {
+      const roles = await rolesRes.json();
+      const permsMap = {};
+      for (const role of roles) {
+        permsMap[role.name] = role.allowed_actions;
+      }
+      localStorage.setItem(signInStorageKeys().rolePermissions, JSON.stringify(permsMap));
+    }
+  } catch {
+  }
+}
 var authProvider = {
   /**
-   * Authenticate by username + password.
+   * Authenticate by username + password, or with ``accessToken`` obtained by a
+   * custom sign-in flow; ``redirectTo`` (default "/") is where to go next.
    * Stores the JWT and user profile in localStorage on success.
    */
-  login: async ({ username, password }) => {
+  login: async ({ username, password, accessToken, redirectTo }) => {
     try {
-      const response = await fetch(`${AUTH_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        return {
-          success: false,
-          error: {
-            name: _66("Login failed"),
-            message: body?.detail || _66("Invalid credentials")
-          }
-        };
-      }
-      const data = await response.json();
-      localStorage.setItem(TOKEN_KEY3, data.access_token);
-      localStorage.setItem(USER_KEY2, JSON.stringify(data.user));
-      const token = data.access_token;
-      try {
-        const [rolesRes] = await Promise.all([
-          fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
-          // Effective permissions for the shared access check (stored by accessStore).
-          refreshAccess()
-        ]);
-        if (rolesRes.ok) {
-          const roles = await rolesRes.json();
-          const permsMap = {};
-          for (const role of roles) {
-            permsMap[role.name] = role.allowed_actions;
-          }
-          localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
+      let token = accessToken;
+      let signedInUser = null;
+      if (!token) {
+        const response = await fetch(`${AUTH_BASE}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          return {
+            success: false,
+            error: {
+              name: _66("Login failed"),
+              message: body?.detail || _66("Invalid credentials")
+            }
+          };
         }
-      } catch {
+        const data = await response.json();
+        token = data.access_token;
+        signedInUser = data.user;
       }
-      return { success: true, redirectTo: "/" };
+      await startSignedInSession(token, signedInUser);
+      return { success: true, redirectTo: redirectTo || "/" };
     } catch (err) {
       return {
         success: false,
@@ -24915,9 +25060,10 @@ var authProvider = {
    * Clear stored credentials and redirect to the login page.
    */
   logout: async () => {
-    localStorage.removeItem(TOKEN_KEY3);
-    localStorage.removeItem(USER_KEY2);
-    localStorage.removeItem(ROLE_PERMISSIONS_KEY);
+    localStorage.removeItem(signInStorageKeys().accessToken);
+    resetFrameworkUiFeatures();
+    localStorage.removeItem(signInStorageKeys().signedInUser);
+    localStorage.removeItem(signInStorageKeys().rolePermissions);
     clearAccess();
     return { success: true, redirectTo: "/login" };
   },
@@ -24926,7 +25072,7 @@ var authProvider = {
    * Returns ``authenticated`` when a token is present.
    */
   check: async () => {
-    const token = localStorage.getItem(TOKEN_KEY3);
+    const token = readAccessToken();
     if (token) {
       return { authenticated: true };
     }
@@ -24937,14 +25083,14 @@ var authProvider = {
    * from the backend ``/auth/me`` endpoint.
    */
   getIdentity: async () => {
-    const cached = localStorage.getItem(USER_KEY2);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (cached) {
       try {
         return JSON.parse(cached);
       } catch {
       }
     }
-    const token = localStorage.getItem(TOKEN_KEY3);
+    const token = readAccessToken();
     if (!token) return null;
     try {
       const response = await fetch(`${AUTH_BASE}/me`, {
@@ -24952,7 +25098,7 @@ var authProvider = {
       });
       if (!response.ok) return null;
       const user = await response.json();
-      localStorage.setItem(USER_KEY2, JSON.stringify(user));
+      localStorage.setItem(signInStorageKeys().signedInUser, JSON.stringify(user));
       return user;
     } catch {
       return null;
@@ -24962,7 +25108,7 @@ var authProvider = {
    * Return the user's roles for role-based UI rendering.
    */
   getPermissions: async () => {
-    const cached = localStorage.getItem(USER_KEY2);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (cached) {
       try {
         return JSON.parse(cached)?.roles ?? [];
@@ -24984,8 +25130,6 @@ var authProvider = {
 };
 
 // src/providers/accessControlProvider.ts
-var USER_KEY3 = "jm_user";
-var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
 var ADMIN_ROLE = "Admin";
 var _67 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
@@ -24994,7 +25138,7 @@ var FALLBACK_ROLE_ACTIONS = {
   Viewer: ["list", "show", "field"]
 };
 function getRoleActions() {
-  const cached = localStorage.getItem(ROLE_PERMISSIONS_KEY2);
+  const cached = localStorage.getItem(signInStorageKeys().rolePermissions);
   const source = cached ? (() => {
     try {
       return JSON.parse(cached);
@@ -25008,7 +25152,7 @@ function getRoleActions() {
 }
 var accessControlProvider = {
   can: async ({ action, resource }) => {
-    const cached = localStorage.getItem(USER_KEY3);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (!cached) {
       return { can: false, reason: _67("Not authenticated") };
     }
@@ -25049,7 +25193,6 @@ var accessControlProvider = {
     }
   }
 };
-var TOKEN_KEY4 = "jm_access_token";
 var httpClient = axios.create();
 var networkAdapter = axios.getAdapter(httpClient.defaults.adapter);
 httpClient.defaults.adapter = (config) => {
@@ -25077,7 +25220,7 @@ httpClient.defaults.adapter = (config) => {
   return Promise.resolve(response);
 };
 httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY4);
+  const token = readAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25125,6 +25268,7 @@ var ColorModeContextProvider = ({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!readAccessToken()) return;
       try {
         const resp = await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`);
         if (!resp.ok) return;
@@ -25179,7 +25323,7 @@ var ResourceContext = createContext({
   allSystemModels: []
 });
 var _68 = window._ || ((text) => text);
-var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
+var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
   const { mutate: login, isLoading, error } = useLogin();
   const [form] = Form.useForm();
   const onFinish = (values) => {
@@ -25271,7 +25415,8 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                   ) })
                 ]
               }
-            )
+            ),
+            footer && /* @__PURE__ */ jsx("div", { style: { textAlign: "center" }, children: footer })
           ] })
         }
       )
@@ -25931,7 +26076,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_78, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -26358,7 +26503,7 @@ function generateResources(models, moduleName, options = {}) {
   return [parentEntry, ...children];
 }
 var NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER = "nonModelDataResource";
-var NonModelDataResourcePages = ({ pageOverrides }) => {
+var NonModelDataResourcePages = ({ pageOverrides, showHeaderButtons }) => {
   const resourceName = useParams()[NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER];
   const allModels = useAllModels();
   const model = allModels.find(
@@ -26374,7 +26519,14 @@ var NonModelDataResourcePages = ({ pageOverrides }) => {
     /* @__PURE__ */ jsx(Route, { index: true, element: /* @__PURE__ */ jsx(MultiPaneLayout, { children: ListOverride ? /* @__PURE__ */ jsx(ListOverride, { model, allModels }) : /* @__PURE__ */ jsx(DynamicList, { model, allModels }, resource) }) }),
     /* @__PURE__ */ jsx(Route, { path: "create", element: CreateOverride ? /* @__PURE__ */ jsx(CreateOverride, { model, allModels }) : /* @__PURE__ */ jsx(DynamicCreate, { model, allModels }) }),
     /* @__PURE__ */ jsx(Route, { path: "edit/:id", element: EditOverride ? /* @__PURE__ */ jsx(EditOverride, { model, allModels }) : /* @__PURE__ */ jsx(DynamicEdit, { model, allModels }) }),
-    /* @__PURE__ */ jsx(Route, { path: "show/:id", element: /* @__PURE__ */ jsx(MultiPaneLayout, { children: ShowOverride ? /* @__PURE__ */ jsx(ShowOverride, {}) : /* @__PURE__ */ jsx(DynamicShow, { model, allModels }) }) })
+    /* @__PURE__ */ jsx(Route, { path: "show/:id", element: /* @__PURE__ */ jsx(MultiPaneLayout, { children: ShowOverride ? /* @__PURE__ */ jsx(ShowOverride, {}) : /* @__PURE__ */ jsx(
+      DynamicShow,
+      {
+        model,
+        allModels,
+        extraHeaderButtons: showHeaderButtons?.(resource, model, allModels)
+      }
+    ) }) })
   ] });
 };
 function useRefineResourcesIncludingNonModelData(resources) {
@@ -26396,6 +26548,259 @@ function useRefineResourcesIncludingNonModelData(resources) {
     return [...resources, ...added];
   }, [resources, nonModelDataModels]);
 }
+function listNavigationPagesInRefineResources(resources, navConfig) {
+  const pageEntries = (navConfig || []).filter((entry) => entry.type === "page" && entry.key);
+  if (pageEntries.length === 0) return resources;
+  const pageEntryByKey = new Map(pageEntries.map((entry) => [entry.key, entry]));
+  const shown = resources.map((resource) => {
+    const entry = pageEntryByKey.get(resource.name);
+    if (!entry) return resource;
+    return {
+      ...resource,
+      meta: { ...resource.meta, hide: false, label: entry.label || resource.meta?.label, parent: entry.parent ?? resource.meta?.parent }
+    };
+  });
+  const knownNames = new Set(resources.map((resource) => resource.name));
+  const added = pageEntries.filter((entry) => !knownNames.has(entry.key)).map((entry) => ({
+    name: entry.key,
+    list: entry.route || `/${entry.key}`,
+    meta: { label: entry.label || entry.key, parent: entry.parent, canDelete: false }
+  }));
+  return [...shown, ...added];
+}
+function useRefineResourcesIncludingNavigationPages(resources, navConfig) {
+  return useMemo(() => listNavigationPagesInRefineResources(resources, navConfig), [resources, navConfig]);
+}
+function usePortalPublicSettings(site) {
+  const [state, setState] = useState({ settings: null, configuration: null, loaded: false, error: null });
+  useEffect(() => {
+    let cancelled = false;
+    const portalUrl = `${API_URL2}/veloiq/portals/${encodeURIComponent(site)}`;
+    const settingsRequest = fetch(portalUrl).then(async (response) => {
+      if (!response.ok) throw new Error(String(response.status));
+      return await response.json();
+    });
+    const configurationRequest = fetch(`${portalUrl}/configuration`).then(async (response) => response.ok ? await response.json() : null).catch(() => null);
+    Promise.all([settingsRequest, configurationRequest]).then(([settings, configuration]) => {
+      if (!cancelled) setState({ settings, configuration, loaded: true, error: null });
+    }).catch((error) => {
+      if (!cancelled) setState({ settings: null, configuration: null, loaded: true, error: String(error?.message || error) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [site]);
+  return state;
+}
+
+// src/portal/limitPortalResourcesToNavigationConfig.ts
+var _75 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+function limitPortalResourcesToNavigationConfig(resources, navConfig) {
+  const navEntryByKey = new Map(navConfig.map((entry) => [entry.key, entry]));
+  return resources.map((resource) => {
+    if (resource.name === DASHBOARD_MENU_RESOURCE_NAME) return resource;
+    const navEntry = navEntryByKey.get(resource.name);
+    if (!navEntry) return { ...resource, meta: { ...resource.meta, hide: true } };
+    const parent = resource.meta?.parent;
+    return {
+      ...resource,
+      meta: {
+        ...resource.meta,
+        label: navEntry.label ? _75(navEntry.label) : resource.meta?.label,
+        parent: parent && navEntryByKey.has(parent) ? parent : void 0
+      }
+    };
+  });
+}
+
+// src/models/mergeUiModelSchemas.ts
+var fieldFromOverride = (override) => {
+  const { omit: _omitted, ...field } = override;
+  return { label: field.key, type: "string", ...field };
+};
+var mergeFields = (base, overrides) => {
+  if (!overrides || overrides.length === 0) return base;
+  let merged = [...base];
+  for (const override of overrides) {
+    if (override.omit) {
+      merged = merged.filter((field) => field.key !== override.key);
+      continue;
+    }
+    const { omit: _omitted, ...changes } = override;
+    const index = merged.findIndex((field) => field.key === override.key);
+    if (index >= 0) merged[index] = { ...merged[index], ...changes };
+    else merged.push(fieldFromOverride(override));
+  }
+  return merged;
+};
+var relationKey = (relation) => "resource" in relation && relation.resource ? relation.resource : relation.label;
+var mergeRelations = (base, overrides) => {
+  if (!overrides || overrides.length === 0) return base;
+  let merged = base ? [...base] : [];
+  for (const override of overrides) {
+    const key = relationKey(override);
+    if (override.omit) {
+      merged = merged.filter((relation) => relationKey(relation) !== key);
+      continue;
+    }
+    const { omit: _omitted, ...changes } = override;
+    const index = key ? merged.findIndex((relation) => relationKey(relation) === key) : -1;
+    if (index >= 0) merged[index] = { ...merged[index], ...changes };
+    else merged.push(changes);
+  }
+  return merged;
+};
+var mergeModel = (base, override) => {
+  if (!override) return base;
+  return {
+    ...base,
+    ...override,
+    fields: mergeFields(base.fields, override.fields),
+    relations: mergeRelations(base.relations, override.relations)
+  };
+};
+function mergeUiModelSchemas(generatedModels, ...overrideLists) {
+  const applyOverrides = (model) => overrideLists.reduce((merged, overrides) => mergeModel(merged, overrides.find((override) => override.name === model.name)), model);
+  const generatedNames = new Set(generatedModels.map((model) => model.name));
+  const declaredOnlyNames = Array.from(new Set(
+    overrideLists.flat().map((override) => override.name).filter((name) => !generatedNames.has(name))
+  ));
+  const declaredOnlyModels = declaredOnlyNames.map((name) => {
+    const first = overrideLists.flat().find((override) => override.name === name);
+    return applyOverrides({
+      name,
+      label: first.label ?? name,
+      resource: first.resource ?? name.toLowerCase(),
+      pkField: first.pkField ?? "id",
+      fields: []
+    });
+  });
+  return [...generatedModels.map(applyOverrides), ...declaredOnlyModels];
+}
+var _76 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var portalQueryClient = new QueryClient();
+var LazyPortalPage = ({ pageRoute }) => {
+  const LoadedPage = useMemo(() => React6.lazy(pageRoute.loadPage), [pageRoute]);
+  return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Spin, { style: { display: "block", margin: "120px auto" } }), children: /* @__PURE__ */ jsx(LoadedPage, {}) });
+};
+var PortalAppWithSettings = ({
+  site,
+  moduleRegistrations: builtModuleRegistrations,
+  navConfig: builtNavConfig,
+  dataProvider,
+  pageRoutes = [],
+  pageOverrides = {},
+  logo,
+  loginPage,
+  loginPageFooter,
+  landingPath,
+  routerBasename,
+  globalHeaderComponents,
+  portalSettings,
+  portalConfiguration
+}) => {
+  const navConfig = portalConfiguration?.navigation ?? builtNavConfig;
+  const moduleRegistrations = useMemo(() => {
+    const pageOverridesFile = portalConfiguration?.page_overrides ?? [];
+    if (!pageOverridesFile.length) return builtModuleRegistrations;
+    return builtModuleRegistrations.map((registration) => {
+      const modelNames = new Set(registration.models.map((model) => model.name));
+      const moduleOverrides = pageOverridesFile.filter((override) => modelNames.has(override.name));
+      return moduleOverrides.length ? { ...registration, models: mergeUiModelSchemas(registration.models, moduleOverrides) } : registration;
+    });
+  }, [builtModuleRegistrations, portalConfiguration]);
+  const portalModels = useMemo(
+    () => moduleRegistrations.flatMap((registration) => registration.models),
+    [moduleRegistrations]
+  );
+  const modelResources = useMemo(() => [
+    ...portalSettings.show_dashboard_menu_entry ? [{ name: "dashboard", list: "/dashboard", meta: { label: _76("Dashboard"), canDelete: false } }] : [],
+    ...moduleRegistrations.flatMap(({ moduleName, models, moduleLabel }) => generateResources(models, moduleName, moduleLabel ? { moduleLabel } : {}))
+  ], [moduleRegistrations, portalSettings.show_dashboard_menu_entry]);
+  const portalMenuResources = useMemo(
+    () => limitPortalResourcesToNavigationConfig(modelResources, navConfig),
+    [modelResources, navConfig]
+  );
+  const portalResources = useRefineResourcesIncludingNavigationPages(portalMenuResources, navConfig);
+  const resolvedLandingPath = landingPath || (portalSettings.show_dashboard_menu_entry ? "/dashboard" : resolveFallbackLandingPath(navConfig, portalModels));
+  const renderPage = (kind, resource, model, StandardPage) => {
+    const OverridePage = pageOverrides[kind]?.[resource];
+    if (OverridePage) return /* @__PURE__ */ jsx(OverridePage, { model, allModels: portalModels });
+    return /* @__PURE__ */ jsx(StandardPage, { model, allModels: portalModels }, resource);
+  };
+  const PrimaryShowRenderer = useMemo(() => ({ model, id, allModels }) => {
+    const resource = model.resource || model.name;
+    const OverrideShow = pageOverrides.show?.[resource];
+    return OverrideShow ? createElement(OverrideShow, { idOverride: String(id), model, allModels }) : /* @__PURE__ */ jsx(DynamicShow, { model, allModels, idOverride: String(id) });
+  }, [pageOverrides]);
+  const signedOutPageRoutes = pageRoutes.filter((pageRoute) => pageRoute.availableSignedOut);
+  const signedInPageRoutes = pageRoutes.filter((pageRoute) => !pageRoute.availableSignedOut);
+  return /* @__PURE__ */ jsx(QueryClientProvider, { client: portalQueryClient, children: /* @__PURE__ */ jsx(AllModelsProvider, { models: portalModels, children: /* @__PURE__ */ jsx(BrowserRouter, { basename: routerBasename ?? `/portals/${site}`, children: /* @__PURE__ */ jsx(
+    Refine,
+    {
+      dataProvider,
+      authProvider,
+      accessControlProvider,
+      routerProvider,
+      notificationProvider,
+      resources: portalResources,
+      options: { syncWithLocation: true, warnWhenUnsavedChanges: true, disableTelemetry: true },
+      children: /* @__PURE__ */ jsx(ColorModeContextProvider, { children: /* @__PURE__ */ jsx(PrimaryShowContext.Provider, { value: PrimaryShowRenderer, children: /* @__PURE__ */ jsxs(Routes, { children: [
+        /* @__PURE__ */ jsx(Route, { path: "/login", element: loginPage ?? /* @__PURE__ */ jsx(LoginPage, { appTitle: portalSettings.title, logo, footer: loginPageFooter }) }),
+        signedOutPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+        /* @__PURE__ */ jsxs(Route, { element: /* @__PURE__ */ jsx(Authenticated, { redirectOnFail: "/login", children: /* @__PURE__ */ jsx(
+          LayoutWrapper,
+          {
+            logo,
+            appTitle: portalSettings.title,
+            navConfig,
+            showDashboardMenuEntry: portalSettings.show_dashboard_menu_entry,
+            defaultLayoutMode: portalSettings.default_layout,
+            bannerModels: portalModels,
+            bannerSite: site,
+            globalHeaderComponents,
+            children: /* @__PURE__ */ jsx(Outlet, {})
+          }
+        ) }, "portal-auth"), children: [
+          /* @__PURE__ */ jsx(Route, { path: "/", element: /* @__PURE__ */ jsx(Navigate, { to: resolvedLandingPath, replace: true }) }),
+          portalSettings.show_dashboard_menu_entry && /* @__PURE__ */ jsx(Route, { path: "/dashboard", element: /* @__PURE__ */ jsx(DashboardPage, {}) }),
+          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+          portalModels.map((model) => {
+            const resource = model.resource || model.name;
+            return /* @__PURE__ */ jsxs(Route, { path: `/${resource}`, children: [
+              /* @__PURE__ */ jsx(Route, { index: true, element: /* @__PURE__ */ jsx(MultiPaneLayout, { children: renderPage("list", resource, model, DynamicList) }) }),
+              /* @__PURE__ */ jsx(Route, { path: "create", element: renderPage("create", resource, model, DynamicCreate) }),
+              /* @__PURE__ */ jsx(Route, { path: "edit/:id", element: renderPage("edit", resource, model, DynamicEdit) }),
+              /* @__PURE__ */ jsx(Route, { path: "show/:id", element: /* @__PURE__ */ jsx(MultiPaneLayout, { children: renderPage("show", resource, model, DynamicShow) }) })
+            ] }, model.name);
+          }),
+          /* @__PURE__ */ jsx(Route, { path: "*", element: /* @__PURE__ */ jsx(Navigate, { to: resolvedLandingPath, replace: true }) })
+        ] })
+      ] }) }) })
+    }
+  ) }) }) });
+};
+var VeloIQPortalApp = (props) => {
+  const { settings, configuration, loaded: loaded2, error } = usePortalPublicSettings(props.site);
+  const [sessionNamespaceSetFor, setSessionNamespaceSetFor] = useState(null);
+  if (settings && sessionNamespaceSetFor !== settings.token_storage_key) {
+    setSignInStorageNamespace(settings.token_storage_key);
+    setSessionNamespaceSetFor(settings.token_storage_key);
+  }
+  if (error) {
+    return /* @__PURE__ */ jsx(Result, { status: "warning", title: _76("This site is not available"), subTitle: error });
+  }
+  if (!loaded2 || !settings || sessionNamespaceSetFor !== settings.token_storage_key) {
+    return /* @__PURE__ */ jsx(Spin, { size: "large", style: { display: "block", margin: "120px auto" } });
+  }
+  return /* @__PURE__ */ jsx(PortalAppWithSettings, { ...props, portalSettings: settings, portalConfiguration: configuration });
+};
 function useInPageRowsStore(storeName, model, initialRows = []) {
   const invalidate = useInvalidate();
   const storeRef = useRef(null);
@@ -26414,7 +26819,7 @@ function useInPageRowsStore(storeName, model, initialRows = []) {
   }, [store, invalidate]);
   return useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
 }
-var _75 = (text) => {
+var _77 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -26428,10 +26833,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_75(moduleName)} \u203A ${_75(e.model_key)}` : _75(moduleName);
+  return e.model_key ? `${_77(moduleName)} \u203A ${_77(e.model_key)}` : _77(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _75("Allowlist") : mode === "block" ? _75("Blocklist") : _75("No policy");
-var modeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _75("Users with this role can use everything except the checked actions on the listed modules and models.") : _75("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _77("Allowlist") : mode === "block" ? _77("Blocklist") : _77("No policy");
+var modeHelp = (mode) => mode === "allow" ? _77("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _77("Users with this role can use everything except the checked actions on the listed modules and models.") : _77("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -26452,7 +26857,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      message.error(_75("Could not load access policies."));
+      message.error(_77("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -26467,7 +26872,7 @@ var AdminNote = () => /* @__PURE__ */ jsx(
   {
     type: "info",
     showIcon: true,
-    message: _75("The Admin role always has full access and can't be given an access policy.")
+    message: _77("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -26492,9 +26897,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _75("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _75("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _75("No policy");
+    if (row.event === "role_get_migration") return _77("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _77("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _77("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsx(
@@ -26504,20 +26909,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _75("No changes recorded yet.") },
+      locale: { emptyText: _77("No changes recorded yet.") },
       columns: [
         {
-          title: _75("When"),
+          title: _77("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _75("Changed by"),
+          title: _77("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _75("System")
+          render: (_v, row) => row.actor_username || _77("System")
         },
         {
-          title: _75("Change"),
+          title: _77("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -26526,11 +26931,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _75("Module or model"),
+  title: _77("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _75("Inactive") })
+    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _77("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -26543,11 +26948,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _75(label),
+      title: _77(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _75(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _77(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -26563,10 +26968,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _75("No modules or models listed yet.") }
+        locale: { emptyText: _77("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _77("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -26602,21 +27007,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the access policy."));
+      message.error(typeof body?.detail === "string" ? body.detail : _77("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    message.success(mode === "none" ? _75("Access policy removed.") : _75("Access policy saved."));
+    message.success(mode === "none" ? _77("Access policy removed.") : _77("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = useMemo(
     () => modules.map((m) => ({
-      title: _75(m.name),
+      title: _77(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _75(model.key),
+        title: _77(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -26672,7 +27077,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _75(label),
+      title: _77(label),
       key: action,
       width: 90,
       align: "center",
@@ -26681,7 +27086,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_75(label)} ${resourceLabel(e)}`
+          "aria-label": `${_77(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -26694,27 +27099,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-          "aria-label": _75("Remove"),
+          "aria-label": _77("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _77("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _75("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _75("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _75("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _77("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _77("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _77("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _75("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _77("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _75("This allowlist is empty: users with this role will lose access to every module.")
+        message: _77("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -26724,7 +27129,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _75("Add a module or model"),
+          placeholder: _77("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -26739,12 +27144,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _75("No modules or models listed yet.") }
+          locale: { emptyText: _77("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _75("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _77("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _77("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -26753,7 +27158,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed features.") : mode === "block" ? _75("Users with this role can use every feature except the listed ones.") : _75("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _77("Users with this role can use only the listed features.") : mode === "block" ? _77("Users with this role can use every feature except the listed ones.") : _77("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = useState([]);
@@ -26787,15 +27192,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _75("Feature"),
+    title: _77("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsx(Tag, { children: _75("Inactive") })
+      !r.active && /* @__PURE__ */ jsx(Tag, { children: _77("Inactive") })
     ] })
   },
-  { title: _75("Group"), dataIndex: "group", key: "group" },
-  { title: _75("Description"), dataIndex: "description", key: "description" }
+  { title: _77("Group"), dataIndex: "group", key: "group" },
+  { title: _77("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -26821,10 +27226,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _75("No features listed yet.") }
+        locale: { emptyText: _77("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _77("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -26852,10 +27257,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the feature access."));
+      message.error(typeof body?.detail === "string" ? body.detail : _77("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    message.success(mode === "none" ? _75("Feature access removed.") : _75("Feature access saved."));
+    message.success(mode === "none" ? _77("Feature access removed.") : _77("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -26865,20 +27270,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _77("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _75("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _75("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _75("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _77("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _77("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _77("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _75("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _77("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _75("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _77("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
@@ -26893,10 +27298,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _75("No features are registered.") }
+        locale: { emptyText: _77("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _77("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -27082,6 +27487,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CollapsibleBanner, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, refreshAccess, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useInPageRowsStore, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useRefineResourcesIncludingNonModelData, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CollapsibleBanner, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, VeloIQPortalApp, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, readAccessToken, refreshAccess, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, setSignInStorageNamespace, signInStorageKeys, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

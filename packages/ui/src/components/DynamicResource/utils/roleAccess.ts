@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import type { FieldDef, ModelDef } from "../types";
+import { signInStorageKeys } from "../../../utils/signInStorageKeys";
 
-const USER_KEY = "jm_user";
 
 function getCurrentUserRoles(): string[] {
     try {
-        const raw = localStorage.getItem(USER_KEY);
+        const raw = localStorage.getItem(signInStorageKeys().signedInUser);
         if (!raw) return [];
         return JSON.parse(raw)?.roles ?? [];
     } catch {

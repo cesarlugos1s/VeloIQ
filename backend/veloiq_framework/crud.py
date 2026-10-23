@@ -34,6 +34,7 @@ import math
 from typing import Any, Type, TypeVar
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
+from veloiq_framework.portals.framework_ui_features import require_framework_ui_feature
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlmodel import Session, SQLModel, func, select
@@ -99,6 +100,22 @@ def _get_field_permissions(model_class: type) -> dict[str, dict]:
         perms[field_name] = {**perms.get(field_name, {}), **entry}
 
     return perms
+
+
+#: Name of the optional classmethod a model defines to complete a new row before
+#: the generic create endpoint validates it::
+#:
+#:     @classmethod
+#:     def veloiq_complete_new_row(cls, payload: dict, user: dict, session) -> dict:
+#:         ...  # fill fields the client doesn't send (e.g. derived or denormalized
+#:         ...  # values), or raise HTTPException to refuse the row
+#:         return payload
+#:
+#: It receives the payload after the field write restrictions and type coercion,
+#: the signed-in user (``request.state.user``) and the request's session, and
+#: returns the payload to validate and save. Standard create forms can then
+#: show only the fields a user edits.
+NEW_ROW_COMPLETION_HOOK = "veloiq_complete_new_row"
 
 
 def _filter_read_fields(data: dict, model_class: type, user_roles: list[str]) -> dict:
@@ -604,7 +621,7 @@ def create_crud_router(
             "sample_rows": sample_rows,
         }
 
-    @router.get("/export-csv", summary=f"Export {tablename} to CSV")
+    @router.get("/export-csv", summary=f"Export {tablename} to CSV", dependencies=[Depends(require_framework_ui_feature("csv_export"))])
     def export_csv(request: Request, session: Session = Depends(get_session)):
         """Stream every row matching the request's filters as a CSV file.
 
@@ -661,7 +678,7 @@ def create_crud_router(
                     references[col_attr.key] = target
         return references
 
-    @router.post("/analyze", summary=f"Aggregate {tablename} for the Analyze section")
+    @router.post("/analyze", summary=f"Aggregate {tablename} for the Analyze section", dependencies=[Depends(require_framework_ui_feature("analyze"))])
     def analyze_items(spec: dict, request: Request, session: Session = Depends(get_session)):
         """Aggregate the rows matching the list's filters for the Analyze section.
 
@@ -740,6 +757,10 @@ def create_crud_router(
         payload.pop(pk_field, None)
         filtered = _filter_write_payload(payload, model_class, user_roles)
         coerced = {k: _coerce_value(k, v) for k, v in filtered.items()}
+        # The model may complete a new row before it is validated (see NEW_ROW_COMPLETION_HOOK).
+        complete_new_row = getattr(model_class, NEW_ROW_COMPLETION_HOOK, None)
+        if callable(complete_new_row):
+            coerced = complete_new_row(dict(coerced), user, session)
         try:
             row = model_class.model_validate(coerced)
         except Exception as exc:

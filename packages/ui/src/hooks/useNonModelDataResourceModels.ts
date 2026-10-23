@@ -13,8 +13,8 @@ import type { ModelDef } from "../components/DynamicResource/types";
 import { subscribeAccess } from "../access/accessStore";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import { API_URL } from "../providers/constants";
+import { readAccessToken } from "../utils/signInStorageKeys";
 
-const TOKEN_KEY = "jm_access_token";
 
 /** The request in progress, shared by every caller (the model list and the Refine resources load them together). */
 let nonModelDataModelsRequestInFlight: Promise<ModelDef[]> | null = null;
@@ -29,7 +29,7 @@ export function fetchNonModelDataResourceModels(): Promise<ModelDef[]> {
 }
 
 async function requestNonModelDataResourceModels(): Promise<ModelDef[]> {
-    if (!localStorage.getItem(TOKEN_KEY)) return [];
+    if (!readAccessToken()) return [];
     try {
         const response = await authenticatedFetch(`${API_URL}/veloiq/non-model-data-resources`);
         if (!response.ok) return [];

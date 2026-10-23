@@ -6,8 +6,10 @@ import {
     hasAdminRole,
     isModuleLicensedIn,
     moduleKeyForName,
+    splitModuleKey,
     type AccessAction,
 } from "../access/evaluateAccess";
+import { readAccessToken, signInStorageKeys } from "../utils/signInStorageKeys";
 
 /** Return value of the useAccess hook. */
 export interface UseAccessReturn {
@@ -36,7 +38,7 @@ export function useAccess(): UseAccessReturn {
     const ctx = data?.context ?? null;
 
     useEffect(() => {
-        if (data === null && localStorage.getItem("jm_access_token")) void refreshAccess();
+        if (data === null && readAccessToken()) void refreshAccess();
     }, [data]);
 
     const can = useCallback(
@@ -52,7 +54,12 @@ export function useAccess(): UseAccessReturn {
     );
 
     const isModuleLicensed = useCallback(
-        (moduleName: string) => (ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license)),
+        (moduleName: string) => {
+            if (ctx === null || !ctx.license) return true;
+            // Decided by the module's own source (host app or extension), like the server.
+            const moduleSource = splitModuleKey(moduleKeyForName(ctx, moduleName))[0];
+            return isModuleLicensedIn(moduleName, ctx.license, moduleSource || null);
+        },
         [ctx],
     );
 
@@ -61,7 +68,7 @@ export function useAccess(): UseAccessReturn {
     const isAdmin = useMemo(() => {
         if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
         try {
-            return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+            return hasAdminRole(JSON.parse(localStorage.getItem(signInStorageKeys().signedInUser) ?? "{}")?.roles ?? []);
         } catch {
             return false;
         }
@@ -131,13 +138,14 @@ export function filterMenuItemsByAccess<T>(
                 if (access.isAdmin) result.push(item);
                 continue;
             }
-            if (!access.isModuleLicensed(moduleName)) continue;
             if (children && children.length > 0) {
+                // Each child is decided by its own model's module (licensing included):
+                // a module name alone can belong to the host app and to an extension.
                 const kept = filterMenuItemsByAccess(children, access);
                 if (kept.length > 0) result.push({ ...item, children: kept });
                 continue;
             }
-            if (access.canModule(moduleName, "read")) result.push(item);
+            if (access.isModuleLicensed(moduleName) && access.canModule(moduleName, "read")) result.push(item);
             continue;
         }
         const resource = String(item.name ?? "");

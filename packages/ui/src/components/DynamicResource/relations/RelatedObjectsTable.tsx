@@ -84,6 +84,7 @@ import { CrosstabConfigPanel } from "../analysis/CrosstabConfigPanel";
 import { useAnalyzeResults, useAnalyzeSettings } from "../analysis/useAnalyze";
 import { summarizeValues } from "../analysis/aggregation";
 import { buildColumnFilterOptions, matchesColumnFilterValue } from "../utils/columnFilters";
+import { useFrameworkUiFeatures } from "../../../hooks/useFrameworkUiFeatures";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
@@ -297,8 +298,10 @@ export const RelatedObjectsTable: React.FC<{
     const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
     const [analyzeOpenPreference, setAnalyzeOpen] = useState(false);
+    // Tools a role or an external portal can switch off (Analyze, saved views, columns).
+    const frameworkUiFeatures = useFrameworkUiFeatures();
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
-    const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false;
+    const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     // Analyze section configuration and its saved preferences (shared with list pages).
@@ -1456,7 +1459,7 @@ export const RelatedObjectsTable: React.FC<{
     ) : null;
 
     const crosstabConfigPanel = (
-        <CrosstabConfigPanel analyze={analyzeSettings} model={relatedModel} onSaveClick={() => openSaveViewModalFor("analyze")} />
+        <CrosstabConfigPanel analyze={analyzeSettings} model={relatedModel} onSaveClick={frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : undefined} />
     );
 
     const crosstabBodyNode = (
@@ -1858,20 +1861,22 @@ export const RelatedObjectsTable: React.FC<{
                     {title && <Title level={5} style={{ color: relatedModelTone.text, margin: 0 }}>{title}</Title>}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                    <Tooltip title={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}>
-                        <Button
-                            size="small"
-                            icon={<SettingOutlined />}
-                            onClick={() => {
-                                setColumnsSelectorOpen((prev) => {
-                                    const next = !prev;
-                                    if (next) syncColumnsSelectionToDisplay();
-                                    return next;
-                                });
-                            }}
-                            aria-label={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}
-                        />
-                    </Tooltip>
+                    {frameworkUiFeatures.column_selector && (
+                        <Tooltip title={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}>
+                            <Button
+                                size="small"
+                                icon={<SettingOutlined />}
+                                onClick={() => {
+                                    setColumnsSelectorOpen((prev) => {
+                                        const next = !prev;
+                                        if (next) syncColumnsSelectionToDisplay();
+                                        return next;
+                                    });
+                                }}
+                                aria-label={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}
+                            />
+                        </Tooltip>
+                    )}
                     {showCreate && recordId !== undefined && recordId !== null && (
                         <>
                             <Tooltip title={rel.otherResource && rel.otherKey ? _("Associate existing") : _("Add relation")}>
@@ -2251,25 +2256,29 @@ export const RelatedObjectsTable: React.FC<{
                             {viewSelector}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                            <Button
-                                size="small"
-                                onClick={() => {
-                                    setRenameViewName(currentViewName);
-                                    setRenameViewModalOpen(true);
-                                }}
-                            >
-                                {_("Rename view")}
-                            </Button>
-                            <Button
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                disabled={availableViewNames.length <= 1}
-                                onClick={confirmDeleteView}
-                            >
-                                {_("Delete view")}
-                            </Button>
-                            {layoutPreferenceType && (
+                            {frameworkUiFeatures.saved_views && (
+                                <>
+                                <Button
+                                    size="small"
+                                    onClick={() => {
+                                        setRenameViewName(currentViewName);
+                                        setRenameViewModalOpen(true);
+                                    }}
+                                >
+                                    {_("Rename view")}
+                                </Button>
+                                <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    disabled={availableViewNames.length <= 1}
+                                    onClick={confirmDeleteView}
+                                >
+                                    {_("Delete view")}
+                                </Button>
+                                </>
+                            )}
+                            {layoutPreferenceType && frameworkUiFeatures.saved_views && (
                                 <Button
                                     size="small"
                                     icon={<SaveOutlined />}
@@ -2682,7 +2691,7 @@ export const RelatedObjectsTable: React.FC<{
                             allFields={relatedModel.fields}
                             tone={relatedModelTone}
                             numericBarColor={numericBarColor}
-                            onSaveClick={() => openSaveViewModalFor("analyze")}
+                            onSaveClick={frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : undefined}
                         />
                     </div>
                 )}

@@ -37,6 +37,10 @@ export interface AccessLicensePool {
     module_groups?: Record<string, string[]>;
     licensed_modules?: string[];
     write_allowed_modules?: string[];
+    /** Per source ("app" or an extension's name): the groups it gates and its licensed / writable modules. */
+    module_groups_by_source?: Record<string, Record<string, string[]>>;
+    licensed_modules_by_source?: Record<string, string[]>;
+    write_allowed_modules_by_source?: Record<string, string[]>;
     [key: string]: unknown;
 }
 
@@ -103,23 +107,44 @@ export function hasAdminRole(roles: string[], adminRole: string = DEFAULT_ADMIN_
 
 const lowerSet = (values: string[] | undefined): Set<string> => new Set((values ?? []).map((v) => v.toLowerCase()));
 
-const inAnyGroup = (key: string, pool: AccessLicensePool): boolean =>
-    Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
+/**
+ * The module groups, licensed and writable modules that decide a module of `source`
+ * (backend `_license_lists_for`): with a source and per-source lists, only that
+ * source's own lists, so another source's module of the same name never gates it.
+ */
+function licenseListsFor(pool: AccessLicensePool, source?: string | null) {
+    if (source && pool.module_groups_by_source) {
+        return {
+            moduleGroups: pool.module_groups_by_source[source] ?? {},
+            licensedModules: pool.licensed_modules_by_source?.[source] ?? [],
+            writeAllowedModules: pool.write_allowed_modules_by_source?.[source] ?? [],
+        };
+    }
+    return {
+        moduleGroups: pool.module_groups ?? {},
+        licensedModules: pool.licensed_modules ?? [],
+        writeAllowedModules: pool.write_allowed_modules ?? [],
+    };
+}
 
-/** Same rule as the backend's `is_module_licensed`. */
-export function isModuleLicensedIn(moduleName: string, pool: AccessLicensePool): boolean {
+/** Always-on and ungated modules pass; a gated module must be in `allowedModules`. */
+function gatedModuleAllowed(moduleName: string, moduleGroups: Record<string, string[]>, allowedModules: string[]): boolean {
     const key = moduleName.toLowerCase();
     if (ALWAYS_ON.has(key)) return true;
-    if (!inAnyGroup(key, pool)) return true;
-    return lowerSet(pool.licensed_modules).has(key);
+    if (!Object.values(moduleGroups).some((mods) => lowerSet(mods).has(key))) return true;
+    return lowerSet(allowedModules).has(key);
+}
+
+/** Same rule as the backend's `is_module_licensed` (decided by the module's own `source` when given). */
+export function isModuleLicensedIn(moduleName: string, pool: AccessLicensePool, source?: string | null): boolean {
+    const { moduleGroups, licensedModules } = licenseListsFor(pool, source);
+    return gatedModuleAllowed(moduleName, moduleGroups, licensedModules);
 }
 
 /** Same rule as the backend's `is_module_write_allowed` (grace period is read-only). */
-export function isModuleWriteAllowedIn(moduleName: string, pool: AccessLicensePool): boolean {
-    const key = moduleName.toLowerCase();
-    if (ALWAYS_ON.has(key)) return true;
-    if (!inAnyGroup(key, pool)) return true;
-    return lowerSet(pool.write_allowed_modules).has(key);
+export function isModuleWriteAllowedIn(moduleName: string, pool: AccessLicensePool, source?: string | null): boolean {
+    const { moduleGroups, writeAllowedModules } = licenseListsFor(pool, source);
+    return gatedModuleAllowed(moduleName, moduleGroups, writeAllowedModules);
 }
 
 /** Split `<source>:<module>` into `[source, module]`. */
@@ -194,9 +219,10 @@ export function evaluateAccess(
 
     const pool = ctx.license;
     if (module && pool !== null && pool !== undefined) {
-        const moduleName = splitModuleKey(module)[1];
-        if (!isModuleLicensedIn(moduleName, pool)) return { allowed: false, reason: "not_licensed" };
-        if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool)) {
+        // A module is licensed by its own source (host app or extension) only.
+        const [moduleSource, moduleName] = splitModuleKey(module);
+        if (!isModuleLicensedIn(moduleName, pool, moduleSource || null)) return { allowed: false, reason: "not_licensed" };
+        if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool, moduleSource || null)) {
             return { allowed: false, reason: "license_read_only" };
         }
     }

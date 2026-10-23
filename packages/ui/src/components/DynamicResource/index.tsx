@@ -139,6 +139,7 @@ import { ImportCsvModal } from "./ImportCsvModal";
 import { SampleRowsTable } from "./SampleRowsTable";
 export { SampleRowsTable };
 import { useMetadataModal } from "./hooks/useMetadataModal";
+import { useFrameworkUiFeatures } from "../../hooks/useFrameworkUiFeatures";
 import { useShowEditableForm } from "./hooks/useShowEditableForm";
 import { buildShowTabFormOptions } from "./hooks/buildShowTabFormOptions";
 import { ShowFooterButtons } from "./ShowFooterButtons";
@@ -286,6 +287,8 @@ const DynamicListPage: React.FC<{
 }> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
+    // Tools a role or an external portal can switch off (Analyze, CSV export, saved views, columns, metadata).
+    const frameworkUiFeatures = useFrameworkUiFeatures();
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
     const navigate = useNavigate();
@@ -454,7 +457,7 @@ const DynamicListPage: React.FC<{
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
     const [analyzeOpenPreference, setAnalyzeOpen] = useState(isEmbedded);
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
-    const analyzeSectionAvailable = model.showAnalyzeSection !== false;
+    const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
@@ -1580,7 +1583,7 @@ const DynamicListPage: React.FC<{
     }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
 
     const crosstabConfigPanel = (
-        <CrosstabConfigPanel analyze={analyzeSettings} model={model} onSaveClick={() => openSaveViewModalFor("analyze")} />
+        <CrosstabConfigPanel analyze={analyzeSettings} model={model} onSaveClick={frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : undefined} />
     );
 
     const crosstabFilterRow = crosstabFilterFields.length > 0 ? (
@@ -2235,7 +2238,7 @@ const DynamicListPage: React.FC<{
             opts.push({ label: _("Change field value"), value: "__change_field__" });
         }
         // Export selected rows as CSV — no special permission needed (read-only)
-        opts.push({ label: _("Export selected (CSV)"), value: "__export_csv__" });
+        if (frameworkUiFeatures.csv_export) opts.push({ label: _("Export selected (CSV)"), value: "__export_csv__" });
         opts.push({ label: _("Navigate to related"), value: "__navigate_to_related__" });
         // Append related list below the current one (stacked)
         opts.push({ label: _("Append related list"), value: "__append_related_list__" });
@@ -2255,7 +2258,7 @@ const DynamicListPage: React.FC<{
             opts.push({ label: _("Delete selected"), value: "__delete__" });
         }
         return opts;
-    }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
+    }, [bulkActions, canBulkDelete, canBulkEdit, canCreate, frameworkUiFeatures.csv_export]);
 
     const bulkChangeField = bulkChangeFieldKey
         ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null
@@ -2655,7 +2658,7 @@ const DynamicListPage: React.FC<{
         }
     }, [apiUrl, model, allModels]);
 
-    const exportButton = !isEmbedded ? (
+    const exportButton = !isEmbedded && frameworkUiFeatures.csv_export ? (
         <Tooltip title={_("Export to CSV (raw values, re-importable)")}>
             <Button
                 size="small"
@@ -2672,7 +2675,7 @@ const DynamicListPage: React.FC<{
     // (not EyeOutlined) specifically to avoid colliding with the "View"/
     // "Open show page" button elsewhere on this page, which already uses
     // EyeOutlined for a completely different action.
-    const quickExportButton = !isEmbedded ? (
+    const quickExportButton = !isEmbedded && frameworkUiFeatures.csv_export ? (
         <Tooltip title={_("Export to CSV (as shown on screen)")}>
             <Button
                 size="small"
@@ -2693,7 +2696,7 @@ const DynamicListPage: React.FC<{
         </Tooltip>
     ) : null;
 
-    const columnsToggleButton = (
+    const columnsToggleButton = frameworkUiFeatures.column_selector ? (
         <Tooltip title={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}>
             <Button
                 size="small"
@@ -2708,7 +2711,7 @@ const DynamicListPage: React.FC<{
                 aria-label={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}
             />
         </Tooltip>
-    );
+    ) : null;
 
     const createRelationButton = isRelationView && showCreate && canCreate ? (
         <Tooltip title={_("Add relation")}>
@@ -2841,7 +2844,7 @@ const DynamicListPage: React.FC<{
                     }}
                 />
             </Tooltip>
-            {resolvedLayoutPreferenceType && (
+            {resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && (
                 <Tooltip title={_("Save layout")}>
                     <Button
                         size="small"
@@ -2854,22 +2857,26 @@ const DynamicListPage: React.FC<{
             {associateExistingFkButton}
             {createRelationButton}
             {createNewAndRelateButton}
-            <Tooltip title={_("Export to CSV (raw values, re-importable)")}>
-                <Button
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    onClick={handleExport}
-                    loading={exportLoading}
-                />
-            </Tooltip>
-            <Tooltip title={_("Export to CSV (as shown on screen)")}>
-                <Button
-                    size="small"
-                    icon={<CameraOutlined />}
-                    onClick={() => setExportRequested(true)}
-                    loading={exportRequested && isAllRowsLoading}
-                />
-            </Tooltip>
+            {frameworkUiFeatures.csv_export && (
+                <>
+                <Tooltip title={_("Export to CSV (raw values, re-importable)")}>
+                    <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={handleExport}
+                        loading={exportLoading}
+                    />
+                </Tooltip>
+                <Tooltip title={_("Export to CSV (as shown on screen)")}>
+                    <Button
+                        size="small"
+                        icon={<CameraOutlined />}
+                        onClick={() => setExportRequested(true)}
+                        loading={exportRequested && isAllRowsLoading}
+                    />
+                </Tooltip>
+                </>
+            )}
             {!model.isNamedQuery && !model.isNonModelData && (
                 <Tooltip title={_("Import CSV")}>
                     <Button
@@ -3675,25 +3682,29 @@ const DynamicListPage: React.FC<{
                             {viewSelector}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                            <Button
-                                size="small"
-                                onClick={() => {
-                                    setRenameViewName(currentViewName);
-                                    setRenameViewModalOpen(true);
-                                }}
-                            >
-                                {_("Rename view")}
-                            </Button>
-                            <Button
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                disabled={availableViewNames.length <= 1}
-                                onClick={confirmDeleteView}
-                            >
-                                {_("Delete view")}
-                            </Button>
-                            {resolvedLayoutPreferenceType && (
+                            {frameworkUiFeatures.saved_views && (
+                                <>
+                                <Button
+                                    size="small"
+                                    onClick={() => {
+                                        setRenameViewName(currentViewName);
+                                        setRenameViewModalOpen(true);
+                                    }}
+                                >
+                                    {_("Rename view")}
+                                </Button>
+                                <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    disabled={availableViewNames.length <= 1}
+                                    onClick={confirmDeleteView}
+                                >
+                                    {_("Delete view")}
+                                </Button>
+                                </>
+                            )}
+                            {resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && (
                                 <Button
                                     size="small"
                                     icon={<SaveOutlined />}
@@ -4199,7 +4210,7 @@ const DynamicListPage: React.FC<{
                             allFields={model.fields}
                             tone={modelTone}
                             numericBarColor={numericBarColor}
-                            onSaveClick={() => openSaveViewModalFor("analyze")}
+                            onSaveClick={frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : undefined}
                             customizeFooter={(
                                 <>
                                     {isAllRowsLoading && (

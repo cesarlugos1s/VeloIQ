@@ -139,6 +139,8 @@ _VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
     "analyze_server_aggregation_threshold": ("analyzeServerAggregationThreshold", int),
     "general_actions_button_position": ("generalActionsButtonPosition", str),
     "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
+    # Show the Dashboard entry in the app's menus (external portals have their own setting).
+    "show_dashboard_menu_entry": ("showDashboardMenuEntry", bool),
     # Right-side detail panes: layout mode ("stack" | "breadcrumb" | "overlay" |
     # "scroll"), the cap of fully visible panes in "stack" mode, and the minimum
     # page width in px (used by "breadcrumb", "overlay", "scroll" and the "stack"

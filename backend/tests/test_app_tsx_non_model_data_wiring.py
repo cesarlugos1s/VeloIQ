@@ -124,3 +124,61 @@ def test_hook_placed_by_an_earlier_version_in_app_is_moved(tmp_path):
     app_tsx.write_text(misplaced)
     _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
     assert app_tsx.read_text() == correct
+
+
+def test_navigation_page_entries_are_wired_when_app_tsx_has_its_navigation_config(tmp_path):
+    """With the scaffold's navConfigData import, the block also lists the navigation config's "page" entries."""
+    app_tsx = tmp_path / "App.tsx"
+    with_navigation_config = APP_TSX.replace(
+        '} from "@juicemantics/veloiq-ui";\n',
+        '} from "@juicemantics/veloiq-ui";\nimport type { NavConfig } from "@juicemantics/veloiq-ui";\nimport navConfigData from "./navigation.config.json";\n',
+        1,
+    )
+    app_tsx.write_text(with_navigation_config)
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    patched = app_tsx.read_text()
+    assert ("const resourcesIncludingNonModelData = useRefineResourcesIncludingNavigationPages("
+            "useRefineResourcesIncludingNonModelData(resources), navConfigData as NavConfig);") in patched
+    assert "    useRefineResourcesIncludingNavigationPages," in patched
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    assert app_tsx.read_text() == patched
+
+
+def test_an_earlier_block_gains_the_navigation_pages_on_the_next_generate(tmp_path):
+    """A block written by an earlier version (no navigation pages) is brought up to date."""
+    app_tsx = tmp_path / "App.tsx"
+    with_navigation_config = APP_TSX.replace(
+        '} from "@juicemantics/veloiq-ui";\n',
+        '} from "@juicemantics/veloiq-ui";\nimport type { NavConfig } from "@juicemantics/veloiq-ui";\nimport navConfigData from "./navigation.config.json";\n',
+        1,
+    )
+    app_tsx.write_text(with_navigation_config)
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    upgraded = app_tsx.read_text()
+    earlier = upgraded.replace(
+        "useRefineResourcesIncludingNavigationPages(useRefineResourcesIncludingNonModelData(resources), navConfigData as NavConfig)",
+        "useRefineResourcesIncludingNonModelData(resources)",
+    ).replace("    useRefineResourcesIncludingNavigationPages,\n", "")
+    app_tsx.write_text(earlier)
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    assert app_tsx.read_text() == upgraded
+
+
+def test_route_passes_the_global_show_header_buttons_when_app_tsx_defines_them(tmp_path):
+    """Non-model record pages get the extensions' Show header buttons, as model Show pages do."""
+    app_tsx = tmp_path / "App.tsx"
+    app_tsx.write_text(APP_TSX)
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    # Without the VELOIQ:GLOBAL_SHOW_HEADER_BUTTONS block there is nothing to pass.
+    assert "showHeaderButtons=" not in app_tsx.read_text()
+
+    with_header_buttons = app_tsx.read_text().replace(
+        "const resources = [];",
+        "const resources = [];\nconst _globalShowHeaderButtons = (resource, model, allModels) => (record) => null;",
+    )
+    app_tsx.write_text(with_header_buttons)
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    patched = app_tsx.read_text()
+    assert "showHeaderButtons={_globalShowHeaderButtons} />} />" in patched
+    _ensure_app_tsx_non_model_data_resource_wiring(tmp_path)
+    assert app_tsx.read_text() == patched

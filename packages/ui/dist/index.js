@@ -12,6 +12,7 @@ var reactDom = require('react-dom');
 var dayjs11 = require('dayjs');
 var relativeTime2 = require('dayjs/plugin/relativeTime');
 var axios = require('axios');
+var routerProvider = require('@refinedev/react-router-v6');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
@@ -38,6 +39,7 @@ var AntDIcons2__namespace = /*#__PURE__*/_interopNamespace(AntDIcons2);
 var dayjs11__default = /*#__PURE__*/_interopDefault(dayjs11);
 var relativeTime2__default = /*#__PURE__*/_interopDefault(relativeTime2);
 var axios__default = /*#__PURE__*/_interopDefault(axios);
+var routerProvider__default = /*#__PURE__*/_interopDefault(routerProvider);
 
 var __typeError = (msg) => {
   throw TypeError(msg);
@@ -212,6 +214,12 @@ var setColorSchemas = (schemas) => {
                     body.jm-light .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarLightText} !important;
                     }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-light .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarLightText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
+                    }
                     body.jm-light {
                         --jm-row-active-bg: ${lightBgElements};
                     }
@@ -270,6 +278,12 @@ var setColorSchemas = (schemas) => {
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-item:not(.ant-menu-item-selected),
                     body.jm-dark .ant-menu-submenu-popup .ant-menu-submenu-title:not(.ant-menu-submenu-selected) {
                         color: ${sidebarDarkText} !important;
+                    }
+                    /* A popup's title (the module's name, collapsed menus): the entries' color, muted. */
+                    body.jm-dark .ant-menu-submenu-popup .ant-menu-item-group-title {
+                        color: ${sidebarDarkText} !important;
+                        opacity: 0.75;
+                        font-weight: 600;
                     }
                     body.jm-dark {
                         --jm-row-active-bg: ${darkBgHover};
@@ -399,7 +413,7 @@ function sortItemsByNavConfig(items, navConfig) {
     const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
     const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
     return aSeq - bSeq;
-  });
+  }).map((item) => Array.isArray(item.children) && item.children.length > 0 ? { ...item, children: sortItemsByNavConfig(item.children, navConfig) } : item);
 }
 
 // src/utils/activeLocale.ts
@@ -680,15 +694,42 @@ function answerInPageRowsRequest(url, method, body) {
   return jsonAnswer(405, { detail: _("This action is not available for this list.") });
 }
 
+// src/utils/signInStorageKeys.ts
+var ADMIN_APP_SIGN_IN_STORAGE_KEYS = {
+  accessToken: "jm_access_token",
+  signedInUser: "jm_user",
+  rolePermissions: "jm_role_permissions",
+  resourcePermissions: "jm_resource_permissions"
+};
+var activeSignInStorageKeys = ADMIN_APP_SIGN_IN_STORAGE_KEYS;
+var activeSignInStorageNamespace = null;
+function setSignInStorageNamespace(accessTokenStorageKey) {
+  activeSignInStorageNamespace = accessTokenStorageKey;
+  activeSignInStorageKeys = {
+    accessToken: accessTokenStorageKey,
+    signedInUser: `${accessTokenStorageKey}:user`,
+    rolePermissions: `${accessTokenStorageKey}:role_permissions`,
+    resourcePermissions: `${accessTokenStorageKey}:resource_permissions`
+  };
+}
+function signInStorageKeys() {
+  return activeSignInStorageKeys;
+}
+function readAccessToken() {
+  return localStorage.getItem(activeSignInStorageKeys.accessToken);
+}
+function siteScopedStorageKey(preferenceName) {
+  return activeSignInStorageNamespace ? `${activeSignInStorageNamespace}:${preferenceName}` : preferenceName;
+}
+
 // src/utils/authenticatedFetch.ts
-var TOKEN_KEY = "jm_access_token";
 var authenticatedFetch = (url, options = {}) => {
   const inPageAnswer = answerInPageRowsRequest(url, options.method, options.body);
   if (inPageAnswer) {
     const responseBody = inPageAnswer.body === null || inPageAnswer.status === 204 ? null : typeof inPageAnswer.body === "string" ? inPageAnswer.body : JSON.stringify(inPageAnswer.body);
     return Promise.resolve(new Response(responseBody, { status: inPageAnswer.status, headers: inPageAnswer.headers }));
   }
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = readAccessToken();
   const headers = {
     ...options.headers
   };
@@ -770,9 +811,10 @@ function injectJourneyMenuItems(items, byModule) {
   };
   return walk(items);
 }
+var LayoutMenuSettingsContext = React6.createContext({ showDashboardMenuEntry: true });
+var useLayoutMenuSettings = () => React6.useContext(LayoutMenuSettingsContext);
 
 // src/access/accessStore.ts
-var ACCESS_STORAGE_KEY = "jm_resource_permissions";
 var RESOURCE_PERMISSIONS_URL = "/auth/resource-permissions";
 var FOCUS_REFRESH_MIN_MS = 5e3;
 var current = null;
@@ -786,7 +828,7 @@ function isEffectivePermissions(value) {
 }
 function readStored() {
   try {
-    const raw = localStorage.getItem(ACCESS_STORAGE_KEY);
+    const raw = localStorage.getItem(signInStorageKeys().resourcePermissions);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return isEffectivePermissions(parsed) ? parsed : null;
@@ -808,8 +850,8 @@ function setAccessPermissions(data) {
   current = data;
   loaded = true;
   try {
-    if (data) localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(data));
-    else localStorage.removeItem(ACCESS_STORAGE_KEY);
+    if (data) localStorage.setItem(signInStorageKeys().resourcePermissions, JSON.stringify(data));
+    else localStorage.removeItem(signInStorageKeys().resourcePermissions);
   } catch {
   }
   notify();
@@ -836,7 +878,7 @@ function installFocusListener() {
   if (focusListenerInstalled || typeof window === "undefined") return;
   focusListenerInstalled = true;
   window.addEventListener("focus", () => {
-    if (!localStorage.getItem("jm_access_token")) return;
+    if (!readAccessToken()) return;
     if (Date.now() - lastFetch < FOCUS_REFRESH_MIN_MS) return;
     void refreshAccess();
   });
@@ -879,18 +921,33 @@ function hasAdminRole(roles, adminRole = DEFAULT_ADMIN_ROLE) {
   return roles.includes(adminRole);
 }
 var lowerSet = (values) => new Set((values ?? []).map((v) => v.toLowerCase()));
-var inAnyGroup = (key, pool) => Object.values(pool.module_groups ?? {}).some((mods) => lowerSet(mods).has(key));
-function isModuleLicensedIn(moduleName, pool) {
-  const key = moduleName.toLowerCase();
-  if (ALWAYS_ON.has(key)) return true;
-  if (!inAnyGroup(key, pool)) return true;
-  return lowerSet(pool.licensed_modules).has(key);
+function licenseListsFor(pool, source) {
+  if (source && pool.module_groups_by_source) {
+    return {
+      moduleGroups: pool.module_groups_by_source[source] ?? {},
+      licensedModules: pool.licensed_modules_by_source?.[source] ?? [],
+      writeAllowedModules: pool.write_allowed_modules_by_source?.[source] ?? []
+    };
+  }
+  return {
+    moduleGroups: pool.module_groups ?? {},
+    licensedModules: pool.licensed_modules ?? [],
+    writeAllowedModules: pool.write_allowed_modules ?? []
+  };
 }
-function isModuleWriteAllowedIn(moduleName, pool) {
+function gatedModuleAllowed(moduleName, moduleGroups, allowedModules) {
   const key = moduleName.toLowerCase();
   if (ALWAYS_ON.has(key)) return true;
-  if (!inAnyGroup(key, pool)) return true;
-  return lowerSet(pool.write_allowed_modules).has(key);
+  if (!Object.values(moduleGroups).some((mods) => lowerSet(mods).has(key))) return true;
+  return lowerSet(allowedModules).has(key);
+}
+function isModuleLicensedIn(moduleName, pool, source) {
+  const { moduleGroups, licensedModules } = licenseListsFor(pool, source);
+  return gatedModuleAllowed(moduleName, moduleGroups, licensedModules);
+}
+function isModuleWriteAllowedIn(moduleName, pool, source) {
+  const { moduleGroups, writeAllowedModules } = licenseListsFor(pool, source);
+  return gatedModuleAllowed(moduleName, moduleGroups, writeAllowedModules);
 }
 function splitModuleKey(moduleKey) {
   const idx = moduleKey.indexOf(":");
@@ -939,9 +996,9 @@ function evaluateAccess(ctx, moduleKey, modelKey, action) {
   if (module === null && modelKey) module = ctx.registry?.models?.[modelKey] ?? null;
   const pool = ctx.license;
   if (module && pool !== null && pool !== void 0) {
-    const moduleName = splitModuleKey(module)[1];
-    if (!isModuleLicensedIn(moduleName, pool)) return { allowed: false, reason: "not_licensed" };
-    if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool)) {
+    const [moduleSource, moduleName] = splitModuleKey(module);
+    if (!isModuleLicensedIn(moduleName, pool, moduleSource || null)) return { allowed: false, reason: "not_licensed" };
+    if (act !== "read" && !isModuleWriteAllowedIn(moduleName, pool, moduleSource || null)) {
       return { allowed: false, reason: "license_read_only" };
     }
   }
@@ -965,7 +1022,7 @@ function useAccess() {
   const data = React6.useSyncExternalStore(subscribeAccess, getAccessSnapshot, getAccessSnapshot);
   const ctx = data?.context ?? null;
   React6.useEffect(() => {
-    if (data === null && localStorage.getItem("jm_access_token")) void refreshAccess();
+    if (data === null && readAccessToken()) void refreshAccess();
   }, [data]);
   const can = React6.useCallback(
     (resource, action) => ctx === null ? true : evaluateAccess(ctx, null, resource, action).allowed,
@@ -976,13 +1033,17 @@ function useAccess() {
     [ctx]
   );
   const isModuleLicensed = React6.useCallback(
-    (moduleName) => ctx === null || !ctx.license ? true : isModuleLicensedIn(moduleName, ctx.license),
+    (moduleName) => {
+      if (ctx === null || !ctx.license) return true;
+      const moduleSource = splitModuleKey(moduleKeyForName(ctx, moduleName))[0];
+      return isModuleLicensedIn(moduleName, ctx.license, moduleSource || null);
+    },
     [ctx]
   );
   const isAdmin = React6.useMemo(() => {
     if (ctx !== null) return hasAdminRole(ctx.roles ?? [], ctx.admin_role);
     try {
-      return hasAdminRole(JSON.parse(localStorage.getItem("jm_user") ?? "{}")?.roles ?? []);
+      return hasAdminRole(JSON.parse(localStorage.getItem(signInStorageKeys().signedInUser) ?? "{}")?.roles ?? []);
     } catch {
       return false;
     }
@@ -1028,13 +1089,12 @@ function filterMenuItemsByAccess(items, access) {
         if (access.isAdmin) result.push(item);
         continue;
       }
-      if (!access.isModuleLicensed(moduleName)) continue;
       if (children && children.length > 0) {
         const kept = filterMenuItemsByAccess(children, access);
         if (kept.length > 0) result.push({ ...item, children: kept });
         continue;
       }
-      if (access.canModule(moduleName, "read")) result.push(item);
+      if (access.isModuleLicensed(moduleName) && access.canModule(moduleName, "read")) result.push(item);
       continue;
     }
     const resource = String(item.name ?? "");
@@ -1043,20 +1103,43 @@ function filterMenuItemsByAccess(items, access) {
   }
   return result;
 }
+
+// src/hooks/useLayoutMenuItems.ts
+var DASHBOARD_MENU_RESOURCE_NAME = "dashboard";
+function useLayoutMenuItems() {
+  const { menuItems, selectedKey } = core.useMenu();
+  const access = useAccess();
+  const { showDashboardMenuEntry } = useLayoutMenuSettings();
+  const layoutMenuItems = React6.useMemo(() => {
+    const readable = filterMenuItemsByAccess(menuItems, access);
+    return showDashboardMenuEntry ? readable : readable.filter((item) => resolveNavKey(item) !== DASHBOARD_MENU_RESOURCE_NAME);
+  }, [menuItems, access, showDashboardMenuEntry]);
+  return { menuItems: layoutMenuItems, selectedKey };
+}
+
+// src/utils/translateMenuLabel.ts
 var _2 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
-var HorizontalMenu = ({ navConfig = [] }) => {
+function translateMenuLabel(item) {
+  const rawLabel = String(item?.label || item?.name || item?.key || "");
+  let label = _2(rawLabel);
+  if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
+    const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    if (humanized && humanized !== rawLabel) {
+      const humanizedLabel = _2(humanized);
+      if (humanizedLabel !== humanized) label = humanizedLabel;
+    }
+  }
+  return label;
+}
+var COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS = { itemPaddingInline: 8, horizontalItemGutter: 0 };
+var HorizontalMenu = ({ navConfig = [], collapsed = false }) => {
   const { mode } = React6.useContext(ColorModeContext);
-  const { menuItems, selectedKey } = core.useMenu();
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
   const go = core.useGo();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
-  const licensedMenuItems = React6.useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -1077,15 +1160,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     return normalizeToneKey(routeCandidate || keyCandidate || label || "default");
   };
   const renderLabel = (item, depth, hasChildren) => {
-    const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _2(rawLabel);
-    if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-      const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _2(humanized);
-        if (humanizedLabel !== humanized) label = humanizedLabel;
-      }
-    }
+    const label = translateMenuLabel(item);
     const isModule = depth === 0 || hasChildren;
     isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsxRuntime.jsx(
@@ -1109,12 +1184,14 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     return items2.map((item) => {
       const safeChildren = Array.isArray(item?.children) ? item.children : [];
       const hasChildren = safeChildren.length > 0;
+      const iconOnly = collapsed && depth === 0;
+      const children = hasChildren ? transformItems(item.children, depth + 1) : void 0;
       return {
         key: item.key,
-        label: renderLabel(item, depth, hasChildren),
-        icon: getIcon(item),
+        label: iconOnly ? null : renderLabel(item, depth, hasChildren),
+        icon: iconOnly && !hasChildren ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: translateMenuLabel(item), placement: "bottom", children: /* @__PURE__ */ jsxRuntime.jsx("span", { children: getIcon(item) }) }) : getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
-        children: hasChildren ? transformItems(item.children, depth + 1) : void 0
+        children: iconOnly && hasChildren ? [{ type: "group", key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }] : children
       };
     });
   };
@@ -1123,36 +1200,31 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     [licensedMenuItems, navConfig]
   );
   const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Menu,
-    {
-      mode: "horizontal",
-      theme: mode === "dark" ? "light" : "dark",
-      selectedKeys: [selectedKey],
-      items,
-      style: {
-        borderBottom: "none",
-        flex: 1,
-        background: "transparent"
+  return (
+    // Minimized (icons only), the entries sit closer together so more of them fit on one line.
+    /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Menu,
+      {
+        mode: "horizontal",
+        theme: mode === "dark" ? "light" : "dark",
+        selectedKeys: [selectedKey],
+        items,
+        style: {
+          borderBottom: "none",
+          flex: 1,
+          background: "transparent"
+        }
       }
-    }
+    ) })
   );
 };
-var _3 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
+var COLLAPSED_MENU_COMPACT_TOKENS = { itemHeight: 32, itemMarginBlock: 1, itemMarginInline: 4 };
 var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   const { token } = antd.theme.useToken();
   const { mode } = React6.useContext(ColorModeContext);
-  const { menuItems, selectedKey } = core.useMenu();
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
   const go = core.useGo();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
-  const licensedMenuItems = React6.useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
   const getIcon = (item) => {
     const key = String(item?.key || "");
     const label = String(item?.label || item?.name || "");
@@ -1173,15 +1245,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     return normalizeToneKey(routeCandidate || keyCandidate || label || "default");
   };
   const renderLabel = (item, depth, hasChildren) => {
-    const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _3(rawLabel);
-    if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
-      const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _3(humanized);
-        if (humanizedLabel !== humanized) label = humanizedLabel;
-      }
-    }
+    const label = translateMenuLabel(item);
     const isModule = depth === 0 || hasChildren;
     isModule ? getModelTone(`module:${item?.key || label}`) : getModelTone(resolveModelSeed(item));
     return /* @__PURE__ */ jsxRuntime.jsx(
@@ -1205,12 +1269,14 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     return items2.map((item) => {
       const safeChildren = Array.isArray(item?.children) ? item.children : [];
       const hasChildren = safeChildren.length > 0;
+      const children = hasChildren ? transformItems(item.children, depth + 1) : void 0;
+      const titledPopup = collapsed && depth === 0 && hasChildren;
       return {
         key: item.key,
         label: renderLabel(item, depth, hasChildren),
         icon: getIcon(item),
         onClick: hasChildren ? void 0 : () => go({ to: item.route }),
-        children: hasChildren ? transformItems(item.children, depth + 1) : void 0
+        children: titledPopup ? [{ type: "group", key: `${item.key}:popup-title`, label: translateMenuLabel(item), children }] : children
       };
     });
   };
@@ -1222,7 +1288,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     () => injectJourneyMenuItems(sortedMenuItems, journeysByModule),
     [sortedMenuItems, journeysByModule]
   );
-  const items = React6.useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig]);
+  const items = React6.useMemo(() => transformItems(withJourneys), [withJourneys, mode, navConfig, collapsed]);
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Layout.Sider,
     {
@@ -1283,7 +1349,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
               overflowX: "hidden",
               paddingBottom: 12
             },
-            children: /* @__PURE__ */ jsxRuntime.jsx(
+            children: /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsxRuntime.jsx(
               antd.Menu,
               {
                 mode: "inline",
@@ -1292,7 +1358,7 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
                 items,
                 style: { borderRight: "none", marginTop: "8px" }
               }
-            )
+            ) })
           }
         )
       ] })
@@ -1304,7 +1370,6 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
 var API_URL2 = "/api";
 
 // src/hooks/useNonModelDataResourceModels.ts
-var TOKEN_KEY2 = "jm_access_token";
 var nonModelDataModelsRequestInFlight = null;
 function fetchNonModelDataResourceModels() {
   if (!nonModelDataModelsRequestInFlight) {
@@ -1315,7 +1380,7 @@ function fetchNonModelDataResourceModels() {
   return nonModelDataModelsRequestInFlight;
 }
 async function requestNonModelDataResourceModels() {
-  if (!localStorage.getItem(TOKEN_KEY2)) return [];
+  if (!readAccessToken()) return [];
   try {
     const response = await authenticatedFetch(`${API_URL2}/veloiq/non-model-data-resources`);
     if (!response.ok) return [];
@@ -1490,7 +1555,7 @@ function useRecordSearch() {
   }, []);
   return { results, searching, search, clear };
 }
-var _4 = window._ || ((text) => text);
+var _3 = window._ || ((text) => text);
 var flattenMenuItems = (items, parentLabel = "") => {
   const result = [];
   for (const item of items) {
@@ -1508,16 +1573,12 @@ var flattenMenuItems = (items, parentLabel = "") => {
   return result;
 };
 var GlobalSearch = () => {
-  const { menuItems } = core.useMenu();
+  const { menuItems } = useLayoutMenuItems();
   const navigate = reactRouterDom.useNavigate();
   const [searchText, setSearchText] = React6.useState("");
   const { results: backendResults, searching, search, clear } = useRecordSearch();
   const { token } = antd.theme.useToken();
-  const access = useAccess();
-  const searchableResources = React6.useMemo(
-    () => flattenMenuItems(filterMenuItemsByAccess(menuItems, access)),
-    [menuItems, access]
-  );
+  const searchableResources = React6.useMemo(() => flattenMenuItems(menuItems), [menuItems]);
   const resourceResults = React6.useMemo(() => {
     const q2 = searchText.toLowerCase().trim();
     if (!q2) return [];
@@ -1527,7 +1588,7 @@ var GlobalSearch = () => {
     if (matches.length === 0) return [];
     return [
       {
-        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _4("Go to") }),
+        label: /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _3("Go to") }),
         options: matches.slice(0, 10).map((r) => ({
           value: `nav:${r.listPath}`,
           key: `nav-${r.name}`,
@@ -1601,7 +1662,7 @@ var GlobalSearch = () => {
         antd.Input,
         {
           ref: inputRef,
-          placeholder: focused ? `${_4("Search")}...` : "",
+          placeholder: focused ? `${_3("Search")}...` : "",
           prefix: searching ? /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SearchOutlined, {}),
           suffix: !focused ? /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", style: { fontSize: 9 }, children: "\u2303K" }) : void 0,
           allowClear: true,
@@ -1726,12 +1787,11 @@ var CommandCenterPortal = ({
   onClose,
   navConfig = []
 }) => {
-  const { menuItems: rawMenuItems } = core.useMenu();
+  const { menuItems: layoutMenuItems } = useLayoutMenuItems();
   const journeysByModule = useJourneyMenuItems();
-  const access = useAccess();
   const menuItems = React6.useMemo(
-    () => injectJourneyMenuItems(filterMenuItemsByAccess(rawMenuItems, access), journeysByModule),
-    [rawMenuItems, journeysByModule, access]
+    () => injectJourneyMenuItems(layoutMenuItems, journeysByModule),
+    [layoutMenuItems, journeysByModule]
   );
   const go = core.useGo();
   const searchRef = React6.useRef(null);
@@ -2353,7 +2413,7 @@ function useSetHelpPageKey(pageKey, recordId = null) {
     return () => setPageKey(null, null);
   }, [pageKey, recordId, setPageKey]);
 }
-var _5 = window._ || ((text) => text);
+var _4 = window._ || ((text) => text);
 var DASHBOARD_MAIN_PAGE_KEY = "_dashboard:main";
 var TOOLTIP_BY_SUFFIX = {
   list: "List page help",
@@ -2362,13 +2422,13 @@ var TOOLTIP_BY_SUFFIX = {
   create: "Create page help"
 };
 function tooltipForPageKey(pageKey) {
-  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _5("Dashboard help");
+  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _4("Dashboard help");
   if (pageKey) {
     const suffix = pageKey.split(":").pop() || "";
     const label = TOOLTIP_BY_SUFFIX[suffix];
-    if (label) return _5(label);
+    if (label) return _4(label);
   }
-  return _5("Help");
+  return _4("Help");
 }
 var HelpButton = ({ onClick }) => {
   const { pageKey } = React6.useContext(HelpContext);
@@ -2446,7 +2506,7 @@ var HELP_ACTION_CATALOG = {
     description: "Opens the relation explorer for this record."
   }
 };
-var _6 = window._ || ((text) => text);
+var _5 = window._ || ((text) => text);
 var ReactMarkdown = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
   const { pageKey, recordId } = React6.useContext(HelpContext);
@@ -2498,7 +2558,7 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
       title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
         /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.QuestionCircleOutlined, {}),
         " ",
-        _6("Help")
+        _5("Help")
       ] }),
       placement: "right",
       mask: false,
@@ -2510,24 +2570,24 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
         !loading && doc?.found && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton, { active: true }), children: /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: doc.body || "" }) }),
           !!doc.actions?.length && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginTop: 16 }, children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _6("Click any of these to do it for you:") }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _5("Click any of these to do it for you:") }),
             /* @__PURE__ */ jsxRuntime.jsx(antd.Space, { wrap: true, style: { marginTop: 8, display: "flex" }, children: doc.actions.map((a) => {
               const entry = HELP_ACTION_CATALOG[a.action_key];
               const button = /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", onClick: () => runAction(a.action_key), children: a.label }, a.action_key);
-              return entry ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _6(entry.description), children: button }, a.action_key) : button;
+              return entry ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _5(entry.description), children: button }, a.action_key) : button;
             }) })
           ] })
         ] }),
-        !loading && doc && !doc.found && /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _6("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsxRuntime.jsx(
+        !loading && doc && !doc.found && /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _5("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             type: "link",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _6("Write help for this")
+            children: _5("Write help for this")
           }
         ) }),
         !!extraTexts?.length && /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginTop: 24 }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _6("Related actions") }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _5("Related actions") }),
           /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: null, children: extraTexts.map((t, i) => /* @__PURE__ */ jsxRuntime.jsx(ReactMarkdown, { children: t }, i)) })
         ] })
       ]
@@ -2600,7 +2660,7 @@ var clipToViewport = (rect, viewportWidth, viewportHeight) => {
   return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
 };
 var { Text } = antd.Typography;
-var _7 = (text) => {
+var _6 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2660,7 +2720,7 @@ var CollapsibleBanner = ({
   const collapsedPx = percentSize(collapsedSize, contentRect);
   const expandedPx = percentSize(expandedSize, contentRect);
   const alignItems = position.horizontal === "left" ? "flex-start" : position.horizontal === "right" ? "flex-end" : "center";
-  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _7("Move banner"), children: bannerMoves(_7).map((move) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: move.label, children: /* @__PURE__ */ jsxRuntime.jsx(
+  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _6("Move banner"), children: bannerMoves(_6).map((move) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: move.label, children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       type: "text",
@@ -2704,7 +2764,7 @@ var CollapsibleBanner = ({
             headerExtra
           ] }),
           arrows,
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}), "aria-label": _7("Close"), title: _7("Close"), onClick: () => setOpen(false) })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CloseOutlined, {}), "aria-label": _6("Close"), title: _6("Close"), onClick: () => setOpen(false) })
         ] }),
         /* @__PURE__ */ jsxRuntime.jsx("div", { style: { overflowY: "auto", padding: "0 12px", minHeight: 0 }, children }),
         footer && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "6px 12px", borderTop: `1px solid ${colors.border}` }, children: footer })
@@ -2770,7 +2830,7 @@ var CollapsibleBanner = ({
   );
 };
 var { Text: Text2 } = antd.Typography;
-var _8 = (text) => {
+var _7 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2796,7 +2856,7 @@ var ModelBanner = ({
   onViewAll
 }) => {
   const { token } = antd.theme.useToken();
-  const title = _8(banner.title || "");
+  const title = _7(banner.title || "");
   const [mainColumn, ...otherColumns] = banner.columns;
   const collapsedContent = {
     count: String(banner.count),
@@ -2818,7 +2878,7 @@ var ModelBanner = ({
         "(",
         banner.count,
         " ",
-        _8("total"),
+        _7("total"),
         ")"
       ] }),
       position,
@@ -2829,7 +2889,7 @@ var ModelBanner = ({
       onMove,
       expanded,
       onExpandedChange,
-      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _8("View all") }) : void 0,
+      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _7("View all") }) : void 0,
       children: [
         banner.rows.map((row, i) => {
           const clickable = Boolean(rowResource && onOpenRow && row.eid !== null && row.eid !== void 0);
@@ -2838,7 +2898,7 @@ var ModelBanner = ({
             otherColumns.map((column) => {
               const text = cellText(row[column.key]);
               return text ? /* @__PURE__ */ jsxRuntime.jsxs(Text2, { type: "secondary", style: { whiteSpace: "nowrap" }, children: [
-                _8(column.label),
+                _7(column.label),
                 ": ",
                 text
               ] }, column.key) : null;
@@ -3004,10 +3064,13 @@ var pageContextFromPath = (pathname, allModels = []) => {
   if (!model) return { resource: segment };
   return { resource: model.resource || model.name, module: model.module };
 };
-var AppBannerHost = ({ allModels, ...props }) => {
+var AppBannerHost = ({ allModels, site, ...props }) => {
   const location = reactRouterDom.useLocation();
   const navigate = reactRouterDom.useNavigate();
-  const context = React6.useMemo(() => pageContextFromPath(location.pathname, allModels), [location.pathname, allModels]);
+  const context = React6.useMemo(
+    () => ({ ...pageContextFromPath(location.pathname, allModels), ...site ? { site } : {} }),
+    [location.pathname, allModels, site]
+  );
   if (location.pathname.startsWith("/login")) return null;
   return /* @__PURE__ */ jsxRuntime.jsx(
     BannerHost,
@@ -3028,471 +3091,6 @@ function useNavModules() {
   const navConfig = useNavConfig();
   return (navConfig || []).filter((e) => e.type === "module" && String(e.key || "").startsWith("module:")).map((e) => ({ value: String(e.key).slice("module:".length), label: e.label || String(e.key).slice("module:".length) }));
 }
-var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
-  const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
-    logoEl,
-    !collapsed && !hideTitle && appTitle && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 4, style: { margin: 0, whiteSpace: "nowrap", fontWeight: 350, fontSize: "18px" }, children: appTitle })
-  ] });
-};
-var MobileMenuContent = ({ onClose }) => {
-  const { menuItems, selectedKey } = core.useMenu();
-  const go = core.useGo();
-  const access = useAccess();
-  const licensedMenuItems = React6__default.default.useMemo(
-    () => filterMenuItemsByAccess(menuItems, access),
-    [menuItems, access]
-  );
-  const transformItems = (items) => {
-    if (!Array.isArray(items)) return [];
-    return items.map((item) => ({
-      key: item.key,
-      label: item.label || item.name || item.key,
-      icon: item.icon,
-      onClick: item.children?.length ? void 0 : () => {
-        go({ to: item.route });
-        onClose();
-      },
-      children: item.children?.length ? transformItems(item.children) : void 0
-    }));
-  };
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Menu,
-    {
-      mode: "inline",
-      selectedKeys: [selectedKey],
-      items: transformItems(licensedMenuItems),
-      style: { borderRight: "none" }
-    }
-  );
-};
-var LayoutWrapper = ({
-  children,
-  logo,
-  appTitle,
-  extraUserMenuItems = [],
-  navConfig = [],
-  helpButtonTexts,
-  globalHeaderComponents = [],
-  showBanners = true,
-  bannerModels
-}) => {
-  const [layoutMode, setLayoutMode] = React6.useState(
-    () => localStorage.getItem("layoutMode") || "vertical"
-  );
-  const screens = antd.Grid.useBreakpoint();
-  const isMobile = !screens.md;
-  const { mode, setMode } = React6.useContext(ColorModeContext);
-  const { token } = antd.theme.useToken();
-  const { data: identity } = core.useGetIdentity();
-  const { mutate: logout } = core.useLogout();
-  core.useGo();
-  const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
-  const [siderCollapsed, setSiderCollapsed] = React6.useState(() => localStorage.getItem("siderCollapsed") === "true");
-  const [pwdModalOpen, setPwdModalOpen] = React6.useState(false);
-  const [pwdLoading, setPwdLoading] = React6.useState(false);
-  const [pwdForm] = antd.Form.useForm();
-  const [drawerOpen, setDrawerOpen] = React6.useState(false);
-  const [portalOpen, setPortalOpen] = React6.useState(false);
-  const [helpOpen, setHelpOpen] = React6.useState(false);
-  const [helpPageKey, setHelpPageKeyState] = React6.useState(null);
-  const [helpRecordId, setHelpRecordId] = React6.useState(null);
-  const setHelpPageKey = React6__default.default.useCallback((key, recordId = null) => {
-    setHelpPageKeyState(key);
-    setHelpRecordId(recordId);
-  }, []);
-  const { canModule } = useAccess();
-  useAccessQueryInvalidation();
-  const filterMenuItemsByLicense = React6__default.default.useCallback(
-    (items) => {
-      if (!Array.isArray(items)) return [];
-      return items.filter((item) => {
-        if (typeof item !== "object" || item === null) return true;
-        if (!item.module) return true;
-        return canModule(item.module, "read");
-      }).map((item) => {
-        if (Array.isArray(item.children)) {
-          return { ...item, children: filterMenuItemsByLicense(item.children) };
-        }
-        return item;
-      });
-    },
-    [canModule]
-  );
-  const userRoles = identity?.roles ?? [];
-  const filterMenuItemsByRole = React6__default.default.useCallback(
-    (items) => {
-      if (!Array.isArray(items)) return [];
-      return items.filter((item) => {
-        if (typeof item !== "object" || item === null) return true;
-        if (!item.roles) return true;
-        return item.roles.some((r) => userRoles.includes(r));
-      }).map((item) => {
-        if (Array.isArray(item.children)) {
-          return { ...item, children: filterMenuItemsByRole(item.children) };
-        }
-        return item;
-      });
-    },
-    [userRoles]
-  );
-  React6.useEffect(() => {
-    const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        setPortalOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-  const toggleSider = () => {
-    const next = !siderCollapsed;
-    setSiderCollapsed(next);
-    localStorage.setItem("siderCollapsed", String(next));
-  };
-  const handleChangePassword = async (values) => {
-    setPwdLoading(true);
-    try {
-      const res = await authenticatedFetch(`/auth/change-password`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values)
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        antd.message.error(body?.detail || "Failed to change password");
-        return;
-      }
-      antd.message.success(body?.message || "Password changed successfully");
-      setPwdModalOpen(false);
-      pwdForm.resetFields();
-    } catch {
-      antd.message.error("Network error");
-    } finally {
-      setPwdLoading(false);
-    }
-  };
-  const userItems = [
-    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
-    ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
-    { type: "divider" },
-    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LogoutOutlined, {}), danger: true, onClick: () => logout() }
-  ];
-  const CustomHeader = () => /* @__PURE__ */ jsxRuntime.jsxs(antd.Layout.Header, { style: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "2px 10px",
-    height: "auto",
-    lineHeight: "normal",
-    background: token.colorBgContainer,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    position: "sticky",
-    top: 0,
-    zIndex: 999
-  }, children: [
-    /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", flex: 1, minWidth: 0 }, children: [
-      layoutMode === "vertical" && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMobile ? "Open menu" : siderCollapsed ? "Expand sidebar" : "Collapse sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Button,
-        {
-          type: "text",
-          icon: isMobile ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuFoldOutlined, {}),
-          onClick: isMobile ? () => setDrawerOpen(true) : toggleSider,
-          style: { marginRight: 6, flexShrink: 0 }
-        }
-      ) }),
-      layoutMode === "horizontal" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-        isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
-        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
-        !isMobile && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(HorizontalMenu, { navConfig }) })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(GlobalSearch, {}) }),
-    /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
-      globalHeaderComponents.map((C2, i) => /* @__PURE__ */ jsxRuntime.jsx(C2, {}, i)),
-      /* @__PURE__ */ jsxRuntime.jsxs(antd.Space.Compact, { children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Button,
-          {
-            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LayoutOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.AppstoreOutlined, {}),
-            onClick: () => {
-              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
-              setLayoutMode(next);
-              localStorage.setItem("layoutMode", next);
-            },
-            type: "text"
-          }
-        ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Button,
-          {
-            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BorderInnerOutlined, {}),
-            onClick: () => setPortalOpen(true),
-            type: "text"
-          }
-        ) }),
-        /* @__PURE__ */ jsxRuntime.jsx(HelpButton, { onClick: () => setHelpOpen((prev) => !prev) })
-      ] }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Switch,
-        {
-          checkedChildren: "\u{1F31C}",
-          unCheckedChildren: "\u{1F31E}",
-          checked: mode === "dark",
-          onChange: () => setMode(mode === "light" ? "dark" : "light")
-        }
-      ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Dropdown, { menu: { items: userItems }, trigger: ["click"], children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { style: { cursor: "pointer" }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UserOutlined, {}) }),
-        !isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { strong: true, children: displayName }),
-        /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, { style: { fontSize: 10 } })
-      ] }) })
-    ] })
-  ] });
-  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsxRuntime.jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
-  return /* @__PURE__ */ jsxRuntime.jsx(NavConfigContext.Provider, { value: navConfig, children: /* @__PURE__ */ jsxRuntime.jsxs(HelpContext.Provider, { value: { pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(
-      antd$1.ThemedLayoutV2,
-      {
-        Title: ({ collapsed }) => /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, collapsed }),
-        Sider: SiderToRender,
-        Header: CustomHeader,
-        children
-      },
-      layoutMode
-    ),
-    showBanners && /* @__PURE__ */ jsxRuntime.jsx(AppBannerHost, { allModels: bannerModels }),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      CommandCenterPortal,
-      {
-        open: portalOpen,
-        onClose: () => setPortalOpen(false),
-        navConfig
-      }
-    ),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      HelpDrawer,
-      {
-        open: helpOpen,
-        onClose: () => setHelpOpen(false),
-        helpButtonTexts
-      }
-    ),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Drawer,
-      {
-        title: /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, isHeader: true }),
-        placement: "left",
-        open: drawerOpen,
-        onClose: () => setDrawerOpen(false),
-        width: 280,
-        styles: { body: { padding: 0 } },
-        children: /* @__PURE__ */ jsxRuntime.jsx(MobileMenuContent, { onClose: () => setDrawerOpen(false) })
-      }
-    ),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Modal,
-      {
-        title: "Change Password",
-        open: pwdModalOpen,
-        onCancel: () => {
-          setPwdModalOpen(false);
-          pwdForm.resetFields();
-        },
-        footer: null,
-        destroyOnHidden: true,
-        children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Form, { form: pwdForm, layout: "vertical", onFinish: handleChangePassword, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            antd.Form.Item,
-            {
-              name: "confirm_password",
-              label: "Confirm Password",
-              dependencies: ["new_password"],
-              rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_76, value) {
-                  if (!value || getFieldValue("new_password") === value) return Promise.resolve();
-                  return Promise.reject(new Error("Passwords do not match"));
-                }
-              })],
-              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) })
-            }
-          ),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { style: { marginBottom: 0, textAlign: "right" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: () => {
-              setPwdModalOpen(false);
-              pwdForm.resetFields();
-            }, children: "Cancel" }),
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", htmlType: "submit", loading: pwdLoading, children: "Change Password" })
-          ] }) })
-        ] })
-      }
-    )
-  ] }) });
-};
-var _9 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
-var NoAccessResult = () => {
-  const navigate = reactRouterDom.useNavigate();
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Result,
-    {
-      status: "warning",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
-      title: _9("No Access"),
-      subTitle: _9("You do not have permission to open this page. Please contact your administrator."),
-      extra: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _9("Go to Dashboard") })
-    }
-  );
-};
-var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
-  const { can } = useAccess();
-  if (can(resource, action)) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children });
-  return embedded ? null : /* @__PURE__ */ jsxRuntime.jsx(NoAccessResult, {});
-};
-var _10 = (text) => {
-  const t = window._;
-  return typeof t === "function" ? t(text) : text;
-};
-var LicenseGate = ({ module: moduleName, children }) => {
-  const navigate = reactRouterDom.useNavigate();
-  const { isModuleLicensed, canModule, loading } = useAccess();
-  if (!moduleName) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children });
-  if (loading) return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "large" }) });
-  if (isModuleLicensed(moduleName)) {
-    return canModule(moduleName, "read") ? /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children }) : /* @__PURE__ */ jsxRuntime.jsx(NoAccessResult, {});
-  }
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    antd.Result,
-    {
-      status: "warning",
-      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
-      title: _10("Module Not Licensed"),
-      subTitle: _10(
-        `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
-      ),
-      extra: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _10("Go to Dashboard") })
-    }
-  );
-};
-var PANE_TOOLBAR_HEIGHT = 28;
-var PaneNavigationContext = React6.createContext(null);
-var usePaneNavigation = () => React6.useContext(PaneNavigationContext);
-var _11 = window._ || ((text) => text);
-var NARROW_BREAKPOINT = 768;
-var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
-  const [narrow, setNarrow] = React6.useState(
-    () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
-  );
-  React6.useEffect(() => {
-    const handler = () => setNarrow(window.innerWidth < breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return narrow;
-};
-var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsxRuntime.jsx(
-  "div",
-  {
-    style: {
-      display: "flex",
-      alignItems: direction === "column" ? "stretch" : "center",
-      flexDirection: direction,
-      gap: 8,
-      flexWrap: direction === "row" ? "wrap" : "nowrap"
-    },
-    children
-  }
-);
-var VerticalActionsLayout = ({ position, onBarMount, children }) => {
-  const { token } = antd.theme.useToken();
-  const narrow = useIsNarrow();
-  const [drawerOpen, setDrawerOpen] = React6.useState(false);
-  const mountRef = React6.useCallback(
-    (el) => onBarMount(el),
-    [onBarMount]
-  );
-  const isVertical = position === "left" || position === "right";
-  const stickyOffset = 80;
-  const sideOffset = 16;
-  const sideKey = position === "left" ? "left" : "right";
-  const useDrawer = isVertical && narrow;
-  const useFixedBar = isVertical && !narrow;
-  const contentSidePadding = useFixedBar ? 72 : 0;
-  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    useFixedBar && /* @__PURE__ */ jsxRuntime.jsx(
-      "div",
-      {
-        ref: mountRef,
-        style: {
-          position: "fixed",
-          top: stickyOffset,
-          [sideKey]: sideOffset,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          padding: 8,
-          background: token.colorBgContainer,
-          border: `1px solid ${token.colorBorderSecondary}`,
-          borderRadius: 8,
-          boxShadow: token.boxShadowTertiary,
-          zIndex: 5
-        }
-      }
-    ),
-    useDrawer && /* @__PURE__ */ jsxRuntime.jsx(
-      "div",
-      {
-        style: {
-          position: "fixed",
-          top: stickyOffset,
-          [sideKey]: sideOffset,
-          zIndex: 1001
-        },
-        children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _11("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Button,
-          {
-            size: "small",
-            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}),
-            onClick: () => setDrawerOpen(true)
-          }
-        ) })
-      }
-    ),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      "div",
-      {
-        style: {
-          paddingLeft: sideKey === "left" ? contentSidePadding : 0,
-          paddingRight: sideKey === "right" ? contentSidePadding : 0
-        },
-        children
-      }
-    ),
-    useDrawer && /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Drawer,
-      {
-        title: _11("Actions"),
-        placement: sideKey,
-        open: drawerOpen,
-        onClose: () => setDrawerOpen(false),
-        width: 240,
-        forceRender: true,
-        children: /* @__PURE__ */ jsxRuntime.jsx(
-          "div",
-          {
-            ref: mountRef,
-            style: { display: "flex", flexDirection: "column", gap: 8 }
-          }
-        )
-      }
-    )
-  ] });
-};
 
 // src/components/DynamicResource/utils/model.ts
 var getRecordId = (record, fields) => {
@@ -3652,7 +3250,7 @@ var getNavigableRelations = (model, allModels) => {
 };
 
 // src/components/DynamicResource/utils/i18n.ts
-var _12 = (text) => {
+var _8 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -3668,7 +3266,7 @@ var asDisplayText = (value, fallback = "") => {
 var translateText = (key, fallback) => {
   const safeKey = asDisplayText(key, "");
   if (!safeKey) return fallback ?? "";
-  const translated = _12(safeKey);
+  const translated = _8(safeKey);
   return asDisplayText(translated, fallback ?? safeKey);
 };
 var MODULE_LABEL_OVERRIDES = {
@@ -3738,23 +3336,23 @@ var translateRelationKey = (rawKey) => {
   return translateText(key, key);
 };
 var getRelationLabel = (rel) => {
-  const relationKey = String(rel.relationName || rel.resource || "").trim();
-  if (!relationKey) return _12(rel.label || "");
-  const translatedByKey = translateRelationKey(relationKey);
-  if (translatedByKey && translatedByKey !== relationKey) return translatedByKey;
-  const withoutRelationSuffix = relationKey.replace(/_relation$/, "");
-  if (withoutRelationSuffix && withoutRelationSuffix !== relationKey) {
+  const relationKey2 = String(rel.relationName || rel.resource || "").trim();
+  if (!relationKey2) return _8(rel.label || "");
+  const translatedByKey = translateRelationKey(relationKey2);
+  if (translatedByKey && translatedByKey !== relationKey2) return translatedByKey;
+  const withoutRelationSuffix = relationKey2.replace(/_relation$/, "");
+  if (withoutRelationSuffix && withoutRelationSuffix !== relationKey2) {
     const translatedWithoutSuffix = translateRelationKey(withoutRelationSuffix);
     if (translatedWithoutSuffix && translatedWithoutSuffix !== withoutRelationSuffix) {
       return translatedWithoutSuffix;
     }
   }
-  if (relationKey.endsWith("_object")) {
-    const baseKey = relationKey.replace(/_object$/, "");
+  if (relationKey2.endsWith("_object")) {
+    const baseKey = relationKey2.replace(/_object$/, "");
     const translatedBaseKey = translateRelationKey(baseKey);
     if (translatedBaseKey && translatedBaseKey !== baseKey) return translatedBaseKey;
   }
-  return asDisplayText(rel.label, asDisplayText(relationKey, "")) || relationKey;
+  return asDisplayText(rel.label, asDisplayText(relationKey2, "")) || relationKey2;
 };
 var getModelLabel = (model) => {
   const primary = asDisplayText(model.label, "");
@@ -3830,9 +3428,9 @@ window.ddlTrace = ddlTrace;
 window.ddlTraceClear = ddlTraceClear;
 
 // src/components/DynamicResource/utils/viewConfig.ts
-var _13 = window._ || ((text) => text);
+var _9 = window._ || ((text) => text);
 var DETAILS_TAB_NAME = "Details";
-var getDefaultViewName = () => _13("default view");
+var getDefaultViewName = () => _9("default view");
 var normalizeViewName = (name) => {
   const trimmed = String(name ?? "").trim();
   return trimmed || getDefaultViewName();
@@ -3933,6 +3531,7 @@ var useViewSettings = () => {
           modelsColorSchema,
           generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),
           addTabsForNonConfiguredRelations: data?.addTabsForNonConfiguredRelations !== false,
+          showDashboardMenuEntry: data?.showDashboardMenuEntry !== false,
           panesLayoutMode: normalizePanesLayoutMode(data?.panesLayoutMode),
           panesMaxVisible: normalizePositiveInt(data?.panesMaxVisible, DEFAULT_PANES_MAX_VISIBLE),
           panesFixedWidth: normalizePositiveInt(data?.panesFixedWidth, DEFAULT_PANES_FIXED_WIDTH)
@@ -4049,7 +3648,7 @@ var resolveFieldFromConfig = (model, item) => {
   const key = item.object_name || item.name;
   return {
     key,
-    label: _13(key),
+    label: _9(key),
     type: "string"
   };
 };
@@ -4274,6 +3873,492 @@ var applyRelationViewOverride = (rel, item, mode) => {
   }
   ddlTrace("applyRelationViewOverride CUSTOM-PAGE", { relKey: rel.relationName || rel.resource || rel.label || "?", mode, trimmed });
   return mode === "show" ? { ...rel, showViewType: "primary", showViewTypeFromCsv: true, showCustomPageName: trimmed } : { ...rel, editViewType: "primary", editViewTypeFromCsv: true, editCustomPageName: trimmed };
+};
+var _10 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var DefaultLogo = ({ logo, appTitle, collapsed, isHeader = false, hideTitle = false }) => {
+  const logoEl = typeof logo === "string" ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: logo, alt: appTitle || "App", style: { height: isHeader ? "32px" : "40px", width: "auto", marginRight: collapsed || hideTitle ? 0 : 10 } }) : logo ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { marginRight: collapsed || hideTitle ? 0 : 10, display: "flex", alignItems: "center" }, children: logo }) : null;
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: isHeader ? 0 : "10px 0" }, children: [
+    logoEl,
+    !collapsed && !hideTitle && appTitle && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 4, style: { margin: 0, whiteSpace: "nowrap", fontWeight: 350, fontSize: "18px" }, children: appTitle })
+  ] });
+};
+var MobileMenuContent = ({ onClose }) => {
+  const { menuItems: licensedMenuItems, selectedKey } = useLayoutMenuItems();
+  const go = core.useGo();
+  const transformItems = (items) => {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({
+      key: item.key,
+      label: item.label || item.name || item.key,
+      icon: item.icon,
+      onClick: item.children?.length ? void 0 : () => {
+        go({ to: item.route });
+        onClose();
+      },
+      children: item.children?.length ? transformItems(item.children) : void 0
+    }));
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Menu,
+    {
+      mode: "inline",
+      selectedKeys: [selectedKey],
+      items: transformItems(licensedMenuItems),
+      style: { borderRight: "none" }
+    }
+  );
+};
+var LayoutWrapper = ({
+  children,
+  logo,
+  appTitle,
+  extraUserMenuItems = [],
+  navConfig = [],
+  helpButtonTexts,
+  globalHeaderComponents = [],
+  showBanners = true,
+  bannerModels,
+  showDashboardMenuEntry,
+  defaultLayoutMode = "vertical",
+  bannerSite
+}) => {
+  const { settings: viewSettings } = useViewSettings();
+  const layoutMenuSettings = React6__default.default.useMemo(() => ({
+    showDashboardMenuEntry: showDashboardMenuEntry ?? viewSettings?.showDashboardMenuEntry ?? true
+  }), [showDashboardMenuEntry, viewSettings?.showDashboardMenuEntry]);
+  const [horizontalMenuCollapsed, setHorizontalMenuCollapsed] = React6.useState(() => localStorage.getItem(siteScopedStorageKey("horizontalMenuCollapsed")) === "true");
+  const toggleHorizontalMenu = () => {
+    const next = !horizontalMenuCollapsed;
+    setHorizontalMenuCollapsed(next);
+    localStorage.setItem(siteScopedStorageKey("horizontalMenuCollapsed"), String(next));
+  };
+  const [layoutMode, setLayoutMode] = React6.useState(
+    () => localStorage.getItem(siteScopedStorageKey("layoutMode")) || defaultLayoutMode
+  );
+  const screens = antd.Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const { mode, setMode } = React6.useContext(ColorModeContext);
+  const { token } = antd.theme.useToken();
+  const { data: identity } = core.useGetIdentity();
+  const { mutate: logout } = core.useLogout();
+  core.useGo();
+  const displayName = identity ? [identity.first_name, identity.last_name].filter(Boolean).join(" ") || identity.username || "User" : "User";
+  const [siderCollapsed, setSiderCollapsed] = React6.useState(() => localStorage.getItem(siteScopedStorageKey("siderCollapsed")) === "true");
+  const [pwdModalOpen, setPwdModalOpen] = React6.useState(false);
+  const [pwdLoading, setPwdLoading] = React6.useState(false);
+  const [pwdForm] = antd.Form.useForm();
+  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const [portalOpen, setPortalOpen] = React6.useState(false);
+  const [helpOpen, setHelpOpen] = React6.useState(false);
+  const [helpPageKey, setHelpPageKeyState] = React6.useState(null);
+  const [helpRecordId, setHelpRecordId] = React6.useState(null);
+  const setHelpPageKey = React6__default.default.useCallback((key, recordId = null) => {
+    setHelpPageKeyState(key);
+    setHelpRecordId(recordId);
+  }, []);
+  const { canModule } = useAccess();
+  useAccessQueryInvalidation();
+  const filterMenuItemsByLicense = React6__default.default.useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        if (!item.module) return true;
+        return canModule(item.module, "read");
+      }).map((item) => {
+        if (Array.isArray(item.children)) {
+          return { ...item, children: filterMenuItemsByLicense(item.children) };
+        }
+        return item;
+      });
+    },
+    [canModule]
+  );
+  const userRoles = identity?.roles ?? [];
+  const filterMenuItemsByRole = React6__default.default.useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        if (!item.roles) return true;
+        return item.roles.some((r) => userRoles.includes(r));
+      }).map((item) => {
+        if (Array.isArray(item.children)) {
+          return { ...item, children: filterMenuItemsByRole(item.children) };
+        }
+        return item;
+      });
+    },
+    [userRoles]
+  );
+  React6.useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setPortalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+  const toggleSider = () => {
+    const next = !siderCollapsed;
+    setSiderCollapsed(next);
+    localStorage.setItem(siteScopedStorageKey("siderCollapsed"), String(next));
+  };
+  const handleChangePassword = async (values) => {
+    setPwdLoading(true);
+    try {
+      const res = await authenticatedFetch(`/auth/change-password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values)
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        antd.message.error(body?.detail || "Failed to change password");
+        return;
+      }
+      antd.message.success(body?.message || "Password changed successfully");
+      setPwdModalOpen(false);
+      pwdForm.resetFields();
+    } catch {
+      antd.message.error("Network error");
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+  const userItems = [
+    { key: "change-password", label: "Change Password", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}), onClick: () => setPwdModalOpen(true) },
+    ...filterMenuItemsByRole(filterMenuItemsByLicense(extraUserMenuItems)),
+    { type: "divider" },
+    { key: "logout", label: "Logout", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LogoutOutlined, {}), danger: true, onClick: () => logout() }
+  ];
+  const CustomHeader = () => /* @__PURE__ */ jsxRuntime.jsxs(antd.Layout.Header, { style: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "2px 10px",
+    height: "auto",
+    lineHeight: "normal",
+    background: token.colorBgContainer,
+    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    position: "sticky",
+    top: 0,
+    zIndex: 999
+  }, children: [
+    /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", flex: 1, minWidth: 0 }, children: [
+      layoutMode === "vertical" && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: isMobile ? "Open menu" : siderCollapsed ? "Expand sidebar" : "Collapse sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Button,
+        {
+          type: "text",
+          icon: isMobile ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}) : siderCollapsed ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuFoldOutlined, {}),
+          onClick: isMobile ? () => setDrawerOpen(true) : toggleSider,
+          style: { marginRight: 6, flexShrink: 0 }
+        }
+      ) }),
+      layoutMode === "horizontal" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+        isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Open menu", children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "text", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}), onClick: () => setDrawerOpen(true), style: { marginRight: 6, flexShrink: 0 } }) }),
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginRight: isMobile ? 4 : 10, flexShrink: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, isHeader: true, hideTitle: isMobile }) }),
+        !isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: horizontalMenuCollapsed ? _10("Expand menu") : _10("Collapse menu"), children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            type: "text",
+            icon: horizontalMenuCollapsed ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuUnfoldOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuFoldOutlined, {}),
+            onClick: toggleHorizontalMenu,
+            style: { marginRight: 4, flexShrink: 0 }
+          }
+        ) }),
+        !isMobile && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ jsxRuntime.jsx(HorizontalMenu, { navConfig, collapsed: horizontalMenuCollapsed }) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flexShrink: 0, marginLeft: 4, marginRight: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx(GlobalSearch, {}) }),
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: isMobile ? "small" : "middle", style: { flexShrink: 0, marginLeft: 6 }, children: [
+      globalHeaderComponents.map((C2, i) => /* @__PURE__ */ jsxRuntime.jsx(C2, {}, i)),
+      /* @__PURE__ */ jsxRuntime.jsxs(antd.Space.Compact, { children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: layoutMode === "vertical" ? "Top Menu" : "Sidebar", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            icon: layoutMode === "vertical" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LayoutOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.AppstoreOutlined, {}),
+            onClick: () => {
+              const next = layoutMode === "vertical" ? "horizontal" : "vertical";
+              setLayoutMode(next);
+              localStorage.setItem(siteScopedStorageKey("layoutMode"), next);
+            },
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: "Command Center (Ctrl+G)", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BorderInnerOutlined, {}),
+            onClick: () => setPortalOpen(true),
+            type: "text"
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntime.jsx(HelpButton, { onClick: () => setHelpOpen((prev) => !prev) })
+      ] }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: mode === "dark" ? "Light mode" : "Dark mode", children: /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Switch,
+        {
+          checkedChildren: "\u{1F31C}",
+          unCheckedChildren: "\u{1F31E}",
+          checked: mode === "dark",
+          onChange: () => setMode(mode === "light" ? "dark" : "light")
+        }
+      ) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Dropdown, { menu: { items: userItems }, trigger: ["click"], children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { style: { cursor: "pointer" }, children: [
+        /* @__PURE__ */ jsxRuntime.jsx(antd.Avatar, { size: 24, style: { backgroundColor: "#1677ff" }, icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UserOutlined, {}) }),
+        !isMobile && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { strong: true, children: displayName }),
+        /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, { style: { fontSize: 10 } })
+      ] }) })
+    ] })
+  ] });
+  const SiderToRender = layoutMode === "vertical" && !isMobile ? () => /* @__PURE__ */ jsxRuntime.jsx(CustomSider, { collapsed: siderCollapsed, logo, appTitle, navConfig }) : () => null;
+  return /* @__PURE__ */ jsxRuntime.jsx(LayoutMenuSettingsContext.Provider, { value: layoutMenuSettings, children: /* @__PURE__ */ jsxRuntime.jsx(NavConfigContext.Provider, { value: navConfig, children: /* @__PURE__ */ jsxRuntime.jsxs(HelpContext.Provider, { value: { pageKey: helpPageKey, recordId: helpRecordId, setPageKey: setHelpPageKey }, children: [
+    /* @__PURE__ */ jsxRuntime.jsx(
+      antd$1.ThemedLayoutV2,
+      {
+        Title: ({ collapsed }) => /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, collapsed }),
+        Sider: SiderToRender,
+        Header: CustomHeader,
+        children
+      },
+      layoutMode
+    ),
+    showBanners && /* @__PURE__ */ jsxRuntime.jsx(AppBannerHost, { allModels: bannerModels, site: bannerSite }),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      CommandCenterPortal,
+      {
+        open: portalOpen,
+        onClose: () => setPortalOpen(false),
+        navConfig
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      HelpDrawer,
+      {
+        open: helpOpen,
+        onClose: () => setHelpOpen(false),
+        helpButtonTexts
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Drawer,
+      {
+        title: /* @__PURE__ */ jsxRuntime.jsx(DefaultLogo, { logo, appTitle, isHeader: true }),
+        placement: "left",
+        open: drawerOpen,
+        onClose: () => setDrawerOpen(false),
+        width: 280,
+        styles: { body: { padding: 0 } },
+        children: /* @__PURE__ */ jsxRuntime.jsx(MobileMenuContent, { onClose: () => setDrawerOpen(false) })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Modal,
+      {
+        title: "Change Password",
+        open: pwdModalOpen,
+        onCancel: () => {
+          setPwdModalOpen(false);
+          pwdForm.resetFields();
+        },
+        footer: null,
+        destroyOnHidden: true,
+        children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Form, { form: pwdForm, layout: "vertical", onFinish: handleChangePassword, children: [
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "current_password", label: "Current Password", rules: [{ required: true }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "new_password", label: "New Password", rules: [{ required: true }, { min: 4 }], children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) }) }),
+          /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Form.Item,
+            {
+              name: "confirm_password",
+              label: "Confirm Password",
+              dependencies: ["new_password"],
+              rules: [{ required: true }, ({ getFieldValue }) => ({
+                validator(_78, value) {
+                  if (!value || getFieldValue("new_password") === value) return Promise.resolve();
+                  return Promise.reject(new Error("Passwords do not match"));
+                }
+              })],
+              children: /* @__PURE__ */ jsxRuntime.jsx(antd.Input.Password, { prefix: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}) })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { style: { marginBottom: 0, textAlign: "right" }, children: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: () => {
+              setPwdModalOpen(false);
+              pwdForm.resetFields();
+            }, children: "Cancel" }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", htmlType: "submit", loading: pwdLoading, children: "Change Password" })
+          ] }) })
+        ] })
+      }
+    )
+  ] }) }) });
+};
+var _11 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var NoAccessResult = () => {
+  const navigate = reactRouterDom.useNavigate();
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Result,
+    {
+      status: "warning",
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
+      title: _11("No Access"),
+      subTitle: _11("You do not have permission to open this page. Please contact your administrator."),
+      extra: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _11("Go to Dashboard") })
+    }
+  );
+};
+var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
+  const { can } = useAccess();
+  if (can(resource, action)) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children });
+  return embedded ? null : /* @__PURE__ */ jsxRuntime.jsx(NoAccessResult, {});
+};
+var _12 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var LicenseGate = ({ module: moduleName, children }) => {
+  const navigate = reactRouterDom.useNavigate();
+  const { isModuleLicensed, canModule, loading } = useAccess();
+  if (!moduleName) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children });
+  if (loading) return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 48, textAlign: "center" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "large" }) });
+  if (isModuleLicensed(moduleName)) {
+    return canModule(moduleName, "read") ? /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children }) : /* @__PURE__ */ jsxRuntime.jsx(NoAccessResult, {});
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Result,
+    {
+      status: "warning",
+      icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.LockOutlined, {}),
+      title: _12("Module Not Licensed"),
+      subTitle: _12(
+        `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
+      ),
+      extra: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _12("Go to Dashboard") })
+    }
+  );
+};
+var PANE_TOOLBAR_HEIGHT = 28;
+var PaneNavigationContext = React6.createContext(null);
+var usePaneNavigation = () => React6.useContext(PaneNavigationContext);
+var _13 = window._ || ((text) => text);
+var NARROW_BREAKPOINT = 768;
+var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
+  const [narrow, setNarrow] = React6.useState(
+    () => typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  React6.useEffect(() => {
+    const handler = () => setNarrow(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return narrow;
+};
+var ActionsButtonStack = ({ direction, children }) => /* @__PURE__ */ jsxRuntime.jsx(
+  "div",
+  {
+    style: {
+      display: "flex",
+      alignItems: direction === "column" ? "stretch" : "center",
+      flexDirection: direction,
+      gap: 8,
+      flexWrap: direction === "row" ? "wrap" : "nowrap"
+    },
+    children
+  }
+);
+var VerticalActionsLayout = ({ position, onBarMount, children }) => {
+  const { token } = antd.theme.useToken();
+  const narrow = useIsNarrow();
+  const [drawerOpen, setDrawerOpen] = React6.useState(false);
+  const mountRef = React6.useCallback(
+    (el) => onBarMount(el),
+    [onBarMount]
+  );
+  const isVertical = position === "left" || position === "right";
+  const stickyOffset = 80;
+  const sideOffset = 16;
+  const sideKey = position === "left" ? "left" : "right";
+  const useDrawer = isVertical && narrow;
+  const useFixedBar = isVertical && !narrow;
+  const contentSidePadding = useFixedBar ? 72 : 0;
+  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    useFixedBar && /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        ref: mountRef,
+        style: {
+          position: "fixed",
+          top: stickyOffset,
+          [sideKey]: sideOffset,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: 8,
+          background: token.colorBgContainer,
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderRadius: 8,
+          boxShadow: token.boxShadowTertiary,
+          zIndex: 5
+        }
+      }
+    ),
+    useDrawer && /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        style: {
+          position: "fixed",
+          top: stickyOffset,
+          [sideKey]: sideOffset,
+          zIndex: 1001
+        },
+        children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _13("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsxRuntime.jsx(
+          antd.Button,
+          {
+            size: "small",
+            icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.MenuOutlined, {}),
+            onClick: () => setDrawerOpen(true)
+          }
+        ) })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        style: {
+          paddingLeft: sideKey === "left" ? contentSidePadding : 0,
+          paddingRight: sideKey === "right" ? contentSidePadding : 0
+        },
+        children
+      }
+    ),
+    useDrawer && /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Drawer,
+      {
+        title: _13("Actions"),
+        placement: sideKey,
+        open: drawerOpen,
+        onClose: () => setDrawerOpen(false),
+        width: 240,
+        forceRender: true,
+        children: /* @__PURE__ */ jsxRuntime.jsx(
+          "div",
+          {
+            ref: mountRef,
+            style: { display: "flex", flexDirection: "column", gap: 8 }
+          }
+        )
+      }
+    )
+  ] });
 };
 var _14 = window._ || ((text) => text);
 var extractButtonLabel = (node) => {
@@ -4763,7 +4848,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_76, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_78, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -4820,7 +4905,6 @@ var getSortPriority = (columnSort, fieldKey) => {
   const index = columnSort.findIndex((item) => item.fieldKey === fieldKey);
   return index === -1 ? 1 : columnSort.length - index + 1;
 };
-var _TOKEN_KEY = "jm_access_token";
 function useAuthenticatedFileUrl(rawUrl) {
   const [src, setSrc] = React6.useState("");
   React6.useEffect(() => {
@@ -4832,7 +4916,7 @@ function useAuthenticatedFileUrl(rawUrl) {
       setSrc(rawUrl);
       return;
     }
-    const token = localStorage.getItem(_TOKEN_KEY) || "";
+    const token = readAccessToken() || "";
     const controller = new AbortController();
     let objectUrl = "";
     fetch(rawUrl, {
@@ -6682,7 +6766,7 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
                     /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
                     !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
                     !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _23("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _23("Export chart") }) })
@@ -7144,7 +7228,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _24("Save configuration") }) }) })
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _24("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _24("Save configuration") }) }) })
         ] })
       }]
     }
@@ -7718,10 +7802,10 @@ function useLicensePool() {
       if (ALWAYS_ON2.has(key)) return true;
       if (loading || pool === null) return true;
       const moduleGroups = pool.module_groups ?? {};
-      const inAnyGroup2 = Object.values(moduleGroups).some(
+      const inAnyGroup = Object.values(moduleGroups).some(
         (mods) => mods.map((m) => m.toLowerCase()).includes(key)
       );
-      if (!inAnyGroup2) return true;
+      if (!inAnyGroup) return true;
       return (pool.licensed_modules ?? []).map((m) => m.toLowerCase()).includes(key);
     },
     [pool, loading]
@@ -8365,25 +8449,25 @@ var getRelationTabName = (rel, mode, fallback) => {
   const explicit = mode === "show" ? rel.showTab : rel.editTab;
   if (!explicit) return fallback;
   if (isReverseRelation(rel)) {
-    const relationKey2 = String(rel.relationName || rel.resource || "").trim().toLowerCase();
+    const relationKey3 = String(rel.relationName || rel.resource || "").trim().toLowerCase();
     const explicitKey = String(explicit).trim().toLowerCase();
     const labelKey = String(getRelationLabel(rel) || rel.label || "").trim().toLowerCase();
-    const baseKey = relationKey2.replace(/_reverse$/, "").replace(/_object$/, "").replace(/_relation$/, "");
+    const baseKey = relationKey3.replace(/_reverse$/, "").replace(/_object$/, "").replace(/_relation$/, "");
     const humanize = (value) => value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
-    const humanRelationKey = humanize(relationKey2);
+    const humanRelationKey = humanize(relationKey3);
     const humanBaseKey = humanize(baseKey);
-    if (explicitKey === labelKey || explicitKey === relationKey2 || explicitKey === baseKey || explicitKey === humanRelationKey || explicitKey === humanBaseKey) {
+    if (explicitKey === labelKey || explicitKey === relationKey3 || explicitKey === baseKey || explicitKey === humanRelationKey || explicitKey === humanBaseKey) {
       return fallback;
     }
   }
   const translatedExplicit = _28(explicit);
   if (translatedExplicit !== explicit) return explicit;
-  const relationKey = rel.relationName || rel.resource || "";
-  if (relationKey) {
-    const translatedRelationKey = translateRelationKey(relationKey);
+  const relationKey2 = rel.relationName || rel.resource || "";
+  if (relationKey2) {
+    const translatedRelationKey = translateRelationKey(relationKey2);
     const likelyHumanizedLabel = explicit.includes(" ") || /[A-Z]/.test(explicit);
-    if (likelyHumanizedLabel && translatedRelationKey !== relationKey) {
-      return relationKey;
+    if (likelyHumanizedLabel && translatedRelationKey !== relationKey2) {
+      return relationKey2;
     }
   }
   return explicit;
@@ -8696,14 +8780,56 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     )
   ] });
 };
+var ALL_FEATURES_OFF = {
+  analyze: false,
+  csv_export: false,
+  saved_views: false,
+  column_selector: false,
+  record_metadata: false
+};
+var frameworkUiFeaturesRequest = null;
+var knownFrameworkUiFeatures = null;
+function fetchFrameworkUiFeatures() {
+  if (!frameworkUiFeaturesRequest) {
+    frameworkUiFeaturesRequest = authenticatedFetch(`${API_URL2}/veloiq/ui-features`).then(async (response) => {
+      if (!response.ok) throw new Error(String(response.status));
+      const body = await response.json();
+      const loaded2 = { ...ALL_FEATURES_OFF, ...body?.features || {} };
+      knownFrameworkUiFeatures = loaded2;
+      return loaded2;
+    }).catch(() => {
+      frameworkUiFeaturesRequest = null;
+      return ALL_FEATURES_OFF;
+    });
+  }
+  return frameworkUiFeaturesRequest;
+}
+function resetFrameworkUiFeatures() {
+  frameworkUiFeaturesRequest = null;
+  knownFrameworkUiFeatures = null;
+}
+function useFrameworkUiFeatures() {
+  const [features, setFeatures] = React6.useState(knownFrameworkUiFeatures ?? ALL_FEATURES_OFF);
+  React6.useEffect(() => {
+    let cancelled = false;
+    fetchFrameworkUiFeatures().then((loaded2) => {
+      if (!cancelled) setFeatures(loaded2);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return features;
+}
 var _30 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = React6.useState(initialOpen);
   React6.useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
-  const metadataButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
-  const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
+  const { record_metadata: metadataAllowed } = useFrameworkUiFeatures();
+  const metadataButton = metadataAllowed ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _30("Metadata"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) }) : null;
+  const metadataModal = /* @__PURE__ */ jsxRuntime.jsx(MetadataModal, { model, allModels, open: metadataOpen && metadataAllowed, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
 var _31 = window._ || ((text) => text);
@@ -9563,10 +9689,9 @@ var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
   return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
 };
 var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
-var USER_KEY = "jm_user";
 function getCurrentUserRoles() {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(signInStorageKeys().signedInUser);
     if (!raw) return [];
     return JSON.parse(raw)?.roles ?? [];
   } catch {
@@ -10743,7 +10868,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _44(section) }),
-      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIdx) => {
+      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_78, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_79, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -11246,8 +11371,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_76) {
-  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _76(text) });
+function buildGridDensityMarks(_78) {
+  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _78(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -11258,15 +11383,15 @@ function buildGridDensityMarks(_76) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_76) {
+function buildGridDensityLabelText(_78) {
   return {
-    original: _76("Original"),
-    small: _76("Small"),
-    fit: _76("Page"),
-    "fit-row": _76("Row"),
-    "fit-cell": _76("Cell"),
-    medium: _76("Medium"),
-    large: _76("Large")
+    original: _78("Original"),
+    small: _78("Small"),
+    fit: _78("Page"),
+    "fit-row": _78("Row"),
+    "fit-cell": _78("Cell"),
+    medium: _78("Medium"),
+    large: _78("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -11810,7 +11935,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_78, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -12203,7 +12328,7 @@ var SectionCellContent = ({
     sectionLook?.section_description && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _50(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsxRuntime.jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsxRuntime.jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIndex) => {
+    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_78, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_79, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -14418,7 +14543,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_76, newPageSize) => {
+            onShowSizeChange: (_78, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -14765,7 +14890,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
   const [labelCache, setLabelCache] = React6.useState({});
   const [analyzeOpenPreference, setAnalyzeOpen] = React6.useState(false);
-  const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false;
+  const frameworkUiFeatures = useFrameworkUiFeatures();
+  const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
   const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = React6.useRef(false);
   const analyzeSettings = useAnalyzeSettings({
@@ -15805,7 +15931,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       )
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
-  const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model: relatedModel, onSaveClick: () => openSaveViewModalFor("analyze") });
+  const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model: relatedModel, onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0 });
   const crosstabBodyNode = /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
     crosstabConfigPanel,
     crosstabFilterRow,
@@ -16147,7 +16273,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsxRuntime.jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        frameworkUiFeatures.column_selector && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
           antd.Button,
           {
             size: "small",
@@ -16532,29 +16658,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               viewSelector
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx(
-                antd.Button,
-                {
-                  size: "small",
-                  onClick: () => {
-                    setRenameViewName(currentViewName);
-                    setRenameViewModalOpen(true);
-                  },
-                  children: _60("Rename view")
-                }
-              ),
-              /* @__PURE__ */ jsxRuntime.jsx(
-                antd.Button,
-                {
-                  size: "small",
-                  danger: true,
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
-                  disabled: availableViewNames.length <= 1,
-                  onClick: confirmDeleteView,
-                  children: _60("Delete view")
-                }
-              ),
-              layoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(
+              frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Button,
+                  {
+                    size: "small",
+                    onClick: () => {
+                      setRenameViewName(currentViewName);
+                      setRenameViewModalOpen(true);
+                    },
+                    children: _60("Rename view")
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Button,
+                  {
+                    size: "small",
+                    danger: true,
+                    icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
+                    disabled: availableViewNames.length <= 1,
+                    onClick: confirmDeleteView,
+                    children: _60("Delete view")
+                  }
+                )
+              ] }),
+              layoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Button,
                 {
                   size: "small",
@@ -16725,7 +16853,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_76, newPageSize) => {
+                    onShowSizeChange: (_78, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -16739,7 +16867,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _60("No related records") }) } : void 0,
-                  onChange: (_76, filters, sorter, extra) => {
+                  onChange: (_78, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -16951,7 +17079,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allFields: relatedModel.fields,
           tone: relatedModelTone,
           numericBarColor,
-          onSaveClick: () => openSaveViewModalFor("analyze")
+          onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0
         }
       ) })
     ] })
@@ -17824,6 +17952,7 @@ var { Title: Title6 } = antd.Typography;
 var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
+  const frameworkUiFeatures = useFrameworkUiFeatures();
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
   const navigate = reactRouterDom.useNavigate();
@@ -17946,7 +18075,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [renameViewName, setRenameViewName] = React6.useState("");
   const [labelCache, setLabelCache] = React6.useState({});
   const [analyzeOpenPreference, setAnalyzeOpen] = React6.useState(isEmbedded);
-  const analyzeSectionAvailable = model.showAnalyzeSection !== false;
+  const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
   const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = React6.useRef(false);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
@@ -18927,7 +19056,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const fields = crosstabFilterFields.map((k) => model.fields.find((f) => f.key === k)).filter((f) => Boolean(f));
     return buildColumnFilterOptions({ fields, data, rangeCount });
   }, [crosstabFilterFields, allRowsData, tableProps.dataSource, viewSettings, model.fields]);
-  const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model, onSaveClick: () => openSaveViewModalFor("analyze") });
+  const crosstabConfigPanel = /* @__PURE__ */ jsxRuntime.jsx(CrosstabConfigPanel, { analyze: analyzeSettings, model, onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0 });
   const crosstabFilterRow = crosstabFilterFields.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }, children: crosstabFilterFields.map((fieldKey) => {
     const field = model.fields.find((f) => f.key === fieldKey);
     if (!field) return null;
@@ -19463,7 +19592,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (canBulkEdit) {
       opts.push({ label: _62("Change field value"), value: "__change_field__" });
     }
-    opts.push({ label: _62("Export selected (CSV)"), value: "__export_csv__" });
+    if (frameworkUiFeatures.csv_export) opts.push({ label: _62("Export selected (CSV)"), value: "__export_csv__" });
     opts.push({ label: _62("Navigate to related"), value: "__navigate_to_related__" });
     opts.push({ label: _62("Append related list"), value: "__append_related_list__" });
     if (canCreate) {
@@ -19478,7 +19607,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       opts.push({ label: _62("Delete selected"), value: "__delete__" });
     }
     return opts;
-  }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
+  }, [bulkActions, canBulkDelete, canBulkEdit, canCreate, frameworkUiFeatures.csv_export]);
   const bulkChangeField = bulkChangeFieldKey ? model.fields.find((f) => f.key === bulkChangeFieldKey) ?? null : null;
   const preFilterBanner = urlPreFilters.length > 0 ? (() => {
     const filterLabels = [];
@@ -19856,7 +19985,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const exportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -19865,7 +19994,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const quickExportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -19882,7 +20011,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
+  const columnsToggleButton = frameworkUiFeatures.column_selector ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
       size: "small",
@@ -19896,7 +20025,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       },
       "aria-label": columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration")
     }
-  ) });
+  ) }) : null;
   const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Add relation"), children: /* @__PURE__ */ jsxRuntime.jsx(
     antd.Button,
     {
@@ -20004,7 +20133,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Save layout"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Save layout"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -20016,24 +20145,26 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     associateExistingFkButton,
     createRelationButton,
     createNewAndRelateButton,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Button,
-      {
-        size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}),
-        onClick: handleExport,
-        loading: exportLoading
-      }
-    ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Button,
-      {
-        size: "small",
-        icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CameraOutlined, {}),
-        onClick: () => setExportRequested(true),
-        loading: exportRequested && isAllRowsLoading
-      }
-    ) }),
+    frameworkUiFeatures.csv_export && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Button,
+        {
+          size: "small",
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}),
+          onClick: handleExport,
+          loading: exportLoading
+        }
+      ) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Button,
+        {
+          size: "small",
+          icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CameraOutlined, {}),
+          onClick: () => setExportRequested(true),
+          loading: exportRequested && isAllRowsLoading
+        }
+      ) })
+    ] }),
     !model.isNamedQuery && !model.isNonModelData && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Import CSV"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
@@ -20811,29 +20942,31 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               viewSelector
             ] }),
             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
-              /* @__PURE__ */ jsxRuntime.jsx(
-                antd.Button,
-                {
-                  size: "small",
-                  onClick: () => {
-                    setRenameViewName(currentViewName);
-                    setRenameViewModalOpen(true);
-                  },
-                  children: _62("Rename view")
-                }
-              ),
-              /* @__PURE__ */ jsxRuntime.jsx(
-                antd.Button,
-                {
-                  size: "small",
-                  danger: true,
-                  icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
-                  disabled: availableViewNames.length <= 1,
-                  onClick: confirmDeleteView,
-                  children: _62("Delete view")
-                }
-              ),
-              resolvedLayoutPreferenceType && /* @__PURE__ */ jsxRuntime.jsx(
+              frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Button,
+                  {
+                    size: "small",
+                    onClick: () => {
+                      setRenameViewName(currentViewName);
+                      setRenameViewModalOpen(true);
+                    },
+                    children: _62("Rename view")
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntime.jsx(
+                  antd.Button,
+                  {
+                    size: "small",
+                    danger: true,
+                    icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
+                    disabled: availableViewNames.length <= 1,
+                    onClick: confirmDeleteView,
+                    children: _62("Delete view")
+                  }
+                )
+              ] }),
+              resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Button,
                 {
                   size: "small",
@@ -21288,7 +21421,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           allFields: model.fields,
           tone: modelTone,
           numericBarColor,
-          onSaveClick: () => openSaveViewModalFor("analyze"),
+          onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0,
           customizeFooter: /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
             isAllRowsLoading && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _62("Loading all rows for analysis...") }),
             allRowsError && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
@@ -23724,19 +23857,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _76 }) => _76).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_76) => {
-        if (_76.collapsible) {
+      const ut = R.panels.map(({ id: _78 }) => _78).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_78) => {
+        if (_78.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _76.collapsedSize,
-              ce[_76.panelId]
+              _78.collapsedSize,
+              ce[_78.panelId]
             ), dt = I(
-              _76.collapsedSize,
-              ge[_76.panelId]
+              _78.collapsedSize,
+              ge[_78.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_76.panelId] = ge[_76.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_78.panelId] = ge[_78.panelId]);
           }
         }
       });
@@ -24571,7 +24704,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = React6.useMemo(
-    () => panes.map((_76, idx) => ({
+    () => panes.map((_78, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -24881,53 +25014,66 @@ var InlinePlotlyHtml = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE, scaleT
 
 // src/providers/authProvider.ts
 var AUTH_BASE = "/auth";
-var TOKEN_KEY3 = "jm_access_token";
-var USER_KEY2 = "jm_user";
-var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
 var _66 = window._ || ((text) => text);
+async function startSignedInSession(token, signedInUser) {
+  localStorage.setItem(signInStorageKeys().accessToken, token);
+  resetFrameworkUiFeatures();
+  let user = signedInUser;
+  if (!user) {
+    const meResponse = await fetch(`${AUTH_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
+    user = meResponse.ok ? await meResponse.json() : null;
+  }
+  if (user) localStorage.setItem(signInStorageKeys().signedInUser, JSON.stringify(user));
+  else localStorage.removeItem(signInStorageKeys().signedInUser);
+  try {
+    const [rolesRes] = await Promise.all([
+      fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
+      // Effective permissions for the shared access check (stored by accessStore).
+      refreshAccess()
+    ]);
+    if (rolesRes.ok) {
+      const roles = await rolesRes.json();
+      const permsMap = {};
+      for (const role of roles) {
+        permsMap[role.name] = role.allowed_actions;
+      }
+      localStorage.setItem(signInStorageKeys().rolePermissions, JSON.stringify(permsMap));
+    }
+  } catch {
+  }
+}
 var authProvider = {
   /**
-   * Authenticate by username + password.
+   * Authenticate by username + password, or with ``accessToken`` obtained by a
+   * custom sign-in flow; ``redirectTo`` (default "/") is where to go next.
    * Stores the JWT and user profile in localStorage on success.
    */
-  login: async ({ username, password }) => {
+  login: async ({ username, password, accessToken, redirectTo }) => {
     try {
-      const response = await fetch(`${AUTH_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        return {
-          success: false,
-          error: {
-            name: _66("Login failed"),
-            message: body?.detail || _66("Invalid credentials")
-          }
-        };
-      }
-      const data = await response.json();
-      localStorage.setItem(TOKEN_KEY3, data.access_token);
-      localStorage.setItem(USER_KEY2, JSON.stringify(data.user));
-      const token = data.access_token;
-      try {
-        const [rolesRes] = await Promise.all([
-          fetch(`${AUTH_BASE}/roles`, { headers: { Authorization: `Bearer ${token}` } }),
-          // Effective permissions for the shared access check (stored by accessStore).
-          refreshAccess()
-        ]);
-        if (rolesRes.ok) {
-          const roles = await rolesRes.json();
-          const permsMap = {};
-          for (const role of roles) {
-            permsMap[role.name] = role.allowed_actions;
-          }
-          localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permsMap));
+      let token = accessToken;
+      let signedInUser = null;
+      if (!token) {
+        const response = await fetch(`${AUTH_BASE}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          return {
+            success: false,
+            error: {
+              name: _66("Login failed"),
+              message: body?.detail || _66("Invalid credentials")
+            }
+          };
         }
-      } catch {
+        const data = await response.json();
+        token = data.access_token;
+        signedInUser = data.user;
       }
-      return { success: true, redirectTo: "/" };
+      await startSignedInSession(token, signedInUser);
+      return { success: true, redirectTo: redirectTo || "/" };
     } catch (err) {
       return {
         success: false,
@@ -24942,9 +25088,10 @@ var authProvider = {
    * Clear stored credentials and redirect to the login page.
    */
   logout: async () => {
-    localStorage.removeItem(TOKEN_KEY3);
-    localStorage.removeItem(USER_KEY2);
-    localStorage.removeItem(ROLE_PERMISSIONS_KEY);
+    localStorage.removeItem(signInStorageKeys().accessToken);
+    resetFrameworkUiFeatures();
+    localStorage.removeItem(signInStorageKeys().signedInUser);
+    localStorage.removeItem(signInStorageKeys().rolePermissions);
     clearAccess();
     return { success: true, redirectTo: "/login" };
   },
@@ -24953,7 +25100,7 @@ var authProvider = {
    * Returns ``authenticated`` when a token is present.
    */
   check: async () => {
-    const token = localStorage.getItem(TOKEN_KEY3);
+    const token = readAccessToken();
     if (token) {
       return { authenticated: true };
     }
@@ -24964,14 +25111,14 @@ var authProvider = {
    * from the backend ``/auth/me`` endpoint.
    */
   getIdentity: async () => {
-    const cached = localStorage.getItem(USER_KEY2);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (cached) {
       try {
         return JSON.parse(cached);
       } catch {
       }
     }
-    const token = localStorage.getItem(TOKEN_KEY3);
+    const token = readAccessToken();
     if (!token) return null;
     try {
       const response = await fetch(`${AUTH_BASE}/me`, {
@@ -24979,7 +25126,7 @@ var authProvider = {
       });
       if (!response.ok) return null;
       const user = await response.json();
-      localStorage.setItem(USER_KEY2, JSON.stringify(user));
+      localStorage.setItem(signInStorageKeys().signedInUser, JSON.stringify(user));
       return user;
     } catch {
       return null;
@@ -24989,7 +25136,7 @@ var authProvider = {
    * Return the user's roles for role-based UI rendering.
    */
   getPermissions: async () => {
-    const cached = localStorage.getItem(USER_KEY2);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (cached) {
       try {
         return JSON.parse(cached)?.roles ?? [];
@@ -25011,8 +25158,6 @@ var authProvider = {
 };
 
 // src/providers/accessControlProvider.ts
-var USER_KEY3 = "jm_user";
-var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
 var ADMIN_ROLE = "Admin";
 var _67 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
@@ -25021,7 +25166,7 @@ var FALLBACK_ROLE_ACTIONS = {
   Viewer: ["list", "show", "field"]
 };
 function getRoleActions() {
-  const cached = localStorage.getItem(ROLE_PERMISSIONS_KEY2);
+  const cached = localStorage.getItem(signInStorageKeys().rolePermissions);
   const source = cached ? (() => {
     try {
       return JSON.parse(cached);
@@ -25035,7 +25180,7 @@ function getRoleActions() {
 }
 var accessControlProvider = {
   can: async ({ action, resource }) => {
-    const cached = localStorage.getItem(USER_KEY3);
+    const cached = localStorage.getItem(signInStorageKeys().signedInUser);
     if (!cached) {
       return { can: false, reason: _67("Not authenticated") };
     }
@@ -25076,7 +25221,6 @@ var accessControlProvider = {
     }
   }
 };
-var TOKEN_KEY4 = "jm_access_token";
 var httpClient = axios__default.default.create();
 var networkAdapter = axios__default.default.getAdapter(httpClient.defaults.adapter);
 httpClient.defaults.adapter = (config) => {
@@ -25104,7 +25248,7 @@ httpClient.defaults.adapter = (config) => {
   return Promise.resolve(response);
 };
 httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY4);
+  const token = readAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25152,6 +25296,7 @@ var ColorModeContextProvider = ({
   React6.useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!readAccessToken()) return;
       try {
         const resp = await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`);
         if (!resp.ok) return;
@@ -25206,7 +25351,7 @@ var ResourceContext = React6.createContext({
   allSystemModels: []
 });
 var _68 = window._ || ((text) => text);
-var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
+var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
   const { mutate: login, isLoading, error } = core.useLogin();
   const [form] = antd.Form.useForm();
   const onFinish = (values) => {
@@ -25298,7 +25443,8 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                   ) })
                 ]
               }
-            )
+            ),
+            footer && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { textAlign: "center" }, children: footer })
           ] })
         }
       )
@@ -25958,7 +26104,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_78, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -26385,7 +26531,7 @@ function generateResources(models, moduleName, options = {}) {
   return [parentEntry, ...children];
 }
 var NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER = "nonModelDataResource";
-var NonModelDataResourcePages = ({ pageOverrides }) => {
+var NonModelDataResourcePages = ({ pageOverrides, showHeaderButtons }) => {
   const resourceName = reactRouterDom.useParams()[NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER];
   const allModels = useAllModels();
   const model = allModels.find(
@@ -26401,7 +26547,14 @@ var NonModelDataResourcePages = ({ pageOverrides }) => {
     /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { index: true, element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: ListOverride ? /* @__PURE__ */ jsxRuntime.jsx(ListOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicList, { model, allModels }, resource) }) }),
     /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "create", element: CreateOverride ? /* @__PURE__ */ jsxRuntime.jsx(CreateOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicCreate, { model, allModels }) }),
     /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "edit/:id", element: EditOverride ? /* @__PURE__ */ jsxRuntime.jsx(EditOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicEdit, { model, allModels }) }),
-    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "show/:id", element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: ShowOverride ? /* @__PURE__ */ jsxRuntime.jsx(ShowOverride, {}) : /* @__PURE__ */ jsxRuntime.jsx(DynamicShow, { model, allModels }) }) })
+    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "show/:id", element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: ShowOverride ? /* @__PURE__ */ jsxRuntime.jsx(ShowOverride, {}) : /* @__PURE__ */ jsxRuntime.jsx(
+      DynamicShow,
+      {
+        model,
+        allModels,
+        extraHeaderButtons: showHeaderButtons?.(resource, model, allModels)
+      }
+    ) }) })
   ] });
 };
 function useRefineResourcesIncludingNonModelData(resources) {
@@ -26423,6 +26576,259 @@ function useRefineResourcesIncludingNonModelData(resources) {
     return [...resources, ...added];
   }, [resources, nonModelDataModels]);
 }
+function listNavigationPagesInRefineResources(resources, navConfig) {
+  const pageEntries = (navConfig || []).filter((entry) => entry.type === "page" && entry.key);
+  if (pageEntries.length === 0) return resources;
+  const pageEntryByKey = new Map(pageEntries.map((entry) => [entry.key, entry]));
+  const shown = resources.map((resource) => {
+    const entry = pageEntryByKey.get(resource.name);
+    if (!entry) return resource;
+    return {
+      ...resource,
+      meta: { ...resource.meta, hide: false, label: entry.label || resource.meta?.label, parent: entry.parent ?? resource.meta?.parent }
+    };
+  });
+  const knownNames = new Set(resources.map((resource) => resource.name));
+  const added = pageEntries.filter((entry) => !knownNames.has(entry.key)).map((entry) => ({
+    name: entry.key,
+    list: entry.route || `/${entry.key}`,
+    meta: { label: entry.label || entry.key, parent: entry.parent, canDelete: false }
+  }));
+  return [...shown, ...added];
+}
+function useRefineResourcesIncludingNavigationPages(resources, navConfig) {
+  return React6.useMemo(() => listNavigationPagesInRefineResources(resources, navConfig), [resources, navConfig]);
+}
+function usePortalPublicSettings(site) {
+  const [state, setState] = React6.useState({ settings: null, configuration: null, loaded: false, error: null });
+  React6.useEffect(() => {
+    let cancelled = false;
+    const portalUrl = `${API_URL2}/veloiq/portals/${encodeURIComponent(site)}`;
+    const settingsRequest = fetch(portalUrl).then(async (response) => {
+      if (!response.ok) throw new Error(String(response.status));
+      return await response.json();
+    });
+    const configurationRequest = fetch(`${portalUrl}/configuration`).then(async (response) => response.ok ? await response.json() : null).catch(() => null);
+    Promise.all([settingsRequest, configurationRequest]).then(([settings, configuration]) => {
+      if (!cancelled) setState({ settings, configuration, loaded: true, error: null });
+    }).catch((error) => {
+      if (!cancelled) setState({ settings: null, configuration: null, loaded: true, error: String(error?.message || error) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [site]);
+  return state;
+}
+
+// src/portal/limitPortalResourcesToNavigationConfig.ts
+var _75 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+function limitPortalResourcesToNavigationConfig(resources, navConfig) {
+  const navEntryByKey = new Map(navConfig.map((entry) => [entry.key, entry]));
+  return resources.map((resource) => {
+    if (resource.name === DASHBOARD_MENU_RESOURCE_NAME) return resource;
+    const navEntry = navEntryByKey.get(resource.name);
+    if (!navEntry) return { ...resource, meta: { ...resource.meta, hide: true } };
+    const parent = resource.meta?.parent;
+    return {
+      ...resource,
+      meta: {
+        ...resource.meta,
+        label: navEntry.label ? _75(navEntry.label) : resource.meta?.label,
+        parent: parent && navEntryByKey.has(parent) ? parent : void 0
+      }
+    };
+  });
+}
+
+// src/models/mergeUiModelSchemas.ts
+var fieldFromOverride = (override) => {
+  const { omit: _omitted, ...field } = override;
+  return { label: field.key, type: "string", ...field };
+};
+var mergeFields = (base, overrides) => {
+  if (!overrides || overrides.length === 0) return base;
+  let merged = [...base];
+  for (const override of overrides) {
+    if (override.omit) {
+      merged = merged.filter((field) => field.key !== override.key);
+      continue;
+    }
+    const { omit: _omitted, ...changes } = override;
+    const index = merged.findIndex((field) => field.key === override.key);
+    if (index >= 0) merged[index] = { ...merged[index], ...changes };
+    else merged.push(fieldFromOverride(override));
+  }
+  return merged;
+};
+var relationKey = (relation) => "resource" in relation && relation.resource ? relation.resource : relation.label;
+var mergeRelations = (base, overrides) => {
+  if (!overrides || overrides.length === 0) return base;
+  let merged = base ? [...base] : [];
+  for (const override of overrides) {
+    const key = relationKey(override);
+    if (override.omit) {
+      merged = merged.filter((relation) => relationKey(relation) !== key);
+      continue;
+    }
+    const { omit: _omitted, ...changes } = override;
+    const index = key ? merged.findIndex((relation) => relationKey(relation) === key) : -1;
+    if (index >= 0) merged[index] = { ...merged[index], ...changes };
+    else merged.push(changes);
+  }
+  return merged;
+};
+var mergeModel = (base, override) => {
+  if (!override) return base;
+  return {
+    ...base,
+    ...override,
+    fields: mergeFields(base.fields, override.fields),
+    relations: mergeRelations(base.relations, override.relations)
+  };
+};
+function mergeUiModelSchemas(generatedModels, ...overrideLists) {
+  const applyOverrides = (model) => overrideLists.reduce((merged, overrides) => mergeModel(merged, overrides.find((override) => override.name === model.name)), model);
+  const generatedNames = new Set(generatedModels.map((model) => model.name));
+  const declaredOnlyNames = Array.from(new Set(
+    overrideLists.flat().map((override) => override.name).filter((name) => !generatedNames.has(name))
+  ));
+  const declaredOnlyModels = declaredOnlyNames.map((name) => {
+    const first = overrideLists.flat().find((override) => override.name === name);
+    return applyOverrides({
+      name,
+      label: first.label ?? name,
+      resource: first.resource ?? name.toLowerCase(),
+      pkField: first.pkField ?? "id",
+      fields: []
+    });
+  });
+  return [...generatedModels.map(applyOverrides), ...declaredOnlyModels];
+}
+var _76 = (text) => {
+  const t = window._;
+  return typeof t === "function" ? t(text) : text;
+};
+var portalQueryClient = new reactQuery.QueryClient();
+var LazyPortalPage = ({ pageRoute }) => {
+  const LoadedPage = React6.useMemo(() => React6__default.default.lazy(pageRoute.loadPage), [pageRoute]);
+  return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { style: { display: "block", margin: "120px auto" } }), children: /* @__PURE__ */ jsxRuntime.jsx(LoadedPage, {}) });
+};
+var PortalAppWithSettings = ({
+  site,
+  moduleRegistrations: builtModuleRegistrations,
+  navConfig: builtNavConfig,
+  dataProvider,
+  pageRoutes = [],
+  pageOverrides = {},
+  logo,
+  loginPage,
+  loginPageFooter,
+  landingPath,
+  routerBasename,
+  globalHeaderComponents,
+  portalSettings,
+  portalConfiguration
+}) => {
+  const navConfig = portalConfiguration?.navigation ?? builtNavConfig;
+  const moduleRegistrations = React6.useMemo(() => {
+    const pageOverridesFile = portalConfiguration?.page_overrides ?? [];
+    if (!pageOverridesFile.length) return builtModuleRegistrations;
+    return builtModuleRegistrations.map((registration) => {
+      const modelNames = new Set(registration.models.map((model) => model.name));
+      const moduleOverrides = pageOverridesFile.filter((override) => modelNames.has(override.name));
+      return moduleOverrides.length ? { ...registration, models: mergeUiModelSchemas(registration.models, moduleOverrides) } : registration;
+    });
+  }, [builtModuleRegistrations, portalConfiguration]);
+  const portalModels = React6.useMemo(
+    () => moduleRegistrations.flatMap((registration) => registration.models),
+    [moduleRegistrations]
+  );
+  const modelResources = React6.useMemo(() => [
+    ...portalSettings.show_dashboard_menu_entry ? [{ name: "dashboard", list: "/dashboard", meta: { label: _76("Dashboard"), canDelete: false } }] : [],
+    ...moduleRegistrations.flatMap(({ moduleName, models, moduleLabel }) => generateResources(models, moduleName, moduleLabel ? { moduleLabel } : {}))
+  ], [moduleRegistrations, portalSettings.show_dashboard_menu_entry]);
+  const portalMenuResources = React6.useMemo(
+    () => limitPortalResourcesToNavigationConfig(modelResources, navConfig),
+    [modelResources, navConfig]
+  );
+  const portalResources = useRefineResourcesIncludingNavigationPages(portalMenuResources, navConfig);
+  const resolvedLandingPath = landingPath || (portalSettings.show_dashboard_menu_entry ? "/dashboard" : resolveFallbackLandingPath(navConfig, portalModels));
+  const renderPage = (kind, resource, model, StandardPage) => {
+    const OverridePage = pageOverrides[kind]?.[resource];
+    if (OverridePage) return /* @__PURE__ */ jsxRuntime.jsx(OverridePage, { model, allModels: portalModels });
+    return /* @__PURE__ */ jsxRuntime.jsx(StandardPage, { model, allModels: portalModels }, resource);
+  };
+  const PrimaryShowRenderer = React6.useMemo(() => ({ model, id, allModels }) => {
+    const resource = model.resource || model.name;
+    const OverrideShow = pageOverrides.show?.[resource];
+    return OverrideShow ? React6.createElement(OverrideShow, { idOverride: String(id), model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicShow, { model, allModels, idOverride: String(id) });
+  }, [pageOverrides]);
+  const signedOutPageRoutes = pageRoutes.filter((pageRoute) => pageRoute.availableSignedOut);
+  const signedInPageRoutes = pageRoutes.filter((pageRoute) => !pageRoute.availableSignedOut);
+  return /* @__PURE__ */ jsxRuntime.jsx(reactQuery.QueryClientProvider, { client: portalQueryClient, children: /* @__PURE__ */ jsxRuntime.jsx(AllModelsProvider, { models: portalModels, children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.BrowserRouter, { basename: routerBasename ?? `/portals/${site}`, children: /* @__PURE__ */ jsxRuntime.jsx(
+    core.Refine,
+    {
+      dataProvider,
+      authProvider,
+      accessControlProvider,
+      routerProvider: routerProvider__default.default,
+      notificationProvider: antd$1.notificationProvider,
+      resources: portalResources,
+      options: { syncWithLocation: true, warnWhenUnsavedChanges: true, disableTelemetry: true },
+      children: /* @__PURE__ */ jsxRuntime.jsx(ColorModeContextProvider, { children: /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowContext.Provider, { value: PrimaryShowRenderer, children: /* @__PURE__ */ jsxRuntime.jsxs(reactRouterDom.Routes, { children: [
+        /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "/login", element: loginPage ?? /* @__PURE__ */ jsxRuntime.jsx(LoginPage, { appTitle: portalSettings.title, logo, footer: loginPageFooter }) }),
+        signedOutPageRoutes.map((pageRoute) => /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: pageRoute.path, element: /* @__PURE__ */ jsxRuntime.jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+        /* @__PURE__ */ jsxRuntime.jsxs(reactRouterDom.Route, { element: /* @__PURE__ */ jsxRuntime.jsx(core.Authenticated, { redirectOnFail: "/login", children: /* @__PURE__ */ jsxRuntime.jsx(
+          LayoutWrapper,
+          {
+            logo,
+            appTitle: portalSettings.title,
+            navConfig,
+            showDashboardMenuEntry: portalSettings.show_dashboard_menu_entry,
+            defaultLayoutMode: portalSettings.default_layout,
+            bannerModels: portalModels,
+            bannerSite: site,
+            globalHeaderComponents,
+            children: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Outlet, {})
+          }
+        ) }, "portal-auth"), children: [
+          /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "/", element: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Navigate, { to: resolvedLandingPath, replace: true }) }),
+          portalSettings.show_dashboard_menu_entry && /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "/dashboard", element: /* @__PURE__ */ jsxRuntime.jsx(DashboardPage, {}) }),
+          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: pageRoute.path, element: /* @__PURE__ */ jsxRuntime.jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+          portalModels.map((model) => {
+            const resource = model.resource || model.name;
+            return /* @__PURE__ */ jsxRuntime.jsxs(reactRouterDom.Route, { path: `/${resource}`, children: [
+              /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { index: true, element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: renderPage("list", resource, model, DynamicList) }) }),
+              /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "create", element: renderPage("create", resource, model, DynamicCreate) }),
+              /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "edit/:id", element: renderPage("edit", resource, model, DynamicEdit) }),
+              /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "show/:id", element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: renderPage("show", resource, model, DynamicShow) }) })
+            ] }, model.name);
+          }),
+          /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "*", element: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Navigate, { to: resolvedLandingPath, replace: true }) })
+        ] })
+      ] }) }) })
+    }
+  ) }) }) });
+};
+var VeloIQPortalApp = (props) => {
+  const { settings, configuration, loaded: loaded2, error } = usePortalPublicSettings(props.site);
+  const [sessionNamespaceSetFor, setSessionNamespaceSetFor] = React6.useState(null);
+  if (settings && sessionNamespaceSetFor !== settings.token_storage_key) {
+    setSignInStorageNamespace(settings.token_storage_key);
+    setSessionNamespaceSetFor(settings.token_storage_key);
+  }
+  if (error) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Result, { status: "warning", title: _76("This site is not available"), subTitle: error });
+  }
+  if (!loaded2 || !settings || sessionNamespaceSetFor !== settings.token_storage_key) {
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "large", style: { display: "block", margin: "120px auto" } });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx(PortalAppWithSettings, { ...props, portalSettings: settings, portalConfiguration: configuration });
+};
 function useInPageRowsStore(storeName, model, initialRows = []) {
   const invalidate = core.useInvalidate();
   const storeRef = React6.useRef(null);
@@ -26441,7 +26847,7 @@ function useInPageRowsStore(storeName, model, initialRows = []) {
   }, [store, invalidate]);
   return React6.useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
 }
-var _75 = (text) => {
+var _77 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -26455,10 +26861,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_75(moduleName)} \u203A ${_75(e.model_key)}` : _75(moduleName);
+  return e.model_key ? `${_77(moduleName)} \u203A ${_77(e.model_key)}` : _77(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _75("Allowlist") : mode === "block" ? _75("Blocklist") : _75("No policy");
-var modeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _75("Users with this role can use everything except the checked actions on the listed modules and models.") : _75("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _77("Allowlist") : mode === "block" ? _77("Blocklist") : _77("No policy");
+var modeHelp = (mode) => mode === "allow" ? _77("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _77("Users with this role can use everything except the checked actions on the listed modules and models.") : _77("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -26479,7 +26885,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      antd.message.error(_75("Could not load access policies."));
+      antd.message.error(_77("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -26494,7 +26900,7 @@ var AdminNote = () => /* @__PURE__ */ jsxRuntime.jsx(
   {
     type: "info",
     showIcon: true,
-    message: _75("The Admin role always has full access and can't be given an access policy.")
+    message: _77("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -26519,9 +26925,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _75("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _75("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _75("No policy");
+    if (row.event === "role_get_migration") return _77("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _77("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _77("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsxRuntime.jsx(
@@ -26531,20 +26937,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _75("No changes recorded yet.") },
+      locale: { emptyText: _77("No changes recorded yet.") },
       columns: [
         {
-          title: _75("When"),
+          title: _77("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _75("Changed by"),
+          title: _77("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _75("System")
+          render: (_v, row) => row.actor_username || _77("System")
         },
         {
-          title: _75("Change"),
+          title: _77("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -26553,11 +26959,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _75("Module or model"),
+  title: _77("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsxRuntime.jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _75("Inactive") })
+    e.active === false && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _77("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -26570,11 +26976,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _75(label),
+      title: _77(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, { "aria-label": _75(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, { "aria-label": _77(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -26590,10 +26996,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _75("No modules or models listed yet.") }
+        locale: { emptyText: _77("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _77("Change history") }),
     /* @__PURE__ */ jsxRuntime.jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -26629,21 +27035,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      antd.message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the access policy."));
+      antd.message.error(typeof body?.detail === "string" ? body.detail : _77("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    antd.message.success(mode === "none" ? _75("Access policy removed.") : _75("Access policy saved."));
+    antd.message.success(mode === "none" ? _77("Access policy removed.") : _77("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = React6.useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = React6.useMemo(
     () => modules.map((m) => ({
-      title: _75(m.name),
+      title: _77(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _75(model.key),
+        title: _77(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -26699,7 +27105,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _75(label),
+      title: _77(label),
       key: action,
       width: 90,
       align: "center",
@@ -26708,7 +27114,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_75(label)} ${resourceLabel(e)}`
+          "aria-label": `${_77(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -26721,27 +27127,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
-          "aria-label": _75("Remove"),
+          "aria-label": _77("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _77("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _75("No policy") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _75("Allowlist") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _75("Blocklist") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _77("No policy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _77("Allowlist") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _77("Blocklist") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _75("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _77("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(
       antd.Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _75("This allowlist is empty: users with this role will lose access to every module.")
+        message: _77("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -26751,7 +27157,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _75("Add a module or model"),
+          placeholder: _77("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -26766,12 +27172,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _75("No modules or models listed yet.") }
+          locale: { emptyText: _77("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _75("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _77("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
+    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _77("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -26780,7 +27186,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed features.") : mode === "block" ? _75("Users with this role can use every feature except the listed ones.") : _75("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _77("Users with this role can use only the listed features.") : mode === "block" ? _77("Users with this role can use every feature except the listed ones.") : _77("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = React6.useState([]);
@@ -26814,15 +27220,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _75("Feature"),
+    title: _77("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _75("Inactive") })
+      !r.active && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _77("Inactive") })
     ] })
   },
-  { title: _75("Group"), dataIndex: "group", key: "group" },
-  { title: _75("Description"), dataIndex: "description", key: "description" }
+  { title: _77("Group"), dataIndex: "group", key: "group" },
+  { title: _77("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -26848,10 +27254,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _75("No features listed yet.") }
+        locale: { emptyText: _77("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _77("Change history") }),
     /* @__PURE__ */ jsxRuntime.jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -26879,10 +27285,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      antd.message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the feature access."));
+      antd.message.error(typeof body?.detail === "string" ? body.detail : _77("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    antd.message.success(mode === "none" ? _75("Feature access removed.") : _75("Feature access saved."));
+    antd.message.success(mode === "none" ? _77("Feature access removed.") : _77("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -26892,20 +27298,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsxRuntime.jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _77("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _75("No policy") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _75("Allowlist") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _75("Blocklist") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _77("No policy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _77("Allowlist") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _77("Blocklist") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _75("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _77("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(
       antd.Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _75("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _77("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -26920,10 +27326,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _75("No features are registered.") }
+        locale: { emptyText: _77("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
+    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _77("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -27164,6 +27570,7 @@ exports.SectionsGrid = SectionsGrid;
 exports.ShowFooterButtons = ShowFooterButtons;
 exports.StandardList = StandardList;
 exports.StandardShow = StandardShow;
+exports.VeloIQPortalApp = VeloIQPortalApp;
 exports.ViewsGrid = ViewsGrid;
 exports.accessControlProvider = accessControlProvider;
 exports.anchorGroupStyle = anchorGroupStyle;
@@ -27192,18 +27599,24 @@ exports.httpClient = httpClient;
 exports.isCurrentPosition = isCurrentPosition;
 exports.isModuleLicensedIn = isModuleLicensedIn;
 exports.isModuleWriteAllowedIn = isModuleWriteAllowedIn;
+exports.mergeUiModelSchemas = mergeUiModelSchemas;
 exports.moduleKeyForName = moduleKeyForName;
 exports.normalizeToneKey = normalizeToneKey;
 exports.pageContextFromPath = pageContextFromPath;
 exports.percentSize = percentSize;
+exports.readAccessToken = readAccessToken;
 exports.refreshAccess = refreshAccess;
 exports.registerResourceRowActions = registerResourceRowActions;
 exports.removeInPageRowsStore = removeInPageRowsStore;
 exports.renderRelationBlock = renderRelationBlock;
+exports.resetFrameworkUiFeatures = resetFrameworkUiFeatures;
 exports.resolveFallbackLandingPath = resolveFallbackLandingPath;
 exports.resolveIcon = resolveIcon;
 exports.resolveNavKey = resolveNavKey;
 exports.setColorSchemas = setColorSchemas;
+exports.setSignInStorageNamespace = setSignInStorageNamespace;
+exports.signInStorageKeys = signInStorageKeys;
+exports.siteScopedStorageKey = siteScopedStorageKey;
 exports.sortItemsByNavConfig = sortItemsByNavConfig;
 exports.useAccess = useAccess;
 exports.useAccessQueryInvalidation = useAccessQueryInvalidation;
@@ -27213,14 +27626,18 @@ exports.useBeforeEditSave = useBeforeEditSave;
 exports.useBottomOverlayInset = useBottomOverlayInset;
 exports.useContentRect = useContentRect;
 exports.useDataDetailLevel = useDataDetailLevel;
+exports.useFrameworkUiFeatures = useFrameworkUiFeatures;
 exports.useInPageRowsStore = useInPageRowsStore;
 exports.useKeyboardShortcuts = useKeyboardShortcuts;
+exports.useLayoutMenuItems = useLayoutMenuItems;
 exports.useLicensePool = useLicensePool;
 exports.useMetadataModal = useMetadataModal;
 exports.useNavConfig = useNavConfig;
 exports.useNavModules = useNavModules;
 exports.usePaneNavigation = usePaneNavigation;
+exports.usePortalPublicSettings = usePortalPublicSettings;
 exports.useRecordSearch = useRecordSearch;
+exports.useRefineResourcesIncludingNavigationPages = useRefineResourcesIncludingNavigationPages;
 exports.useRefineResourcesIncludingNonModelData = useRefineResourcesIncludingNonModelData;
 exports.useSetHelpPageKey = useSetHelpPageKey;
 exports.useShowActionsPreferences = useShowActionsPreferences;

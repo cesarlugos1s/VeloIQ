@@ -13,7 +13,10 @@
  *
  * `pageOverrides` are the extensions' per-resource pages (the manifests'
  * list/show/edit/create overrides, from extensions.gen); a resource that has
- * one gets it here too, as model pages do in App.tsx.
+ * one gets it here too, as model pages do in App.tsx. `showHeaderButtons` are
+ * the app's global Show header buttons (the manifests'
+ * `show_header_button_components`), added to the standard Show page of every
+ * non-model data resource as App.tsx adds them to model Show pages.
  */
 import React from "react";
 import { Route, Routes, useParams } from "react-router-dom";
@@ -36,7 +39,15 @@ export interface NonModelDataResourcePageOverrides {
     create?: Record<string, React.ComponentType<any>>;
 }
 
-export const NonModelDataResourcePages: React.FC<{ pageOverrides?: NonModelDataResourcePageOverrides }> = ({ pageOverrides }) => {
+/** The app's global Show header buttons for a resource: a render prop of the shown record. */
+export type ShowHeaderButtonsForResource = (
+    resource: string, model: ModelDef, allModels: ModelDef[],
+) => (record: any) => React.ReactNode;
+
+export const NonModelDataResourcePages: React.FC<{
+    pageOverrides?: NonModelDataResourcePageOverrides;
+    showHeaderButtons?: ShowHeaderButtonsForResource;
+}> = ({ pageOverrides, showHeaderButtons }) => {
     const resourceName = useParams()[NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER];
     const allModels = useAllModels();
     const model: ModelDef | undefined = allModels.find(
@@ -65,7 +76,10 @@ export const NonModelDataResourcePages: React.FC<{ pageOverrides?: NonModelDataR
                 : <DynamicEdit model={model} allModels={allModels} />} />
             <Route path="show/:id" element={
                 <MultiPaneLayout>
-                    {ShowOverride ? <ShowOverride /> : <DynamicShow model={model} allModels={allModels} />}
+                    {ShowOverride ? <ShowOverride /> : (
+                        <DynamicShow model={model} allModels={allModels}
+                            extraHeaderButtons={showHeaderButtons?.(resource, model, allModels)} />
+                    )}
                 </MultiPaneLayout>
             } />
         </Routes>

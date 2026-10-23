@@ -11,8 +11,12 @@ export interface NavConfigEntry {
     icon: string;
     /** Display order — lower numbers appear first; ties keep original registration order */
     sequence: number;
-    /** "module" for a top-level group, "model" for a leaf resource */
-    type: "module" | "model";
+    /** "module" for a top-level group, "model" for a leaf resource, "page" for a non-model or custom page */
+    type: "module" | "model" | "page";
+    /** For a "page": its path (default `/<key>`, the route of a non-model data resource). */
+    route?: string;
+    /** For a "page": the module it is listed under (e.g. "module:nlp"); a first-level entry when omitted. */
+    parent?: string;
 }
 
 export type NavConfig = NavConfigEntry[];
@@ -116,14 +120,19 @@ export function resolveFallbackLandingPath(
  * Items without a matching entry sort to the end (sequence = 999).
  * Original array order serves as a stable tiebreaker.
  */
-export function sortItemsByNavConfig<T extends { key?: string; name?: string }>(
+export function sortItemsByNavConfig<T extends { key?: string; name?: string; children?: any[] }>(
     items: T[],
     navConfig: NavConfig,
 ): T[] {
     if (!Array.isArray(items)) return [];
-    return [...items].sort((a, b) => {
-        const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
-        const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
-        return aSeq - bSeq;
-    });
+    // Every level is ordered: modules, and the models and pages inside each module.
+    return [...items]
+        .sort((a, b) => {
+            const aSeq = getNavEntry(navConfig, resolveNavKey(a))?.sequence ?? 999;
+            const bSeq = getNavEntry(navConfig, resolveNavKey(b))?.sequence ?? 999;
+            return aSeq - bSeq;
+        })
+        .map((item) => (Array.isArray(item.children) && item.children.length > 0
+            ? { ...item, children: sortItemsByNavConfig(item.children, navConfig) }
+            : item));
 }

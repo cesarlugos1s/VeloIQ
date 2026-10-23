@@ -9,8 +9,8 @@
 import { getActiveLocale } from "./activeLocale";
 import { ROW_REVISIONS_RESPONSE_HEADER, rememberRowRevisions, rowRevisionFor } from "./trackRowRevisions";
 import { answerInPageRowsRequest } from "./serveInPageRowsStores";
+import { readAccessToken } from "./signInStorageKeys";
 
-const TOKEN_KEY = "jm_access_token";
 
 export const authenticatedFetch = (
     url: string,
@@ -24,7 +24,7 @@ export const authenticatedFetch = (
             : typeof inPageAnswer.body === "string" ? inPageAnswer.body : JSON.stringify(inPageAnswer.body);
         return Promise.resolve(new Response(responseBody, { status: inPageAnswer.status, headers: inPageAnswer.headers }));
     }
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = readAccessToken();
     const headers: Record<string, string> = {
         ...(options.headers as Record<string, string> | undefined),
     };

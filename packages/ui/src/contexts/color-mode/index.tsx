@@ -10,6 +10,7 @@ import {
 import { ColorModeContext } from "../ColorModeContext";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { onColorSchemaChange } from "../../utils/modelTone";
+import { readAccessToken } from "../../utils/signInStorageKeys";
 
 const API_BASE_URL = "/api";
 
@@ -41,6 +42,8 @@ export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      // Signed out (e.g. on the sign-in page): no saved preference to read.
+      if (!readAccessToken()) return;
       try {
         const resp = await authenticatedFetch(`${API_BASE_URL}/views/preferences/color-mode`);
         if (!resp.ok) return;

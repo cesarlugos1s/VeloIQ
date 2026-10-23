@@ -159,6 +159,10 @@ VIEWS_KEY_COMMENTS: dict[str, str] = {
         "# If true, forward relations not configured in views_preferences.json\n"
         "# each get their own tab on show/edit pages (default: true).\n"
     ),
+    "show_dashboard_menu_entry": (
+        "# If true, the app's menus show the Dashboard entry (default: true).\n"
+        "# External portals have their own setting (hidden by default).\n"
+    ),
     "panes_layout_mode": (
         "# Layout of the right-side panels opened by following a link: \"stack\",\n"
         "# \"breadcrumb\", \"overlay\" or \"scroll\" (default: \"stack\").\n"

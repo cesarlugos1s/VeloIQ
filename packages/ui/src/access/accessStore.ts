@@ -11,8 +11,8 @@
  */
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { AccessAction, AccessContext } from "./evaluateAccess";
+import { readAccessToken, signInStorageKeys } from "../utils/signInStorageKeys";
 
-export const ACCESS_STORAGE_KEY = "jm_resource_permissions";
 const RESOURCE_PERMISSIONS_URL = "/auth/resource-permissions";
 /** Minimum gap between two focus-triggered refetches. */
 const FOCUS_REFRESH_MIN_MS = 5000;
@@ -43,7 +43,7 @@ function isEffectivePermissions(value: unknown): value is EffectivePermissions {
 
 function readStored(): EffectivePermissions | null {
     try {
-        const raw = localStorage.getItem(ACCESS_STORAGE_KEY);
+        const raw = localStorage.getItem(signInStorageKeys().resourcePermissions);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return isEffectivePermissions(parsed) ? parsed : null;
@@ -70,8 +70,8 @@ export function setAccessPermissions(data: EffectivePermissions | null): void {
     current = data;
     loaded = true;
     try {
-        if (data) localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(data));
-        else localStorage.removeItem(ACCESS_STORAGE_KEY);
+        if (data) localStorage.setItem(signInStorageKeys().resourcePermissions, JSON.stringify(data));
+        else localStorage.removeItem(signInStorageKeys().resourcePermissions);
     } catch {
         // Storage may be unavailable (private mode); memory still works.
     }
@@ -102,7 +102,7 @@ function installFocusListener(): void {
     if (focusListenerInstalled || typeof window === "undefined") return;
     focusListenerInstalled = true;
     window.addEventListener("focus", () => {
-        if (!localStorage.getItem("jm_access_token")) return;
+        if (!readAccessToken()) return;
         if (Date.now() - lastFetch < FOCUS_REFRESH_MIN_MS) return;
         void refreshAccess();
     });
