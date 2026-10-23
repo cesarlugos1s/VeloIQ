@@ -17792,7 +17792,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -17969,6 +17969,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const prevViewNameForResetRef = useRef(null);
   const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = useState([]);
   const bulkSelectedRowsMapRef = useRef(/* @__PURE__ */ new Map());
+  const onSelectedRowsChangeRef = useRef(onSelectedRowsChange);
+  onSelectedRowsChangeRef.current = onSelectedRowsChange;
+  useEffect(() => {
+    onSelectedRowsChangeRef.current?.(
+      bulkSelectedRowKeys.map((key) => bulkSelectedRowsMapRef.current.get(key)).filter(Boolean)
+    );
+  }, [bulkSelectedRowKeys]);
   const [activeRowKey, setActiveRowKey] = useState(null);
   const [selectModeAssociating, setSelectModeAssociating] = useState(false);
   const handleAssociateSelected = useCallback(async () => {

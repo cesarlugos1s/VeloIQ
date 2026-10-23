@@ -276,7 +276,9 @@ const DynamicListPage: React.FC<{
     defaultListVisible?: boolean;
     /** Keys (eid) of rows shown highlighted, e.g. records just created or promoted from the page. */
     highlightedRowKeys?: string[];
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys }) => {
+    /** Called with the selected rows whenever the selection changes (for the page's own actions on them). */
+    onSelectedRowsChange?: (rows: any[]) => void;
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -509,6 +511,14 @@ const DynamicListPage: React.FC<{
     // --- Bulk selection state ---
     const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = useState<React.Key[]>([]);
     const bulkSelectedRowsMapRef = useRef<Map<React.Key, any>>(new Map());
+    // Tell the page which rows are selected (the rows themselves live in the map, keyed like the selection).
+    const onSelectedRowsChangeRef = useRef(onSelectedRowsChange);
+    onSelectedRowsChangeRef.current = onSelectedRowsChange;
+    useEffect(() => {
+        onSelectedRowsChangeRef.current?.(
+            bulkSelectedRowKeys.map((key) => bulkSelectedRowsMapRef.current.get(key)).filter(Boolean),
+        );
+    }, [bulkSelectedRowKeys]);
     // Last clicked row — kept highlighted so the user can see which record the side pane shows.
     const [activeRowKey, setActiveRowKey] = useState<React.Key | null>(null);
 

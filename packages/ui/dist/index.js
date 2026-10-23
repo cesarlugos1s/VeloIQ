@@ -17819,7 +17819,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -17996,6 +17996,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const prevViewNameForResetRef = React6.useRef(null);
   const [bulkSelectedRowKeys, setBulkSelectedRowKeys] = React6.useState([]);
   const bulkSelectedRowsMapRef = React6.useRef(/* @__PURE__ */ new Map());
+  const onSelectedRowsChangeRef = React6.useRef(onSelectedRowsChange);
+  onSelectedRowsChangeRef.current = onSelectedRowsChange;
+  React6.useEffect(() => {
+    onSelectedRowsChangeRef.current?.(
+      bulkSelectedRowKeys.map((key) => bulkSelectedRowsMapRef.current.get(key)).filter(Boolean)
+    );
+  }, [bulkSelectedRowKeys]);
   const [activeRowKey, setActiveRowKey] = React6.useState(null);
   const [selectModeAssociating, setSelectModeAssociating] = React6.useState(false);
   const handleAssociateSelected = React6.useCallback(async () => {
