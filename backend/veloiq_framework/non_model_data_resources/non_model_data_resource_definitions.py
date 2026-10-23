@@ -25,7 +25,7 @@ register it from code with :func:`register_non_model_data_resource`::
             NonModelDataField(key="code", label="Code"),
             NonModelDataField(key="rate", label="Rate", type="number", required=True),
         ],
-        source=JsonFileDataSource("config/regional_rates.json"),
+        data_source=JsonFileDataSource("config/regional_rates.json"),
     )
 
 Rules every source follows (see the requirement's "Rules for each non-model

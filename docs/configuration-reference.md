@@ -355,6 +355,37 @@ Use `veloiq add-dashboard` to add or remove models from the dashboard without ed
 
 When a model has view configuration rows (defined via the `GET /views/configurations/{model}` endpoint), the show and edit pages render fields and relations as a configurable grid of named sections. Users can reposition sections by dragging or using the arrow buttons in each section header.
 
+The rows come from the page configurations of VeloIQ, the enabled extensions and the host app's `config/page_configs.json`, merged in that order. A page configuration is keyed `<resource>:show` or `<resource>:edit` (a model's table name or a [non-model data resource](non-model-data-resources.md)'s name). Each section sits at a `grid_row`/`grid_col` of the page and lays out its entries in a table of `row`/`column` cells; several entries in the same cell are stacked in the order listed. The example below puts a product's image in a first column and its data next to it:
+
+```json
+{
+  "schema_version": "1.0",
+  "configs": {
+    "storefront_products:show": {
+      "model": "storefront_products",
+      "view_type": "show",
+      "sections": [
+        {
+          "id": "product", "name": "Product", "grid_row": 1, "grid_col": 1,
+          "entries": [
+            { "kind": "attribute", "key": "image_url", "row": 1, "column": 1, "show_label": false, "view_type": "read-only-image-url" },
+            { "kind": "attribute", "key": "name", "row": 1, "column": 2 },
+            { "kind": "attribute", "key": "unit_price", "row": 1, "column": 2 }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+An entry's `kind` is `attribute` (a field), `relation`, `view` or `nlsentence`. Its `view_type` is:
+
+- for a relation, the relation view type (`table`, `totals-details`, `gallery`…);
+- for a field, a field view type. A `read-only-*` type (e.g. `read-only-image-url`, `read-only-currency`) sets how the value is shown on the show page. An `editable-*` type makes the field editable in place on the show page, for users who may edit the record.
+
+On a record the user may only read, the page's fields are read-only, but its relations' views stay usable (switching views, totals/details, opening related records); what the user may do with the related rows depends on their own permissions.
+
 User position overrides are saved automatically to `views_preferences.json` under the model's resource key:
 
 ```json

@@ -153,7 +153,7 @@ for non-model data alike.
      DynamicEdit) with the view type that fits; a site action is a row action
      or a record-page header button;
    - data that is not a model (configuration files, computed summaries, an
-     external service): a **non-model data resource**, shown with the same
+     external service): a [non-model data resource](non-model-data-resources.md), shown with the same
      views;
    - fields or relations the portal's users may read but its pages should not
      show: `omit` in the portal's overrides; data they may not read: the
