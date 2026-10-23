@@ -5768,8 +5768,11 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
       ] });
     case "read-only-code":
       return /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
-    case "read-only-image-url":
-      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
+    case "read-only-image-url": {
+      const imageStyle = { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" };
+      if (str.includes("/api/file/")) return /* @__PURE__ */ jsxRuntime.jsx(AuthenticatedImage, { url: str, style: imageStyle });
+      return /* @__PURE__ */ jsxRuntime.jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsxRuntime.jsx("img", { src: str, alt: "", style: imageStyle }) });
+    }
     case "read-only-storage-field":
       return /* @__PURE__ */ jsxRuntime.jsx(StorageFieldValue, { storageKey: str });
     case "read-only-qrcode":
@@ -12394,7 +12397,9 @@ var SectionCellContent = ({
         fieldLayoutStyle: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }
       }) }, `${item.name}-${item.row}-${item.column}-${index}`);
     }
-    const field = resolveFieldFromConfig(model, item);
+    const configuredField = resolveFieldFromConfig(model, item);
+    const configuredReadOnlyViewType = normalizeFieldViewType(String(getConfigVid(item, mode) || ""));
+    const field = mode === "show" && configuredReadOnlyViewType.startsWith("read-only-") ? { ...configuredField, showViewType: configuredReadOnlyViewType } : configuredField;
     if (field.isPk && mode !== "show") return null;
     const showLabel = item.show_label !== false;
     const valueStyle = {
@@ -17768,7 +17773,7 @@ var MillerBrowserLayout = ({
   ] });
 };
 var { Title: Title5 } = antd.Typography;
-var renderRelationBlock = ({
+var renderRelationBlockContent = ({
   rel,
   relationModel,
   relatedModel,
@@ -18077,6 +18082,11 @@ var renderRelationBlock = ({
     content
   ] }, rel.resource);
 };
+var renderRelationBlock = (relationBlockArguments) => {
+  const relationBlock = renderRelationBlockContent(relationBlockArguments);
+  if (relationBlockArguments.mode !== "show") return relationBlock;
+  return /* @__PURE__ */ jsxRuntime.jsx(antd.ConfigProvider, { componentDisabled: false, children: relationBlock }, relationBlock.key ?? void 0);
+};
 var _63 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
 var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
@@ -18170,7 +18180,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [localSearch, setLocalSearch] = React6.useState("");
   const [listVisible, setListVisible] = React6.useState(defaultListVisible ?? true);
   const [isTdFlipped, setIsTdFlipped] = React6.useState(false);
-  const [pageSize, setPageSize] = React6.useState(10);
+  const [pageSize, setPageSize] = React6.useState(model.defaultPageSize ?? 10);
+  const [quickFilterValues, setQuickFilterValues] = React6.useState({});
+  const quickFilterFieldDefs = React6.useMemo(
+    () => (model.quickFilterFields ?? []).map((fieldKey) => model.fields.find((field) => field.key === fieldKey)).filter((field) => Boolean(field?.options?.length)),
+    [model.quickFilterFields, model.fields]
+  );
   const [galleryPage, setGalleryPage] = React6.useState(1);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
@@ -18325,8 +18340,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (filter && filter.value !== void 0 && filter.value !== null) {
       result.push(filter);
     }
+    Object.entries(quickFilterValues).forEach(([fieldKey, values]) => {
+      if (values.length > 0) result.push({ field: `${fieldKey}__in`, operator: "eq", value: values.join(",") });
+    });
     return result;
-  }, [filter?.field, filter?.operator, filter?.value, urlPreFilters]);
+  }, [filter?.field, filter?.operator, filter?.value, urlPreFilters, quickFilterValues]);
   const { tableProps, searchFormProps, filters: activeFilters, setFilters, ...listTable } = antd$1.useTable({
     resource: resourceIdentifier,
     syncWithLocation: !isEmbedded,
@@ -20843,8 +20861,26 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           ) })
         ] }),
         style: { marginBottom: 16 },
-        styles: { body: { display: "grid", gap: 12 } },
-        children: /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, {})
+        styles: { body: { display: quickFilterFieldDefs.length > 0 ? "flex" : "none", gap: 12, flexWrap: "wrap" } },
+        children: quickFilterFieldDefs.map((quickFilterField) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 260, flex: "1 1 260px" }, children: [
+          /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, whiteSpace: "nowrap" }, children: _63(quickFilterField.label) }),
+          /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Select,
+            {
+              mode: "multiple",
+              allowClear: true,
+              maxTagCount: "responsive",
+              style: { flex: 1, minWidth: 180 },
+              placeholder: `${_63("Select")} ${_63(quickFilterField.label)}...`,
+              value: quickFilterValues[quickFilterField.key] ?? [],
+              options: (quickFilterField.options ?? []).map((option) => ({ label: _63(String(option.label)), value: option.value })),
+              onChange: (values) => {
+                setQuickFilterValues((previous) => ({ ...previous, [quickFilterField.key]: values }));
+                setGalleryPage(1);
+              }
+            }
+          )
+        ] }, quickFilterField.key))
       }
     ),
     columnsSelectorOpen && /* @__PURE__ */ jsxRuntime.jsxs(

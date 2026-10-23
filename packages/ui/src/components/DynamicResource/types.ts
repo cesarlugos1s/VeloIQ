@@ -153,6 +153,14 @@ export interface ModelDef {
     showAnalyzeSection?: boolean;
     /** Which writes the resource accepts (absent = all, as for models). */
     capabilities?: { create?: boolean; update?: boolean; delete?: boolean };
+    /**
+     * Fields offered as filters in the list's Filters panel: each field with
+     * options gets a multi-select, and the list shows the rows having any of the
+     * chosen values (for a multi-valued field, any of its values).
+     */
+    quickFilterFields?: string[];
+    /** Rows per page a list of the resource starts with (default 10). */
+    defaultPageSize?: number;
 }
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };

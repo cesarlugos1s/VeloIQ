@@ -1,10 +1,10 @@
 import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
-import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, notificationProvider, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, Refine, Authenticated, useResource } from '@refinedev/core';
+import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, Refine, Authenticated, useWarnAboutChange, useResource } from '@refinedev/core';
 import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, EyeOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, Routes, Route, BrowserRouter, Outlet, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -5740,8 +5740,11 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
       ] });
     case "read-only-code":
       return /* @__PURE__ */ jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
-    case "read-only-image-url":
-      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsx("img", { src: str, alt: "", style: { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" } }) });
+    case "read-only-image-url": {
+      const imageStyle = { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" };
+      if (str.includes("/api/file/")) return /* @__PURE__ */ jsx(AuthenticatedImage, { url: str, style: imageStyle });
+      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsx("img", { src: str, alt: "", style: imageStyle }) });
+    }
     case "read-only-storage-field":
       return /* @__PURE__ */ jsx(StorageFieldValue, { storageKey: str });
     case "read-only-qrcode":
@@ -12366,7 +12369,9 @@ var SectionCellContent = ({
         fieldLayoutStyle: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }
       }) }, `${item.name}-${item.row}-${item.column}-${index}`);
     }
-    const field = resolveFieldFromConfig(model, item);
+    const configuredField = resolveFieldFromConfig(model, item);
+    const configuredReadOnlyViewType = normalizeFieldViewType(String(getConfigVid(item, mode) || ""));
+    const field = mode === "show" && configuredReadOnlyViewType.startsWith("read-only-") ? { ...configuredField, showViewType: configuredReadOnlyViewType } : configuredField;
     if (field.isPk && mode !== "show") return null;
     const showLabel = item.show_label !== false;
     const valueStyle = {
@@ -17740,7 +17745,7 @@ var MillerBrowserLayout = ({
   ] });
 };
 var { Title: Title5 } = Typography;
-var renderRelationBlock = ({
+var renderRelationBlockContent = ({
   rel,
   relationModel,
   relatedModel,
@@ -18049,6 +18054,11 @@ var renderRelationBlock = ({
     content
   ] }, rel.resource);
 };
+var renderRelationBlock = (relationBlockArguments) => {
+  const relationBlock = renderRelationBlockContent(relationBlockArguments);
+  if (relationBlockArguments.mode !== "show") return relationBlock;
+  return /* @__PURE__ */ jsx(ConfigProvider, { componentDisabled: false, children: relationBlock }, relationBlock.key ?? void 0);
+};
 var _63 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
 var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
@@ -18142,7 +18152,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [localSearch, setLocalSearch] = useState("");
   const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
   const [isTdFlipped, setIsTdFlipped] = useState(false);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(model.defaultPageSize ?? 10);
+  const [quickFilterValues, setQuickFilterValues] = useState({});
+  const quickFilterFieldDefs = useMemo(
+    () => (model.quickFilterFields ?? []).map((fieldKey) => model.fields.find((field) => field.key === fieldKey)).filter((field) => Boolean(field?.options?.length)),
+    [model.quickFilterFields, model.fields]
+  );
   const [galleryPage, setGalleryPage] = useState(1);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => calendarDateFieldOptions[0]?.key || "");
@@ -18297,8 +18312,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (filter && filter.value !== void 0 && filter.value !== null) {
       result.push(filter);
     }
+    Object.entries(quickFilterValues).forEach(([fieldKey, values]) => {
+      if (values.length > 0) result.push({ field: `${fieldKey}__in`, operator: "eq", value: values.join(",") });
+    });
     return result;
-  }, [filter?.field, filter?.operator, filter?.value, urlPreFilters]);
+  }, [filter?.field, filter?.operator, filter?.value, urlPreFilters, quickFilterValues]);
   const { tableProps, searchFormProps, filters: activeFilters, setFilters, ...listTable } = useTable({
     resource: resourceIdentifier,
     syncWithLocation: !isEmbedded,
@@ -20815,8 +20833,26 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           ) })
         ] }),
         style: { marginBottom: 16 },
-        styles: { body: { display: "grid", gap: 12 } },
-        children: /* @__PURE__ */ jsx(Fragment, {})
+        styles: { body: { display: quickFilterFieldDefs.length > 0 ? "flex" : "none", gap: 12, flexWrap: "wrap" } },
+        children: quickFilterFieldDefs.map((quickFilterField) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 260, flex: "1 1 260px" }, children: [
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, whiteSpace: "nowrap" }, children: _63(quickFilterField.label) }),
+          /* @__PURE__ */ jsx(
+            Select,
+            {
+              mode: "multiple",
+              allowClear: true,
+              maxTagCount: "responsive",
+              style: { flex: 1, minWidth: 180 },
+              placeholder: `${_63("Select")} ${_63(quickFilterField.label)}...`,
+              value: quickFilterValues[quickFilterField.key] ?? [],
+              options: (quickFilterField.options ?? []).map((option) => ({ label: _63(String(option.label)), value: option.value })),
+              onChange: (values) => {
+                setQuickFilterValues((previous) => ({ ...previous, [quickFilterField.key]: values }));
+                setGalleryPage(1);
+              }
+            }
+          )
+        ] }, quickFilterField.key))
       }
     ),
     columnsSelectorOpen && /* @__PURE__ */ jsxs(

@@ -407,7 +407,16 @@ const DynamicListPage: React.FC<{
     const [localSearch, setLocalSearch] = useState("");
     const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
     const [isTdFlipped, setIsTdFlipped] = useState(false);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(model.defaultPageSize ?? 10);
+    // Values chosen in the Filters panel's quick filters (ModelDef.quickFilterFields), by field key.
+    const [quickFilterValues, setQuickFilterValues] = useState<Record<string, Array<string | number>>>({});
+    // The quick filters offered (fields with options only).
+    const quickFilterFieldDefs = useMemo(
+        () => (model.quickFilterFields ?? [])
+            .map((fieldKey) => model.fields.find((field) => field.key === fieldKey))
+            .filter((field): field is FieldDef => Boolean(field?.options?.length)),
+        [model.quickFilterFields, model.fields],
+    );
     const [galleryPage, setGalleryPage] = useState(1);
     const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
     const [calendarDateField, setCalendarDateField] = useState<string>(() => calendarDateFieldOptions[0]?.key || "");
@@ -601,8 +610,12 @@ const DynamicListPage: React.FC<{
         if (filter && filter.value !== undefined && filter.value !== null) {
             result.push(filter);
         }
+        // Quick filters: "any of the chosen values", sent as ?<field>__in=a,b like the related-list links.
+        Object.entries(quickFilterValues).forEach(([fieldKey, values]) => {
+            if (values.length > 0) result.push({ field: `${fieldKey}__in`, operator: "eq", value: values.join(",") } as any);
+        });
         return result;
-    }, [filter?.field, filter?.operator, filter?.value, urlPreFilters]);
+    }, [filter?.field, filter?.operator, filter?.value, urlPreFilters, quickFilterValues]);
 
     const { tableProps, searchFormProps, filters: activeFilters, setFilters, ...listTable } = useTable({
         resource: resourceIdentifier,
@@ -3448,9 +3461,26 @@ const DynamicListPage: React.FC<{
                         </div>
                     }
                     style={{ marginBottom: 16 }}
-                    styles={{ body: { display: "grid", gap: 12 } }}
+                    styles={{ body: { display: quickFilterFieldDefs.length > 0 ? "flex" : "none", gap: 12, flexWrap: "wrap" } }}
                 >
-                    <></>
+                    {quickFilterFieldDefs.map((quickFilterField) => (
+                        <div key={quickFilterField.key} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 260, flex: "1 1 260px" }}>
+                            <span style={{ color: token.colorTextSecondary, fontSize: 12, whiteSpace: "nowrap" }}>{_(quickFilterField.label)}</span>
+                            <Select
+                                mode="multiple"
+                                allowClear
+                                maxTagCount="responsive"
+                                style={{ flex: 1, minWidth: 180 }}
+                                placeholder={`${_("Select")} ${_(quickFilterField.label)}...`}
+                                value={quickFilterValues[quickFilterField.key] ?? []}
+                                options={(quickFilterField.options ?? []).map((option) => ({ label: _(String(option.label)), value: option.value }))}
+                                onChange={(values: Array<string | number>) => {
+                                    setQuickFilterValues((previous) => ({ ...previous, [quickFilterField.key]: values }));
+                                    setGalleryPage(1);
+                                }}
+                            />
+                        </div>
+                    ))}
             </Card>
             )}
             {columnsSelectorOpen && (

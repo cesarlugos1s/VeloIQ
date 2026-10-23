@@ -10,6 +10,7 @@ import { renderOptionTag } from "../utils/colors";
 import { normalizeFieldViewType } from "../utils/viewConfig";
 import { ReferenceField } from "./ReferenceField";
 import { StorageFieldValue } from "./StorageFieldValue";
+import { AuthenticatedImage } from "../utils/gallery";
 import { resolveRowTypedField } from "../utils/resolveRowTypedField";
 
 dayjs.extend(relativeTime);
@@ -98,12 +99,18 @@ const renderFieldViewTypeReadOnly = (token: string, value: any, inTable?: boolea
             );
         case "read-only-code":
             return <pre style={{ margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{str}</pre>;
-        case "read-only-image-url":
+        case "read-only-image-url": {
+            // Stored files (/api/file/...) are loaded with the session (and, in a
+            // portal, its name), which a plain image request cannot send; they
+            // are therefore not links either, since opening one would be refused.
+            const imageStyle: React.CSSProperties = { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" };
+            if (str.includes("/api/file/")) return <AuthenticatedImage url={str} style={imageStyle} />;
             return (
                 <a href={str} target="_blank" rel="noopener noreferrer">
-                    <img src={str} alt="" style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" }} />
+                    <img src={str} alt="" style={imageStyle} />
                 </a>
             );
+        }
         case "read-only-storage-field":
             // No model/field/pk context here (unlike the edit-mode widget)
             // -- StorageFieldValue only needs the resolved value itself

@@ -233,6 +233,10 @@ class NonModelDataResource:
     :param show_analyze_section: False hides the Analyze section (charts and
         summaries) and its toggle on the resource's lists, for configuration
         lists where it adds nothing.
+    :param quick_filter_fields: Fields offered as filters in the list's Filters
+        panel (a multi-select per field with options; rows having any of the
+        chosen values, or for a multi-valued field any of its values).
+    :param default_page_size: Rows per page a list of the resource starts with.
     :param build_fields_function: ``() -> list[NonModelDataField]`` returning
         fields known only when the app runs (e.g. one per registered setting).
         They follow ``fields`` and are rebuilt for every request. The record
@@ -260,6 +264,8 @@ class NonModelDataResource:
     single_record: bool = False
     source_generates_keys: bool = False
     show_analyze_section: bool = True
+    quick_filter_fields: list[str] = field(default_factory=list)
+    default_page_size: Optional[int] = None
     build_fields_function: Optional[Callable[[], list[NonModelDataField]]] = None
 
     def __post_init__(self) -> None:
@@ -332,6 +338,10 @@ class NonModelDataResource:
             model_def["showAnalyzeSection"] = False
         if self.source_generates_keys:
             model_def["sourceGeneratesKeys"] = True
+        if self.quick_filter_fields:
+            model_def["quickFilterFields"] = list(self.quick_filter_fields)
+        if self.default_page_size:
+            model_def["defaultPageSize"] = int(self.default_page_size)
         return model_def
 
 

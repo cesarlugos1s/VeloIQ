@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Typography } from "antd";
+import { Card, ConfigProvider, Typography } from "antd";
 import { getModelTone } from "../../../utils/modelTone";
 import type { ModelDef, RelationDef, RelationViewType } from "../types";
 import { getRelationLabel } from "../utils/i18n";
@@ -28,7 +28,7 @@ import { DynamicList } from "../../DynamicResource";
 
 const { Title } = Typography;
 
-export const renderRelationBlock = ({
+const renderRelationBlockContent = ({
     rel,
     relationModel,
     relatedModel,
@@ -412,4 +412,18 @@ export const renderRelationBlock = ({
             {content}
         </div>
     );
+};
+
+/**
+ * A relation's block on a record page. On a show page the relation's rows are
+ * other records, governed by their own permissions, so the block does not
+ * inherit the disabled state of a read-only record form around it: its views,
+ * totals/details switch and navigation stay usable on records the user may
+ * only read. On an edit page it keeps the form's disabled state.
+ */
+export const renderRelationBlock = (relationBlockArguments: Parameters<typeof renderRelationBlockContent>[0]) => {
+    const relationBlock = renderRelationBlockContent(relationBlockArguments);
+    if (relationBlockArguments.mode !== "show") return relationBlock;
+    // Keep the block's key: some pages collect the blocks in arrays.
+    return <ConfigProvider key={relationBlock.key ?? undefined} componentDisabled={false}>{relationBlock}</ConfigProvider>;
 };

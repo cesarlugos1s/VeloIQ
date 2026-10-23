@@ -16,6 +16,7 @@ import {
     normalizeRelationViewType,
     applyRelationViewOverride,
     getConfigVid,
+    normalizeFieldViewType,
 } from "./utils/viewConfig";
 import { getRelationViewType } from "./relations/helpers";
 import { renderInput } from "./fields/renderInput";
@@ -248,7 +249,13 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
             );
         }
 
-        const field = resolveFieldFromConfig(model, item);
+        const configuredField = resolveFieldFromConfig(model, item);
+        // A read-only field view type set on the page configuration's entry
+        // (e.g. "read-only-image-url") shows the value that way on show pages.
+        const configuredReadOnlyViewType = normalizeFieldViewType(String(getConfigVid(item, mode) || ""));
+        const field = mode === "show" && configuredReadOnlyViewType.startsWith("read-only-")
+            ? { ...configuredField, showViewType: configuredReadOnlyViewType }
+            : configuredField;
         // Key fields are shown on show pages and left out of edit forms
         // (changing them would change which record is edited).
         if (field.isPk && mode !== "show") return null;
