@@ -4,7 +4,7 @@ import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, useResource } from '@refinedev/core';
 import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, Routes, Route, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -17794,7 +17794,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -17845,8 +17845,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     return preFilters;
   }, [searchParams]);
   useKeyboardShortcuts(useMemo(() => isEmbedded ? [] : [
-    { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) }
-  ], [model.name, model.resource, go, isEmbedded]));
+    { key: "n", ctrl: true, handler: () => onCreate ? onCreate() : go({ to: { resource: model.resource || model.name, action: "create" } }) }
+  ], [model.name, model.resource, go, isEmbedded, onCreate]));
   const { token } = theme.useToken();
   const modelTone = useModelTone(model);
   const searchField = model.fields.find((f) => f.type === "string" && !f.key.includes("_id") && !f.key.includes("eid")) || model.fields.find((f) => f.type === "string") || model.fields[0];
@@ -18049,6 +18049,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     onSearch: (values) => {
       if (!searchField) return [];
       if (!values?.q) return [];
+      if (model.isNonModelData) return [{ field: "q", operator: "eq", value: values.q }];
       let value = values.q;
       if (searchField.type === "number") {
         const parsed = Number(values.q);
@@ -18090,7 +18091,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const getSortValue = useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
-    if (isPkField(field, model) && record?._label) return record._label;
+    if (isPkField(field, model) && keyColumnShowsTitle && record?._label) return record._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] ?? raw;
@@ -18108,7 +18109,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (field.type === "number") return Number(raw);
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
-  }, [labelCache]);
+  }, [labelCache, keyColumnShowsTitle, model]);
   const compareSortValues = useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
@@ -19380,6 +19381,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   };
   const handleRowClick = (record, event) => {
     if (event.defaultPrevented || shouldIgnoreRowClick(event.target)) return;
+    if (onRowClick) {
+      onRowClick(record);
+      return;
+    }
     const { resource, id } = getTargetInfo(record);
     if (resource && id !== void 0 && id !== null) {
       if (paneNav?.isInMultiPane) {
@@ -21172,6 +21177,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                         onClick: (e) => {
                           if (!shouldHandleLinkClick(e)) return;
                           e.preventDefault();
+                          if (onRowClick) {
+                            onRowClick(record);
+                            return;
+                          }
                           if (paneNav?.isInMultiPane) {
                             paneNav.openDetail(resource, id);
                           } else {
@@ -21313,7 +21322,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     exportButton,
     quickExportButton,
     importButton,
-    !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
+    onCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Create"), children: /* @__PURE__ */ jsx(Button, { type: "primary", icon: /* @__PURE__ */ jsx(PlusSquareOutlined, {}), "aria-label": _62("Create"), onClick: onCreate }) }) : !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
   ] });
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),

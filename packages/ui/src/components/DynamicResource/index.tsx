@@ -49,7 +49,7 @@ import {
     message,
     Popconfirm,
 } from "antd";
-import { EyeOutlined, SearchOutlined, PlusOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, PlusOutlined, PlusSquareOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { HierarchyView } from "../HierarchyView";
@@ -279,7 +279,11 @@ const DynamicListPage: React.FC<{
     highlightedRowKeys?: string[];
     /** Called with the selected rows whenever the selection changes (for the page's own actions on them). */
     onSelectedRowsChange?: (rows: any[]) => void;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
+    /** Handles a click on a row instead of opening the record (e.g. loading it into the page's own editor). */
+    onRowClick?: (record: any) => void;
+    /** Handles the list's create button (and Ctrl+N) instead of opening the create form (e.g. a new record in the page's own editor). */
+    onCreate?: () => void;
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -345,8 +349,8 @@ const DynamicListPage: React.FC<{
 
     // Keyboard shortcuts: Ctrl+N to create new record
     useKeyboardShortcuts(useMemo(() => isEmbedded ? [] : [
-        { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) },
-    ], [model.name, model.resource, go, isEmbedded]));
+        { key: "n", ctrl: true, handler: () => (onCreate ? onCreate() : go({ to: { resource: model.resource || model.name, action: "create" } })) },
+    ], [model.name, model.resource, go, isEmbedded, onCreate]));
     const { token } = theme.useToken();
     const modelTone = useModelTone(model);
     const searchField = model.fields.find(f => f.type === 'string' && !f.key.includes('_id') && !f.key.includes('eid'))
@@ -605,6 +609,9 @@ const DynamicListPage: React.FC<{
         onSearch: (values: any) => {
             if (!searchField) return [];
             if (!values?.q) return [];
+            // A non-model data resource searches every text field on the server (?q=),
+            // e.g. the text inside a business rule's definition.
+            if (model.isNonModelData) return [{ field: "q", operator: "eq", value: values.q }];
             let value: any = values.q;
             if (searchField.type === "number") {
                 const parsed = Number(values.q);
@@ -655,7 +662,7 @@ const DynamicListPage: React.FC<{
     const getSortValue = useCallback((field: FieldDef, record: any) => {
         const raw = record?.[field.key];
         if (raw === undefined || raw === null) return null;
-        if (isPkField(field, model) && record?._label) return record._label;
+        if (isPkField(field, model) && keyColumnShowsTitle && record?._label) return record._label;
         if (field.reference) {
             const cacheKey = `${field.reference}:${raw}`;
             return labelCache[cacheKey] ?? raw;
@@ -674,7 +681,7 @@ const DynamicListPage: React.FC<{
         if (field.type === "number") return Number(raw);
         if (field.type === "boolean") return raw ? 1 : 0;
         return raw;
-    }, [labelCache]);
+    }, [labelCache, keyColumnShowsTitle, model]);
 
     const compareSortValues = useCallback((field: FieldDef, a: any, b: any) => {
         const aVal = getSortValue(field, a);
@@ -2147,6 +2154,10 @@ const DynamicListPage: React.FC<{
     };
     const handleRowClick = (record: any, event: React.MouseEvent<HTMLElement>) => {
         if (event.defaultPrevented || shouldIgnoreRowClick(event.target)) return;
+        if (onRowClick) {
+            onRowClick(record);
+            return;
+        }
         const { resource, id } = getTargetInfo(record);
         if (resource && id !== undefined && id !== null) {
             if (paneNav?.isInMultiPane) {
@@ -4085,6 +4096,11 @@ const DynamicListPage: React.FC<{
                                                 onClick={(e) => {
                                                     if (!shouldHandleLinkClick(e)) return;
                                                     e.preventDefault();
+                                                    // The page handles row clicks itself (e.g. opens the record in its own editor).
+                                                    if (onRowClick) {
+                                                        onRowClick(record);
+                                                        return;
+                                                    }
                                                     if (paneNav?.isInMultiPane) {
                                                         paneNav.openDetail(resource, id);
                                                     } else {
@@ -4250,7 +4266,11 @@ const DynamicListPage: React.FC<{
             {quickExportButton}
             {importButton}
             {/* Named queries have no create endpoint, and a non-model data resource may refuse creates — suppress the Create button. */}
-            {!model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)}
+            {onCreate ? (
+                <Tooltip title={_("Create")}>
+                    <Button type="primary" icon={<PlusSquareOutlined />} aria-label={_("Create")} onClick={onCreate} />
+                </Tooltip>
+            ) : !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)}
         </>
     );
 

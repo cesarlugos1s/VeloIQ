@@ -17821,7 +17821,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -17872,8 +17872,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     return preFilters;
   }, [searchParams]);
   useKeyboardShortcuts(React6.useMemo(() => isEmbedded ? [] : [
-    { key: "n", ctrl: true, handler: () => go({ to: { resource: model.resource || model.name, action: "create" } }) }
-  ], [model.name, model.resource, go, isEmbedded]));
+    { key: "n", ctrl: true, handler: () => onCreate ? onCreate() : go({ to: { resource: model.resource || model.name, action: "create" } }) }
+  ], [model.name, model.resource, go, isEmbedded, onCreate]));
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
   const searchField = model.fields.find((f) => f.type === "string" && !f.key.includes("_id") && !f.key.includes("eid")) || model.fields.find((f) => f.type === "string") || model.fields[0];
@@ -18076,6 +18076,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     onSearch: (values) => {
       if (!searchField) return [];
       if (!values?.q) return [];
+      if (model.isNonModelData) return [{ field: "q", operator: "eq", value: values.q }];
       let value = values.q;
       if (searchField.type === "number") {
         const parsed = Number(values.q);
@@ -18117,7 +18118,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const getSortValue = React6.useCallback((field, record) => {
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return null;
-    if (isPkField(field, model) && record?._label) return record._label;
+    if (isPkField(field, model) && keyColumnShowsTitle && record?._label) return record._label;
     if (field.reference) {
       const cacheKey = `${field.reference}:${raw}`;
       return labelCache[cacheKey] ?? raw;
@@ -18135,7 +18136,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (field.type === "number") return Number(raw);
     if (field.type === "boolean") return raw ? 1 : 0;
     return raw;
-  }, [labelCache]);
+  }, [labelCache, keyColumnShowsTitle, model]);
   const compareSortValues = React6.useCallback((field, a, b) => {
     const aVal = getSortValue(field, a);
     const bVal = getSortValue(field, b);
@@ -19407,6 +19408,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   };
   const handleRowClick = (record, event) => {
     if (event.defaultPrevented || shouldIgnoreRowClick(event.target)) return;
+    if (onRowClick) {
+      onRowClick(record);
+      return;
+    }
     const { resource, id } = getTargetInfo(record);
     if (resource && id !== void 0 && id !== null) {
       if (paneNav?.isInMultiPane) {
@@ -21199,6 +21204,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                         onClick: (e) => {
                           if (!shouldHandleLinkClick(e)) return;
                           e.preventDefault();
+                          if (onRowClick) {
+                            onRowClick(record);
+                            return;
+                          }
                           if (paneNav?.isInMultiPane) {
                             paneNav.openDetail(resource, id);
                           } else {
@@ -21340,7 +21349,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     exportButton,
     quickExportButton,
     importButton,
-    !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
+    onCreate ? /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Create"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PlusSquareOutlined, {}), "aria-label": _62("Create"), onClick: onCreate }) }) : !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
   ] });
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
