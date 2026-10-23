@@ -763,33 +763,52 @@ def _write_manual_schema_if_missing(module_name: str, out_dir: Path) -> None:
     print(f"  ✅ {module_name}Schema.manual.ts (created)")
 
 
-def _write_merged_schema(module_name: str, out_dir: Path) -> None:
+def _write_merged_schema(module_name: str, out_dir: Path, with_extension_overrides: bool = False) -> None:
+    """Write ``{module}Schema.ts``: the generated models with the manual overrides applied.
+
+    :param with_extension_overrides: The module comes from an extension that
+        ships its own overrides (copied to ``{module}Schema.extensionOverrides.ts``):
+        they are applied first, then the host's ``{module}Schema.manual.ts`` on top.
+    """
     merged_file = out_dir / f"{module_name}Schema.ts"
-    lines = [
-        "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
+    override_lists = [f"{module_name}ManualOverrides"]
+    imports = [
         f"import {{ {module_name}ModelsGen }} from './{module_name}Schema.gen';",
         f"import {{ {module_name}ManualOverrides }} from './{module_name}Schema.manual';",
+    ]
+    if with_extension_overrides:
+        imports.append(
+            f"import {{ {module_name}ManualOverrides as {module_name}ExtensionOverrides }} "
+            f"from './{module_name}Schema.{EXTENSION_OVERRIDES_FILE_SUFFIX}';"
+        )
+        override_lists.insert(0, f"{module_name}ExtensionOverrides")
+    lines = [
+        "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
+        *imports,
         _SCHEMA_TYPE_BLOCK,
         "",
         _MERGE_FUNCTIONS_BLOCK,
         "",
+        "// Overrides in the order they apply (an extension's own first, then the app's).",
+        f"const overrideLists: ModelOverride[][] = [{', '.join(override_lists)}];",
+        "const applyOverrides = (model: ModelDef): ModelDef =>",
+        "    overrideLists.reduce((merged, overrides) => mergeModel(merged, overrides.find((o) => o.name === model.name)), model);",
+        "",
         f"const baseNames = new Set({module_name}ModelsGen.map((m) => m.name));",
-        f"const extraModels: ModelDef[] = {module_name}ManualOverrides",
-        "    .filter((o) => !baseNames.has(o.name))",
-        "    .map((o) => ({",
+        "const extraModelNames = Array.from(new Set(overrideLists.flat().map((o) => o.name).filter((name) => !baseNames.has(name))));",
+        "const extraModels: ModelDef[] = extraModelNames.map((name) => {",
+        "    const o = overrideLists.flat().find((override) => override.name === name)!;",
+        "    return applyOverrides({",
         "        name: o.name,",
         "        label: o.label ?? o.name,",
         "        resource: o.resource ?? o.name.toLowerCase(),",
         "        pkField: o.pkField ?? 'id',",
-        "        ...o,",
-        "        fields: mergeFields([], o.fields),",
-        "        relations: mergeRelations(undefined, o.relations),",
-        "    }));",
+        "        fields: [],",
+        "    } as ModelDef);",
+        "});",
         "",
         f"export const {module_name}Models: ModelDef[] = [",
-        f"    ...{module_name}ModelsGen.map((m) =>",
-        f"        mergeModel(m, {module_name}ManualOverrides.find((o) => o.name === m.name))",
-        "    ),",
+        f"    ...{module_name}ModelsGen.map(applyOverrides),",
         "    ...extraModels,",
         "];",
         "",
@@ -798,6 +817,10 @@ def _write_merged_schema(module_name: str, out_dir: Path) -> None:
     ]
     merged_file.write_text("\n".join(lines))
     print(f"  ✅ {module_name}Schema.ts (merged)")
+
+
+#: Suffix of the host copy of an extension's own ``{module}Schema.manual.ts``.
+EXTENSION_OVERRIDES_FILE_SUFFIX = "extensionOverrides"
 
 
 # allModels.gen.ts writer
@@ -1197,6 +1220,17 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
 
             # Write manual stub only if missing (developer may have customised it).
             _write_manual_schema_if_missing(module_name, dest_dir)
+
+            # The extension's own overrides (its {module}Schema.manual.ts) reach the
+            # host as {module}Schema.extensionOverrides.ts (always overwritten); the
+            # merged schema applies them first, then the host's manual file on top.
+            extension_overrides_file = mod_dir / f"{module_name}Schema.manual.ts"
+            if extension_overrides_file.exists():
+                shutil.copy2(extension_overrides_file,
+                             dest_dir / f"{module_name}Schema.{EXTENSION_OVERRIDES_FILE_SUFFIX}.ts")
+                print(f"  ✅ {module_name}/{module_name}Schema.{EXTENSION_OVERRIDES_FILE_SUFFIX}.ts")
+                if (dest_dir / f"{module_name}Schema.gen.ts").exists():
+                    _write_merged_schema(module_name, dest_dir, with_extension_overrides=True)
 
             # Copy per-model custom_*.tsx overrides (e.g. Benefit/custom_show.tsx) —
             # always overwrite, extension owns these. The later "scan app module
