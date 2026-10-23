@@ -76,6 +76,9 @@ class NonModelDataField:
         option colors.
     :param description: Help text shown with the field.
     :param default: Value given to the field of a new row when none is sent.
+    :param show_in_list: False leaves the field out of lists' default columns
+        (e.g. a long description); it stays in the column selector and on the
+        record's page.
     :param show_view_type: Field view type on show/list pages.
     :param edit_view_type: Field view type on edit pages.
     :param read_roles: Roles that may read the field (``None`` = every role).
@@ -98,6 +101,7 @@ class NonModelDataField:
     value_colors: Optional[dict] = None
     description: str = ""
     default: Any = None
+    show_in_list: bool = True
     show_view_type: str = ""
     edit_view_type: str = ""
     read_roles: Optional[list[str]] = None
@@ -145,6 +149,8 @@ class NonModelDataField:
             field_def["description"] = self.description
         if self.default is not None:
             field_def["defaultValue"] = self.default
+        if not self.show_in_list:
+            field_def["showInList"] = False
         if self.show_view_type:
             field_def["showViewType"] = self.show_view_type
         if self.edit_view_type:

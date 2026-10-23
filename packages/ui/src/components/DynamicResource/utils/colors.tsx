@@ -37,6 +37,14 @@ export const ToneSharedStyles = () => (
             body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
                 background-color: var(--jm-row-active-bg, rgba(255, 255, 255, 0.08)) !important;
             }
+            body.jm-light .ant-table-wrapper .ant-table-tbody > tr.jm-row-highlighted > td {
+                background-color: #e6f4ff !important;
+                transition: background-color 0.5s ease;
+            }
+            body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-highlighted > td {
+                background-color: rgba(22, 119, 255, 0.18) !important;
+                transition: background-color 0.5s ease;
+            }
             .jm-tone-scope .ant-table-filter-dropdown {
                 min-width: 420px !important;
                 padding: 8px !important;

@@ -31,8 +31,10 @@ export const isPkField = (field: FieldDef, model?: ModelDef): boolean => {
  */
 export const isReferenceField = (field: FieldDef): boolean => !!field.reference;
 
+/** The default columns of a list: the first six fields, skipping those marked `showInList: false`
+ *  (still available in the column selector and on the record's page). */
 export const getListViewFields = (model: ModelDef, filterField?: string) => {
-    const baseFields = filterField ? model.fields.filter((field) => field.key !== filterField) : model.fields;
+    const baseFields = model.fields.filter((field) => field.key !== filterField && field.showInList !== false);
     return baseFields.slice(0, 6);
 };
 

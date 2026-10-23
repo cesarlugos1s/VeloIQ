@@ -114,7 +114,8 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         const isReadOnlyToken = scalarToken.startsWith("read-only-");
         const isEditableToken = scalarToken === "editable-field";
 
-        if (field.formula || forceReadOnly || isReadOnlyToken) {
+        // Read-only fields show their value (option tags, ✓/✗, list tags), not a disabled input.
+        if (field.formula || field.readOnly || forceReadOnly || isReadOnlyToken) {
             return renderFieldValue(field, record, allModels);
         }
         if (field.reference && !isEditableToken) {

@@ -17,6 +17,9 @@ export interface FieldDef {
     optionLabel?: string;
     options?: { label: string; value: any }[];
     optionsUrl?: string;
+    /** False leaves the field out of lists' default columns (e.g. long descriptions);
+     *  it stays in the column selector and on the record's page. */
+    showInList?: boolean;
     /** The field holds a list of values (shown as tags, edited with a multi-select). */
     multiple?: boolean;
     valueColors?: Record<string, string>;
@@ -175,6 +178,8 @@ export interface BulkActionDef {
     icon?: React.ReactNode;
     /** Called once per selected record during bulk execution. */
     onExecuteOne: (record: any) => Promise<void>;
+    /** Extra content of the confirmation for the selected records (e.g. their summed token savings). */
+    describeSelectedRecords?: (records: any[]) => React.ReactNode;
 }
 
 /**

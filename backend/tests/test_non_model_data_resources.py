@@ -311,19 +311,22 @@ def test_rows_are_titled_by_their_title_fields(client, auth, multi_mounted):
 
 
 def test_model_def_carries_value_colors_and_hidden_analyze_section(tmp_path):
-    """`value_colors` reach the field as `valueColors`; `show_analyze_section=False` reaches the model."""
+    """`value_colors` / `show_in_list=False` reach the field; `show_analyze_section=False` reaches the model."""
     resource = NonModelDataResource(
         name="test_colored_statuses",
         label="Statuses",
         pk_fields=["code"],
         fields=[NonModelDataField(key="code"),
-                NonModelDataField(key="status", options=["Active", "Inactive"], value_colors={"Active": "green"})],
+                NonModelDataField(key="status", options=["Active", "Inactive"], value_colors={"Active": "green"}),
+                NonModelDataField(key="notes", show_in_list=False)],
         data_source=JsonFileDataSource(str(tmp_path / "statuses.json")),
         show_analyze_section=False,
     )
     model = resource.to_model_def()
     assert model["showAnalyzeSection"] is False
     assert next(f for f in model["fields"] if f["key"] == "status")["valueColors"] == {"Active": "green"}
+    assert next(f for f in model["fields"] if f["key"] == "notes")["showInList"] is False
+    assert "showInList" not in next(f for f in model["fields"] if f["key"] == "status")
     assert "showAnalyzeSection" not in NonModelDataResource(
         name="test_plain", label="Plain", pk_fields=["code"], fields=[NonModelDataField(key="code")],
         data_source=JsonFileDataSource(str(tmp_path / "plain.json"))).to_model_def()

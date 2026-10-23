@@ -274,7 +274,9 @@ const DynamicListPage: React.FC<{
     isRowDeletable?: (record: any) => boolean;
     preferencesResourceOverride?: string;
     defaultListVisible?: boolean;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible }) => {
+    /** Keys (eid) of rows shown highlighted, e.g. records just created or promoted from the page. */
+    highlightedRowKeys?: string[];
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -2531,7 +2533,18 @@ const DynamicListPage: React.FC<{
                     const extra = actionKey === "__change_field__" && bulkChangeField
                         ? ` → ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}`
                         : "";
-                    return <li key={actionKey}>{label}{extra}</li>;
+                    const customAction = bulkActions?.find((a) => a.key === actionKey);
+                    const selectedRecords = customAction?.describeSelectedRecords
+                        ? bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean)
+                        : [];
+                    return (
+                        <li key={actionKey}>
+                            {label}{extra}
+                            {customAction?.describeSelectedRecords && (
+                                <div style={{ marginTop: 4 }}>{customAction.describeSelectedRecords(selectedRecords)}</div>
+                            )}
+                        </li>
+                    );
                 })}
             </ul>
         </Modal>
@@ -3924,7 +3937,11 @@ const DynamicListPage: React.FC<{
                             locale={isEmptyTable ? { emptyText: null } : undefined}
                             rowKey={getRowKey}
                             rowSelection={internalRowSelection}
-                            rowClassName={(record) => (activeRowKey !== null && getRowKey(record) === activeRowKey ? "jm-row-active" : "")}
+                            rowClassName={(record) => {
+                                const rowKey = getRowKey(record);
+                                if (activeRowKey !== null && rowKey === activeRowKey) return "jm-row-active";
+                                return highlightedRowKeys?.includes(String(rowKey)) ? "jm-row-highlighted" : "";
+                            }}
                             onRow={(record) => {
                                 const { resource, id } = getTargetInfo(record);
                                 return {

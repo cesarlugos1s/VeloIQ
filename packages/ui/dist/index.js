@@ -3510,7 +3510,7 @@ var isPkField = (field, model) => {
 };
 var isReferenceField = (field) => !!field.reference;
 var getListViewFields = (model, filterField) => {
-  const baseFields = filterField ? model.fields.filter((field) => field.key !== filterField) : model.fields;
+  const baseFields = model.fields.filter((field) => field.key !== filterField && field.showInList !== false);
   return baseFields.slice(0, 6);
 };
 var hasReferenceModel = (reference, allModels) => {
@@ -5327,6 +5327,14 @@ var ToneSharedStyles = () => /* @__PURE__ */ jsxRuntime.jsx("style", { children:
             }
             body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-active > td {
                 background-color: var(--jm-row-active-bg, rgba(255, 255, 255, 0.08)) !important;
+            }
+            body.jm-light .ant-table-wrapper .ant-table-tbody > tr.jm-row-highlighted > td {
+                background-color: #e6f4ff !important;
+                transition: background-color 0.5s ease;
+            }
+            body.jm-dark .ant-table-wrapper .ant-table-tbody > tr.jm-row-highlighted > td {
+                background-color: rgba(22, 119, 255, 0.18) !important;
+                transition: background-color 0.5s ease;
             }
             .jm-tone-scope .ant-table-filter-dropdown {
                 min-width: 420px !important;
@@ -12021,7 +12029,7 @@ var SectionCellContent = ({
     const scalarToken = field.showViewType ? normalizeRelationViewType(field.showViewType) : "";
     const isReadOnlyToken = scalarToken.startsWith("read-only-");
     const isEditableToken = scalarToken === "editable-field";
-    if (field.formula || forceReadOnly || isReadOnlyToken) {
+    if (field.formula || field.readOnly || forceReadOnly || isReadOnlyToken) {
       return renderFieldValue(field, record, allModels);
     }
     if (field.reference && !isEditableToken) {
@@ -17811,7 +17819,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -19756,9 +19764,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         /* @__PURE__ */ jsxRuntime.jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
           const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
+          const customAction = bulkActions?.find((a) => a.key === actionKey);
+          const selectedRecords = customAction?.describeSelectedRecords ? bulkSelectedRowKeys.map((k) => bulkSelectedRowsMapRef.current.get(k)).filter(Boolean) : [];
           return /* @__PURE__ */ jsxRuntime.jsxs("li", { children: [
             label,
-            extra
+            extra,
+            customAction?.describeSelectedRecords && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 4 }, children: customAction.describeSelectedRecords(selectedRecords) })
           ] }, actionKey);
         }) })
       ]
@@ -21055,7 +21066,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
             locale: isEmptyTable ? { emptyText: null } : void 0,
             rowKey: getRowKey,
             rowSelection: internalRowSelection,
-            rowClassName: (record) => activeRowKey !== null && getRowKey(record) === activeRowKey ? "jm-row-active" : "",
+            rowClassName: (record) => {
+              const rowKey = getRowKey(record);
+              if (activeRowKey !== null && rowKey === activeRowKey) return "jm-row-active";
+              return highlightedRowKeys?.includes(String(rowKey)) ? "jm-row-highlighted" : "";
+            },
             onRow: (record) => {
               const { resource, id } = getTargetInfo(record);
               return {
