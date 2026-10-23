@@ -914,6 +914,16 @@ const DynamicListPage: React.FC<{
         return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
     }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
 
+    // Until every row is loaded (they load when a column filter is first opened), the filter
+    // dropdowns would only know the rows of the current page: show that they are loading instead.
+    const columnFilterValuesLoading = !allRowsLoaded;
+    const renderColumnFilterValuesLoading = () => (
+        <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <Spin size="small" />
+            <span>{_("Loading all values…")}</span>
+        </div>
+    );
+
     const allFieldOptions = useMemo(() => {
         return model.fields.map((field) => ({ label: field.label, value: field.key }));
     }, [model.fields]);
@@ -4035,6 +4045,7 @@ const DynamicListPage: React.FC<{
                                     sorter={{ compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) }}
                                     align={(field.type === "number" && !isReferenceField(field) && !isPkField(field, model)) ? "right" : undefined}
                                     filters={columnFilters.get(field.key)}
+                                    filterDropdown={columnFilterValuesLoading ? renderColumnFilterValuesLoading : undefined}
                                     filteredValue={columnFiltersSelected[field.key] || null}
                                     sortOrder={columnSort.find((item) => item.fieldKey === field.key)?.order ?? null}
                                     onFilterDropdownOpenChange={(visible) => {

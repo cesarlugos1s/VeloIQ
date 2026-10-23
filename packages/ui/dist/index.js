@@ -18343,6 +18343,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
   }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
+  const columnFilterValuesLoading = !allRowsLoaded;
+  const renderColumnFilterValuesLoading = () => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }, children: [
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }),
+    /* @__PURE__ */ jsxRuntime.jsx("span", { children: _62("Loading all values\u2026") })
+  ] });
   const allFieldOptions = React6.useMemo(() => {
     return model.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [model.fields]);
@@ -21145,6 +21150,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                   sorter: { compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) },
                   align: field.type === "number" && !isReferenceField(field) && !isPkField(field, model) ? "right" : void 0,
                   filters: columnFilters.get(field.key),
+                  filterDropdown: columnFilterValuesLoading ? renderColumnFilterValuesLoading : void 0,
                   filteredValue: columnFiltersSelected[field.key] || null,
                   sortOrder: columnSort.find((item) => item.fieldKey === field.key)?.order ?? null,
                   onFilterDropdownOpenChange: (visible) => {

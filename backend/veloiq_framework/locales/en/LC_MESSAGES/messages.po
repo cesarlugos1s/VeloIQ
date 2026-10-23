@@ -2074,3 +2074,6 @@ msgstr ""
 
 msgid "Other settings"
 msgstr ""
+
+msgid "Loading all values…"
+msgstr "Loading all values…"

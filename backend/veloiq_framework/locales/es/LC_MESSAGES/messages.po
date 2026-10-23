@@ -2073,3 +2073,6 @@ msgstr "Rotación del archivo de registro"
 
 msgid "Other settings"
 msgstr "Otros ajustes"
+
+msgid "Loading all values…"
+msgstr "Cargando todos los valores…"
