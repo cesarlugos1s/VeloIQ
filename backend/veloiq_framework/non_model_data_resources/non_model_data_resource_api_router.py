@@ -38,7 +38,7 @@ from veloiq_framework.utils.i18n_utils import _
 from veloiq_framework.utils.views_utils import jm_log
 
 from .non_model_data_resource_definitions import NonModelDataResource, get_non_model_data_resources
-from .encode_decode_row_eid import RowEidEncodingError, decode_eid, encode_eid
+from .encode_decode_row_eid import RowEidEncodingError, decode_eid, encode_eid, row_key_value_as_text
 from .filter_sort_page_rows import filter_rows_by_query_parameters, slice_rows_page, compute_row_revision, sort_rows_by_query_parameters
 from .manage_data_sources_crud import DataSourceChangedConflictError, DataSourceRequestContext
 from .validate_row_writes import build_validated_row
@@ -122,6 +122,11 @@ def create_non_model_data_resource_router(data_resource: NonModelDataResource) -
         if data_resource.single_record:
             # The one record of a settings form is titled with the resource's label.
             data["_label"] = _(data_resource.label)
+        elif data_resource.title_fields:
+            # A row's title (page headings, reference links): its title fields' values.
+            title = " ".join(str(row.get(key)) for key in data_resource.title_fields if row.get(key) not in (None, ""))
+            if title:
+                data["_label"] = title
         return _sanitize(data)
 
     def _load_all_rows_or_500(request: Request) -> list[dict]:
@@ -129,6 +134,9 @@ def create_non_model_data_resource_router(data_resource: NonModelDataResource) -
         data_resource.refresh_fields()
         try:
             return data_resource.data_source.load_all_rows(_data_source_request_context(request))
+        except HTTPException:
+            # The source's own answer (e.g. 503 "being built"), with its message.
+            raise
         except Exception as load_error:
             jm_log(3, f"non-model data resource {data_resource.name}: could not read the rows:", load_error)
             raise HTTPException(status_code=500, detail=_("The data of this list could not be read."))
@@ -213,7 +221,9 @@ def create_non_model_data_resource_router(data_resource: NonModelDataResource) -
             writer.writeheader()
             for row in rows:
                 data = _readable_row_for_roles(row, roles)
-                writer.writerow({key: data.get(key, "") for key in readable_keys})
+                # Multi-value fields are written as their values joined.
+                writer.writerow({key: row_key_value_as_text(data.get(key)) if isinstance(data.get(key), list)
+                                 else data.get(key, "") for key in readable_keys})
             yield buffer.getvalue()
 
         return StreamingResponse(_generate(), media_type="text/csv",

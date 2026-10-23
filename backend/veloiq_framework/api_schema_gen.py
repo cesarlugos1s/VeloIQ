@@ -1731,6 +1731,7 @@ def _sync_extension_frontend(extensions: list, frontend_src: Path) -> None:
     )
 
     _ensure_app_tsx_header_button_wiring(frontend_src)
+    _ensure_app_tsx_non_model_data_resource_wiring(frontend_src)
     _ensure_app_tsx_help_wiring(frontend_src)
 
 
@@ -1840,6 +1841,167 @@ def _ensure_app_tsx_help_wiring(frontend_src: Path) -> None:
     app_tsx.write_text(content)
     print("  🔌 App.tsx updated: wired helpSystemModels into allModels/resources/routes "
           f"so \"Help Content\" resolves to a real page (original backed up → {bak.name})")
+
+
+_APP_TSX_NON_MODEL_DATA_MARKER = "VELOIQ:NON_MODEL_DATA_RESOURCES:START"
+#: The route of the non-model data resources' pages, with the extensions' page overrides.
+_APP_TSX_NON_MODEL_DATA_ROUTE = (
+    '<Route path="/:nonModelDataResource/*" element={<NonModelDataResourcePages pageOverrides={{ list: extensionListComponents, show: extensionShowComponents, edit: extensionEditComponents, create: extensionCreateComponents }} />} />'
+)
+#: The same route as written by an earlier version (no page overrides).
+_APP_TSX_NON_MODEL_DATA_ROUTE_WITHOUT_OVERRIDES = '<Route path="/:nonModelDataResource/*" element={<NonModelDataResourcePages />} />'
+
+
+#: The marker-delimited block computing the Refine resources with the non-model data resources.
+_APP_TSX_NON_MODEL_DATA_HOOK_BLOCK_RE = re.compile(
+    r"^[ \t]*// VELOIQ:NON_MODEL_DATA_RESOURCES:START.*?// VELOIQ:NON_MODEL_DATA_RESOURCES:END\n",
+    re.DOTALL | re.MULTILINE,
+)
+#: The ``<Refine resources=...>`` prop, before or after the wiring.
+_APP_TSX_REFINE_RESOURCES_PROP_RE = re.compile(r"resources=\{resources(?:IncludingNonModelData)?\}")
+
+
+def _app_tsx_statement_end(content: str, start: int) -> int:
+    """Return the offset just past the line ending the statement that starts at *start*
+    (the first ``;`` outside brackets, strings and template literals)."""
+    depth = 0
+    quote = None
+    index = start
+    while index < len(content):
+        char = content[index]
+        if quote:
+            if char == "\\":
+                index += 1
+            elif char == quote:
+                quote = None
+        elif char in "\"'`":
+            quote = char
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+        elif char == ";" and depth == 0:
+            newline = content.find("\n", index)
+            return len(content) if newline == -1 else newline + 1
+        index += 1
+    return -1
+
+
+def _app_tsx_non_model_data_hook_insertion(content: str) -> tuple[int, str] | None:
+    """Return where the ``resourcesIncludingNonModelData`` hook goes, and its indentation.
+
+    It goes in the component that renders ``<Refine resources=...>`` (``App()``
+    in the scaffold, another component in hosts that split it out): right after
+    that component's own ``const resources = ...;`` when it declares one (e.g. a
+    ``useMemo`` over the licensed modules), otherwise at the top of its body
+    (``resources`` is then module-level). None when no such component is found.
+    """
+    prop_match = _APP_TSX_REFINE_RESOURCES_PROP_RE.search(content)
+    if not prop_match:
+        return None
+    component_starts = [
+        match for match in re.finditer(r"^(?:export\s+default\s+)?function\s+\w+\s*\([^)]*\)\s*\{\n",
+                                       content[:prop_match.start()], re.MULTILINE)
+    ]
+    if not component_starts:
+        return None
+    body_start = component_starts[-1].end()
+    declarations = list(re.finditer(r"^([ \t]*)const resources\s*=", content[body_start:prop_match.start()], re.MULTILINE))
+    if declarations:
+        declaration = declarations[-1]
+        statement_end = _app_tsx_statement_end(content, body_start + declaration.start())
+        if statement_end == -1 or statement_end > prop_match.start():
+            return None
+        return statement_end, declaration.group(1)
+    return body_start, "    "
+
+
+def _ensure_app_tsx_non_model_data_resource_wiring(frontend_src: Path) -> None:
+    """Idempotent patch so an existing host app's ``App.tsx`` serves the
+    non-model data resources like models, as the scaffold does:
+
+    * the ``@juicemantics/veloiq-ui`` import gets ``NonModelDataResourcePages``
+      and ``useRefineResourcesIncludingNonModelData``;
+    * the component rendering ``<Refine>`` computes ``resourcesIncludingNonModelData``
+      (marker-delimited block, after its own ``resources``) and passes it to
+      ``<Refine resources=...>``;
+    * the route ``/:nonModelDataResource/*`` renders their list/create/show/edit
+      pages, before the extension routes.
+
+    Once wired (the ``VELOIQ:NON_MODEL_DATA_RESOURCES`` marker is present), only
+    brings earlier versions' output up to date: a route without the extensions'
+    page overrides, or a hook block placed in a component where ``resources`` is
+    not defined. All-or-nothing: when an anchor isn't found (a host restructured
+    that part of ``App.tsx``), nothing is changed and a warning names the manual
+    steps. The original is backed up to ``App.tsx.bak``.
+    """
+    import shutil
+
+    app_tsx = frontend_src / "App.tsx"
+    if not app_tsx.exists():
+        return
+    original_content = app_tsx.read_text()
+    content = original_content
+    hook_block_match = _APP_TSX_NON_MODEL_DATA_HOOK_BLOCK_RE.search(content)
+    if hook_block_match:
+        # Already wired: update the route, and move the hook block where `resources` is defined.
+        content = content.replace(_APP_TSX_NON_MODEL_DATA_ROUTE_WITHOUT_OVERRIDES, _APP_TSX_NON_MODEL_DATA_ROUTE)
+        without_hook_block = content[:hook_block_match.start()] + content[hook_block_match.end():]
+        insertion = _app_tsx_non_model_data_hook_insertion(without_hook_block)
+        if insertion:
+            offset, indent = insertion
+            content = without_hook_block[:offset] + _app_tsx_non_model_data_hook_block(indent) + without_hook_block[offset:]
+        if content != original_content:
+            shutil.copy(app_tsx, app_tsx.with_suffix(".tsx.bak"))
+            app_tsx.write_text(content)
+            print("  🔌 App.tsx updated: brought the non-model data resources' wiring up to date "
+                  "(page overrides on the route; resources hook in the component rendering <Refine>)")
+        return
+
+    import_match = re.search(r'(import\s*\{)([^}]*)(\}\s*from\s*"@juicemantics/veloiq-ui";)', content)
+    resources_match = re.search(r"resources=\{resources\}", content)
+    routes_match = re.search(r"^([ \t]*)\{extensionRoutes\.map\(", content, re.MULTILINE)
+    if not (import_match and resources_match and routes_match and _app_tsx_non_model_data_hook_insertion(content)):
+        print("  ⚠️  Could not wire the non-model data resources into App.tsx automatically "
+              "(the veloiq-ui import, the component rendering `resources={resources}` "
+              "or `{extensionRoutes.map(` was not found). Add `useRefineResourcesIncludingNonModelData` "
+              "and the `/:nonModelDataResource/*` route by hand, as in the scaffold's App.tsx.")
+        return
+
+    # Apply from the end of the file backwards, so earlier offsets stay valid.
+    indent = routes_match.group(1)
+    route_block = (
+        f"{indent}{{/* VELOIQ:NON_MODEL_DATA_RESOURCES:ROUTE — list/create/show/edit of non-model data resources */}}\n"
+        f"{indent}{_APP_TSX_NON_MODEL_DATA_ROUTE}\n"
+    )
+    content = content[:routes_match.start()] + route_block + content[routes_match.start():]
+    content = re.sub(r"resources=\{resources\}", "resources={resourcesIncludingNonModelData}", content, count=1)
+    offset, hook_indent = _app_tsx_non_model_data_hook_insertion(content)
+    content = content[:offset] + _app_tsx_non_model_data_hook_block(hook_indent) + content[offset:]
+    import_match = re.search(r'(import\s*\{)([^}]*)(\}\s*from\s*"@juicemantics/veloiq-ui";)', content)
+    names = import_match.group(2)
+    added = [name for name in ("NonModelDataResourcePages", "useRefineResourcesIncludingNonModelData")
+             if not re.search(rf"\b{name}\b", names)]
+    if added:
+        separator = "" if names.rstrip().endswith(",") else ","
+        new_names = names.rstrip() + separator + "".join(f"\n    {name}," for name in added) + "\n"
+        content = content[:import_match.start(2)] + new_names + content[import_match.end(2):]
+
+    bak = app_tsx.with_suffix(".tsx.bak")
+    shutil.copy(app_tsx, bak)
+    app_tsx.write_text(content)
+    print("  🔌 App.tsx updated: non-model data resources get Refine resources and the "
+          f"/:nonModelDataResource/* route (original backed up → {bak.name})")
+
+
+def _app_tsx_non_model_data_hook_block(indent: str) -> str:
+    """Return the marker-delimited hook block, indented with *indent*."""
+    return (
+        f"{indent}// {_APP_TSX_NON_MODEL_DATA_MARKER} — regenerated by `veloiq generate`, do not hand-edit\n"
+        f"{indent}// Non-model data resources (loaded at runtime) get Refine resources and pages like models.\n"
+        f"{indent}const resourcesIncludingNonModelData = useRefineResourcesIncludingNonModelData(resources);\n"
+        f"{indent}// VELOIQ:NON_MODEL_DATA_RESOURCES:END\n"
+    )
 
 
 # Anchors the generate-time App.tsx patch below into the exact literal fallback

@@ -210,6 +210,21 @@ export const renderInput = (field: FieldDef, allModels?: ModelDef[], model?: Mod
         const isSelfRef = refResource && modelResource && refResource === modelResource;
         return <RelationSelect field={resolvedField} allModels={allModels} excludeId={isSelfRef ? currentId : undefined} />;
     }
+    if (resolvedField.multiple) {
+        // A list of values: pick from the options (or the options URL), or type free values when there are none.
+        if (resolvedField.optionsUrl) {
+            return <AsyncSelectInput mode="tags" optionsUrl={resolvedField.optionsUrl} placeholder={`${_("Select")} ${_(resolvedField.label)}...`} />;
+        }
+        return (
+            <Select
+                mode={resolvedField.options ? "multiple" : "tags"}
+                options={resolvedField.options}
+                style={{ width: "100%" }}
+                placeholder={`${_("Select")} ${_(resolvedField.label)}...`}
+                allowClear
+            />
+        );
+    }
     if (resolvedField.optionsUrl) return <AsyncSelectInput optionsUrl={resolvedField.optionsUrl} placeholder={`${_("Select")} ${_(resolvedField.label)}...`} />;
     if (resolvedField.options) return <Select options={resolvedField.options} style={{ width: "100%" }} placeholder={`Select ${resolvedField.label}...`} allowClear />;
     switch (resolvedField.type) {

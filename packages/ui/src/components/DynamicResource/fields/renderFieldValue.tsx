@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Input, Skeleton, Rate, Progress, Tooltip } from "antd";
+import { Input, Skeleton, Rate, Progress, Tooltip, Tag } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -141,6 +141,18 @@ export const renderFieldValue = (rawField: FieldDef, record: any, allModels?: Mo
     // A row-typed field takes its type and options from the row (parameter lists).
     const field = resolveRowTypedField(rawField, record);
     const value = record?.[field.key];
+    if (Array.isArray(value)) {
+        // A multi-value field: one tag per value (its option label when it has options).
+        if (value.length === 0) return "-";
+        return (
+            <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4 }}>
+                {value.map((item, index) => {
+                    const option = field.options?.find((candidate) => candidate.value === item);
+                    return <Tag key={`${String(item)}-${index}`} style={{ marginInlineEnd: 0 }}>{option ? option.label : String(item)}</Tag>;
+                })}
+            </span>
+        );
+    }
     const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
     if (isNlSentenceField) {
         return (

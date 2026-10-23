@@ -263,3 +263,67 @@ def test_system_config_saves_only_changed_settings(client, auth, monkeypatch):
     response = client.patch("/api/veloiq_system_config/1", json=payload, headers=auth)
     assert response.status_code == 200, response.text
     assert written == [{"log_up_to_relevance": str(new_level)}]
+
+
+# ---------------------------------------------------------------------------
+# Multi-value fields
+# ---------------------------------------------------------------------------
+
+MULTI_RESOURCE = "test_multi_value_rows"
+
+
+@pytest.fixture(scope="module")
+def multi_mounted(app, tmp_path_factory):
+    """Mount a resource with a multi-value field backed by a JSON file."""
+    path = tmp_path_factory.mktemp("multi") / "rows.json"
+    path.write_text(json.dumps([{"code": "A", "tags": ["x", "y"]}, {"code": "B", "tags": []}]), encoding="utf-8")
+    data_resource = NonModelDataResource(
+        name=MULTI_RESOURCE, label=MULTI_RESOURCE, pk_fields=["code"],
+        fields=[NonModelDataField(key="code"),
+                NonModelDataField(key="tags", multiple=True, options=["x", "y", "z"])],
+        data_source=JsonFileDataSource(path),
+    )
+    mount_non_model_data_resource(app, data_resource)
+    return data_resource
+
+
+def test_multi_value_field_validates_filters_and_exports(client, auth, multi_mounted):
+    """Lists (or comma-separated text) are validated item by item, filters match any value,
+    and CSV joins the values."""
+    assert client.patch(f"/api/{MULTI_RESOURCE}/B", json={"tags": "z, x"}, headers=auth).json()["tags"] == ["z", "x"]
+    assert client.patch(f"/api/{MULTI_RESOURCE}/B", json={"tags": ["w"]}, headers=auth).status_code == 422
+    assert [row["code"] for row in client.get(f"/api/{MULTI_RESOURCE}?tags=y", headers=auth).json()] == ["A"]
+    assert sorted(row["code"] for row in client.get(f"/api/{MULTI_RESOURCE}?tags=x", headers=auth).json()) == ["A", "B"]
+    csv_text = client.get(f"/api/{MULTI_RESOURCE}/export-csv", headers=auth).text
+    assert '"x, y"' in csv_text
+    model = next(m for m in client.get("/api/veloiq/non-model-data-resources", headers=auth).json()["models"]
+                 if m["resource"] == MULTI_RESOURCE)
+    assert next(f for f in model["fields"] if f["key"] == "tags")["multiple"] is True
+
+
+def test_rows_are_titled_by_their_title_fields(client, auth, multi_mounted):
+    """A row's _label (page headings, reference links) comes from the resource's title fields."""
+    multi_mounted.title_fields = ["code"]
+    try:
+        assert client.get(f"/api/{MULTI_RESOURCE}/A", headers=auth).json()["_label"] == "A"
+    finally:
+        multi_mounted.title_fields = []
+
+
+def test_model_def_carries_value_colors_and_hidden_analyze_section(tmp_path):
+    """`value_colors` reach the field as `valueColors`; `show_analyze_section=False` reaches the model."""
+    resource = NonModelDataResource(
+        name="test_colored_statuses",
+        label="Statuses",
+        pk_fields=["code"],
+        fields=[NonModelDataField(key="code"),
+                NonModelDataField(key="status", options=["Active", "Inactive"], value_colors={"Active": "green"})],
+        data_source=JsonFileDataSource(str(tmp_path / "statuses.json")),
+        show_analyze_section=False,
+    )
+    model = resource.to_model_def()
+    assert model["showAnalyzeSection"] is False
+    assert next(f for f in model["fields"] if f["key"] == "status")["valueColors"] == {"Active": "green"}
+    assert "showAnalyzeSection" not in NonModelDataResource(
+        name="test_plain", label="Plain", pk_fields=["code"], fields=[NonModelDataField(key="code")],
+        data_source=JsonFileDataSource(str(tmp_path / "plain.json"))).to_model_def()

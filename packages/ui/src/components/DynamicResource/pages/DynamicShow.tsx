@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAllModelsIncludingNonModelData } from "../../../contexts/AllModelsContext";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useCan } from "@refinedev/core";
@@ -19,10 +19,13 @@ import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 import { ResourceAccessGate } from "../../AccessGate";
+import { BeforeEditSaveContext, type BeforeEditSave } from "../hooks/useBeforeEditSave";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode;
+    /** Header buttons, given the record and the page's form (to read or fill unsaved values). */
+    extraHeaderButtons?: (record: any, form?: any) => React.ReactNode }> = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -38,7 +41,33 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
     // Miller-column browser's nested preview (embedded=true) is excluded.
     useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : (id ?? null));
     const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
-    const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
+    const { formProps: builtShowFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
+
+    // Components inside the page registered through useBeforeEditSave (e.g. a
+    // custom header button staging related rows) save their data first; if
+    // one throws, the record is not saved — as on the Edit page.
+    const beforeSaveHandlers = useRef(new Set<BeforeEditSave>());
+    const registerBeforeSave = useCallback((handler: BeforeEditSave) => {
+        beforeSaveHandlers.current.add(handler);
+        return () => { beforeSaveHandlers.current.delete(handler); };
+    }, []);
+    const showFormProps = useMemo(() => {
+        if (!builtShowFormProps) return builtShowFormProps;
+        const originalOnFinish = (builtShowFormProps as any).onFinish;
+        return {
+            ...builtShowFormProps,
+            onFinish: async (values: any) => {
+                for (const handler of beforeSaveHandlers.current) {
+                    try {
+                        await handler();
+                    } catch {
+                        return;
+                    }
+                }
+                return originalOnFinish?.(values);
+            },
+        };
+    }, [builtShowFormProps]);
 
     const pageTitle = record?._label
         ? asDisplayText(record._label, `${_("Show")} ${modelDisplayLabel}`)
@@ -82,7 +111,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
     const combinedHeaderButtons = extraHeaderButtons
         ? (args: any) => (
             <>
-                {record ? extraHeaderButtons(record) : null}
+                {record ? extraHeaderButtons(record, (formProps as any)?.form) : null}
                 {(headerButtons ?? renderStandardShowHeaderButtons)(args)}
             </>
           )
@@ -136,6 +165,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
     );
     if (embedded) {
         return (
+            <BeforeEditSaveContext.Provider value={registerBeforeSave}>
             <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
                 <ToneSharedStyles />
                 {!record ? (
@@ -155,10 +185,12 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
                     </>
                 )}
             </div>
+            </BeforeEditSaveContext.Provider>
         );
     }
 
     return (
+        <BeforeEditSaveContext.Provider value={registerBeforeSave}>
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardShow
@@ -181,6 +213,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
                 />
             </StandardShow>
         </div>
+        </BeforeEditSaveContext.Provider>
     );
 };
 

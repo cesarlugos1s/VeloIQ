@@ -284,9 +284,10 @@ export const RelatedObjectsTable: React.FC<{
     useEffect(() => {
         const interval = setInterval(() => {
             const lvl = (window as any).__veloiq_dataDetailLevel;
-            if (lvl === 6) {
+            // Without an Analyze section (showAnalyzeSection: false) the list stays at every level.
+            if (lvl === 6 && analyzeSectionAvailable) {
                 setListVisible(false);
-            } else if (lvl !== 6 && !listVisible) {
+            } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible) {
                 setListVisible(true);
             }
         }, 200);
@@ -295,7 +296,10 @@ export const RelatedObjectsTable: React.FC<{
     const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
     const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
-    const [analyzeOpen, setAnalyzeOpen] = useState(false);
+    const [analyzeOpenPreference, setAnalyzeOpen] = useState(false);
+    // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
+    const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false;
+    const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     // Analyze section configuration and its saved preferences (shared with list pages).
     const analyzeSettings = useAnalyzeSettings({
@@ -2295,18 +2299,20 @@ export const RelatedObjectsTable: React.FC<{
                             >
                                 {_("View list")}
                             </Button>
-                            <Button
-                                size="small"
-                                icon={<BarChartOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    analyzeTouchedRef.current = true;
-                                    setIsStatsFlipped(false);
-                                    setAnalyzeOpen((prev) => !prev);
-                                }}
-                            >
-                                {_("Analyze")}
-                            </Button>
+                            {analyzeSectionAvailable && (
+                                <Button
+                                    size="small"
+                                    icon={<BarChartOutlined />}
+                                    onClick={() => {
+                                        markLayoutPrefsTouched();
+                                        analyzeTouchedRef.current = true;
+                                        setIsStatsFlipped(false);
+                                        setAnalyzeOpen((prev) => !prev);
+                                    }}
+                                >
+                                    {_("Analyze")}
+                                </Button>
+                            )}
                             <Button
                                 size="small"
                                 icon={<ColumnHeightOutlined />}

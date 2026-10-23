@@ -1305,7 +1305,16 @@ var API_URL2 = "/api";
 
 // src/hooks/useNonModelDataResourceModels.ts
 var TOKEN_KEY2 = "jm_access_token";
-async function fetchNonModelDataResourceModels() {
+var nonModelDataModelsRequestInFlight = null;
+function fetchNonModelDataResourceModels() {
+  if (!nonModelDataModelsRequestInFlight) {
+    nonModelDataModelsRequestInFlight = requestNonModelDataResourceModels().finally(() => {
+      nonModelDataModelsRequestInFlight = null;
+    });
+  }
+  return nonModelDataModelsRequestInFlight;
+}
+async function requestNonModelDataResourceModels() {
   if (!localStorage.getItem(TOKEN_KEY2)) return [];
   try {
     const response = await authenticatedFetch(`${API_URL2}/veloiq/non-model-data-resources`);
@@ -3943,7 +3952,7 @@ var useViewSettings = () => {
 };
 var synthesizeConfigRows = (model, mode = "show") => {
   const formType = mode === "show" ? "show" : "edit";
-  const fieldRows = model.fields.filter((f) => !f.isPk).map((field, idx) => ({
+  const fieldRows = model.fields.filter((f) => mode === "show" || !f.isPk).map((field, idx) => ({
     view_type: "PrimaryView",
     subject_name: model.name,
     relation_name: "",
@@ -5649,6 +5658,13 @@ var wrapForTable = (node) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { ma
 var renderFieldValue = (rawField, record, allModels, inTable) => {
   const field = resolveRowTypedField(rawField, record);
   const value = record?.[field.key];
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
+    return /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-flex", flexWrap: "wrap", gap: 4 }, children: value.map((item, index) => {
+      const option = field.options?.find((candidate) => candidate.value === item);
+      return /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { style: { marginInlineEnd: 0 }, children: option ? option.label : String(item) }, `${String(item)}-${index}`);
+    }) });
+  }
   const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsxRuntime.jsx(
@@ -9563,6 +9579,13 @@ function useRoleFilteredModel(model) {
     return { ...model, fields: filtered };
   }, [model, userRoles]);
 }
+var BeforeEditSaveContext = React6.createContext(null);
+function useBeforeEditSave(handler) {
+  const register = React6.useContext(BeforeEditSaveContext);
+  const latest = React6.useRef(handler);
+  latest.current = handler;
+  React6.useEffect(() => register?.(() => latest.current()), [register]);
+}
 var _36 = window._ || ((text) => text);
 var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
@@ -9577,7 +9600,31 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
   const [searchParams] = reactRouterDom.useSearchParams();
   useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : id ?? null);
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
-  const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
+  const { formProps: builtShowFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
+  const beforeSaveHandlers = React6.useRef(/* @__PURE__ */ new Set());
+  const registerBeforeSave = React6.useCallback((handler) => {
+    beforeSaveHandlers.current.add(handler);
+    return () => {
+      beforeSaveHandlers.current.delete(handler);
+    };
+  }, []);
+  const showFormProps = React6.useMemo(() => {
+    if (!builtShowFormProps) return builtShowFormProps;
+    const originalOnFinish = builtShowFormProps.onFinish;
+    return {
+      ...builtShowFormProps,
+      onFinish: async (values) => {
+        for (const handler of beforeSaveHandlers.current) {
+          try {
+            await handler();
+          } catch {
+            return;
+          }
+        }
+        return originalOnFinish?.(values);
+      }
+    };
+  }, [builtShowFormProps]);
   const pageTitle = record?._label ? asDisplayText(record._label, `${_36("Show")} ${modelDisplayLabel}`) : `${_36("Show")} ${modelDisplayLabel}`;
   const saveLayoutRef = React6.useRef(() => {
   });
@@ -9593,7 +9640,7 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
   const canConfigureLayout = canLayoutData?.can !== false;
   const { actionsState, headerButtons } = useShowActionsPreferences(model, allModels, record, wrappedSaveButtonProps, configureLayoutButtonRef, saveLayoutRef, searchParams.get("explore") === "1");
   const combinedHeaderButtons = extraHeaderButtons ? (args) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    record ? extraHeaderButtons(record) : null,
+    record ? extraHeaderButtons(record, formProps?.form) : null,
     (headerButtons ?? renderStandardShowHeaderButtons)(args)
   ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = React6.useState("details");
@@ -9641,7 +9688,7 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
     [activeTabKey, items]
   );
   if (embedded) {
-    return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+    return /* @__PURE__ */ jsxRuntime.jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
       /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
       !record ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", justifyContent: "center", padding: 32 }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}) }) : /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
         beforeTabs,
@@ -9656,9 +9703,9 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
           }
         )
       ] })
-    ] });
+    ] }) });
   }
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+  return /* @__PURE__ */ jsxRuntime.jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxRuntime.jsxs(
       StandardShow,
@@ -9686,7 +9733,7 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
         ]
       }
     )
-  ] });
+  ] }) });
 };
 var DynamicShow = (props) => /* @__PURE__ */ jsxRuntime.jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.embedded), children: /* @__PURE__ */ jsxRuntime.jsx(DynamicShowPage, { ...props }) });
 var _37 = window._ || ((text) => text);
@@ -9720,6 +9767,15 @@ var SingleRecordPrimaryView = ({ model, allModels }) => {
   }
   return PrimaryShowRenderer ? /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowRenderer, { model, id: recordId, allModels: allModels || [] }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicShow, { model, allModels, idOverride: recordId });
 };
+
+// src/components/DynamicResource/registerResourceRowActions.ts
+var rowActionsByResource = /* @__PURE__ */ new Map();
+function registerResourceRowActions(resource, rowActions) {
+  rowActionsByResource.set(resource, rowActions);
+}
+function registeredResourceRowActions(resource) {
+  return rowActionsByResource.get(resource) ?? [];
+}
 var _38 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
@@ -9856,6 +9912,7 @@ var _40 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
+  mode,
   value,
   onChange
 }) => {
@@ -9882,6 +9939,9 @@ var AsyncSelectInput = ({
           rawChoices = data.choices;
         } else if (Array.isArray(data?.options)) {
           rawChoices = data.options;
+        } else if (data && typeof data === "object") {
+          const firstList = Object.values(data).find((property) => Array.isArray(property));
+          if (Array.isArray(firstList)) rawChoices = firstList;
         }
         const mapped = rawChoices.map((item) => {
           if (typeof item === "string") {
@@ -9908,6 +9968,7 @@ var AsyncSelectInput = ({
     {
       showSearch: true,
       allowClear: true,
+      mode,
       loading,
       options,
       value,
@@ -10191,6 +10252,21 @@ var renderInput = (field, allModels, model, currentId, record) => {
     const isSelfRef = refResource && modelResource && refResource === modelResource;
     return /* @__PURE__ */ jsxRuntime.jsx(RelationSelect, { field: resolvedField, allModels, excludeId: isSelfRef ? currentId : void 0 });
   }
+  if (resolvedField.multiple) {
+    if (resolvedField.optionsUrl) {
+      return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { mode: "tags", optionsUrl: resolvedField.optionsUrl, placeholder: `${_42("Select")} ${_42(resolvedField.label)}...` });
+    }
+    return /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Select,
+      {
+        mode: resolvedField.options ? "multiple" : "tags",
+        options: resolvedField.options,
+        style: { width: "100%" },
+        placeholder: `${_42("Select")} ${_42(resolvedField.label)}...`,
+        allowClear: true
+      }
+    );
+  }
   if (resolvedField.optionsUrl) return /* @__PURE__ */ jsxRuntime.jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_42("Select")} ${_42(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
@@ -10311,7 +10387,7 @@ var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits
 var _44 = window._ || ((text) => text);
 var { Title: Title2 } = antd.Typography;
 var requiredMark = (field) => field.required ? /* @__PURE__ */ jsxRuntime.jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
-var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues }) => {
+var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues, extraHeaderButtons }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -10527,7 +10603,10 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
       go({ to: { resource: model.resource || model.name, action: "edit", id: createdId } });
     }
   }, [createdRecord, model.name, model.resource, go]);
-  const renderHeaderButtons = ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons);
+  const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    extraHeaderButtons?.(formProps?.form),
+    renderIconOnlyButtons(defaultButtons)
+  ] });
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _44("Edit record"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: handleGoToEdit }) }),
     /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckCircleOutlined, {}), onClick: handleDone, children: _44("Done") })
@@ -12051,7 +12130,7 @@ var SectionCellContent = ({
       }) }, `${item.name}-${item.row}-${item.column}-${index}`);
     }
     const field = resolveFieldFromConfig(model, item);
-    if (field.isPk) return null;
+    if (field.isPk && mode !== "show") return null;
     const showLabel = item.show_label !== false;
     const valueStyle = {
       padding: "2px 4px",
@@ -12343,6 +12422,7 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
       return 0;
     }
     let minLevel = 6;
+    let hasScalableRelation = false;
     const traceRows = [];
     for (const rel of relations) {
       const vt2 = getRelationViewType(rel, mode, relationViewTypeDefaults);
@@ -12351,10 +12431,11 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
       const relKey = rel.relationName || rel.resource || rel.label || "?";
       traceRows.push({ rel: relKey, vt: vt2, scalable, lvl });
       if (!scalable) continue;
+      hasScalableRelation = true;
       if (lvl < minLevel) minLevel = lvl;
     }
-    ddlTrace("initialLevel computed", { mode, minLevel, defaults: relationViewTypeDefaults, rows: traceRows });
-    return minLevel;
+    ddlTrace("initialLevel computed", { mode, minLevel, hasScalableRelation, defaults: relationViewTypeDefaults, rows: traceRows });
+    return hasScalableRelation ? minLevel : 0;
   }, []);
   const [dataDetailLevel, setDataDetailLevelState] = React6.useState(initialLevel);
   const prevLevelRef = React6.useRef(dataDetailLevel);
@@ -12758,13 +12839,6 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig, cellSizeControl };
 };
-var BeforeEditSaveContext = React6.createContext(null);
-function useBeforeEditSave(handler) {
-  const register = React6.useContext(BeforeEditSaveContext);
-  const latest = React6.useRef(handler);
-  latest.current = handler;
-  React6.useEffect(() => register?.(() => latest.current()), [register]);
-}
 var _53 = window._ || ((text) => text);
 var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
@@ -13069,7 +13143,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
     [activeTabKey, allItems]
   );
   const renderHeaderButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-    extraHeaderButtons,
+    typeof extraHeaderButtons === "function" ? record ? extraHeaderButtons(record, formProps?.form) : null : extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
     recordId && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _53("Show"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
@@ -14669,9 +14743,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   React6.useEffect(() => {
     const interval = setInterval(() => {
       const lvl = window.__veloiq_dataDetailLevel;
-      if (lvl === 6) {
+      if (lvl === 6 && analyzeSectionAvailable) {
         setListVisible(false);
-      } else if (lvl !== 6 && !listVisible) {
+      } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible) {
         setListVisible(true);
       }
     }, 200);
@@ -14680,7 +14754,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const [isAnalyzeVertical, setIsAnalyzeVertical] = React6.useState(false);
   const [isAnalyzeFirst, setIsAnalyzeFirst] = React6.useState(false);
   const [labelCache, setLabelCache] = React6.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React6.useState(false);
+  const [analyzeOpenPreference, setAnalyzeOpen] = React6.useState(false);
+  const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false;
+  const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = React6.useRef(false);
   const analyzeSettings = useAnalyzeSettings({
     model: relatedModel,
@@ -16502,7 +16578,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   children: _60("View list")
                 }
               ),
-              /* @__PURE__ */ jsxRuntime.jsx(
+              analyzeSectionAvailable && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Button,
                 {
                   size: "small",
@@ -17735,7 +17811,7 @@ var renderRelationBlock = ({
 };
 var _62 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
@@ -17806,6 +17882,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const isPrimaryView = resolvedListViewType === "primary";
   const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
+  const hasCompositeKey = (model.pkFields?.length ?? 0) > 1;
+  const effectiveRowActions = rowActions ?? registeredResourceRowActions(model.resource || model.name);
   const canInlineEdit = INLINE_EDIT_LIST_VIEW_TYPES.has(resolvedListViewType) && canBulkEdit && model.capabilities?.update !== false;
   const inlineRowEdits = useInlineRowEdits(
     model,
@@ -17856,7 +17934,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [renameViewModalOpen, setRenameViewModalOpen] = React6.useState(false);
   const [renameViewName, setRenameViewName] = React6.useState("");
   const [labelCache, setLabelCache] = React6.useState({});
-  const [analyzeOpen, setAnalyzeOpen] = React6.useState(isEmbedded);
+  const [analyzeOpenPreference, setAnalyzeOpen] = React6.useState(isEmbedded);
+  const analyzeSectionAvailable = model.showAnalyzeSection !== false;
+  const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = React6.useRef(false);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
   const defaultDisplayFields = React6.useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
@@ -18347,9 +18427,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   React6.useEffect(() => {
     const interval = setInterval(() => {
       const lvl = window.__veloiq_dataDetailLevel;
-      if (lvl === 6) {
+      if (lvl === 6 && analyzeSectionAvailable) {
         setListVisible(false);
-      } else if (lvl !== 6 && !listVisible && defaultListVisible === void 0 && !isTotalsDetailsView) {
+      } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible && defaultListVisible === void 0 && !isTotalsDetailsView) {
         setListVisible(true);
       }
     }, 200);
@@ -19858,7 +19938,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const embeddedActionBar = isEmbedded ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: [
     columnsToggleButton,
     listToggleButton,
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Analyze"), children: /* @__PURE__ */ jsxRuntime.jsx(
+    analyzeSectionAvailable && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Analyze"), children: /* @__PURE__ */ jsxRuntime.jsx(
       antd.Button,
       {
         size: "small",
@@ -19983,6 +20063,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const renderListFieldValue = (rawField, record) => {
     const field = resolveRowTypedField(rawField, record);
     const value = record?.[field.key];
+    if (Array.isArray(value)) return renderFieldValue(field, record, allModels, true);
     const showToken = normalizeFieldViewType(field.showViewType || "");
     if (showToken && !(showToken === "read-only-field" && field.reference)) {
       return renderFieldValue(field, record, allModels, true);
@@ -19997,7 +20078,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       );
     }
-    if (isPkField(field, model) && record._label) return record._label;
+    if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
     if (field.type === "boolean") return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: value, disabled: true });
     if (field.type === "number" && !field.reference) return formatNumberValue(value);
     if (field.type === "date") return formatDateValue(value);
@@ -20743,7 +20824,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                   children: filtersCollapsed ? _62("Show Filters") : _62("Hide Filters")
                 }
               ),
-              /* @__PURE__ */ jsxRuntime.jsx(
+              analyzeSectionAvailable && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Button,
                 {
                   size: "small",
@@ -21057,6 +21138,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     }
                     const cellField = resolveRowTypedField(field, record);
                     const renderValue = () => {
+                      if (Array.isArray(value)) return renderFieldValue(cellField, record, allModels, true);
                       const showToken = normalizeFieldViewType(cellField.showViewType || "");
                       if (showToken && !(showToken === "read-only-field" && cellField.reference)) {
                         return renderFieldValue(cellField, record, allModels, true);
@@ -21071,7 +21153,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                           }
                         );
                       }
-                      if (isPkField(field, model) && record._label) return record._label;
+                      if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
                       if (cellField.type === "boolean") return /* @__PURE__ */ jsxRuntime.jsx(antd.Checkbox, { checked: value, disabled: true });
                       if (cellField.type === "number" && !field.reference) {
                         const formatted = formatNumberValue(value);
@@ -21106,7 +21188,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                 },
                 field.key
               )),
-              showActions && /* @__PURE__ */ jsxRuntime.jsx(
+              (showActions || effectiveRowActions.length > 0) && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Table.Column,
                 {
                   title: _62("Actions"),
@@ -21117,9 +21199,20 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
-                      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
-                      canBulkEdit && !model.isNonModelData && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
-                      canBulkDelete && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
+                      effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62(action.label), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: action.icon, "aria-label": _62(action.label), onClick: async (event) => {
+                        event.stopPropagation();
+                        try {
+                          await action.onExecute(record);
+                          for (const refreshed of [model.resource || model.name, ...action.refreshesResources || []]) {
+                            invalidate({ resource: refreshed, invalidates: ["list"] });
+                          }
+                        } catch (error) {
+                          antd.message.error(error instanceof Error ? error.message : _62("Failed to save changes."));
+                        }
+                      } }) }, action.key)),
+                      showActions && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("View"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
+                      showActions && canBulkEdit && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Edit"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _62("Delete"), children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
                 },
@@ -26232,6 +26325,45 @@ function generateResources(models, moduleName, options = {}) {
   });
   return [parentEntry, ...children];
 }
+var NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER = "nonModelDataResource";
+var NonModelDataResourcePages = ({ pageOverrides }) => {
+  const resourceName = reactRouterDom.useParams()[NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER];
+  const allModels = useAllModels();
+  const model = allModels.find(
+    (candidate) => candidate.isNonModelData && (candidate.resource || candidate.name) === resourceName
+  );
+  if (!model) return null;
+  const resource = model.resource || model.name;
+  const ListOverride = pageOverrides?.list?.[resource];
+  const ShowOverride = pageOverrides?.show?.[resource];
+  const EditOverride = pageOverrides?.edit?.[resource];
+  const CreateOverride = pageOverrides?.create?.[resource];
+  return /* @__PURE__ */ jsxRuntime.jsxs(reactRouterDom.Routes, { children: [
+    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { index: true, element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: ListOverride ? /* @__PURE__ */ jsxRuntime.jsx(ListOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicList, { model, allModels }, resource) }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "create", element: CreateOverride ? /* @__PURE__ */ jsxRuntime.jsx(CreateOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicCreate, { model, allModels }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "edit/:id", element: EditOverride ? /* @__PURE__ */ jsxRuntime.jsx(EditOverride, { model, allModels }) : /* @__PURE__ */ jsxRuntime.jsx(DynamicEdit, { model, allModels }) }),
+    /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "show/:id", element: /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { children: ShowOverride ? /* @__PURE__ */ jsxRuntime.jsx(ShowOverride, {}) : /* @__PURE__ */ jsxRuntime.jsx(DynamicShow, { model, allModels }) }) })
+  ] });
+};
+function useRefineResourcesIncludingNonModelData(resources) {
+  const nonModelDataModels = useNonModelDataResourceModels();
+  return React6.useMemo(() => {
+    if (nonModelDataModels.length === 0) return resources;
+    const knownNames = new Set(resources.map((resource) => resource.name));
+    const added = nonModelDataModels.filter((model) => !knownNames.has(model.resource || model.name)).map((model) => {
+      const name = model.resource || model.name;
+      return {
+        name,
+        list: `/${name}`,
+        create: `/${name}/create`,
+        show: `/${name}/show/:id`,
+        edit: `/${name}/edit/:id`,
+        meta: { label: model.label, hide: true, canDelete: model.capabilities?.delete !== false }
+      };
+    });
+    return [...resources, ...added];
+  }, [resources, nonModelDataModels]);
+}
 function useInPageRowsStore(storeName, model, initialRows = []) {
   const invalidate = core.useInvalidate();
   const storeRef = React6.useRef(null);
@@ -26956,8 +27088,10 @@ exports.LoginPage = LoginPage;
 exports.ModelBanner = ModelBanner;
 exports.ModelHeading = ModelHeading;
 exports.MultiPaneLayout = MultiPaneLayout;
+exports.NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER = NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER;
 exports.NavConfigContext = NavConfigContext;
 exports.NoAccessResult = NoAccessResult;
+exports.NonModelDataResourcePages = NonModelDataResourcePages;
 exports.PaneNavigationContext = PaneNavigationContext;
 exports.PinnedRecordsPanel = PinnedRecordsPanel;
 exports.PrimaryShowContext = PrimaryShowContext;
@@ -27004,6 +27138,7 @@ exports.normalizeToneKey = normalizeToneKey;
 exports.pageContextFromPath = pageContextFromPath;
 exports.percentSize = percentSize;
 exports.refreshAccess = refreshAccess;
+exports.registerResourceRowActions = registerResourceRowActions;
 exports.removeInPageRowsStore = removeInPageRowsStore;
 exports.renderRelationBlock = renderRelationBlock;
 exports.resolveFallbackLandingPath = resolveFallbackLandingPath;
@@ -27027,6 +27162,7 @@ exports.useNavConfig = useNavConfig;
 exports.useNavModules = useNavModules;
 exports.usePaneNavigation = usePaneNavigation;
 exports.useRecordSearch = useRecordSearch;
+exports.useRefineResourcesIncludingNonModelData = useRefineResourcesIncludingNonModelData;
 exports.useSetHelpPageKey = useSetHelpPageKey;
 exports.useShowActionsPreferences = useShowActionsPreferences;
 exports.useShowEditableForm = useShowEditableForm;

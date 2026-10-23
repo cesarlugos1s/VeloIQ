@@ -71,8 +71,16 @@ def _comparable_sort_key(field: Optional[NonModelDataField], value: Any) -> tupl
 
 
 def _row_matches_condition(row: dict, field: Optional[NonModelDataField], key: str, operator: str, value: str) -> bool:
-    """True when the row's value of *key* satisfies ``operator value``."""
+    """True when the row's value of *key* satisfies ``operator value``.
+
+    For a multi-value field (a list), the condition holds when any value
+    satisfies it (``_ne``: when no value equals it).
+    """
     cell = row.get(key)
+    if isinstance(cell, (list, tuple)):
+        if operator == "_ne":
+            return not any(_row_matches_condition({key: item}, field, key, "", value) for item in cell)
+        return any(_row_matches_condition({key: item}, field, key, operator, value) for item in cell)
     if operator == "__in":
         wanted = [part.strip() for part in str(value).split(",") if part.strip()]
         return any(_comparable_sort_key(field, cell) == _comparable_sort_key(field, part) for part in wanted)

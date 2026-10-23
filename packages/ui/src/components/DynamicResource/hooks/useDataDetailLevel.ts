@@ -88,6 +88,7 @@ export function useDataDetailLevel(
             return 0;
         }
         let minLevel = 6;
+        let hasScalableRelation = false;
         const traceRows: { rel: string; vt: string; scalable: boolean; lvl: number }[] = [];
         for (const rel of relations) {
             const vt = getRelationViewType(rel, mode, relationViewTypeDefaults);
@@ -96,10 +97,14 @@ export function useDataDetailLevel(
             const relKey = rel.relationName || rel.resource || rel.label || "?";
             traceRows.push({ rel: relKey, vt, scalable, lvl });
             if (!scalable) continue;
+            hasScalableRelation = true;
             if (lvl < minLevel) minLevel = lvl;
         }
-        ddlTrace("initialLevel computed", { mode, minLevel, defaults: relationViewTypeDefaults, rows: traceRows });
-        return minLevel;
+        ddlTrace("initialLevel computed", { mode, minLevel, hasScalableRelation, defaults: relationViewTypeDefaults, rows: traceRows });
+        // No relation the slider can scale (e.g. only editable tables or primary
+        // views): start at "Original" (0), like a page without relations,
+        // instead of level 6 (Analyze), which would hide every list's table.
+        return hasScalableRelation ? minLevel : 0;
     }, []);
 
     const [dataDetailLevel, setDataDetailLevelState] = useState(initialLevel);

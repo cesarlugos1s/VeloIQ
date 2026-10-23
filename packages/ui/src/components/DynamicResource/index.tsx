@@ -147,9 +147,9 @@ export { ModelHeading };
 import { useShowActionsPreferences } from "./hooks/useShowActionsPreferences";
 export { useShowActionsPreferences };
 
-import type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig, AppendedListDef } from "./types";
+import type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, RowActionDef, MillerLeafConfig, AppendedListDef } from "./types";
 import { PrimaryShowContext } from "./types";
-export type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, MillerLeafConfig, AppendedListDef };
+export type { FieldDef, RelationDef, ModelDef, PrimaryShowRendererProps, ViewConfigRow, BulkActionDef, RowActionDef, MillerLeafConfig, AppendedListDef };
 export { PrimaryShowContext };
 import {
     DETAILS_TAB_NAME,
@@ -249,6 +249,7 @@ import { getShowHref, shouldHandleLinkClick } from "./utils/navigation";
 import { useRoleFilteredModel } from "./utils/roleAccess";
 import { resolveRowTypedField } from "./utils/resolveRowTypedField";
 import { SingleRecordPrimaryView, isSingleRecordPrimaryView } from "./showSingleRecordPrimaryView";
+import { registeredResourceRowActions } from "./registerResourceRowActions";
 import { INLINE_EDIT_LIST_VIEW_TYPES, InlineCellEditor, InlineEditActions, isInlineEditableField, useInlineRowEdits } from "./editListRowsInline";
 
 
@@ -267,9 +268,13 @@ const DynamicListPage: React.FC<{
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
+    /** Custom buttons in each row's Actions column, before View/Edit/Delete. */
+    rowActions?: RowActionDef[];
+    /** Whether a row shows Delete (default: when the user and the resource allow deleting). */
+    isRowDeletable?: (record: any) => boolean;
     preferencesResourceOverride?: string;
     defaultListVisible?: boolean;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -362,6 +367,12 @@ const DynamicListPage: React.FC<{
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const isPrimaryView = resolvedListViewType === "primary";
     const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
+    // A key made of several fields: each key column shows its own value (the
+    // record's title stands in for the key only when the key is one field).
+    const hasCompositeKey = (model.pkFields?.length ?? 0) > 1;
+    // The rows' custom actions (given, or registered for the resource); shown even
+    // where the standard View/Edit/Delete buttons are turned off (e.g. relation lists).
+    const effectiveRowActions = rowActions ?? registeredResourceRowActions(model.resource || model.name);
     // "editable-table" / "editable-list": cells are edited in place and saved together.
     const canInlineEdit = INLINE_EDIT_LIST_VIEW_TYPES.has(resolvedListViewType)
         && canBulkEdit && model.capabilities?.update !== false;
@@ -429,7 +440,10 @@ const DynamicListPage: React.FC<{
     const [renameViewModalOpen, setRenameViewModalOpen] = useState(false);
     const [renameViewName, setRenameViewName] = useState<string>("");
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
-    const [analyzeOpen, setAnalyzeOpen] = useState(isEmbedded);
+    const [analyzeOpenPreference, setAnalyzeOpen] = useState(isEmbedded);
+    // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
+    const analyzeSectionAvailable = model.showAnalyzeSection !== false;
+    const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
 
@@ -1005,9 +1019,10 @@ const DynamicListPage: React.FC<{
     useEffect(() => {
         const interval = setInterval(() => {
             const lvl = (window as any).__veloiq_dataDetailLevel;
-            if (lvl === 6) {
+            // Without an Analyze section (showAnalyzeSection: false) the list stays at every level.
+            if (lvl === 6 && analyzeSectionAvailable) {
                 setListVisible(false);
-            } else if (lvl !== 6 && !listVisible && defaultListVisible === undefined && !isTotalsDetailsView) {
+            } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible && defaultListVisible === undefined && !isTotalsDetailsView) {
                 setListVisible(true);
             }
         }, 200);
@@ -2744,18 +2759,20 @@ const DynamicListPage: React.FC<{
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
             {columnsToggleButton}
             {listToggleButton}
-            <Tooltip title={_("Analyze")}>
-                <Button
-                    size="small"
-                    icon={<BarChartOutlined />}
-                    onClick={() => {
-                        markLayoutPrefsTouched();
-                        analyzeTouchedRef.current = true;
-                        setIsStatsFlipped(false);
-                        setAnalyzeOpen((prev) => !prev);
-                    }}
-                />
-            </Tooltip>
+            {analyzeSectionAvailable && (
+                <Tooltip title={_("Analyze")}>
+                    <Button
+                        size="small"
+                        icon={<BarChartOutlined />}
+                        onClick={() => {
+                            markLayoutPrefsTouched();
+                            analyzeTouchedRef.current = true;
+                            setIsStatsFlipped(false);
+                            setAnalyzeOpen((prev) => !prev);
+                        }}
+                    />
+                </Tooltip>
+            )}
             <Tooltip title={_("Switch orientation")}>
                 <Button
                     size="small"
@@ -2876,6 +2893,7 @@ const DynamicListPage: React.FC<{
         // A row-typed field takes its type and options from the row (parameter lists).
         const field = resolveRowTypedField(rawField, record);
         const value = record?.[field.key];
+        if (Array.isArray(value)) return renderFieldValue(field, record, allModels, true);
         const showToken = normalizeFieldViewType(field.showViewType || "");
         if (showToken && !(showToken === "read-only-field" && field.reference)) {
             return renderFieldValue(field, record, allModels, true);
@@ -2889,7 +2907,7 @@ const DynamicListPage: React.FC<{
                 />
             );
         }
-        if (isPkField(field, model) && record._label) return record._label;
+        if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
         if (field.type === 'boolean') return <Checkbox checked={value} disabled />;
         if (field.type === 'number' && !field.reference) return formatNumberValue(value);
         if (field.type === 'date') return formatDateValue(value);
@@ -3647,18 +3665,20 @@ const DynamicListPage: React.FC<{
                             >
                                 {filtersCollapsed ? _("Show Filters") : _("Hide Filters")}
                             </Button>
-                            <Button
-                                size="small"
-                                icon={<BarChartOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    analyzeTouchedRef.current = true;
-                                    setIsStatsFlipped(false);
-                                    setAnalyzeOpen((prev) => !prev);
-                                }}
-                            >
-                                {_("Analyze")}
-                            </Button>
+                            {analyzeSectionAvailable && (
+                                <Button
+                                    size="small"
+                                    icon={<BarChartOutlined />}
+                                    onClick={() => {
+                                        markLayoutPrefsTouched();
+                                        analyzeTouchedRef.current = true;
+                                        setIsStatsFlipped(false);
+                                        setAnalyzeOpen((prev) => !prev);
+                                    }}
+                                >
+                                    {_("Analyze")}
+                                </Button>
+                            )}
                             <Button
                                 size="small"
                                 icon={<ColumnHeightOutlined />}
@@ -3997,6 +4017,7 @@ const DynamicListPage: React.FC<{
                                         // A row-typed field takes its type and options from the row (parameter lists).
                                         const cellField = resolveRowTypedField(field, record);
                                         const renderValue = () => {
+                                            if (Array.isArray(value)) return renderFieldValue(cellField, record, allModels, true);
                                             const showToken = normalizeFieldViewType(cellField.showViewType || "");
                                             if (showToken && !(showToken === "read-only-field" && cellField.reference)) {
                                                 return renderFieldValue(cellField, record, allModels, true);
@@ -4010,7 +4031,7 @@ const DynamicListPage: React.FC<{
                                                     />
                                                 );
                                             }
-                                            if (isPkField(field, model) && record._label) return record._label;
+                                            if (isPkField(field, model) && !hasCompositeKey && record._label) return record._label;
                                             if (cellField.type === 'boolean') return <Checkbox checked={value} disabled />;
                                             if (cellField.type === 'number' && !field.reference) {
                                                 const formatted = formatNumberValue(value);
@@ -4047,7 +4068,7 @@ const DynamicListPage: React.FC<{
                                     }}
                                 />
                             ))}
-                            {showActions && (
+                            {(showActions || effectiveRowActions.length > 0) && (
                                 <Table.Column title={_("Actions")} key="actions" width={140}
                                               render={(_unused, record: any) => {
                                                   const { resource, id, isLinkRow } = getTargetInfo(record);
@@ -4058,12 +4079,28 @@ const DynamicListPage: React.FC<{
                                                       : id;
                                                       return (
                                                       <Space>
-                                                          <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => (paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }))} /></Tooltip>
-                                                          {/* Non-model data resources have no edit page route; their rows are edited inline. */}
-                                                          {canBulkEdit && !model.isNonModelData && (
+                                                          {effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => (
+                                                              <Tooltip key={action.key} title={_(action.label)}>
+                                                                  <Button size="small" icon={action.icon} aria-label={_(action.label)} onClick={async (event) => {
+                                                                      event.stopPropagation();
+                                                                      try {
+                                                                          await action.onExecute(record);
+                                                                          for (const refreshed of [model.resource || model.name, ...(action.refreshesResources || [])]) {
+                                                                              invalidate({ resource: refreshed, invalidates: ["list"] });
+                                                                          }
+                                                                      } catch (error) {
+                                                                          message.error(error instanceof Error ? error.message : _("Failed to save changes."));
+                                                                      }
+                                                                  }} />
+                                                              </Tooltip>
+                                                          ))}
+                                                          {showActions && (
+                                                              <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => (paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }))} /></Tooltip>
+                                                          )}
+                                                          {showActions && canBulkEdit && (
                                                               <Tooltip title={_("Edit")}><Button size="small" icon={<EditOutlined />} onClick={() => go({ to: { resource, action: "edit", id } })} /></Tooltip>
                                                           )}
-                                                          {canBulkDelete && (
+                                                          {showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && (
                                                               <Tooltip title={_("Delete")}>
                                                                   <DeleteButton hideText size="small" recordItemId={deleteId} resource={deleteResource} />
                                                               </Tooltip>

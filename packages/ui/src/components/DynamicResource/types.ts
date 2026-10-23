@@ -17,6 +17,8 @@ export interface FieldDef {
     optionLabel?: string;
     options?: { label: string; value: any }[];
     optionsUrl?: string;
+    /** The field holds a list of values (shown as tags, edited with a multi-select). */
+    multiple?: boolean;
     valueColors?: Record<string, string>;
     default?: any;
     defaultValue?: any;
@@ -139,12 +141,33 @@ export interface ModelDef {
     isSingleRecord?: boolean;
     /** The key fields of a row. With more than one, `pkField` is "eid" (built from them by the backend). */
     pkFields?: string[];
+    /**
+     * False hides the Analyze section (charts and summaries) and its toggle on the
+     * resource's lists, e.g. for configuration lists where it adds nothing.
+     */
+    showAnalyzeSection?: boolean;
     /** Which writes the resource accepts (absent = all, as for models). */
     capabilities?: { create?: boolean; update?: boolean; delete?: boolean };
 }
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };
 export const PrimaryShowContext = React.createContext<React.ComponentType<PrimaryShowRendererProps> | null>(null);
+
+/**
+ * A custom button in a list row's Actions column (e.g. "Promote to registry").
+ * After it runs, the list is refreshed; an error's message is shown.
+ */
+export interface RowActionDef {
+    key: string;
+    /** Tooltip (a catalog msgid, translated when shown). */
+    label: string;
+    icon: React.ReactNode;
+    onExecute: (record: any) => Promise<void>;
+    /** Whether the row shows the button (default: every row). */
+    isVisible?: (record: any) => boolean;
+    /** Other resources whose lists the action changes, refreshed after it runs. */
+    refreshesResources?: string[];
+}
 
 export interface BulkActionDef {
     key: string;

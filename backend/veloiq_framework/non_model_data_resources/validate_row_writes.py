@@ -86,6 +86,32 @@ def _convert_value_to_field_type(field: NonModelDataField, field_type: str, valu
     return (value if isinstance(value, str) else row_key_value_as_text(value)), None
 
 
+def _convert_multiple_values(field: NonModelDataField, value: Any, row: dict) -> tuple[list, list[str]]:
+    """Return ``(values as the field type, error messages)`` for a multi-value field.
+
+    Accepts a list, or comma-separated text; empty items are dropped.
+    """
+    if value is None or value == "":
+        return [], []
+    items = value if isinstance(value, (list, tuple)) else [part.strip() for part in str(value).split(",")]
+    converted_values: list = []
+    errors: list[str] = []
+    allowed = allowed_field_values_for_row(field, row)
+    allowed_text = {row_key_value_as_text(option) for option in allowed}
+    for item in items:
+        if item is None or item == "":
+            continue
+        converted, error = _convert_value_to_field_type(field, field_type_for_row(field, row), item)
+        if error:
+            errors.append(error)
+            continue
+        if allowed and row_key_value_as_text(converted) not in allowed_text:
+            errors.append(_("{field}: the value is not one of the allowed values.").format(field=_translated_field_label(field)))
+            continue
+        converted_values.append(converted)
+    return converted_values, errors
+
+
 def _roles_may_write_field(field: NonModelDataField, user_roles: list[str]) -> bool:
     """True when the user's roles may write the field (``write_roles`` unset = every role)."""
     return field.write_roles is None or bool(set(field.write_roles) & set(user_roles))
@@ -126,6 +152,12 @@ def build_validated_row(data_resource: NonModelDataResource, payload: dict, exis
     for field in ordered:
         if field.key not in written:
             continue
+        if field.multiple:
+            converted_values, item_errors = _convert_multiple_values(field, row[field.key], row)
+            errors.extend(item_errors)
+            if not item_errors:
+                row[field.key] = converted_values
+            continue
         converted, error = _convert_value_to_field_type(field, field_type_for_row(field, row), row[field.key])
         if error:
             errors.append(error)
@@ -136,11 +168,13 @@ def build_validated_row(data_resource: NonModelDataResource, payload: dict, exis
             errors.append(_("{field}: the value is not one of the allowed values.").format(field=_translated_field_label(field)))
 
     for field in data_resource.fields:
-        must_have = field.required or (creating and field.key in data_resource.pk_fields)
+        must_have = field.required or (
+            creating and field.key in data_resource.pk_fields and not data_resource.source_generates_keys)
         if must_have and not field.read_only and (row.get(field.key) is None or row.get(field.key) == ""):
             errors.append(_("{field}: a value is required.").format(field=_translated_field_label(field)))
 
-    if creating and not errors:
+    key_given = all(row.get(key) not in (None, "") for key in data_resource.pk_fields)
+    if creating and not errors and (key_given or not data_resource.source_generates_keys):
         try:
             eid = encode_eid([row.get(key) for key in data_resource.pk_fields])
         except RowEidEncodingError:

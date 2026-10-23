@@ -35,7 +35,8 @@ const DynamicEditPage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
     topContent?: React.ReactNode;
-    extraHeaderButtons?: React.ReactNode;
+    /** Header buttons: a node, or a function given the record and the page's form (to read or fill unsaved values). */
+    extraHeaderButtons?: React.ReactNode | ((record: any, form?: any) => React.ReactNode);
     journeyCallbacks?: JourneyCallbacks;
     idOverride?: string;
 }> = ({ model: modelProp, allModels: allModelsProp, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
@@ -366,7 +367,9 @@ const DynamicEditPage: React.FC<{
     );
     const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
         <>
-            {extraHeaderButtons}
+            {typeof extraHeaderButtons === "function"
+                ? (record ? extraHeaderButtons(record, (formProps as any)?.form) : null)
+                : extraHeaderButtons}
             {editMetadataButton}
             {editMetadataModal}
             {recordId && (

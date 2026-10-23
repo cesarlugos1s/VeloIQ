@@ -175,8 +175,10 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
 export const synthesizeConfigRows = (model: ModelDef, mode: "show" | "edit" = "show"): ViewConfigRow[] => {
     const formType = mode === "show" ? "show" : "edit";
 
+    // Show pages list every field, the key fields included; edit forms leave the
+    // key fields out (changing them would change which record is edited).
     const fieldRows: ViewConfigRow[] = model.fields
-        .filter((f) => !f.isPk)
+        .filter((f) => mode === "show" || !f.isPk)
         .map((field, idx) => ({
             view_type: "PrimaryView",
             subject_name: model.name,

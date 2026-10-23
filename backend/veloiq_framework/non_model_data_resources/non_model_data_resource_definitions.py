@@ -57,6 +57,10 @@ class NonModelDataField:
     :param required: A value must be given when a row is created or changed.
     :param read_only: The UI shows the field without an editor, and writes ignore it.
     :param options: Allowed values: plain values or ``{"label", "value"}`` dicts.
+    :param options_url: API path (under ``/api``) answering the allowed values
+        (a list, or an object whose first list-valued property holds them).
+    :param multiple: The field holds a list of values of its ``type`` (shown as
+        tags, edited with a multi-select); filters match any of its values.
     :param reference: Target of a relation field: a model's table name or a
         non-model data resource's name.
     :param reference_key: For a target with a composite key, the target key
@@ -67,6 +71,9 @@ class NonModelDataField:
         each row's value has its own type.
     :param options_from_field: Key of another field of the same row holding
         this field's allowed values for that row.
+    :param value_colors: Tag color of each value (value → antd color name or
+        hex), e.g. green for an "Active" status; values left out get the default
+        option colors.
     :param description: Help text shown with the field.
     :param default: Value given to the field of a new row when none is sent.
     :param show_view_type: Field view type on show/list pages.
@@ -82,10 +89,13 @@ class NonModelDataField:
     required: bool = False
     read_only: bool = False
     options: Optional[list] = None
+    options_url: str = ""
+    multiple: bool = False
     reference: str = ""
     reference_key: str = ""
     type_from_field: str = ""
     options_from_field: str = ""
+    value_colors: Optional[dict] = None
     description: str = ""
     default: Any = None
     show_view_type: str = ""
@@ -117,6 +127,10 @@ class NonModelDataField:
                 option if isinstance(option, dict) else {"label": str(option), "value": option}
                 for option in self.options
             ]
+        if self.options_url:
+            field_def["optionsUrl"] = self.options_url
+        if self.multiple:
+            field_def["multiple"] = True
         if self.reference:
             field_def["reference"] = self.reference
         if self.reference_key:
@@ -125,6 +139,8 @@ class NonModelDataField:
             field_def["typeFromField"] = self.type_from_field
         if self.options_from_field:
             field_def["optionsFromField"] = self.options_from_field
+        if self.value_colors:
+            field_def["valueColors"] = {str(value): color for value, color in self.value_colors.items()}
         if self.description:
             field_def["description"] = self.description
         if self.default is not None:
@@ -205,6 +221,12 @@ class NonModelDataResource:
         form): rows are never added or deleted, the record's title is the
         resource's label, and it is shown with the "primary" view type (the
         record's show/edit form) rather than as a list.
+    :param source_generates_keys: The source assigns a new row's key when the
+        request doesn't give one (e.g. from other fields): key fields aren't
+        required on create, and the saved row returned by the source carries it.
+    :param show_analyze_section: False hides the Analyze section (charts and
+        summaries) and its toggle on the resource's lists, for configuration
+        lists where it adds nothing.
     :param build_fields_function: ``() -> list[NonModelDataField]`` returning
         fields known only when the app runs (e.g. one per registered setting).
         They follow ``fields`` and are rebuilt for every request. The record
@@ -230,6 +252,8 @@ class NonModelDataResource:
     access_check: Optional[Callable[[Any, str], None]] = None
     validate_row: Optional[Callable[[dict, list[dict]], list[str]]] = None
     single_record: bool = False
+    source_generates_keys: bool = False
+    show_analyze_section: bool = True
     build_fields_function: Optional[Callable[[], list[NonModelDataField]]] = None
 
     def __post_init__(self) -> None:
@@ -298,6 +322,8 @@ class NonModelDataResource:
             model_def["defaultSort"] = {"field": self.default_sort[0], "order": self.default_sort[1]}
         if self.title_fields:
             model_def["titleFields"] = list(self.title_fields)
+        if not self.show_analyze_section:
+            model_def["showAnalyzeSection"] = False
         return model_def
 
 

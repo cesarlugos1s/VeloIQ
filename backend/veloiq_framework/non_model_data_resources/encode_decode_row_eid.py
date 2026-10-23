@@ -31,6 +31,9 @@ def row_key_value_as_text(value: Any) -> str:
     """Return the text a key value takes inside an ``eid`` (``1.0`` -> ``"1"``)."""
     if value is None:
         return ""
+    if isinstance(value, (list, tuple)):
+        # A multi-value field reads as its values joined (search, CSV, filters).
+        return ", ".join(row_key_value_as_text(item) for item in value)
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, float) and value.is_integer():

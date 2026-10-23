@@ -8,6 +8,8 @@ const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((te
 type AsyncSelectInputProps = {
     optionsUrl: string;
     placeholder?: string;
+    /** "multiple" or "tags" for a multi-value field. */
+    mode?: "multiple" | "tags";
     value?: any;
     onChange?: (value: any) => void;
 };
@@ -15,6 +17,7 @@ type AsyncSelectInputProps = {
 export const AsyncSelectInput: React.FC<AsyncSelectInputProps> = ({
     optionsUrl,
     placeholder,
+    mode,
     value,
     onChange,
 }) => {
@@ -46,6 +49,10 @@ export const AsyncSelectInput: React.FC<AsyncSelectInputProps> = ({
                     rawChoices = data.choices;
                 } else if (Array.isArray(data?.options)) {
                     rawChoices = data.options;
+                } else if (data && typeof data === "object") {
+                    // Any other object: its first list-valued property holds the choices.
+                    const firstList = Object.values(data).find((property) => Array.isArray(property));
+                    if (Array.isArray(firstList)) rawChoices = firstList;
                 }
 
                 const mapped = rawChoices.map((item: any) => {
@@ -74,6 +81,7 @@ export const AsyncSelectInput: React.FC<AsyncSelectInputProps> = ({
         <Select
             showSearch
             allowClear
+            mode={mode}
             loading={loading}
             options={options}
             value={value}

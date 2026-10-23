@@ -248,7 +248,9 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         }
 
         const field = resolveFieldFromConfig(model, item);
-        if (field.isPk) return null;
+        // Key fields are shown on show pages and left out of edit forms
+        // (changing them would change which record is edited).
+        if (field.isPk && mode !== "show") return null;
         const showLabel = item.show_label !== false;
         const valueStyle: React.CSSProperties = {
             padding: "2px 4px",

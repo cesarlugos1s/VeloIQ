@@ -49,6 +49,7 @@ export type {
     PrimaryShowRendererProps,
     ViewConfigRow,
     BulkActionDef,
+    RowActionDef,
     MillerLeafConfig,
     DataDetailLevelState,
 } from "./components/DynamicResource";
@@ -122,6 +123,11 @@ export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 export { generateResources } from "./utils/generateResources";
 export type { ResourceDef } from "./utils/generateResources";
 export { authenticatedFetch } from "./utils/authenticatedFetch";
+// Row actions of a resource wherever it is listed.
+export { registerResourceRowActions } from "./components/DynamicResource/registerResourceRowActions";
+// Pages and Refine resources of the non-model data resources (wired once in App.tsx).
+export { NonModelDataResourcePages, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER } from "./components/DynamicResource/pages/NonModelDataResourcePages";
+export { useRefineResourcesIncludingNonModelData } from "./hooks/useRefineResourcesIncludingNonModelData";
 // Rows that exist only in the page, served to the standard views from a browser store.
 export { useInPageRowsStore } from "./hooks/useInPageRowsStore";
 export type { InPageRowsStoreHandle } from "./hooks/useInPageRowsStore";

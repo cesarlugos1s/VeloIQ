@@ -65,7 +65,9 @@ const DynamicCreatePage: React.FC<{
     allModels?: ModelDef[];
     journeyCallbacks?: JourneyCallbacks;
     injectedValues?: Record<string, any>;
-}> = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues }) => {
+    /** Header buttons, given the page's form (to read or fill the values being entered). */
+    extraHeaderButtons?: (form?: any) => React.ReactNode;
+}> = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues, extraHeaderButtons }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
@@ -304,8 +306,12 @@ const DynamicCreatePage: React.FC<{
         }
     }, [createdRecord, model.name, model.resource, go]);
 
-    const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) =>
-        renderIconOnlyButtons(defaultButtons);
+    const renderHeaderButtons = ({ defaultButtons }: { defaultButtons: React.ReactNode }) => (
+        <>
+            {extraHeaderButtons?.((formProps as any)?.form)}
+            {renderIconOnlyButtons(defaultButtons)}
+        </>
+    );
 
     const renderPostCreateHeaderButtons = (_unused: { defaultButtons: React.ReactNode }) => (
         <>
