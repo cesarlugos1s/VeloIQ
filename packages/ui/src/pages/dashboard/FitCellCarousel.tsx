@@ -7,6 +7,7 @@ import {
 import type { DashboardCell } from "./hooks/useDashboardConfig";
 import type { GridDensity } from "./hooks/gridDensity";
 import { translateText } from "../../components/DynamicResource/utils/i18n";
+import { SingleItemCarousel } from "../../components/DynamicResource/utils/singleItemCarousel";
 
 // Resolved at call time (not module load) -- see ViewsGrid.tsx's own copy of
 // this pattern / utils/i18n.ts's translateText for why.
@@ -34,31 +35,6 @@ interface CellCarouselRef {
     goTo: (index: number) => void;
 }
 
-/** Small "2 / 5" position readout. antd's own Carousel dots would sit at the
- * exact edge-center spot CarouselEdgeArrow already occupies (dotPosition
- * "right"/"bottom" both center on their edge) and end up hidden behind the
- * arrow button, so this renders in a corner instead — clear of every arrow,
- * which are all edge-centered, never corner-anchored. */
-const CarouselPositionBadge: React.FC<{ corner: "top-right" | "bottom-right"; current: number; total: number }> = ({ corner, current, total }) => {
-    const { token } = theme.useToken();
-    const positionStyle: React.CSSProperties = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
-    return (
-        <div style={{
-            position: "absolute",
-            zIndex: 20,
-            ...positionStyle,
-            fontSize: 11,
-            padding: "1px 6px",
-            borderRadius: 10,
-            background: token.colorBgElevated,
-            color: token.colorTextSecondary,
-            border: `1px solid ${token.colorBorderSecondary}`,
-        }}>
-            {current} / {total}
-        </div>
-    );
-};
-
 /** Row-level "N / M" readout (optional -- omit `current` where there's no
  * single "active" row, e.g. a plain scrollable stacked grid) + jump-to-
  * first/last-row buttons. Purely the visual pill -- positioning is the
@@ -68,7 +44,7 @@ const CarouselPositionBadge: React.FC<{ corner: "top-right" | "bottom-right"; cu
  * (chrome must stay put via position:sticky as content scrolls under it)
  * need different positioning strategies around the very same pill.
  *
- * Deliberately not placed at a corner (that's where CarouselPositionBadge
+ * Deliberately not placed at a corner (that's where SingleItemCarousel's position badge
  * lives): each row's own content is a <SectionCell>/<DashboardCell> whose
  * own toolbar (maximize/minimize/move/configure) already occupies the
  * top-right corner, so a corner badge here would sit directly on top of
@@ -160,7 +136,6 @@ const FitCellRow = React.forwardRef<CellCarouselRef, {
     renderCell: (cell: DashboardCell) => React.ReactNode;
 }>(({ rowCells, rowHeight, gridPadding, renderCell }, ref) => {
     const count = rowCells.length;
-    const hasMultipleCells = count > 1;
     const [activeIndex, setActiveIndex] = useState(0);
 
     useImperativeHandle(ref, () => ({
@@ -170,28 +145,15 @@ const FitCellRow = React.forwardRef<CellCarouselRef, {
     }), [count]);
 
     return (
-        <div style={{ position: "relative", height: rowHeight, overflow: "hidden" }}>
-            {hasMultipleCells && (
-                <>
-                    <CarouselEdgeArrow direction="left" onClick={() => setActiveIndex((i) => (i - 1 + count) % count)} />
-                    <CarouselEdgeArrow direction="right" onClick={() => setActiveIndex((i) => (i + 1) % count)} />
-                    <CarouselPositionBadge corner="bottom-right" current={activeIndex + 1} total={count} />
-                </>
-            )}
-            <div style={{
-                display: "flex",
-                height: rowHeight,
-                width: "100%",
-                transform: `translateX(-${activeIndex * 100}%)`,
-                transition: "transform 0.3s ease",
-            }}>
-                {rowCells.map((cell) => (
-                    <div key={cell.id} style={{ flex: "0 0 100%", width: "100%", height: rowHeight, padding: gridPadding, boxSizing: "border-box" }}>
-                        {renderCell(cell)}
-                    </div>
-                ))}
-            </div>
-        </div>
+        <SingleItemCarousel
+            items={rowCells}
+            getItemKey={(cell) => cell.id}
+            renderItem={(cell) => renderCell(cell)}
+            activeIndex={activeIndex}
+            onActiveIndexChange={setActiveIndex}
+            height={rowHeight}
+            itemPadding={gridPadding}
+        />
     );
 });
 FitCellRow.displayName = "FitCellRow";

@@ -10,6 +10,7 @@ const resources = [
     { name: "candidate_skill", meta: { label: "Candidate Skill", parent: "module:candidates" } },
     { name: "module:matches", meta: { label: "Matches" } },
     { name: "match", meta: { label: "Match", parent: "module:matches" } },
+    { name: "storefront_products", meta: { label: "Products", hide: true } },
 ];
 
 describe("limitPortalResourcesToNavigationConfig", () => {
@@ -18,12 +19,15 @@ describe("limitPortalResourcesToNavigationConfig", () => {
             { key: "candidate", label: "Profile", icon: "", sequence: 1, type: "model" },
             { key: "module:matches", label: "Matches", icon: "", sequence: 2, type: "module" },
             { key: "match", label: "Match", icon: "", sequence: 3, type: "model" },
+            { key: "storefront_products", label: "Products", icon: "", sequence: 4, type: "model" },
         ]);
         const byName = Object.fromEntries(limited.map((r) => [r.name, r]));
         // A model listed without its module is first-level, with the file's (translated) label.
         expect(byName.candidate.meta).toMatchObject({ label: "Perfil", parent: undefined });
         expect(byName.candidate.meta?.hide).toBeFalsy();
         expect(byName.match.meta).toMatchObject({ parent: "module:matches" });
+        // A listed resource hidden by default (a non-model data resource) is shown.
+        expect(byName.storefront_products.meta?.hide).toBe(false);
         // Unlisted resources stay registered (their pages open) but leave the menus.
         expect(byName.candidate_skill.meta?.hide).toBe(true);
         expect(byName["module:candidates"].meta?.hide).toBe(true);

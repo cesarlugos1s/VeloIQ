@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FileTextOutlined } from "@ant-design/icons";
-import { readAccessToken } from "../../../utils/signInStorageKeys";
+import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 
 
 export function useAuthenticatedFileUrl(rawUrl: string): string {
@@ -8,13 +8,10 @@ export function useAuthenticatedFileUrl(rawUrl: string): string {
     useEffect(() => {
         if (!rawUrl) { setSrc(""); return; }
         if (!rawUrl.includes("/api/file/")) { setSrc(rawUrl); return; }
-        const token = readAccessToken() || "";
         const controller = new AbortController();
         let objectUrl = "";
-        fetch(rawUrl, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            signal: controller.signal,
-        })
+        // The session's token and, in a portal, its name (a public portal's visitors see its images too).
+        authenticatedFetch(rawUrl, { signal: controller.signal })
             .then(r => r.ok ? r.blob() : Promise.reject())
             .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
             .catch(() => setSrc(""));

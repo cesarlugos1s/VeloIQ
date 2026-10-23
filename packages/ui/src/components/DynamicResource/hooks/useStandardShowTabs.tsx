@@ -20,6 +20,7 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
+    keepConfigRowsOfModel,
     synthesizeConfigRows,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
@@ -135,7 +136,7 @@ export const useStandardShowTabs = (
     };
 
     const modelResource = resolveResourcePath(model.resource || model.name, allModels);
-    const rawConfigRows = filterConfigRowsForMode(showConfigRows, "show");
+    const rawConfigRows = keepConfigRowsOfModel(filterConfigRowsForMode(showConfigRows, "show"), model);
     const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "show");
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);

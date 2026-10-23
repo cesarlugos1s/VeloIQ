@@ -47,7 +47,11 @@ import { generateResources } from "../utils/generateResources";
 import { resolveFallbackLandingPath } from "../utils/navConfig";
 import type { NavConfig } from "../utils/navConfig";
 import { setSignInStorageNamespace } from "../utils/signInStorageKeys";
+import { setPortalRequestContext } from "../utils/portalRequestContext";
 import { useRefineResourcesIncludingNavigationPages } from "../hooks/useRefineResourcesIncludingNavigationPages";
+import { useRefineResourcesIncludingNonModelData } from "../hooks/useRefineResourcesIncludingNonModelData";
+import { NonModelDataResourcePages } from "../components/DynamicResource/pages/NonModelDataResourcePages";
+import type { ShowHeaderButtonsForResource } from "../components/DynamicResource/pages/NonModelDataResourcePages";
 import { usePortalPublicSettings } from "./usePortalPublicSettings";
 import { limitPortalResourcesToNavigationConfig } from "./limitPortalResourcesToNavigationConfig";
 import type { PortalPublicSettings, PortalRuntimeConfiguration } from "./usePortalPublicSettings";
@@ -110,6 +114,8 @@ export interface VeloIQPortalAppProps {
     routerBasename?: string;
     /** Header icon buttons shown next to Global Search on every page. */
     globalHeaderComponents?: React.ComponentType<{}>[];
+    /** The site's buttons in the header of standard record pages (e.g. "Add to cart" on a product), per resource. */
+    showHeaderButtons?: ShowHeaderButtonsForResource;
 }
 
 const portalQueryClient = new QueryClient();
@@ -131,7 +137,7 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
 }> = ({
     site, moduleRegistrations: builtModuleRegistrations, navConfig: builtNavConfig, dataProvider,
     pageRoutes = [], pageOverrides = {}, logo, loginPage, loginPageFooter, landingPath, routerBasename,
-    globalHeaderComponents, portalSettings, portalConfiguration,
+    globalHeaderComponents, showHeaderButtons, portalSettings, portalConfiguration,
 }) => {
     // The menu and page overrides kept on the Portals pages win over what the portal was built with.
     const navConfig = portalConfiguration?.navigation ?? builtNavConfig;
@@ -158,9 +164,11 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
             generateResources(models, moduleName, moduleLabel ? { moduleLabel } : {})),
     ], [moduleRegistrations, portalSettings.show_dashboard_menu_entry]);
     // The menu's "page" entries (the site's own pages) are listed like model pages.
+    // Non-model data resources the portal's users can read get Refine resources too (as in the admin app).
+    const modelAndNonModelDataResources = useRefineResourcesIncludingNonModelData(modelResources);
     const portalMenuResources = useMemo(
-        () => limitPortalResourcesToNavigationConfig(modelResources, navConfig),
-        [modelResources, navConfig],
+        () => limitPortalResourcesToNavigationConfig(modelAndNonModelDataResources, navConfig),
+        [modelAndNonModelDataResources, navConfig],
     );
     const portalResources = useRefineResourcesIncludingNavigationPages(portalMenuResources, navConfig);
 
@@ -173,6 +181,10 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
     ) => {
         const OverridePage = pageOverrides[kind]?.[resource];
         if (OverridePage) return <OverridePage model={model} allModels={portalModels} />;
+        if (kind === "show") {
+            return <StandardPage key={resource} model={model} allModels={portalModels}
+                extraHeaderButtons={showHeaderButtons?.(resource, model, portalModels)} />;
+        }
         return <StandardPage key={resource} model={model} allModels={portalModels} />;
     };
 
@@ -182,8 +194,9 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
         const OverrideShow = pageOverrides.show?.[resource];
         return OverrideShow
             ? createElement(OverrideShow, { idOverride: String(id), model, allModels })
-            : <DynamicShow model={model} allModels={allModels} idOverride={String(id)} />;
-    }, [pageOverrides]);
+            : <DynamicShow model={model} allModels={allModels} idOverride={String(id)}
+                extraHeaderButtons={showHeaderButtons?.(resource, model, allModels)} />;
+    }, [pageOverrides, showHeaderButtons]);
 
     const signedOutPageRoutes = pageRoutes.filter((pageRoute) => pageRoute.availableSignedOut);
     const signedInPageRoutes = pageRoutes.filter((pageRoute) => !pageRoute.availableSignedOut);
@@ -221,6 +234,7 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
                                                 bannerModels={portalModels}
                                                 bannerSite={site}
                                                 globalHeaderComponents={globalHeaderComponents}
+                                                signInPath={portalSettings.allows_signed_out_visitors ? "/login" : undefined}
                                             >
                                                 <Outlet />
                                             </LayoutWrapper>
@@ -248,6 +262,8 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
                                                 </Route>
                                             );
                                         })}
+                                        {/* List/create/show/edit of the non-model data resources the portal's users can read. */}
+                                        <Route path="/:nonModelDataResource/*" element={<NonModelDataResourcePages pageOverrides={pageOverrides} showHeaderButtons={showHeaderButtons} />} />
                                         <Route path="*" element={<Navigate to={resolvedLandingPath} replace />} />
                                     </Route>
                                 </Routes>
@@ -270,6 +286,7 @@ export const VeloIQPortalApp: React.FC<VeloIQPortalAppProps> = (props) => {
     const [sessionNamespaceSetFor, setSessionNamespaceSetFor] = useState<string | null>(null);
     if (settings && sessionNamespaceSetFor !== settings.token_storage_key) {
         setSignInStorageNamespace(settings.token_storage_key);
+        setPortalRequestContext(settings.site, Boolean(settings.allows_signed_out_visitors));
         setSessionNamespaceSetFor(settings.token_storage_key);
     }
 

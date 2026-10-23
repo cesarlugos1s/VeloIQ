@@ -19,6 +19,7 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
+    keepConfigRowsOfModel,
     synthesizeConfigRows,
     buildConfiguredRelationKeys,
     buildConfiguredResolvedRelationKeys,
@@ -139,10 +140,10 @@ export const useStandardEditTabs = (
     const effectiveFields = useMemo(() => applyRelationFieldOverrides(model, allModels), [model, allModels]);
     const recordId = getRecordId(record, model.fields);
     const resourceKey = resolveResourcePath(model.resource || model.name, allModels);
-    const rawConfigRows = filterConfigRowsForMode(
+    const rawConfigRows = keepConfigRowsOfModel(filterConfigRowsForMode(
         editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
         "edit",
-    );
+    ), model);
     const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "edit");
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);

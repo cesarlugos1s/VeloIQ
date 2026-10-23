@@ -337,6 +337,7 @@ See [docs/quickstart.md](docs/quickstart.md) for what to explore once it is runn
 | [docs/tutorial-task-manager.md](docs/tutorial-task-manager.md) | Step-by-step tutorial building a full task manager — seven independent sections you can do in any order |
 | [docs/tutorial-import-schema.md](docs/tutorial-import-schema.md) | Import an existing database into VeloIQ models — no models to write by hand |
 | [docs/module-authoring.md](docs/module-authoring.md) | Full reference for models, relations, custom endpoints, RBAC, ReBAC, admin views, frontend schema customisation, and extension package authoring |
+| [docs/external-portals.md](docs/external-portals.md) | External portals (candidates, employers, shoppers) on the standard components — `veloiq new-portal`, `[portals.<site>]`, per-portal schemas and menus, public portals, and the criteria for choosing standard or custom components |
 | [docs/banners.md](docs/banners.md) | Collapsible banners from `banners.json` — model, named query or ORM sources, Advanced-filter rules, page and website targeting, positions, sizes, and the reusable components |
 | [docs/contextual-help.md](docs/contextual-help.md) | The in-app Help drawer — page_key convention, the runnable action-button catalog, editing content, and the extension authoring hook |
 | [docs/configuration-reference.md](docs/configuration-reference.md) | Every `VeloIQConfig` field and environment variable |

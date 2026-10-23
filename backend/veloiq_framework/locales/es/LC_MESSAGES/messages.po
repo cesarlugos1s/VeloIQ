@@ -2250,3 +2250,6 @@ msgstr "Abrir el portal en una pestaña nueva"
 
 msgid "The portal is not built yet. Run veloiq build."
 msgstr "El portal aún no está compilado. Ejecute veloiq build."
+
+msgid "Sign in"
+msgstr "Iniciar sesión"

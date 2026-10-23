@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { authenticatedFetch } from "./authenticatedFetch";
+import { readAccessToken } from "./signInStorageKeys";
 
 const API_URL = "/api";
 
@@ -16,32 +17,45 @@ export type JourneyMenuMap = Record<string, { key: string; label: string; route:
 /** Ant Design icon name used for journeys everywhere (matches the Journey Runner page title). */
 export const JOURNEY_ICON_NAME = "NodeIndexOutlined";
 
+/** The journey menu request of the current session (keyed by its token), shared by every menu. */
+let journeyMenuRequest: { sessionToken: string | null; request: Promise<JourneyMenuMap> } | null = null;
+
+/** Fetch the journey menu items once per session (every menu and page reuses the answer). */
+function fetchJourneyMenuItems(): Promise<JourneyMenuMap> {
+    const sessionToken = readAccessToken();
+    if (journeyMenuRequest && journeyMenuRequest.sessionToken === sessionToken) return journeyMenuRequest.request;
+    const request = (async (): Promise<JourneyMenuMap> => {
+        try {
+            const res = await authenticatedFetch(`${API_URL}/journeys?_start=0&_end=200`);
+            if (!res.ok) return {};
+            const data = await res.json();
+            const list: any[] = Array.isArray(data) ? data : (data?.data ?? []);
+            const map: JourneyMenuMap = {};
+            for (const j of list) {
+                if (!j?.module || !j?.journey_id) continue;
+                (map[j.module] ??= []).push({
+                    key: `journey:${j.journey_id}`,
+                    label: j.name || j.journey_id,
+                    route: `/journey-run/${j.journey_id}`,
+                    icon: JOURNEY_ICON_NAME,
+                });
+            }
+            return map;
+        } catch {
+            /* journey endpoints unavailable — no dynamic journey menu items */
+            return {};
+        }
+    })();
+    journeyMenuRequest = { sessionToken, request };
+    return request;
+}
+
 export function useJourneyMenuItems(): JourneyMenuMap {
     const [byModule, setByModule] = useState<JourneyMenuMap>({});
 
     useEffect(() => {
         let cancelled = false;
-        (async () => {
-            try {
-                const res = await authenticatedFetch(`${API_URL}/journeys?_start=0&_end=200`);
-                if (!res.ok) return;
-                const data = await res.json();
-                const list: any[] = Array.isArray(data) ? data : (data?.data ?? []);
-                const map: JourneyMenuMap = {};
-                for (const j of list) {
-                    if (!j?.module || !j?.journey_id) continue;
-                    (map[j.module] ??= []).push({
-                        key: `journey:${j.journey_id}`,
-                        label: j.name || j.journey_id,
-                        route: `/journey-run/${j.journey_id}`,
-                        icon: JOURNEY_ICON_NAME,
-                    });
-                }
-                if (!cancelled) setByModule(map);
-            } catch {
-                /* journey endpoints unavailable — no dynamic journey menu items */
-            }
-        })();
+        fetchJourneyMenuItems().then((map) => { if (!cancelled) setByModule(map); });
         return () => { cancelled = true; };
     }, []);
 

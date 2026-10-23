@@ -562,10 +562,25 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
 
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Authentication required"},
+            # A signed-out visitor of a public portal acts as the portal's anonymous user.
+            from veloiq_framework.portals.portal_anonymous_visitors import (
+                PORTAL_REQUEST_HEADER,
+                anonymous_visitor_user_payload,
             )
+            from veloiq_framework.db import get_engine as _get_engine
+            anonymous_payload = anonymous_visitor_user_payload(request.headers.get(PORTAL_REQUEST_HEADER, ""), _get_engine())
+            if anonymous_payload is None:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Authentication required"},
+                )
+            request.state.user = anonymous_payload
+            from veloiq_framework.utils.log_context import set_log_user, reset_log_user
+            log_user_token = set_log_user(anonymous_payload["eid"])
+            try:
+                return await call_next(request)
+            finally:
+                reset_log_user(log_user_token)
         token = auth_header[7:]
         try:
             from veloiq_framework.auth.utils import decode_access_token

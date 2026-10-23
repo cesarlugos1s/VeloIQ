@@ -2251,3 +2251,6 @@ msgstr "Open the portal in a new tab"
 
 msgid "The portal is not built yet. Run veloiq build."
 msgstr "The portal is not built yet. Run veloiq build."
+
+msgid "Sign in"
+msgstr "Sign in"

@@ -23,6 +23,7 @@ import {
     useViewConfigurations,
     useViewSettings,
     filterConfigRowsForMode,
+    keepConfigRowsOfModel,
     groupConfigRowsBySection,
     normalizeSectionRows,
     resolveFieldFromConfig,
@@ -270,10 +271,10 @@ const DynamicCreatePage: React.FC<{
         lineHeight: 1.0,
     };
 
-    const configRows = filterConfigRowsForMode(
+    const configRows = keepConfigRowsOfModel(filterConfigRowsForMode(
         editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
         "edit"
-    );
+    ), model);
     const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
     const hasConfig = configRows.length > 0;
     const configSections = groupConfigRowsBySection(configRows);

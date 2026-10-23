@@ -21,8 +21,11 @@ import type { AccessControlProvider } from "@refinedev/core";
 import { getAccessSnapshot } from "../access/accessStore";
 import { REFINE_TO_ACTION, evaluateAccess } from "../access/evaluateAccess";
 import { signInStorageKeys } from "../utils/signInStorageKeys";
+import { signedOutVisitorsAllowed } from "../utils/portalRequestContext";
 
 const ADMIN_ROLE = "Admin";
+/** Refine actions a public portal's signed-out visitor may take (reading pages). */
+const SIGNED_OUT_VISITOR_ACTIONS = new Set(["list", "show"]);
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -50,6 +53,11 @@ export const accessControlProvider: AccessControlProvider = {
     can: async ({ action, resource }) => {
         const cached = localStorage.getItem(signInStorageKeys().signedInUser);
         if (!cached) {
+            // A public portal's signed-out visitor may open pages; anything else needs a sign-in
+            // (the server decides what the portal's anonymous user may read).
+            if (signedOutVisitorsAllowed() && SIGNED_OUT_VISITOR_ACTIONS.has(action)) {
+                return { can: true };
+            }
             return { can: false, reason: _("Not authenticated") };
         }
 

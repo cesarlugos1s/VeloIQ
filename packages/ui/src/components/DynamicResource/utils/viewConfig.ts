@@ -245,6 +245,27 @@ export const filterConfigRowsForMode = (rows: ViewConfigRow[], mode: "show" | "e
     return filtered.length > 0 ? filtered : rows;
 };
 
+/**
+ * Keep the layout rows (page configuration entries) that belong to `model` as
+ * the page has it: a field entry only when the model has that field, a relation
+ * entry only when the relation resolves on the model. A layout never brings
+ * back a field or relation the page's schema leaves out (an `omit` override, or
+ * a field the user's roles may not read); other entries (NL sentences, views)
+ * are kept.
+ */
+export const keepConfigRowsOfModel = (rows: ViewConfigRow[], model: ModelDef): ViewConfigRow[] => {
+    const fieldKeys = new Set(model.fields.map((field) => field.key));
+    return rows.filter((row) => {
+        if (row.attribute_or_relation_type === "attribute") {
+            return fieldKeys.has(row.object_name) || fieldKeys.has(row.name);
+        }
+        if (row.attribute_or_relation_type === "relation") {
+            return Boolean(resolveRelationFromConfig(model.relations, row));
+        }
+        return true;
+    });
+};
+
 export const groupConfigRowsBySection = (rows: ViewConfigRow[]) => {
     const groups = new Map<string, ViewConfigRow[]>();
     rows.forEach((row) => {

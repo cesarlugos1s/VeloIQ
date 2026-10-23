@@ -10,6 +10,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { clearAccess, refreshAccess } from "../access/accessStore";
 import { resetFrameworkUiFeatures } from "../hooks/useFrameworkUiFeatures";
 import { readAccessToken, signInStorageKeys } from "../utils/signInStorageKeys";
+import { signedOutVisitorsAllowed } from "../utils/portalRequestContext";
 
 const AUTH_BASE = "/auth";
 
@@ -117,6 +118,10 @@ export const authProvider: AuthProvider = {
     check: async () => {
         const token = readAccessToken();
         if (token) {
+            return { authenticated: true };
+        }
+        // A public portal's signed-out visitors browse as its anonymous user.
+        if (signedOutVisitorsAllowed()) {
             return { authenticated: true };
         }
         return { authenticated: false, redirectTo: "/login" };

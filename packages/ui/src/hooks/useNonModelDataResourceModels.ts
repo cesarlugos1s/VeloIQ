@@ -14,6 +14,7 @@ import { subscribeAccess } from "../access/accessStore";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import { API_URL } from "../providers/constants";
 import { readAccessToken } from "../utils/signInStorageKeys";
+import { signedOutVisitorsAllowed } from "../utils/portalRequestContext";
 
 
 /** The request in progress, shared by every caller (the model list and the Refine resources load them together). */
@@ -29,7 +30,8 @@ export function fetchNonModelDataResourceModels(): Promise<ModelDef[]> {
 }
 
 async function requestNonModelDataResourceModels(): Promise<ModelDef[]> {
-    if (!readAccessToken()) return [];
+    // Signed out: none, except in a public portal (its anonymous user's resources).
+    if (!readAccessToken() && !signedOutVisitorsAllowed()) return [];
     try {
         const response = await authenticatedFetch(`${API_URL}/veloiq/non-model-data-resources`);
         if (!response.ok) return [];

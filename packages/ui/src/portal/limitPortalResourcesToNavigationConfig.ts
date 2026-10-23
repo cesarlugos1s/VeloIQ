@@ -36,6 +36,8 @@ export function limitPortalResourcesToNavigationConfig<T extends MenuResource>(r
             ...resource,
             meta: {
                 ...resource.meta,
+                // Listed in the menu file: shown, even a resource hidden by default (e.g. a non-model data resource).
+                hide: false,
                 label: navEntry.label ? _(navEntry.label) : resource.meta?.label,
                 parent: parent && navEntryByKey.has(parent) ? parent : undefined,
             },

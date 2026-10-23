@@ -10,6 +10,7 @@ import { getActiveLocale } from "../utils/activeLocale";
 import { ROW_REVISIONS_RESPONSE_HEADER, rememberRowRevisions, rowRevisionFor } from "../utils/trackRowRevisions";
 import { answerInPageRowsRequest } from "../utils/serveInPageRowsStores";
 import { readAccessToken } from "../utils/signInStorageKeys";
+import { PORTAL_REQUEST_HEADER, portalSiteOfRequests } from "../utils/portalRequestContext";
 
 
 export const httpClient = axios.create();
@@ -39,6 +40,11 @@ httpClient.interceptors.request.use((config) => {
     const token = readAccessToken();
     if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+    }
+    // In a portal, name it (a signed-out visitor of a public portal is served as its anonymous user).
+    const portalSite = portalSiteOfRequests();
+    if (portalSite && config.headers && !config.headers[PORTAL_REQUEST_HEADER]) {
+        config.headers[PORTAL_REQUEST_HEADER] = portalSite;
     }
     if (config.headers && !config.headers["Accept-Language"]) {
         config.headers["Accept-Language"] = getActiveLocale();

@@ -10,6 +10,7 @@ import { getActiveLocale } from "./activeLocale";
 import { ROW_REVISIONS_RESPONSE_HEADER, rememberRowRevisions, rowRevisionFor } from "./trackRowRevisions";
 import { answerInPageRowsRequest } from "./serveInPageRowsStores";
 import { readAccessToken } from "./signInStorageKeys";
+import { PORTAL_REQUEST_HEADER, portalSiteOfRequests } from "./portalRequestContext";
 
 
 export const authenticatedFetch = (
@@ -30,6 +31,11 @@ export const authenticatedFetch = (
     };
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
+    }
+    // In a portal, name it (a signed-out visitor of a public portal is served as its anonymous user).
+    const portalSite = portalSiteOfRequests();
+    if (portalSite && !headers[PORTAL_REQUEST_HEADER]) {
+        headers[PORTAL_REQUEST_HEADER] = portalSite;
     }
     if (!headers["Accept-Language"]) {
         headers["Accept-Language"] = getActiveLocale();

@@ -27,7 +27,7 @@ import { authenticatedFetch } from "../utils/authenticatedFetch";
 import type { NavConfig } from "../utils/navConfig";
 import { useAccess, useAccessQueryInvalidation } from "../hooks/useAccess";
 import { useLayoutMenuItems } from "../hooks/useLayoutMenuItems";
-import { siteScopedStorageKey } from "../utils/signInStorageKeys";
+import { readAccessToken, siteScopedStorageKey } from "../utils/signInStorageKeys";
 
 const API_URL = "/api";
 
@@ -69,6 +69,8 @@ export interface LayoutWrapperProps {
     defaultLayoutMode?: "vertical" | "horizontal";
     /** Site key of an external portal, so banners configured for that site show (``show_on.sites``). */
     bannerSite?: string;
+    /** A public portal's sign-in page: shown as a "Sign in" button to signed-out visitors instead of the user menu. */
+    signInPath?: string;
 }
 
 const DefaultLogo: React.FC<{
@@ -125,7 +127,7 @@ const MobileMenuContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     children, logo, appTitle, extraUserMenuItems = [], navConfig = [], helpButtonTexts,
     globalHeaderComponents = [], showBanners = true, bannerModels, showDashboardMenuEntry,
-    defaultLayoutMode = "vertical", bannerSite,
+    defaultLayoutMode = "vertical", bannerSite, signInPath,
 }) => {
     const { settings: viewSettings } = useViewSettings();
     const layoutMenuSettings = React.useMemo(() => ({
@@ -335,6 +337,11 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                     <Switch checkedChildren="🌜" unCheckedChildren="🌞" checked={mode === "dark"}
                         onChange={() => setMode(mode === "light" ? "dark" : "light")} />
                 </Tooltip>
+                {signInPath && !readAccessToken() ? (
+                    <Button type="primary" icon={<UserOutlined />} onClick={() => go({ to: signInPath })}>
+                        {_("Sign in")}
+                    </Button>
+                ) : (
                 <Dropdown menu={{ items: userItems }} trigger={["click"]}>
                     <Space style={{ cursor: "pointer" }}>
                         <Avatar size={24} style={{ backgroundColor: "#1677ff" }} icon={<UserOutlined />} />
@@ -342,6 +349,7 @@ export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
                         <DownOutlined style={{ fontSize: 10 }} />
                     </Space>
                 </Dropdown>
+                )}
             </Space>
         </Layout.Header>
     );

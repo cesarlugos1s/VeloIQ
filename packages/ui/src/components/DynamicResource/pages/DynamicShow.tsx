@@ -40,7 +40,12 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
     // set, so each still counts as "the show page" for help purposes; only the
     // Miller-column browser's nested preview (embedded=true) is excluded.
     useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : (id ?? null));
-    const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
+    const { formProps, saveButtonProps: editableFormSaveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
+    // No Edit or Save buttons on a read-only non-model data resource (ModelDef.capabilities.update === false)
+    // or when the user's roles may not edit the resource.
+    const { data: canEditRecordData } = useCan({ resource: model.resource || model.name, action: "edit" });
+    const recordIsEditable = model.capabilities?.update !== false && canEditRecordData?.can !== false;
+    const saveButtonProps = recordIsEditable ? editableFormSaveButtonProps : undefined;
     const { formProps: builtShowFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
 
     // Components inside the page registered through useBeforeEditSave (e.g. a
@@ -194,6 +199,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardShow
+                canEdit={recordIsEditable ? undefined : false}
                 isLoading={!record}
                 title={renderWrappedPageTitle(renderModelHeading({
                     model,

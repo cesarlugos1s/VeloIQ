@@ -19,6 +19,8 @@ export interface PortalPublicSettings {
     token_storage_key: string;
     default_layout: "vertical" | "horizontal";
     show_dashboard_menu_entry: boolean;
+    /** Signed-out visitors may browse (the portal declares an anonymous user). */
+    allows_signed_out_visitors?: boolean;
 }
 
 /** The portal's configuration files as served by the backend. */

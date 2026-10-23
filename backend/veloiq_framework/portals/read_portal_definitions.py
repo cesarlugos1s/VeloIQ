@@ -11,6 +11,7 @@ who are not administrators. Each one is declared once in the host app's
     token_storage_key = "veilmatch_candidate_token"  # where its sign-in token is kept
     default_layout = "horizontal"           # "vertical" or "horizontal" menu
     show_dashboard_menu_entry = false       # default: false in portals
+    anonymous_user = "storefront"           # optional: signed-out visitors browse as this user
 
     [portals.candidate-portal.features]     # framework UI features (see framework_ui_features)
     analyze = false                         # default: false in portals
@@ -44,6 +45,9 @@ class PortalDefinition:
     show_dashboard_menu_entry: bool = False
     #: Framework UI features switched on or off for this site (unlisted ones use their portal default).
     features: dict[str, bool] = field(default_factory=dict)
+    #: Username signed-out visitors of the site act as (e.g. a store's low-privilege
+    #: service account); empty: every page needs a sign-in. See portal_anonymous_visitors.
+    anonymous_user: str = ""
 
     def to_public_settings(self) -> dict:
         """Return what the portal's frontend needs before anyone signs in (no roles)."""
@@ -53,6 +57,8 @@ class PortalDefinition:
             "token_storage_key": self.token_storage_key,
             "default_layout": self.default_layout,
             "show_dashboard_menu_entry": self.show_dashboard_menu_entry,
+            # Never the user's name: only whether signed-out visitors may browse.
+            "allows_signed_out_visitors": bool(self.anonymous_user),
         }
 
 
@@ -69,6 +75,7 @@ def _portal_definition_from_table(site: str, table: dict) -> PortalDefinition:
         default_layout=layout if layout in PORTAL_LAYOUTS else "horizontal",
         show_dashboard_menu_entry=bool(table.get("show_dashboard_menu_entry", False)),
         features={str(name): bool(value) for name, value in features.items()},
+        anonymous_user=str(table.get("anonymous_user") or ""),
     )
 
 

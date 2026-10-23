@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-10-13T22:52:20.671972+00:00",
+  "updated_at": "2026-10-22T08:07:05.156305+00:00",
   "sources": {},
   "tools": {
     "GET__jm_action_implements_mechanism_relation": {
@@ -104,6 +104,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_action_implements_mechanism_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_action_implements_mechanism_relation/analyze",
+      "summary": "Aggregate jm_action_implements_mechanism_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_action_implements_mechanism_relation__record_id": {
@@ -397,6 +429,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_action__analyze": {
+      "http_method": "POST",
+      "path": "/jm_action/analyze",
+      "summary": "Aggregate jm_action for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.action",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_action__record_id": {
       "http_method": "GET",
       "path": "/jm_action/{record_id}",
@@ -686,6 +750,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_exceptiondef_applicable_actions_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_exceptiondef_applicable_actions_relation/analyze",
+      "summary": "Aggregate jm_exceptiondef_applicable_actions_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiondef_applicable_actions_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptiondef_applicable_actions_relation/{record_id}",
@@ -967,6 +1063,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_applied_actions_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_applied_actions_relation/analyze",
+      "summary": "Aggregate jm_applied_actions_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_applied_actions_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_applied_actions_relation/{record_id}",
@@ -1246,6 +1374,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_alert_applies_to_object_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_alert_applies_to_object_relation/analyze",
+      "summary": "Aggregate jm_alert_applies_to_object_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_alert_applies_to_object_relation__record_id": {
@@ -1537,6 +1697,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_exceptiontype__analyze": {
+      "http_method": "POST",
+      "path": "/jm_exceptiontype/analyze",
+      "summary": "Aggregate jm_exceptiontype for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_exceptiontype__record_id": {
@@ -1837,6 +2029,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_exceptionalert__analyze": {
+      "http_method": "POST",
+      "path": "/jm_exceptionalert/analyze",
+      "summary": "Aggregate jm_exceptionalert for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_exceptionalert__record_id": {
@@ -2143,6 +2367,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_exceptiondef__analyze": {
+      "http_method": "POST",
+      "path": "/jm_exceptiondef/analyze",
+      "summary": "Aggregate jm_exceptiondef for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_exceptiondef__record_id": {
       "http_method": "GET",
       "path": "/jm_exceptiondef/{record_id}",
@@ -2329,31 +2585,6 @@
       "enabled": false,
       "allowed_roles": [
         "Admin"
-      ],
-      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
-      "status": "active"
-    },
-    "GET__exceptionalert__banner-alerts": {
-      "http_method": "GET",
-      "path": "/exceptionalert/banner-alerts",
-      "summary": "Get banner alerts",
-      "description": "Return Exception Alerts for the sticky footer banner.\n\nReads the configured urgency levels from\n[exception_alerts] exception_alerts_urgency_levels_for_banner\nin jm_config.ini (default: \"Critical, Very Critical\").\n\nReturns distinct alert descriptions with their counts,\nexcluding alerts with status \"Solved\".\n\nUses ORM notation — no raw FK column access.",
-      "parameters": {
-        "path": [],
-        "query": [],
-        "body": []
-      },
-      "request_body": null,
-      "response_type": "object",
-      "output_fields": [],
-      "output_field_aliases": {},
-      "output_fields_source": "",
-      "module": "iqvigilant.modules.exception_alert",
-      "source_file": "custom_api.py",
-      "source": "auto-discovered",
-      "enabled": true,
-      "allowed_roles": [
-        "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"
@@ -2716,6 +2947,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_results_in_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_results_in_relation/analyze",
+      "summary": "Aggregate jm_results_in_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_results_in_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_results_in_relation/{record_id}",
@@ -2995,6 +3258,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_mechanism_is_defined_using_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_mechanism_is_defined_using_relation/analyze",
+      "summary": "Aggregate jm_mechanism_is_defined_using_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_mechanism_is_defined_using_relation__record_id": {
@@ -3278,6 +3573,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_mechanismresult__analyze": {
+      "http_method": "POST",
+      "path": "/jm_mechanismresult/analyze",
+      "summary": "Aggregate jm_mechanismresult for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_mechanismresult__record_id": {
@@ -3569,6 +3896,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_mechanism__analyze": {
+      "http_method": "POST",
+      "path": "/jm_mechanism/analyze",
+      "summary": "Aggregate jm_mechanism for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.mechanism",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_mechanism__record_id": {
@@ -3963,6 +4322,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_nlchat__analyze": {
+      "http_method": "POST",
+      "path": "/jm_nlchat/analyze",
+      "summary": "Aggregate jm_nlchat for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_nlchat__record_id": {
       "http_method": "GET",
       "path": "/jm_nlchat/{record_id}",
@@ -4260,6 +4651,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_nlsentence__analyze": {
+      "http_method": "POST",
+      "path": "/jm_nlsentence/analyze",
+      "summary": "Aggregate jm_nlsentence for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_nlsentence__record_id": {
@@ -4561,6 +4984,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_dbconnector__analyze": {
+      "http_method": "POST",
+      "path": "/jm_dbconnector/analyze",
+      "summary": "Aggregate jm_dbconnector for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_dbconnector__record_id": {
       "http_method": "GET",
       "path": "/jm_dbconnector/{record_id}",
@@ -4860,6 +5315,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_nlanswer__analyze": {
+      "http_method": "POST",
+      "path": "/jm_nlanswer/analyze",
+      "summary": "Aggregate jm_nlanswer for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_nlanswer__record_id": {
       "http_method": "GET",
       "path": "/jm_nlanswer/{record_id}",
@@ -5149,6 +5636,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_has_nl_sentence_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_has_nl_sentence_relation/analyze",
+      "summary": "Aggregate jm_has_nl_sentence_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_has_nl_sentence_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_has_nl_sentence_relation/{record_id}",
@@ -5430,6 +5949,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_is_interpreted_as_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_is_interpreted_as_relation/analyze",
+      "summary": "Aggregate jm_is_interpreted_as_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_is_interpreted_as_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_is_interpreted_as_relation/{record_id}",
@@ -5709,6 +6260,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_connects_via_db_connection_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_connects_via_db_connection_relation/analyze",
+      "summary": "Aggregate jm_connects_via_db_connection_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.nlp",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_connects_via_db_connection_relation__record_id": {
@@ -10046,6 +10629,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_vigilant_has_process_type_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_vigilant_has_process_type_relation/analyze",
+      "summary": "Aggregate jm_vigilant_has_process_type_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilant_has_process_type_relation__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilant_has_process_type_relation/{record_id}",
@@ -10325,6 +10940,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_vigilant_process_executes_based_on_relation__analyze": {
+      "http_method": "POST",
+      "path": "/jm_vigilant_process_executes_based_on_relation/analyze",
+      "summary": "Aggregate jm_vigilant_process_executes_based_on_relation for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_vigilant_process_executes_based_on_relation__record_id": {
@@ -10616,6 +11263,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__jm_vigilantprocesstype__analyze": {
+      "http_method": "POST",
+      "path": "/jm_vigilantprocesstype/analyze",
+      "summary": "Aggregate jm_vigilantprocesstype for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__jm_vigilantprocesstype__record_id": {
@@ -10917,6 +11596,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__jm_vigilantprocessexec__analyze": {
+      "http_method": "POST",
+      "path": "/jm_vigilantprocessexec/analyze",
+      "summary": "Aggregate jm_vigilantprocessexec for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.vigilant_process",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__jm_vigilantprocessexec__record_id": {
       "http_method": "GET",
       "path": "/jm_vigilantprocessexec/{record_id}",
@@ -11207,6 +11918,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__project__analyze": {
+      "http_method": "POST",
+      "path": "/project/analyze",
+      "summary": "Aggregate project for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "app.modules.projects",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__project__record_id": {
@@ -11505,6 +12248,38 @@
         "*"
       ],
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
+      "status": "active"
+    },
+    "POST__task__analyze": {
+      "http_method": "POST",
+      "path": "/task/analyze",
+      "summary": "Aggregate task for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "app.modules.tasks",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
       "status": "active"
     },
     "GET__task__record_id": {
@@ -11872,6 +12647,38 @@
       "first_discovered": "2026-08-02T03:06:02.421605+00:00",
       "status": "active"
     },
+    "POST__team_member__analyze": {
+      "http_method": "POST",
+      "path": "/team_member/analyze",
+      "summary": "Aggregate team_member for the Analyze section",
+      "description": "Aggregate the rows matching the list's filters for the Analyze section.\n\nUsed instead of downloading every row when a list has more rows than the\n``analyze_server_aggregation_threshold`` view setting. Takes the same query-param\nfilters, permissions and ReBAC rules as the list endpoint; the JSON body carries\nwhat the browser would otherwise apply itself (search text, column filters) and\nthe chart configuration. See veloiq_framework.analyze.jm_analyze_rows for the\nbody's keys and the response.",
+      "parameters": {
+        "path": [],
+        "query": [
+          {
+            "name": "spec",
+            "type": "dict",
+            "required": true,
+            "default": null
+          }
+        ],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "app.modules.team",
+      "source_file": "api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "Admin"
+      ],
+      "first_discovered": "2026-10-22T08:07:05.155045+00:00",
+      "status": "active"
+    },
     "GET__team_member__record_id": {
       "http_method": "GET",
       "path": "/team_member/{record_id}",
@@ -12054,6 +12861,31 @@
       "enabled": false,
       "allowed_roles": [
         "Admin"
+      ],
+      "first_discovered": "2026-07-10T19:16:03.411979+00:00",
+      "status": "active"
+    },
+    "GET__exceptionalert__banner-alerts": {
+      "http_method": "GET",
+      "path": "/exceptionalert/banner-alerts",
+      "summary": "Get banner alerts",
+      "description": "Return Exception Alerts for the sticky footer banner.\n\nReads the configured urgency levels from\n[exception_alerts] exception_alerts_urgency_levels_for_banner\nin jm_config.ini (default: \"Critical, Very Critical\").\n\nReturns distinct alert descriptions with their counts,\nexcluding alerts with status \"Solved\".\n\nUses ORM notation — no raw FK column access.",
+      "parameters": {
+        "path": [],
+        "query": [],
+        "body": []
+      },
+      "request_body": null,
+      "response_type": "object",
+      "output_fields": [],
+      "output_field_aliases": {},
+      "output_fields_source": "",
+      "module": "iqvigilant.modules.exception_alert",
+      "source_file": "custom_api.py",
+      "source": "auto-discovered",
+      "enabled": true,
+      "allowed_roles": [
+        "*"
       ],
       "first_discovered": "2026-07-10T19:16:03.411979+00:00",
       "status": "active"

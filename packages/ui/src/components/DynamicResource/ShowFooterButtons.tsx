@@ -31,9 +31,12 @@ export const ShowFooterButtons: React.FC<{
                     </span>
                 </Tooltip>
             )}
-            <Tooltip title={_("Save")}>
-                <Button {...saveButtonProps} type="primary" icon={<SaveOutlined />} />
-            </Tooltip>
+            {/* No save on a read-only record (e.g. a read-only non-model data resource). */}
+            {saveButtonProps && (
+                <Tooltip title={_("Save")}>
+                    <Button {...saveButtonProps} type="primary" icon={<SaveOutlined />} />
+                </Tooltip>
+            )}
         </div>
     );
 };
