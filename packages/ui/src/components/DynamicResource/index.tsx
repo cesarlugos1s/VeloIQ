@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef, useContext } from "react";
+import { useAllModelsIncludingNonModelData } from "../../contexts/AllModelsContext";
 import { createPortal } from "react-dom";
 import { usePaneNavigation } from "../../contexts/PaneNavigationContext";
 import { useSetHelpPageKey } from "../../contexts/HelpContext";
@@ -246,6 +247,9 @@ import { extractButtonLabel, renderIconOnlyButtons } from "./utils/buttons";
 
 import { getShowHref, shouldHandleLinkClick } from "./utils/navigation";
 import { useRoleFilteredModel } from "./utils/roleAccess";
+import { resolveRowTypedField } from "./utils/resolveRowTypedField";
+import { SingleRecordPrimaryView, isSingleRecordPrimaryView } from "./showSingleRecordPrimaryView";
+import { INLINE_EDIT_LIST_VIEW_TYPES, InlineCellEditor, InlineEditActions, isInlineEditableField, useInlineRowEdits } from "./editListRowsInline";
 
 
 
@@ -259,13 +263,14 @@ const DynamicListPage: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "gallery" | "image" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list" | "editable-list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
     preferencesResourceOverride?: string;
     defaultListVisible?: boolean;
-}> = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+    const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
@@ -287,10 +292,11 @@ const DynamicListPage: React.FC<{
     const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
     const { data: canEditData } = useCan({ resource: resourceIdentifier, action: "edit" });
     const { data: canCreateData } = useCan({ resource: resourceIdentifier, action: "create" });
-    const canBulkDelete = canDeleteData?.can !== false;
-    const canBulkEdit = canEditData?.can !== false;
+    // A non-model data resource may accept only some writes (ModelDef.capabilities).
+    const canBulkDelete = canDeleteData?.can !== false && model.capabilities?.delete !== false;
+    const canBulkEdit = canEditData?.can !== false && model.capabilities?.update !== false;
     // Create, clone and "create and relate" need Create (AC-E2).
-    const canCreate = canCreateData?.can !== false;
+    const canCreate = canCreateData?.can !== false && model.capabilities?.create !== false;
     const { settings: viewSettings } = useViewSettings();
     const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
     const [actionsBarEl, setActionsBarEl] = useState<HTMLDivElement | null>(null);
@@ -355,7 +361,17 @@ const DynamicListPage: React.FC<{
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const isPrimaryView = resolvedListViewType === "primary";
-    const isListView = resolvedListViewType === "list";
+    const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
+    // "editable-table" / "editable-list": cells are edited in place and saved together.
+    const canInlineEdit = INLINE_EDIT_LIST_VIEW_TYPES.has(resolvedListViewType)
+        && canBulkEdit && model.capabilities?.update !== false;
+    const inlineRowEdits = useInlineRowEdits(model, allModels, apiUrl,
+        useCallback(() => invalidate({ resource: model.resource || model.name, invalidates: ["list"] }), [invalidate, model.resource, model.name]));
+    const inlineEditSaveCancelBar = canInlineEdit ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+            <InlineEditActions inlineRowEdits={inlineRowEdits} />
+        </div>
+    ) : null;
     const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
     const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
@@ -2604,7 +2620,7 @@ const DynamicListPage: React.FC<{
         </Tooltip>
     ) : null;
 
-    const importButton = !isEmbedded && !model.isNamedQuery ? (
+    const importButton = !isEmbedded && !model.isNamedQuery && !model.isNonModelData ? (
         <Tooltip title={_("Import CSV")}>
             <Button
                 size="small"
@@ -2789,7 +2805,7 @@ const DynamicListPage: React.FC<{
                     loading={exportRequested && isAllRowsLoading}
                 />
             </Tooltip>
-            {!model.isNamedQuery && (
+            {!model.isNamedQuery && !model.isNonModelData && (
                 <Tooltip title={_("Import CSV")}>
                     <Button
                         size="small"
@@ -2856,7 +2872,9 @@ const DynamicListPage: React.FC<{
         <RelatedObjectPrimaryCard key={getRowKey(record, index)} record={record} model={model} allModels={allModels} />
     );
 
-    const renderListFieldValue = (field: FieldDef, record: any) => {
+    const renderListFieldValue = (rawField: FieldDef, record: any) => {
+        // A row-typed field takes its type and options from the row (parameter lists).
+        const field = resolveRowTypedField(rawField, record);
         const value = record?.[field.key];
         const showToken = normalizeFieldViewType(field.showViewType || "");
         if (showToken && !(showToken === "read-only-field" && field.reference)) {
@@ -2908,9 +2926,11 @@ const DynamicListPage: React.FC<{
                 {titleNode}
                 <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
                     {displayFields.map((field) => (
-                        <div key={field.key} style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                        <div key={field.key} style={{ fontSize: 12, color: token.colorTextSecondary, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                             <span style={{ color: token.colorText }}>{field.label}: </span>
-                            {renderListFieldValue(field, record)}
+                            {canInlineEdit && id != null && isInlineEditableField(field, model)
+                                ? <InlineCellEditor field={field} record={record} rowId={id} model={model} allModels={allModels} inlineRowEdits={inlineRowEdits} />
+                                : renderListFieldValue(field, record)}
                         </div>
                     ))}
                 </div>
@@ -3779,6 +3799,7 @@ const DynamicListPage: React.FC<{
                         </>
                     ) : isListView ? (
                         <>
+                            {inlineEditSaveCancelBar}
                             {listRows.length === 0 ? (
                                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No records available")}</div>
                             ) : (
@@ -3872,6 +3893,7 @@ const DynamicListPage: React.FC<{
                             </>,
                             document.body
                         )}
+                        {(!isTotalsDetailsView || isTdFlipped) && inlineEditSaveCancelBar}
                         {(!isTotalsDetailsView || isTdFlipped) && <Table
                             {...tableProps}
                             className={isEmptyTable ? "compact-empty-table" : undefined}
@@ -3969,10 +3991,15 @@ const DynamicListPage: React.FC<{
                                     onFilter={(value, record: any) => matchesColumnFilterValue(field, record, value)}
                                     render={(value, record: any) => {
                                         const { resource, id } = getTargetInfo(record);
+                                        if (canInlineEdit && id != null && isInlineEditableField(field, model)) {
+                                            return <InlineCellEditor field={field} record={record} rowId={id} model={model} allModels={allModels} inlineRowEdits={inlineRowEdits} />;
+                                        }
+                                        // A row-typed field takes its type and options from the row (parameter lists).
+                                        const cellField = resolveRowTypedField(field, record);
                                         const renderValue = () => {
-                                            const showToken = normalizeFieldViewType(field.showViewType || "");
-                                            if (showToken && !(showToken === "read-only-field" && field.reference)) {
-                                                return renderFieldValue(field, record, allModels, true);
+                                            const showToken = normalizeFieldViewType(cellField.showViewType || "");
+                                            if (showToken && !(showToken === "read-only-field" && cellField.reference)) {
+                                                return renderFieldValue(cellField, record, allModels, true);
                                             }
                                             if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
                                                 return (
@@ -3984,16 +4011,16 @@ const DynamicListPage: React.FC<{
                                                 );
                                             }
                                             if (isPkField(field, model) && record._label) return record._label;
-                                            if (field.type === 'boolean') return <Checkbox checked={value} disabled />;
-                                            if (field.type === 'number' && !field.reference) {
+                                            if (cellField.type === 'boolean') return <Checkbox checked={value} disabled />;
+                                            if (cellField.type === 'number' && !field.reference) {
                                                 const formatted = formatNumberValue(value);
                                                 const maxValue = numericColumnMaxes[field.key] ?? 0;
                                                 return renderNumericValueBar(value, maxValue, formatted, numericBarColor);
                                             }
-                                            if (field.type === 'date') return formatDateValue(value);
-                                            if (field.type === 'datetime') return formatDateTimeValue(value) ?? value;
-                                            if (field.type === 'time') return formatTimeValue(value);
-                                            if (field.options) return renderOptionTag(field, value);
+                                            if (cellField.type === 'date') return formatDateValue(value);
+                                            if (cellField.type === 'datetime') return formatDateTimeValue(value) ?? value;
+                                            if (cellField.type === 'time') return formatTimeValue(value);
+                                            if (cellField.options) return renderOptionTag(cellField, value);
                                             return value;
                                         };
                                         // Reference cells render their own <a> (ReferenceField),
@@ -4031,11 +4058,16 @@ const DynamicListPage: React.FC<{
                                                       : id;
                                                       return (
                                                       <Space>
-                                                          <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => go({ to: { resource, action: "show", id } })} /></Tooltip>
-                                                          <Tooltip title={_("Edit")}><Button size="small" icon={<EditOutlined />} onClick={() => go({ to: { resource, action: "edit", id } })} /></Tooltip>
-                                                          <Tooltip title={_("Delete")}>
-                                                              <DeleteButton hideText size="small" recordItemId={deleteId} resource={deleteResource} />
-                                                          </Tooltip>
+                                                          <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => (paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }))} /></Tooltip>
+                                                          {/* Non-model data resources have no edit page route; their rows are edited inline. */}
+                                                          {canBulkEdit && !model.isNonModelData && (
+                                                              <Tooltip title={_("Edit")}><Button size="small" icon={<EditOutlined />} onClick={() => go({ to: { resource, action: "edit", id } })} /></Tooltip>
+                                                          )}
+                                                          {canBulkDelete && (
+                                                              <Tooltip title={_("Delete")}>
+                                                                  <DeleteButton hideText size="small" recordItemId={deleteId} resource={deleteResource} />
+                                                              </Tooltip>
+                                                          )}
                                                       </Space>
                                                   );
                                               }}
@@ -4130,8 +4162,8 @@ const DynamicListPage: React.FC<{
             {exportButton}
             {quickExportButton}
             {importButton}
-            {/* Named queries have no create endpoint — suppress the Create button. */}
-            {!model.isNamedQuery && renderIconOnlyButtons(defaultButtons)}
+            {/* Named queries have no create endpoint, and a non-model data resource may refuse creates — suppress the Create button. */}
+            {!model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)}
         </>
     );
 
@@ -4177,11 +4209,19 @@ const DynamicListPage: React.FC<{
  * DynamicList behind the shared access check: a user who may not Read this
  * model gets the "no access" page instead of a broken page (AC-E3).
  */
-export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>> = (props) => (
-    <ResourceAccessGate resource={props.model.resource || props.model.name} action="read" embedded={Boolean(props.isEmbedded)}>
-        <DynamicListPage {...props} />
-    </ResourceAccessGate>
-);
+export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>> = (props) => {
+    const [searchParams] = useSearchParams();
+    // A single-record resource (e.g. a settings form) in the "primary" view is
+    // that record's own form, not a list (same rule for pages and grid cells).
+    const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, searchParams.get("view_type") || props.listViewType);
+    return (
+        <ResourceAccessGate resource={props.model.resource || props.model.name} action="read" embedded={Boolean(props.isEmbedded)}>
+            {showsSingleRecordForm
+                ? <SingleRecordPrimaryView model={props.model} allModels={props.allModels} />
+                : <DynamicListPage {...props} />}
+        </ResourceAccessGate>
+    );
+};
 
 
 

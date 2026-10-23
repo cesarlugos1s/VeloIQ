@@ -33,6 +33,17 @@ export interface FieldDef {
     readRoles?: string[];
     /** Roles allowed to write this field (absent = all roles). Emitted by veloiq_field(write_roles=…). */
     writeRoles?: string[];
+    /**
+     * Key of another field of the same row whose value is this field's type for
+     * that row: a FieldDef type ("number", "boolean", ...) or a field view type
+     * token ("color", "editable-color", ...). Used by parameter lists, where each
+     * row's value has its own type.
+     */
+    typeFromField?: string;
+    /** Key of another field of the same row holding this field's allowed values for that row. */
+    optionsFromField?: string;
+    /** For a reference to a resource with a composite key: the target key field this field holds. */
+    referenceKey?: string;
 }
 
 export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
@@ -104,7 +115,7 @@ export interface ModelDef {
     resource?: string;
     description?: string;
     pkField?: string;
-    listViewType?: "table" | "gallery" | "image" | "calendar" | "totals-details" | "primary" | "list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "totals-details" | "primary" | "list" | "editable-list";
     /** Field keys whose values compose this model's record title (space-joined).
      *  Configured via `veloiq set-title` and stored on the model's
      *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */
@@ -115,6 +126,21 @@ export interface ModelDef {
     primaryResource?: string;
     /** Default sort applied on first load when no saved preference exists. */
     defaultSort?: { field: string; order: "asc" | "desc" };
+    /**
+     * True for a non-model data resource: non-model data (a JSON file, settings, an
+     * external service) served by the backend with the REST contract of a model.
+     * Its ModelDef comes from GET /api/veloiq/non-model-data-resources at runtime.
+     */
+    isNonModelData?: boolean;
+    /**
+     * The resource holds exactly one record (a settings form). In the "primary"
+     * view type DynamicList shows that record's form instead of a list.
+     */
+    isSingleRecord?: boolean;
+    /** The key fields of a row. With more than one, `pkField` is "eid" (built from them by the backend). */
+    pkFields?: string[];
+    /** Which writes the resource accepts (absent = all, as for models). */
+    capabilities?: { create?: boolean; update?: boolean; delete?: boolean };
 }
 
 export type PrimaryShowRendererProps = { model: ModelDef; id: string | number; allModels: ModelDef[]; viewName?: string };
@@ -158,6 +184,12 @@ export interface ViewConfigRow {
     tab_name?: string | null;
     section_css_class?: string | null;
     section_html_snippet?: string | null;
+    /** Section description (a catalog msgid) shown under its title. */
+    section_description?: string | null;
+    /** AntD icon name shown before the section title. */
+    section_icon?: string | null;
+    /** Color of the section's title and icon. */
+    section_accent_color?: string | null;
     vid?: string;
     show_vid?: string;
     edit_vid?: string;
@@ -169,7 +201,13 @@ export interface ViewConfigRow {
     show_label?: boolean;
     reload?: boolean;
     html_format?: string;
-    attribute_or_relation_type: "attribute" | "relation" | "nlsentence";
+    /**
+     * "attribute": a field of the record; "relation": one of its relations;
+     * "nlsentence": an NL sentence; "view": a list of another resource (a model,
+     * a named query or a non-model data resource named by `object_name`), shown with
+     * the list view type of `vid` / `show_vid` / `edit_vid`, not tied to the record.
+     */
+    attribute_or_relation_type: "attribute" | "relation" | "nlsentence" | "view";
     nl_sentence_eid?: number | null;
     nl_sentence_title?: string | null;
     name: string;

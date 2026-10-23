@@ -7,6 +7,7 @@ import { RelationSelect } from "./RelationSelect";
 import { FileUploadInput } from "./FileUploadInput";
 import { AsyncSelectInput } from "./AsyncSelectInput";
 import { StorageFieldInput } from "./StorageFieldInput";
+import { resolveRowTypedField } from "../utils/resolveRowTypedField";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -152,10 +153,23 @@ const renderEditableFieldViewType = (token: string, value: any, onChange: ((v: a
     }
 };
 
-export const renderInput = (field: FieldDef, allModels?: ModelDef[], model?: ModelDef, currentId?: string | number) => {
-    const resolvedField = model && allModels
+/**
+ * Return the form editor of `field`. Pass the row being edited as `record` so a
+ * row-typed field (`typeFromField` / `optionsFromField`) gets that row's editor.
+ */
+/**
+ * On/off editor that works whether its Form.Item passes `checked` (boolean
+ * fields) or `value` (a row-typed field whose type is only known per row).
+ */
+const BooleanCheckboxInput: React.FC<{ value?: any; checked?: boolean; onChange?: (value: boolean) => void }> = ({ value, checked, onChange }) => (
+    <Checkbox checked={checked ?? (value === true || value === "true")} onChange={(e) => onChange?.(e.target.checked)} />
+);
+
+export const renderInput = (field: FieldDef, allModels?: ModelDef[], model?: ModelDef, currentId?: string | number, record?: any) => {
+    const overriddenField = model && allModels
         ? applyRelationFieldOverrides(model, allModels).find((item) => item.key === field.key) || field
         : field;
+    const resolvedField = resolveRowTypedField(overriddenField, record);
     if (resolvedField.key === "data" && isFileModel(model)) {
         return <FileUploadInput />;
     }
@@ -199,7 +213,7 @@ export const renderInput = (field: FieldDef, allModels?: ModelDef[], model?: Mod
     if (resolvedField.optionsUrl) return <AsyncSelectInput optionsUrl={resolvedField.optionsUrl} placeholder={`${_("Select")} ${_(resolvedField.label)}...`} />;
     if (resolvedField.options) return <Select options={resolvedField.options} style={{ width: "100%" }} placeholder={`Select ${resolvedField.label}...`} allowClear />;
     switch (resolvedField.type) {
-        case "boolean": return <Checkbox />;
+        case "boolean": return <BooleanCheckboxInput />;
         case "date": return <DatePicker style={{ width: "100%" }} placeholder={_("Select date")} />;
         case "datetime": return <DatePicker showTime style={{ width: "100%" }} placeholder={_("Select date and time")} />;
         case "time": return <TimePicker style={{ width: "100%" }} />;

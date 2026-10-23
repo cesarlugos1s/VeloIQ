@@ -122,6 +122,11 @@ export type { LicensePool, LicenseWarning } from "./hooks/useLicensePool";
 export { generateResources } from "./utils/generateResources";
 export type { ResourceDef } from "./utils/generateResources";
 export { authenticatedFetch } from "./utils/authenticatedFetch";
+// Rows that exist only in the page, served to the standard views from a browser store.
+export { useInPageRowsStore } from "./hooks/useInPageRowsStore";
+export type { InPageRowsStoreHandle } from "./hooks/useInPageRowsStore";
+export { IN_PAGE_ROWS_RESOURCE_PREFIX, createInPageRowsStore, removeInPageRowsStore } from "./utils/serveInPageRowsStores";
+export type { InPageRowsStore } from "./utils/serveInPageRowsStores";
 export { getActiveLocale } from "./utils/activeLocale";
 export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/DynamicResource/utils/gallery";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";

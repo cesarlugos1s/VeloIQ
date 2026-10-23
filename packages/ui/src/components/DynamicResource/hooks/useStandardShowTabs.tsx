@@ -1,4 +1,5 @@
 import { setCurrentDataDetailLevelState } from "./DataDetailLevelStore";
+import { FieldLabelWithHelp } from "../fields/FieldLabelWithHelp";
 import React, { useEffect, useMemo } from "react";
 import { useCan } from "@refinedev/core";
 import { Form, Skeleton, theme } from "antd";
@@ -43,8 +44,6 @@ import type { DataDetailLevelState } from "./useDataDetailLevel";
 import { useDataDetailLevel } from "./useDataDetailLevel";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
-const requiredMark = (field: FieldDef) =>
-    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 const emptyLayoutConfig = {
     isConfiguring: false,
@@ -206,7 +205,7 @@ export const useStandardShowTabs = (
                 style={{ margin: 0 }}
                 noStyle={false}
             >
-                {renderInput(field, allModels, model, isSelfRef ? currentId : undefined)}
+                {renderInput(field, allModels, model, isSelfRef ? currentId : undefined, record)}
             </Form.Item>
         );
     };
@@ -237,7 +236,7 @@ export const useStandardShowTabs = (
                                     gap: "4px 6px",
                                 }}
                             >
-                                <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}{requiredMark(field)}</span>
+                                <span style={{ ...labelStyle, flex: "0 0 200px" }}><FieldLabelWithHelp field={field} /></span>
                                 <div
                                     style={{
                                         flex: "1 0 200px",

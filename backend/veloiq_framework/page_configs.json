@@ -1,0 +1,135 @@
+{
+  "section_styles": {
+    "settings": {
+      "css_class": "jm-settings-section"
+    },
+    "veloiq_system_config_logging": {
+      "icon": "FileTextOutlined",
+      "accent_color": "#722ed1"
+    },
+    "veloiq_system_config_appearance": {
+      "icon": "BgColorsOutlined",
+      "accent_color": "#1e708a"
+    },
+    "veloiq_system_config_views": {
+      "icon": "LayoutOutlined",
+      "accent_color": "#1677ff"
+    }
+  },
+  "configs": {
+    "veloiq_system_config:show": {
+      "default_section_style": "settings",
+      "sections": [
+        {
+          "id": "veloiq_system_config:log_verbosity",
+          "name": "Log verbosity",
+          "grid_row": 1,
+          "grid_col": 1,
+          "description": "Configure application logging verbosity and output behavior.",
+          "style": "veloiq_system_config_logging",
+          "entries": [
+            {"kind": "field", "key": "log_up_to_relevance", "row": 1, "column": 1},
+            {"kind": "field", "key": "file_log_up_to_relevance", "row": 1, "column": 2}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:log_file_rotation",
+          "name": "Log file rotation",
+          "grid_row": 1,
+          "grid_col": 2,
+          "style": "veloiq_system_config_logging",
+          "entries": [
+            {"kind": "field", "key": "log_max_bytes", "row": 1, "column": 1},
+            {"kind": "field", "key": "log_backup_count", "row": 1, "column": 2}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:log_file",
+          "name": "Log file",
+          "grid_row": 2,
+          "grid_col": 1,
+          "style": "veloiq_system_config_logging",
+          "entries": [
+            {"kind": "field", "key": "log_to_file", "row": 1, "column": 1},
+            {"kind": "field", "key": "log_dir", "row": 1, "column": 2},
+            {"kind": "field", "key": "log_file_name", "row": 1, "column": 3}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:appearance",
+          "name": "Appearance",
+          "grid_row": 3,
+          "grid_col": 1,
+          "description": "Color schemas and base colors for the UI navigation and model entries.",
+          "style": "veloiq_system_config_appearance",
+          "entries": [
+            {"kind": "field", "key": "modules_color_schema", "row": 1, "column": 1},
+            {"kind": "field", "key": "models_color_schema", "row": 1, "column": 2},
+            {"kind": "field", "key": "plain_color_base_hex", "row": 1, "column": 3}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:view_types",
+          "name": "View types",
+          "grid_row": 4,
+          "grid_col": 1,
+          "description": "Default view types, gallery dimensions, relation limits, and action button placement.",
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "show_view_type", "row": 1, "column": 1},
+            {"kind": "field", "key": "edit_view_type", "row": 1, "column": 2},
+            {"kind": "field", "key": "list_view_type", "row": 2, "column": 1},
+            {"kind": "field", "key": "file_list_view_type", "row": 2, "column": 2}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:gallery_images",
+          "name": "Gallery images",
+          "grid_row": 4,
+          "grid_col": 2,
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "gallery_image_width", "row": 1, "column": 1},
+            {"kind": "field", "key": "gallery_image_height", "row": 1, "column": 2}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:table_limits",
+          "name": "Table limits",
+          "grid_row": 5,
+          "grid_col": 1,
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "relations_max_rows_to_load", "row": 1, "column": 1},
+            {"kind": "field", "key": "max_distinct_column_filter_values_to_ranges", "row": 1, "column": 2},
+            {"kind": "field", "key": "analyze_server_aggregation_threshold", "row": 2, "column": 1}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:actions_and_tabs",
+          "name": "Actions & tabs",
+          "grid_row": 5,
+          "grid_col": 2,
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "general_actions_button_position", "row": 1, "column": 1},
+            {"kind": "field", "key": "add_tabs_for_non_configured_relations", "row": 1, "column": 2},
+            {"kind": "field", "key": "show_back_of_cards", "row": 2, "column": 1}
+          ]
+        },
+        {
+          "id": "veloiq_system_config:side_panels",
+          "name": "Side panels",
+          "grid_row": 6,
+          "grid_col": 1,
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "panes_layout_mode", "row": 1, "column": 1},
+            {"kind": "field", "key": "panes_max_visible", "row": 1, "column": 2},
+            {"kind": "field", "key": "panes_fixed_width", "row": 1, "column": 3}
+          ]
+        }
+      ]
+    }
+  }
+}

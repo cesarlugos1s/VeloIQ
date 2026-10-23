@@ -7,8 +7,8 @@ function here, keyed by model class or tablename.
 
 Discovery: any ``register_import_loaders()`` function found in a module's
 ``factory.py`` / ``{name}_factory.py`` is called automatically at app startup
-by :func:`veloiq_framework.loader.load_factory_events` (host app modules) and
-:func:`veloiq_framework.loader._load_extension_modules` (extension modules) —
+by :func:`veloiq_framework.load_app_and_extension_modules.load_factory_events` (host app modules) and
+:func:`veloiq_framework.load_app_and_extension_modules._load_extension_modules` (extension modules) —
 the same discovery pass already used for ``register_*_events()``.
 
 Example, in a module's ``factory.py``::

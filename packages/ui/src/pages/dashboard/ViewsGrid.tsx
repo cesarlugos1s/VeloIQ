@@ -227,7 +227,7 @@ const DashboardGridCell: React.FC<{
 
     const isPlotlyChart = cell.source_type === "plotly_chart";
     const resource = model?.resource || cell.model;
-    const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
+    const isModelLike = cell.source_type === "model" || cell.source_type === "named_query" || cell.source_type === "non_model_data";
     const cellTitle = isPlotlyChart
         ? (cell.chart_title || cell.model)
         : isModelLike

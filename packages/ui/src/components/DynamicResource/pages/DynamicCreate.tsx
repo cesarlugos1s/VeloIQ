@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAllModelsIncludingNonModelData } from "../../../contexts/AllModelsContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiUrl, useGo } from "@refinedev/core";
 import { useForm } from "@refinedev/antd";
@@ -64,7 +65,8 @@ const DynamicCreatePage: React.FC<{
     allModels?: ModelDef[];
     journeyCallbacks?: JourneyCallbacks;
     injectedValues?: Record<string, any>;
-}> = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues }) => {
+    const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);

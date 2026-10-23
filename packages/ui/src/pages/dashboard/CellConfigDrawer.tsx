@@ -10,12 +10,14 @@ const { Text } = Typography;
 const VIEW_TYPE_OPTIONS = [
     { label: _("Default (from model schema)"), value: "" },
     { label: _("Table"), value: "table" },
+    { label: _("Editable table"), value: "editable-table" },
     { label: _("Gallery"), value: "gallery" },
     { label: _("Image"), value: "image" },
     { label: _("Calendar"), value: "calendar" },
     { label: _("Totals / Details"), value: "totals-details" },
     { label: _("Primary"), value: "primary" },
     { label: _("List"), value: "list" },
+    { label: _("Editable list"), value: "editable-list" },
 ];
 
 interface Props {
@@ -136,7 +138,7 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
         <Drawer
             title={cell?.source_type === "plotly_chart"
                 ? `${_("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}`
-                : cell?.source_type !== "model"
+                : cell?.source_type !== "model" && cell?.source_type !== "named_query" && cell?.source_type !== "non_model_data"
                     ? `${_("Configure section")}: ${cell?.section_name ? _(cell.section_name) : cell?.model ?? ""}`
                     : `${_("Configure cell")}: ${cell?.model ?? ""}`}
             placement="right"
@@ -170,7 +172,7 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
                     </Form.Item>
                 </Space>
 
-                {(cell?.source_type === "model" || cell?.source_type === "named_query") && (
+                {(cell?.source_type === "model" || cell?.source_type === "named_query" || cell?.source_type === "non_model_data") && (
                     <>
                         <Divider orientation="left">{_("View")}</Divider>
                         <Form.Item name="view_type" label={_("View type")}>

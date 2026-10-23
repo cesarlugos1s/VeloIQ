@@ -40,7 +40,7 @@ except ImportError:
 
 from veloiq_framework.config import VeloIQConfig
 from veloiq_framework.extensions import discover_extensions, order_extensions
-from veloiq_framework.loader import load_factory_events, load_modules
+from veloiq_framework.load_app_and_extension_modules import load_factory_events, load_modules
 
 
 def create_veloiq_app(
@@ -130,6 +130,13 @@ def create_veloiq_app(
     from veloiq_framework.banners.definitions import configure_banner_files
     configure_banner_files([
         f for f in (ext.resolved_banners_file() for ext in _ordered_extensions) if f is not None
+    ])
+
+    # ── page_configs.json layers ─────────────────────────────────────────────
+    # VeloIQ's own, each enabled extension's packaged one, then the host app's.
+    from veloiq_framework.merge_layered_page_configs import configure_extension_page_configs_files
+    configure_extension_page_configs_files([
+        f for f in (ext.resolved_page_configs_file() for ext in _ordered_extensions) if f is not None
     ])
 
     # ── Lifespan ──────────────────────────────────────────────────────────────
@@ -630,8 +637,17 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     core_api = _APIRouter()
 
     # System Configuration Console endpoints (GET/PUT /api/system-config).
-    from veloiq_framework.system_config.router import router as _system_config_router
+    from veloiq_framework.system_config.system_config_api_router import router as _system_config_router
     core_api.include_router(_system_config_router)
+
+    # Non-model data resources: the ModelDef catalog (GET /api/veloiq/non-model-data-resources)
+    # and VeloIQ's own System Configuration settings as one (/api/veloiq_system_config).
+    # Module non-model data resources are mounted by load_modules() above.
+    from veloiq_framework.non_model_data_resources import mount_non_model_data_resource
+    from veloiq_framework.non_model_data_resources.non_model_data_resource_api_router import non_model_data_catalog_router
+    from veloiq_framework.system_config.system_config_non_model_data_resource import build_system_config_non_model_data_resource
+    core_api.include_router(non_model_data_catalog_router)
+    mount_non_model_data_resource(core_api, build_system_config_non_model_data_resource(), prefix="")
 
     # Collapsible model-based banners defined in banners.json (GET /api/veloiq/banners).
     from veloiq_framework.banners.router import router as _banners_router
@@ -853,28 +869,22 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     async def view_configurations(model_name: str, view_type: str = ""):
         """Return view layout configuration rows for a model.
 
-        Reads ``config/page_configs.json`` (written by a page-configuration tool,
-        e.g. the IQVigilant extension) and converts the stored sections/tabs/entries
-        into the ViewConfigRow shape the frontend consumes. Returns both the show
-        and edit layouts (the frontend filters by ``form_type``). Empty list →
-        the frontend falls back to its schema-driven default layout.
+        Reads the page configurations of VeloIQ, the enabled extensions and the
+        host app's ``config/page_configs.json``, merged in that order (see
+        :mod:`veloiq_framework.merge_layered_page_configs`), and converts the
+        stored sections/tabs/entries into the ViewConfigRow shape the frontend
+        consumes. Returns both the show and edit layouts (the frontend filters by
+        ``form_type``). Empty list → the frontend falls back to its schema-driven
+        default layout.
         """
-        candidates = [
-            _Path("config") / "page_configs.json",
-            _Path("..") / "config" / "page_configs.json",
-        ]
-        data = None
-        for candidate in candidates:
-            if candidate.exists():
-                try:
-                    data = _json.loads(candidate.read_text(encoding="utf-8"))
-                    break
-                except Exception:
-                    return []
-        if not data:
-            return []
+        from veloiq_framework.merge_layered_page_configs import (
+            apply_section_styles,
+            load_merged_page_configs,
+            load_merged_section_styles,
+        )
 
-        configs = data.get("configs", {})
+        configs = load_merged_page_configs()
+        section_styles = load_merged_section_styles()
         rows: list[dict] = []
 
         def _to_snake(s: str) -> str:
@@ -916,6 +926,11 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
                         "section_grid_col": s.get("grid_col", 1),
                         "section_css_class": s.get("css_class"),
                         "section_html_snippet": s.get("html_snippet"),
+                        # Optional look of the section: a description (catalog msgid)
+                        # under its title, an AntD icon name and an accent color.
+                        "section_description": s.get("description"),
+                        "section_icon": s.get("icon"),
+                        "section_accent_color": s.get("accent_color"),
                         "tab_name": tab_name,
                         "vid": vt_val,
                         "show_vid": vt_val if form == "show" else None,
@@ -934,9 +949,37 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
             cfg = _find_cfg(vt)
             if not cfg:
                 continue
+            # Named section styles give the sections their look (see merge_layered_page_configs).
+            cfg = apply_section_styles(cfg, section_styles)
             _emit(cfg.get("sections", []), form, None)
             for tab in cfg.get("tabs", []) or []:
                 _emit(tab.get("sections", []), form, tab.get("name"))
+
+        # A single-record non-model data resource (a settings form) gets fields
+        # at run time (e.g. a setting an extension registers): the ones no page
+        # configuration places still appear, in a trailing section.
+        from veloiq_framework.non_model_data_resources import get_non_model_data_resource
+        settings_resource = get_non_model_data_resource(model_name) or get_non_model_data_resource(_to_snake(model_name))
+        if settings_resource is not None and settings_resource.single_record and rows:
+            settings_resource.refresh_fields()
+            for form in sorted({row["form_type"] for row in rows if row["form_type"] in ("show", "edit")}):
+                form_rows = [row for row in rows if row["form_type"] == form]
+                placed_keys = {row["object_name"] for row in form_rows}
+                unplaced_keys = [field.key for field in settings_resource.fields
+                                 if field.key not in placed_keys and field.key not in settings_resource.pk_fields]
+                if unplaced_keys:
+                    trailing_page = apply_section_styles({
+                        "default_section_style": (_find_cfg(form) or {}).get("default_section_style"),
+                        "sections": [{
+                        "id": f"{settings_resource.name}:unplaced",
+                        "name": "Other settings",
+                        "grid_row": max(row["section_grid_row"] or 1 for row in form_rows) + 1,
+                        "grid_col": 1,
+                        "entries": [{"kind": "field", "key": key, "row": index + 1, "column": 1}
+                                    for index, key in enumerate(unplaced_keys)],
+                        }],
+                    }, section_styles)
+                    _emit(trailing_page["sections"], form, None)
 
         return rows
 

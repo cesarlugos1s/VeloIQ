@@ -3,12 +3,12 @@
 These are the application-wide settings VeloIQ itself owns: logging, appearance
 and the ``[views]`` defaults (including the right-side panel layout). They
 register through the same contribution registry any extension or module can use
-(see ``registry.register_system_config``), so the console has one code path
+(see ``system_config_settings_registry.register_system_config``), so the console has one code path
 rather than "core list + extras".
 """
 from __future__ import annotations
 
-from .registry import register_system_config
+from .system_config_settings_registry import register_system_config
 
 # Each entry: ``key``, ``type`` ("int" / "bool" / "string" / "color"), ``source``
 # ("ini" for jm_config.ini, "toml" for the [views] table of veloiq.toml),

@@ -205,6 +205,15 @@ class VeloIQExtension:
     #: extension ships no banners.
     banners_file: Optional[str] = None
 
+    #: Path *relative to the installed package directory* of the extension's
+    #: packaged ``page_configs.json``: page configurations (sections and the
+    #: row/column of each field) of the extension's own pages, in the format
+    #: of the host app's ``config/page_configs.json``. The framework layers it
+    #: above VeloIQ's own and below the host app's file (see
+    #: ``veloiq_framework.merge_layered_page_configs``). ``None`` or a missing
+    #: file means the extension ships no page configurations.
+    page_configs_file: Optional[str] = None
+
     # ── Path resolution helpers ───────────────────────────────────────────────
 
     def package_dir(self) -> Path:
@@ -262,6 +271,13 @@ class VeloIQExtension:
         if not self.banners_file:
             return None
         p = self.package_dir() / self.banners_file
+        return p if p.is_file() else None
+
+    def resolved_page_configs_file(self) -> Optional[Path]:
+        """Return the absolute path to the packaged ``page_configs.json``, or None."""
+        if not self.page_configs_file:
+            return None
+        p = self.package_dir() / self.page_configs_file
         return p if p.is_file() else None
 
     # ── Validation ────────────────────────────────────────────────────────────

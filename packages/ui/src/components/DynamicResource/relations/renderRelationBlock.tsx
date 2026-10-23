@@ -74,6 +74,13 @@ export const renderRelationBlock = ({
     const relationLabel = getRelationLabel(rel) || rel.label || rel.relationName || rel.resource || "";
     const title = renderToneTabLabel(relationLabel, relationTone);
     const shouldShowRelatedObjects = relatedModel && rel.otherResource && rel.otherKey;
+    // View type of the DynamicList that shows a one-to-many relation: table-like
+    // types as they are, and the editable table / list, which edit rows inline.
+    const dynamicListViewType = isCrosstab
+        ? viewType as "crosstab" | "editable-crosstab"
+        : usesTableBehavior
+            ? viewType as "table" | "totals-details"
+            : (viewType === "editable-table" || viewType === "editable-list") ? viewType : undefined;
     const polymorphicInfo = getPolymorphicReferenceInfo(rel, relationModel, allModels);
     const isInlineListView = isInlineRelationViewType(viewType);
     const resolvedLabelStyle: React.CSSProperties = labelStyle ?? {
@@ -280,7 +287,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+            listViewType={dynamicListViewType}
                     defaultListVisible={rel.defaultListVisible}
         />
     );
@@ -298,7 +305,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+            listViewType={dynamicListViewType}
                     defaultListVisible={rel.defaultListVisible}
         />
     ) : polymorphicInfo ? (
@@ -341,7 +348,7 @@ export const renderRelationBlock = ({
             showActions={showRelationActions}
             showCreate={showCreateButton}
             layoutPreferenceType={layoutPreferenceType}
-            listViewType={isCrosstab ? viewType as "crosstab" | "editable-crosstab" : (usesTableBehavior ? viewType as "table" | "totals-details" : undefined)}
+            listViewType={dynamicListViewType}
                     defaultListVisible={rel.defaultListVisible}
         />
     );

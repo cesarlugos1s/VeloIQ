@@ -18,7 +18,8 @@ export const ShowFooterButtons: React.FC<{
     const allModelsList = allModels || [];
     return (
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-            {recordId != null && (
+            {/* A non-model data resource may refuse deletes (e.g. a single-record settings form). */}
+            {recordId != null && model.capabilities?.delete !== false && (
                 <Tooltip title={_("Delete")}>
                     <span>
                         <DeleteButton

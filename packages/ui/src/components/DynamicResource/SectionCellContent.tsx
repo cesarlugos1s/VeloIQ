@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { FieldLabelWithHelp } from "./fields/FieldLabelWithHelp";
+import { resolveIcon } from "../../utils/navConfig";
 import { Form, Input, Typography, theme } from "antd";
 import dayjs from "dayjs";
 import type { FieldDef, ModelDef, ViewConfigRow, VisibilityCondition } from "./types";
@@ -13,18 +15,17 @@ import {
     isAttributeValueEditable,
     normalizeRelationViewType,
     applyRelationViewOverride,
+    getConfigVid,
 } from "./utils/viewConfig";
 import { getRelationViewType } from "./relations/helpers";
 import { renderInput } from "./fields/renderInput";
 import { renderFieldValue } from "./fields/renderFieldValue";
 import { ReadAndEditReference } from "./fields/ReadAndEditReference";
-import { renderRelationBlock } from "../DynamicResource";
+import { DynamicList, renderRelationBlock } from "../DynamicResource";
 import { NLSentenceBlock } from "./blocks/NLSentenceBlock";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 const { Title } = Typography;
-const requiredMark = (field: FieldDef) =>
-    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 function coerce(v: any): any {
     if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
@@ -146,7 +147,7 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                 style={{ margin: 0 }}
                 noStyle={false}
             >
-                {renderInput(field, allModels, model, isSelfRef ? recordId : undefined)}
+                {renderInput(field, allModels, model, isSelfRef ? recordId : undefined, record)}
             </Form.Item>
         );
     };
@@ -170,6 +171,28 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                     targetEntityType={record ? model.name : undefined}
                     targetEntityId={record ? recordId : undefined}
                 />
+            );
+        }
+
+        if (item.attribute_or_relation_type === "view") {
+            // A list of any resource (model, named query or non-model data resource) in this cell.
+            const viewModel = findModelByName(allModels, item.object_name);
+            if (!viewModel) return null;
+            const viewType = String(getConfigVid(item, mode) || "").trim().toLowerCase();
+            return (
+                <div key={`${item.name}-${item.row}-${item.column}-${index}`} style={{ marginBottom: 4, ...parseInlineStyle(item.html_format) }}>
+                    {item.show_label !== false && (
+                        <Typography.Text style={{ ...labelStyle, display: "block", marginBottom: 4 }}>{_(viewModel.label)}</Typography.Text>
+                    )}
+                    <DynamicList
+                        key={`${item.object_name}-${viewType}`}
+                        model={viewModel}
+                        allModels={allModels}
+                        isEmbedded={true}
+                        listViewType={(viewType || undefined) as any}
+                        preferencesResourceOverride={`${modelResource}:${item.name || item.object_name}`}
+                    />
+                </div>
             );
         }
 
@@ -243,13 +266,13 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
             const editable = isAttributeValueEditable(item, "edit");
             return (
                 <div key={`${field.key}-${index}`} style={{ marginBottom: 4 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
+                    <div className="jm-field-row" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
                         {showLabel && (
-                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
-                                {field.label}{requiredMark(field)}
+                            <div className="jm-field-label" style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
+                                <FieldLabelWithHelp field={field} />
                             </div>
                         )}
-                        <div style={{ ...valueStyle, flex: "1 0 200px" }}>
+                        <div className="jm-field-value" style={{ ...valueStyle, flex: "1 0 200px" }}>
                             {editable ? (
                                 <Form.Item
                                     name={field.key}
@@ -264,7 +287,7 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
                                     }
                                     style={{ margin: 0 }}
                                 >
-                                    {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId)}
+                                    {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId, record)}
                                 </Form.Item>
                             ) : (
                                 renderFieldValue(field, record, allModels)
@@ -281,13 +304,13 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
         return (
             <VisibilityGate key={`${item.name}-${item.row}-${item.column}`} condition={item.visibility_condition}>
                 <div style={{ marginBottom: 4 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
+                    <div className="jm-field-row" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }}>
                         {showLabel && (
-                            <div style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
-                                {field.label}{requiredMark(field)}
+                            <div className="jm-field-label" style={{ ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }}>
+                                <FieldLabelWithHelp field={field} />
                             </div>
                         )}
-                        <div style={{ ...valueStyle, flex: "1 0 200px" }}>
+                        <div className="jm-field-value" style={{ ...valueStyle, flex: "1 0 200px" }}>
                             {(editable || forceReadOnly)
                                 ? renderShowEditableInput(field, forceReadOnly)
                                 : renderFieldValue(field, record, allModels)}
@@ -301,6 +324,8 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
     // Parse html_snippet: extract <style> blocks to render as real <style> elements
     // (browsers ignore <style> tags inside <body> when served via dangerouslySetInnerHTML).
     // The remaining HTML is rendered via dangerouslySetInnerHTML as usual.
+    // Section-level settings come with every row of the section; read them from the first.
+    const sectionLook = sectionRows[0];
     const rawSnippet = sectionRows[0]?.section_html_snippet || null;
     const parsedSnippet = useMemo(() => {
         if (!rawSnippet) return { css: "", html: "" };
@@ -321,7 +346,15 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
 
     return (
         <div style={{ padding: "4px 6px" }}>
-            <Title level={5} style={{ margin: "0 0 4px 0", color: "#1677ff" }}>{_(sectionName)}</Title>
+            <Title level={5} className="jm-section-title" style={{ margin: "0 0 4px 0", color: sectionLook?.section_accent_color || "#1677ff", display: "flex", alignItems: "center", gap: 6 }}>
+                {sectionLook?.section_icon ? resolveIcon(sectionLook.section_icon) : null}
+                <span>{_(sectionName)}</span>
+            </Title>
+            {sectionLook?.section_description && (
+                <Typography.Paragraph className="jm-section-description" type="secondary" style={{ margin: "0 0 6px 0", fontSize: token.fontSizeSM }}>
+                    {_(sectionLook.section_description)}
+                </Typography.Paragraph>
+            )}
             {parsedSnippet.css && <style dangerouslySetInnerHTML={{ __html: parsedSnippet.css }} />}
             {parsedSnippet.html && <div dangerouslySetInnerHTML={{ __html: parsedSnippet.html }} />}
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>

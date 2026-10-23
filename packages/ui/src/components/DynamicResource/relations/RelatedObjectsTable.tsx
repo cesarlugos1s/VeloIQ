@@ -1051,8 +1051,8 @@ export const RelatedObjectsTable: React.FC<{
         });
     }, [apiUrl, allModels, rel.otherKey, rel.resource, rel.resourcePath, rel.targetKey]);
 
-    const renderEditableInput = (field: FieldDef, rowId?: string | number) =>
-        renderInput(field, allModels, relatedModel, rowId);
+    const renderEditableInput = (field: FieldDef, rowId?: string | number, row?: any) =>
+        renderInput(field, allModels, relatedModel, rowId, row);
 
     const listAnalyzeLayoutStyle: React.CSSProperties = {
         display: "flex",
@@ -2548,7 +2548,7 @@ export const RelatedObjectsTable: React.FC<{
                                                     valuePropName={field.type === "boolean" ? "checked" : "value"}
                                                     getValueProps={(val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs(val) } : field.type === "time" && val ? { value: dayjs("1970-01-01T" + val) } : { value: val }}
                                                 >
-                                                    {renderEditableInput(field, rowId)}
+                                                    {renderEditableInput(field, rowId, row)}
                                                 </Form.Item>
                                             );
                                         }

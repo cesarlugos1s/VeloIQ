@@ -3,7 +3,7 @@
 VeloIQ owns the console. VeloIQ registers its own baseline entries (see
 ``baseline.py``) and any installed extension or app module can add more by
 defining ``register_system_config()`` in its own ``factory.py`` — auto-discovered
-at startup by ``veloiq_framework.loader``'s factory-scanning pass (the same
+at startup by ``veloiq_framework.load_app_and_extension_modules``'s factory-scanning pass (the same
 generic discovery used for ``register_*_events()`` and
 ``register_import_loaders()``). Import ``register_system_config`` from
 ``veloiq_framework.system_config``.
@@ -30,7 +30,7 @@ def register_system_config(entries: list[dict]) -> None:
     for entry in entries:
         key = entry["key"]
         if key in _REGISTRY:
-            print(f"  ⚠️  system_config.registry: duplicate key '{key}' — keeping first registration")
+            print(f"  ⚠️  system_config_settings_registry: duplicate key '{key}' — keeping first registration")
             continue
         _REGISTRY[key] = entry
 

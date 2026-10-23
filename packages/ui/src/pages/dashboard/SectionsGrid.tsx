@@ -108,6 +108,8 @@ const SectionCell: React.FC<{
         ...(cell.min_height ? { minHeight: cell.min_height } : {}),
         ...(cell.max_height ? { maxHeight: cell.max_height } : {}),
         ...(cell.html_style ? parseInlineStyle(cell.html_style) : {}),
+        // The section's accent color, for its style class (e.g. jm-settings-section).
+        ...(cell.section_accent_color ? { ["--jm-section-accent" as any]: cell.section_accent_color } : {}),
         ...(isMaximized ? { gridColumn: "1 / -1" } : {}),
         ...(isMinimized ? { minHeight: 0 } : {}),
     };
@@ -237,6 +239,7 @@ const SectionCell: React.FC<{
 // ---------------------------------------------------------------------------
 
 export const SectionsGrid = React.forwardRef<SectionsGridHandle, Props>(({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }, ref) => {
+    const { token: themeToken } = theme.useToken();
     const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize } = useCellWindowState();
     const [drawerCellId, setDrawerCellId] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -361,6 +364,40 @@ export const SectionsGrid = React.forwardRef<SectionsGridHandle, Props>(({ cells
 
     return (
         <>
+            {/* "jm-settings-section": the shared look of settings forms (a page
+                configuration section's css_class), after the sections of the page
+                templates used on real pages: a background tinted with the section's
+                accent, a light border with an accent stripe on the left, rounded
+                corners, a soft shadow that deepens on hover, and each label above
+                its editor. Colors come from the theme tokens and the section's
+                --jm-section-accent, so light and dark mode both match the app. */}
+            <style>{`
+                .jm-section-cell.jm-settings-section {
+                    --jm-settings-accent: var(--jm-section-accent, ${themeToken.colorPrimary});
+                    background: color-mix(in srgb, var(--jm-settings-accent) 5%, ${themeToken.colorBgContainer}) !important;
+                    border: 1px solid ${themeToken.colorBorderSecondary} !important;
+                    border-left: 4px solid var(--jm-settings-accent) !important;
+                    border-radius: ${themeToken.borderRadiusLG + 4}px !important;
+                    box-shadow: ${themeToken.boxShadowTertiary};
+                    transition: box-shadow 0.3s, border-color 0.3s;
+                }
+                .jm-section-cell.jm-settings-section:hover {
+                    box-shadow: ${themeToken.boxShadowSecondary};
+                    border-color: color-mix(in srgb, var(--jm-settings-accent) 35%, ${themeToken.colorBorderSecondary}) !important;
+                    border-left-color: var(--jm-settings-accent) !important;
+                }
+                .jm-settings-section .jm-section-title {
+                    font-size: ${themeToken.fontSizeLG}px !important; font-weight: 700 !important; letter-spacing: 0.3px;
+                }
+                .jm-settings-section .jm-section-description { margin-bottom: 8px !important; }
+                .jm-settings-section td { padding: 4px 10px !important; }
+                .jm-settings-section .jm-field-row { flex-direction: column; align-items: stretch !important; gap: 3px !important; }
+                .jm-settings-section .jm-field-label {
+                    flex: none !important; background: transparent !important; padding: 0 !important;
+                    color: ${themeToken.colorTextSecondary}; font-size: ${themeToken.fontSizeSM}px; font-weight: 600;
+                }
+                .jm-settings-section .jm-field-value { flex: none !important; width: 100%; background: transparent !important; padding: 0 !important; }
+            `}</style>
             <div ref={containerRef} style={{ height: "100%", boxSizing: "border-box" }}>
                 {gridBody}
             </div>

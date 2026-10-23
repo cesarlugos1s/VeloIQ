@@ -37,6 +37,7 @@ function buildCells(
             section_name: sectionName,
             section_id: sectionId,
             section_css_class: firstRow?.section_css_class ?? null,
+            section_accent_color: firstRow?.section_accent_color ?? null,
         });
     }
     return cells;

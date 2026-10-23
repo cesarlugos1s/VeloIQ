@@ -286,3 +286,74 @@ def toml_dump_scalar(value) -> str:
         return "[\n" + inner + ",\n]"
     raise TypeError(f"unsupported TOML value: {type(value)!r}")
 
+
+
+def read_system_config_items() -> list[dict]:
+    """Return every registered setting with its current ``value``.
+
+    Values are read from ``jm_config.ini`` (via ``jm_obtain_config``) for
+    ``source: "ini"`` entries and from the ``[views]`` table of ``veloiq.toml``
+    for ``source: "toml"`` entries. A toml key not yet in the file gets the
+    entry's registered ``default``, so the console always shows a sensible value.
+    """
+    from veloiq_framework.extension_registry import _VIEWS_KEY_MAP, read_views_config
+    from veloiq_framework.utils.data_mgmt_utils import jm_obtain_config
+
+    from .system_config_settings_registry import get_system_config_keys
+
+    config = jm_obtain_config()
+    toml_views = read_views_config()
+    # Reverse map: snake_case key -> current value from the toml file.
+    snake_case_values: dict[str, str] = {}
+    for snake_key, (camel_key, _coerce) in _VIEWS_KEY_MAP.items():
+        if camel_key in toml_views:
+            snake_case_values[snake_key] = str(toml_views[camel_key])
+
+    result: list[dict] = []
+    for item in get_system_config_keys():
+        entry = {**item}
+        if item.get("source") == "ini":
+            entry["value"] = config.get(item.get("section", ""), item["key"], fallback="")
+        elif item.get("source") == "toml":
+            entry["value"] = snake_case_values.get(item["key"]) or item.get("default", "")
+        result.append(entry)
+    return result
+
+
+def save_system_config_updates(updates: dict[str, str]) -> None:
+    """Persist ``{key: value text}`` to jm_config.ini or veloiq.toml, by each key's ``source``.
+
+    Unknown keys are ignored. ``ini`` keys are written to ``config/jm_config.ini``
+    and ``toml`` keys to the ``[views]`` table of ``veloiq.toml``, each atomically.
+
+    :raises HTTPException: 500 when a file can't be written.
+    """
+    from .system_config_settings_registry import get_system_config_keys
+
+    key_meta: dict[str, dict] = {item["key"]: item for item in get_system_config_keys()}
+    ini_updates: dict[str, dict[str, str]] = {}  # {section: {key: value}}
+    toml_updates: dict[str, str] = {}  # {snake_key: value}
+    for key, value in updates.items():
+        meta = key_meta.get(key)
+        if not meta:
+            continue
+        if meta.get("source") == "ini":
+            ini_updates.setdefault(meta.get("section", ""), {})[key] = str(value)
+        elif meta.get("source") == "toml":
+            toml_updates[key] = str(value)
+
+    errors: list[str] = []
+    if ini_updates:
+        try:
+            write_ini_updates(ini_updates)
+        except Exception as exc:
+            errors.append(f"Failed to write jm_config.ini: {exc}")
+            jm_log(3, f"save_system_config_updates: ini write error: {exc}")
+    if toml_updates:
+        try:
+            write_toml_views_updates(toml_updates)
+        except Exception as exc:
+            errors.append(f"Failed to write veloiq.toml: {exc}")
+            jm_log(3, f"save_system_config_updates: toml write error: {exc}")
+    if errors:
+        raise HTTPException(status_code=500, detail="; ".join(errors))

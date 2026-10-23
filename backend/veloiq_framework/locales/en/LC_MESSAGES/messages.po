@@ -1987,3 +1987,90 @@ msgstr ""
 
 msgid "View all"
 msgstr ""
+
+msgid "A row with this key already exists."
+msgstr ""
+
+msgid "A row with this key can't be saved."
+msgstr ""
+
+msgid "The data of this list could not be read."
+msgstr ""
+
+msgid "The row was not found. It may have been deleted."
+msgstr ""
+
+msgid "This action is not available for this list."
+msgstr ""
+
+msgid "This row was changed by someone else. Reload it and try again."
+msgstr ""
+
+msgid "{field}: a date and time is expected."
+msgstr ""
+
+msgid "{field}: a date is expected."
+msgstr ""
+
+msgid "{field}: a number is expected."
+msgstr ""
+
+msgid "{field}: a time is expected."
+msgstr ""
+
+msgid "{field}: a value is required."
+msgstr ""
+
+msgid "{field}: a whole number is expected."
+msgstr ""
+
+msgid "{field}: the value is not one of the allowed values."
+msgstr ""
+
+msgid "{field}: true or false is expected."
+msgstr ""
+
+msgid "Application-wide settings for logging, appearance and view defaults."
+msgstr ""
+
+msgid "Section"
+msgstr ""
+
+msgid "Setting"
+msgstr ""
+
+msgid "Key"
+msgstr ""
+
+msgid "File"
+msgstr ""
+
+msgid "File section"
+msgstr ""
+
+msgid "Value type"
+msgstr ""
+
+msgid "Allowed values"
+msgstr ""
+
+msgid "Editable table"
+msgstr ""
+
+msgid "Editable list"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "Log verbosity"
+msgstr ""
+
+msgid "Log file"
+msgstr ""
+
+msgid "Log file rotation"
+msgstr ""
+
+msgid "Other settings"
+msgstr ""

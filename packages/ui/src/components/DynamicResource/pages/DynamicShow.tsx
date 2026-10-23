@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAllModelsIncludingNonModelData } from "../../../contexts/AllModelsContext";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useCan } from "@refinedev/core";
 import { Button, Spin, Tabs } from "antd";
@@ -21,7 +22,8 @@ import { ResourceAccessGate } from "../../AccessGate";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOverride?: string; embedded?: boolean; beforeTabs?: React.ReactNode; extraHeaderButtons?: (record: any) => React.ReactNode }> = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+    const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);

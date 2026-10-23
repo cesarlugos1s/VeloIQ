@@ -1986,3 +1986,90 @@ msgstr "Mover abajo"
 
 msgid "View all"
 msgstr "Ver todos"
+
+msgid "A row with this key already exists."
+msgstr "Ya existe una fila con esta clave."
+
+msgid "A row with this key can't be saved."
+msgstr "No se puede guardar una fila con esta clave."
+
+msgid "The data of this list could not be read."
+msgstr "No se pudieron leer los datos de esta lista."
+
+msgid "The row was not found. It may have been deleted."
+msgstr "No se encontró la fila. Es posible que se haya eliminado."
+
+msgid "This action is not available for this list."
+msgstr "Esta acción no está disponible para esta lista."
+
+msgid "This row was changed by someone else. Reload it and try again."
+msgstr "Otra persona cambió esta fila. Vuelva a cargarla e inténtelo de nuevo."
+
+msgid "{field}: a date and time is expected."
+msgstr "{field}: se espera una fecha y hora."
+
+msgid "{field}: a date is expected."
+msgstr "{field}: se espera una fecha."
+
+msgid "{field}: a number is expected."
+msgstr "{field}: se espera un número."
+
+msgid "{field}: a time is expected."
+msgstr "{field}: se espera una hora."
+
+msgid "{field}: a value is required."
+msgstr "{field}: se requiere un valor."
+
+msgid "{field}: a whole number is expected."
+msgstr "{field}: se espera un número entero."
+
+msgid "{field}: the value is not one of the allowed values."
+msgstr "{field}: el valor no es uno de los valores permitidos."
+
+msgid "{field}: true or false is expected."
+msgstr "{field}: se espera verdadero o falso."
+
+msgid "Application-wide settings for logging, appearance and view defaults."
+msgstr "Ajustes de toda la aplicación para el registro, la apariencia y las vistas predeterminadas."
+
+msgid "Section"
+msgstr "Sección"
+
+msgid "Setting"
+msgstr "Ajuste"
+
+msgid "Key"
+msgstr "Clave"
+
+msgid "File"
+msgstr "Archivo"
+
+msgid "File section"
+msgstr "Sección del archivo"
+
+msgid "Value type"
+msgstr "Tipo de valor"
+
+msgid "Allowed values"
+msgstr "Valores permitidos"
+
+msgid "Editable table"
+msgstr "Tabla editable"
+
+msgid "Editable list"
+msgstr "Lista editable"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Log verbosity"
+msgstr "Nivel de detalle del registro"
+
+msgid "Log file"
+msgstr "Archivo de registro"
+
+msgid "Log file rotation"
+msgstr "Rotación del archivo de registro"
+
+msgid "Other settings"
+msgstr "Otros ajustes"

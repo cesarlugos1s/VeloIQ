@@ -10,6 +10,7 @@ import { renderOptionTag } from "../utils/colors";
 import { normalizeFieldViewType } from "../utils/viewConfig";
 import { ReferenceField } from "./ReferenceField";
 import { StorageFieldValue } from "./StorageFieldValue";
+import { resolveRowTypedField } from "../utils/resolveRowTypedField";
 
 dayjs.extend(relativeTime);
 
@@ -136,7 +137,9 @@ const wrapForTable = (node: React.ReactNode): React.ReactNode => (
     <div style={{ maxHeight: 120, overflowY: "auto", overflowX: "hidden" }}>{node}</div>
 );
 
-export const renderFieldValue = (field: FieldDef, record: any, allModels?: ModelDef[], inTable?: boolean) => {
+export const renderFieldValue = (rawField: FieldDef, record: any, allModels?: ModelDef[], inTable?: boolean) => {
+    // A row-typed field takes its type and options from the row (parameter lists).
+    const field = resolveRowTypedField(rawField, record);
     const value = record?.[field.key];
     const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
     if (isNlSentenceField) {

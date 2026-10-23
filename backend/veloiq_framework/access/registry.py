@@ -119,7 +119,7 @@ def _resolve_models() -> None:
         return
     from sqlmodel import SQLModel
 
-    from veloiq_framework.loader import _iter_sqlmodel_subclasses
+    from veloiq_framework.load_app_and_extension_modules import _iter_sqlmodel_subclasses
 
     _MODEL_TO_MODULE.clear()
     for info in _MODULES.values():

@@ -115,6 +115,15 @@ def add_dashboard(
             added.append(m)
             continue
 
+        # Non-model data resource (non-model data served like a model): VeloIQ's own, or
+        # one declared in a module's non_model_data_resources.py.
+        non_model_data_module_name = _detect_non_model_data_resource_module(m, modules_dir)
+        if non_model_data_module_name is not None:
+            _add_model_to_dashboard(dashboard, m, non_model_data_module_name, source_type="non_model_data")
+            existing_models.add(m)
+            added.append(m)
+            continue
+
         # Chart cell flow (when --chart-url is provided).
         if chart_url is not None:
             # Use "dashboard" as the module for chart cells — they aren't tied
@@ -241,6 +250,36 @@ def _remove_model_from_dashboard(dashboard: dict, model: str) -> None:
 # ---------------------------------------------------------------------------
 # Named query detection
 # ---------------------------------------------------------------------------
+
+def _detect_non_model_data_resource_module(model: str, modules_dir: Path) -> Optional[str]:
+    """Return the module name if *model* is a non-model data resource, else None.
+
+    VeloIQ's own non-model data resources (e.g. System Configuration) go to the tab of
+    their module, or to a tab of their own when they have none. Others are found
+    by text-scanning each module's ``non_model_data_resources.py`` (no import of the
+    app's code is required), and take the ``module=`` written there, or the
+    folder name.
+    """
+    from veloiq_framework.system_config.system_config_non_model_data_resource import build_system_config_non_model_data_resource
+
+    for framework_non_model_data_resource in (build_system_config_non_model_data_resource(),):
+        if model == framework_non_model_data_resource.name:
+            return framework_non_model_data_resource.module or framework_non_model_data_resource.name
+    if not modules_dir.exists():
+        return None
+    for folder in sorted(modules_dir.iterdir()):
+        if not folder.is_dir() or folder.name.startswith("__"):
+            continue
+        non_model_data_resources_file = folder / "non_model_data_resources.py"
+        if not non_model_data_resources_file.exists():
+            continue
+        text = non_model_data_resources_file.read_text(encoding="utf-8")
+        if f'name="{model}"' not in text and f"name='{model}'" not in text:
+            continue
+        m = re.search(r'\bmodule\s*=\s*["\']([^"\']+)["\']', text)
+        return m.group(1) if m else folder.name
+    return None
+
 
 def _detect_named_query_module(model: str, modules_dir: Path) -> Optional[str]:
     """Return the module name if *model* is a NamedQuery defined in any queries.py, else None.

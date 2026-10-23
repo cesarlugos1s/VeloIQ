@@ -1,4 +1,5 @@
 import { setCurrentDataDetailLevelState } from "./DataDetailLevelStore";
+import { FieldLabelWithHelp } from "../fields/FieldLabelWithHelp";
 import React, { useMemo } from "react";
 import { useCan } from "@refinedev/core";
 import { Form, Input, Skeleton, theme } from "antd";
@@ -39,8 +40,6 @@ import type { DataDetailLevelState } from "./useDataDetailLevel";
 import { useDataDetailLevel } from "./useDataDetailLevel";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
-const requiredMark = (field: FieldDef) =>
-    field.required ? <span style={{ color: "#ff4d4f", marginLeft: 3 }}>*</span> : null;
 
 const emptyLayoutConfig = {
     isConfiguring: false,
@@ -228,7 +227,7 @@ export const useStandardEditTabs = (
                                         gap: "4px 6px",
                                     }}
                                 >
-                                    <span style={{ ...labelStyle, flex: "0 0 200px" }}>{field.label}{requiredMark(field)}</span>
+                                    <span style={{ ...labelStyle, flex: "0 0 200px" }}><FieldLabelWithHelp field={field} /></span>
                                     <div style={{ flex: "1 0 200px", padding: "2px 4px", lineHeight: 1.15, overflowWrap: "anywhere", background: valueBackground, borderRadius: 6 }}>
                                         <Form.Item
                                             name={field.key}
@@ -237,7 +236,7 @@ export const useStandardEditTabs = (
                                             getValueProps={(val) => (field.type === 'date' || field.type === 'datetime') && val ? { value: dayjs(val) } : field.type === 'time' && val ? { value: dayjs('1970-01-01T' + val) } : { value: val }}
                                             style={{ margin: 0 }}
                                         >
-                                            {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId)}
+                                            {field.formula ? <Input disabled /> : renderInput(field, allModels, model, recordId, record)}
                                         </Form.Item>
                                     </div>
                                 </div>

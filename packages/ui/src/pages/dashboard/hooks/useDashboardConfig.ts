@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useApiUrl } from "@refinedev/core";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
 
-export type CellSourceType = "model" | "named_query" | "field" | "relation" | "custom" | "plotly_chart";
+/** "non_model_data": a non-model data resource (non-model data served like a model), shown like a model cell. */
+export type CellSourceType = "model" | "named_query" | "non_model_data" | "field" | "relation" | "custom" | "plotly_chart";
 
 export interface DashboardCell {
     id: string;
@@ -20,6 +21,8 @@ export interface DashboardCell {
     section_name?: string;
     section_id?: string;
     section_css_class?: string | null;
+    /** Accent color of a page section (page configuration), exposed to its CSS as --jm-section-accent. */
+    section_accent_color?: string | null;
     // For source_type "plotly_chart": the API endpoint returning { chart_html: string }
     chart_url?: string;
     // For source_type "plotly_chart": human-readable chart title

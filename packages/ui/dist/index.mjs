@@ -1,14 +1,14 @@
 import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useSelect, useTable, Create, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useWarnAboutChange, useInvalidate, useResource } from '@refinedev/core';
-import { Typography, Carousel, Empty, Button, theme, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, useWarnAboutChange, useResource } from '@refinedev/core';
+import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, Menu, Layout, Spin, ConfigProvider, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ShareAltOutlined, CalendarOutlined, PlusOutlined, DownloadOutlined, FilterOutlined, UnorderedListOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, EyeOutlined, CameraOutlined, UploadOutlined, LinkOutlined, BugOutlined, HomeOutlined, CopyOutlined, FolderOutlined, FileOutlined, FilePdfOutlined, InboxOutlined, CommentOutlined, PlusSquareOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import dayjs10 from 'dayjs';
+import dayjs11 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
 import axios from 'axios';
 
@@ -384,9 +384,283 @@ var getActiveLocale = () => {
   }
 };
 
+// src/utils/trackRowRevisions.ts
+var ROW_REVISIONS_RESPONSE_HEADER = "x-veloiq-row-revisions";
+var rowRevisionsByRowPath = /* @__PURE__ */ new Map();
+function decodedRowUrlPath(url) {
+  let path = url;
+  try {
+    path = new URL(url, "http://local").pathname;
+  } catch {
+    path = url.split("?")[0];
+  }
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+  }
+  return path.replace(/\/+$/, "");
+}
+function rememberRowRevisions(url, body) {
+  const path = decodedRowUrlPath(url);
+  if (Array.isArray(body)) {
+    for (const row of body) {
+      if (row && typeof row === "object" && row._revision && row.eid != null) {
+        rowRevisionsByRowPath.set(`${path}/${row.eid}`, String(row._revision));
+      }
+    }
+    return;
+  }
+  if (body && typeof body === "object" && body._revision) {
+    const eid = body.eid;
+    const key = eid != null && !path.endsWith(`/${eid}`) ? `${path}/${eid}` : path;
+    rowRevisionsByRowPath.set(key, String(body._revision));
+  }
+}
+function rowRevisionFor(url, method) {
+  const verb = (method || "GET").toUpperCase();
+  if (verb !== "PUT" && verb !== "PATCH" && verb !== "DELETE") return void 0;
+  return rowRevisionsByRowPath.get(decodedRowUrlPath(url));
+}
+
+// src/utils/serveInPageRowsStores.ts
+var _ = (text) => {
+  const translate = globalThis.window?._;
+  return typeof translate === "function" ? translate(text) : text;
+};
+var IN_PAGE_ROWS_RESOURCE_PREFIX = "in_page_rows__";
+var BOOLEAN_QUERY_TEXT_VALUES = { true: true, false: false, "1": true, "0": false };
+var FILTER_OPERATOR_SUFFIXES = ["__ilike", "__in", "_like", "_gte", "_lte", "_ne"];
+var inPageRowsStoresByResource = /* @__PURE__ */ new Map();
+var storeStateByStore = /* @__PURE__ */ new WeakMap();
+function newRowEid(state, row) {
+  const keyField = state.store.model.pkField;
+  const keyValue = keyField && keyField !== "eid" ? row?.[keyField] : void 0;
+  if (keyValue !== void 0 && keyValue !== null && keyValue !== "") return String(keyValue);
+  state.nextRowNumber += 1;
+  return String(state.nextRowNumber);
+}
+function createInPageRowsStore(storeName, model, rows = []) {
+  const resource = `${IN_PAGE_ROWS_RESOURCE_PREFIX}${storeName}`;
+  const storeModel = {
+    ...model,
+    resource,
+    pkField: model.pkField || "eid",
+    isNonModelData: true
+  };
+  const state = {
+    rows: [],
+    nextRowNumber: 0,
+    store: {
+      resource,
+      model: storeModel,
+      getRows: () => state.rows.map((row) => ({ ...row })),
+      setRows: (nextRows) => {
+        state.rows = nextRows.map((row) => ({ ...row, eid: row?.eid ?? newRowEid(state, row) }));
+      }
+    }
+  };
+  state.store.setRows(rows);
+  inPageRowsStoresByResource.set(resource, state);
+  storeStateByStore.set(state.store, state);
+  return state.store;
+}
+function registerInPageRowsStore(store) {
+  const state = storeStateByStore.get(store);
+  if (state) inPageRowsStoresByResource.set(store.resource, state);
+}
+function removeInPageRowsStore(resource) {
+  inPageRowsStoresByResource.delete(resource);
+}
+function comparableSortKey(field, value) {
+  if (value === null || value === void 0 || value === "") return [2, ""];
+  if (field?.type === "number") {
+    const number = typeof value === "number" ? value : Number(value);
+    if (!Number.isNaN(number)) return [0, number];
+  }
+  if (field?.type === "boolean") {
+    const flag = typeof value === "boolean" ? value : BOOLEAN_QUERY_TEXT_VALUES[String(value).trim().toLowerCase()];
+    if (flag !== void 0) return [0, flag ? 1 : 0];
+  }
+  if (field?.type === "date" || field?.type === "datetime") {
+    const time = new Date(String(value)).getTime();
+    if (!Number.isNaN(time)) return [0, time];
+  }
+  return [1, String(value).toLowerCase()];
+}
+function rowMatchesCondition(row, field, key, operator, value) {
+  const cell = row?.[key];
+  if (operator === "__in") {
+    const wanted = value.split(",").map((part) => part.trim()).filter(Boolean);
+    return wanted.some((part) => comparableSortKey(field, cell).join("\0") === comparableSortKey(field, part).join("\0"));
+  }
+  if (operator === "__ilike" || operator === "_like") {
+    return String(cell ?? "").toLowerCase().includes(value.toLowerCase());
+  }
+  const left = comparableSortKey(field, cell);
+  const right = comparableSortKey(field, value);
+  if (operator === "_ne") return left[0] !== right[0] || left[1] !== right[1];
+  if (left[0] !== right[0]) return false;
+  if (operator === "_gte") return left[1] >= right[1];
+  if (operator === "_lte") return left[1] <= right[1];
+  return left[1] === right[1];
+}
+function filterRowsByQueryParameters(model, rows, params) {
+  const fieldsByKey = new Map(model.fields.map((field) => [field.key, field]));
+  fieldsByKey.set("eid", void 0);
+  const conditions = [];
+  let search = "";
+  params.forEach((value, name) => {
+    if (name.startsWith("_") || value === "") return;
+    if (name === "q") {
+      search = value.toLowerCase();
+      return;
+    }
+    if (fieldsByKey.has(name)) {
+      conditions.push([name, "", value]);
+      return;
+    }
+    const suffix = FILTER_OPERATOR_SUFFIXES.find((candidate) => name.endsWith(candidate) && fieldsByKey.has(name.slice(0, -candidate.length)));
+    if (suffix) conditions.push([name.slice(0, -suffix.length), suffix, value]);
+  });
+  const textKeys = model.fields.filter((field) => field.type === "string").map((field) => field.key);
+  return rows.filter((row) => (!search || textKeys.some((key) => String(row?.[key] ?? "").toLowerCase().includes(search))) && conditions.every(([key, operator, value]) => rowMatchesCondition(row, fieldsByKey.get(key), key, operator, value)));
+}
+function sortRowsByQueryParameters(model, rows, params) {
+  const keys = (params.get("_sort") || "").split(",").map((key) => key.trim()).filter(Boolean);
+  const orders = (params.get("_order") || "").split(",").map((order) => order.trim().toLowerCase());
+  if (keys.length === 0 && model.defaultSort) {
+    keys.push(model.defaultSort.field);
+    orders.splice(0, orders.length, model.defaultSort.order);
+  }
+  const fieldsByKey = new Map(model.fields.map((field) => [field.key, field]));
+  return [...rows].sort((left, right) => {
+    for (let index = 0; index < keys.length; index += 1) {
+      const field = fieldsByKey.get(keys[index]);
+      const [leftKind, leftValue] = comparableSortKey(field, left?.[keys[index]]);
+      const [rightKind, rightValue] = comparableSortKey(field, right?.[keys[index]]);
+      if (leftKind !== rightKind) return leftKind - rightKind;
+      if (leftValue === rightValue) continue;
+      const ascending = leftValue < rightValue ? -1 : 1;
+      return orders[index] === "desc" ? -ascending : ascending;
+    }
+    return 0;
+  });
+}
+function validatedRowValues(model, payload, existing) {
+  const row = existing ? { ...existing } : {};
+  const errors = [];
+  for (const field of model.fields) {
+    if (!(field.key in (payload || {})) || field.readOnly) continue;
+    let value = payload[field.key];
+    if (field.type === "number" && value !== null && value !== "" && value !== void 0) {
+      const number = typeof value === "number" ? value : Number(String(value).trim());
+      if (Number.isNaN(number) || typeof value === "boolean") {
+        errors.push(_("{field}: a number is expected.").replace("{field}", _(field.label)));
+        continue;
+      }
+      value = number;
+    }
+    if (field.type === "boolean" && typeof value !== "boolean" && value !== null && value !== void 0) {
+      const flag = BOOLEAN_QUERY_TEXT_VALUES[String(value).trim().toLowerCase()];
+      if (flag === void 0) {
+        errors.push(_("{field}: true or false is expected.").replace("{field}", _(field.label)));
+        continue;
+      }
+      value = flag;
+    }
+    row[field.key] = value;
+  }
+  for (const field of model.fields) {
+    if (field.required && !field.readOnly && (row[field.key] === void 0 || row[field.key] === null || row[field.key] === "")) {
+      errors.push(_("{field}: a value is required.").replace("{field}", _(field.label)));
+    }
+  }
+  return [row, errors];
+}
+function jsonAnswer(status, body, headers = {}) {
+  return { status, body, headers: { "content-type": "application/json", ...headers } };
+}
+function csvCell(value) {
+  const text = value === null || value === void 0 ? "" : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+function answerInPageRowsRequest(url, method, body) {
+  if (!url.includes(IN_PAGE_ROWS_RESOURCE_PREFIX)) return null;
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url, "http://in-page.local");
+  } catch {
+    return null;
+  }
+  const segments = parsedUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment));
+  const resourceIndex = segments.findIndex((segment) => segment.startsWith(IN_PAGE_ROWS_RESOURCE_PREFIX));
+  if (resourceIndex < 0) return null;
+  const state = inPageRowsStoresByResource.get(segments[resourceIndex]);
+  if (!state) return jsonAnswer(404, { detail: _("The data of this list could not be read.") });
+  const model = state.store.model;
+  const rowSegment = segments[resourceIndex + 1];
+  const verb = (method || "GET").toUpperCase();
+  const payload = typeof body === "string" ? (() => {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return {};
+    }
+  })() : body || {};
+  const notFound = () => jsonAnswer(404, { detail: _("The row was not found. It may have been deleted.") });
+  if (rowSegment === void 0) {
+    if (verb === "GET") {
+      const matching = sortRowsByQueryParameters(model, filterRowsByQueryParameters(model, state.rows, parsedUrl.searchParams), parsedUrl.searchParams);
+      const start = Math.max(0, Number(parsedUrl.searchParams.get("_start") ?? 0));
+      const end = Number(parsedUrl.searchParams.get("_end") ?? matching.length);
+      const page = matching.slice(start, Math.max(start, end));
+      return jsonAnswer(200, page, {
+        "x-total-count": String(matching.length),
+        "content-range": `items ${start}-${Math.min(end, matching.length)}/${matching.length}`
+      });
+    }
+    if (verb === "POST") {
+      const [row, errors] = validatedRowValues(model, payload, null);
+      if (errors.length > 0) return jsonAnswer(422, { detail: errors.join(" ") });
+      row.eid = newRowEid(state, row);
+      if (state.rows.some((existing) => existing.eid === row.eid)) {
+        return jsonAnswer(422, { detail: _("A row with this key already exists.") });
+      }
+      state.rows = [...state.rows, row];
+      return jsonAnswer(201, { ...row });
+    }
+    return jsonAnswer(405, { detail: _("This action is not available for this list.") });
+  }
+  if (rowSegment === "export-csv" && verb === "GET") {
+    const matching = filterRowsByQueryParameters(model, state.rows, parsedUrl.searchParams);
+    const keys = model.fields.map((field) => field.key);
+    const lines = [keys.join(","), ...matching.map((row) => keys.map((key) => csvCell(row[key])).join(","))];
+    return { status: 200, headers: { "content-type": "text/csv" }, body: lines.join("\n") + "\n" };
+  }
+  const index = state.rows.findIndex((row) => String(row.eid) === rowSegment);
+  if (index < 0) return notFound();
+  if (verb === "GET") return jsonAnswer(200, { ...state.rows[index] });
+  if (verb === "PUT" || verb === "PATCH") {
+    const [row, errors] = validatedRowValues(model, payload, state.rows[index]);
+    if (errors.length > 0) return jsonAnswer(422, { detail: errors.join(" ") });
+    state.rows = state.rows.map((existing, position) => position === index ? row : existing);
+    return jsonAnswer(200, { ...row });
+  }
+  if (verb === "DELETE") {
+    state.rows = state.rows.filter((_row, position) => position !== index);
+    return { status: 204, headers: {}, body: null };
+  }
+  return jsonAnswer(405, { detail: _("This action is not available for this list.") });
+}
+
 // src/utils/authenticatedFetch.ts
 var TOKEN_KEY = "jm_access_token";
 var authenticatedFetch = (url, options = {}) => {
+  const inPageAnswer = answerInPageRowsRequest(url, options.method, options.body);
+  if (inPageAnswer) {
+    const responseBody = inPageAnswer.body === null || inPageAnswer.status === 204 ? null : typeof inPageAnswer.body === "string" ? inPageAnswer.body : JSON.stringify(inPageAnswer.body);
+    return Promise.resolve(new Response(responseBody, { status: inPageAnswer.status, headers: inPageAnswer.headers }));
+  }
   const token = localStorage.getItem(TOKEN_KEY);
   const headers = {
     ...options.headers
@@ -397,7 +671,16 @@ var authenticatedFetch = (url, options = {}) => {
   if (!headers["Accept-Language"]) {
     headers["Accept-Language"] = getActiveLocale();
   }
-  return fetch(url, { ...options, headers });
+  const revision = rowRevisionFor(url, options.method);
+  if (revision && !headers["If-Match"]) {
+    headers["If-Match"] = revision;
+  }
+  return fetch(url, { ...options, headers }).then((response) => {
+    if (response.ok && response.headers?.get?.(ROW_REVISIONS_RESPONSE_HEADER)) {
+      response.clone().json().then((body) => rememberRowRevisions(url, body)).catch(() => void 0);
+    }
+    return response;
+  });
 };
 
 // src/utils/journeyMenu.ts
@@ -733,7 +1016,7 @@ function filterMenuItemsByAccess(items, access) {
   }
   return result;
 }
-var _ = (text) => {
+var _2 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -768,11 +1051,11 @@ var HorizontalMenu = ({ navConfig = [] }) => {
   };
   const renderLabel = (item, depth, hasChildren) => {
     const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _(rawLabel);
+    let label = _2(rawLabel);
     if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
       const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _(humanized);
+        const humanizedLabel = _2(humanized);
         if (humanizedLabel !== humanized) label = humanizedLabel;
       }
     }
@@ -828,7 +1111,7 @@ var HorizontalMenu = ({ navConfig = [] }) => {
     }
   );
 };
-var _2 = (text) => {
+var _3 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -864,11 +1147,11 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
   };
   const renderLabel = (item, depth, hasChildren) => {
     const rawLabel = String(item?.label || item?.name || item?.key || "");
-    let label = _2(rawLabel);
+    let label = _3(rawLabel);
     if (label === rawLabel && (rawLabel.includes("_") || rawLabel.includes("-"))) {
       const humanized = rawLabel.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       if (humanized && humanized !== rawLabel) {
-        const humanizedLabel = _2(humanized);
+        const humanizedLabel = _3(humanized);
         if (humanizedLabel !== humanized) label = humanizedLabel;
       }
     }
@@ -989,15 +1272,71 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     }
   );
 };
+
+// src/providers/constants.ts
+var API_URL2 = "/api";
+
+// src/hooks/useNonModelDataResourceModels.ts
+var TOKEN_KEY2 = "jm_access_token";
+async function fetchNonModelDataResourceModels() {
+  if (!localStorage.getItem(TOKEN_KEY2)) return [];
+  try {
+    const response = await authenticatedFetch(`${API_URL2}/veloiq/non-model-data-resources`);
+    if (!response.ok) return [];
+    const body = await response.json();
+    return Array.isArray(body?.models) ? body.models : [];
+  } catch {
+    return [];
+  }
+}
+function useNonModelDataResourceModels() {
+  const [models, setModels] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    let lastLoadedModelsSignature = "";
+    const loadNonModelDataModels = () => {
+      void fetchNonModelDataResourceModels().then((next) => {
+        const signature = JSON.stringify(next);
+        if (cancelled || signature === lastLoadedModelsSignature) return;
+        lastLoadedModelsSignature = signature;
+        setModels(next);
+      });
+    };
+    loadNonModelDataModels();
+    const unsubscribe = subscribeAccess(loadNonModelDataModels);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+  return models;
+}
 var AllModelsContext = createContext([]);
 var AllModelsProvider = ({
   models,
   children
-}) => /* @__PURE__ */ jsx(AllModelsContext.Provider, { value: models, children });
+}) => {
+  const nonModelDataModels = useNonModelDataResourceModels();
+  const merged = useMemo(() => {
+    if (nonModelDataModels.length === 0) return models;
+    const known = new Set(models.map((model) => model.resource || model.name));
+    return [...models, ...nonModelDataModels.filter((model) => !known.has(model.resource || model.name))];
+  }, [models, nonModelDataModels]);
+  return /* @__PURE__ */ jsx(AllModelsContext.Provider, { value: merged, children });
+};
 var useAllModels = () => useContext(AllModelsContext);
+var useAllModelsIncludingNonModelData = (allModelsProp) => {
+  const contextModels = useAllModels();
+  return useMemo(() => {
+    if (!allModelsProp) return contextModels;
+    const known = new Set(allModelsProp.map((model) => model.resource || model.name));
+    const missing = contextModels.filter((model) => !known.has(model.resource || model.name));
+    return missing.length === 0 ? allModelsProp : [...allModelsProp, ...missing];
+  }, [allModelsProp, contextModels]);
+};
 
 // src/hooks/useRecordSearch.ts
-var API_URL2 = "/api";
+var API_URL3 = "/api";
 function useRecordSearch() {
   const allSystemModels = useAllModels();
   const { can } = useAccess();
@@ -1007,7 +1346,7 @@ function useRecordSearch() {
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
   useEffect(() => {
-    authenticatedFetch(`${API_URL2}/config/search`).then((r) => {
+    authenticatedFetch(`${API_URL3}/config/search`).then((r) => {
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     }).then((d) => setSearchConfig(d)).catch(() => {
@@ -1065,7 +1404,7 @@ function useRecordSearch() {
           const fetches = searchableModels.slice(0, 8).map(async (m) => {
             try {
               const fieldFetches = m.searchFields.map(async (field) => {
-                const url = `${API_URL2}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
+                const url = `${API_URL3}/${m.resource}?_start=0&_end=5&${field}__ilike=${encodeURIComponent(q2)}`;
                 const resp = await authenticatedFetch(url, { signal: controller.signal });
                 if (!resp.ok) return [];
                 const data = await resp.json();
@@ -1115,7 +1454,7 @@ function useRecordSearch() {
   }, []);
   return { results, searching, search, clear };
 }
-var _3 = window._ || ((text) => text);
+var _4 = window._ || ((text) => text);
 var flattenMenuItems = (items, parentLabel = "") => {
   const result = [];
   for (const item of items) {
@@ -1152,7 +1491,7 @@ var GlobalSearch = () => {
     if (matches.length === 0) return [];
     return [
       {
-        label: /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _3("Go to") }),
+        label: /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", strong: true, style: { fontSize: 11 }, children: _4("Go to") }),
         options: matches.slice(0, 10).map((r) => ({
           value: `nav:${r.listPath}`,
           key: `nav-${r.name}`,
@@ -1226,7 +1565,7 @@ var GlobalSearch = () => {
         Input,
         {
           ref: inputRef,
-          placeholder: focused ? `${_3("Search")}...` : "",
+          placeholder: focused ? `${_4("Search")}...` : "",
           prefix: searching ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(SearchOutlined, {}),
           suffix: !focused ? /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 9 }, children: "\u2303K" }) : void 0,
           allowClear: true,
@@ -1237,11 +1576,6 @@ var GlobalSearch = () => {
     }
   ) });
 };
-
-// src/providers/constants.ts
-var API_URL3 = "/api";
-
-// src/pages/dashboard/hooks/useRecentActivity.ts
 function useRecentActivity(days) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1249,7 +1583,7 @@ function useRecentActivity(days) {
     setLoading(true);
     try {
       const params = days !== void 0 ? `?days=${days}` : "";
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/recent-activity${params}`);
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/recent-activity${params}`);
       if (res.ok) setData(await res.json());
     } catch {
     } finally {
@@ -1292,7 +1626,7 @@ function usePinnedGroups() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
       if (res.ok) {
         const d = await res.json();
         setGroups(d.groups ?? []);
@@ -1983,7 +2317,7 @@ function useSetHelpPageKey(pageKey, recordId = null) {
     return () => setPageKey(null, null);
   }, [pageKey, recordId, setPageKey]);
 }
-var _4 = window._ || ((text) => text);
+var _5 = window._ || ((text) => text);
 var DASHBOARD_MAIN_PAGE_KEY = "_dashboard:main";
 var TOOLTIP_BY_SUFFIX = {
   list: "List page help",
@@ -1992,13 +2326,13 @@ var TOOLTIP_BY_SUFFIX = {
   create: "Create page help"
 };
 function tooltipForPageKey(pageKey) {
-  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _4("Dashboard help");
+  if (pageKey === DASHBOARD_MAIN_PAGE_KEY) return _5("Dashboard help");
   if (pageKey) {
     const suffix = pageKey.split(":").pop() || "";
     const label = TOOLTIP_BY_SUFFIX[suffix];
-    if (label) return _4(label);
+    if (label) return _5(label);
   }
-  return _4("Help");
+  return _5("Help");
 }
 var HelpButton = ({ onClick }) => {
   const { pageKey } = useContext(HelpContext);
@@ -2076,7 +2410,7 @@ var HELP_ACTION_CATALOG = {
     description: "Opens the relation explorer for this record."
   }
 };
-var _5 = window._ || ((text) => text);
+var _6 = window._ || ((text) => text);
 var ReactMarkdown = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
   const { pageKey, recordId } = useContext(HelpContext);
@@ -2128,7 +2462,7 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
       title: /* @__PURE__ */ jsxs(Space, { children: [
         /* @__PURE__ */ jsx(QuestionCircleOutlined, {}),
         " ",
-        _5("Help")
+        _6("Help")
       ] }),
       placement: "right",
       mask: false,
@@ -2140,24 +2474,24 @@ var HelpDrawer = ({ open, onClose, helpButtonTexts }) => {
         !loading && doc?.found && /* @__PURE__ */ jsxs(Fragment, { children: [
           /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true }), children: /* @__PURE__ */ jsx(ReactMarkdown, { children: doc.body || "" }) }),
           !!doc.actions?.length && /* @__PURE__ */ jsxs("div", { style: { marginTop: 16 }, children: [
-            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _5("Click any of these to do it for you:") }),
+            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _6("Click any of these to do it for you:") }),
             /* @__PURE__ */ jsx(Space, { wrap: true, style: { marginTop: 8, display: "flex" }, children: doc.actions.map((a) => {
               const entry = HELP_ACTION_CATALOG[a.action_key];
               const button = /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => runAction(a.action_key), children: a.label }, a.action_key);
-              return entry ? /* @__PURE__ */ jsx(Tooltip, { title: _5(entry.description), children: button }, a.action_key) : button;
+              return entry ? /* @__PURE__ */ jsx(Tooltip, { title: _6(entry.description), children: button }, a.action_key) : button;
             }) })
           ] })
         ] }),
-        !loading && doc && !doc.found && /* @__PURE__ */ jsx(Empty, { description: _5("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsx(
+        !loading && doc && !doc.found && /* @__PURE__ */ jsx(Empty, { description: _6("No help written for this page yet."), children: canCreateHelpDoc?.can !== false && pageKey && /* @__PURE__ */ jsx(
           Button,
           {
             type: "link",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _5("Write help for this")
+            children: _6("Write help for this")
           }
         ) }),
         !!extraTexts?.length && /* @__PURE__ */ jsxs("div", { style: { marginTop: 24 }, children: [
-          /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _5("Related actions") }),
+          /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _6("Related actions") }),
           /* @__PURE__ */ jsx(Suspense, { fallback: null, children: extraTexts.map((t, i) => /* @__PURE__ */ jsx(ReactMarkdown, { children: t }, i)) })
         ] })
       ]
@@ -2230,7 +2564,7 @@ var clipToViewport = (rect, viewportWidth, viewportHeight) => {
   return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
 };
 var { Text } = Typography;
-var _6 = (text) => {
+var _7 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2290,7 +2624,7 @@ var CollapsibleBanner = ({
   const collapsedPx = percentSize(collapsedSize, contentRect);
   const expandedPx = percentSize(expandedSize, contentRect);
   const alignItems = position.horizontal === "left" ? "flex-start" : position.horizontal === "right" ? "flex-end" : "center";
-  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _6("Move banner"), children: bannerMoves(_6).map((move) => /* @__PURE__ */ jsx(Tooltip, { title: move.label, children: /* @__PURE__ */ jsx(
+  const arrows = movable && onMove && (open || hovered) ? /* @__PURE__ */ jsx("div", { style: { display: "inline-flex", gap: 2 }, role: "toolbar", "aria-label": _7("Move banner"), children: bannerMoves(_7).map((move) => /* @__PURE__ */ jsx(Tooltip, { title: move.label, children: /* @__PURE__ */ jsx(
     Button,
     {
       type: "text",
@@ -2334,7 +2668,7 @@ var CollapsibleBanner = ({
             headerExtra
           ] }),
           arrows,
-          /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), "aria-label": _6("Close"), title: _6("Close"), onClick: () => setOpen(false) })
+          /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), "aria-label": _7("Close"), title: _7("Close"), onClick: () => setOpen(false) })
         ] }),
         /* @__PURE__ */ jsx("div", { style: { overflowY: "auto", padding: "0 12px", minHeight: 0 }, children }),
         footer && /* @__PURE__ */ jsx("div", { style: { padding: "6px 12px", borderTop: `1px solid ${colors.border}` }, children: footer })
@@ -2400,7 +2734,7 @@ var CollapsibleBanner = ({
   );
 };
 var { Text: Text2 } = Typography;
-var _7 = (text) => {
+var _8 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2426,7 +2760,7 @@ var ModelBanner = ({
   onViewAll
 }) => {
   const { token } = theme.useToken();
-  const title = _7(banner.title || "");
+  const title = _8(banner.title || "");
   const [mainColumn, ...otherColumns] = banner.columns;
   const collapsedContent = {
     count: String(banner.count),
@@ -2448,7 +2782,7 @@ var ModelBanner = ({
         "(",
         banner.count,
         " ",
-        _7("total"),
+        _8("total"),
         ")"
       ] }),
       position,
@@ -2459,7 +2793,7 @@ var ModelBanner = ({
       onMove,
       expanded,
       onExpandedChange,
-      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsx(Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _7("View all") }) : void 0,
+      footer: viewAllResource && onViewAll ? /* @__PURE__ */ jsx(Button, { type: "link", size: "small", style: { padding: 0 }, onClick: () => onViewAll(viewAllResource), children: _8("View all") }) : void 0,
       children: [
         banner.rows.map((row, i) => {
           const clickable = Boolean(rowResource && onOpenRow && row.eid !== null && row.eid !== void 0);
@@ -2468,7 +2802,7 @@ var ModelBanner = ({
             otherColumns.map((column) => {
               const text = cellText(row[column.key]);
               return text ? /* @__PURE__ */ jsxs(Text2, { type: "secondary", style: { whiteSpace: "nowrap" }, children: [
-                _7(column.label),
+                _8(column.label),
                 ": ",
                 text
               ] }, column.key) : null;
@@ -2643,7 +2977,7 @@ var AppBannerHost = ({ allModels, ...props }) => {
     BannerHost,
     {
       context,
-      apiUrl: API_URL3,
+      apiUrl: API_URL2,
       fetcher: authenticatedFetch,
       refreshKey: location.pathname,
       onOpenRow: (resource, eid) => navigate(`/${resource}/show/${eid}`),
@@ -2942,7 +3276,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_72, value) {
+                validator(_76, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -2962,7 +3296,7 @@ var LayoutWrapper = ({
     )
   ] }) });
 };
-var _8 = (text) => {
+var _9 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -2973,9 +3307,9 @@ var NoAccessResult = () => {
     {
       status: "warning",
       icon: /* @__PURE__ */ jsx(LockOutlined, {}),
-      title: _8("No Access"),
-      subTitle: _8("You do not have permission to open this page. Please contact your administrator."),
-      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _8("Go to Dashboard") })
+      title: _9("No Access"),
+      subTitle: _9("You do not have permission to open this page. Please contact your administrator."),
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _9("Go to Dashboard") })
     }
   );
 };
@@ -2984,7 +3318,7 @@ var ResourceAccessGate = ({ resource, action, children, embedded = false }) => {
   if (can(resource, action)) return /* @__PURE__ */ jsx(Fragment, { children });
   return embedded ? null : /* @__PURE__ */ jsx(NoAccessResult, {});
 };
-var _9 = (text) => {
+var _10 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -3001,18 +3335,18 @@ var LicenseGate = ({ module: moduleName, children }) => {
     {
       status: "warning",
       icon: /* @__PURE__ */ jsx(LockOutlined, {}),
-      title: _9("Module Not Licensed"),
-      subTitle: _9(
+      title: _10("Module Not Licensed"),
+      subTitle: _10(
         `This page requires a license for the "${moduleName}" module. Please contact your administrator to obtain a license key.`
       ),
-      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _9("Go to Dashboard") })
+      extra: /* @__PURE__ */ jsx(Button, { type: "primary", onClick: () => navigate("/dashboard"), children: _10("Go to Dashboard") })
     }
   );
 };
 var PANE_TOOLBAR_HEIGHT = 28;
 var PaneNavigationContext = createContext(null);
 var usePaneNavigation = () => useContext(PaneNavigationContext);
-var _10 = window._ || ((text) => text);
+var _11 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
   const [narrow, setNarrow] = useState(
@@ -3083,7 +3417,7 @@ var VerticalActionsLayout = ({ position, onBarMount, children }) => {
           [sideKey]: sideOffset,
           zIndex: 1001
         },
-        children: /* @__PURE__ */ jsx(Tooltip, { title: _10("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
+        children: /* @__PURE__ */ jsx(Tooltip, { title: _11("Actions"), placement: sideKey === "left" ? "right" : "left", children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -3106,7 +3440,7 @@ var VerticalActionsLayout = ({ position, onBarMount, children }) => {
     useDrawer && /* @__PURE__ */ jsx(
       Drawer,
       {
-        title: _10("Actions"),
+        title: _11("Actions"),
         placement: sideKey,
         open: drawerOpen,
         onClose: () => setDrawerOpen(false),
@@ -3282,7 +3616,7 @@ var getNavigableRelations = (model, allModels) => {
 };
 
 // src/components/DynamicResource/utils/i18n.ts
-var _11 = (text) => {
+var _12 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -3298,7 +3632,7 @@ var asDisplayText = (value, fallback = "") => {
 var translateText = (key, fallback) => {
   const safeKey = asDisplayText(key, "");
   if (!safeKey) return fallback ?? "";
-  const translated = _11(safeKey);
+  const translated = _12(safeKey);
   return asDisplayText(translated, fallback ?? safeKey);
 };
 var MODULE_LABEL_OVERRIDES = {
@@ -3369,7 +3703,7 @@ var translateRelationKey = (rawKey) => {
 };
 var getRelationLabel = (rel) => {
   const relationKey = String(rel.relationName || rel.resource || "").trim();
-  if (!relationKey) return _11(rel.label || "");
+  if (!relationKey) return _12(rel.label || "");
   const translatedByKey = translateRelationKey(relationKey);
   if (translatedByKey && translatedByKey !== relationKey) return translatedByKey;
   const withoutRelationSuffix = relationKey.replace(/_relation$/, "");
@@ -3460,9 +3794,9 @@ window.ddlTrace = ddlTrace;
 window.ddlTraceClear = ddlTraceClear;
 
 // src/components/DynamicResource/utils/viewConfig.ts
-var _12 = window._ || ((text) => text);
+var _13 = window._ || ((text) => text);
 var DETAILS_TAB_NAME = "Details";
-var getDefaultViewName = () => _12("default view");
+var getDefaultViewName = () => _13("default view");
 var normalizeViewName = (name) => {
   const trimmed = String(name ?? "").trim();
   return trimmed || getDefaultViewName();
@@ -3679,7 +4013,7 @@ var resolveFieldFromConfig = (model, item) => {
   const key = item.object_name || item.name;
   return {
     key,
-    label: _12(key),
+    label: _13(key),
     type: "string"
   };
 };
@@ -3905,7 +4239,7 @@ var applyRelationViewOverride = (rel, item, mode) => {
   ddlTrace("applyRelationViewOverride CUSTOM-PAGE", { relKey: rel.relationName || rel.resource || rel.label || "?", mode, trimmed });
   return mode === "show" ? { ...rel, showViewType: "primary", showViewTypeFromCsv: true, showCustomPageName: trimmed } : { ...rel, editViewType: "primary", editViewTypeFromCsv: true, editCustomPageName: trimmed };
 };
-var _13 = window._ || ((text) => text);
+var _14 = window._ || ((text) => text);
 var extractButtonLabel = (node) => {
   if (node === null || node === void 0 || typeof node === "boolean") return null;
   if (typeof node === "string" || typeof node === "number") return String(node);
@@ -3923,12 +4257,12 @@ var extractButtonLabel = (node) => {
 };
 var renderIconOnlyButtons = (nodes) => {
   const fallbackLabels = {
-    EditButton: _13("Edit"),
-    DeleteButton: _13("Delete"),
-    ListButton: _13("List"),
-    CreateButton: _13("Create"),
-    ShowButton: _13("Show"),
-    SaveButton: _13("Save")
+    EditButton: _14("Edit"),
+    DeleteButton: _14("Delete"),
+    ListButton: _14("List"),
+    CreateButton: _14("Create"),
+    ShowButton: _14("Show"),
+    SaveButton: _14("Save")
   };
   const enhanceNode = (node, index) => {
     if (node === null || node === void 0 || typeof node === "boolean") return node;
@@ -3994,7 +4328,7 @@ var ResponsiveHeaderButtons = ({ children }) => {
   );
 };
 var { Text: Text3 } = Typography;
-var _14 = window._ || ((text) => text);
+var _15 = window._ || ((text) => text);
 var DataDetailSlider = ({ detailState }) => {
   if (!detailState) return null;
   const [open, setOpen] = useState(false);
@@ -4006,7 +4340,7 @@ var DataDetailSlider = ({ detailState }) => {
     marks[i] = /* @__PURE__ */ jsx(Tooltip, { title: levelTooltips[i], children: /* @__PURE__ */ jsx("span", { children: levelLabels[i] }) });
   }
   const popoverContent = /* @__PURE__ */ jsxs("div", { style: { width: 580, padding: "8px 4px" }, children: [
-    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text3, { strong: true, children: _14("Data Detail Level") }) }),
+    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text3, { strong: true, children: _15("Data Detail Level") }) }),
     /* @__PURE__ */ jsx(
       Slider,
       {
@@ -4019,7 +4353,7 @@ var DataDetailSlider = ({ detailState }) => {
         tooltip: { formatter: (val) => levelTooltips[val ?? 0] }
       }
     ),
-    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text3, { type: "secondary", children: _14("Adjust how relations are displayed on this page.") }) })
+    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text3, { type: "secondary", children: _15("Adjust how relations are displayed on this page.") }) })
   ] });
   return /* @__PURE__ */ jsx(
     Popover,
@@ -4393,7 +4727,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_72, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_76, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -4552,19 +4886,19 @@ var renderSharedGalleryCard = ({
 };
 
 // src/components/DynamicResource/analysis/aggregation.ts
-var _15 = (text) => {
+var _16 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
 var COUNT_SERIES_KEY = "__count__";
 var CATEGORY_LABEL_SEPARATOR = " \u2022 ";
 var getSummaryFnOptions = () => [
-  { label: _15("Sum"), value: "sum" },
-  { label: _15("Average"), value: "avg" },
-  { label: _15("Count"), value: "count" },
-  { label: _15("Max"), value: "max" },
-  { label: _15("Min"), value: "min" },
-  { label: _15("Std Dev"), value: "stddev" }
+  { label: _16("Sum"), value: "sum" },
+  { label: _16("Average"), value: "avg" },
+  { label: _16("Count"), value: "count" },
+  { label: _16("Max"), value: "max" },
+  { label: _16("Min"), value: "min" },
+  { label: _16("Std Dev"), value: "stddev" }
 ];
 var summarizeValues = (values, fn) => {
   if (values.length === 0) return 0;
@@ -4632,7 +4966,7 @@ var resolveSeries = (numericFields, selectedSeriesKeys) => {
   const seriesLabels = numericFields.reduce((acc, field) => {
     acc[field.key] = field.label;
     return acc;
-  }, { [COUNT_SERIES_KEY]: _15("Count") });
+  }, { [COUNT_SERIES_KEY]: _16("Count") });
   return { seriesKeys: selectedValid.length > 0 ? selectedValid : rawSeriesKeys, seriesLabels };
 };
 var aggregateChartData = ({
@@ -4697,7 +5031,7 @@ var aggregateChartData = ({
   const filteredRawRows = data.filter((record) => allowedGroupKeys.has(groupLabelOf(record)));
   return { groups, seriesKeys, seriesLabels, filteredRawRows };
 };
-var _16 = window._ || ((text) => text);
+var _17 = window._ || ((text) => text);
 var openPdfWindow = (title, bodyHtml) => {
   const pdfWindow = window.open("", "_blank", "width=960,height=720");
   if (!pdfWindow) return;
@@ -4743,16 +5077,16 @@ var buildStatsHtml = (statsSummary) => {
             </tr>
         `).join("");
   const numericSection = statsSummary.numericStats.length > 0 ? `
-            <h3>${_16("Numeric columns")}</h3>
+            <h3>${_17("Numeric columns")}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>${_16("Field")}</th>
-                  <th>${_16("Sum")}</th>
-                  <th>${_16("Average")}</th>
-                  <th>${_16("Min")}</th>
-                  <th>${_16("Max")}</th>
-                  <th>${_16("Std Dev")}</th>
+                  <th>${_17("Field")}</th>
+                  <th>${_17("Sum")}</th>
+                  <th>${_17("Average")}</th>
+                  <th>${_17("Min")}</th>
+                  <th>${_17("Max")}</th>
+                  <th>${_17("Std Dev")}</th>
                 </tr>
               </thead>
               <tbody>${numericRows}</tbody>
@@ -4770,8 +5104,8 @@ var buildStatsHtml = (statsSummary) => {
                     <table>
                       <thead>
                         <tr>
-                          <th>${_16("Value")}</th>
-                          <th>${_16("Count")}</th>
+                          <th>${_17("Value")}</th>
+                          <th>${_17("Count")}</th>
                         </tr>
                       </thead>
                       <tbody>${countRows}</tbody>
@@ -4779,7 +5113,7 @@ var buildStatsHtml = (statsSummary) => {
                 `;
   }).join("") : "";
   return `
-        <h2>${_16("Stats")}</h2>
+        <h2>${_17("Stats")}</h2>
         ${numericSection}
         ${categoricalSection}
     `;
@@ -4796,7 +5130,7 @@ var buildStatsSummary = (rows, fields, labelCache) => {
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _16("Yes") : _16("No");
+    if (field.type === "boolean") return raw ? _17("Yes") : _17("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   };
@@ -5121,7 +5455,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
     }
   );
 };
-var _17 = window._ || ((text) => text);
+var _18 = window._ || ((text) => text);
 var StorageFieldValue = ({ storageKey }) => {
   const [busy, setBusy] = useState(false);
   const filename = storageKey.split("/").slice(1).join("/") || storageKey;
@@ -5130,7 +5464,7 @@ var StorageFieldValue = ({ storageKey }) => {
     try {
       const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
       const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
-      if (!res.ok) throw new Error(_17("Download failed."));
+      if (!res.ok) throw new Error(_18("Download failed."));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -5139,15 +5473,53 @@ var StorageFieldValue = ({ storageKey }) => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      message.error(err?.message || _17("Download failed."));
+      message.error(err?.message || _18("Download failed."));
     } finally {
       setBusy(false);
     }
   };
   return /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), loading: busy, onClick: handleDownload, children: filename });
 };
-dayjs10.extend(relativeTime2);
-var _18 = window._ || ((text) => text);
+
+// src/components/DynamicResource/utils/resolveRowTypedField.ts
+var ROW_TYPED_FIELD_TYPES = [
+  "string",
+  "number",
+  "boolean",
+  "date",
+  "datetime",
+  "time",
+  "image_url"
+];
+var fieldViewTypeWithoutModePrefix = (token) => token.replace(/^(read-only-|editable-)/, "");
+function resolveRowTypedField(field, record) {
+  if (!field.typeFromField && !field.optionsFromField) return field;
+  const resolved = { ...field };
+  if (field.typeFromField) {
+    const rowType = record?.[field.typeFromField];
+    if (ROW_TYPED_FIELD_TYPES.includes(rowType)) {
+      resolved.type = rowType;
+    } else if (typeof rowType === "string" && rowType) {
+      const base = fieldViewTypeWithoutModePrefix(normalizeFieldViewType(`read-only-${fieldViewTypeWithoutModePrefix(rowType)}`) || "");
+      resolved.type = "string";
+      if (base) {
+        resolved.showViewType = field.showViewType || `read-only-${base}`;
+        if (normalizeFieldViewType(`editable-${base}`)) {
+          resolved.editViewType = field.editViewType || `editable-${base}`;
+        }
+      }
+    }
+  }
+  if (field.optionsFromField) {
+    const options = record?.[field.optionsFromField];
+    if (Array.isArray(options) && options.length > 0) {
+      resolved.options = options.map((option) => option !== null && typeof option === "object" && "value" in option ? option : { label: String(option), value: option });
+    }
+  }
+  return resolved;
+}
+dayjs11.extend(relativeTime2);
+var _19 = window._ || ((text) => text);
 var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
@@ -5236,7 +5608,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-qrcode":
       return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
-      const parsed = dayjs10(str);
+      const parsed = dayjs11(str);
       if (!parsed.isValid()) return str || "-";
       return /* @__PURE__ */ jsx(Fragment, { children: parsed.fromNow() });
     }
@@ -5247,7 +5619,8 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
   }
 };
 var wrapForTable = (node) => /* @__PURE__ */ jsx("div", { style: { maxHeight: 120, overflowY: "auto", overflowX: "hidden" }, children: node });
-var renderFieldValue = (field, record, allModels, inTable) => {
+var renderFieldValue = (rawField, record, allModels, inTable) => {
+  const field = resolveRowTypedField(rawField, record);
   const value = record?.[field.key];
   const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
   if (isNlSentenceField) {
@@ -5257,7 +5630,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
         value: value === null || value === void 0 ? "" : String(value),
         autoSize: { minRows: 3, maxRows: 18 },
         style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _18(field.key),
+        placeholder: _19(field.key),
         readOnly: true
       }
     );
@@ -5290,7 +5663,7 @@ var renderFieldValue = (field, record, allModels, inTable) => {
   }
   return value ?? "-";
 };
-var _19 = window._ || ((text) => text);
+var _20 = window._ || ((text) => text);
 var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
 var COUNT_KEY = "__count__";
 var CrosstabTable = ({
@@ -5316,7 +5689,7 @@ var CrosstabTable = ({
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
   const seriesLabel = useCallback(
     (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _19("Count");
+      if (seriesKey === COUNT_KEY) return _20("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
@@ -5463,10 +5836,10 @@ var CrosstabTable = ({
       const updates = computeProration(records, seriesKey, newAggregate);
       if (records.length > 1 && editable.confirmProration !== false) {
         Modal.confirm({
-          title: _19("Distribute value across records"),
+          title: _20("Distribute value across records"),
           width: 520,
           content: /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _19("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _20("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
             /* @__PURE__ */ jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
               /* @__PURE__ */ jsx("span", { children: rec?._label ?? recordId(rec) }),
               /* @__PURE__ */ jsxs("span", { style: { color: token.colorTextTertiary }, children: [
@@ -5476,8 +5849,8 @@ var CrosstabTable = ({
               ] })
             ] }, String(recordId(rec)))) })
           ] }),
-          okText: _19("Apply"),
-          cancelText: _19("Cancel"),
+          okText: _20("Apply"),
+          cancelText: _20("Cancel"),
           onOk: () => editable.onCommitCell(updates)
         });
         return;
@@ -5487,10 +5860,10 @@ var CrosstabTable = ({
     [editable, contributingRecords, cellAggregate, computeProration, recordId, effectiveValue, token.colorTextTertiary]
   );
   if (!rowField && !colField) {
-    return /* @__PURE__ */ jsx(Empty, { description: _19("Crosstab needs at least one category field.") });
+    return /* @__PURE__ */ jsx(Empty, { description: _20("Crosstab needs at least one category field.") });
   }
   if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _19("No data available for this view.") });
+    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _20("No data available for this view.") });
   }
   const headerCellStyle = {
     background: token.colorBgLayout,
@@ -5655,7 +6028,7 @@ var ensurePlotly = () => {
 var getPlotly = () => window.Plotly;
 
 // src/components/DynamicResource/analysis/chartTheme.ts
-var _20 = (text) => {
+var _21 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -5690,7 +6063,7 @@ var CHART_THEME_COLORS = {
   dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
-var getChartEmptyMessage = () => _20(CHART_EMPTY_MESSAGE);
+var getChartEmptyMessage = () => _21(CHART_EMPTY_MESSAGE);
 var buildStandardChartLayout = (dark, title, overrides = {}) => {
   const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
   const axis = {
@@ -6077,7 +6450,7 @@ var AnalysisChart = (props) => {
 };
 
 // src/components/DynamicResource/analysis/chartCatalog.ts
-var _21 = (text) => {
+var _22 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -6121,7 +6494,7 @@ var normalizeChartTypeId = (id, fallback = DEFAULT_CHART_TYPE) => {
   return LEGACY_CHART_TYPE_IDS[raw] ?? fallback;
 };
 var getChartTypeDef = (id) => CHART_TYPE_BY_ID.get(id);
-var getChartTypeLabel = (id) => _21(CHART_TYPE_BY_ID.get(id)?.label ?? id);
+var getChartTypeLabel = (id) => _22(CHART_TYPE_BY_ID.get(id)?.label ?? id);
 var getFrontendChartTypes = () => CHART_TYPES.filter((def) => def.frontend);
 var ICONS = {
   AreaChartOutlined,
@@ -6146,7 +6519,7 @@ var ChartTypeIcon = ({ chartType }) => {
   if (!Icon) return null;
   return /* @__PURE__ */ jsx(Icon, { rotate: def?.iconRotate || void 0 });
 };
-var _22 = window._ || ((text) => text);
+var _23 = window._ || ((text) => text);
 var getChartTypeOptions = () => getFrontendChartTypes().map((def) => ({
   value: def.id,
   title: getChartTypeLabel(def.id),
@@ -6220,21 +6593,21 @@ var AnalyzePanel = ({
   const plotsIndividualRows = ["scatter", "bubble", "scatter3d", "histogram", "box"].includes(chartType);
   const waitingForServer = Boolean(serverAggregation && !serverAggregation.hasResult && !serverAggregation.error);
   const axisRoles = {
-    scatter: [_22("X"), _22("Y")],
-    bubble: [_22("X"), _22("Y"), _22("Bubble size")],
-    scatter3d: [_22("X"), _22("Y"), _22("Z")]
+    scatter: [_23("X"), _23("Y")],
+    bubble: [_23("X"), _23("Y"), _23("Bubble size")],
+    scatter3d: [_23("X"), _23("Y"), _23("Z")]
   };
   const axisSeries = chartData.seriesKeys.filter((key) => key !== COUNT_SERIES_KEY);
   const axisHint = axisRoles[chartType] && axisSeries.length > 0 ? axisRoles[chartType].map((role, index) => `${role}: ${chartData.seriesLabels[axisSeries[Math.min(index, axisSeries.length - 1)]] || ""}`).join(" \xB7 ") : null;
   const category3Options = [
-    { label: _22("None"), value: "__none__" },
+    { label: _23("None"), value: "__none__" },
     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
   ];
   return /* @__PURE__ */ jsx(
     Card,
     {
       size: "small",
-      "aria-label": _22("Analyze"),
+      "aria-label": _23("Analyze"),
       styles: { body: { padding: 0 } },
       children: /* @__PURE__ */ jsx("div", { style: { perspective: 1600, padding: 12 }, children: /* @__PURE__ */ jsxs(
         "div",
@@ -6258,15 +6631,15 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _22("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _22("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _22("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _22("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _22("Export chart") }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _23("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _23("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _23("Export chart") }) })
                   ] }),
                   serverAggregation?.error && /* @__PURE__ */ jsx(Alert, { type: "error", showIcon: true, message: serverAggregation.error }),
                   waitingForServer ? /* @__PURE__ */ jsxs("div", { style: { padding: 48, textAlign: "center", color: token.colorTextSecondary }, children: [
                     /* @__PURE__ */ jsx(Spin, {}),
-                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _22("Aggregating on the server...") })
+                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _23("Aggregating on the server...") })
                   ] }) : isCrosstab ? /* @__PURE__ */ jsx(
                     CrosstabTable,
                     {
@@ -6300,7 +6673,7 @@ var AnalyzePanel = ({
                       graphRef: chartGraphRef
                     }
                   ),
-                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _22("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
+                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _23("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
                   /* @__PURE__ */ jsx(
                     Collapse,
                     {
@@ -6309,11 +6682,11 @@ var AnalyzePanel = ({
                       items: [
                         {
                           key: "configure-chart",
-                          label: _22("Customize chart"),
+                          label: _23("Customize chart"),
                           children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                             /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Category 1") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 1") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6324,12 +6697,12 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _22("Select category")
+                                    placeholder: _23("Select category")
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Category 2") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 2") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6340,14 +6713,14 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _22("None"), value: "__none__" },
+                                      { label: _23("None"), value: "__none__" },
                                       ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Category 3") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 3") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6362,7 +6735,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Chart Type") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Chart Type") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6380,7 +6753,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Summary") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Summary") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6395,7 +6768,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 180 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Ranking Filter") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Ranking Filter") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6406,15 +6779,15 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _22("None"), value: "none" },
-                                      { label: _22("Top N"), value: "top" },
-                                      { label: _22("Bottom N"), value: "bottom" }
+                                      { label: _23("None"), value: "none" },
+                                      { label: _23("Top N"), value: "top" },
+                                      { label: _23("Bottom N"), value: "bottom" }
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("Ranking Column") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Ranking Column") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -6425,13 +6798,13 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _22("Select numeric column"),
+                                    placeholder: _23("Select numeric column"),
                                     disabled: rankingMode === "none" || numericFields.length === 0
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 120 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _22("N") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("N") }),
                                 /* @__PURE__ */ jsx(
                                   InputNumber,
                                   {
@@ -6450,8 +6823,8 @@ var AnalyzePanel = ({
                             ] }),
                             /* @__PURE__ */ jsxs("div", { children: [
                               /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _22("Series") }),
-                                /* @__PURE__ */ jsx(Tooltip, { title: _22("Unselect All"), children: /* @__PURE__ */ jsx(
+                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _23("Series") }),
+                                /* @__PURE__ */ jsx(Tooltip, { title: _23("Unselect All"), children: /* @__PURE__ */ jsx(
                                   Button,
                                   {
                                     size: "small",
@@ -6471,7 +6844,7 @@ var AnalyzePanel = ({
                                     markAnalyzePrefsTouched();
                                     setSelectedSeriesKeys(values);
                                   },
-                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _22("Count"), value: COUNT_SERIES_KEY }]
+                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _23("Count"), value: COUNT_SERIES_KEY }]
                                 }
                               ),
                               axisHint && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary, marginTop: 6 }, children: axisHint })
@@ -6498,11 +6871,11 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _22("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _22("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _23("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _22("Numeric columns") }), children: /* @__PURE__ */ jsxs(
+                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _23("Numeric columns") }), children: /* @__PURE__ */ jsxs(
                       Table,
                       {
                         dataSource: statsSummary.numericStats,
@@ -6513,18 +6886,18 @@ var AnalyzePanel = ({
                           /* @__PURE__ */ jsx(
                             Table.Column,
                             {
-                              title: _22("Field"),
+                              title: _23("Field"),
                               dataIndex: "label",
                               render: (label) => /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: label }),
                               onHeaderCell: () => ({ style: statsHeaderStyle })
                             },
                             "label"
                           ),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _22("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _22("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _22("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _22("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _22("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                          /* @__PURE__ */ jsx(Table.Column, { title: _23("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _23("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _23("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _23("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _23("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                         ]
                       }
                     ) }),
@@ -6536,7 +6909,7 @@ var AnalyzePanel = ({
                         items: [
                           {
                             key: "categorical-columns",
-                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _22("Categorical columns (distinct < 20)") }),
+                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _23("Categorical columns (distinct < 20)") }),
                             children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12 }, children: [
                               /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: field.label }) }),
                               /* @__PURE__ */ jsxs(
@@ -6547,11 +6920,11 @@ var AnalyzePanel = ({
                                   pagination: false,
                                   rowKey: (row) => row.value,
                                   children: [
-                                    /* @__PURE__ */ jsx(Table.Column, { title: _22("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                    /* @__PURE__ */ jsx(Table.Column, { title: _23("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                     /* @__PURE__ */ jsx(
                                       Table.Column,
                                       {
-                                        title: _22("Count"),
+                                        title: _23("Count"),
                                         dataIndex: "count",
                                         align: "right",
                                         onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -6580,7 +6953,7 @@ var AnalyzePanel = ({
     }
   );
 };
-var _23 = window._ || ((text) => text);
+var _24 = window._ || ((text) => text);
 var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
   const { token } = theme.useToken();
   const {
@@ -6609,11 +6982,11 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
       style: { marginBottom: 12 },
       items: [{
         key: "crosstab-config",
-        label: /* @__PURE__ */ jsx(Tooltip, { title: _23("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+        label: /* @__PURE__ */ jsx(Tooltip, { title: _24("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 1 (rows)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Category 1 (rows)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6624,12 +6997,12 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _23("Select category")
+                  placeholder: _24("Select category")
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 2 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Category 2 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6640,14 +7013,14 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _23("None"), value: "__none__" },
+                    { label: _24("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Category 3 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Category 3 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6658,7 +7031,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _23("None"), value: "__none__" },
+                    { label: _24("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
@@ -6667,7 +7040,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Cell fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Cell fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6680,13 +7053,13 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _23("All numeric fields"),
+                  placeholder: _24("All numeric fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Summary") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Summary") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6701,7 +7074,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _23("Filter fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _24("Filter fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -6714,19 +7087,19 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _23("Select filter fields"),
+                  placeholder: _24("Select filter fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _23("Save configuration"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _23("Save configuration") }) }) })
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _24("Save configuration"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _24("Save configuration") }) }) })
         ] })
       }]
     }
   );
 };
-var _24 = window._ || ((text) => text);
+var _25 = window._ || ((text) => text);
 var useAnalyzeSettings = ({
   model,
   apiUrl,
@@ -6797,9 +7170,9 @@ var useAnalyzeSettings = ({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      message.success(_24("Analyze preferences saved."));
+      message.success(_25("Analyze preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _24("Failed to save analyze preferences."));
+      message.error(error instanceof Error ? error.message : _25("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -6940,7 +7313,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     return merged;
   }, [pageLabelCache, serverResult, model.fields]);
   const formatCategoryValue = useCallback((field, record) => {
-    if (!field) return _24("All");
+    if (!field) return _25("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -6951,7 +7324,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _24("Yes") : _24("No");
+    if (field.type === "boolean") return raw ? _25("Yes") : _25("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -7012,7 +7385,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const sampleInfo = serverResult && (serverResult.sample_rows || []).length < serverResult.total_rows ? { shown: serverResult.sample_rows.length, total: serverResult.total_rows } : null;
   const chartTitle = useMemo(() => {
     const labelOf = (key) => key ? model.fields.find((field) => field.key === key)?.label : null;
-    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _24("All")];
+    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _25("All")];
     [categoryField2, categoryField3].forEach((key) => {
       const label = labelOf(key);
       if (label) parts.push(label);
@@ -7148,7 +7521,7 @@ var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => 
       if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
       return { date: resolved.date?.toISOString() };
     }
-    const date = dayjs10(val?.date || val);
+    const date = dayjs11(val?.date || val);
     if (!date.isValid()) return {};
     if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
     return { date: date.startOf("day").toISOString() };
@@ -7191,7 +7564,7 @@ var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => 
 };
 
 // src/components/DynamicResource/analysis/useServerAnalyze.ts
-var _25 = (text) => {
+var _26 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -7253,7 +7626,7 @@ var useServerAnalyze = (options) => {
         setError(null);
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : _25("Failed to aggregate on the server."));
+        setError(e instanceof Error ? e.message : _26("Failed to aggregate on the server."));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -7274,7 +7647,7 @@ function useLicensePool() {
     (async () => {
       setLoading(true);
       try {
-        const res = await authenticatedFetch(`${API_URL3}/licensing/status`);
+        const res = await authenticatedFetch(`${API_URL2}/licensing/status`);
         if (!cancelled) {
           setPool(res.ok ? await res.json() : null);
         }
@@ -7332,7 +7705,7 @@ var SampleRowsTable = ({ rows }) => {
     }
   );
 };
-var _26 = window._ || ((text) => text);
+var _27 = window._ || ((text) => text);
 var SMART_IMPORT_EXPORT_MODULE = "data_import_export";
 var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
   const [file, setFile] = useState(null);
@@ -7380,7 +7753,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           detail = JSON.parse(bodyText)?.detail || bodyText;
         } catch {
         }
-        throw new Error(detail || _26("Import failed."));
+        throw new Error(detail || _27("Import failed."));
       }
       return await response.json();
     } finally {
@@ -7392,7 +7765,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       const report = await runImport(true);
       setPreview(report);
     } catch (err) {
-      message.error(err?.message || _26("Import failed."));
+      message.error(err?.message || _27("Import failed."));
     }
   };
   const handleConfirm = async () => {
@@ -7402,13 +7775,13 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       setConfirmed(true);
       onImported?.();
     } catch (err) {
-      message.error(err?.message || _26("Import failed."));
+      message.error(err?.message || _27("Import failed."));
     }
   };
   return /* @__PURE__ */ jsx(
     Modal,
     {
-      title: _26("Import CSV"),
+      title: _27("Import CSV"),
       open,
       onCancel: handleClose,
       footer: null,
@@ -7432,17 +7805,17 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
             disabled: busy,
             children: [
               /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(InboxOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _26("Click or drag a CSV file here") }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _26("Headers must match the model's field names exactly.") })
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _27("Click or drag a CSV file here") }),
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _27("Headers must match the model's field names exactly.") })
             ]
           }
         ),
         !confirmed && !preview && localFileInfo && /* @__PURE__ */ jsxs(Typography.Text, { style: { fontSize: 12, color: "#888" }, children: [
           localFileInfo.rowCount,
           " ",
-          _26("rows detected"),
+          _27("rows detected"),
           " \u2014 ",
-          _26("headers"),
+          _27("headers"),
           ": ",
           localFileInfo.headers.join(", ")
         ] }),
@@ -7451,18 +7824,18 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           {
             type: preview.errors.length > 0 ? "warning" : "success",
             showIcon: true,
-            message: confirmed ? _26("Import complete") : _26("Preview (no changes made yet)"),
+            message: confirmed ? _27("Import complete") : _27("Preview (no changes made yet)"),
             description: /* @__PURE__ */ jsxs(Fragment, { children: [
               /* @__PURE__ */ jsxs(Typography.Text, { children: [
-                _26("Rows"),
+                _27("Rows"),
                 ": ",
                 preview.total_rows,
                 " \u2014 ",
-                _26("Valid"),
+                _27("Valid"),
                 ": ",
                 preview.inserted + preview.updated,
                 " \u2014 ",
-                _26("Errors"),
+                _27("Errors"),
                 ": ",
                 preview.errors.length
               ] }),
@@ -7486,14 +7859,14 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                     )
                   },
                   columns: [
-                    { title: _26("Row"), dataIndex: "row", width: 80 },
-                    { title: _26("Error"), dataIndex: "message", ellipsis: true }
+                    { title: _27("Row"), dataIndex: "row", width: 80 },
+                    { title: _27("Error"), dataIndex: "message", ellipsis: true }
                   ]
                 }
               ),
               !!preview.sample_rows?.length && /* @__PURE__ */ jsxs(Fragment, { children: [
                 /* @__PURE__ */ jsxs(Typography.Text, { style: { display: "block", marginTop: 12 }, children: [
-                  _26("Sample of rows that will be loaded"),
+                  _27("Sample of rows that will be loaded"),
                   " (",
                   preview.sample_rows.length,
                   "/",
@@ -7516,9 +7889,9 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               borderRadius: 4
             },
             children: [
-              _26("Validation error, or custom/messy headers?"),
+              _27("Validation error, or custom/messy headers?"),
               " ",
-              _26("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
+              _27("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
               " ",
               /* @__PURE__ */ jsx(
                 Typography.Link,
@@ -7527,7 +7900,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                   href: isSmartTierInstalled ? `/data-import-export?model=${encodeURIComponent(resourcePath)}` : "https://www.juicemantics.com/iqvigilant",
                   target: isSmartTierInstalled ? void 0 : "_blank",
                   rel: isSmartTierInstalled ? void 0 : "noreferrer",
-                  children: _26("Open in IQVigilant Workbench \u2192")
+                  children: _27("Open in IQVigilant Workbench \u2192")
                 }
               )
             ]
@@ -7542,7 +7915,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: !file || busy,
               loading: busy && !preview,
               onClick: handlePreview,
-              children: _26("Preview")
+              children: _27("Preview")
             }
           ),
           !confirmed && preview && /* @__PURE__ */ jsx(
@@ -7552,10 +7925,10 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: busy,
               loading: busy,
               onClick: handleConfirm,
-              children: _26("Confirm import")
+              children: _27("Confirm import")
             }
           ),
-          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _26("Close") })
+          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _27("Close") })
         ] })
       ] })
     }
@@ -7913,7 +8286,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 };
 
 // src/components/DynamicResource/relations/helpers.ts
-var _27 = window._ || ((text) => text);
+var _28 = window._ || ((text) => text);
 var INLINE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
 var TABLE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["table", "totals-details", "crosstab", "editable-crosstab"]);
 var CROSSTAB_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["crosstab", "editable-crosstab"]);
@@ -7952,7 +8325,7 @@ var getRelationTabName = (rel, mode, fallback) => {
       return fallback;
     }
   }
-  const translatedExplicit = _27(explicit);
+  const translatedExplicit = _28(explicit);
   if (translatedExplicit !== explicit) return explicit;
   const relationKey = rel.relationName || rel.resource || "";
   if (relationKey) {
@@ -7965,11 +8338,11 @@ var getRelationTabName = (rel, mode, fallback) => {
   return explicit;
 };
 var getTabDisplayLabel = (tabName) => {
-  const direct = _27(tabName);
+  const direct = _28(tabName);
   if (direct !== tabName) return direct;
   return translateRelationKey(tabName);
 };
-var _28 = window._ || ((text) => text);
+var _29 = window._ || ((text) => text);
 var DARK_GRAY = "#444";
 var { Title } = Typography;
 var MetadataModal = ({ model, allModels, open, onClose }) => {
@@ -8000,7 +8373,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       const relations = (model.relations || []).map((r) => {
         const targetName = r.otherResource || r.resource;
         const relModel = findRelatedModel(targetName);
-        const other_label = relModel ? _28(getModelLabel(relModel)) : _28(targetName || "");
+        const other_label = relModel ? _29(getModelLabel(relModel)) : _29(targetName || "");
         return {
           relation_name: r.relationName || r.resource,
           relation_label: getRelationLabel(r),
@@ -8046,41 +8419,41 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   }, [navigate, onClose]);
   const fieldColumns = [
     {
-      title: _28("Field"),
+      title: _29("Field"),
       dataIndex: "label",
       key: "label",
       width: 160,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: tone.solid }, children: getFieldLabel(row) })
     },
     {
-      title: _28("Type"),
+      title: _29("Type"),
       dataIndex: "type",
       key: "type",
       width: 90,
-      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _28(v) })
+      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _29(v) })
     },
     {
-      title: _28("Required"),
+      title: _29("Required"),
       dataIndex: "required",
       key: "required",
       width: 80,
       render: (v) => v ? /* @__PURE__ */ jsx(CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
     },
     {
-      title: _28("Description"),
+      title: _29("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _28(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _29(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _28("Constraints"),
+      title: _29("Constraints"),
       dataIndex: "constraints",
       key: "constraints",
       width: 180,
       render: (v) => v?.length ? v.map((c, i) => /* @__PURE__ */ jsx(Tag, { style: { fontSize: 11, color: DARK_GRAY }, children: c }, i)) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _28("Valid Values"),
+      title: _29("Valid Values"),
       dataIndex: "options",
       key: "options",
       width: 200,
@@ -8094,7 +8467,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _28("Default"),
+      title: _29("Default"),
       key: "default",
       width: 120,
       render: (_v, row) => {
@@ -8104,7 +8477,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _28("Formula"),
+      title: _29("Formula"),
       dataIndex: "formula",
       key: "formula",
       render: (v) => v ? /* @__PURE__ */ jsx("code", { style: { fontSize: 12, color: DARK_GRAY }, children: v }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
@@ -8112,14 +8485,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   ];
   const relationColumns = [
     {
-      title: _28("Relation"),
+      title: _29("Relation"),
       dataIndex: "label",
       key: "label",
       width: 200,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: getRelationLabel(row) })
     },
     {
-      title: _28("Related Model"),
+      title: _29("Related Model"),
       dataIndex: "otherResource",
       key: "otherResource",
       width: 160,
@@ -8135,15 +8508,15 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
               size: "small",
               style: { padding: 0, color: relTone.solid, fontWeight: 500 },
               onClick: () => setNestedModel(related),
-              children: _28(v)
+              children: _29(v)
             }
           );
         }
-        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _28(v) });
+        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _29(v) });
       }
     },
     {
-      title: _28("Keys"),
+      title: _29("Keys"),
       key: "keys",
       width: 170,
       render: (_val, row) => /* @__PURE__ */ jsxs("span", { style: { fontSize: 12, fontFamily: "monospace", color: DARK_GRAY }, children: [
@@ -8152,25 +8525,25 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
           " \u2192 ",
           row.otherKey
         ] }) : null,
-        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _28("recursive") }) : null
+        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _29("recursive") }) : null
       ] })
     },
     {
-      title: _28("Description"),
+      title: _29("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _28(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _29(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     }
   ];
   const knowledgeGraphChildren = /* @__PURE__ */ jsxs(Fragment, { children: [
     graphLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
-    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _28("Error loading knowledge graph"), description: graphError }),
+    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _29("Error loading knowledge graph"), description: graphError }),
     graphHtml && !graphLoading && /* @__PURE__ */ jsx(ExecutableHtml, { html: graphHtml, style: { minHeight: 400 } })
   ] });
   const tabItems = [
     {
       key: "fields",
-      label: _28("Fields"),
+      label: _29("Fields"),
       children: /* @__PURE__ */ jsx(
         Table,
         {
@@ -8185,14 +8558,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     },
     ...model.relations?.length ? [{
       key: "relations",
-      label: _28("Relations"),
+      label: _29("Relations"),
       children: (() => {
         const sortByName = (a, b) => getRelationLabel(a).localeCompare(getRelationLabel(b));
         const reverseRels = (model.relations || []).filter((r) => isReverseRelation(r)).sort(sortByName);
         const forwardRels = (model.relations || []).filter((r) => !isReverseRelation(r)).sort(sortByName);
         return /* @__PURE__ */ jsxs(Fragment, { children: [
           reverseRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _28("Reverse Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _29("Reverse Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -8207,7 +8580,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             )
           ] }),
           forwardRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _28("Forward Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _29("Forward Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -8225,7 +8598,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     }] : [],
     {
       key: "knowledge_graph",
-      label: _28("Knowledge Graph"),
+      label: _29("Knowledge Graph"),
       children: knowledgeGraphChildren
     }
   ];
@@ -8236,7 +8609,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       {
         title: /* @__PURE__ */ jsxs("span", { style: { color: tone.solid }, children: [
           /* @__PURE__ */ jsx(InfoCircleOutlined, { style: { marginRight: 8 } }),
-          _28("Metadata"),
+          _29("Metadata"),
           " \u2014 ",
           moduleLabel ? `${moduleLabel} \u203A ` : "",
           modelLabel
@@ -8256,7 +8629,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             marginBottom: 16,
             fontStyle: "italic",
             border: "none"
-          }, children: _28(model.description) }),
+          }, children: _29(model.description) }),
           /* @__PURE__ */ jsx(Tabs, { items: tabItems, size: "small", activeKey: activeTab, onChange: setActiveTab })
         ]
       }
@@ -8272,17 +8645,17 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     )
   ] });
 };
-var _29 = window._ || ((text) => text);
+var _30 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = useState(initialOpen);
   useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
-  const metadataButton = /* @__PURE__ */ jsx(Tooltip, { title: _29("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
+  const metadataButton = /* @__PURE__ */ jsx(Tooltip, { title: _30("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) });
   const metadataModal = /* @__PURE__ */ jsx(MetadataModal, { model, allModels, open: metadataOpen, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
-var _30 = window._ || ((text) => text);
+var _31 = window._ || ((text) => text);
 var useShowEditableForm = (resource, id) => {
   const navigate = useNavigate();
   const { formProps, saveButtonProps, queryResult } = useForm({
@@ -8291,7 +8664,7 @@ var useShowEditableForm = (resource, id) => {
     id,
     redirect: false,
     successNotification: () => ({
-      message: _30("Changes saved."),
+      message: _31("Changes saved."),
       type: "success"
     })
   });
@@ -8331,12 +8704,12 @@ var buildShowTabFormOptions = (formProps, model, allModels) => {
     effectiveFields
   };
 };
-var _31 = window._ || ((text) => text);
+var _32 = window._ || ((text) => text);
 var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
   const navigate = useNavigate();
   const allModelsList = allModels || [];
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }, children: [
-    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _31("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId != null && model.capabilities?.delete !== false && /* @__PURE__ */ jsx(Tooltip, { title: _32("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.name,
@@ -8345,7 +8718,7 @@ var ShowFooterButtons = ({ model, allModels, recordId, saveButtonProps }) => {
         onSuccess: () => navigate(`/${resolveResourcePath(model.resource || model.name, allModelsList)}`)
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _31("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _32("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
   ] });
 };
 var renderModelHeading = ({
@@ -8505,7 +8878,7 @@ var RelatedObjectPreview = ({ resource, id, model, allModels, fallbackLabel }) =
     }
   );
 };
-var _32 = window._ || ((text) => text);
+var _33 = window._ || ((text) => text);
 var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = useApiUrl();
   const go = useGo();
@@ -8601,7 +8974,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
                 node: {
                   title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                     relationLabelNode,
-                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _32("Error") })
+                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _33("Error") })
                   ] }),
                   key: rel.relationName || rel.resource,
                   selectable: false,
@@ -8642,7 +9015,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
             node: {
               title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                 relationLabelNode,
-                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _32("Error") })
+                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _33("Error") })
               ] }),
               key: rel.relationName || rel.resource,
               selectable: false,
@@ -8677,12 +9050,12 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, {});
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, alignItems: "flex-start" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _32("Forward Relations") }),
-      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _32("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _33("Forward Relations") }),
+      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _33("None") })
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _32("Reverse Relations") }),
-      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _32("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _33("Reverse Relations") }),
+      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _33("None") })
     ] })
   ] });
 };
@@ -8693,7 +9066,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0 || recordId === null || recordId === "") return;
     let cancelled = false;
     authenticatedFetch(
-      `${API_URL3}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
+      `${API_URL2}/dashboard/pinned-records/check?resource=${encodeURIComponent(resource)}&record_id=${encodeURIComponent(String(recordId))}`
     ).then((r) => r.json()).then((d) => {
       if (!cancelled) setPinned(Boolean(d.pinned));
     }).catch(() => {
@@ -8707,7 +9080,7 @@ function usePinRecord(resource, recordId) {
     if (!resource || recordId === void 0) return;
     setLoading(true);
     try {
-      await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`, {
+      await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resource, record_id: String(recordId) })
@@ -8722,7 +9095,7 @@ function usePinRecord(resource, recordId) {
     setLoading(true);
     try {
       await authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(recordId))}`,
         { method: "DELETE" }
       );
       setPinned(false);
@@ -8737,13 +9110,13 @@ async function unpinRecords(resource, recordIds) {
   await Promise.all(
     recordIds.map(
       (id) => authenticatedFetch(
-        `${API_URL3}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
+        `${API_URL2}/dashboard/pinned-records/${encodeURIComponent(resource)}/${encodeURIComponent(String(id))}`,
         { method: "DELETE" }
       )
     )
   );
 }
-var _33 = window._ || ((text) => text);
+var _34 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef, initialExploreOpen = false) => {
   const apiUrl = useApiUrl();
   const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -8811,7 +9184,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const configureLayoutRow = configureLayoutButtonRef?.current;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _33("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _34("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -8825,7 +9198,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _33("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _34("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -8854,7 +9227,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _33("Save")
+        children: _34("Save")
       }
     )
   ] });
@@ -8871,9 +9244,9 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
     metadataButton,
     metadataModal,
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _33("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _34("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsx("span", { style: { marginInlineStart: 10 } }),
-    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _33("Unpin") : _33("Pin to dashboard"), children: /* @__PURE__ */ jsx(
+    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _34("Unpin") : _34("Pin to dashboard"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -8882,14 +9255,14 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         loading: pinLoading
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _33("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
+    /* @__PURE__ */ jsx(Tooltip, { title: _34("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsx(
       Modal,
       {
         open: exploreOpen,
         onCancel: () => setExploreOpen(false),
         footer: null,
-        title: _33("Explore"),
+        title: _34("Explore"),
         width: "90vw",
         styles: { body: { height: "80vh", overflowY: "auto" } },
         destroyOnClose: true,
@@ -8897,7 +9270,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _33("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
+    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _34("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
   ] });
   return {
     actionsState: { showActions: showRelationActions, showCreate: showRelationCreate },
@@ -9076,8 +9449,8 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
-var _34 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_34("Sun"), _34("Mon"), _34("Tue"), _34("Wed"), _34("Thu"), _34("Fri"), _34("Sat")];
+var _35 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_35("Sun"), _35("Mon"), _35("Tue"), _35("Wed"), _35("Thu"), _35("Fri"), _35("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
 var isCalendarDateField = (field) => {
   const rawType = String(field?.type || "").trim().toLowerCase();
@@ -9105,7 +9478,7 @@ var getCalendarDateFieldOptions = (fields) => {
 var getCalendarRecordDate = (record, fieldKey) => {
   const rawValue = record?.[fieldKey];
   if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs10(rawValue);
+  const parsed = dayjs11(rawValue);
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
@@ -9163,8 +9536,9 @@ function useRoleFilteredModel(model) {
     return { ...model, fields: filtered };
   }, [model, userRoles]);
 }
-var _35 = window._ || ((text) => text);
-var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+var _36 = window._ || ((text) => text);
+var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
+  const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -9177,7 +9551,7 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
   useSetHelpPageKey(embedded ? null : `${model.resource || model.name}:show`, embedded ? null : id ?? null);
   const { formProps, saveButtonProps, record, recordId } = useShowEditableForm(model.resource || model.name, id);
   const { formProps: showFormProps, effectiveFields } = buildShowTabFormOptions(formProps, model, allModels);
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_35("Show")} ${modelDisplayLabel}`) : `${_35("Show")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_36("Show")} ${modelDisplayLabel}`) : `${_36("Show")} ${modelDisplayLabel}`;
   const saveLayoutRef = useRef(() => {
   });
   const configureLayoutButtonRef = useRef(null);
@@ -9210,13 +9584,13 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
       ...standardItems,
       ...extraTabs.map((tab) => {
         const TabContent = tab.show;
-        return { key: tab.key, label: _35(tab.label), children: /* @__PURE__ */ jsx(TabContent, { record }) };
+        return { key: tab.key, label: _36(tab.label), children: /* @__PURE__ */ jsx(TabContent, { record }) };
       })
     ];
   }, [standardItems, model.extraTabs, record]);
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-    /* @__PURE__ */ jsx("span", { children: _35("Configure page layout") }),
+    /* @__PURE__ */ jsx("span", { children: _36("Configure page layout") }),
     /* @__PURE__ */ jsx(
       Button,
       {
@@ -9266,7 +9640,7 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _35("Show"),
+          actionLabel: _36("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: combinedHeaderButtons,
@@ -9288,7 +9662,38 @@ var DynamicShowPage = ({ model: modelProp, allModels, idOverride, embedded, befo
   ] });
 };
 var DynamicShow = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.embedded), children: /* @__PURE__ */ jsx(DynamicShowPage, { ...props }) });
-var _36 = window._ || ((text) => text);
+var _37 = window._ || ((text) => text);
+function isSingleRecordPrimaryView(model, listViewType) {
+  return Boolean(model.isSingleRecord) && String(listViewType || model.listViewType || "").toLowerCase() === "primary";
+}
+var SingleRecordPrimaryView = ({ model, allModels }) => {
+  const apiUrl = useApiUrl();
+  const PrimaryShowRenderer = useContext(PrimaryShowContext);
+  const [recordId, setRecordId] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
+  useEffect(() => {
+    let cancelled = false;
+    setLoadError(null);
+    authenticatedFetch(`${apiUrl}/${resourcePath}?_start=0&_end=1`).then(async (response) => {
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(typeof body?.detail === "string" ? body.detail : _37("The data of this list could not be read."));
+      const row = Array.isArray(body) ? body[0] : void 0;
+      if (!cancelled) setRecordId(row ? String(row.eid ?? row.id) : null);
+    }).catch((error) => {
+      if (!cancelled) setLoadError(error instanceof Error ? error.message : String(error));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiUrl, resourcePath]);
+  if (loadError) return /* @__PURE__ */ jsx(Alert, { type: "error", showIcon: true, message: loadError });
+  if (recordId === null) {
+    return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) });
+  }
+  return PrimaryShowRenderer ? /* @__PURE__ */ jsx(PrimaryShowRenderer, { model, id: recordId, allModels: allModels || [] }) : /* @__PURE__ */ jsx(DynamicShow, { model, allModels, idOverride: recordId });
+};
+var _38 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
   const optionLabel = "_label";
@@ -9343,7 +9748,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
       }
     ),
     isCapped && /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }, children: [
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _36("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _38("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -9352,13 +9757,13 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
           style: { fontSize: 11, padding: 0 },
           loading: queryResult?.isLoading || queryResult?.isFetching,
           onClick: () => setLoadAll(true),
-          children: _36("Load all")
+          children: _38("Load all")
         }
       )
     ] })
   ] });
 };
-var _37 = window._ || ((text) => text);
+var _39 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = Form.useFormInstance();
   const [uploading, setUploading] = useState(false);
@@ -9367,7 +9772,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const handleUpload = async (file) => {
     const recordId = form.getFieldValue("eid") ?? form.getFieldValue("id");
     if (!recordId) {
-      message.error(_37("Save the record first before uploading a file."));
+      message.error(_39("Save the record first before uploading a file."));
       return false;
     }
     setUploading(true);
@@ -9391,9 +9796,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
         data_hash: result.data_hash
       });
       setFileName(result.data_name || file.name);
-      message.success(_37("File uploaded successfully."));
+      message.success(_39("File uploaded successfully."));
     } catch (err) {
-      message.error(err?.message || _37("File upload failed."));
+      message.error(err?.message || _39("File upload failed."));
     } finally {
       setUploading(false);
     }
@@ -9410,9 +9815,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       style: { padding: "8px 16px" },
       children: [
         /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _37("Uploading...") : _37("Click or drag a file here to upload") }),
+        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _39("Uploading...") : _39("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
-          _37("Current"),
+          _39("Current"),
           ": ",
           displayName
         ] })
@@ -9420,7 +9825,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
     }
   ) });
 };
-var _38 = window._ || ((text) => text);
+var _40 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
@@ -9480,19 +9885,19 @@ var AsyncSelectInput = ({
       options,
       value,
       onChange,
-      placeholder: placeholder || _38("Select..."),
+      placeholder: placeholder || _40("Select..."),
       style: { width: "100%" },
       filterOption: (input, option) => String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
     }
   );
 };
-var _39 = window._ || ((text) => text);
+var _41 = window._ || ((text) => text);
 var STORAGE_FIELD_BASE = "/api/advanced-development/media/storage-field";
 var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
   const [busy, setBusy] = useState(false);
   const handleUpload = async (file) => {
     if (!pk) {
-      message.error(_39("Save the record first before attaching a file."));
+      message.error(_41("Save the record first before attaching a file."));
       return false;
     }
     if (!modelName || !fieldName) return false;
@@ -9525,7 +9930,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
           body: file,
           headers: { "Content-Type": file.type || "application/octet-stream" }
         });
-        if (!put.ok) throw new Error(_39("Upload to storage failed."));
+        if (!put.ok) throw new Error(_41("Upload to storage failed."));
         const confirm = await authenticatedFetch(`${STORAGE_FIELD_BASE}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -9539,9 +9944,9 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
       } else {
         throw new Error(await direct.text());
       }
-      message.success(_39("File uploaded."));
+      message.success(_41("File uploaded."));
     } catch (err) {
-      message.error(err?.message || _39("File upload failed."));
+      message.error(err?.message || _41("File upload failed."));
     } finally {
       setBusy(false);
     }
@@ -9555,7 +9960,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
         const res = await authenticatedFetch(`${STORAGE_FIELD_BASE}?${qs.toString()}`, { method: "DELETE" });
         if (!res.ok) throw new Error(await res.text());
       } catch (err) {
-        message.error(err?.message || _39("Could not remove the file."));
+        message.error(err?.message || _41("Could not remove the file."));
         setBusy(false);
         return;
       }
@@ -9564,25 +9969,25 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
     onChange?.(null);
   };
   if (!pk) {
-    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _39("Save the record first, then attach a file here.") });
+    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _41("Save the record first, then attach a file here.") });
   }
   const attachedName = value ? value.split("/").slice(1).join("/") || value : null;
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs(Upload.Dragger, { beforeUpload: handleUpload, showUploadList: false, multiple: false, disabled: busy, style: { padding: "8px 16px" }, children: [
       /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _39("Uploading...") : _39("Click or drag a file here to upload") })
+      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _41("Uploading...") : _41("Click or drag a file here to upload") })
     ] }),
     attachedName && /* @__PURE__ */ jsxs("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12 }, children: [
       /* @__PURE__ */ jsxs("span", { style: { color: "#666" }, children: [
-        _39("Attached"),
+        _41("Attached"),
         ": ",
         attachedName
       ] }),
-      /* @__PURE__ */ jsx(Popconfirm, { title: _39("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
+      /* @__PURE__ */ jsx(Popconfirm, { title: _41("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
     ] })
   ] });
 };
-var _40 = window._ || ((text) => text);
+var _42 = window._ || ((text) => text);
 var ReactMarkdown3 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
   const [activeTab, setActiveTab] = useState("preview");
@@ -9596,12 +10001,12 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       items: [
         {
           key: "preview",
-          label: _40("Preview"),
+          label: _42("Preview"),
           children: /* @__PURE__ */ jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown3, { children: value }) }) })
         },
         {
           key: "edit",
-          label: _40("Edit"),
+          label: _42("Edit"),
           children: /* @__PURE__ */ jsx(
             Input.TextArea,
             {
@@ -9722,13 +10127,15 @@ var renderEditableFieldViewType = (token, value, onChange) => {
       return null;
   }
 };
-var renderInput = (field, allModels, model, currentId) => {
-  const resolvedField = model && allModels ? applyRelationFieldOverrides(model, allModels).find((item) => item.key === field.key) || field : field;
+var BooleanCheckboxInput = ({ value, checked, onChange }) => /* @__PURE__ */ jsx(Checkbox, { checked: checked ?? (value === true || value === "true"), onChange: (e) => onChange?.(e.target.checked) });
+var renderInput = (field, allModels, model, currentId, record) => {
+  const overriddenField = model && allModels ? applyRelationFieldOverrides(model, allModels).find((item) => item.key === field.key) || field : field;
+  const resolvedField = resolveRowTypedField(overriddenField, record);
   if (resolvedField.key === "data" && isFileModel(model)) {
     return /* @__PURE__ */ jsx(FileUploadInput, {});
   }
   const isNlSentenceField = resolvedField.key === "nl_sentence" || resolvedField.key === "nl_asks_sentence";
-  const sentenceFieldHelper = _40(resolvedField.key);
+  const sentenceFieldHelper = _42(resolvedField.key);
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsx(
       Input.TextArea,
@@ -9757,15 +10164,15 @@ var renderInput = (field, allModels, model, currentId) => {
     const isSelfRef = refResource && modelResource && refResource === modelResource;
     return /* @__PURE__ */ jsx(RelationSelect, { field: resolvedField, allModels, excludeId: isSelfRef ? currentId : void 0 });
   }
-  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_40("Select")} ${_40(resolvedField.label)}...` });
+  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_42("Select")} ${_42(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsx(Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
     case "boolean":
-      return /* @__PURE__ */ jsx(Checkbox, {});
+      return /* @__PURE__ */ jsx(BooleanCheckboxInput, {});
     case "date":
-      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _40("Select date") });
+      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _42("Select date") });
     case "datetime":
-      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _40("Select date and time") });
+      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _42("Select date and time") });
     case "time":
       return /* @__PURE__ */ jsx(TimePicker, { style: { width: "100%" } });
     case "number":
@@ -9774,10 +10181,111 @@ var renderInput = (field, allModels, model, currentId) => {
       return /* @__PURE__ */ jsx(Input, {});
   }
 };
-var _41 = window._ || ((text) => text);
+var _43 = window._ || ((text) => text);
+var INLINE_EDIT_LIST_VIEW_TYPES = /* @__PURE__ */ new Set(["editable-table", "editable-list"]);
+function isInlineEditableField(field, model) {
+  if (field.readOnly || field.formula || field.isPk) return false;
+  if (model.pkField && field.key === model.pkField) return false;
+  if ((model.pkFields || []).includes(field.key)) return false;
+  return true;
+}
+function formValueAsPayloadValue(field, value) {
+  if (dayjs11.isDayjs(value)) {
+    if (field.type === "date") return value.format("YYYY-MM-DD");
+    if (field.type === "time") return value.format("HH:mm:ss");
+    return value.toISOString();
+  }
+  return value;
+}
+function useInlineRowEdits(model, allModels, apiUrl, onSaved) {
+  const [stagedValuesByRowId, setStagedValuesByRowId] = useState({});
+  const [saveErrorsByRowId, setSaveErrorsByRowId] = useState({});
+  const [saving, setSaving] = useState(false);
+  const stageValue = useCallback((rowId, fieldKey, value) => {
+    setStagedValuesByRowId((previous) => ({ ...previous, [String(rowId)]: { ...previous[String(rowId)] || {}, [fieldKey]: value } }));
+  }, []);
+  const stagedValue = useCallback((rowId, fieldKey) => stagedValuesByRowId[String(rowId)]?.[fieldKey], [stagedValuesByRowId]);
+  const rowError = useCallback((rowId) => saveErrorsByRowId[String(rowId)], [saveErrorsByRowId]);
+  const cancel = useCallback(() => {
+    setStagedValuesByRowId({});
+    setSaveErrorsByRowId({});
+  }, []);
+  const save = useCallback(async () => {
+    const entries = Object.entries(stagedValuesByRowId);
+    if (entries.length === 0) return;
+    setSaving(true);
+    const resource = resolveResourcePath(model.resource || model.name, allModels);
+    const fieldsByKey = new Map(model.fields.map((field) => [field.key, field]));
+    const stillStaged = {};
+    const nextErrors = {};
+    let savedRows = 0;
+    for (const [rowId, values] of entries) {
+      const payload = Object.fromEntries(Object.entries(values).map(([key, value]) => {
+        const field = fieldsByKey.get(key);
+        return [key, field ? formValueAsPayloadValue(field, value) : value];
+      }));
+      try {
+        const response = await authenticatedFetch(`${apiUrl}/${resource}/${encodeURIComponent(rowId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          stillStaged[rowId] = values;
+          nextErrors[rowId] = typeof body?.detail === "string" ? body.detail : _43("Failed to save changes.");
+        } else {
+          savedRows += 1;
+        }
+      } catch (error) {
+        stillStaged[rowId] = values;
+        nextErrors[rowId] = error instanceof Error ? error.message : _43("Failed to save changes.");
+      }
+    }
+    setStagedValuesByRowId(stillStaged);
+    setSaveErrorsByRowId(nextErrors);
+    setSaving(false);
+    if (Object.keys(nextErrors).length > 0) {
+      message.error(Object.values(nextErrors)[0]);
+    } else {
+      message.success(_43("Changes saved."));
+    }
+    if (savedRows > 0) onSaved();
+  }, [stagedValuesByRowId, model, allModels, apiUrl, onSaved]);
+  return { hasPendingEdits: Object.keys(stagedValuesByRowId).length > 0, saving, stageValue, stagedValue, rowError, save, cancel };
+}
+var InlineEditActions = ({ inlineRowEdits }) => /* @__PURE__ */ jsxs(Space, { size: 4, children: [
+  /* @__PURE__ */ jsx(Tooltip, { title: _43("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: inlineRowEdits.cancel, disabled: !inlineRowEdits.hasPendingEdits || inlineRowEdits.saving, "aria-label": _43("Cancel") }) }),
+  /* @__PURE__ */ jsx(Tooltip, { title: _43("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: () => void inlineRowEdits.save(), loading: inlineRowEdits.saving, disabled: !inlineRowEdits.hasPendingEdits, "aria-label": _43("Save") }) })
+] });
+var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits }) => {
+  const rowField = useMemo(() => resolveRowTypedField(field, record), [field, record]);
+  const stagedCellValue = inlineRowEdits.stagedValue(rowId, field.key);
+  const value = stagedCellValue !== void 0 ? stagedCellValue : record?.[field.key];
+  return /* @__PURE__ */ jsx(
+    Form,
+    {
+      component: false,
+      fields: [{ name: ["cell"], value }],
+      onValuesChange: (changed) => inlineRowEdits.stageValue(rowId, field.key, changed.cell),
+      children: /* @__PURE__ */ jsx(
+        Form.Item,
+        {
+          name: "cell",
+          style: { margin: 0, minWidth: 120 },
+          valuePropName: rowField.type === "boolean" ? "checked" : "value",
+          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs11.isDayjs(current2) ? { value: dayjs11(current2) } : rowField.type === "time" && current2 && !dayjs11.isDayjs(current2) ? { value: dayjs11("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
+          children: renderInput(field, allModels, model, rowId, record)
+        }
+      )
+    }
+  );
+};
+var _44 = window._ || ((text) => text);
 var { Title: Title2 } = Typography;
 var requiredMark = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
-var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, injectedValues }) => {
+var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues }) => {
+  const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -9834,7 +10342,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
       if (canAutoRelate && relateResource && relateTargetKey && relateOtherKey && relateTargetId) {
         try {
           if (createdId === void 0 || createdId === null) {
-            throw new Error(_41("Could not resolve the new record id to create the relation."));
+            throw new Error(_44("Could not resolve the new record id to create the relation."));
           }
           const relationPayload = {
             [relateTargetKey]: relateTargetId,
@@ -9849,7 +10357,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
             throw new Error(`Failed to create relation (${relationResponse.status})`);
           }
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _41("Failed to create relation."));
+          message.error(error instanceof Error ? error.message : _44("Failed to create relation."));
         }
       }
       const hasModelRelations = (model.relations || []).length > 0;
@@ -9864,7 +10372,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
       }
     },
     successNotification: () => ({
-      message: _41("Changes saved."),
+      message: _44("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -9994,8 +10502,8 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
   }, [createdRecord, model.name, model.resource, go]);
   const renderHeaderButtons = ({ defaultButtons }) => renderIconOnlyButtons(defaultButtons);
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(Tooltip, { title: _41("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
-    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _41("Done") })
+    /* @__PURE__ */ jsx(Tooltip, { title: _44("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
+    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _44("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
   const relationTabEntries = useMemo(() => {
@@ -10021,7 +10529,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
   const hasRelationTabs = relationTabEntries.length > 0;
   const renderFormCell = (item, index) => {
     if (item.attribute_or_relation_type === "relation") {
-      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _41("Available after saving") }, `${item.name}-rel-ph-${index}`);
+      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _44("Available after saving") }, `${item.name}-rel-ph-${index}`);
     }
     const key = item.object_name || item.name;
     const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
@@ -10043,7 +10551,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
           name: field.key,
           rules: field.required ? [{ required: true }] : [],
           valuePropName: field.type === "boolean" ? "checked" : void 0,
-          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
+          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
           style: { margin: 0 },
           children: renderInput(field, allModels, model)
         }
@@ -10118,8 +10626,8 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
     const maxCol = Math.max(1, ...normalized.map((r) => r.column));
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
-      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _41(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_72, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_73, colIdx) => {
+      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _44(section) }),
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -10141,7 +10649,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
             field.label,
             requiredMark(field)
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
+          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
     ] }),
@@ -10186,7 +10694,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
         {
           type: "info",
           showIcon: true,
-          message: _41("Save the record first to add relations."),
+          message: _44("Save the record first to add relations."),
           style: { marginTop: 8 }
         }
       );
@@ -10220,7 +10728,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
   const tabItems = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_41("Details"), modelTone),
+      label: renderToneTabLabel(_44("Details"), modelTone),
       children: detailsContent
     },
     ...relationTabEntries.map(({ tabName, tone }) => ({
@@ -10241,7 +10749,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
         {
           saveButtonProps: { ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" },
           headerButtons: renderHeaderButtons,
-          title: renderWrappedPageTitle(`${_41("Create")} ${modelDisplayLabel}`),
+          title: renderWrappedPageTitle(`${_44("Create")} ${modelDisplayLabel}`),
           children: /* @__PURE__ */ jsx(
             Form,
             {
@@ -10260,12 +10768,12 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
                       body: JSON.stringify({ eid_from: eidFrom, eid_to: eidTo })
                     });
                     if (res.ok) successCount++;
-                    else message.error(`${_41("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
+                    else message.error(`${_44("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
                   } catch {
-                    message.error(`${_41("Failed to create relation for")} eid_to=${eidTo}`);
+                    message.error(`${_44("Failed to create relation for")} eid_to=${eidTo}`);
                   }
                 }
-                if (successCount > 0) message.success(`${successCount} ${_41("relation(s) created.")}`);
+                if (successCount > 0) message.success(`${successCount} ${_44("relation(s) created.")}`);
                 if (returnTo) navigate(returnTo);
               },
               children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !f.isPk && !f.formula).map((field) => {
@@ -10296,14 +10804,14 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
         saveButtonProps: isPostCreate ? { ...saveButtonProps, style: { display: "none" }, hideText: true } : { ...saveButtonProps, hideText: true },
         headerButtons: isPostCreate ? renderPostCreateHeaderButtons : renderHeaderButtons,
         title: renderWrappedPageTitle(
-          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_41("Create")} ${modelDisplayLabel}`
+          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_44("Create")} ${modelDisplayLabel}`
         ),
         children: [
           isPostCreate && /* @__PURE__ */ jsx(
             Alert,
             {
               type: "success",
-              message: _41("Record created. You can now manage relations below."),
+              message: _44("Record created. You can now manage relations below."),
               showIcon: true,
               style: { marginBottom: 12 }
             }
@@ -10323,17 +10831,38 @@ var DynamicCreatePage = ({ model: modelProp, allModels, journeyCallbacks, inject
   ] });
 };
 var DynamicCreate = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "create", children: /* @__PURE__ */ jsx(DynamicCreatePage, { ...props }) });
-var _42 = (text) => translateText(text, text);
+var _45 = (text) => {
+  const translate = window._;
+  return typeof translate === "function" ? translate(text) : text;
+};
+var FieldLabelWithHelp = ({ field }) => {
+  const { token } = theme.useToken();
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    field.label,
+    field.required ? /* @__PURE__ */ jsx("span", { style: { color: token.colorError, marginLeft: 3 }, children: "*" }) : null,
+    field.description ? /* @__PURE__ */ jsx(Tooltip, { title: _45(field.description), children: /* @__PURE__ */ jsx(
+      InfoCircleOutlined,
+      {
+        className: "jm-field-help",
+        "aria-label": _45(field.description),
+        style: { color: token.colorTextTertiary, fontSize: 12, marginLeft: 4, cursor: "help" }
+      }
+    ) }) : null
+  ] });
+};
+var _46 = (text) => translateText(text, text);
 var { Text: Text4 } = Typography;
 var VIEW_TYPE_OPTIONS = [
-  { label: _42("Default (from model schema)"), value: "" },
-  { label: _42("Table"), value: "table" },
-  { label: _42("Gallery"), value: "gallery" },
-  { label: _42("Image"), value: "image" },
-  { label: _42("Calendar"), value: "calendar" },
-  { label: _42("Totals / Details"), value: "totals-details" },
-  { label: _42("Primary"), value: "primary" },
-  { label: _42("List"), value: "list" }
+  { label: _46("Default (from model schema)"), value: "" },
+  { label: _46("Table"), value: "table" },
+  { label: _46("Editable table"), value: "editable-table" },
+  { label: _46("Gallery"), value: "gallery" },
+  { label: _46("Image"), value: "image" },
+  { label: _46("Calendar"), value: "calendar" },
+  { label: _46("Totals / Details"), value: "totals-details" },
+  { label: _46("Primary"), value: "primary" },
+  { label: _46("List"), value: "list" },
+  { label: _46("Editable list"), value: "editable-list" }
 ];
 var nextGridPosition = (cells) => {
   if (!cells.length) return { row: 0, col: 0 };
@@ -10419,53 +10948,53 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     onSave({ ...config, tabs: nextTabs });
     onClose();
   };
-  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _42(t.name) }));
+  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _46(t.name) }));
   return /* @__PURE__ */ jsx(
     Drawer,
     {
-      title: cell?.source_type === "plotly_chart" ? `${_42("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" ? `${_42("Configure section")}: ${cell?.section_name ? _42(cell.section_name) : cell?.model ?? ""}` : `${_42("Configure cell")}: ${cell?.model ?? ""}`,
+      title: cell?.source_type === "plotly_chart" ? `${_46("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" && cell?.source_type !== "named_query" && cell?.source_type !== "non_model_data" ? `${_46("Configure section")}: ${cell?.section_name ? _46(cell.section_name) : cell?.model ?? ""}` : `${_46("Configure cell")}: ${cell?.model ?? ""}`,
       placement: "right",
       width: 380,
       open,
       onClose,
       footer: /* @__PURE__ */ jsxs(Space, { style: { justifyContent: "flex-end", width: "100%", display: "flex" }, children: [
-        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _42("Cancel") }),
-        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _42("Save") })
+        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _46("Cancel") }),
+        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _46("Save") })
       ] }),
       children: /* @__PURE__ */ jsxs(Form, { form, layout: "vertical", size: "small", children: [
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("Tab") }),
-        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _42("Tab name"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("Tab") }),
+        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _46("Tab name"), children: /* @__PURE__ */ jsx(
           AutoComplete,
           {
             options: tabOptions,
             filterOption: false,
-            placeholder: _42("Select existing or type a new name")
+            placeholder: _46("Select existing or type a new name")
           }
         ) }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("Position") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("Position") }),
         /* @__PURE__ */ jsxs(Space, { children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _42("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _42("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _46("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _46("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
         ] }),
-        (cell?.source_type === "model" || cell?.source_type === "named_query") && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("View") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _42("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
+        (cell?.source_type === "model" || cell?.source_type === "named_query" || cell?.source_type === "non_model_data") && /* @__PURE__ */ jsxs(Fragment, { children: [
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("View") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _46("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
         ] }),
         cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("Chart") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _42("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _42("e.g. Confidence by Month") }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _42("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("Chart") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _46("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _46("e.g. Confidence by Month") }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _46("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("Size") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("Size") }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _42("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _42("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _46("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _46("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
         ] }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, style: { marginTop: 8 }, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _42("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _42("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _46("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _46("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _42("Style") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _46("Style") }),
         /* @__PURE__ */ jsx(
           Form.Item,
           {
@@ -10601,8 +11130,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_72) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _72(text) });
+function buildGridDensityMarks(_76) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _76(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -10613,15 +11142,15 @@ function buildGridDensityMarks(_72) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_72) {
+function buildGridDensityLabelText(_76) {
   return {
-    original: _72("Original"),
-    small: _72("Small"),
-    fit: _72("Page"),
-    "fit-row": _72("Row"),
-    "fit-cell": _72("Cell"),
-    medium: _72("Medium"),
-    large: _72("Large")
+    original: _76("Original"),
+    small: _76("Small"),
+    fit: _76("Page"),
+    "fit-row": _76("Row"),
+    "fit-cell": _76("Cell"),
+    medium: _76("Medium"),
+    large: _76("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -10684,7 +11213,7 @@ function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPaddin
   }, [gridDensity, numRows]);
   return fitRowHeight;
 }
-var _43 = (text) => translateText(text, text);
+var _47 = (text) => translateText(text, text);
 var CarouselPositionBadge = ({ corner, current: current2, total }) => {
   const { token } = theme.useToken();
   const positionStyle = corner === "top-right" ? { top: 6, right: 8 } : { bottom: 6, right: 8 };
@@ -10719,7 +11248,7 @@ var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow
       color: token.colorTextSecondary,
       border: `1px solid ${token.colorBorderSecondary}`
     }, children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _43("Go to first row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _47("Go to first row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -10734,7 +11263,7 @@ var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow
         " / ",
         total
       ] }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _43("Go to last row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _47("Go to last row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -10887,7 +11416,7 @@ var FitRowCellCarousel = React6.forwardRef(({ cellsByRow, gridDensity, rowHeight
   );
 });
 FitRowCellCarousel.displayName = "FitRowCellCarousel";
-var _44 = (text) => translateText(text, text);
+var _48 = (text) => translateText(text, text);
 var SECTIONS_ORIGINAL_MIN_ROW_PX = 80;
 var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onMove, onResize, children }) => {
   const { token } = theme.useToken();
@@ -10911,6 +11440,8 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
     ...cell.min_height ? { minHeight: cell.min_height } : {},
     ...cell.max_height ? { maxHeight: cell.max_height } : {},
     ...cell.html_style ? parseInlineStyle2(cell.html_style) : {},
+    // The section's accent color, for its style class (e.g. jm-settings-section).
+    ...cell.section_accent_color ? { ["--jm-section-accent"]: cell.section_accent_color } : {},
     ...isMaximized ? { gridColumn: "1 / -1" } : {},
     ...isMinimized ? { minHeight: 0 } : {}
   };
@@ -11004,21 +11535,22 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
       )
     ] }),
     isConfiguring && /* @__PURE__ */ jsxs("div", { className: "jm-cell-toolbar", style: toolbarStyle, children: [
-      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _44(cell.section_name) : cell.id }),
+      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _48(cell.section_name) : cell.id }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _44("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _44("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _44("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _44("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _44("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _44("Restore") : _44("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _44("Restore") : _44("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
+        /* @__PURE__ */ jsx(Tooltip, { title: _48("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _48("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _48("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _48("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _48("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _48("Restore") : _48("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _48("Restore") : _48("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
       ] })
     ] }),
     (!isMinimized || !isConfiguring) && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children })
   ] });
 };
 var SectionsGrid = React6.forwardRef(({ cells, config, tabId, renderContent, onConfigChange, isConfiguring = false, gridDensity = "original" }, ref) => {
+  const { token: themeToken } = theme.useToken();
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize } = useCellWindowState();
   const [drawerCellId, setDrawerCellId] = useState(null);
   const containerRef = useRef(null);
@@ -11059,7 +11591,7 @@ var SectionsGrid = React6.forwardRef(({ cells, config, tabId, renderContent, onC
     boxSizing: "border-box"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _44("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _48("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;
   const renderCell = (cell) => /* @__PURE__ */ jsx(
@@ -11109,6 +11641,33 @@ var SectionsGrid = React6.forwardRef(({ cells, config, tabId, renderContent, onC
     cell.id
   )) });
   return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsx("style", { children: `
+                .jm-section-cell.jm-settings-section {
+                    --jm-settings-accent: var(--jm-section-accent, ${themeToken.colorPrimary});
+                    background: color-mix(in srgb, var(--jm-settings-accent) 5%, ${themeToken.colorBgContainer}) !important;
+                    border: 1px solid ${themeToken.colorBorderSecondary} !important;
+                    border-left: 4px solid var(--jm-settings-accent) !important;
+                    border-radius: ${themeToken.borderRadiusLG + 4}px !important;
+                    box-shadow: ${themeToken.boxShadowTertiary};
+                    transition: box-shadow 0.3s, border-color 0.3s;
+                }
+                .jm-section-cell.jm-settings-section:hover {
+                    box-shadow: ${themeToken.boxShadowSecondary};
+                    border-color: color-mix(in srgb, var(--jm-settings-accent) 35%, ${themeToken.colorBorderSecondary}) !important;
+                    border-left-color: var(--jm-settings-accent) !important;
+                }
+                .jm-settings-section .jm-section-title {
+                    font-size: ${themeToken.fontSizeLG}px !important; font-weight: 700 !important; letter-spacing: 0.3px;
+                }
+                .jm-settings-section .jm-section-description { margin-bottom: 8px !important; }
+                .jm-settings-section td { padding: 4px 10px !important; }
+                .jm-settings-section .jm-field-row { flex-direction: column; align-items: stretch !important; gap: 3px !important; }
+                .jm-settings-section .jm-field-label {
+                    flex: none !important; background: transparent !important; padding: 0 !important;
+                    color: ${themeToken.colorTextSecondary}; font-size: ${themeToken.fontSizeSM}px; font-weight: 600;
+                }
+                .jm-settings-section .jm-field-value { flex: none !important; width: 100%; background: transparent !important; padding: 0 !important; }
+            ` }),
     /* @__PURE__ */ jsx("div", { ref: containerRef, style: { height: "100%", boxSizing: "border-box" }, children: gridBody }),
     /* @__PURE__ */ jsx(
       CellConfigDrawer,
@@ -11135,7 +11694,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_72, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -11170,7 +11729,7 @@ var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabel
     }
   );
 };
-var _45 = window._ || ((text) => text);
+var _49 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(void 0);
@@ -11204,19 +11763,19 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
           excludeId: isSelfRef ? currentId : void 0
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _45("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _45("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _49("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _49("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
     ] });
   }
   if (!value) {
     return /* @__PURE__ */ jsxs("div", { style: row, children: [
       /* @__PURE__ */ jsx("span", { children: "-" }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _45("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _49("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
     ] });
   }
   return /* @__PURE__ */ jsxs("div", { style: row, children: [
     /* @__PURE__ */ jsx(ReferenceField, { id: value, resource }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _45("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _49("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
 var NLSentenceBlock = ({
@@ -11280,9 +11839,8 @@ var NLSentenceBlock = ({
     !loading && html !== null && /* @__PURE__ */ jsx(ExecutableHtml, { html })
   ] });
 };
-var _46 = window._ || ((text) => text);
+var _50 = window._ || ((text) => text);
 var { Title: Title3 } = Typography;
-var requiredMark2 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 function coerce(v) {
   if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
   return v;
@@ -11380,10 +11938,10 @@ var SectionCellContent = ({
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
-        children: renderInput(field, allModels, model, isSelfRef ? recordId : void 0)
+        children: renderInput(field, allModels, model, isSelfRef ? recordId : void 0, record)
       }
     );
   };
@@ -11401,6 +11959,25 @@ var SectionCellContent = ({
         },
         `nls-${item.nl_sentence_eid}`
       );
+    }
+    if (item.attribute_or_relation_type === "view") {
+      const viewModel = findModelByName(allModels, item.object_name);
+      if (!viewModel) return null;
+      const viewType = String(getConfigVid(item, mode) || "").trim().toLowerCase();
+      return /* @__PURE__ */ jsxs("div", { style: { marginBottom: 4, ...parseInlineStyle(item.html_format) }, children: [
+        item.show_label !== false && /* @__PURE__ */ jsx(Typography.Text, { style: { ...labelStyle, display: "block", marginBottom: 4 }, children: _50(viewModel.label) }),
+        /* @__PURE__ */ jsx(
+          DynamicList,
+          {
+            model: viewModel,
+            allModels,
+            isEmbedded: true,
+            listViewType: viewType || void 0,
+            preferencesResourceOverride: `${modelResource}:${item.name || item.object_name}`
+          },
+          `${item.object_name}-${viewType}`
+        )
+      ] }, `${item.name}-${item.row}-${item.column}-${index}`);
     }
     if (item.attribute_or_relation_type === "relation") {
       if (!record || !allModels) return null;
@@ -11462,34 +12039,29 @@ var SectionCellContent = ({
     };
     if (mode === "edit") {
       const editable2 = isAttributeValueEditable(item, "edit");
-      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
-        showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: [
-          field.label,
-          requiredMark2(field)
-        ] }),
-        /* @__PURE__ */ jsx("div", { style: { ...valueStyle, flex: "1 0 200px" }, children: editable2 ? /* @__PURE__ */ jsx(
+      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { className: "jm-field-row", style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
+        showLabel && /* @__PURE__ */ jsx("div", { className: "jm-field-label", style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: /* @__PURE__ */ jsx(FieldLabelWithHelp, { field }) }),
+        /* @__PURE__ */ jsx("div", { className: "jm-field-value", style: { ...valueStyle, flex: "1 0 200px" }, children: editable2 ? /* @__PURE__ */ jsx(
           Form.Item,
           {
             name: field.key,
             rules: field.required && !field.formula ? [{ required: true }] : [],
             valuePropName: field.type === "boolean" ? "checked" : void 0,
-            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
+            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
             style: { margin: 0 },
-            children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId)
+            children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId, record)
           }
         ) : renderFieldValue(field, record, allModels) })
       ] }) }, `${field.key}-${index}`);
     }
     const editable = Boolean(formProps) && isAttributeValueEditable(item, "show");
     const forceReadOnly = Boolean(formProps) && Boolean(item.read_only_in_edit);
-    return /* @__PURE__ */ jsx(VisibilityGate, { condition: item.visibility_condition, children: /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
-      showLabel && /* @__PURE__ */ jsxs("div", { style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: [
-        field.label,
-        requiredMark2(field)
-      ] }),
-      /* @__PURE__ */ jsx("div", { style: { ...valueStyle, flex: "1 0 200px" }, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })
+    return /* @__PURE__ */ jsx(VisibilityGate, { condition: item.visibility_condition, children: /* @__PURE__ */ jsx("div", { style: { marginBottom: 4 }, children: /* @__PURE__ */ jsxs("div", { className: "jm-field-row", style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 6px" }, children: [
+      showLabel && /* @__PURE__ */ jsx("div", { className: "jm-field-label", style: { ...labelStyle, backgroundColor: labelBackground, padding: "2px 4px", borderRadius: 4, flex: "0 0 200px" }, children: /* @__PURE__ */ jsx(FieldLabelWithHelp, { field }) }),
+      /* @__PURE__ */ jsx("div", { className: "jm-field-value", style: { ...valueStyle, flex: "1 0 200px" }, children: editable || forceReadOnly ? renderShowEditableInput(field, forceReadOnly) : renderFieldValue(field, record, allModels) })
     ] }) }) }, `${item.name}-${item.row}-${item.column}`);
   };
+  const sectionLook = sectionRows[0];
   const rawSnippet = sectionRows[0]?.section_html_snippet || null;
   const parsedSnippet = useMemo(() => {
     if (!rawSnippet) return { css: "", html: "" };
@@ -11508,10 +12080,14 @@ var SectionCellContent = ({
     return { css, html };
   }, [rawSnippet]);
   return /* @__PURE__ */ jsxs("div", { style: { padding: "4px 6px" }, children: [
-    /* @__PURE__ */ jsx(Title3, { level: 5, style: { margin: "0 0 4px 0", color: "#1677ff" }, children: _46(sectionName) }),
+    /* @__PURE__ */ jsxs(Title3, { level: 5, className: "jm-section-title", style: { margin: "0 0 4px 0", color: sectionLook?.section_accent_color || "#1677ff", display: "flex", alignItems: "center", gap: 6 }, children: [
+      sectionLook?.section_icon ? resolveIcon(sectionLook.section_icon) : null,
+      /* @__PURE__ */ jsx("span", { children: _50(sectionName) })
+    ] }),
+    sectionLook?.section_description && /* @__PURE__ */ jsx(Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _50(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_72, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_73, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_76, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_77, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -11549,7 +12125,8 @@ function buildCells(configRows, tabName, overrides) {
       max_height: ov?.max_height ?? null,
       section_name: sectionName,
       section_id: sectionId,
-      section_css_class: firstRow?.section_css_class ?? null
+      section_css_class: firstRow?.section_css_class ?? null,
+      section_accent_color: firstRow?.section_accent_color ?? null
     });
   }
   return cells;
@@ -11653,7 +12230,7 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
   }, [isConfiguring]);
   return { config, loading, save, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange };
 }
-var _47 = window._ || ((text) => text);
+var _51 = window._ || ((text) => text);
 var SCALABLE_SHOW = /* @__PURE__ */ new Set([
   "csv",
   "read-and-edit-csv",
@@ -11706,22 +12283,22 @@ var LEVEL_TO_EDIT = {
   6: "editable-table"
 };
 var DATA_DETAIL_LEVEL_LABELS = [
-  _47("Original"),
-  _47("Minimal"),
-  _47("Compact"),
-  _47("Summary"),
-  _47("Expandable"),
-  _47("Expanded"),
-  _47("Analyze")
+  _51("Original"),
+  _51("Minimal"),
+  _51("Compact"),
+  _51("Summary"),
+  _51("Expandable"),
+  _51("Expanded"),
+  _51("Analyze")
 ];
 var DATA_DETAIL_LEVEL_TOOLTIPS = [
-  _47("Shows each relation using its original configured view type with no slider overrides applied."),
-  _47("Sets all relations to CSV view. Great for summary quick reading."),
-  _47("Sets all relations to List view. Great for quick reading."),
-  _47("Sets relations to Crosstab. Great for analyzing trends."),
-  _47("Sets relations to Totals-Details. Great for going from summaries to details."),
-  _47("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
-  _47("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
+  _51("Shows each relation using its original configured view type with no slider overrides applied."),
+  _51("Sets all relations to CSV view. Great for summary quick reading."),
+  _51("Sets all relations to List view. Great for quick reading."),
+  _51("Sets relations to Crosstab. Great for analyzing trends."),
+  _51("Sets relations to Totals-Details. Great for going from summaries to details."),
+  _51("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
+  _51("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
 ];
 function getViewTypeLevel(viewType, mode) {
   const map = mode === "show" ? SHOW_VIEW_LEVELS : EDIT_VIEW_LEVELS;
@@ -11897,8 +12474,7 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
     isActive
   };
 }
-var _48 = window._ || ((text) => text);
-var requiredMark3 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
+var _52 = window._ || ((text) => text);
 var emptyLayoutConfig = {
   isConfiguring: false,
   enterConfigMode: () => {
@@ -11941,12 +12517,12 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
   const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_48), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_48);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_52), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_52);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _48("Cell size"),
+      label: _52("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -12035,7 +12611,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const items = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_48("Details"), modelTone),
+      label: renderToneTabLabel(_52("Details"), modelTone),
       children: /* @__PURE__ */ jsxs("div", { style: { paddingBottom: 2 }, children: [
         configLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
         !configLoading && !hasConfig && /* @__PURE__ */ jsx(Form, { ...editFormProps, size: "small", children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginTop: 0 }, children: effectiveFields.filter((f) => !f.isPk).map((field) => /* @__PURE__ */ jsxs(
@@ -12048,19 +12624,16 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
               gap: "4px 6px"
             },
             children: [
-              /* @__PURE__ */ jsxs("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: [
-                field.label,
-                requiredMark3(field)
-              ] }),
+              /* @__PURE__ */ jsx("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: /* @__PURE__ */ jsx(FieldLabelWithHelp, { field }) }),
               /* @__PURE__ */ jsx("div", { style: { flex: "1 0 200px", padding: "2px 4px", lineHeight: 1.15, overflowWrap: "anywhere", background: valueBackground, borderRadius: 6 }, children: /* @__PURE__ */ jsx(
                 Form.Item,
                 {
                   name: field.key,
                   rules: field.required && !field.formula ? [{ required: true }] : [],
                   valuePropName: field.type === "boolean" ? "checked" : void 0,
-                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
+                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
                   style: { margin: 0 },
-                  children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId)
+                  children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId, record)
                 }
               ) })
             ]
@@ -12149,7 +12722,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_48(tabName), modelTone),
+      label: renderToneTabLabel(_52(tabName), modelTone),
       children: tabChildren
     };
   });
@@ -12165,8 +12738,9 @@ function useBeforeEditSave(handler) {
   latest.current = handler;
   useEffect(() => register?.(() => latest.current()), [register]);
 }
-var _49 = window._ || ((text) => text);
-var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+var _53 = window._ || ((text) => text);
+var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+  const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -12207,7 +12781,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       }
     } : {},
     successNotification: () => ({
-      message: _49("Changes saved."),
+      message: _53("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -12242,7 +12816,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_49("Edit")} ${modelDisplayLabel}`) : `${_49("Edit")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_53("Edit")} ${modelDisplayLabel}`) : `${_53("Edit")} ${modelDisplayLabel}`;
   const recordId = getRecordId(record, model.fields);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
   const [showRelationActions, setShowRelationActions] = useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
@@ -12336,13 +12910,13 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         }
       }
       message.success(
-        withRelations ? _49("Object duplicated with relations.") : _49("Object duplicated.")
+        withRelations ? _53("Object duplicated with relations.") : _53("Object duplicated.")
       );
       if (newId) {
         go({ to: { resource: model.resource || model.name, action: "edit", id: newId } });
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _49("Failed to duplicate object."));
+      message.error(error instanceof Error ? error.message : _53("Failed to duplicate object."));
     } finally {
       setIsDuplicating(false);
     }
@@ -12391,7 +12965,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
   const canConfigureLayout = canLayoutData?.can !== false;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _49("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _53("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -12405,7 +12979,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _49("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _53("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -12421,7 +12995,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
     hasConfig && canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
       /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-        /* @__PURE__ */ jsx("span", { children: _49("Configure page layout") }),
+        /* @__PURE__ */ jsx("span", { children: _53("Configure page layout") }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -12445,13 +13019,13 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _49("Save")
+        children: _53("Save")
       }
     )
   ] });
   const extraEditTabs = useMemo(() => (model.extraTabs ?? []).filter((tab) => tab.edit), [model.extraTabs]);
   const allItems = useMemo(
-    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _49(tab.label), children: null }))],
+    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _53(tab.label), children: null }))],
     [items, extraEditTabs]
   );
   const [activeTabKey, setActiveTabKey] = useState("main_data");
@@ -12471,9 +13045,9 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
     extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
-    recordId && /* @__PURE__ */ jsx(Tooltip, { title: _49("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
+    recordId && /* @__PURE__ */ jsx(Tooltip, { title: _53("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId } }) }) }),
     record && /* @__PURE__ */ jsxs(Fragment, { children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _49("Duplicate"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _53("Duplicate"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -12482,7 +13056,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
           loading: isDuplicating
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _49("Duplicate with relations"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _53("Duplicate with relations"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -12492,9 +13066,9 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         }
       ) })
     ] }),
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _49("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _53("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
-    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _49("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId != null && /* @__PURE__ */ jsx(Tooltip, { title: _53("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.resource || model.name,
@@ -12503,7 +13077,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _49("Save"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _53("Save"), children: /* @__PURE__ */ jsx(
       Button,
       {
         ...saveButtonProps,
@@ -12526,7 +13100,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _49("Edit"),
+          actionLabel: _53("Edit"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: renderHeaderButtons,
@@ -12543,8 +13117,7 @@ var DynamicEditPage = ({ model: modelProp, allModels, topContent, extraHeaderBut
   ] }) });
 };
 var DynamicEdit = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "update", children: /* @__PURE__ */ jsx(DynamicEditPage, { ...props }) });
-var _50 = window._ || ((text) => text);
-var requiredMark4 = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
+var _54 = window._ || ((text) => text);
 var emptyLayoutConfig2 = {
   isConfiguring: false,
   enterConfigMode: () => {
@@ -12583,12 +13156,12 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
   const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_50), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_50);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_54), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_54);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _50("Cell size"),
+      label: _54("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -12667,16 +13240,16 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
-        children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0)
+        children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0, record)
       }
     );
   };
   const detailsTab = {
     key: "details",
-    label: renderToneTabLabel(_50("Details"), modelTone),
+    label: renderToneTabLabel(_54("Details"), modelTone),
     children: /* @__PURE__ */ jsxs(
       Form,
       {
@@ -12697,10 +13270,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
                 gap: "4px 6px"
               },
               children: [
-                /* @__PURE__ */ jsxs("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: [
-                  field.label,
-                  requiredMark4(field)
-                ] }),
+                /* @__PURE__ */ jsx("span", { style: { ...labelStyle, flex: "0 0 200px" }, children: /* @__PURE__ */ jsx(FieldLabelWithHelp, { field }) }),
                 /* @__PURE__ */ jsx(
                   "div",
                   {
@@ -12841,7 +13411,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_50(tabName), { text: token.colorText, border: token.colorBorder }),
+      label: renderToneTabLabel(_54(tabName), { text: token.colorText, border: token.colorBorder }),
       children: tabChildren
     };
   });
@@ -13209,7 +13779,7 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
     paginationProps && /* @__PURE__ */ jsx(Pagination, { ...paginationProps })
   ] });
 };
-var _51 = window._ || ((text) => text);
+var _55 = window._ || ((text) => text);
 var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   useGo();
   const { token } = theme.useToken();
@@ -13219,7 +13789,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const heatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs10().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs11().startOf("month"));
   const [heatmapField, setHeatmapField] = useState("");
   const dateFieldKeySet = useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   useEffect(() => {
@@ -13259,10 +13829,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
     if (earliestDateTs === null) {
-      setCalendarAnchorDate(dayjs10().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs11().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs10(earliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs11(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
   const entriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -13299,8 +13869,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   );
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _51("No date/datetime fields available for calendar view.") });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _51("No related records available.") });
+  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _55("No date/datetime fields available for calendar view.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _55("No related records available.") });
   const selectedDateField = relatedModel.fields.find((field) => field.key === calendarDateField);
   const selectedLabel = selectedDateField?.label || calendarDateField;
   return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
@@ -13313,8 +13883,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: calendarMode,
             onChange: (value) => setCalendarMode(value),
             options: [
-              { label: _51("Monthly"), value: "month" },
-              { label: _51("Weekly"), value: "week" }
+              { label: _55("Monthly"), value: "month" },
+              { label: _55("Weekly"), value: "week" }
             ],
             style: { minWidth: 120 }
           }
@@ -13327,7 +13897,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             onChange: (value) => setCalendarDateField(value),
             options: dateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
             style: { minWidth: 220 },
-            placeholder: _51("Date field")
+            placeholder: _55("Date field")
           }
         ),
         heatmapFieldOptions.length > 0 && /* @__PURE__ */ jsx(
@@ -13337,39 +13907,39 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: heatmapField,
             onChange: (value) => setHeatmapField(value),
             options: [
-              { label: _51("No heatmap"), value: "" },
+              { label: _55("No heatmap"), value: "" },
               ...heatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
             ],
             style: { minWidth: 180 },
-            placeholder: _51("Heatmap field")
+            placeholder: _55("Heatmap field")
           }
         )
       ] }),
       /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Previous"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _55("Previous"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-            "aria-label": _51("Previous"),
+            "aria-label": _55("Previous"),
             onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Today"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _55("Today"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-            "aria-label": _51("Today"),
-            onClick: () => setCalendarAnchorDate(dayjs10().startOf(calendarMode))
+            "aria-label": _55("Today"),
+            onClick: () => setCalendarAnchorDate(dayjs11().startOf(calendarMode))
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Next"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _55("Next"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-            "aria-label": _51("Next"),
+            "aria-label": _55("Next"),
             onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
           }
         ) })
@@ -13410,7 +13980,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const dayKey = day.format("YYYY-MM-DD");
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-            const isToday = day.isSame(dayjs10(), "day");
+            const isToday = day.isSame(dayjs11(), "day");
             const heatmapTotal = heatmapTotals.get(dayKey);
             const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
             return /* @__PURE__ */ jsxs(
@@ -13470,12 +14040,12 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     )
   ] });
 };
-var _52 = window._ || ((text) => text);
+var _56 = window._ || ((text) => text);
 var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName }) => {
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _52("No related objects.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _56("No related objects.") });
   return /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 8 }, children: records.map((item) => {
     const id = item?.eid ?? item?.id;
     return /* @__PURE__ */ jsx(
@@ -13490,7 +14060,7 @@ var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName
     );
   }) });
 };
-var _53 = window._ || ((text) => text);
+var _57 = window._ || ((text) => text);
 var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "gallery" }) => {
   const fill = variant === "image";
   const apiUrl = useApiUrl();
@@ -13506,7 +14076,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!records.length) return /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
     /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-    _53("No images available")
+    _57("No images available")
   ] });
   return /* @__PURE__ */ jsx("div", { style: fill ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
     const id = getGalleryItemId(item);
@@ -13531,7 +14101,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
     });
   }) });
 };
-var _54 = window._ || ((text) => text);
+var _58 = window._ || ((text) => text);
 var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const go = useGo();
   const paneNav = usePaneNavigation();
@@ -13630,7 +14200,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
               const d = String(body.detail);
               if (d.toLowerCase().includes("unique") || d.toLowerCase().includes("duplicate")) {
                 const optLabel = allOptions.find((o) => o.id === id)?.label ?? String(id);
-                detail = `"${optLabel}" ${_54("is already linked to another record and cannot be added here.")}`;
+                detail = `"${optLabel}" ${_58("is already linked to another record and cannot be added here.")}`;
               } else {
                 detail = d;
               }
@@ -13649,9 +14219,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSelectedIds(new Set(newBaseline));
       if (errors.length > 0) {
         message.error(errors[0], 6);
-        if (errors.length > 1) message.warning(`${errors.length - 1} ${_54("other error(s) occurred.")}`, 4);
+        if (errors.length > 1) message.warning(`${errors.length - 1} ${_58("other error(s) occurred.")}`, 4);
       } else {
-        message.success(_54("Changes saved."));
+        message.success(_58("Changes saved."));
         setEditing(false);
         setSearchText("");
       }
@@ -13659,7 +14229,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       const newItems = allOptions.filter((opt) => newBaseline.has(opt.id)).map((opt) => ({ id: opt.id, label: opt.label, resource: otherResource }));
       setLocalItems(newItems);
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _54("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _58("Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -13679,7 +14249,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
     const relatedModel = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
     const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
     if (!relatedResource) {
-      message.warning(_54("No create route for the related model. Opening relation create form."));
+      message.warning(_58("No create route for the related model. Opening relation create form."));
       params.append(rel.targetKey, String(recordId));
       const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
       if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -13698,7 +14268,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!editing) {
     return /* @__PURE__ */ jsxs("div", { style: { minHeight: 22 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _54("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
+      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _58("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
       items.length === 0 && total === 0 ? /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontStyle: "italic" }, children: "\u2014" }) : /* @__PURE__ */ jsxs(Fragment, { children: [
         /* @__PURE__ */ jsx("ul", { style: { margin: 0, paddingLeft: 16 }, children: items.map((item, index) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(
           "a",
@@ -13737,7 +14307,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_72, newPageSize) => {
+            onShowSizeChange: (_76, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -13769,7 +14339,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
         Input,
         {
           prefix: /* @__PURE__ */ jsx(SearchOutlined, { style: { color: token.colorTextSecondary } }),
-          placeholder: _54("Search..."),
+          placeholder: _58("Search..."),
           value: searchText,
           onChange: (e) => setSearchText(e.target.value),
           allowClear: true,
@@ -13777,9 +14347,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
           style: { flex: 1 }
         }
       ),
-      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _54("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
+      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _58("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
     ] }),
-    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _54("No options") }) : sortedOptions.map((opt) => {
+    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _58("No options") }) : sortedOptions.map((opt) => {
       const checked = selectedIds.has(opt.id);
       return /* @__PURE__ */ jsxs(
         "div",
@@ -13816,12 +14386,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       );
     }) }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }, children: [
-      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _54("Cancel") }),
-      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _54("Save") })
+      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _58("Cancel") }),
+      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _58("Save") })
     ] })
   ] });
 };
-var _55 = window._ || ((text) => text);
+var _59 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
@@ -13901,7 +14471,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!rel.otherResource || !rel.otherKey) {
-    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _55("editable-csv requires a many-to-many relation"), showIcon: true });
+    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _59("editable-csv requires a many-to-many relation"), showIcon: true });
   }
   return /* @__PURE__ */ jsx(
     Select,
@@ -13912,14 +14482,14 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       options: allOptions,
       loading: optionsLoading || saving,
       style: { width: "100%" },
-      placeholder: `${_55("Select")} ${_55(rel.label)}...`,
+      placeholder: `${_59("Select")} ${_59(rel.label)}...`,
       optionFilterProp: "label",
       showSearch: true,
       allowClear: true
     }
   );
 };
-var _56 = window._ || ((text) => text);
+var _60 = window._ || ((text) => text);
 var { Title: Title4 } = Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
   const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
@@ -14172,9 +14742,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_56("Layout preferences saved."));
+      message.success(_60("Layout preferences saved."));
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _56("Failed to save layout preferences."));
+      message.error(error2 instanceof Error ? error2.message : _60("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -14261,11 +14831,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_56("View name already exists. Choose a new name."));
+      message.error(_60("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_56('Choose a new name or enable "Save as new view".'));
+      message.error(_60('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -14321,7 +14891,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_56("View name already exists."));
+      message.error(_60("View name already exists."));
       return;
     }
     try {
@@ -14334,18 +14904,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_56("View renamed."));
+      message.success(_60("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _56("Failed to rename view."));
+      message.error(error2 instanceof Error ? error2.message : _60("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _56(_56("Delete view")),
+      title: _60(_60("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _56("Delete"),
+      okText: _60("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -14358,10 +14928,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_56("View deleted."));
+          message.success(_60("View deleted."));
           await loadViewNames();
         } catch (error2) {
-          message.error(error2 instanceof Error ? error2.message : _56("Failed to delete view."));
+          message.error(error2 instanceof Error ? error2.message : _60("Failed to delete view."));
         }
       }
     });
@@ -14494,7 +15064,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs10();
+    const base = dayjs11();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -14567,7 +15137,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return true;
     }
     if (field.type === "date") {
-      const recordDate = dayjs10(rawValue);
+      const recordDate = dayjs11(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -14575,7 +15145,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs10(val?.date || val);
+        const date = dayjs11(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -14586,13 +15156,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs10(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs10(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs11(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs10(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs10(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs11(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -14738,9 +15308,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
     Modal.confirm({
-      title: _56("Delete"),
-      content: _56("Are you sure you want to delete this relation?"),
-      okText: _56("Delete"),
+      title: _60("Delete"),
+      content: _60("Are you sure you want to delete this relation?"),
+      okText: _60("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -14761,14 +15331,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             const itemDeleteId = rel.targetKey && rel.otherKey ? `${itemRelationRow[rel.targetKey]}:${itemRelationRow[rel.otherKey]}` : itemRelationRow?.id ?? itemRelationRow?.eid;
             return String(itemDeleteId) !== String(deleteId);
           }));
-          message.success(_56("Relation deleted."));
+          message.success(_60("Relation deleted."));
         } catch (err) {
-          message.error(err instanceof Error ? err.message : _56("Failed to delete relation."));
+          message.error(err instanceof Error ? err.message : _60("Failed to delete relation."));
         }
       }
     });
   }, [apiUrl, allModels, rel.otherKey, rel.resource, rel.resourcePath, rel.targetKey]);
-  const renderEditableInput = (field, rowId) => renderInput(field, allModels, relatedModel, rowId);
+  const renderEditableInput = (field, rowId, row) => renderInput(field, allModels, relatedModel, rowId, row);
   const listAnalyzeLayoutStyle = {
     display: "flex",
     gap: 16,
@@ -15113,7 +15683,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _56("All"),
+          placeholder: _60("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -15173,7 +15743,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _56("Yes") : _56("No");
+    if (field.type === "boolean") return raw ? _60("Yes") : _60("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -15285,7 +15855,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _56("Yes") : _56("No");
+    if (field.type === "boolean") return raw ? _60("Yes") : _60("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -15343,13 +15913,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const getSummaryFunctionDisplayText = (fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _56("Sum"),
-      avg: _56("Average"),
-      count: _56("Count"),
-      max: _56("Max"),
-      min: _56("Min"),
-      stddev: _56("Std Dev"),
-      distinct: _56("Distinct")
+      sum: _60("Sum"),
+      avg: _60("Average"),
+      count: _60("Count"),
+      max: _60("Max"),
+      min: _60("Min"),
+      stddev: _60("Std Dev"),
+      distinct: _60("Distinct")
     };
     return labels[fn] || fn;
   };
@@ -15425,12 +15995,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             ]
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _56("Show totals") : _56("Show details"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _60("Show totals") : _60("Show details"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-            "aria-label": isTotalsDetailsFlipped ? _56("Show totals") : _56("Show details"),
+            "aria-label": isTotalsDetailsFlipped ? _60("Show totals") : _60("Show details"),
             onClick: () => setIsTotalsDetailsFlipped((prev) => !prev),
             style: {
               flexShrink: 0,
@@ -15442,7 +16012,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         ) })
       ] }),
       relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _56("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _60("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -15453,7 +16023,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               setFullDataLoaded(false);
               setLoadAllRelatedRequested(true);
             },
-            children: _56("Load all related")
+            children: _60("Load all related")
           }
         )
       ] })
@@ -15464,7 +16034,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _56("Hide view configuration") : _56("Show view configuration"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -15476,11 +16046,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 return next;
               });
             },
-            "aria-label": columnsSelectorOpen ? _56("Hide view configuration") : _56("Show view configuration")
+            "aria-label": columnsSelectorOpen ? _60("Hide view configuration") : _60("Show view configuration")
           }
         ) }),
         showCreate && recordId !== void 0 && recordId !== null && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _56("Associate existing") : _56("Add relation"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _60("Associate existing") : _60("Add relation"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -15513,7 +16083,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               }
             }
           ) }),
-          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _56("Create new and relate"), children: /* @__PURE__ */ jsx(
+          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _60("Create new and relate"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -15527,7 +16097,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 const relatedModel2 = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
                 const relatedResource = relatedModel2 ? resolveResourcePath(relatedModel2.resource || relatedModel2.name, allModels) : null;
                 if (!relatedResource) {
-                  message.warning(_56("No create route for the related model. Opening relation create form."));
+                  message.warning(_60("No create route for the related model. Opening relation create form."));
                   params.append(rel.targetKey, String(recordId));
                   if (allowInlineEdit) params.append("inline", "1");
                   const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
@@ -15546,7 +16116,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ) })
         ] }),
-        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _56("Save"), children: /* @__PURE__ */ jsx(
+        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _60("Save"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -15554,10 +16124,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
             onClick: saveAllEdits,
             loading: savingAll,
-            "aria-label": _56("Save")
+            "aria-label": _60("Save")
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _56("Export CSV"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _60("Export CSV"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -15572,20 +16142,20 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: saveViewModalOpen,
-        title: _56("Save view"),
+        title: _60("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _56("Save layout") : _56("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _60("Save layout") : _60("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _56("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _60("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _56("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _60("Save as new view") })
         ] })
       }
     ),
@@ -15593,10 +16163,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: renameViewModalOpen,
-        title: _56("Rename view"),
+        title: _60("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _56("Rename"),
+        okText: _60("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -15606,11 +16176,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _60("Filters") }),
           /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(
             Input,
             {
-              placeholder: _56("Search all fields..."),
+              placeholder: _60("Search all fields..."),
               prefix: /* @__PURE__ */ jsx(SearchOutlined, {}),
               allowClear: true,
               value: localSearch,
@@ -15628,31 +16198,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _60("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _56("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _60("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _60("No filters yet.") }) : filterRules.map((rule) => {
                 const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _56("="), value: "eq" },
-                  { label: _56(">"), value: "gt" },
-                  { label: _56(">="), value: "gte" },
-                  { label: _56("<"), value: "lt" },
-                  { label: _56("<="), value: "lte" },
-                  { label: _56("Between"), value: "between" }
+                  { label: _60("="), value: "eq" },
+                  { label: _60(">"), value: "gt" },
+                  { label: _60(">="), value: "gte" },
+                  { label: _60("<"), value: "lt" },
+                  { label: _60("<="), value: "lte" },
+                  { label: _60("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _56("On"), value: "on" },
-                  { label: _56("After"), value: "after" },
-                  { label: _56("Before"), value: "before" },
-                  { label: _56("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _56("Is"), value: "is" }] : [
-                  { label: _56("Contains"), value: "contains" },
-                  { label: _56("Equals"), value: "equals" }
+                  { label: _60("On"), value: "on" },
+                  { label: _60("After"), value: "after" },
+                  { label: _60("Before"), value: "before" },
+                  { label: _60("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _60("Is"), value: "is" }] : [
+                  { label: _60("Contains"), value: "contains" },
+                  { label: _60("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -15665,9 +16235,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _56("Previous"), value: "previous" },
-                            { label: _56("Current"), value: "current" },
-                            { label: _56("Next"), value: "next" }
+                            { label: _60("Previous"), value: "previous" },
+                            { label: _60("Current"), value: "current" },
+                            { label: _60("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -15677,11 +16247,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _56("Days"), value: "days" },
-                            { label: _56("Weeks"), value: "weeks" },
-                            { label: _56("Months"), value: "months" },
-                            { label: _56("Quarters"), value: "quarters" },
-                            { label: _56("Years"), value: "years" }
+                            { label: _60("Days"), value: "days" },
+                            { label: _60("Weeks"), value: "weeks" },
+                            { label: _60("Months"), value: "months" },
+                            { label: _60("Quarters"), value: "quarters" },
+                            { label: _60("Years"), value: "years" }
                           ]
                         }
                       )
@@ -15690,7 +16260,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   return /* @__PURE__ */ jsx(
                     DatePicker,
                     {
-                      value: value?.date ? dayjs10(value.date) : void 0,
+                      value: value?.date ? dayjs11(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -15703,7 +16273,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: relatedModel.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _56("Field")
+                      placeholder: _60("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -15713,7 +16283,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _56("Operator")
+                      placeholder: _60("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -15746,10 +16316,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _56("True"), value: true },
-                        { label: _56("False"), value: false }
+                        { label: _60("True"), value: true },
+                        { label: _60("False"), value: false }
                       ],
-                      placeholder: _56("Value")
+                      placeholder: _60("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -15762,7 +16332,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _56("Value"),
+                      placeholder: _60("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -15775,8 +16345,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _56("Date"), value: "absolute" },
-                        { label: _56("Relative"), value: "relative" }
+                        { label: _60("Date"), value: "absolute" },
+                        { label: _60("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -15789,8 +16359,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _56("Date"), value: "absolute" },
-                        { label: _56("Relative"), value: "relative" }
+                        { label: _60("Date"), value: "absolute" },
+                        { label: _60("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -15800,7 +16370,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _56("Remove")
+                      children: _60("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -15812,14 +16382,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _56("Add Filter")
+                    children: _60("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _56("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _60("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _60("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -15840,12 +16410,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _56("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _56("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _60("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _60("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _56("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _60("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -15857,7 +16427,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _56("Rename view")
+                  children: _60("Rename view")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15868,7 +16438,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _56("Delete view")
+                  children: _60("Delete view")
                 }
               ),
               layoutPreferenceType && /* @__PURE__ */ jsx(
@@ -15878,7 +16448,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _56("Save layout")
+                  children: _60("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15890,7 +16460,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _56("Show Filters") : _56("Hide Filters")
+                  children: filtersCollapsed ? _60("Show Filters") : _60("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15902,7 +16472,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setListVisible((prev) => !prev);
                   },
-                  children: _56("View list")
+                  children: _60("View list")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15916,7 +16486,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _56("Analyze")
+                  children: _60("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15928,7 +16498,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _56("Switch orientation")
+                  children: _60("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -15940,21 +16510,21 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _56("Switch positions")
+                  children: _60("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _56("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _60("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _56("Reset to default") })
+              }, children: _60("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _60("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -15966,27 +16536,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _56("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _60("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _60("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = relatedModel.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _56("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _56("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _60("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _60("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _56("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _56("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _60("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _60("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _56("Sum"), value: "sum" },
-                  { label: _56("Average"), value: "avg" },
-                  { label: _56("Count"), value: "count" },
-                  { label: _56("Max"), value: "max" },
-                  { label: _56("Min"), value: "min" },
-                  { label: _56("Std Dev"), value: "stddev" }
+                  { label: _60("Sum"), value: "sum" },
+                  { label: _60("Average"), value: "avg" },
+                  { label: _60("Count"), value: "count" },
+                  { label: _60("Max"), value: "max" },
+                  { label: _60("Min"), value: "min" },
+                  { label: _60("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -16042,7 +16612,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_72, newPageSize) => {
+                    onShowSizeChange: (_76, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -16055,8 +16625,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   onRow: (row) => ({
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
-                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _56("No related records") }) } : void 0,
-                  onChange: (_72, filters, sorter, extra) => {
+                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _60("No related records") }) } : void 0,
+                  onChange: (_76, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -16147,8 +16717,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 name: [rowId, field.key],
                                 style: { margin: 0 },
                                 valuePropName: field.type === "boolean" ? "checked" : "value",
-                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs10(val) } : field.type === "time" && val ? { value: dayjs10("1970-01-01T" + val) } : { value: val },
-                                children: renderEditableInput(field, rowId)
+                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+                                children: renderEditableInput(field, rowId, row)
                               }
                             );
                           }
@@ -16198,7 +16768,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     showActions && /* @__PURE__ */ jsx(
                       Table.Column,
                       {
-                        title: _56("Actions"),
+                        title: _60("Actions"),
                         width: 140,
                         render: (_unused, row) => {
                           const id = row?.eid ?? row?.id;
@@ -16206,14 +16776,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
                           return /* @__PURE__ */ jsxs(Space, { children: [
                             id && /* @__PURE__ */ jsxs(Fragment, { children: [
-                              /* @__PURE__ */ jsx(Tooltip, { title: _56("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _60("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
                                 if (paneNav?.isInMultiPane) {
                                   paneNav.openDetail(relatedModel.name, id);
                                 } else {
                                   go({ to: { resource: relatedModel.name, action: "show", id } });
                                 }
                               } }) }),
-                              /* @__PURE__ */ jsx(Tooltip, { title: _56("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _60("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
                                 if (allowInlineEdit) {
                                   const params = new URLSearchParams();
                                   params.append("inline", "1");
@@ -16225,7 +16795,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 }
                               } }) })
                             ] }),
-                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _56("Delete"), children: /* @__PURE__ */ jsx(
+                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _60("Delete"), children: /* @__PURE__ */ jsx(
                               Button,
                               {
                                 size: "small",
@@ -16245,7 +16815,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ),
           relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _56("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _60("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
             /* @__PURE__ */ jsx(
               Button,
               {
@@ -16255,7 +16825,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   setFullDataLoaded(false);
                   setLoadAllRelatedRequested(true);
                 },
-                children: _56("Load all related")
+                children: _60("Load all related")
               }
             )
           ] })
@@ -16375,7 +16945,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     }
   );
 };
-var _57 = window._ || ((text) => text);
+var _61 = window._ || ((text) => text);
 function useMillerColumnItems({
   parentId,
   rel,
@@ -16493,7 +17063,7 @@ function useMillerColumnItems({
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
-          setError(err instanceof Error ? err.message : _57("Failed to load items"));
+          setError(err instanceof Error ? err.message : _61("Failed to load items"));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -16545,7 +17115,7 @@ var MillerColumn = ({
         Empty,
         {
           image: Empty.PRESENTED_IMAGE_SIMPLE,
-          description: _57("No items"),
+          description: _61("No items"),
           style: { margin: "32px 0" }
         }
       ),
@@ -16622,12 +17192,12 @@ var DetailPaneContent = ({ node, allModels }) => {
   const model = allModels?.find((m) => m.name === node.resource);
   const showHref = getShowHref(node.resource, node.id, allModels);
   if (!model) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_57("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_61("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }, children: [
       /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0, color: token.colorTextSecondary, fontWeight: 500, flex: 1, minWidth: 0 }, children: node.label }),
-      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _57("Open in new tab"), children: /* @__PURE__ */ jsx(
+      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _61("Open in new tab"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -16733,7 +17303,7 @@ var MillerBrowserLayout = ({
     }
   };
   if (!rootId) {
-    return /* @__PURE__ */ jsx(Empty, { description: _57("No record selected") });
+    return /* @__PURE__ */ jsx(Empty, { description: _61("No record selected") });
   }
   const columnsAreaStyle = columnsWidth !== null ? { width: columnsWidth, flexShrink: 0, flexGrow: 0, minWidth: 200, overflowX: "auto", display: "flex", height: "100%" } : { width: showDetails ? "fit-content" : "100%", maxWidth: showDetails ? "50%" : "100%", flexShrink: 0, minWidth: 240, overflowX: "auto", display: "flex", height: "100%" };
   return /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -16796,7 +17366,7 @@ var MillerBrowserLayout = ({
       showDetails && /* @__PURE__ */ jsx(
         Drawer,
         {
-          title: detailNode?.label ?? _57("Details"),
+          title: detailNode?.label ?? _61("Details"),
           placement: "right",
           open: drawerOpen && !isDesktop,
           onClose: () => setDrawerOpen(false),
@@ -16858,6 +17428,7 @@ var renderRelationBlock = ({
   const relationLabel = getRelationLabel(rel) || rel.label || rel.relationName || rel.resource || "";
   const title = renderToneTabLabel(relationLabel, relationTone);
   const shouldShowRelatedObjects = relatedModel && rel.otherResource && rel.otherKey;
+  const dynamicListViewType = isCrosstab ? viewType : usesTableBehavior ? viewType : viewType === "editable-table" || viewType === "editable-list" ? viewType : void 0;
   const polymorphicInfo = getPolymorphicReferenceInfo(rel, relationModel, allModels);
   const isInlineListView = isInlineRelationViewType(viewType);
   const resolvedLabelStyle = labelStyle ?? {
@@ -17018,7 +17589,7 @@ var renderRelationBlock = ({
       showActions: showRelationActions,
       showCreate: showCreateButton,
       layoutPreferenceType,
-      listViewType: isCrosstab ? viewType : usesTableBehavior ? viewType : void 0,
+      listViewType: dynamicListViewType,
       defaultListVisible: rel.defaultListVisible
     },
     `${rel.relationName || rel.resource || "dl"}-ddl-${window.__veloiq_dataDetailLevel ?? 0}`
@@ -17034,7 +17605,7 @@ var renderRelationBlock = ({
       showActions: showRelationActions,
       showCreate: showCreateButton,
       layoutPreferenceType,
-      listViewType: isCrosstab ? viewType : usesTableBehavior ? viewType : void 0,
+      listViewType: dynamicListViewType,
       defaultListVisible: rel.defaultListVisible
     },
     `${rel.relationName || rel.resource || "dl"}-ddl-${window.__veloiq_dataDetailLevel ?? 0}`
@@ -17080,7 +17651,7 @@ var renderRelationBlock = ({
       showActions: showRelationActions,
       showCreate: showCreateButton,
       layoutPreferenceType,
-      listViewType: isCrosstab ? viewType : usesTableBehavior ? viewType : void 0,
+      listViewType: dynamicListViewType,
       defaultListVisible: rel.defaultListVisible
     },
     `${rel.relationName || rel.resource || "dl"}-ddl-${window.__veloiq_dataDetailLevel ?? 0}`
@@ -17135,9 +17706,10 @@ var renderRelationBlock = ({
     content
   ] }, rel.resource);
 };
-var _58 = window._ || ((text) => text);
+var _62 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
-var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, preferencesResourceOverride, defaultListVisible }) => {
+  const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -17153,9 +17725,9 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
   const { data: canEditData } = useCan({ resource: resourceIdentifier, action: "edit" });
   const { data: canCreateData } = useCan({ resource: resourceIdentifier, action: "create" });
-  const canBulkDelete = canDeleteData?.can !== false;
-  const canBulkEdit = canEditData?.can !== false;
-  const canCreate = canCreateData?.can !== false;
+  const canBulkDelete = canDeleteData?.can !== false && model.capabilities?.delete !== false;
+  const canBulkEdit = canEditData?.can !== false && model.capabilities?.update !== false;
+  const canCreate = canCreateData?.can !== false && model.capabilities?.create !== false;
   const { settings: viewSettings } = useViewSettings();
   viewSettings?.generalActionsButtonPosition || "top-right";
   const [actionsBarEl, setActionsBarEl] = useState(null);
@@ -17206,7 +17778,15 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const isPrimaryView = resolvedListViewType === "primary";
-  const isListView = resolvedListViewType === "list";
+  const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
+  const canInlineEdit = INLINE_EDIT_LIST_VIEW_TYPES.has(resolvedListViewType) && canBulkEdit && model.capabilities?.update !== false;
+  const inlineRowEdits = useInlineRowEdits(
+    model,
+    allModels,
+    apiUrl,
+    useCallback(() => invalidate({ resource: model.resource || model.name, invalidates: ["list"] }), [invalidate, model.resource, model.name])
+  );
+  const inlineEditSaveCancelBar = canInlineEdit ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(InlineEditActions, { inlineRowEdits }) }) : null;
   const editableCrosstab = resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const galleryImageWidth = viewSettings?.galleryImageWidth ?? 180;
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
@@ -17219,7 +17799,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const [galleryPage, setGalleryPage] = useState(1);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs10().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs11().startOf("month"));
   const [calendarHeatmapField, setCalendarHeatmapField] = useState("");
   const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
   const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
@@ -17328,12 +17908,12 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           });
         }
       }
-      message.success(_58("Relations added."));
+      message.success(_62("Relations added."));
       if (selectModeReturnTo && selectModeReturnTo.startsWith("/")) {
         navigate(selectModeReturnTo);
       }
     } catch {
-      message.error(_58("Failed to add relations."));
+      message.error(_62("Failed to add relations."));
     } finally {
       setSelectModeAssociating(false);
     }
@@ -17445,7 +18025,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs10();
+    const base = dayjs11();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -17506,7 +18086,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       return true;
     }
     if (field.type === "date" || field.type === "datetime") {
-      const recordDate = dayjs10(rawValue);
+      const recordDate = dayjs11(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -17514,7 +18094,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs10(val?.date || val);
+        const date = dayjs11(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -17525,13 +18105,13 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs10(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs10(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs11(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs10(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs10(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs11(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -17855,7 +18435,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_58("View name already exists."));
+      message.error(_62("View name already exists."));
       return;
     }
     try {
@@ -17868,18 +18448,18 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_58("View renamed."));
+      message.success(_62("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _58("Failed to rename view."));
+      message.error(error instanceof Error ? error.message : _62("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _58(_58("Delete view")),
+      title: _62(_62("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _58("Delete"),
+      okText: _62("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -17892,10 +18472,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_58("View deleted."));
+          message.success(_62("View deleted."));
           await loadViewNames();
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _58("Failed to delete view."));
+          message.error(error instanceof Error ? error.message : _62("Failed to delete view."));
         }
       }
     });
@@ -17937,9 +18517,9 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_58("Layout preferences saved."));
+      message.success(_62("Layout preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _58("Failed to save layout preferences."));
+      message.error(error instanceof Error ? error.message : _62("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -17949,11 +18529,11 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_58("View name already exists. Choose a new name."));
+      message.error(_62("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_58('Choose a new name or enable "Save as new view".'));
+      message.error(_62('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -18097,7 +18677,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       }
       setAllRowsData(allRows2);
     } catch (error) {
-      setAllRowsError(error instanceof Error ? error.message : _58("Failed to fetch all rows"));
+      setAllRowsError(error instanceof Error ? error.message : _62("Failed to fetch all rows"));
     } finally {
       setIsAllRowsLoading(false);
       setAllRowsLoaded(true);
@@ -18165,10 +18745,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
       }
       setCrosstabStaged({});
-      message.success(_58("Changes saved."));
+      message.success(_62("Changes saved."));
       invalidate({ resource: model.resource || model.name, invalidates: ["list"] });
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _58("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _62("Failed to save changes."));
     } finally {
       setCrosstabSaving(false);
     }
@@ -18233,7 +18813,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _58("All"),
+          placeholder: _62("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -18243,7 +18823,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
   const crosstabBodyNode = /* @__PURE__ */ jsxs("div", { children: [
-    editableCrosstab && canBulkEdit && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _58("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _58("Save") }) }) }),
+    editableCrosstab && canBulkEdit && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _62("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _62("Save") }) }) }),
     crosstabConfigPanel,
     crosstabFilterRow,
     /* @__PURE__ */ jsx(
@@ -18283,7 +18863,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           } else if (field.options) {
             label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
           } else if (field.type === "boolean") {
-            label = raw ? _58("Yes") : _58("No");
+            label = raw ? _62("Yes") : _62("No");
           } else if (field.type === "date") {
             label = formatDateValue(raw);
           } else if (field.type === "datetime") {
@@ -18329,13 +18909,13 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const getSummaryFunctionDisplayText = useCallback((fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _58("Sum"),
-      avg: _58("Average"),
-      count: _58("Count"),
-      max: _58("Max"),
-      min: _58("Min"),
-      stddev: _58("Std Dev"),
-      distinct: _58("Distinct")
+      sum: _62("Sum"),
+      avg: _62("Average"),
+      count: _62("Count"),
+      max: _62("Max"),
+      min: _62("Min"),
+      stddev: _62("Std Dev"),
+      distinct: _62("Distinct")
     };
     return labels[fn] || fn;
   }, []);
@@ -18396,12 +18976,12 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           `td-num-${item.key}`
         )) })
       ] }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _58("Show totals") : _58("Show details"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _62("Show totals") : _62("Show details"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
           icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-          "aria-label": isTdFlipped ? _58("Show totals") : _58("Show details"),
+          "aria-label": isTdFlipped ? _62("Show totals") : _62("Show details"),
           onClick: () => setIsTdFlipped((prev) => !prev),
           style: {
             flexShrink: 0,
@@ -18437,7 +19017,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _58("Yes") : _58("No");
+    if (field.type === "boolean") return raw ? _62("Yes") : _62("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -18574,7 +19154,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         for (const actionKey of apiActionKeys) {
           if (actionKey === "__delete__") {
             const resp = await authenticatedFetch(`${apiUrl}/${resource}/${id}`, { method: "DELETE" });
-            if (!resp.ok) throw new Error(`${_58("Delete failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_62("Delete failed for record")} ${id}`);
           } else if (actionKey === "__change_field__") {
             if (!bulkChangeFieldKey) continue;
             const payload = { ...record, [bulkChangeFieldKey]: bulkChangeFieldValue };
@@ -18584,7 +19164,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
-            if (!resp.ok) throw new Error(`${_58("Update failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_62("Update failed for record")} ${id}`);
           } else if (actionKey === "__clone__") {
             const clonePayload = { ...record };
             delete clonePayload.eid;
@@ -18596,7 +19176,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(clonePayload)
             });
-            if (!resp.ok) throw new Error(`${_58("Clone failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_62("Clone failed for record")} ${id}`);
           } else if (actionKey === "__pin__") {
             await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
               method: "POST",
@@ -18615,11 +19195,11 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         }
       }
       message.success(
-        _58("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
+        _62("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
       );
     } catch (e) {
       errorOccurred = true;
-      message.error(e?.message || _58("Bulk action failed"));
+      message.error(e?.message || _62("Bulk action failed"));
     } finally {
       setIsBulkExecuting(false);
       setBulkActionModalOpen(false);
@@ -18737,7 +19317,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       Table.SELECTION_NONE,
       {
         key: "select-all-filtered",
-        text: _58("Select all filtered rows"),
+        text: _62("Select all filtered rows"),
         onSelect: handleSelectAllFiltered
       }
     ]
@@ -18746,21 +19326,21 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const bulkActionsAvailable = useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
-      opts.push({ label: _58("Change field value"), value: "__change_field__" });
+      opts.push({ label: _62("Change field value"), value: "__change_field__" });
     }
-    opts.push({ label: _58("Export selected (CSV)"), value: "__export_csv__" });
-    opts.push({ label: _58("Navigate to related"), value: "__navigate_to_related__" });
-    opts.push({ label: _58("Append related list"), value: "__append_related_list__" });
+    opts.push({ label: _62("Export selected (CSV)"), value: "__export_csv__" });
+    opts.push({ label: _62("Navigate to related"), value: "__navigate_to_related__" });
+    opts.push({ label: _62("Append related list"), value: "__append_related_list__" });
     if (canCreate) {
-      opts.push({ label: _58("Clone / Duplicate selected"), value: "__clone__" });
+      opts.push({ label: _62("Clone / Duplicate selected"), value: "__clone__" });
     }
     if (bulkActions && bulkActions.length > 0) {
-      bulkActions.forEach((a) => opts.push({ label: _58(a.label), value: a.key }));
+      bulkActions.forEach((a) => opts.push({ label: _62(a.label), value: a.key }));
     }
-    opts.push({ label: _58("Pin selected"), value: "__pin__" });
-    opts.push({ label: _58("Unpin selected"), value: "__unpin__" });
+    opts.push({ label: _62("Pin selected"), value: "__pin__" });
+    opts.push({ label: _62("Unpin selected"), value: "__unpin__" });
     if (canBulkDelete) {
-      opts.push({ label: _58("Delete selected"), value: "__delete__" });
+      opts.push({ label: _62("Delete selected"), value: "__delete__" });
     }
     return opts;
   }, [bulkActions, canBulkDelete, canBulkEdit, canCreate]);
@@ -18801,7 +19381,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       background: token.colorPrimaryBg,
       border: `1px solid ${token.colorPrimaryBorder}`
     }, children: [
-      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _58("Filtered by: {relation}").replace("{relation}", filterDescription) }),
+      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _62("Filtered by: {relation}").replace("{relation}", filterDescription) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -18814,7 +19394,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
             const newSearch = newParams.toString();
             navigate({ search: newSearch ? `?${newSearch}` : "" }, { replace: true });
           },
-          children: _58("Clear filter")
+          children: _62("Clear filter")
         }
       )
     ] });
@@ -18831,9 +19411,9 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     background: token.colorWarningBg,
     border: `1px solid ${token.colorWarningBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _58("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _58("Select rows to associate") }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _62("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _62("Select rows to associate") }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _58("Cancel") }),
+      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _62("Cancel") }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -18842,7 +19422,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           disabled: bulkSelectedRowKeys.length === 0,
           loading: selectModeAssociating,
           onClick: handleAssociateSelected,
-          children: _58("Associate selected")
+          children: _62("Associate selected")
         }
       )
     ] })
@@ -18858,7 +19438,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     background: token.colorInfoBg,
     border: `1px solid ${token.colorInfoBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _58("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _62("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
     bulkSelectedRowKeys.length < filteredTotalCount && /* @__PURE__ */ jsx(
       Button,
       {
@@ -18867,16 +19447,16 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         loading: selectAllFilteredPending && isAllRowsLoading,
         onClick: handleSelectAllFiltered,
         style: { padding: 0 },
-        children: _58("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
+        children: _62("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
       }
     ),
-    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _58("Clear selection") }),
+    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _62("Clear selection") }),
     /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 180 }, children: /* @__PURE__ */ jsx(
       Select,
       {
         mode: "multiple",
         size: "small",
-        placeholder: _58("Actions"),
+        placeholder: _62("Actions"),
         style: { width: "100%" },
         value: bulkActionsToApply,
         onChange: (values) => {
@@ -18910,7 +19490,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         Select,
         {
           size: "small",
-          placeholder: _58("Select field"),
+          placeholder: _62("Select field"),
           style: { minWidth: 160 },
           value: bulkChangeFieldKey ?? void 0,
           onChange: (v) => {
@@ -18925,7 +19505,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         Select,
         {
           size: "small",
-          placeholder: _58("Select value"),
+          placeholder: _62("Select value"),
           style: { minWidth: 180 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
@@ -18936,25 +19516,25 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         Select,
         {
           size: "small",
-          placeholder: _58("Select value"),
+          placeholder: _62("Select value"),
           style: { minWidth: 120 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
-          options: [{ label: _58("True"), value: true }, { label: _58("False"), value: false }],
+          options: [{ label: _62("True"), value: true }, { label: _62("False"), value: false }],
           allowClear: true
         }
       ) : bulkChangeField.type === "date" ? /* @__PURE__ */ jsx(
         DatePicker,
         {
           size: "small",
-          value: bulkChangeFieldValue ? dayjs10(bulkChangeFieldValue) : null,
+          value: bulkChangeFieldValue ? dayjs11(bulkChangeFieldValue) : null,
           onChange: (v) => setBulkChangeFieldValue(v ? v.toISOString() : null)
         }
       ) : bulkChangeField.type === "number" ? /* @__PURE__ */ jsx(
         InputNumber,
         {
           size: "small",
-          placeholder: _58("Value"),
+          placeholder: _62("Value"),
           value: bulkChangeFieldValue,
           onChange: (v) => setBulkChangeFieldValue(v),
           style: { minWidth: 120 }
@@ -18963,7 +19543,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         Input,
         {
           size: "small",
-          placeholder: _58("Value"),
+          placeholder: _62("Value"),
           value: bulkChangeFieldValue ?? "",
           onChange: (e) => setBulkChangeFieldValue(e.target.value),
           style: { minWidth: 160 }
@@ -18978,7 +19558,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         Select,
         {
           size: "small",
-          placeholder: isAppend ? _58("Select relation to append") : _58("Select relation"),
+          placeholder: isAppend ? _62("Select relation to append") : _62("Select relation"),
           style: { minWidth: 220 },
           showSearch: true,
           value: currentRelation ? `${currentRelation.targetResource}|${currentRelation.filterKey}` : void 0,
@@ -19048,7 +19628,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
             setBulkActionModalOpen(true);
           }
         },
-        children: _58("Apply")
+        children: _62("Apply")
       }
     )
   ] }) : null;
@@ -19056,16 +19636,16 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     Modal,
     {
       open: bulkActionModalOpen,
-      title: _58("Confirm bulk action"),
+      title: _62("Confirm bulk action"),
       onCancel: () => {
         if (!isBulkExecuting) setBulkActionModalOpen(false);
       },
       footer: [
-        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _58("Cancel") }, "cancel"),
-        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _58("Confirm") }, "ok")
+        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _62("Cancel") }, "cancel"),
+        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _62("Confirm") }, "ok")
       ],
       children: [
-        /* @__PURE__ */ jsx("p", { children: _58("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+        /* @__PURE__ */ jsx("p", { children: _62("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
         /* @__PURE__ */ jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
           const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
@@ -19081,7 +19661,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const listTitle = !isEmbedded ? renderModelHeading({
     model,
     title: modelDisplayLabel,
-    actionLabel: _58("List"),
+    actionLabel: _62("List"),
     moduleLabel: model.module ? getModuleLabel(model.module) : void 0
   }) : void 0;
   const numericBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
@@ -19105,7 +19685,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, modelTone) }))
     }
   ) : null;
-  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _58("View list"), children: /* @__PURE__ */ jsx(
+  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _62("View list"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19122,7 +19702,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
       const response = await authenticatedFetch(`${apiUrl}/${resourcePath}/export-csv`);
       if (!response.ok) {
-        message.error(_58("Export failed."));
+        message.error(_62("Export failed."));
         return;
       }
       const blob = await response.blob();
@@ -19138,7 +19718,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+  const exportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19147,7 +19727,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+  const quickExportButton = !isEmbedded ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19156,7 +19736,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       loading: exportRequested && isAllRowsLoading
     }
   ) }) : null;
-  const importButton = !isEmbedded && !model.isNamedQuery ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Import CSV"), children: /* @__PURE__ */ jsx(
+  const importButton = !isEmbedded && !model.isNamedQuery && !model.isNonModelData ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Import CSV"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19164,7 +19744,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _58("Hide view configuration") : _58("Show view configuration"), children: /* @__PURE__ */ jsx(
+  const columnsToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19176,10 +19756,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           return next;
         });
       },
-      "aria-label": columnsSelectorOpen ? _58("Hide view configuration") : _58("Show view configuration")
+      "aria-label": columnsSelectorOpen ? _62("Hide view configuration") : _62("Show view configuration")
     }
   ) });
-  const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Add relation"), children: /* @__PURE__ */ jsx(
+  const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Add relation"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19195,7 +19775,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       }
     }
   ) }) : null;
-  const associateExistingFkButton = isRelationView && showCreate && canBulkEdit && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Associate existing"), children: /* @__PURE__ */ jsx(
+  const associateExistingFkButton = isRelationView && showCreate && canBulkEdit && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Associate existing"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19215,7 +19795,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       }
     }
   ) }) : null;
-  const createNewAndRelateButton = isRelationView && showCreate && canCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _58("Create new and relate"), children: /* @__PURE__ */ jsx(
+  const createNewAndRelateButton = isRelationView && showCreate && canCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _62("Create new and relate"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -19231,7 +19811,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         const relatedModel = findModelByName(allModels, relationConfig?.otherResource || relationConfig?.otherResourcePath);
         const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
         if (!relatedResource) {
-          message.warning(_58("No create route for the related model. Opening relation create form."));
+          message.warning(_62("No create route for the related model. Opening relation create form."));
           params.append(targetKey, String(targetId));
           const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
           if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -19251,7 +19831,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   const embeddedActionBar = isEmbedded ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: [
     columnsToggleButton,
     listToggleButton,
-    /* @__PURE__ */ jsx(Tooltip, { title: _58("Analyze"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _62("Analyze"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19264,7 +19844,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _58("Switch orientation"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _62("Switch orientation"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19275,7 +19855,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _58("Switch positions"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _62("Switch positions"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19286,7 +19866,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(Tooltip, { title: _58("Save layout"), children: /* @__PURE__ */ jsx(
+    resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(Tooltip, { title: _62("Save layout"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19298,7 +19878,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     associateExistingFkButton,
     createRelationButton,
     createNewAndRelateButton,
-    /* @__PURE__ */ jsx(Tooltip, { title: _58("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19307,7 +19887,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         loading: exportLoading
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _58("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _62("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19316,7 +19896,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
         loading: exportRequested && isAllRowsLoading
       }
     ) }),
-    !model.isNamedQuery && /* @__PURE__ */ jsx(Tooltip, { title: _58("Import CSV"), children: /* @__PURE__ */ jsx(
+    !model.isNamedQuery && !model.isNonModelData && /* @__PURE__ */ jsx(Tooltip, { title: _62("Import CSV"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -19373,7 +19953,8 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     });
   };
   const renderPrimaryItem = (record, index) => /* @__PURE__ */ jsx(RelatedObjectPrimaryCard, { record, model, allModels }, getRowKey(record, index));
-  const renderListFieldValue = (field, record) => {
+  const renderListFieldValue = (rawField, record) => {
+    const field = resolveRowTypedField(rawField, record);
     const value = record?.[field.key];
     const showToken = normalizeFieldViewType(field.showViewType || "");
     if (showToken && !(showToken === "read-only-field" && field.reference)) {
@@ -19420,12 +20001,12 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     ) : /* @__PURE__ */ jsx("span", { style: { fontWeight: 600 }, children: label });
     return /* @__PURE__ */ jsxs("li", { style: { marginBottom: 12, listStyle: "none" }, children: [
       titleNode,
-      /* @__PURE__ */ jsx("div", { style: { marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }, children: displayFields.map((field) => /* @__PURE__ */ jsxs("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: [
+      /* @__PURE__ */ jsx("div", { style: { marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }, children: displayFields.map((field) => /* @__PURE__ */ jsxs("div", { style: { fontSize: 12, color: token.colorTextSecondary, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }, children: [
         /* @__PURE__ */ jsxs("span", { style: { color: token.colorText }, children: [
           field.label,
           ": "
         ] }),
-        renderListFieldValue(field, record)
+        canInlineEdit && id != null && isInlineEditableField(field, model) ? /* @__PURE__ */ jsx(InlineCellEditor, { field, record, rowId: id, model, allModels, inlineRowEdits }) : renderListFieldValue(field, record)
       ] }, field.key)) })
     ] }, getRowKey(record, index));
   };
@@ -19591,10 +20172,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     if (calendarInitSignatureRef.current === signature) return;
     calendarInitSignatureRef.current = signature;
     if (calendarEarliestDateTs === null) {
-      setCalendarAnchorDate(dayjs10().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs11().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs10(calendarEarliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs11(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
   const calendarEntriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -19646,7 +20227,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
   };
   const renderCalendarView = () => {
     if (calendarDateFieldOptions.length === 0) {
-      return /* @__PURE__ */ jsx(Empty, { description: _58("No date/datetime fields available for calendar view.") });
+      return /* @__PURE__ */ jsx(Empty, { description: _62("No date/datetime fields available for calendar view.") });
     }
     const selectedDateField = model.fields.find((field) => field.key === calendarDateField);
     const selectedLabel = selectedDateField?.label || calendarDateField;
@@ -19660,8 +20241,8 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               value: calendarMode,
               onChange: (value) => setCalendarMode(value),
               options: [
-                { label: _58("Monthly"), value: "month" },
-                { label: _58("Weekly"), value: "week" }
+                { label: _62("Monthly"), value: "month" },
+                { label: _62("Weekly"), value: "week" }
               ],
               style: { minWidth: 120 }
             }
@@ -19674,7 +20255,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               onChange: (value) => setCalendarDateField(value),
               options: calendarDateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
               style: { minWidth: 220 },
-              placeholder: _58("Date field")
+              placeholder: _62("Date field")
             }
           ),
           calendarHeatmapFieldOptions.length > 0 && /* @__PURE__ */ jsx(
@@ -19684,39 +20265,39 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               value: calendarHeatmapField,
               onChange: (value) => setCalendarHeatmapField(value),
               options: [
-                { label: _58("No heatmap"), value: "" },
+                { label: _62("No heatmap"), value: "" },
                 ...calendarHeatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
               ],
               style: { minWidth: 180 },
-              placeholder: _58("Heatmap field")
+              placeholder: _62("Heatmap field")
             }
           )
         ] }),
         /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _58("Previous"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _62("Previous"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-              "aria-label": _58("Previous"),
+              "aria-label": _62("Previous"),
               onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _58("Today"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _62("Today"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-              "aria-label": _58("Today"),
-              onClick: () => setCalendarAnchorDate(dayjs10().startOf(calendarMode))
+              "aria-label": _62("Today"),
+              onClick: () => setCalendarAnchorDate(dayjs11().startOf(calendarMode))
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _58("Next"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _62("Next"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-              "aria-label": _58("Next"),
+              "aria-label": _62("Next"),
               onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
             }
           ) })
@@ -19757,7 +20338,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               const dayKey = day.format("YYYY-MM-DD");
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-              const isToday = day.isSame(dayjs10(), "day");
+              const isToday = day.isSame(dayjs11(), "day");
               const heatmapTotal = calendarHeatmapTotals.get(dayKey);
               const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
               return /* @__PURE__ */ jsxs(
@@ -19809,20 +20390,20 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       Modal,
       {
         open: saveViewModalOpen,
-        title: _58("Save view"),
+        title: _62("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _58("Save layout") : _58("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _62("Save layout") : _62("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _58("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _62("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _58("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _62("Save as new view") })
         ] })
       }
     ),
@@ -19830,10 +20411,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       Modal,
       {
         open: renameViewModalOpen,
-        title: _58("Rename view"),
+        title: _62("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _58("Rename"),
+        okText: _62("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -19843,7 +20424,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _58("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _62("Filters") }),
           /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: !filtersCollapsed && searchField && /* @__PURE__ */ jsx(
             Form,
             {
@@ -19857,7 +20438,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                 }
                 searchFormProps.onFinish?.(values);
               },
-              children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _58("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
+              children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _62("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
             }
           ) })
         ] }),
@@ -19870,31 +20451,31 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _58("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _62("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _58("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _58("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _62("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _62("No filters yet.") }) : filterRules.map((rule) => {
                 const field = model.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _58("="), value: "eq" },
-                  { label: _58(">"), value: "gt" },
-                  { label: _58(">="), value: "gte" },
-                  { label: _58("<"), value: "lt" },
-                  { label: _58("<="), value: "lte" },
-                  { label: _58("Between"), value: "between" }
+                  { label: _62("="), value: "eq" },
+                  { label: _62(">"), value: "gt" },
+                  { label: _62(">="), value: "gte" },
+                  { label: _62("<"), value: "lt" },
+                  { label: _62("<="), value: "lte" },
+                  { label: _62("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _58("On"), value: "on" },
-                  { label: _58("After"), value: "after" },
-                  { label: _58("Before"), value: "before" },
-                  { label: _58("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _58("Is"), value: "is" }] : [
-                  { label: _58("Contains"), value: "contains" },
-                  { label: _58("Equals"), value: "equals" }
+                  { label: _62("On"), value: "on" },
+                  { label: _62("After"), value: "after" },
+                  { label: _62("Before"), value: "before" },
+                  { label: _62("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _62("Is"), value: "is" }] : [
+                  { label: _62("Contains"), value: "contains" },
+                  { label: _62("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -19907,9 +20488,9 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _58("Previous"), value: "previous" },
-                            { label: _58("Current"), value: "current" },
-                            { label: _58("Next"), value: "next" }
+                            { label: _62("Previous"), value: "previous" },
+                            { label: _62("Current"), value: "current" },
+                            { label: _62("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -19919,11 +20500,11 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _58("Days"), value: "days" },
-                            { label: _58("Weeks"), value: "weeks" },
-                            { label: _58("Months"), value: "months" },
-                            { label: _58("Quarters"), value: "quarters" },
-                            { label: _58("Years"), value: "years" }
+                            { label: _62("Days"), value: "days" },
+                            { label: _62("Weeks"), value: "weeks" },
+                            { label: _62("Months"), value: "months" },
+                            { label: _62("Quarters"), value: "quarters" },
+                            { label: _62("Years"), value: "years" }
                           ]
                         }
                       )
@@ -19932,7 +20513,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                   return /* @__PURE__ */ jsx(
                     DatePicker,
                     {
-                      value: value?.date ? dayjs10(value.date) : void 0,
+                      value: value?.date ? dayjs11(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -19945,7 +20526,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: model.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _58("Field")
+                      placeholder: _62("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -19955,7 +20536,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _58("Operator")
+                      placeholder: _62("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -19988,10 +20569,10 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _58("True"), value: true },
-                        { label: _58("False"), value: false }
+                        { label: _62("True"), value: true },
+                        { label: _62("False"), value: false }
                       ],
-                      placeholder: _58("Value")
+                      placeholder: _62("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -20004,7 +20585,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _58("Value"),
+                      placeholder: _62("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -20017,8 +20598,8 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _58("Date"), value: "absolute" },
-                        { label: _58("Relative"), value: "relative" }
+                        { label: _62("Date"), value: "absolute" },
+                        { label: _62("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -20031,8 +20612,8 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _58("Date"), value: "absolute" },
-                        { label: _58("Relative"), value: "relative" }
+                        { label: _62("Date"), value: "absolute" },
+                        { label: _62("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -20042,7 +20623,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _58("Remove")
+                      children: _62("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -20054,14 +20635,14 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _58("Add Filter")
+                    children: _62("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _58("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _62("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _58("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _62("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -20082,12 +20663,12 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _58("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _58("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _62("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _62("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _58("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _62("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -20099,7 +20680,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     setRenameViewName(currentViewName);
                     setRenameViewModalOpen(true);
                   },
-                  children: _58("Rename view")
+                  children: _62("Rename view")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -20110,7 +20691,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                   icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                   disabled: availableViewNames.length <= 1,
                   onClick: confirmDeleteView,
-                  children: _58("Delete view")
+                  children: _62("Delete view")
                 }
               ),
               resolvedLayoutPreferenceType && /* @__PURE__ */ jsx(
@@ -20120,7 +20701,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _58("Save layout")
+                  children: _62("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -20132,7 +20713,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _58("Show Filters") : _58("Hide Filters")
+                  children: filtersCollapsed ? _62("Show Filters") : _62("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -20146,7 +20727,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _58("Analyze")
+                  children: _62("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -20158,7 +20739,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _58("Switch orientation")
+                  children: _62("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -20170,21 +20751,21 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _58("Switch positions")
+                  children: _62("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _58("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _62("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _58("Reset to default") })
+              }, children: _62("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _58("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _62("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -20196,27 +20777,27 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _58("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _58("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _62("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _62("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = model.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _58("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _58("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _62("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _62("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             isTotalsDetailsView && /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _58("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _58("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _62("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _62("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _58("Sum"), value: "sum" },
-                  { label: _58("Average"), value: "avg" },
-                  { label: _58("Count"), value: "count" },
-                  { label: _58("Max"), value: "max" },
-                  { label: _58("Min"), value: "min" },
-                  { label: _58("Std Dev"), value: "stddev" }
+                  { label: _62("Sum"), value: "sum" },
+                  { label: _62("Average"), value: "avg" },
+                  { label: _62("Count"), value: "count" },
+                  { label: _62("Max"), value: "max" },
+                  { label: _62("Min"), value: "min" },
+                  { label: _62("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -20244,19 +20825,20 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
       listVisible && /* @__PURE__ */ jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isGalleryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         galleryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _58("No images available")
+          _62("No images available")
         ] }) : /* @__PURE__ */ jsx("div", { style: isImageView ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...galleryPaginationProps }) })
       ] }) : isCrosstabView ? crosstabBodyNode : isPrimaryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         primaryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _58("No records available")
+          _62("No records available")
         ] }) : primaryRows.map((record, index) => renderPrimaryItem(record, index)),
         primaryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...primaryPaginationProps }) })
       ] }) : isListView ? /* @__PURE__ */ jsxs(Fragment, { children: [
+        inlineEditSaveCancelBar,
         listRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _58("No records available")
+          _62("No records available")
         ] }) : /* @__PURE__ */ jsx("ul", { style: { margin: 0, padding: 0 }, children: listRows.map((record, index) => renderListItem(record, index)) }),
         listPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...listPaginationProps }) })
       ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -20332,13 +20914,13 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                             selectable: false,
                             onClick: handleContextMenuClick,
                             items: [
-                              { key: "__open_show__", label: _58("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
-                              { key: "__open_new_tab__", label: _58("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
-                              { key: "__open_new_window__", label: _58("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_show__", label: _62("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
+                              { key: "__open_new_tab__", label: _62("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_new_window__", label: _62("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
                               { type: "divider" },
                               ...(bulkActionsAvailable ?? []).map((action) => ({
                                 key: action.value,
-                                label: _58(action.label)
+                                label: _62(action.label)
                               }))
                             ]
                           }
@@ -20352,6 +20934,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           ] }),
           document.body
         ),
+        (!isTotalsDetailsView || isTdFlipped) && inlineEditSaveCancelBar,
         (!isTotalsDetailsView || isTdFlipped) && /* @__PURE__ */ jsxs(
           Table,
           {
@@ -20442,10 +21025,14 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                   onFilter: (value, record) => matchesColumnFilterValue(field, record, value),
                   render: (value, record) => {
                     const { resource, id } = getTargetInfo(record);
+                    if (canInlineEdit && id != null && isInlineEditableField(field, model)) {
+                      return /* @__PURE__ */ jsx(InlineCellEditor, { field, record, rowId: id, model, allModels, inlineRowEdits });
+                    }
+                    const cellField = resolveRowTypedField(field, record);
                     const renderValue = () => {
-                      const showToken = normalizeFieldViewType(field.showViewType || "");
-                      if (showToken && !(showToken === "read-only-field" && field.reference)) {
-                        return renderFieldValue(field, record, allModels, true);
+                      const showToken = normalizeFieldViewType(cellField.showViewType || "");
+                      if (showToken && !(showToken === "read-only-field" && cellField.reference)) {
+                        return renderFieldValue(cellField, record, allModels, true);
                       }
                       if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
                         return /* @__PURE__ */ jsx(
@@ -20458,16 +21045,16 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
                         );
                       }
                       if (isPkField(field, model) && record._label) return record._label;
-                      if (field.type === "boolean") return /* @__PURE__ */ jsx(Checkbox, { checked: value, disabled: true });
-                      if (field.type === "number" && !field.reference) {
+                      if (cellField.type === "boolean") return /* @__PURE__ */ jsx(Checkbox, { checked: value, disabled: true });
+                      if (cellField.type === "number" && !field.reference) {
                         const formatted = formatNumberValue(value);
                         const maxValue = numericColumnMaxes[field.key] ?? 0;
                         return renderNumericValueBar(value, maxValue, formatted, numericBarColor);
                       }
-                      if (field.type === "date") return formatDateValue(value);
-                      if (field.type === "datetime") return formatDateTimeValue(value) ?? value;
-                      if (field.type === "time") return formatTimeValue(value);
-                      if (field.options) return renderOptionTag(field, value);
+                      if (cellField.type === "date") return formatDateValue(value);
+                      if (cellField.type === "datetime") return formatDateTimeValue(value) ?? value;
+                      if (cellField.type === "time") return formatTimeValue(value);
+                      if (cellField.options) return renderOptionTag(cellField, value);
                       return value;
                     };
                     if (!id || !resource || field.reference) return renderValue();
@@ -20495,17 +21082,17 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               showActions && /* @__PURE__ */ jsx(
                 Table.Column,
                 {
-                  title: _58("Actions"),
+                  title: _62("Actions"),
                   width: 140,
                   render: (_unused, record) => {
                     const { resource, id, isLinkRow } = getTargetInfo(record);
-                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_58("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
+                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_62("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxs(Space, { children: [
-                      /* @__PURE__ */ jsx(Tooltip, { title: _58("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource, action: "show", id } }) }) }),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _58("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _58("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
+                      /* @__PURE__ */ jsx(Tooltip, { title: _62("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
+                      canBulkEdit && !model.isNonModelData && /* @__PURE__ */ jsx(Tooltip, { title: _62("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      canBulkDelete && /* @__PURE__ */ jsx(Tooltip, { title: _62("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
                 },
@@ -20524,7 +21111,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
           numericBarColor,
           onSaveClick: () => openSaveViewModalFor("analyze"),
           customizeFooter: /* @__PURE__ */ jsxs(Fragment, { children: [
-            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _58("Loading all rows for analysis...") }),
+            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _62("Loading all rows for analysis...") }),
             allRowsError && /* @__PURE__ */ jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
           ] })
         }
@@ -20544,11 +21131,11 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
             relatedModel.label || relatedModel.name,
             /* @__PURE__ */ jsxs(Typography.Text, { type: "secondary", style: { fontSize: 13, marginLeft: 8 }, children: [
               "(",
-              _58("filtered by"),
+              _62("filtered by"),
               " ",
               entry.filterIds.length,
               " ",
-              _58("rows"),
+              _62("rows"),
               ")"
             ] })
           ] }),
@@ -20558,7 +21145,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
               size: "small",
               icon: /* @__PURE__ */ jsx(CloseOutlined, {}),
               onClick: () => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id)),
-              children: _58("Take this list out")
+              children: _62("Take this list out")
             }
           )
         ] }),
@@ -20589,7 +21176,7 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     exportButton,
     quickExportButton,
     importButton,
-    !model.isNamedQuery && renderIconOnlyButtons(defaultButtons)
+    !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
   ] });
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
@@ -20629,7 +21216,11 @@ var DynamicListPage = ({ model: modelProp, allModels, filter, relationConfig, is
     )
   ] });
 };
-var DynamicList = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.isEmbedded), children: /* @__PURE__ */ jsx(DynamicListPage, { ...props }) });
+var DynamicList = (props) => {
+  const [searchParams] = useSearchParams();
+  const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, searchParams.get("view_type") || props.listViewType);
+  return /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.isEmbedded), children: showsSingleRecordForm ? /* @__PURE__ */ jsx(SingleRecordPrimaryView, { model: props.model, allModels: props.allModels }) : /* @__PURE__ */ jsx(DynamicListPage, { ...props }) });
+};
 
 // src/components/MultiPane/paneUtils.ts
 function parsePanes(searchParams) {
@@ -20759,7 +21350,7 @@ function useBottomOverlayInset() {
   }, []);
   return inset;
 }
-var _59 = window._ || ((text) => text);
+var _63 = window._ || ((text) => text);
 var FakeRouteProvider = ({ model, id, children }) => {
   const existingRouteContext = useContext(UNSAFE_RouteContext);
   const fakeRouteContext = useMemo(() => ({
@@ -20792,7 +21383,7 @@ var useMainPaneLabel = (allModels) => {
     id: id ?? "",
     queryOptions: { enabled: Boolean(resourceName && id) }
   });
-  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _59("Back to list")));
+  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _63("Back to list")));
   const recordLabel = data?.data?._label;
   return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
@@ -20848,7 +21439,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
   const { token } = theme.useToken();
   const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
   const href = `/${resourcePath}/show/${pane.id}`;
-  const restoreTitle = hoverToExpand ? _59("Restore pane (also re-enables hover-to-expand)") : _59("Restore pane");
+  const restoreTitle = hoverToExpand ? _63("Restore pane (also re-enables hover-to-expand)") : _63("Restore pane");
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -20869,7 +21460,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
       children: [
         leading && /* @__PURE__ */ jsx("div", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden" }, children: leading }),
         /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _59("Open in full page"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _63("Open in full page"), children: /* @__PURE__ */ jsx(
             "a",
             {
               href,
@@ -20879,7 +21470,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } })
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _59("Minimize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _63("Minimize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -20896,7 +21487,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _59("Maximize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _63("Maximize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -20913,7 +21504,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _59("Close pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _63("Close pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -20946,7 +21537,7 @@ var PaneBody = ({ resolved, allModels, navContext, PrimaryShowRenderer, maximize
   ),
   PrimaryShowRenderer && /* @__PURE__ */ jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) })
 ] });
-var _60 = window._ || ((text) => text);
+var _64 = window._ || ((text) => text);
 var FlexPaneLayout = ({
   mode,
   entries,
@@ -21024,11 +21615,11 @@ var FlexPaneLayout = ({
     const trail = active && /* @__PURE__ */ jsx(
       Breadcrumb,
       {
-        "aria-label": _60("Panel trail"),
+        "aria-label": _64("Panel trail"),
         style: { fontSize: 12, whiteSpace: "nowrap" },
         items: [
           {
-            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _60("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
+            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _64("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
           },
           ...entries.map((e, i) => ({
             title: i === activeIdx ? /* @__PURE__ */ jsx("span", { style: { fontWeight: 600 }, children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) }) : /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(e.idx + 1), children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) })
@@ -22954,19 +23545,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _72 }) => _72).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_72) => {
-        if (_72.collapsible) {
+      const ut = R.panels.map(({ id: _76 }) => _76).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_76) => {
+        if (_76.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _72.collapsedSize,
-              ce[_72.panelId]
+              _76.collapsedSize,
+              ce[_76.panelId]
             ), dt = I(
-              _72.collapsedSize,
-              ge[_72.panelId]
+              _76.collapsedSize,
+              ge[_76.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_72.panelId] = ge[_72.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_76.panelId] = ge[_76.panelId]);
           }
         }
       });
@@ -23801,7 +24392,7 @@ var MultiPaneLayout = ({ children }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_72, idx) => ({
+    () => panes.map((_76, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -23826,7 +24417,7 @@ var MultiPaneLayout = ({ children }) => {
   )) });
 };
 var { Title: Title7 } = Typography;
-var _61 = window._ || ((text) => text);
+var _65 = window._ || ((text) => text);
 var HierarchyView = ({ resource, recordId, fallback }) => {
   const go = useGo();
   const { data: ancestorsData, isLoading: ancestorsLoading, error: ancestorsError } = useCustom({
@@ -23879,15 +24470,15 @@ var HierarchyView = ({ resource, recordId, fallback }) => {
   }
   if (ancestorsError || descendantsError) {
     if (fallback) return /* @__PURE__ */ jsx(Fragment, { children: fallback });
-    return /* @__PURE__ */ jsx(Alert, { message: _61("Error loading hierarchy data"), type: "error" });
+    return /* @__PURE__ */ jsx(Alert, { message: _65("Error loading hierarchy data"), type: "error" });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     ancestorsList.length > 0 && /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _61("Parent Hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _65("Parent Hierarchy") }),
       /* @__PURE__ */ jsx(Breadcrumb, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsx(Breadcrumb.Item, { children: /* @__PURE__ */ jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
     ] }),
     treeData.length > 0 && /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _61("Sub-hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _65("Sub-hierarchy") }),
       /* @__PURE__ */ jsx(
         Tree,
         {
@@ -24111,10 +24702,10 @@ var InlinePlotlyHtml = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE, scaleT
 
 // src/providers/authProvider.ts
 var AUTH_BASE = "/auth";
-var TOKEN_KEY2 = "jm_access_token";
+var TOKEN_KEY3 = "jm_access_token";
 var USER_KEY2 = "jm_user";
 var ROLE_PERMISSIONS_KEY = "jm_role_permissions";
-var _62 = window._ || ((text) => text);
+var _66 = window._ || ((text) => text);
 var authProvider = {
   /**
    * Authenticate by username + password.
@@ -24132,13 +24723,13 @@ var authProvider = {
         return {
           success: false,
           error: {
-            name: _62("Login failed"),
-            message: body?.detail || _62("Invalid credentials")
+            name: _66("Login failed"),
+            message: body?.detail || _66("Invalid credentials")
           }
         };
       }
       const data = await response.json();
-      localStorage.setItem(TOKEN_KEY2, data.access_token);
+      localStorage.setItem(TOKEN_KEY3, data.access_token);
       localStorage.setItem(USER_KEY2, JSON.stringify(data.user));
       const token = data.access_token;
       try {
@@ -24162,8 +24753,8 @@ var authProvider = {
       return {
         success: false,
         error: {
-          name: _62("Login failed"),
-          message: err?.message || _62("Network error")
+          name: _66("Login failed"),
+          message: err?.message || _66("Network error")
         }
       };
     }
@@ -24172,7 +24763,7 @@ var authProvider = {
    * Clear stored credentials and redirect to the login page.
    */
   logout: async () => {
-    localStorage.removeItem(TOKEN_KEY2);
+    localStorage.removeItem(TOKEN_KEY3);
     localStorage.removeItem(USER_KEY2);
     localStorage.removeItem(ROLE_PERMISSIONS_KEY);
     clearAccess();
@@ -24183,7 +24774,7 @@ var authProvider = {
    * Returns ``authenticated`` when a token is present.
    */
   check: async () => {
-    const token = localStorage.getItem(TOKEN_KEY2);
+    const token = localStorage.getItem(TOKEN_KEY3);
     if (token) {
       return { authenticated: true };
     }
@@ -24201,7 +24792,7 @@ var authProvider = {
       } catch {
       }
     }
-    const token = localStorage.getItem(TOKEN_KEY2);
+    const token = localStorage.getItem(TOKEN_KEY3);
     if (!token) return null;
     try {
       const response = await fetch(`${AUTH_BASE}/me`, {
@@ -24244,7 +24835,7 @@ var authProvider = {
 var USER_KEY3 = "jm_user";
 var ROLE_PERMISSIONS_KEY2 = "jm_role_permissions";
 var ADMIN_ROLE = "Admin";
-var _63 = window._ || ((text) => text);
+var _67 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
   Admin: ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
   Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
@@ -24267,20 +24858,20 @@ var accessControlProvider = {
   can: async ({ action, resource }) => {
     const cached = localStorage.getItem(USER_KEY3);
     if (!cached) {
-      return { can: false, reason: _63("Not authenticated") };
+      return { can: false, reason: _67("Not authenticated") };
     }
     let user;
     try {
       user = JSON.parse(cached);
     } catch {
-      return { can: false, reason: _63("Not authenticated") };
+      return { can: false, reason: _67("Not authenticated") };
     }
     const roles = user?.roles ?? [];
     const accessAction = REFINE_TO_ACTION[action];
     const access = getAccessSnapshot();
     if (accessAction && access) {
       const decision = evaluateAccess(access.context, null, resource ?? null, accessAction);
-      return decision.allowed ? { can: true } : { can: false, reason: _63("You do not have permission to perform this action.") };
+      return decision.allowed ? { can: true } : { can: false, reason: _67("You do not have permission to perform this action.") };
     }
     if (roles.includes(ADMIN_ROLE)) {
       return { can: true };
@@ -24296,7 +24887,7 @@ var accessControlProvider = {
     }
     return {
       can: false,
-      reason: _63("Access denied \u2014 insufficient role for this action")
+      reason: _67("Access denied \u2014 insufficient role for this action")
     };
   },
   options: {
@@ -24306,20 +24897,54 @@ var accessControlProvider = {
     }
   }
 };
-var TOKEN_KEY3 = "jm_access_token";
+var TOKEN_KEY4 = "jm_access_token";
 var httpClient = axios.create();
+var networkAdapter = axios.getAdapter(httpClient.defaults.adapter);
+httpClient.defaults.adapter = (config) => {
+  const requestUrl = config.url ? `${config.baseURL ?? ""}${config.url}` : "";
+  const query = config.params ? new URLSearchParams(config.params).toString() : "";
+  const inPageAnswer = requestUrl ? answerInPageRowsRequest(query ? `${requestUrl}${requestUrl.includes("?") ? "&" : "?"}${query}` : requestUrl, config.method, config.data) : null;
+  if (!inPageAnswer) return networkAdapter(config);
+  const response = {
+    data: inPageAnswer.body,
+    status: inPageAnswer.status,
+    statusText: String(inPageAnswer.status),
+    headers: inPageAnswer.headers,
+    config,
+    request: {}
+  };
+  if (inPageAnswer.status >= 400) {
+    return Promise.reject(new axios.AxiosError(
+      typeof inPageAnswer.body?.detail === "string" ? inPageAnswer.body.detail : `HTTP ${inPageAnswer.status}`,
+      String(inPageAnswer.status),
+      config,
+      {},
+      response
+    ));
+  }
+  return Promise.resolve(response);
+};
 httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY3);
+  const token = localStorage.getItem(TOKEN_KEY4);
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   if (config.headers && !config.headers["Accept-Language"]) {
     config.headers["Accept-Language"] = getActiveLocale();
   }
+  const revision = config.url ? rowRevisionFor(config.url, config.method) : void 0;
+  if (revision && config.headers && !config.headers["If-Match"]) {
+    config.headers["If-Match"] = revision;
+  }
   return config;
 });
 httpClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.headers?.[ROW_REVISIONS_RESPONSE_HEADER] && response.config?.url) {
+      rememberRowRevisions(response.config.url, response.data);
+    }
+    return response;
+  },
   (error) => {
     const detail = error?.response?.data?.detail;
     if (detail) {
@@ -24401,7 +25026,7 @@ var ResourceContext = createContext({
   allResources: [],
   allSystemModels: []
 });
-var _64 = window._ || ((text) => text);
+var _68 = window._ || ((text) => text);
 var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
   const { mutate: login, isLoading, error } = useLogin();
   const [form] = Form.useForm();
@@ -24430,14 +25055,14 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
             /* @__PURE__ */ jsxs("div", { style: { textAlign: "center" }, children: [
               logo && /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle, style: { height: 48, width: "auto" } }) : logo }),
               /* @__PURE__ */ jsx(Typography.Title, { level: 3, style: { marginBottom: 4 }, children: appTitle }),
-              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _64("Sign in to your account") })
+              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _68("Sign in to your account") })
             ] }),
             error && /* @__PURE__ */ jsx(
               Alert,
               {
                 type: "error",
-                message: error?.name || _64("Login failed"),
-                description: error?.message || _64("Invalid credentials"),
+                message: error?.name || _68("Login failed"),
+                description: error?.message || _68("Invalid credentials"),
                 showIcon: true
               }
             ),
@@ -24453,13 +25078,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     Form.Item,
                     {
                       name: "username",
-                      label: _64("Username"),
-                      rules: [{ required: true, message: _64("Please enter your username") }],
+                      label: _68("Username"),
+                      rules: [{ required: true, message: _68("Please enter your username") }],
                       children: /* @__PURE__ */ jsx(
                         Input,
                         {
                           prefix: /* @__PURE__ */ jsx(UserOutlined, {}),
-                          placeholder: _64("Username"),
+                          placeholder: _68("Username"),
                           size: "large"
                         }
                       )
@@ -24469,13 +25094,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                     Form.Item,
                     {
                       name: "password",
-                      label: _64("Password"),
-                      rules: [{ required: true, message: _64("Please enter your password") }],
+                      label: _68("Password"),
+                      rules: [{ required: true, message: _68("Please enter your password") }],
                       children: /* @__PURE__ */ jsx(
                         Input.Password,
                         {
                           prefix: /* @__PURE__ */ jsx(LockOutlined, {}),
-                          placeholder: _64("Password"),
+                          placeholder: _68("Password"),
                           size: "large"
                         }
                       )
@@ -24489,7 +25114,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo }) => {
                       loading: isLoading,
                       block: true,
                       size: "large",
-                      children: _64("Login")
+                      children: _68("Login")
                     }
                   ) })
                 ]
@@ -24551,7 +25176,7 @@ function useHelpContent(pageKey) {
   };
   return { loading, doc, fetchContent };
 }
-var _65 = window._ || ((text) => text);
+var _69 = window._ || ((text) => text);
 var ReactMarkdown4 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardCellHelp = ({ resource }) => {
   const { token } = theme.useToken();
@@ -24571,14 +25196,14 @@ var DashboardCellHelp = ({ resource }) => {
       Empty,
       {
         image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _65("No help written for this cell yet."),
+        description: _69("No help written for this cell yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
           Button,
           {
             type: "link",
             size: "small",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _65("Write help for this")
+            children: _69("Write help for this")
           }
         )
       }
@@ -24598,15 +25223,15 @@ var DashboardCellHelp = ({ resource }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _65("Dashboard cell help"),
-          title: _65("Dashboard cell help"),
+          "aria-label": _69("Dashboard cell help"),
+          title: _69("Dashboard cell help"),
           style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
         }
       )
     }
   );
 };
-var _66 = window._ || ((text) => text);
+var _70 = window._ || ((text) => text);
 var ReactMarkdown5 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardTabHelp = ({ tabId }) => {
   const navigate = useNavigate();
@@ -24625,14 +25250,14 @@ var DashboardTabHelp = ({ tabId }) => {
       Empty,
       {
         image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _66("No help written for this tab yet."),
+        description: _70("No help written for this tab yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
           Button,
           {
             type: "link",
             size: "small",
             onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _66("Write help for this")
+            children: _70("Write help for this")
           }
         )
       }
@@ -24652,8 +25277,8 @@ var DashboardTabHelp = ({ tabId }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _66("Dashboard tab help"),
-          title: _66("Dashboard tab help"),
+          "aria-label": _70("Dashboard tab help"),
+          title: _70("Dashboard tab help"),
           onClick: (e) => e.stopPropagation(),
           style: { padding: "0 2px", height: 18, minWidth: 18 }
         }
@@ -24661,7 +25286,7 @@ var DashboardTabHelp = ({ tabId }) => {
     }
   );
 };
-var _67 = (text) => translateText(text, text);
+var _71 = (text) => translateText(text, text);
 var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
 var FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
 var FIT_CARD_MIN_SCALE = 0.15;
@@ -24673,7 +25298,7 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
     setLoading(true);
     setError("");
     try {
-      const apiUrl = typeof API_URL3 === "string" ? API_URL3 : "";
+      const apiUrl = typeof API_URL2 === "string" ? API_URL2 : "";
       const chartPath = apiUrl && chartUrl.startsWith(`${apiUrl}/`) ? chartUrl.slice(apiUrl.length) : chartUrl;
       const fullUrl = chartPath.startsWith("http") ? chartPath : `${apiUrl}${chartPath}`;
       const sep = fullUrl.includes("?") ? "&" : "?";
@@ -24701,10 +25326,10 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
     return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }, children: /* @__PURE__ */ jsx(Spin, {}) });
   }
   if (error) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_67("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_71("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   if (!chartHtml) {
-    return /* @__PURE__ */ jsx(Empty, { description: _67("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _71("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" }, minScale });
 };
@@ -24755,8 +25380,8 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   };
   const isPlotlyChart = cell.source_type === "plotly_chart";
   const resource = model?.resource || cell.model;
-  const isModelLike = cell.source_type === "model" || cell.source_type === "named_query";
-  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _67(cell.section_name) : cell.model;
+  const isModelLike = cell.source_type === "model" || cell.source_type === "named_query" || cell.source_type === "non_model_data";
+  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _71(cell.section_name) : cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
   const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
   const isNlSentenceCell = isPlotlyChart && typeof cell.model === "string" && cell.model.toLowerCase().includes("nlsentence");
@@ -24876,7 +25501,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
       }, children: cellTitle }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
         canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _67("Move left"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _71("Move left"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24886,7 +25511,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _67("Move up"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _71("Move up"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24896,7 +25521,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _67("Move down"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _71("Move down"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24906,7 +25531,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _67("Move right"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _71("Move right"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24916,7 +25541,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _67("Configure cell"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _71("Configure cell"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -24929,8 +25554,8 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ] }),
         isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null,
         isModelLike && resource ? /* @__PURE__ */ jsx(DashboardCellHelp, { resource }) : null,
-        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _67("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _67("Restore") : _67("Maximize"), children: /* @__PURE__ */ jsx(
+        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _71("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _71("Restore") : _71("Maximize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -24940,7 +25565,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _67("Restore") : _67("Minimize"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _71("Restore") : _71("Minimize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -24972,7 +25597,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) : /* @__PURE__ */ jsx(
           Empty,
           {
-            description: _67('Model "{model}" not found').replace("{model}", cell.model),
+            description: _71('Model "{model}" not found').replace("{model}", cell.model),
             style: { padding: 24 },
             image: Empty.PRESENTED_IMAGE_SIMPLE
           }
@@ -25001,7 +25626,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     overflowX: "auto"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _67("No models in this tab"), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _71("No models in this tab"), style: { padding: 48 } });
   }
   const renderCell = (cell) => /* @__PURE__ */ jsx(
     DashboardGridCell,
@@ -25064,8 +25689,8 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = useState(null);
   const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_67), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_67);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_71), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_71);
   const handleOpenDrawer = useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
@@ -25083,7 +25708,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        _67(tab.name),
+        _71(tab.name),
         tabExtraActions ? tabExtraActions(tab, allModels) : null,
         /* @__PURE__ */ jsx(DashboardTabHelp, { tabId: tab.id })
       ] }),
@@ -25108,7 +25733,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
   );
   if (!config.tabs.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _67("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _71("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
   }
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
@@ -25122,7 +25747,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
           right: /* @__PURE__ */ jsx(
             CellSizeSelector,
             {
-              label: _67("Cell size"),
+              label: _71("Cell size"),
               stepCount: GRID_DENSITY_STEPS.length,
               marks: gridDensityMarks,
               value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -25154,23 +25779,23 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_72, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_76, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
 }
-var _68 = (text) => translateText(text, text);
+var _72 = (text) => translateText(text, text);
 var { Text: Text6, Title: Title8 } = Typography;
 function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
-  if (mins < 1) return _68("just now");
-  if (mins < 60) return _68("{count}m ago").replace("{count}", String(mins));
+  if (mins < 1) return _72("just now");
+  if (mins < 60) return _72("{count}m ago").replace("{count}", String(mins));
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return _68("{count}h ago").replace("{count}", String(hrs));
+  if (hrs < 24) return _72("{count}h ago").replace("{count}", String(hrs));
   const days = Math.floor(hrs / 24);
-  if (days < 30) return _68("{count}d ago").replace("{count}", String(days));
+  if (days < 30) return _72("{count}d ago").replace("{count}", String(days));
   return new Date(iso).toLocaleDateString();
 }
 var RecentActivityPanel = () => {
@@ -25181,7 +25806,7 @@ var RecentActivityPanel = () => {
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsx(Text6, { type: "secondary", children: _68("Show activity from the last") }),
+      /* @__PURE__ */ jsx(Text6, { type: "secondary", children: _72("Show activity from the last") }),
       /* @__PURE__ */ jsx(
         InputNumber,
         {
@@ -25193,20 +25818,20 @@ var RecentActivityPanel = () => {
           size: "small"
         }
       ),
-      /* @__PURE__ */ jsx(Text6, { type: "secondary", children: _68("days") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _68("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Text6, { type: "secondary", children: _72("days") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _72("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      data && /* @__PURE__ */ jsx(Text6, { type: "secondary", style: { fontSize: 12 }, children: _68("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
+      data && /* @__PURE__ */ jsx(Text6, { type: "secondary", style: { fontSize: 12 }, children: _72("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : groups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
-        description: _68("No activity in the last {days} days").replace("{days}", String(days)),
+        description: _72("No activity in the last {days} days").replace("{days}", String(days)),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
         style: { padding: 48 }
       }
@@ -25264,7 +25889,7 @@ var RecentActivityPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _68("new") }),
+                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _72("new") }),
                       /* @__PURE__ */ jsx(Text6, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
@@ -25277,7 +25902,7 @@ var RecentActivityPanel = () => {
     }) })
   ] });
 };
-var _69 = (text) => translateText(text, text);
+var _73 = (text) => translateText(text, text);
 var { Text: AntText, Title: AntTitle } = Typography;
 function usePinnedRecords() {
   const [groups, setGroups] = useState([]);
@@ -25285,7 +25910,7 @@ function usePinnedRecords() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${API_URL3}/dashboard/pinned-records`);
+      const res = await authenticatedFetch(`${API_URL2}/dashboard/pinned-records`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups ?? []);
@@ -25323,28 +25948,28 @@ var PinnedRecordsPanel = () => {
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
       /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
-      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _69("Records you've pinned across the app") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _69("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _73("Records you've pinned across the app") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _73("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _69("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
+      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _73("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : visibleGroups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _69("No pinned records yet."),
+          _73("No pinned records yet."),
           /* @__PURE__ */ jsx("br", {}),
           /* @__PURE__ */ jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
-            _69("Open any record and click the"),
+            _73("Open any record and click the"),
             " ",
             /* @__PURE__ */ jsx(PushpinOutlined, {}),
             " ",
-            _69("pin button to pin it here.")
+            _73("pin button to pin it here.")
           ] })
         ] }),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
@@ -25405,7 +26030,7 @@ var PinnedRecordsPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _69("Unpin"), children: /* @__PURE__ */ jsx(
+                      /* @__PURE__ */ jsx(Tooltip, { title: _73("Unpin"), children: /* @__PURE__ */ jsx(
                         Button,
                         {
                           className: "jm-unpin-btn",
@@ -25429,7 +26054,7 @@ var PinnedRecordsPanel = () => {
   ] });
 };
 var { Text: Text7 } = Typography;
-var _70 = window._ || ((text) => text);
+var _74 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
   const { token } = theme.useToken();
@@ -25470,14 +26095,14 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
         image: /* @__PURE__ */ jsx(DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
         imageStyle: { height: 60 },
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _70("No dashboard configured."),
+          _74("No dashboard configured."),
           /* @__PURE__ */ jsx("br", {}),
           /* @__PURE__ */ jsxs(Text7, { type: "secondary", children: [
-            _70("Run"),
+            _74("Run"),
             " ",
             /* @__PURE__ */ jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
             " ",
-            _70("to get started.")
+            _74("to get started.")
           ] })
         ] })
       }
@@ -25486,7 +26111,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const tabs = [
     {
       key: "models_grid",
-      label: _70("Models Grid"),
+      label: _74("Models Grid"),
       children: /* @__PURE__ */ jsx("div", { ref: contentRef, style: contentAreaStyle, children: /* @__PURE__ */ jsx(
         ViewsGrid,
         {
@@ -25500,12 +26125,12 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     },
     {
       key: "recent_activity",
-      label: _70("Recent Activity"),
+      label: _74("Recent Activity"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(RecentActivityPanel, {}) })
     },
     {
       key: "pinned_records",
-      label: _70("Pinned Records"),
+      label: _74("Pinned Records"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
     }
   ];
@@ -25580,7 +26205,25 @@ function generateResources(models, moduleName, options = {}) {
   });
   return [parentEntry, ...children];
 }
-var _71 = (text) => {
+function useInPageRowsStore(storeName, model, initialRows = []) {
+  const invalidate = useInvalidate();
+  const storeRef = useRef(null);
+  if (storeRef.current === null || storeRef.current.resource !== `${IN_PAGE_ROWS_RESOURCE_PREFIX}${storeName}`) {
+    storeRef.current = createInPageRowsStore(storeName, model, initialRows);
+  }
+  const store = storeRef.current;
+  useEffect(() => {
+    registerInPageRowsStore(store);
+    const resource = store.resource;
+    return () => removeInPageRowsStore(resource);
+  }, [store]);
+  const setRows = useCallback((rows) => {
+    store.setRows(rows);
+    void invalidate({ resource: store.resource, invalidates: ["list", "many", "detail"] });
+  }, [store, invalidate]);
+  return useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
+}
+var _75 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -25594,10 +26237,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_71(moduleName)} \u203A ${_71(e.model_key)}` : _71(moduleName);
+  return e.model_key ? `${_75(moduleName)} \u203A ${_75(e.model_key)}` : _75(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _71("Allowlist") : mode === "block" ? _71("Blocklist") : _71("No policy");
-var modeHelp = (mode) => mode === "allow" ? _71("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _71("Users with this role can use everything except the checked actions on the listed modules and models.") : _71("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _75("Allowlist") : mode === "block" ? _75("Blocklist") : _75("No policy");
+var modeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _75("Users with this role can use everything except the checked actions on the listed modules and models.") : _75("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -25618,7 +26261,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      message.error(_71("Could not load access policies."));
+      message.error(_75("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -25633,7 +26276,7 @@ var AdminNote = () => /* @__PURE__ */ jsx(
   {
     type: "info",
     showIcon: true,
-    message: _71("The Admin role always has full access and can't be given an access policy.")
+    message: _75("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -25658,9 +26301,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _71("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _71("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _71("No policy");
+    if (row.event === "role_get_migration") return _75("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _75("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _75("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsx(
@@ -25670,20 +26313,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _71("No changes recorded yet.") },
+      locale: { emptyText: _75("No changes recorded yet.") },
       columns: [
         {
-          title: _71("When"),
+          title: _75("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _71("Changed by"),
+          title: _75("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _71("System")
+          render: (_v, row) => row.actor_username || _75("System")
         },
         {
-          title: _71("Change"),
+          title: _75("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -25692,11 +26335,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _71("Module or model"),
+  title: _75("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _71("Inactive") })
+    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _75("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -25709,11 +26352,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _71(label),
+      title: _75(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _71(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _75(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -25729,10 +26372,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _71("No modules or models listed yet.") }
+        locale: { emptyText: _75("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _71("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -25768,21 +26411,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _71("Could not save the access policy."));
+      message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    message.success(mode === "none" ? _71("Access policy removed.") : _71("Access policy saved."));
+    message.success(mode === "none" ? _75("Access policy removed.") : _75("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = useMemo(
     () => modules.map((m) => ({
-      title: _71(m.name),
+      title: _75(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _71(model.key),
+        title: _75(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -25838,7 +26481,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _71(label),
+      title: _75(label),
       key: action,
       width: 90,
       align: "center",
@@ -25847,7 +26490,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_71(label)} ${resourceLabel(e)}`
+          "aria-label": `${_75(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -25860,27 +26503,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-          "aria-label": _71("Remove"),
+          "aria-label": _75("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _71("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _71("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _71("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _71("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _75("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _75("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _75("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _71("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _75("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _71("This allowlist is empty: users with this role will lose access to every module.")
+        message: _75("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -25890,7 +26533,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _71("Add a module or model"),
+          placeholder: _75("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -25905,12 +26548,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _71("No modules or models listed yet.") }
+          locale: { emptyText: _75("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _71("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _75("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _71("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -25919,7 +26562,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _71("Users with this role can use only the listed features.") : mode === "block" ? _71("Users with this role can use every feature except the listed ones.") : _71("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _75("Users with this role can use only the listed features.") : mode === "block" ? _75("Users with this role can use every feature except the listed ones.") : _75("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = useState([]);
@@ -25953,15 +26596,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _71("Feature"),
+    title: _75("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsx(Tag, { children: _71("Inactive") })
+      !r.active && /* @__PURE__ */ jsx(Tag, { children: _75("Inactive") })
     ] })
   },
-  { title: _71("Group"), dataIndex: "group", key: "group" },
-  { title: _71("Description"), dataIndex: "description", key: "description" }
+  { title: _75("Group"), dataIndex: "group", key: "group" },
+  { title: _75("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -25987,10 +26630,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _71("No features listed yet.") }
+        locale: { emptyText: _75("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _71("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _75("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -26018,10 +26661,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _71("Could not save the feature access."));
+      message.error(typeof body?.detail === "string" ? body.detail : _75("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    message.success(mode === "none" ? _71("Feature access removed.") : _71("Feature access saved."));
+    message.success(mode === "none" ? _75("Feature access removed.") : _75("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -26031,20 +26674,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _71("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _75("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _71("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _71("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _71("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _75("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _75("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _75("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _71("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _75("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _71("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _75("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
@@ -26059,10 +26702,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _71("No features are registered.") }
+        locale: { emptyText: _75("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _71("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _75("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -26248,6 +26891,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL3 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CollapsibleBanner, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NavConfigContext, NoAccessResult, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, refreshAccess, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CollapsibleBanner, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NavConfigContext, NoAccessResult, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, StandardList, StandardShow, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, refreshAccess, removeInPageRowsStore, renderRelationBlock, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useInPageRowsStore, useKeyboardShortcuts, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, useRecordSearch, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

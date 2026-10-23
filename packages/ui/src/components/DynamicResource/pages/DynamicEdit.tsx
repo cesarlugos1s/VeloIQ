@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAllModelsIncludingNonModelData } from "../../../contexts/AllModelsContext";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiUrl, useCan, useGo } from "@refinedev/core";
 import { useForm, DeleteButton } from "@refinedev/antd";
@@ -37,7 +38,8 @@ const DynamicEditPage: React.FC<{
     extraHeaderButtons?: React.ReactNode;
     journeyCallbacks?: JourneyCallbacks;
     idOverride?: string;
-}> = ({ model: modelProp, allModels, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
+    const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     applyI18nLabelsToModel(model);
     applyI18nLabelsToModels(allModels);
