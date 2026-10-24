@@ -2926,6 +2926,44 @@ const DynamicListPage: React.FC<{
         order: isAnalyzeFirst ? 1 : 2,
     };
 
+    /** The row actions of *record* (``rowActions``) as small icon buttons: the table's
+     * Actions column, and the cards of the gallery and list views. */
+    const renderRowActionButtons = (record: any) =>
+        effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
+            const executeRowAction = async () => {
+                try {
+                    await action.onExecute(record);
+                    for (const refreshed of [model.resource || model.name, ...(action.refreshesResources || [])]) {
+                        invalidate({ resource: refreshed, invalidates: ["list"] });
+                    }
+                } catch (error) {
+                    message.error(error instanceof Error ? error.message : _("Failed to save changes."));
+                }
+            };
+            const button = (
+                <Button size="small" icon={action.icon} aria-label={_(action.label)} onClick={(event) => {
+                    event.stopPropagation();
+                    // An action with a confirmation runs from the confirmation's OK.
+                    if (!action.confirmMessage) void executeRowAction();
+                }} />
+            );
+            return (
+                <Tooltip key={action.key} title={_(action.label)}>
+                    {action.confirmMessage ? (
+                        <Popconfirm
+                            title={_(action.confirmMessage)}
+                            okText={_("Confirm")}
+                            cancelText={_("Cancel")}
+                            onConfirm={(event) => { event?.stopPropagation(); void executeRowAction(); }}
+                            onCancel={(event) => event?.stopPropagation()}
+                        >
+                            {button}
+                        </Popconfirm>
+                    ) : button}
+                </Tooltip>
+            );
+        });
+
     const renderGalleryItem = (record: any) => {
         const { resource, id } = getTargetInfo(record);
         const fileId = getGalleryItemId(record, id);
@@ -2950,6 +2988,7 @@ const DynamicListPage: React.FC<{
             textColor: token.colorText,
             fill: isImageView,
             onClick: resource && id !== undefined && id !== null ? handleClick : undefined,
+            actions: renderRowActionButtons(record),
         });
     };
 
@@ -3020,6 +3059,9 @@ const DynamicListPage: React.FC<{
                         </div>
                     ))}
                 </div>
+                {effectiveRowActions.length > 0 && (
+                    <Space size={4} style={{ marginTop: 6 }}>{renderRowActionButtons(record)}</Space>
+                )}
             </li>
         );
     };
@@ -4178,40 +4220,7 @@ const DynamicListPage: React.FC<{
                                                       : id;
                                                       return (
                                                       <Space>
-                                                          {effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
-                                                              const executeRowAction = async () => {
-                                                                  try {
-                                                                      await action.onExecute(record);
-                                                                      for (const refreshed of [model.resource || model.name, ...(action.refreshesResources || [])]) {
-                                                                          invalidate({ resource: refreshed, invalidates: ["list"] });
-                                                                      }
-                                                                  } catch (error) {
-                                                                      message.error(error instanceof Error ? error.message : _("Failed to save changes."));
-                                                                  }
-                                                              };
-                                                              const button = (
-                                                                  <Button size="small" icon={action.icon} aria-label={_(action.label)} onClick={(event) => {
-                                                                      event.stopPropagation();
-                                                                      // An action with a confirmation runs from the confirmation's OK.
-                                                                      if (!action.confirmMessage) void executeRowAction();
-                                                                  }} />
-                                                              );
-                                                              return (
-                                                                  <Tooltip key={action.key} title={_(action.label)}>
-                                                                      {action.confirmMessage ? (
-                                                                          <Popconfirm
-                                                                              title={_(action.confirmMessage)}
-                                                                              okText={_("Confirm")}
-                                                                              cancelText={_("Cancel")}
-                                                                              onConfirm={(event) => { event?.stopPropagation(); void executeRowAction(); }}
-                                                                              onCancel={(event) => event?.stopPropagation()}
-                                                                          >
-                                                                              {button}
-                                                                          </Popconfirm>
-                                                                      ) : button}
-                                                                  </Tooltip>
-                                                              );
-                                                          })}
+                                                          {renderRowActionButtons(record)}
                                                           {showActions && (
                                                               <Tooltip title={_("View")}><Button size="small" icon={<EyeOutlined />} onClick={() => (paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }))} /></Tooltip>
                                                           )}

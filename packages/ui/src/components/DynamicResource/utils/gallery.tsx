@@ -82,6 +82,7 @@ export const renderSharedGalleryCard = ({
     textColor,
     onClick,
     fill = false,
+    actions,
 }: {
     item: any;
     itemId: any;
@@ -94,6 +95,8 @@ export const renderSharedGalleryCard = ({
     onClick?: () => void;
     /** "image" view: scale the image to the container's full width, keeping its aspect ratio. */
     fill?: boolean;
+    /** Buttons shown under the label (e.g. the list's row actions); clicking them doesn't open the item. */
+    actions?: React.ReactNode[];
 }) => {
     const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
     const imageStyle: React.CSSProperties = {
@@ -122,6 +125,11 @@ export const renderSharedGalleryCard = ({
             <div style={{ fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {label}
             </div>
+            {actions && actions.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }} onClick={(event) => event.stopPropagation()}>
+                    {actions}
+                </div>
+            )}
         </div>
     );
 };

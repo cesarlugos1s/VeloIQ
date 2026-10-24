@@ -47,6 +47,10 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ### Changed
 
+- `@juicemantics/veloiq-ui`: a list's row actions (`DynamicList` `rowActions`, or
+  those registered for the resource) also show on the cards of the gallery and
+  list views, under each card's label, not only in the table's Actions column.
+  Clicking an action doesn't open the card's record.
 - `@juicemantics/veloiq-ui`: the Refine, react-query, router, axios and dayjs peer
   dependencies are optional, so an external website using only
   `@juicemantics/veloiq-ui/banner` doesn't install them. Host apps already list them.

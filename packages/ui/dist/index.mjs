@@ -2,7 +2,7 @@ import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from 
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, Refine, Authenticated, useWarnAboutChange, useResource } from '@refinedev/core';
-import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Popconfirm, Upload, Rate, Progress, Collapse } from 'antd';
+import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, EyeOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
@@ -4989,7 +4989,8 @@ var renderSharedGalleryCard = ({
   borderColor,
   textColor,
   onClick,
-  fill = false
+  fill = false,
+  actions
 }) => {
   const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
   const imageStyle = {
@@ -5009,7 +5010,8 @@ var renderSharedGalleryCard = ({
       onClick,
       children: [
         contentUrl ? /* @__PURE__ */ jsx(AuthenticatedImage, { url: contentUrl, alt: label, style: imageStyle }) : /* @__PURE__ */ jsx("div", { style: { ...imageStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#8c8c8c" }, children: /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 24 } }) }),
-        /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: label })
+        /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: label }),
+        actions && actions.length > 0 && /* @__PURE__ */ jsx("div", { style: { display: "flex", flexWrap: "wrap", gap: 4 }, onClick: (event) => event.stopPropagation(), children: actions })
       ]
     },
     itemId ?? label
@@ -20315,6 +20317,36 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     overflow: "visible",
     order: isAnalyzeFirst ? 1 : 2
   };
+  const renderRowActionButtons = (record) => effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
+    const executeRowAction = async () => {
+      try {
+        await action.onExecute(record);
+        for (const refreshed of [model.resource || model.name, ...action.refreshesResources || []]) {
+          invalidate({ resource: refreshed, invalidates: ["list"] });
+        }
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : _63("Failed to save changes."));
+      }
+    };
+    const button = /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _63(action.label), onClick: (event) => {
+      event.stopPropagation();
+      if (!action.confirmMessage) void executeRowAction();
+    } });
+    return /* @__PURE__ */ jsx(Tooltip, { title: _63(action.label), children: action.confirmMessage ? /* @__PURE__ */ jsx(
+      Popconfirm,
+      {
+        title: _63(action.confirmMessage),
+        okText: _63("Confirm"),
+        cancelText: _63("Cancel"),
+        onConfirm: (event) => {
+          event?.stopPropagation();
+          void executeRowAction();
+        },
+        onCancel: (event) => event?.stopPropagation(),
+        children: button
+      }
+    ) : button }, action.key);
+  });
   const renderGalleryItem = (record) => {
     const { resource, id } = getTargetInfo(record);
     const fileId = getGalleryItemId(record, id);
@@ -20338,7 +20370,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       borderColor: token.colorBorder,
       textColor: token.colorText,
       fill: isImageView,
-      onClick: resource && id !== void 0 && id !== null ? handleClick : void 0
+      onClick: resource && id !== void 0 && id !== null ? handleClick : void 0,
+      actions: renderRowActionButtons(record)
     });
   };
   const renderPrimaryItem = (record, index) => /* @__PURE__ */ jsx(RelatedObjectPrimaryCard, { record, model, allModels }, getRowKey(record, index));
@@ -20397,7 +20430,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           ": "
         ] }),
         canInlineEdit && id != null && isInlineEditableField(field, model) ? /* @__PURE__ */ jsx(InlineCellEditor, { field, record, rowId: id, model, allModels, inlineRowEdits }) : renderListFieldValue(field, record)
-      ] }, field.key)) })
+      ] }, field.key)) }),
+      effectiveRowActions.length > 0 && /* @__PURE__ */ jsx(Space, { size: 4, style: { marginTop: 6 }, children: renderRowActionButtons(record) })
     ] }, getRowKey(record, index));
   };
   const galleryPageSize = typeof tablePagination === "object" && tablePagination?.pageSize ? tablePagination.pageSize : 10;
@@ -21510,36 +21544,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxs(Space, { children: [
-                      effectiveRowActions.filter((action) => !action.isVisible || action.isVisible(record)).map((action) => {
-                        const executeRowAction = async () => {
-                          try {
-                            await action.onExecute(record);
-                            for (const refreshed of [model.resource || model.name, ...action.refreshesResources || []]) {
-                              invalidate({ resource: refreshed, invalidates: ["list"] });
-                            }
-                          } catch (error) {
-                            message.error(error instanceof Error ? error.message : _63("Failed to save changes."));
-                          }
-                        };
-                        const button = /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _63(action.label), onClick: (event) => {
-                          event.stopPropagation();
-                          if (!action.confirmMessage) void executeRowAction();
-                        } });
-                        return /* @__PURE__ */ jsx(Tooltip, { title: _63(action.label), children: action.confirmMessage ? /* @__PURE__ */ jsx(
-                          Popconfirm,
-                          {
-                            title: _63(action.confirmMessage),
-                            okText: _63("Confirm"),
-                            cancelText: _63("Cancel"),
-                            onConfirm: (event) => {
-                              event?.stopPropagation();
-                              void executeRowAction();
-                            },
-                            onCancel: (event) => event?.stopPropagation(),
-                            children: button
-                          }
-                        ) : button }, action.key);
-                      }),
+                      renderRowActionButtons(record),
                       showActions && /* @__PURE__ */ jsx(Tooltip, { title: _63("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
                       showActions && canBulkEdit && /* @__PURE__ */ jsx(Tooltip, { title: _63("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
                       showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && /* @__PURE__ */ jsx(Tooltip, { title: _63("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
