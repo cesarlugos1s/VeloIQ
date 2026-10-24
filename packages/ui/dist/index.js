@@ -21856,7 +21856,9 @@ var usePaneLabel = (model, id) => {
   const recordLabel = data?.data?._label;
   return recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
+var MainPaneLabelContext = React6.createContext(void 0);
 var useMainPaneLabel = (allModels) => {
+  const givenLabel = React6.useContext(MainPaneLabelContext);
   const { resource } = core.useResource();
   const { id } = reactRouterDom.useParams();
   const resourceName = resource?.name ?? "";
@@ -21868,6 +21870,7 @@ var useMainPaneLabel = (allModels) => {
   });
   const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _64("Back to list")));
   const recordLabel = data?.data?._label;
+  if (givenLabel) return givenLabel;
   return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
 var PaneLabelText = ({ model, id }) => /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: usePaneLabel(model, id) });
@@ -24771,7 +24774,7 @@ var SplitPaneLayout = ({
   ) });
 };
 var cachedPaneSettings = null;
-var MultiPaneLayout = ({ children }) => {
+var MultiPaneLayout = ({ children, mainLabel }) => {
   const containerRef = React6.useRef(null);
   const [viewportHeight, setViewportHeight] = React6.useState(null);
   const [containerWidth, setContainerWidth] = React6.useState(0);
@@ -24894,10 +24897,10 @@ var MultiPaneLayout = ({ children }) => {
     cap: paneSettings.maxVisible,
     fixedWidth: paneSettings.fixedWidth
   };
-  return /* @__PURE__ */ jsxRuntime.jsx("div", { ref: containerRef, className: "jm-full-width-page", style: { overflow: "hidden", height: panelHeight }, children: settingsReady && (effectiveMode === "stack" ? /* @__PURE__ */ jsxRuntime.jsx(SplitPaneLayout, { ...layoutProps, registerBeforeNavigate }) : (
+  return /* @__PURE__ */ jsxRuntime.jsx("div", { ref: containerRef, className: "jm-full-width-page", style: { overflow: "hidden", height: panelHeight }, children: /* @__PURE__ */ jsxRuntime.jsx(MainPaneLabelContext.Provider, { value: mainLabel, children: settingsReady && (effectiveMode === "stack" ? /* @__PURE__ */ jsxRuntime.jsx(SplitPaneLayout, { ...layoutProps, registerBeforeNavigate }) : (
     // Breadcrumb / overlay / scroll: no split state to snapshot.
     /* @__PURE__ */ jsxRuntime.jsx(FlexPaneLayout, { ...layoutProps, mode: effectiveMode })
-  )) });
+  )) }) });
 };
 var { Title: Title7 } = antd.Typography;
 var _66 = window._ || ((text) => text);
@@ -27004,7 +27007,7 @@ var PortalAppWithSettings = ({
         ) }, "portal-auth"), children: [
           /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "/", element: /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Navigate, { to: resolvedLandingPath, replace: true }) }),
           portalSettings.show_dashboard_menu_entry && /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: "/dashboard", element: /* @__PURE__ */ jsxRuntime.jsx(DashboardPage, {}) }),
-          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: pageRoute.path, element: /* @__PURE__ */ jsxRuntime.jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Route, { path: pageRoute.path, element: pageRoute.multiPane ? /* @__PURE__ */ jsxRuntime.jsx(MultiPaneLayout, { mainLabel: pageRoute.label ? _77(pageRoute.label) : void 0, children: /* @__PURE__ */ jsxRuntime.jsx(LazyPortalPage, { pageRoute }) }) : /* @__PURE__ */ jsxRuntime.jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
           portalModels.map((model) => {
             const resource = model.resource || model.name;
             return /* @__PURE__ */ jsxRuntime.jsxs(reactRouterDom.Route, { path: `/${resource}`, children: [

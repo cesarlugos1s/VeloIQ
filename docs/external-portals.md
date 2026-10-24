@@ -99,8 +99,13 @@ without rebuilding.
 />
 ```
 
-- **Own pages** (`pageRoutes`): `{ path, loadPage: () => import("./pages/custom/Deck"), availableSignedOut? }`.
+- **Own pages** (`pageRoutes`): `{ path, loadPage: () => import("./pages/custom/Deck"), availableSignedOut?, multiPane?, label? }`.
   Pages used before signing in (signup) set `availableSignedOut: true`.
+  A page with `multiPane: true` is the main page of the multi-panel layout,
+  like the standard lists: the records it opens with
+  `usePaneNavigation().openDetail(resource, id)` open in panels beside it, laid
+  out by the `[views]` panes settings (stack, breadcrumb, overlay or scroll).
+  `label` names the page in the panels' spines and trails.
 - **Standard pages with a few site actions**: give a standard list row actions
   (a `pageOverrides.list` component that renders `DynamicList` with
   `rowActions`), and record pages header buttons (`showHeaderButtons`), instead

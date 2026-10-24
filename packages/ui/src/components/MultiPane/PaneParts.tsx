@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { UNSAFE_RouteContext, useParams } from "react-router-dom";
 import { useOne, useResource } from "@refinedev/core";
 import { Button, Tooltip, theme } from "antd";
@@ -64,7 +64,11 @@ export const usePaneLabel = (model: ModelDef, id: string): string => {
  * Returns the label of the main (non-pane) page the layout wraps: the record
  * label when it is a Show page, otherwise the model's label for a list page.
  */
+/** The main page's own name, given by a page that is not a model's list or record (see MultiPaneLayout's `mainLabel`). */
+export const MainPaneLabelContext = createContext<string | undefined>(undefined);
+
 export const useMainPaneLabel = (allModels: ModelDef[]): string => {
+    const givenLabel = useContext(MainPaneLabelContext);
     const { resource } = useResource();
     const { id } = useParams();
     const resourceName = resource?.name ?? "";
@@ -76,6 +80,7 @@ export const useMainPaneLabel = (allModels: ModelDef[]): string => {
     });
     const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _("Back to list")));
     const recordLabel = (data?.data as any)?._label;
+    if (givenLabel) return givenLabel;
     return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
 

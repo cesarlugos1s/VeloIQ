@@ -79,6 +79,14 @@ export interface PortalPageRoute {
     loadPage: () => Promise<{ default: React.ComponentType<any> }>;
     /** Open without signing in and outside the layout (e.g. a signup page). Default false. */
     availableSignedOut?: boolean;
+    /**
+     * Lay the page out as the main page of the multi-panel layout, like the
+     * standard lists: records it opens with ``usePaneNavigation().openDetail``
+     * open in panels beside it (as the ``[views]`` panes settings say). Default false.
+     */
+    multiPane?: boolean;
+    /** The page's name where the multi-panel layout shows it (spines, trails); translated when shown. */
+    label?: string;
 }
 
 /** The site's replacements for standard pages, by resource (same shape as the admin app's page overrides). */
@@ -245,7 +253,11 @@ const PortalAppWithSettings: React.FC<VeloIQPortalAppProps & {
                                             <Route path="/dashboard" element={<DashboardPage />} />
                                         )}
                                         {signedInPageRoutes.map((pageRoute) => (
-                                            <Route key={pageRoute.path} path={pageRoute.path} element={<LazyPortalPage pageRoute={pageRoute} />} />
+                                            <Route key={pageRoute.path} path={pageRoute.path} element={pageRoute.multiPane ? (
+                                                <MultiPaneLayout mainLabel={pageRoute.label ? _(pageRoute.label) : undefined}>
+                                                    <LazyPortalPage pageRoute={pageRoute} />
+                                                </MultiPaneLayout>
+                                            ) : <LazyPortalPage pageRoute={pageRoute} />} />
                                         ))}
                                         {portalModels.map((model) => {
                                             const resource = model.resource || model.name;

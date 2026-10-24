@@ -15,7 +15,7 @@ import {
 import { useBottomOverlayInset } from "../../hooks/useBottomOverlayInset";
 import { FlexPaneLayout } from "./FlexPaneLayout";
 import { SplitPaneLayout } from "./SplitPaneLayout";
-import type { ResolvedPane } from "./PaneParts";
+import { MainPaneLabelContext, type ResolvedPane } from "./PaneParts";
 
 /** Pane settings resolved from `[views]` in veloiq.toml. */
 interface PaneSettings {
@@ -41,8 +41,12 @@ let cachedPaneSettings: PaneSettings | null = null;
 // `panes_fixed_width` is the minimum page width in these three modes.
 // "stack" falls back to "breadcrumb" when the active pane cannot get
 // `panes_fixed_width` after the spines are subtracted.
+//
+// `mainLabel` names the main page in the spines and trails when it is not a
+// model's list or record (e.g. a portal's own page); otherwise the model's
+// label (or the record's) is used.
 // ---------------------------------------------------------------------------
-export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const MultiPaneLayout: React.FC<{ children: React.ReactNode; mainLabel?: string }> = ({ children, mainLabel }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     // Height from the container's top to the bottom of the window; null until measured.
     const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -209,12 +213,14 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
     return (
         <div ref={containerRef} className="jm-full-width-page" style={{ overflow: "hidden", height: panelHeight }}>
-            {settingsReady && (effectiveMode === "stack" ? (
-                <SplitPaneLayout {...layoutProps} registerBeforeNavigate={registerBeforeNavigate} />
-            ) : (
-                // Breadcrumb / overlay / scroll: no split state to snapshot.
-                <FlexPaneLayout {...layoutProps} mode={effectiveMode} />
-            ))}
+            <MainPaneLabelContext.Provider value={mainLabel}>
+                {settingsReady && (effectiveMode === "stack" ? (
+                    <SplitPaneLayout {...layoutProps} registerBeforeNavigate={registerBeforeNavigate} />
+                ) : (
+                    // Breadcrumb / overlay / scroll: no split state to snapshot.
+                    <FlexPaneLayout {...layoutProps} mode={effectiveMode} />
+                ))}
+            </MainPaneLabelContext.Provider>
         </div>
     );
 };

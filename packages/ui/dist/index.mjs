@@ -21828,7 +21828,9 @@ var usePaneLabel = (model, id) => {
   const recordLabel = data?.data?._label;
   return recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
+var MainPaneLabelContext = createContext(void 0);
 var useMainPaneLabel = (allModels) => {
+  const givenLabel = useContext(MainPaneLabelContext);
   const { resource } = useResource();
   const { id } = useParams();
   const resourceName = resource?.name ?? "";
@@ -21840,6 +21842,7 @@ var useMainPaneLabel = (allModels) => {
   });
   const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _64("Back to list")));
   const recordLabel = data?.data?._label;
+  if (givenLabel) return givenLabel;
   return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
 var PaneLabelText = ({ model, id }) => /* @__PURE__ */ jsx(Fragment, { children: usePaneLabel(model, id) });
@@ -24743,7 +24746,7 @@ var SplitPaneLayout = ({
   ) });
 };
 var cachedPaneSettings = null;
-var MultiPaneLayout = ({ children }) => {
+var MultiPaneLayout = ({ children, mainLabel }) => {
   const containerRef = useRef(null);
   const [viewportHeight, setViewportHeight] = useState(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -24866,10 +24869,10 @@ var MultiPaneLayout = ({ children }) => {
     cap: paneSettings.maxVisible,
     fixedWidth: paneSettings.fixedWidth
   };
-  return /* @__PURE__ */ jsx("div", { ref: containerRef, className: "jm-full-width-page", style: { overflow: "hidden", height: panelHeight }, children: settingsReady && (effectiveMode === "stack" ? /* @__PURE__ */ jsx(SplitPaneLayout, { ...layoutProps, registerBeforeNavigate }) : (
+  return /* @__PURE__ */ jsx("div", { ref: containerRef, className: "jm-full-width-page", style: { overflow: "hidden", height: panelHeight }, children: /* @__PURE__ */ jsx(MainPaneLabelContext.Provider, { value: mainLabel, children: settingsReady && (effectiveMode === "stack" ? /* @__PURE__ */ jsx(SplitPaneLayout, { ...layoutProps, registerBeforeNavigate }) : (
     // Breadcrumb / overlay / scroll: no split state to snapshot.
     /* @__PURE__ */ jsx(FlexPaneLayout, { ...layoutProps, mode: effectiveMode })
-  )) });
+  )) }) });
 };
 var { Title: Title7 } = Typography;
 var _66 = window._ || ((text) => text);
@@ -26976,7 +26979,7 @@ var PortalAppWithSettings = ({
         ) }, "portal-auth"), children: [
           /* @__PURE__ */ jsx(Route, { path: "/", element: /* @__PURE__ */ jsx(Navigate, { to: resolvedLandingPath, replace: true }) }),
           portalSettings.show_dashboard_menu_entry && /* @__PURE__ */ jsx(Route, { path: "/dashboard", element: /* @__PURE__ */ jsx(DashboardPage, {}) }),
-          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: pageRoute.multiPane ? /* @__PURE__ */ jsx(MultiPaneLayout, { mainLabel: pageRoute.label ? _77(pageRoute.label) : void 0, children: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }) : /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
           portalModels.map((model) => {
             const resource = model.resource || model.name;
             return /* @__PURE__ */ jsxs(Route, { path: `/${resource}`, children: [
