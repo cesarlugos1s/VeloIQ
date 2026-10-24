@@ -19762,7 +19762,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const preFilterBanner = urlPreFilters.length > 0 ? (() => {
     const filterLabels = [];
     for (const pf of urlPreFilters) {
-      const fieldName = String(pf.field).replace(/_in$/, "");
+      const fieldName = String(pf.field).replace(/__in$/, "");
       const relationDef = (model.relations || []).find(
         (r) => (r.targetKey || r.otherKey) === fieldName
       );

@@ -2281,7 +2281,7 @@ const DynamicListPage: React.FC<{
     const preFilterBanner = urlPreFilters.length > 0 ? (() => {
         const filterLabels: string[] = [];
         for (const pf of urlPreFilters) {
-            const fieldName = String(pf.field).replace(/_in$/, "");
+            const fieldName = String(pf.field).replace(/__in$/, "");
             // Try to resolve a human-readable label: check if this field
             // is a known relation FK or the model's PK
             const relationDef = (model.relations || []).find(
