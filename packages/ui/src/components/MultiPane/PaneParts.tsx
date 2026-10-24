@@ -60,13 +60,14 @@ export const usePaneLabel = (model: ModelDef, id: string): string => {
     return recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
 };
 
-/**
- * Returns the label of the main (non-pane) page the layout wraps: the record
- * label when it is a Show page, otherwise the model's label for a list page.
- */
 /** The main page's own name, given by a page that is not a model's list or record (see MultiPaneLayout's `mainLabel`). */
 export const MainPaneLabelContext = createContext<string | undefined>(undefined);
 
+/**
+ * Returns the label of the main (non-pane) page the layout wraps: its own name
+ * when it gave one (MainPaneLabelContext), else the record label when it is a
+ * Show page, otherwise the model's label for a list page.
+ */
 export const useMainPaneLabel = (allModels: ModelDef[]): string => {
     const givenLabel = useContext(MainPaneLabelContext);
     const { resource } = useResource();
