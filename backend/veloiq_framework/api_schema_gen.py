@@ -552,21 +552,18 @@ def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[st
                     # (targetKey) vs the remote entity (otherKey) by checking FK columns
                     # that have the same table as the local entity's PK column.
                     # Fallback: assume eid_from is local, eid_to is remote.
-                    local_pk_column = next(iter(rel.local_columns), None)
                     target_key = "eid_from"
                     other_key = "eid_to"
-                    if local_pk_column is not None:
-                        local_table = local_pk_column.table
-                        for col in rel.secondary.columns:
-                            for fk in col.foreign_keys:
-                                try:
-                                    fk_target = fk.column
-                                except Exception:
-                                    continue
-                                if fk_target.table is local_table:
-                                    target_key = col.key
-                                else:
-                                    other_key = col.key
+                    # The relationship's own join conditions say which link column joins
+                    # the local entity and which joins the remote one.  This is the only
+                    # reliable source for self-referential links, where both link columns
+                    # reference the same table (forward and reverse relations differ only
+                    # in the direction of primaryjoin/secondaryjoin).
+                    local_link_columns = [link_col for _, link_col in rel.synchronize_pairs]
+                    remote_link_columns = [link_col for _, link_col in rel.secondary_synchronize_pairs]
+                    if local_link_columns and remote_link_columns:
+                        target_key = local_link_columns[0].key
+                        other_key = remote_link_columns[0].key
 
                     # Detect reverse relation name from the other model.
                     other_mapper = sa_inspect(other_cls)
@@ -586,6 +583,12 @@ def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[st
                         f', otherKey: "{other_key}"'
                         f', otherResource: "{other_cls.__name__}"'
                     )
+                    if other_cls is model:
+                        # Self-referential link: forward and reverse relations share the
+                        # same secondary table, so the counterpart lookup above would give
+                        # both the same name.  Each side is named by its own key instead,
+                        # so view configuration resolves them to distinct relations.
+                        reverse_rel_name = rel.key
                     if reverse_rel_name:
                         extra += f', relationName: "{reverse_rel_name}"'
                     relations.append(
