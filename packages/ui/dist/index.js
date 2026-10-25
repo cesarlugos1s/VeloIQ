@@ -4292,6 +4292,8 @@ var LicenseGate = ({ module: moduleName, children }) => {
 var PANE_TOOLBAR_HEIGHT = 28;
 var PaneNavigationContext = React6.createContext(null);
 var usePaneNavigation = () => React6.useContext(PaneNavigationContext);
+var PaneResourceContext = React6.createContext(void 0);
+var usePaneResource = () => React6.useContext(PaneResourceContext);
 var _13 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
@@ -4491,6 +4493,49 @@ var ResponsiveHeaderButtons = ({ children }) => {
     }
   );
 };
+var ResourceBreadcrumb = ({ resourceName, action }) => {
+  const { resources, select } = core.useResource();
+  const { listUrl } = core.useNavigation();
+  const translate = core.useTranslate();
+  const getFriendlyName = core.useUserFriendlyName();
+  const { hasDashboard } = core.useRefineContext();
+  const Link5 = core.useLink();
+  const trail = [];
+  const addTrailItem = (resourceItem) => {
+    const parentName = core.pickNotDeprecated(resourceItem.meta?.parent, resourceItem.parentName);
+    if (parentName) addTrailItem(select(parentName).resource);
+    trail.push({
+      label: core.pickNotDeprecated(resourceItem.meta?.label, resourceItem.options?.label) ?? translate(`${resourceItem.name}.${resourceItem.name}`, getFriendlyName(resourceItem.name, "singular")),
+      href: resourceItem.list ? listUrl(resourceItem) : void 0,
+      icon: core.pickNotDeprecated(resourceItem.meta?.icon, resourceItem.options?.icon, resourceItem.icon)
+    });
+  };
+  addTrailItem(select(resourceName).resource);
+  if (action !== "list") {
+    trail.push({ label: translate(`actions.${action}`, translate(`buttons.${action}`, getFriendlyName(action, "singular"))) });
+  }
+  if (trail.length < 2) return null;
+  const items = trail.map(({ label, href, icon }) => ({
+    key: `breadcrumb-item-${label}`,
+    title: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }, children: [
+      icon,
+      href ? /* @__PURE__ */ jsxRuntime.jsx(Link5, { to: href, children: label }) : /* @__PURE__ */ jsxRuntime.jsx("span", { children: label })
+    ] })
+  }));
+  const rootRouteResource = core.matchResourceFromRoute("/", resources);
+  if (hasDashboard || rootRouteResource.found) {
+    items.unshift({
+      key: "breadcrumb-item-home",
+      title: /* @__PURE__ */ jsxRuntime.jsx(Link5, { to: "/", children: rootRouteResource?.resource?.meta?.icon ?? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.HomeOutlined, {}) })
+    });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx(antd.Breadcrumb, { items });
+};
+var PageBreadcrumb = ({ action, resource }) => {
+  const paneResource = usePaneResource();
+  const resourceName = resource ?? paneResource;
+  return paneResource && resourceName ? /* @__PURE__ */ jsxRuntime.jsx(ResourceBreadcrumb, { resourceName, action }) : /* @__PURE__ */ jsxRuntime.jsx(antd$1.Breadcrumb, {});
+};
 var { Text: Text3 } = antd.Typography;
 var _15 = window._ || ((text) => text);
 var DataDetailSlider = ({ detailState }) => {
@@ -4631,7 +4676,7 @@ var renderStandardShowHeaderButtons = ({
   refreshButtonProps && wrapTooltipButton("Refresh", /* @__PURE__ */ jsxRuntime.jsx(antd$1.RefreshButton, { ...refreshButtonProps, hideText: true }))
 ] });
 var STICKY_APP_HEADER_HEIGHT = 36;
-var useActionsWrapping = (headerButtons) => {
+var useActionsWrapping = (headerButtons, pageBreadcrumb) => {
   const { settings: viewSettings } = useViewSettings();
   const { token } = antd.theme.useToken();
   const paneNav = usePaneNavigation();
@@ -4669,7 +4714,7 @@ var useActionsWrapping = (headerButtons) => {
         marginBottom: 2
       },
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd$1.Breadcrumb, {}) }),
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: pageBreadcrumb }),
         /* @__PURE__ */ jsxRuntime.jsx(
           "div",
           {
@@ -4684,13 +4729,14 @@ var useActionsWrapping = (headerButtons) => {
   return { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb };
 };
 var StandardShow = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "show", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
   const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     /* @__PURE__ */ jsxRuntime.jsx(DataDetailSlider, { detailState }),
     effectiveHeaderButtons(args)
   ] }) : effectiveHeaderButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxRuntime.jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsxRuntime.jsx(
@@ -4698,35 +4744,37 @@ var StandardShow = ({ headerButtons, ...props }) => {
       {
         ...props,
         title: wrapPageTitle(props.title),
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
   ] });
 };
 var StandardEdit = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "edit", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
   const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     /* @__PURE__ */ jsxRuntime.jsx(DataDetailSlider, { detailState }),
     effectiveHeaderButtons(args)
   ] }) : effectiveHeaderButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxRuntime.jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.Edit,
       {
         ...props,
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
   ] });
 };
 var StandardList = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "list", resource: props.resource });
   const effectiveHeaderButtons = headerButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   const resource = props.resource;
   const [listSections, setListSections] = React6.useState(null);
   const [cfgLoading, setCfgLoading] = React6.useState(false);
@@ -4757,7 +4805,7 @@ var StandardList = ({ headerButtons, ...props }) => {
     antd$1.List,
     {
       ...props,
-      breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+      breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
       headerButtons: effectiveHeaderButtons ? wrappedHeaderButtons : void 0
     }
   );
@@ -4781,15 +4829,16 @@ var StandardList = ({ headerButtons, ...props }) => {
   ] });
 };
 var StandardCreate = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "create", resource: props.resource });
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   return /* @__PURE__ */ jsxRuntime.jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsxRuntime.jsx(
       antd$1.Create,
       {
         ...props,
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
@@ -22021,7 +22070,7 @@ var PaneBody = ({ resolved, allModels, navContext, PrimaryShowRenderer, maximize
       onMaximize
     }
   ),
-  PrimaryShowRenderer && /* @__PURE__ */ jsxRuntime.jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) })
+  PrimaryShowRenderer && /* @__PURE__ */ jsxRuntime.jsx(PaneResourceContext.Provider, { value: resolved.model.resource || resolved.model.name, children: /* @__PURE__ */ jsxRuntime.jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsxRuntime.jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) }) })
 ] });
 var _65 = window._ || ((text) => text);
 var FlexPaneLayout = ({

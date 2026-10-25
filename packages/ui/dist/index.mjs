@@ -1,7 +1,7 @@
 import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, Refine, Authenticated, useWarnAboutChange, useResource } from '@refinedev/core';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, Refine, Authenticated, useResource, useNavigation, useTranslate, useUserFriendlyName, useRefineContext, useLink, matchResourceFromRoute, useWarnAboutChange, pickNotDeprecated } from '@refinedev/core';
 import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, EyeOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
@@ -4264,6 +4264,8 @@ var LicenseGate = ({ module: moduleName, children }) => {
 var PANE_TOOLBAR_HEIGHT = 28;
 var PaneNavigationContext = createContext(null);
 var usePaneNavigation = () => useContext(PaneNavigationContext);
+var PaneResourceContext = createContext(void 0);
+var usePaneResource = () => useContext(PaneResourceContext);
 var _13 = window._ || ((text) => text);
 var NARROW_BREAKPOINT = 768;
 var useIsNarrow = (breakpoint = NARROW_BREAKPOINT) => {
@@ -4463,6 +4465,49 @@ var ResponsiveHeaderButtons = ({ children }) => {
     }
   );
 };
+var ResourceBreadcrumb = ({ resourceName, action }) => {
+  const { resources, select } = useResource();
+  const { listUrl } = useNavigation();
+  const translate = useTranslate();
+  const getFriendlyName = useUserFriendlyName();
+  const { hasDashboard } = useRefineContext();
+  const Link5 = useLink();
+  const trail = [];
+  const addTrailItem = (resourceItem) => {
+    const parentName = pickNotDeprecated(resourceItem.meta?.parent, resourceItem.parentName);
+    if (parentName) addTrailItem(select(parentName).resource);
+    trail.push({
+      label: pickNotDeprecated(resourceItem.meta?.label, resourceItem.options?.label) ?? translate(`${resourceItem.name}.${resourceItem.name}`, getFriendlyName(resourceItem.name, "singular")),
+      href: resourceItem.list ? listUrl(resourceItem) : void 0,
+      icon: pickNotDeprecated(resourceItem.meta?.icon, resourceItem.options?.icon, resourceItem.icon)
+    });
+  };
+  addTrailItem(select(resourceName).resource);
+  if (action !== "list") {
+    trail.push({ label: translate(`actions.${action}`, translate(`buttons.${action}`, getFriendlyName(action, "singular"))) });
+  }
+  if (trail.length < 2) return null;
+  const items = trail.map(({ label, href, icon }) => ({
+    key: `breadcrumb-item-${label}`,
+    title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }, children: [
+      icon,
+      href ? /* @__PURE__ */ jsx(Link5, { to: href, children: label }) : /* @__PURE__ */ jsx("span", { children: label })
+    ] })
+  }));
+  const rootRouteResource = matchResourceFromRoute("/", resources);
+  if (hasDashboard || rootRouteResource.found) {
+    items.unshift({
+      key: "breadcrumb-item-home",
+      title: /* @__PURE__ */ jsx(Link5, { to: "/", children: rootRouteResource?.resource?.meta?.icon ?? /* @__PURE__ */ jsx(HomeOutlined, {}) })
+    });
+  }
+  return /* @__PURE__ */ jsx(Breadcrumb, { items });
+};
+var PageBreadcrumb = ({ action, resource }) => {
+  const paneResource = usePaneResource();
+  const resourceName = resource ?? paneResource;
+  return paneResource && resourceName ? /* @__PURE__ */ jsx(ResourceBreadcrumb, { resourceName, action }) : /* @__PURE__ */ jsx(Breadcrumb$1, {});
+};
 var { Text: Text3 } = Typography;
 var _15 = window._ || ((text) => text);
 var DataDetailSlider = ({ detailState }) => {
@@ -4603,7 +4648,7 @@ var renderStandardShowHeaderButtons = ({
   refreshButtonProps && wrapTooltipButton("Refresh", /* @__PURE__ */ jsx(RefreshButton, { ...refreshButtonProps, hideText: true }))
 ] });
 var STICKY_APP_HEADER_HEIGHT = 36;
-var useActionsWrapping = (headerButtons) => {
+var useActionsWrapping = (headerButtons, pageBreadcrumb) => {
   const { settings: viewSettings } = useViewSettings();
   const { token } = theme.useToken();
   const paneNav = usePaneNavigation();
@@ -4641,7 +4686,7 @@ var useActionsWrapping = (headerButtons) => {
         marginBottom: 2
       },
       children: [
-        /* @__PURE__ */ jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: /* @__PURE__ */ jsx(Breadcrumb$1, {}) }),
+        /* @__PURE__ */ jsx("div", { style: { minWidth: 0, flex: "1 1 auto" }, children: pageBreadcrumb }),
         /* @__PURE__ */ jsx(
           "div",
           {
@@ -4656,13 +4701,14 @@ var useActionsWrapping = (headerButtons) => {
   return { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb };
 };
 var StandardShow = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "show", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
   const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(DataDetailSlider, { detailState }),
     effectiveHeaderButtons(args)
   ] }) : effectiveHeaderButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsx(
@@ -4670,35 +4716,37 @@ var StandardShow = ({ headerButtons, ...props }) => {
       {
         ...props,
         title: wrapPageTitle(props.title),
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
   ] });
 };
 var StandardEdit = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "edit", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
   const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(DataDetailSlider, { detailState }),
     effectiveHeaderButtons(args)
   ] }) : effectiveHeaderButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsx(
       Edit,
       {
         ...props,
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
   ] });
 };
 var StandardList = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "list", resource: props.resource });
   const effectiveHeaderButtons = headerButtons;
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   const resource = props.resource;
   const [listSections, setListSections] = useState(null);
   const [cfgLoading, setCfgLoading] = useState(false);
@@ -4729,7 +4777,7 @@ var StandardList = ({ headerButtons, ...props }) => {
     List$1,
     {
       ...props,
-      breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+      breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
       headerButtons: effectiveHeaderButtons ? wrappedHeaderButtons : void 0
     }
   );
@@ -4753,15 +4801,16 @@ var StandardList = ({ headerButtons, ...props }) => {
   ] });
 };
 var StandardCreate = ({ headerButtons, ...props }) => {
+  const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "create", resource: props.resource });
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
-  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons);
+  const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
     /* @__PURE__ */ jsx(
       Create,
       {
         ...props,
-        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb,
+        breadcrumb: suppressDefaultBreadcrumb ? false : props.breadcrumb ?? pageBreadcrumb,
         headerButtons: wrappedHeaderButtons
       }
     )
@@ -21993,7 +22042,7 @@ var PaneBody = ({ resolved, allModels, navContext, PrimaryShowRenderer, maximize
       onMaximize
     }
   ),
-  PrimaryShowRenderer && /* @__PURE__ */ jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) })
+  PrimaryShowRenderer && /* @__PURE__ */ jsx(PaneResourceContext.Provider, { value: resolved.model.resource || resolved.model.name, children: /* @__PURE__ */ jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) }) })
 ] });
 var _65 = window._ || ((text) => text);
 var FlexPaneLayout = ({

@@ -5,7 +5,6 @@ import {
     Edit,
     Create,
     List,
-    Breadcrumb,
     ListButton,
     EditButton,
     DeleteButton,
@@ -20,6 +19,7 @@ import { ResponsiveHeaderButtons } from "./DynamicResource/utils/buttons";
 import { usePaneNavigation, PANE_TOOLBAR_HEIGHT } from "../contexts/PaneNavigationContext";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 
+import { PageBreadcrumb } from "./PageBreadcrumb";
 import { DataDetailSlider } from "./DynamicResource/DataDetailSlider";
 import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
 
@@ -145,7 +145,7 @@ export const renderStandardShowHeaderButtons = ({
 
 const STICKY_APP_HEADER_HEIGHT = 36;
 
-const useActionsWrapping = (headerButtons: any) => {
+const useActionsWrapping = (headerButtons: any, pageBreadcrumb: React.ReactNode) => {
     const { settings: viewSettings } = useViewSettings();
     const { token } = theme.useToken();
     const paneNav = usePaneNavigation();
@@ -189,7 +189,7 @@ const useActionsWrapping = (headerButtons: any) => {
             }}
         >
             <div style={{ minWidth: 0, flex: "1 1 auto" }}>
-                <Breadcrumb />
+                {pageBreadcrumb}
             </div>
             <div
                 ref={setTopRightEl}
@@ -204,6 +204,7 @@ const useActionsWrapping = (headerButtons: any) => {
 };
 
 export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) => {
+    const pageBreadcrumb = <PageBreadcrumb action="show" resource={props.resource} />;
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
     const headerButtonsWithSlider: (args: { defaultButtons: React.ReactNode }) => React.ReactNode = detailState?.isActive && effectiveHeaderButtons
@@ -215,14 +216,14 @@ export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) =
           )
         : effectiveHeaderButtons as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(headerButtonsWithSlider);
+        useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
             <Show
                 {...props}
                 title={wrapPageTitle(props.title)}
-                breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
+                breadcrumb={suppressDefaultBreadcrumb ? false : (props.breadcrumb ?? pageBreadcrumb)}
                 headerButtons={wrappedHeaderButtons}
             />
         </VerticalActionsLayout>
@@ -230,6 +231,7 @@ export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) =
 };
 
 export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) => {
+    const pageBreadcrumb = <PageBreadcrumb action="edit" resource={props.resource} />;
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons =
         headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons));
@@ -242,13 +244,13 @@ export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) =
           )
         : effectiveHeaderButtons as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(headerButtonsWithSlider);
+        useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
             <Edit
                 {...props}
-                breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
+                breadcrumb={suppressDefaultBreadcrumb ? false : (props.breadcrumb ?? pageBreadcrumb)}
                 headerButtons={wrappedHeaderButtons}
             />
         </VerticalActionsLayout>
@@ -256,9 +258,10 @@ export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) =
 };
 
 export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) => {
+    const pageBreadcrumb = <PageBreadcrumb action="list" resource={props.resource} />;
     const effectiveHeaderButtons = headerButtons;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(effectiveHeaderButtons);
+        useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
 
     // ── Page config support (IQVigilant templates for list views) ──
     const resource = (props as any).resource;
@@ -291,7 +294,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
     const renderList = () => (
         <List
             {...props}
-            breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
+            breadcrumb={suppressDefaultBreadcrumb ? false : (props.breadcrumb ?? pageBreadcrumb)}
             headerButtons={effectiveHeaderButtons ? wrappedHeaderButtons : undefined}
         />
     );
@@ -326,16 +329,17 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
 };
 
 export const StandardCreate: React.FC<CreateProps> = ({ headerButtons, ...props }) => {
+    const pageBreadcrumb = <PageBreadcrumb action="create" resource={props.resource} />;
     const effectiveHeaderButtons =
         headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons));
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
-        useActionsWrapping(effectiveHeaderButtons);
+        useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
     return (
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
             <Create
                 {...props}
-                breadcrumb={suppressDefaultBreadcrumb ? false : props.breadcrumb}
+                breadcrumb={suppressDefaultBreadcrumb ? false : (props.breadcrumb ?? pageBreadcrumb)}
                 headerButtons={wrappedHeaderButtons}
             />
         </VerticalActionsLayout>

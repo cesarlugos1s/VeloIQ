@@ -3,7 +3,7 @@ import { UNSAFE_RouteContext, useParams } from "react-router-dom";
 import { useOne, useResource } from "@refinedev/core";
 import { Button, Tooltip, theme } from "antd";
 import { CloseOutlined, LinkOutlined, MinusSquareOutlined, PlusSquareOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
-import { PANE_TOOLBAR_HEIGHT, PaneNavigationContext, type PaneNavigationValue } from "../../contexts/PaneNavigationContext";
+import { PANE_TOOLBAR_HEIGHT, PaneNavigationContext, PaneResourceContext, type PaneNavigationValue } from "../../contexts/PaneNavigationContext";
 import { findModelByName, resolveResourcePath } from "../DynamicResource/utils/model";
 import { asDisplayText } from "../DynamicResource/utils/i18n";
 import type { ModelDef, PrimaryShowRendererProps } from "../DynamicResource/types";
@@ -278,9 +278,11 @@ export const PaneBody: React.FC<{
             onMaximize={onMaximize}
         />
         {PrimaryShowRenderer && (
-            <FakeRouteProvider model={resolved.model} id={resolved.pane.id}>
-                <PrimaryShowRenderer model={resolved.model} id={resolved.pane.id} allModels={allModels} />
-            </FakeRouteProvider>
+            <PaneResourceContext.Provider value={resolved.model.resource || resolved.model.name}>
+                <FakeRouteProvider model={resolved.model} id={resolved.pane.id}>
+                    <PrimaryShowRenderer model={resolved.model} id={resolved.pane.id} allModels={allModels} />
+                </FakeRouteProvider>
+            </PaneResourceContext.Provider>
         )}
     </PaneNavigationContext.Provider>
 );
