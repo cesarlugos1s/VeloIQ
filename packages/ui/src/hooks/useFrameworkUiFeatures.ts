@@ -8,7 +8,7 @@
  * standard pages also hide it. Until the answer arrives every feature counts as
  * off, so a portal user never sees, even briefly, a tool their site hides.
  */
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 import { API_URL } from "../providers/constants";
 
@@ -54,13 +54,22 @@ export function resetFrameworkUiFeatures(): void {
     knownFrameworkUiFeatures = null;
 }
 
-/** Return the framework UI features of the signed-in user (all off until known). */
+/**
+ * Features a page shows instead of the signed-in user's own. Wrap a page in it to preview it as
+ * another audience would get it (the Portal Builder previews a portal's list pages with the
+ * portal's tools, though an administrator is previewing).
+ */
+const FrameworkUiFeaturesOverrideContext = createContext<FrameworkUiFeatures | null>(null);
+export const FrameworkUiFeaturesOverride = FrameworkUiFeaturesOverrideContext.Provider;
+
+/** Return the framework UI features of the signed-in user (all off until known), or the override above. */
 export function useFrameworkUiFeatures(): FrameworkUiFeatures {
+    const override = useContext(FrameworkUiFeaturesOverrideContext);
     const [features, setFeatures] = useState<FrameworkUiFeatures>(knownFrameworkUiFeatures ?? ALL_FEATURES_OFF);
     useEffect(() => {
         let cancelled = false;
         fetchFrameworkUiFeatures().then((loaded) => { if (!cancelled) setFeatures(loaded); });
         return () => { cancelled = true; };
     }, []);
-    return features;
+    return override ?? features;
 }

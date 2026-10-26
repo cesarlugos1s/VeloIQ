@@ -132,7 +132,7 @@ export { NonModelDataResourcePages, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER } fr
 export type { ShowHeaderButtonsForResource } from "./components/DynamicResource/pages/NonModelDataResourcePages";
 export { useRefineResourcesIncludingNonModelData } from "./hooks/useRefineResourcesIncludingNonModelData";
 export { useRefineResourcesIncludingNavigationPages } from "./hooks/useRefineResourcesIncludingNavigationPages";
-export { useFrameworkUiFeatures, resetFrameworkUiFeatures } from "./hooks/useFrameworkUiFeatures";
+export { useFrameworkUiFeatures, resetFrameworkUiFeatures, FrameworkUiFeaturesOverride } from "./hooks/useFrameworkUiFeatures";
 export type { FrameworkUiFeatures } from "./hooks/useFrameworkUiFeatures";
 export { useLayoutMenuItems } from "./hooks/useLayoutMenuItems";
 // External portals: the site shell, its public settings and the per-site sign-in session.

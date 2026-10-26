@@ -8901,7 +8901,10 @@ function resetFrameworkUiFeatures() {
   frameworkUiFeaturesRequest = null;
   knownFrameworkUiFeatures = null;
 }
+var FrameworkUiFeaturesOverrideContext = React6.createContext(null);
+var FrameworkUiFeaturesOverride = FrameworkUiFeaturesOverrideContext.Provider;
 function useFrameworkUiFeatures() {
+  const override = React6.useContext(FrameworkUiFeaturesOverrideContext);
   const [features, setFeatures] = React6.useState(knownFrameworkUiFeatures ?? ALL_FEATURES_OFF);
   React6.useEffect(() => {
     let cancelled = false;
@@ -8912,7 +8915,7 @@ function useFrameworkUiFeatures() {
       cancelled = true;
     };
   }, []);
-  return features;
+  return override ?? features;
 }
 var _30 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
@@ -27799,6 +27802,7 @@ exports.DynamicEdit = DynamicEdit;
 exports.DynamicList = DynamicList;
 exports.DynamicShow = DynamicShow;
 exports.ExecutableHtml = ExecutableHtml;
+exports.FrameworkUiFeaturesOverride = FrameworkUiFeaturesOverride;
 exports.GlobalSearch = GlobalSearch;
 exports.HelpButton = HelpButton;
 exports.HelpContext = HelpContext;

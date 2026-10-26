@@ -26,6 +26,17 @@ in `veloiq.toml` and runs `veloiq generate`, which writes the portal's page
 schemas and its menu. The portal is served by the app's own backend, on the
 same port, at `/portals/<site>/`; no separate server is needed.
 
+### Visual builder (optional)
+
+Everything above can also be done from the browser with the **Portal Builder** of the Advanced
+Development extension package (administrators only, *Configurations → Personalization → Portal
+Builder*): a workspace of portals, a creation wizard that runs `veloiq new-portal`, a menu designer
+(models, whole modules or a chosen subset of a module's models, own pages and data resources), a "view
+as role" access preview, page previews, field overrides and a public-visitor check. It reads and writes
+the same `veloiq.toml` tables and portal files described below, so a portal stays editable with
+either tool. It needs no framework changes beyond `FrameworkUiFeaturesOverride` in `@juicemantics/veloiq-ui`,
+which lets its page previews show the portal's list tools instead of the administrator's.
+
 ## Declaring a portal (`veloiq.toml`)
 
 ```toml
