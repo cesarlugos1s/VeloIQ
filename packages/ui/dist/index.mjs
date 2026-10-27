@@ -4,7 +4,7 @@ import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useOne, useCustom, useLogin, useInvalidate, Refine, Authenticated, useResource, useNavigation, useTranslate, useUserFriendlyName, useRefineContext, useLink, matchResourceFromRoute, useWarnAboutChange, pickNotDeprecated } from '@refinedev/core';
 import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, Tag, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, EyeOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, DoubleRightOutlined, DoubleLeftOutlined, UpOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, EyeOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useParams, useSearchParams, Link, Navigate, Routes, Route, BrowserRouter, Outlet, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -4194,7 +4194,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_79, value) {
+                validator(_80, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -4912,7 +4912,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_79, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_80, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -10940,7 +10940,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _44(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_79, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_80, colIdx) => {
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_80, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_81, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -11443,8 +11443,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_79) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _79(text) });
+function buildGridDensityMarks(_80) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _80(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -11455,15 +11455,15 @@ function buildGridDensityMarks(_79) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_79) {
+function buildGridDensityLabelText(_80) {
   return {
-    original: _79("Original"),
-    small: _79("Small"),
-    fit: _79("Page"),
-    "fit-row": _79("Row"),
-    "fit-cell": _79("Cell"),
-    medium: _79("Medium"),
-    large: _79("Large")
+    original: _80("Original"),
+    small: _80("Small"),
+    fit: _80("Page"),
+    "fit-row": _80("Row"),
+    "fit-cell": _80("Cell"),
+    medium: _80("Medium"),
+    large: _80("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -12094,7 +12094,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_79, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_80, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -12489,7 +12489,7 @@ var SectionCellContent = ({
     sectionLook?.section_description && /* @__PURE__ */ jsx(Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _51(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_79, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_80, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_80, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_81, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -14704,7 +14704,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_79, newPageSize) => {
+            onShowSizeChange: (_80, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -17014,7 +17014,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_79, newPageSize) => {
+                    onShowSizeChange: (_80, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -17028,7 +17028,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _61("No related records") }) } : void 0,
-                  onChange: (_79, filters, sorter, extra) => {
+                  onChange: (_80, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -24055,19 +24055,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _79 }) => _79).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_79) => {
-        if (_79.collapsible) {
+      const ut = R.panels.map(({ id: _80 }) => _80).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_80) => {
+        if (_80.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _79.collapsedSize,
-              ce[_79.panelId]
+              _80.collapsedSize,
+              ce[_80.panelId]
             ), dt = I(
-              _79.collapsedSize,
-              ge[_79.panelId]
+              _80.collapsedSize,
+              ge[_80.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_79.panelId] = ge[_79.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_80.panelId] = ge[_80.panelId]);
           }
         }
       });
@@ -24902,7 +24902,7 @@ var MultiPaneLayout = ({ children, mainLabel }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_79, idx) => ({
+    () => panes.map((_80, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -26313,7 +26313,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_79, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_80, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -27082,7 +27082,112 @@ function useInPageRowsStore(storeName, model, initialRows = []) {
   }, [store, invalidate]);
   return useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
 }
+var usePageTone = (seed = "module:extension") => {
+  const { mode, schemaVersion } = useContext(ColorModeContext);
+  return getModelTone(seed, mode === "dark");
+};
+var TonedPage = ({ seed, style, children }) => {
+  const tone = usePageTone(seed);
+  return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope jm-toned-page", style: { ...toneScopeStyle(tone), ...style }, children: [
+    /* @__PURE__ */ jsx(ToneSharedStyles, {}),
+    /* @__PURE__ */ jsx("style", { children: `
+                    .jm-toned-page h1.ant-typography, .jm-toned-page h2.ant-typography,
+                    .jm-toned-page h3.ant-typography, .jm-toned-page h4.ant-typography {
+                        color: ${tone.solid}; font-size: 18px; font-weight: 700;
+                    }
+                    .jm-toned-page h5.ant-typography, .jm-toned-page .ant-card-head-title, .jm-toned-page .jm-panel-title {
+                        color: ${tone.solid}; font-weight: 600;
+                    }
+                    .jm-toned-page .ant-card { border-color: ${tone.border}; box-shadow: 0 8px 20px -16px ${tone.shadow}; }
+                    .jm-toned-page .ant-card-head { border-bottom-color: ${tone.border}; }
+                    .jm-toned-page .jm-panel-header { background: ${tone.softer}; border-bottom-color: ${tone.border} !important; }
+                    .jm-toned-page .jm-toolbar-group { background: ${tone.softer} !important; border-color: ${tone.border} !important; }
+                    .jm-toned-page .jm-panel-box { border-color: ${tone.border} !important; box-shadow: 0 8px 20px -16px ${tone.shadow}; }
+                ` }),
+    children
+  ] });
+};
 var _78 = (text) => {
+  const translate = window._;
+  return typeof translate === "function" ? translate(text) : text;
+};
+var { Text: Text8 } = Typography;
+var COLLAPSED_SPINE_WIDTH = 34;
+var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(Tooltip, { title: `${_78("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxs("div", { onClick: onExpand, role: "button", style: {
+  width: COLLAPSED_SPINE_WIDTH,
+  flexShrink: 0,
+  cursor: "pointer",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 10,
+  padding: "10px 0",
+  background: token.colorBgContainer,
+  borderRight: side === "left" ? `1px solid ${token.colorBorderSecondary}` : void 0,
+  borderLeft: side === "right" ? `1px solid ${token.colorBorderSecondary}` : void 0
+}, children: [
+  side === "left" ? /* @__PURE__ */ jsx(DoubleRightOutlined, {}) : /* @__PURE__ */ jsx(DoubleLeftOutlined, {}),
+  /* @__PURE__ */ jsx(Text8, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
+] }) });
+var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(Tooltip, { title: minimized ? `${_78("Expand")}: ${title}` : `${_78("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxs("div", { onClick: onToggle, role: "button", style: {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "3px 12px",
+  cursor: "pointer",
+  flexShrink: 0,
+  background: token.colorBgContainer,
+  borderTop: `1px solid ${token.colorBorderSecondary}`,
+  borderBottom: `1px solid ${token.colorBorderSecondary}`
+}, children: [
+  minimized ? /* @__PURE__ */ jsx(DownOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsx(UpOutlined, { style: { fontSize: 11 } }),
+  /* @__PURE__ */ jsx(Text8, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
+] }) });
+function useRememberedFlag(storageKey) {
+  const [flag, setFlag] = useState(() => {
+    try {
+      return localStorage.getItem(storageKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const update = (value) => {
+    setFlag(value);
+    try {
+      localStorage.setItem(storageKey, value ? "1" : "0");
+    } catch {
+    }
+  };
+  return [flag, update];
+}
+var COMPACT_GROUP_PADDING = "2px 6px";
+var CollapsibleSidePanel = ({ title, side, token, collapsed, onCollapsedChange, width, fill, padding = 8, children }) => {
+  if (collapsed) return /* @__PURE__ */ jsx(CollapsedSpine, { title, side, token, onExpand: () => onCollapsedChange(false) });
+  return /* @__PURE__ */ jsxs("div", { style: {
+    ...fill ? { flex: 1, minWidth: 0 } : { width, flexShrink: 0 },
+    display: "flex",
+    flexDirection: "column",
+    background: token.colorBgContainer,
+    overflow: "auto",
+    borderRight: side === "left" && !fill ? `1px solid ${token.colorBorderSecondary}` : void 0,
+    borderLeft: side === "right" && !fill ? `1px solid ${token.colorBorderSecondary}` : void 0
+  }, children: [
+    /* @__PURE__ */ jsxs("div", { className: "jm-panel-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 2px 8px", borderBottom: `1px solid ${token.colorBorderSecondary}` }, children: [
+      /* @__PURE__ */ jsx("span", { className: "jm-panel-title", style: { fontWeight: 500 }, children: title }),
+      /* @__PURE__ */ jsx(Tooltip, { title: `${_78("Collapse")}: ${title}`, children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          type: "text",
+          size: "small",
+          icon: side === "left" ? /* @__PURE__ */ jsx(DoubleLeftOutlined, {}) : /* @__PURE__ */ jsx(DoubleRightOutlined, {}),
+          onClick: () => onCollapsedChange(true)
+        }
+      ) })
+    ] }),
+    /* @__PURE__ */ jsx("div", { style: { padding, flex: 1, minHeight: 0, overflow: "auto" }, children })
+  ] });
+};
+var _79 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -27096,10 +27201,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_78(moduleName)} \u203A ${_78(e.model_key)}` : _78(moduleName);
+  return e.model_key ? `${_79(moduleName)} \u203A ${_79(e.model_key)}` : _79(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _78("Allowlist") : mode === "block" ? _78("Blocklist") : _78("No policy");
-var modeHelp = (mode) => mode === "allow" ? _78("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _78("Users with this role can use everything except the checked actions on the listed modules and models.") : _78("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _79("Allowlist") : mode === "block" ? _79("Blocklist") : _79("No policy");
+var modeHelp = (mode) => mode === "allow" ? _79("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _79("Users with this role can use everything except the checked actions on the listed modules and models.") : _79("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -27120,7 +27225,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      message.error(_78("Could not load access policies."));
+      message.error(_79("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -27135,7 +27240,7 @@ var AdminNote = () => /* @__PURE__ */ jsx(
   {
     type: "info",
     showIcon: true,
-    message: _78("The Admin role always has full access and can't be given an access policy.")
+    message: _79("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -27160,9 +27265,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _78("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _78("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _78("No policy");
+    if (row.event === "role_get_migration") return _79("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _79("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _79("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsx(
@@ -27172,20 +27277,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _78("No changes recorded yet.") },
+      locale: { emptyText: _79("No changes recorded yet.") },
       columns: [
         {
-          title: _78("When"),
+          title: _79("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _78("Changed by"),
+          title: _79("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _78("System")
+          render: (_v, row) => row.actor_username || _79("System")
         },
         {
-          title: _78("Change"),
+          title: _79("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -27194,11 +27299,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _78("Module or model"),
+  title: _79("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _78("Inactive") })
+    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _79("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -27211,11 +27316,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _78(label),
+      title: _79(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _78(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _79(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -27231,10 +27336,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _78("No modules or models listed yet.") }
+        locale: { emptyText: _79("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _78("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _79("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -27270,21 +27375,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _78("Could not save the access policy."));
+      message.error(typeof body?.detail === "string" ? body.detail : _79("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    message.success(mode === "none" ? _78("Access policy removed.") : _78("Access policy saved."));
+    message.success(mode === "none" ? _79("Access policy removed.") : _79("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = useMemo(
     () => modules.map((m) => ({
-      title: _78(m.name),
+      title: _79(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _78(model.key),
+        title: _79(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -27340,7 +27445,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _78(label),
+      title: _79(label),
       key: action,
       width: 90,
       align: "center",
@@ -27349,7 +27454,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_78(label)} ${resourceLabel(e)}`
+          "aria-label": `${_79(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -27362,27 +27467,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-          "aria-label": _78("Remove"),
+          "aria-label": _79("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _78("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _79("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _78("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _78("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _78("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _79("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _79("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _79("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _78("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _79("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _78("This allowlist is empty: users with this role will lose access to every module.")
+        message: _79("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -27392,7 +27497,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _78("Add a module or model"),
+          placeholder: _79("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -27407,12 +27512,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _78("No modules or models listed yet.") }
+          locale: { emptyText: _79("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _78("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _79("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _78("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _79("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -27421,7 +27526,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _78("Users with this role can use only the listed features.") : mode === "block" ? _78("Users with this role can use every feature except the listed ones.") : _78("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _79("Users with this role can use only the listed features.") : mode === "block" ? _79("Users with this role can use every feature except the listed ones.") : _79("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = useState([]);
@@ -27455,15 +27560,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _78("Feature"),
+    title: _79("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsx(Tag, { children: _78("Inactive") })
+      !r.active && /* @__PURE__ */ jsx(Tag, { children: _79("Inactive") })
     ] })
   },
-  { title: _78("Group"), dataIndex: "group", key: "group" },
-  { title: _78("Description"), dataIndex: "description", key: "description" }
+  { title: _79("Group"), dataIndex: "group", key: "group" },
+  { title: _79("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -27489,10 +27594,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _78("No features listed yet.") }
+        locale: { emptyText: _79("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _78("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _79("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -27520,10 +27625,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _78("Could not save the feature access."));
+      message.error(typeof body?.detail === "string" ? body.detail : _79("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    message.success(mode === "none" ? _78("Feature access removed.") : _78("Feature access saved."));
+    message.success(mode === "none" ? _79("Feature access removed.") : _79("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -27533,20 +27638,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _78("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _79("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _78("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _78("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _78("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _79("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _79("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _79("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _78("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _79("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _78("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _79("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
@@ -27561,10 +27666,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _78("No features are registered.") }
+        locale: { emptyText: _79("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _78("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _79("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -27750,6 +27855,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CarouselPositionBadge, CollapsibleBanner, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, VeloIQPortalApp, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TonedPage, VeloIQPortalApp, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

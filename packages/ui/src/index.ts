@@ -150,6 +150,7 @@ export type { InPageRowsStore } from "./utils/serveInPageRowsStores";
 export { getActiveLocale } from "./utils/activeLocale";
 export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/DynamicResource/utils/gallery";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
+export { TonedPage, usePageTone, CollapsedSpine, CollapsibleSidePanel, SectionBar, useRememberedFlag, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING } from "./components/PageStyling";
 export { guessIcon, resolveIcon, getNavEntry, resolveNavKey, sortItemsByNavConfig, resolveFallbackLandingPath } from "./utils/navConfig";
 export type { NavConfigEntry, NavConfig } from "./utils/navConfig";
 
