@@ -124,3 +124,17 @@ def test_generate_produces_api_py(tmp_path):
     content = api.read_text()
     assert "create_crud_router" in content
     assert "Project" in content
+
+
+def test_allmodels_applies_app_page_overrides(tmp_path):
+    backend, frontend = _copy_sample(tmp_path)
+    _run_generate(backend)
+    content = (frontend / "src" / "allModels.gen.ts").read_text()
+    assert 'import appPageOverrides from "./appPageOverrides.json"' in content
+    assert "withAppOverrides(projectsModels" in content
+    # The file the Portal Builder writes is created empty and kept once it holds overrides.
+    overrides = frontend / "src" / "appPageOverrides.json"
+    assert overrides.read_text().strip() == "[]"
+    overrides.write_text('[{"name": "Project", "fields": [{"key": "name", "label": "Title"}]}]')
+    _run_generate(backend)
+    assert "Title" in overrides.read_text()

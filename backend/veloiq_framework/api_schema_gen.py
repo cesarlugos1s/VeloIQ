@@ -771,25 +771,42 @@ def _write_merged_schema(module_name: str, out_dir: Path, with_extension_overrid
 EXTENSION_OVERRIDES_FILE_SUFFIX = "extensionOverrides"
 
 
+#: The main application's per-field overrides, merged into the models by ``allModels.gen.ts``.
+APP_PAGE_OVERRIDES_FILE_NAME = "appPageOverrides.json"
+
+
 # allModels.gen.ts writer
 # ---------------------------------------------------------------------------
 
 def _write_all_models(modules: list[str], frontend_src: Path) -> None:
     pages_dir = frontend_src / "pages"
     valid = [m for m in modules if (pages_dir / m / f"{m}Schema.gen.ts").exists()]
+    # The Portal Builder's field overrides of the main application; absent until it saves one.
+    app_overrides_file = frontend_src / APP_PAGE_OVERRIDES_FILE_NAME
+    if not app_overrides_file.exists():
+        app_overrides_file.write_text("[]\n")
     lines = [
         "// AUTO-GENERATED — do not edit. Run `veloiq generate` to update.",
-        "import type { ModelDef } from '@juicemantics/veloiq-ui';",
+        "import { mergeUiModelSchemas } from '@juicemantics/veloiq-ui';",
+        "import type { ModelDef, ModelOverride } from '@juicemantics/veloiq-ui';",
+        f'import appPageOverrides from "./{APP_PAGE_OVERRIDES_FILE_NAME}";',
         "",
     ]
     for mod in valid:
         lines.append(f'import {{ {mod}Models }} from "./pages/{mod}/{mod}Schema";')
     lines += [
         "",
+        "// Applies the application's own per-field overrides (appPageOverrides.json) on top of a module's models.",
+        "const withAppOverrides = (models: ModelDef[]): ModelDef[] => {",
+        "  const modelNames = new Set(models.map((model) => model.name));",
+        "  const own = (appPageOverrides as ModelOverride[]).filter((override) => modelNames.has(override.name));",
+        "  return own.length ? mergeUiModelSchemas(models, own) : models;",
+        "};",
+        "",
         "export const allModuleRegistrations: Array<{ moduleName: string; models: ModelDef[] }> = [",
     ]
     for mod in valid:
-        lines.append(f'  {{ moduleName: "{mod}", models: {mod}Models ?? [] }},')
+        lines.append(f'  {{ moduleName: "{mod}", models: withAppOverrides({mod}Models ?? []) }},')
     lines += [
         "];",
         "",
