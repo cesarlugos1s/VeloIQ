@@ -19,6 +19,7 @@ import {
     getKanbanSplitFieldOptions,
     type KanbanColumnViewType,
 } from "./utils/kanban";
+import { useModelTone } from "../../utils/modelTone";
 import { translateText } from "./utils/i18n";
 
 // Resolved at call time — see utils/i18n.ts's translateText for why.
@@ -67,6 +68,8 @@ const KanbanColumnPanel: React.FC<{
     allModels?: ModelDef[];
 }> = ({ label, records, viewType, cardFields, columnIndex, model, allModels }) => {
     const { token } = theme.useToken();
+    // The title bar takes the model's tone: the colour scheme chosen in System Configuration.
+    const tone = useModelTone(model);
     return (
         <div
             data-kanban-column={label}
@@ -75,24 +78,25 @@ const KanbanColumnPanel: React.FC<{
                 width: KANBAN_COLUMN_WIDTH,
                 display: "flex",
                 flexDirection: "column",
-                border: `1px solid ${token.colorBorderSecondary}`,
+                border: `1px solid ${tone.border}`,
                 borderRadius: 8,
                 background: token.colorBgContainer,
+                boxShadow: `0 8px 20px -16px ${tone.shadow}`,
                 overflow: "hidden",
             }}
         >
             <div
                 style={{
                     padding: "8px 12px",
-                    background: token.colorFillAlter,
-                    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                    background: tone.soft,
+                    borderBottom: `1px solid ${tone.border}`,
                     display: "flex",
                     alignItems: "baseline",
                     gap: 8,
                 }}
             >
-                <Text strong style={{ overflowWrap: "anywhere" }}>{label}</Text>
-                <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>({records.length})</Text>
+                <Text strong style={{ overflowWrap: "anywhere", color: tone.text }}>{label}</Text>
+                <Text style={{ fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }}>({records.length})</Text>
             </div>
             <div style={{ padding: 12, flex: 1, minHeight: 0, minWidth: 0, overflowX: "auto" }}>
                 <KanbanColumnContent

@@ -5574,6 +5574,7 @@ var COLUMN_VIEW_TYPE_LABELS = {
 };
 var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, model, allModels }) => {
   const { token } = antd.theme.useToken();
+  const tone = useModelTone(model);
   return /* @__PURE__ */ jsxRuntime.jsxs(
     "div",
     {
@@ -5583,9 +5584,10 @@ var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, mo
         width: KANBAN_COLUMN_WIDTH,
         display: "flex",
         flexDirection: "column",
-        border: `1px solid ${token.colorBorderSecondary}`,
+        border: `1px solid ${tone.border}`,
         borderRadius: 8,
         background: token.colorBgContainer,
+        boxShadow: `0 8px 20px -16px ${tone.shadow}`,
         overflow: "hidden"
       },
       children: [
@@ -5594,15 +5596,15 @@ var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, mo
           {
             style: {
               padding: "8px 12px",
-              background: token.colorFillAlter,
-              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              background: tone.soft,
+              borderBottom: `1px solid ${tone.border}`,
               display: "flex",
               alignItems: "baseline",
               gap: 8
             },
             children: [
-              /* @__PURE__ */ jsxRuntime.jsx(Text4, { strong: true, style: { overflowWrap: "anywhere" }, children: label }),
-              /* @__PURE__ */ jsxRuntime.jsxs(Text4, { type: "secondary", style: { fontSize: 12, whiteSpace: "nowrap" }, children: [
+              /* @__PURE__ */ jsxRuntime.jsx(Text4, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
+              /* @__PURE__ */ jsxRuntime.jsxs(Text4, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
                 "(",
                 records.length,
                 ")"
