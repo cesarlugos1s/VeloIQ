@@ -115,6 +115,8 @@ import { RelatedObjectsPrimaryView } from "./relations/RelatedObjectsPrimaryView
 import { RelatedObjectsInlineValues } from "./relations/RelatedObjectsInlineValues";
 import { RelatedObjectsGallery } from "./relations/RelatedObjectsGallery";
 import { RelatedObjectsCalendar } from "./relations/RelatedObjectsCalendar";
+import { KanbanView } from "./KanbanView";
+import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "./utils/kanban";
 import { RelatedObjectsEditableList } from "./relations/RelatedObjectsEditableList";
 import { RelationsExplorer } from "./relations/RelationsExplorer";
 import {
@@ -266,7 +268,7 @@ const DynamicListPage: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list" | "editable-list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -375,6 +377,7 @@ const DynamicListPage: React.FC<{
     const isImageView = resolvedListViewType === "image";
     const isGalleryView = resolvedListViewType === "gallery" || isImageView;
     const isCalendarView = resolvedListViewType === "calendar";
+    const isKanbanView = resolvedListViewType === "kanban";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     const isPrimaryView = resolvedListViewType === "primary";
@@ -1046,10 +1049,11 @@ const DynamicListPage: React.FC<{
             exportRequested ||
             isTotalsDetailsView ||
             isCrosstabView ||
+            isKanbanView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, localSearch]);
+    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, localSearch]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
@@ -1482,13 +1486,14 @@ const DynamicListPage: React.FC<{
     useEffect(() => {
         if (!allRowsLoaded) return;
         if (analyzeTouchedRef.current) return;
-        if (isTotalsDetailsView) return;
+        // Totals / details and kanban start with the Analyze section hidden (the user opens it).
+        if (isTotalsDetailsView || isKanbanView) return;
         if ((allRows?.length ?? 0) <= 1) {
             setAnalyzeOpen(false);
         } else {
             setAnalyzeOpen(true);
         }
-    }, [allRows?.length, allRowsLoaded, isTotalsDetailsView]);
+    }, [allRows?.length, allRowsLoaded, isTotalsDetailsView, isKanbanView]);
 
     useEffect(() => {
         if (!hasActiveFilterRules || isClientFiltering) return;
@@ -2360,7 +2365,7 @@ const DynamicListPage: React.FC<{
         </div>
     ) : null;
 
-    const bulkActionsToolbar = !isGalleryView && !isCalendarView && bulkSelectedRowKeys.length > 0 ? (
+    const bulkActionsToolbar = !isGalleryView && !isCalendarView && !isKanbanView && bulkSelectedRowKeys.length > 0 ? (
         <div style={{
             display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8,
             padding: "6px 10px", marginBottom: 8, borderRadius: 6,
@@ -2993,7 +2998,7 @@ const DynamicListPage: React.FC<{
     };
 
     const renderPrimaryItem = (record: any, index: number) => (
-        <RelatedObjectPrimaryCard key={getRowKey(record, index)} record={record} model={model} allModels={allModels} />
+        <RelatedObjectPrimaryCard key={getRowKey(record, index)} record={record} model={model.primaryResource ? (allModels?.find((candidate) => (candidate.resource || candidate.name) === model.primaryResource) ?? model) : model} allModels={allModels} />
     );
 
     const renderListFieldValue = (rawField: FieldDef, record: any) => {
@@ -3918,6 +3923,30 @@ const DynamicListPage: React.FC<{
                     <div style={listContainerStyle}>
                     {isCalendarView ? (
                         renderCalendarView()
+                    ) : isKanbanView ? (
+                        <KanbanView
+                            model={model}
+                            allModels={allModels}
+                            records={filteredDataSource as any[]}
+                            maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
+                            formatValue={(field, record) => String(getFieldValueForFilter(field, record) ?? "")}
+                            toolbarExtra={analyzeSectionAvailable ? (
+                                <Tooltip title={analyzeOpen ? _("Hide Analyze") : _("Analyze")}>
+                                    <Button
+                                        size="small"
+                                        type={analyzeOpen ? "primary" : "default"}
+                                        icon={<BarChartOutlined />}
+                                        aria-label={_("Analyze")}
+                                        onClick={() => {
+                                            markLayoutPrefsTouched();
+                                            analyzeTouchedRef.current = true;
+                                            setIsStatsFlipped(false);
+                                            setAnalyzeOpen((prev) => !prev);
+                                        }}
+                                    />
+                                </Tooltip>
+                            ) : undefined}
+                        />
                     ) : isGalleryView ? (
                         <>
                             {galleryRows.length === 0 ? (

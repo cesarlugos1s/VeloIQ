@@ -70,6 +70,10 @@ export const HELP_ACTION_CATALOG: Record<string, HelpActionCatalogEntry> = {
         execute: (ctx) => ctx.setSearchParam("view_type", "calendar"),
         description: "Switches this list to calendar view.",
     },
+    "switch_view_type:kanban": {
+        execute: (ctx) => ctx.setSearchParam("view_type", "kanban"),
+        description: "Switches this list to kanban view.",
+    },
     export_csv: {
         execute: exportCsv,
         description: "Downloads the current list as a CSV file.",

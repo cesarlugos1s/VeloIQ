@@ -8,7 +8,7 @@ reaches). They run unchanged against VeloIQ; only the module header is curated
 import decimal, json, random, html, re, time, sys, os, colorsys, traceback
 from math import ceil
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import requests
 import numpy as np
 import pandas
@@ -277,6 +277,8 @@ def resolve_dashboard_view_type(raw: Optional[str]) -> str:
         return "list"
     if normalized == "csv":
         return "csv"
+    if normalized == "kanban":
+        return "kanban"
     if normalized in {"totalsdetails", "totaldetails"}:
         return "totals-details"
     # Pass through custom page names (e.g. "custom_show_mechanism_results",
@@ -1175,6 +1177,100 @@ def _render_searchable_paginated_list_html(
         '</select>'
         '</div>'
         + script
+        + style
+        + '</div>'
+    )
+
+
+KANBAN_DEFAULT_MAXIMUM_COLUMNS = 10
+KANBAN_COLUMN_LABEL_SEPARATOR = " - "
+
+
+def _kanban_maximum_columns() -> int:
+    """The most columns a kanban shows: ``maximum_columns_in_kanban_view`` of the ``[views]`` settings."""
+    from veloiq_framework.extension_registry import read_views_config
+    configured = read_views_config().get("maximumColumnsInKanbanView")
+    return configured if isinstance(configured, int) and configured > 0 else KANBAN_DEFAULT_MAXIMUM_COLUMNS
+
+
+def _kanban_split_column_names(sql_columns: List[str], sql_rows: List[Dict[str, Any]]) -> List[str]:
+    """The result column a kanban splits by: the first text column whose values repeat across rows.
+
+    A column of links (object titles), of numbers or of all-distinct values does not group
+    records, so it is not categorical. Empty when no column groups them.
+    """
+    for column in sql_columns:
+        values = [row.get(column) for row in sql_rows]
+        if any(isinstance(value, (int, float)) and not isinstance(value, bool) for value in values):
+            continue
+        if any(_looks_like_anchor_html(value) for value in values):
+            continue
+        distinct = {_extract_text_from_html(value) for value in values}
+        if 1 < len(distinct) < len(sql_rows):
+            return [column]
+    return []
+
+
+def _build_kanban_columns(
+        sql_rows: List[Dict[str, Any]],
+        split_columns: List[str],
+        maximum_columns: int,
+) -> List[Tuple[str, List[Dict[str, Any]]]]:
+    """Group *sql_rows* by the values of *split_columns*, as ``(header, rows)`` ordered by header.
+
+    The header joins the values with `` - ``. With more combinations than *maximum_columns*,
+    the ones with the most rows are kept.
+    """
+    rows_by_header: Dict[str, List[Dict[str, Any]]] = {}
+    for row in sql_rows:
+        header = KANBAN_COLUMN_LABEL_SEPARATOR.join(
+            _extract_text_from_html(row.get(column)) or _("(empty)") for column in split_columns
+        ) if split_columns else _("All")
+        rows_by_header.setdefault(header, []).append(row)
+    biggest_first = sorted(rows_by_header.items(), key=lambda item: (-len(item[1]), item[0]))
+    return sorted(biggest_first[:max(1, maximum_columns)], key=lambda item: item[0])
+
+
+def _render_kanban_html(
+        sql_columns: List[str],
+        sql_rows: List[Dict[str, Any]],
+        display_columns: Optional[List[str]] = None,
+        split_columns: Optional[List[str]] = None,
+) -> str:
+    """Render rows as a kanban board: one column per distinct value of the split column(s).
+
+    Mirrors the frontend DynamicResource "kanban" view. Each column's header is its value(s)
+    joined with `` - `` followed by the number of rows in smaller, muted text; its rows are shown
+    with the list view (linked titles, own search and paging). The board scrolls horizontally and
+    vertically inside its container.
+    """
+    if split_columns is None:
+        split_columns = _kanban_split_column_names(sql_columns, sql_rows)
+    columns = _build_kanban_columns(sql_rows, split_columns, _kanban_maximum_columns())
+    column_html = "".join(
+        '<div class="jm-kanban-column">'
+        '<div class="jm-kanban-header">'
+        f'<span class="jm-kanban-title">{html.escape(header)}</span>'
+        f'<span class="jm-kanban-count">({len(rows)})</span>'
+        '</div>'
+        f'<div class="jm-kanban-body">{_render_searchable_paginated_list_html(sql_columns, rows, display_columns=display_columns)}</div>'
+        '</div>'
+        for header, rows in columns
+    )
+    widget_id = f"jm_dash_kanban_{random.randint(1, 10_000_000)}"
+    style = (
+        "<style>"
+        "#__WID__ .jm-kanban-board { overflow:auto; max-height:70vh; }"
+        "#__WID__ .jm-kanban-columns { display:flex; gap:12px; align-items:flex-start; width:max-content; min-width:100%; }"
+        "#__WID__ .jm-kanban-column { flex:0 0 320px; width:320px; border:1px solid var(--jm-border,#dbe3ef); border-radius:8px; background:var(--jm-bg,#fff); overflow:hidden; }"
+        "#__WID__ .jm-kanban-header { display:flex; align-items:baseline; gap:8px; padding:8px 12px; font-weight:600; border-bottom:1px solid var(--jm-border,#dbe3ef); background:var(--jm-card-bg,#f8fafc); color:var(--jm-text-primary,#0f172a); }"
+        "#__WID__ .jm-kanban-count { font-size:12px; font-weight:400; color:var(--jm-text-secondary,#475569); }"
+        "#__WID__ .jm-kanban-body { padding:12px; overflow-x:auto; }"
+        "</style>"
+    ).replace("__WID__", widget_id)
+    return (
+        f'<div id="{widget_id}" style="{DASHBOARD_WIDGET_BASE_STYLE}">'
+        f'<div class="jm-kanban-board"><div class="jm-kanban-columns">{column_html}</div></div>'
         + style
         + '</div>'
     )
@@ -2157,6 +2253,9 @@ def render_query_rows_as_dashboard_view_html(
     if resolved_view_type == "gallery":
         return _render_searchable_paginated_gallery_html(sql_columns, sql_rows)
 
+    if resolved_view_type == "kanban":
+        return _render_kanban_html(sql_columns, sql_rows, display_columns=display_columns)
+
     if resolved_view_type == "image":
         return _render_image_view_html(sql_columns, sql_rows)
 
@@ -2188,7 +2287,7 @@ def render_query_rows_as_dashboard_view_html(
     # Custom page view type (e.g. "custom_show_mechanism_results") —
     # render like primary but with ?view=<page_name> appended to embedded URLs
     # so the React frontend dispatches to the correct custom component.
-    _KNOWN_VIEW_TYPES = {"table", "editable-table", "totals-details", "list", "gallery", "image", "csv", "primary"}
+    _KNOWN_VIEW_TYPES = {"table", "editable-table", "totals-details", "list", "gallery", "kanban", "image", "csv", "primary"}
     if resolved_view_type not in _KNOWN_VIEW_TYPES:
         primary_items = _build_primary_items(sql_columns, sql_rows, sql_statement)
         if len(primary_items) > 0:
@@ -2237,7 +2336,7 @@ def render_query_results_as_dashboard_view_html(
     resolved_view_type = resolve_dashboard_view_type(requested_view_type)
     sql_columns, sql_rows = serialize_query_rset_rows(sql_rset)
 
-    if resolved_view_type in {"table", "editable-table", "list", "csv", "primary", "totals-details"}:
+    if resolved_view_type in {"table", "editable-table", "list", "kanban", "csv", "primary", "totals-details"}:
         sql_rows = replace_query_results_with_object_labels(
             sql_statement or "",
             sql_columns,

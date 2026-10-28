@@ -128,7 +128,7 @@ VIEWS_KEY_COMMENTS: dict[str, str] = {
     ),
     "show_view_type": (
         "# Default view type for a model's show page. Possible types: table,\n"
-        "# editable-table, list, editable-list, csv, primary, gallery, calendar,\n"
+        "# editable-table, list, editable-list, csv, primary, gallery, calendar, kanban,\n"
         "# totals-details.\n"
     ),
     "edit_view_type": (
@@ -150,6 +150,10 @@ VIEWS_KEY_COMMENTS: dict[str, str] = {
     "analyze_server_aggregation_threshold": (
         "# Above this many rows, the Analyze section of a list aggregates on the server\n"
         "# instead of downloading every row into the browser (default: 10000).\n"
+    ),
+    "maximum_columns_in_kanban_view": (
+        "# Most columns a kanban view shows; with more distinct values of the split\n"
+        "# fields, the columns with the most records are kept (default: 10).\n"
     ),
     "general_actions_button_position": (
         '# Where the general action buttons are rendered on model pages:\n'

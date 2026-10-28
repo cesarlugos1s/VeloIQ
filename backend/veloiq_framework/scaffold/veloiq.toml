@@ -65,6 +65,11 @@ plain_color_base_hex = "#1e708a"
 # the browser; the chart shows the same numbers either way (default: 10000).
 #analyze_server_aggregation_threshold = 10000
 
+# The most columns a kanban view shows. With more distinct values (or value
+# combinations) of the fields it splits by, the columns with the most records
+# are kept (default: 10).
+#maximum_columns_in_kanban_view = 10
+
 # Where the general action buttons are rendered on a model's list / show / edit
 # pages: "top-right", "left", or "right" (default: "top-right").
 #general_actions_button_position = "top-right"

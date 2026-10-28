@@ -14,6 +14,7 @@ const VIEW_TYPE_OPTIONS = [
     { label: _("Gallery"), value: "gallery" },
     { label: _("Image"), value: "image" },
     { label: _("Calendar"), value: "calendar" },
+    { label: _("Kanban"), value: "kanban" },
     { label: _("Totals / Details"), value: "totals-details" },
     { label: _("Primary"), value: "primary" },
     { label: _("List"), value: "list" },

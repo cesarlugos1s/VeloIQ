@@ -152,7 +152,7 @@ analyze_server_aggregation_threshold = 10000
 | `modules_color_schema` | `"plain-color"` | `"color-coded"` gives each module its own color; `"plain-color"` uses one light/dark-aware color. |
 | `models_color_schema` | `"plain-color"` | Same options, applied per model. |
 | `plain_color_base_hex` | `""` (grayscale) | Base hex color used when a schema is `"plain-color"`. |
-| `show_view_type` | framework default | Default view type for show forms (`table`, `editable-table`, `list`, `editable-list`, `csv`, `primary`, `gallery`, `calendar`, `totals-details`). |
+| `show_view_type` | framework default | Default view type for show forms (`table`, `editable-table`, `list`, `editable-list`, `csv`, `primary`, `gallery`, `calendar`, `kanban`, `totals-details`). |
 | `edit_view_type` | framework default | Default view type for edit forms (same options). |
 | `list_view_type` | framework default | Default view type for list pages. |
 | `file_list_view_type` | framework default | Default view type for file / attachment lists. |
@@ -161,6 +161,7 @@ analyze_server_aggregation_threshold = 10000
 | `relations_max_rows_to_load` | `1000` | Max rows loaded in a relation table, to cap latency on large relations. |
 | `max_distinct_column_filter_values_to_ranges` | `20` | Above this many distinct numeric values, a column filter offers ranges instead of individual values. |
 | `analyze_server_aggregation_threshold` | `10000` | Above this many rows, a list page's Analyze section aggregates on the server (`POST /api/<resource>/analyze`) and receives only the grouped values, instead of downloading every row into the browser. The chart shows the same numbers either way; charts that plot individual rows (scatter, bubble, 3D scatter, histogram, box plot) draw an evenly spaced sample of this many rows. Relation views are not affected. |
+| `maximum_columns_in_kanban_view` | `10` | The most columns a `kanban` view shows. With more distinct values (or value combinations) of the fields it splits by, the columns with the most records are kept. |
 | `general_actions_button_position` | `"top-right"` | Where general action buttons sit on list / show / edit pages: `"top-right"`, `"left"`, `"right"`. |
 | `add_tabs_for_non_configured_relations` | `true` | When `true`, forward relations not configured in `views_preferences.json` each get their own tab in show / edit forms. |
 | `panes_layout_mode` | `"stack"` | Layout of the right-side panels opened by following a link: `"stack"`, `"breadcrumb"`, `"overlay"` or `"scroll"` (see [Side panel layouts](#side-panel-layouts)). |

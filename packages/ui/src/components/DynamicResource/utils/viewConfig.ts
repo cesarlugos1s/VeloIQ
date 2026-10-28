@@ -6,6 +6,7 @@ import type { FieldDef, ModelDef, RelationDef, ViewConfigRow, RelationViewType }
 import { resolveResourcePath } from "./model";
 import { getRelationLabel } from "./i18n";
 import { ddlTrace } from "./ddlTrace";
+import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "./kanban";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -84,6 +85,8 @@ export type ViewSettings = {
     maxDistinctColumnFilterValuesToRanges: number;
     /** Above this many rows, a list's Analyze section aggregates on the server instead of in the browser. */
     analyzeServerAggregationThreshold: number;
+    /** The most columns a kanban view shows; those with the most records are kept. */
+    maximumColumnsInKanbanView: number;
     modulesColorSchema: string;
     modelsColorSchema: string;
     generalActionsButtonPosition: GeneralActionsButtonPosition;
@@ -148,6 +151,8 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                     maxDistinctColumnFilterValuesToRanges: Number(data?.maxDistinctColumnFilterValuesToRanges ?? 20),
                     analyzeServerAggregationThreshold: normalizePositiveInt(
                         data?.analyzeServerAggregationThreshold, DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD),
+                    maximumColumnsInKanbanView: normalizePositiveInt(
+                        data?.maximumColumnsInKanbanView, DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW),
                     modulesColorSchema,
                     modelsColorSchema,
                     generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),
@@ -503,6 +508,7 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
     if (normalized === "gallery") return "gallery";
     if (normalized === "image" || normalized === "images") return "image";
     if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
+    if (normalized === "kanban") return "kanban";
     if (normalized === "primary") return "primary";
     if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";
     if (normalized === "tree") return "tree";

@@ -51,7 +51,7 @@ export interface FieldDef {
     referenceKey?: string;
 }
 
-export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "primary" | "totals-details" | "tree" | "tree-details";
+export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "kanban" | "primary" | "totals-details" | "tree" | "tree-details";
 
 export interface MillerLeafConfig {
     relationPath: string;
@@ -120,7 +120,7 @@ export interface ModelDef {
     resource?: string;
     description?: string;
     pkField?: string;
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "totals-details" | "primary" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "primary" | "list" | "editable-list";
     /** Field keys whose values compose this model's record title (space-joined).
      *  Configured via `veloiq set-title` and stored on the model's
      *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */

@@ -102,7 +102,9 @@
           "entries": [
             {"kind": "field", "key": "relations_max_rows_to_load", "row": 1, "column": 1},
             {"kind": "field", "key": "max_distinct_column_filter_values_to_ranges", "row": 1, "column": 2},
-            {"kind": "field", "key": "analyze_server_aggregation_threshold", "row": 2, "column": 1}
+            {"kind": "field", "key": "analyze_server_aggregation_threshold", "row": 2, "column": 1},
+            {"kind": "field", "key": "maximum_columns_in_kanban_view", "row": 2, "column": 2},
+            {"kind": "field", "key": "maximum_columns_in_kanban_view", "row": 2, "column": 2}
           ]
         },
         {

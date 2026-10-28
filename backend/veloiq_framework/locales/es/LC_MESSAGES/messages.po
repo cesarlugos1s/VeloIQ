@@ -2253,3 +2253,21 @@ msgstr "El portal aún no está compilado. Ejecute veloiq build."
 
 msgid "Sign in"
 msgstr "Iniciar sesión"
+
+msgid "Kanban"
+msgstr "Kanban"
+
+msgid "(empty)"
+msgstr "(vacío)"
+
+msgid "Split columns by"
+msgstr "Dividir columnas por"
+
+msgid "Column view type"
+msgstr "Tipo de vista de las columnas"
+
+msgid "Fields shown in the cards"
+msgstr "Campos mostrados en las tarjetas"
+
+msgid "Hide Analyze"
+msgstr "Ocultar Analizar"

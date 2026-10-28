@@ -2254,3 +2254,21 @@ msgstr "The portal is not built yet. Run veloiq build."
 
 msgid "Sign in"
 msgstr "Sign in"
+
+msgid "Kanban"
+msgstr ""
+
+msgid "(empty)"
+msgstr ""
+
+msgid "Split columns by"
+msgstr ""
+
+msgid "Column view type"
+msgstr ""
+
+msgid "Fields shown in the cards"
+msgstr ""
+
+msgid "Hide Analyze"
+msgstr ""

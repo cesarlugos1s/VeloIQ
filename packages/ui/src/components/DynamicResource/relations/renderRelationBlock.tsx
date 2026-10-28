@@ -80,7 +80,7 @@ const renderRelationBlockContent = ({
         ? viewType as "crosstab" | "editable-crosstab"
         : usesTableBehavior
             ? viewType as "table" | "totals-details"
-            : (viewType === "editable-table" || viewType === "editable-list") ? viewType : undefined;
+            : (viewType === "editable-table" || viewType === "editable-list" || viewType === "kanban") ? viewType : undefined;
     const polymorphicInfo = getPolymorphicReferenceInfo(rel, relationModel, allModels);
     const isInlineListView = isInlineRelationViewType(viewType);
     const resolvedLabelStyle: React.CSSProperties = labelStyle ?? {

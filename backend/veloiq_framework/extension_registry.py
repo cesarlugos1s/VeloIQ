@@ -137,6 +137,8 @@ _VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
     # Above this many rows, the Analyze section of a list aggregates on the server
     # (POST /api/<resource>/analyze) instead of downloading every row into the browser.
     "analyze_server_aggregation_threshold": ("analyzeServerAggregationThreshold", int),
+    # The most columns a kanban view shows (those with the most records are kept).
+    "maximum_columns_in_kanban_view": ("maximumColumnsInKanbanView", int),
     "general_actions_button_position": ("generalActionsButtonPosition", str),
     "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
     # Show the Dashboard entry in the app's menus (external portals have their own setting).
