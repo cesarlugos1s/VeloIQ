@@ -43,7 +43,7 @@ produces; the page renders them in place of the configured rows.
 `pageTemplateProviderRegistry.ts`, `useTemporaryTemplateRows.ts` and
 `TemporaryPageLayoutControls.tsx`.
 
-The **Design options** button (table icon) holds the view type, Analyze position,
+The **Design options** button (table icon) holds the view type, the data detail level (show and edit pages), Analyze position,
 cell size, action buttons position and side-panel layout. It stays in the header
 after a view type is chosen, including when the choice turns the page into a
 single-record form.

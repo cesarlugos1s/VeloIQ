@@ -20,7 +20,6 @@ import { usePaneNavigation, PANE_TOOLBAR_HEIGHT } from "../contexts/PaneNavigati
 import { authenticatedFetch } from "../utils/authenticatedFetch";
 
 import { PageBreadcrumb } from "./PageBreadcrumb";
-import { DataDetailSlider } from "./DynamicResource/DataDetailSlider";
 import { TemporaryPageLayoutControls } from "./DynamicResource/temporaryLayout/TemporaryPageLayoutControls";
 import { useTemporaryTemplateRows } from "./DynamicResource/temporaryLayout/useTemporaryTemplateRows";
 import { useTemporaryPageLayoutOfEnclosingPage } from "./DynamicResource/temporaryLayout/temporaryPageLayoutStore";
@@ -209,8 +208,8 @@ const useActionsWrapping = (headerButtons: any, pageBreadcrumb: React.ReactNode)
 };
 
 /**
- * Puts the data detail slider (when active) and the temporary page layout
- * controls in front of a page's header buttons.
+ * Puts the temporary page layout controls ("Design options", which also holds
+ * the data detail level of show and edit pages) in front of a page's header buttons.
  */
 const withLayoutControls = (
     headerButtons: ((args: { defaultButtons: React.ReactNode }) => React.ReactNode) | undefined,
@@ -219,8 +218,7 @@ const withLayoutControls = (
     if (!headerButtons) return headerButtons;
     return (args: { defaultButtons: React.ReactNode }) => (
         <>
-            {detailState?.isActive && <DataDetailSlider detailState={detailState} />}
-            <TemporaryPageLayoutControls />
+            <TemporaryPageLayoutControls detailState={detailState} />
             {headerButtons(args)}
         </>
     );

@@ -4,7 +4,8 @@
  * the data detail (density) selector of the list, show, edit and create pages.
  *
  * - Template button (when an extension registered a page template provider)
- * - "Design options" popover: view type (list pages, always first), Analyze
+ * - "Design options" popover: view type (list pages, always first), data detail
+ *   level (show and edit pages), Analyze
  *   on/off and placement (where the resource has an Analyze area), cell size, actions button position and side-panel layout
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -14,6 +15,7 @@ import { LayoutOutlined, TableOutlined } from "@ant-design/icons";
 import { GRID_DENSITY_STEPS, buildGridDensityLabelText, type GridDensity } from "../../../pages/dashboard/hooks/gridDensity";
 import type { PanesLayoutMode } from "../utils/viewConfig";
 import type { ModelDef } from "../types";
+import type { DataDetailLevelState } from "../hooks/useDataDetailLevel";
 import {
     getRegisteredPageTemplateProvider,
     subscribeToPageTemplateProviderRegistration,
@@ -73,7 +75,10 @@ function usePageTemplateChoices(model: ModelDef | undefined, pageType: string | 
     return { hasProvider: Boolean(provider), choices };
 }
 
-export const TemporaryPageLayoutControls: React.FC = () => {
+export const TemporaryPageLayoutControls: React.FC<{
+    /** Show and edit pages: the data detail level (how related objects are shown), offered in Design options. */
+    detailState?: DataDetailLevelState;
+}> = ({ detailState }) => {
     const { scope, layout, change, reset } = useTemporaryPageLayoutOfEnclosingPage();
     const published = usePublishedListAnalyzeState(scope?.pageKey ?? null);
     const temporaryPanesMode = useTemporaryPanesLayoutMode();
@@ -119,6 +124,22 @@ export const TemporaryPageLayoutControls: React.FC = () => {
                         options={(scope.listViewTypes ?? []).map((token) => ({ value: token, label: viewTypeLabels[token] ?? token }))}
                         onChange={(value) => change({ listViewType: value })}
                     />
+                </>
+            )}
+            {detailState?.isActive && (
+                <>
+                    <Text>{_("Data Detail Level")}</Text>
+                    <Select<number>
+                        size="small"
+                        value={detailState.dataDetailLevel}
+                        options={detailState.levelLabels.map((label, level) => ({
+                            value: level,
+                            label,
+                            title: detailState.levelTooltips[level],
+                        }))}
+                        onChange={(level) => detailState.setDataDetailLevel(level)}
+                    />
+                    <Text type="secondary">{_("Adjust how relations are displayed on this page.")}</Text>
                 </>
             )}
             {showAnalyze && (
