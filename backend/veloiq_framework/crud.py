@@ -330,6 +330,24 @@ def _concise_error_message(exc: Exception, max_len: int = 300) -> str:
     return message
 
 
+IMAGE_FILE_ID_KEY = "_image_file_id"
+
+
+def _add_image_file_id(data: dict, obj: SQLModel) -> None:
+    """When ``__veloiq_ui__["imageSource"]`` names a relation, expose the id of its
+    first related record as ``_image_file_id`` so the gallery can load the image."""
+    ui_meta = getattr(type(obj), "__veloiq_ui__", None) or {}
+    source = ui_meta.get("imageSource") if isinstance(ui_meta, dict) else None
+    if not isinstance(source, str) or source not in getattr(type(obj), "__sqlmodel_relationships__", {}):
+        return
+    related = getattr(obj, source, None)
+    if isinstance(related, (list, tuple)):
+        related = related[0] if related else None
+    data[IMAGE_FILE_ID_KEY] = (
+        getattr(related, get_pk_field_name(type(related)), None) if related is not None else None
+    )
+
+
 def _to_dict(obj: SQLModel) -> dict:
     if obj is None:
         return {}
@@ -337,6 +355,7 @@ def _to_dict(obj: SQLModel) -> dict:
     # Canonical title (honours __veloiq_ui__["titleFields"]; works for plain
     # SQLModel tables too, e.g. imported models that lack a VeloIQ base class).
     data["_label"] = build_model_str_label(obj)
+    _add_image_file_id(data, obj)
     return _sanitize(data)
 
 

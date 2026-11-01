@@ -3043,6 +3043,7 @@ const DynamicListPage: React.FC<{
         };
         return renderSharedGalleryCard({
             item: record,
+            imageSource: model.imageSource,
             itemId: fileId,
             label,
             apiUrl,

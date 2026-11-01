@@ -125,6 +125,9 @@ export interface ModelDef {
      *  Configured via `veloiq set-title` and stored on the model's
      *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */
     titleFields?: string[];
+    /** Where the gallery / image views take a record's picture from: a URL field of this
+     *  model, or a relation to File records. Mirrors `__veloiq_ui__["imageSource"]`. */
+    imageSource?: string;
     /** True when this ModelDef represents a NamedQuery rather than a plain model table. */
     isNamedQuery?: boolean;
     /** Resource name of the primary model (for show/edit navigation and write routing). */

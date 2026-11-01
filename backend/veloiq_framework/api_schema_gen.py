@@ -629,6 +629,11 @@ def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[st
         extra_props = []
         if "listViewType" in veloiq_ui:
             extra_props.append(f'    listViewType: "{veloiq_ui["listViewType"]}",')
+        # Where the gallery / image views take each record's picture from: a URL
+        # field of the model, or a relation to File records (__veloiq_ui__["imageSource"]).
+        image_source = veloiq_ui.get("imageSource")
+        if isinstance(image_source, str) and image_source:
+            extra_props.append(f'    imageSource: {json.dumps(image_source)},')
         # Developer-configured fields whose values compose this model's title /
         # __str__ (set via `veloiq set-title`, stored on __veloiq_ui__["titleFields"]).
         title_fields = veloiq_ui.get("titleFields")

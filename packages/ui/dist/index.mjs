@@ -5452,7 +5452,13 @@ var getGalleryItemLabel = (record, fallbackId) => {
   const fileId = fallbackId ?? "";
   return record?.title || record?.name || record?.data_name || record?._label || `File ${fileId}`;
 };
-var getGalleryItemContentUrl = (apiUrl, record, id) => {
+var getGalleryItemContentUrl = (apiUrl, record, id, imageSource) => {
+  if (imageSource) {
+    const sourceValue = record?.[imageSource];
+    if (typeof sourceValue === "string" && sourceValue) return sourceValue;
+    const relatedFileId = record?._image_file_id;
+    if (relatedFileId !== void 0 && relatedFileId !== null) return `${apiUrl}/file/${relatedFileId}/content`;
+  }
   const directUrl = record?.avatar_url || record?.image_url || record?.photo_url;
   if (directUrl && typeof directUrl === "string") return directUrl;
   const hasData = recordHasData(record);
@@ -5462,6 +5468,7 @@ var getGalleryItemContentUrl = (apiUrl, record, id) => {
 };
 var renderSharedGalleryCard = ({
   item,
+  imageSource,
   itemId,
   label,
   apiUrl,
@@ -5473,7 +5480,7 @@ var renderSharedGalleryCard = ({
   fill = false,
   actions
 }) => {
-  const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
+  const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId, imageSource);
   const imageStyle = {
     width: fill ? "100%" : imageWidth,
     height: fill ? "auto" : imageHeight,
@@ -21206,6 +21213,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     };
     return renderSharedGalleryCard({
       item: record,
+      imageSource: model.imageSource,
       itemId: fileId,
       label,
       apiUrl,

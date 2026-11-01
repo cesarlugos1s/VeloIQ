@@ -61,7 +61,15 @@ export const getGalleryItemLabel = (record: any, fallbackId?: any) => {
     return record?.title || record?.name || record?.data_name || record?._label || `File ${fileId}`;
 };
 
-export const getGalleryItemContentUrl = (apiUrl: string, record: any, id: any) => {
+export const getGalleryItemContentUrl = (apiUrl: string, record: any, id: any, imageSource?: string) => {
+    if (imageSource) {
+        // The model names its image source: a URL field, or a relation whose first
+        // related File id the backend exposes as `_image_file_id`.
+        const sourceValue = record?.[imageSource];
+        if (typeof sourceValue === "string" && sourceValue) return sourceValue;
+        const relatedFileId = record?._image_file_id;
+        if (relatedFileId !== undefined && relatedFileId !== null) return `${apiUrl}/file/${relatedFileId}/content`;
+    }
     // Prefer a direct image URL field before falling back to file storage.
     const directUrl = record?.avatar_url || record?.image_url || record?.photo_url;
     if (directUrl && typeof directUrl === "string") return directUrl;
@@ -73,6 +81,7 @@ export const getGalleryItemContentUrl = (apiUrl: string, record: any, id: any) =
 
 export const renderSharedGalleryCard = ({
     item,
+    imageSource,
     itemId,
     label,
     apiUrl,
@@ -85,6 +94,8 @@ export const renderSharedGalleryCard = ({
     actions,
 }: {
     item: any;
+    /** The model's `imageSource` (a URL field or a File relation); see getGalleryItemContentUrl. */
+    imageSource?: string;
     itemId: any;
     label: string;
     apiUrl: string;
@@ -98,7 +109,7 @@ export const renderSharedGalleryCard = ({
     /** Buttons shown under the label (e.g. the list's row actions); clicking them doesn't open the item. */
     actions?: React.ReactNode[];
 }) => {
-    const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId);
+    const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId, imageSource);
     const imageStyle: React.CSSProperties = {
         width: fill ? "100%" : imageWidth,
         height: fill ? "auto" : imageHeight,
