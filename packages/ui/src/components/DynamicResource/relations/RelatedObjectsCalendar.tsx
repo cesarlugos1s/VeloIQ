@@ -3,6 +3,7 @@ import { Spin, Alert, Empty, Select, Space, Button, Tooltip, theme } from "antd"
 import { ArrowLeftOutlined, ArrowRightOutlined, CalendarOutlined } from "@ant-design/icons";
 import { useGo } from "@refinedev/core";
 import dayjs from "dayjs";
+import { useCalendarPeriodsWithData } from "../utils/useCalendarPeriodsWithData";
 import type { ModelDef, RelationDef } from "../types";
 import { resolveResourcePath, getRecordDisplayLabel } from "../utils/model";
 import { getShowHref } from "../utils/navigation";
@@ -110,6 +111,13 @@ export const RelatedObjectsCalendar: React.FC<{
         }
         return calendarAnchorDate.startOf("month").format("MMMM YYYY");
     }, [calendarAnchorDate, calendarMode]);
+    // Previous / Next / Today only go to months or weeks that hold records.
+    const calendarEntryDates = useMemo(() => calendarEntries.map((entry) => entry.date), [calendarEntries]);
+    const {
+        previousPeriodStart,
+        nextPeriodStart,
+        periodStartNearestToday,
+    } = useCalendarPeriodsWithData(calendarEntryDates, calendarMode, calendarAnchorDate);
     const heatmapTotals = useMemo(
         () => getCalendarHeatmapTotals(entriesByDate, rangeDays.map((day) => day.format("YYYY-MM-DD")), heatmapField),
         [entriesByDate, heatmapField, rangeDays]
@@ -164,7 +172,8 @@ export const RelatedObjectsCalendar: React.FC<{
                             size="small"
                             icon={<ArrowLeftOutlined />}
                             aria-label={_("Previous")}
-                            onClick={() => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))}
+                            disabled={previousPeriodStart === undefined}
+                            onClick={() => previousPeriodStart !== undefined && setCalendarAnchorDate(dayjs(previousPeriodStart))}
                         />
                     </Tooltip>
                     <Tooltip title={_("Today")}>
@@ -172,7 +181,9 @@ export const RelatedObjectsCalendar: React.FC<{
                             size="small"
                             icon={<CalendarOutlined />}
                             aria-label={_("Today")}
-                            onClick={() => setCalendarAnchorDate(dayjs().startOf(calendarMode))}
+                            onClick={() => setCalendarAnchorDate(
+                                periodStartNearestToday !== undefined ? dayjs(periodStartNearestToday) : dayjs().startOf(calendarMode),
+                            )}
                         />
                     </Tooltip>
                     <Tooltip title={_("Next")}>
@@ -180,7 +191,8 @@ export const RelatedObjectsCalendar: React.FC<{
                             size="small"
                             icon={<ArrowRightOutlined />}
                             aria-label={_("Next")}
-                            onClick={() => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))}
+                            disabled={nextPeriodStart === undefined}
+                            onClick={() => nextPeriodStart !== undefined && setCalendarAnchorDate(dayjs(nextPeriodStart))}
                         />
                     </Tooltip>
                 </Space>

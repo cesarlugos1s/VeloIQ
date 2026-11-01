@@ -4,6 +4,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiUrl, useCan, useGo } from "@refinedev/core";
 import { useForm, DeleteButton } from "@refinedev/antd";
 import { StandardEdit } from "../../StandardCrud";
+import { TemporaryPageLayoutScopeProvider, buildTemporaryPageKey } from "../temporaryLayout/temporaryPageLayoutStore";
+import { useTemporaryTemplateRows } from "../temporaryLayout/useTemporaryTemplateRows";
 import { Button, Divider, Popover, Switch, Tabs, Tooltip, message } from "antd";
 import { AppstoreOutlined, CopyOutlined, EyeOutlined, SaveFilled, SaveOutlined, SettingOutlined, ApartmentOutlined } from "@ant-design/icons";
 import { useKeyboardShortcuts } from "../../../hooks/useKeyboardShortcuts";
@@ -281,12 +283,18 @@ const DynamicEditPage: React.FC<{
             cancelled = true;
         };
     }, [apiUrl, allModelsList, model.name, model.resource]);
-    const { tabs: items, layoutConfig, cellSizeControl } = useStandardEditTabs(
+    // Layout the user picked for now (template, cell size) without touching the page configuration.
+    const temporaryLayoutPageKey = buildTemporaryPageKey(model.resource || model.name, "edit");
+    const temporaryTemplateRows = useTemporaryTemplateRows(temporaryLayoutPageKey, model, "edit");
+    const { tabs: items, layoutConfig } = useStandardEditTabs(
         model,
         record,
         allModelsList,
         { showActions: showRelationActions, showCreate: showRelationCreate },
         editFormProps,
+        temporaryTemplateRows,
+        undefined,
+        temporaryLayoutPageKey,
     );
     const { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig } = layoutConfig;
     const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
@@ -428,6 +436,7 @@ const DynamicEditPage: React.FC<{
     );
     return (
         <BeforeEditSaveContext.Provider value={registerBeforeSave}>
+        <TemporaryPageLayoutScopeProvider scope={{ pageKey: temporaryLayoutPageKey, pageType: "edit", model, cellSizeAvailable: true }}>
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
             <StandardEdit
@@ -442,7 +451,7 @@ const DynamicEditPage: React.FC<{
                 headerButtons={renderHeaderButtons}
             >
                 {topContent}
-                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
+                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
                 {record && extraEditTabs.map((tab) => {
                     const TabContent = tab.edit!;
                     return (
@@ -453,6 +462,7 @@ const DynamicEditPage: React.FC<{
                 })}
             </StandardEdit>
         </div>
+        </TemporaryPageLayoutScopeProvider>
         </BeforeEditSaveContext.Provider>
     );
 };

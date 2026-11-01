@@ -46,6 +46,12 @@ export {
     DataDetailSlider,
     SampleRowsTable,
 } from "./components/DynamicResource";
+export { registerPageTemplateProvider } from "./components/DynamicResource/temporaryLayout/pageTemplateProviderRegistry";
+export type {
+    PageTemplateChoice,
+    PageTemplateProvider,
+    TemporaryLayoutPageType,
+} from "./components/DynamicResource/temporaryLayout/pageTemplateProviderRegistry";
 
 export type {
     FieldDef,

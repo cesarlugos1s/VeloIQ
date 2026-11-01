@@ -43,6 +43,10 @@ import {
 import { renderRelationBlock } from "../../DynamicResource";
 import type { DataDetailLevelState } from "./useDataDetailLevel";
 import { useDataDetailLevel } from "./useDataDetailLevel";
+import {
+    updateTemporaryPageLayout,
+    useTemporaryPageLayoutFor,
+} from "../temporaryLayout/temporaryPageLayoutStore";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -65,6 +69,8 @@ export const useStandardShowTabs = (
     },
     overrideConfigRows?: ViewConfigRow[],
     dataDetailLevelState?: DataDetailLevelState,
+    /** Store key of the page, so a cell size the user picked for now (temporary page layout) applies; null/absent = none. */
+    temporaryLayoutPageKey?: string | null,
 ) => {
     if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
     applyI18nLabelsToModel(model);
@@ -104,7 +110,16 @@ export const useStandardShowTabs = (
     // shows even for a page with only the built-in "Details" tab. Defaults
     // to "original" — unlike ViewsGrid's dashboard, which defaults to "fit"
     // — so a Show page's first render always matches its pre-existing look.
-    const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    const { gridDensity: storedGridDensity, setGridDensityByStep: setStoredGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    // A cell size picked in the temporary page layout controls wins until the user
+    // uses this page's own selector, which then takes over again.
+    const temporaryPageKey = temporaryLayoutPageKey ?? null;
+    const temporaryCellSize = useTemporaryPageLayoutFor(temporaryPageKey).cellSize;
+    const gridDensity = temporaryCellSize ?? storedGridDensity;
+    const setGridDensityByStep = (stepIndex: number) => {
+        if (temporaryPageKey) updateTemporaryPageLayout(temporaryPageKey, { cellSize: undefined });
+        setStoredGridDensityByStep(stepIndex);
+    };
     const gridDensityMarks = useMemo(() => buildGridDensityMarks(_), []);
     const gridDensityLabelText = buildGridDensityLabelText(_);
     const cellSizeControl = (

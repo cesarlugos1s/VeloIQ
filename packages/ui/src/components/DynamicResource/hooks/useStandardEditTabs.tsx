@@ -14,6 +14,10 @@ import { buildGridDensityLabelText, buildGridDensityMarks, GRID_DENSITY_STEPS, u
 import { SectionCellContent } from "../SectionCellContent";
 import { usePageSectionsConfig } from "./usePageSectionsConfig";
 import {
+    updateTemporaryPageLayout,
+    useTemporaryPageLayoutFor,
+} from "../temporaryLayout/temporaryPageLayoutStore";
+import {
     DETAILS_TAB_NAME,
     splitRelations,
     useViewConfigurations,
@@ -64,6 +68,8 @@ export const useStandardEditTabs = (
     editFormProps?: any,
     overrideConfigRows?: ViewConfigRow[],
     dataDetailLevelState?: DataDetailLevelState,
+    /** Store key of the page, so a cell size the user picked for now (temporary page layout) applies; null/absent = none. */
+    temporaryLayoutPageKey?: string | null,
 ) => {
     if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
     const { token } = theme.useToken();
@@ -105,7 +111,16 @@ export const useStandardEditTabs = (
     // preference per Edit page, selector at the right edge of DynamicEdit's
     // own tab bar, defaulting to "original" so the page's first render
     // matches its pre-existing look.
-    const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    const { gridDensity: storedGridDensity, setGridDensityByStep: setStoredGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+    // A cell size picked in the temporary page layout controls wins until the user
+    // uses this page's own selector, which then takes over again.
+    const temporaryPageKey = temporaryLayoutPageKey ?? null;
+    const temporaryCellSize = useTemporaryPageLayoutFor(temporaryPageKey).cellSize;
+    const gridDensity = temporaryCellSize ?? storedGridDensity;
+    const setGridDensityByStep = (stepIndex: number) => {
+        if (temporaryPageKey) updateTemporaryPageLayout(temporaryPageKey, { cellSize: undefined });
+        setStoredGridDensityByStep(stepIndex);
+    };
     const gridDensityMarks = useMemo(() => buildGridDensityMarks(_), []);
     const gridDensityLabelText = buildGridDensityLabelText(_);
     const cellSizeControl = (

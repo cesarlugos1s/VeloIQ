@@ -19,6 +19,8 @@ import { useStandardShowTabs } from "../../DynamicResource";
 import { useRoleFilteredModel } from "../utils/roleAccess";
 import { useSetHelpPageKey } from "../../../contexts/HelpContext";
 import { ResourceAccessGate } from "../../AccessGate";
+import { TemporaryPageLayoutScopeProvider, buildTemporaryPageKey } from "../temporaryLayout/temporaryPageLayoutStore";
+import { useTemporaryTemplateRows } from "../temporaryLayout/useTemporaryTemplateRows";
 import { BeforeEditSaveContext, type BeforeEditSave } from "../hooks/useBeforeEditSave";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
@@ -123,12 +125,19 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
         : headerButtons;
     const [activeTabKey, setActiveTabKey] = useState("details");
 
-    const { tabs: standardItems, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
+    // Layout the user picked for now (template, cell size) without touching the page configuration;
+    // an embedded show (e.g. a preview inside another page) has none.
+    const temporaryLayoutPageKey = embedded ? null : buildTemporaryPageKey(model.resource || model.name, "show");
+    const temporaryTemplateRows = useTemporaryTemplateRows(temporaryLayoutPageKey, model, "show");
+    const { tabs: standardItems, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
         model,
         record,
         allModelsList,
         actionsState,
         { formProps: showFormProps, effectiveFields },
+        temporaryTemplateRows,
+        undefined,
+        temporaryLayoutPageKey,
     );
     const items = useMemo(() => {
         const extraTabs = (model.extraTabs ?? []).filter((tab) => tab.show);
@@ -168,8 +177,12 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
         })),
         [activeTabKey, items]
     );
+    const temporaryLayoutScope = temporaryLayoutPageKey
+        ? { pageKey: temporaryLayoutPageKey, pageType: "show" as const, model, cellSizeAvailable: true }
+        : null;
     if (embedded) {
         return (
+            <TemporaryPageLayoutScopeProvider scope={null}>
             <BeforeEditSaveContext.Provider value={registerBeforeSave}>
             <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
                 <ToneSharedStyles />
@@ -180,7 +193,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
                 ) : (
                     <>
                         {beforeTabs}
-                        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
+                        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
                         <ShowFooterButtons
                             model={model}
                             allModels={allModels}
@@ -191,10 +204,12 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
                 )}
             </div>
             </BeforeEditSaveContext.Provider>
+            </TemporaryPageLayoutScopeProvider>
         );
     }
 
     return (
+        <TemporaryPageLayoutScopeProvider scope={temporaryLayoutScope}>
         <BeforeEditSaveContext.Provider value={registerBeforeSave}>
         <div className="jm-tone-scope" style={toneScopeStyle(modelTone)}>
             <ToneSharedStyles />
@@ -210,7 +225,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
                 headerButtons={combinedHeaderButtons}
             >
                 {beforeTabs}
-                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane tabBarExtraContent={{ right: cellSizeControl }} />
+                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={lazyItems} destroyInactiveTabPane />
                 <ShowFooterButtons
                     model={model}
                     allModels={allModels}
@@ -220,6 +235,7 @@ const DynamicShowPage: React.FC<{ model: ModelDef; allModels?: ModelDef[]; idOve
             </StandardShow>
         </div>
         </BeforeEditSaveContext.Provider>
+        </TemporaryPageLayoutScopeProvider>
     );
 };
 

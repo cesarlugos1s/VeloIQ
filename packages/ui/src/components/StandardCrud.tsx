@@ -21,6 +21,9 @@ import { authenticatedFetch } from "../utils/authenticatedFetch";
 
 import { PageBreadcrumb } from "./PageBreadcrumb";
 import { DataDetailSlider } from "./DynamicResource/DataDetailSlider";
+import { TemporaryPageLayoutControls } from "./DynamicResource/temporaryLayout/TemporaryPageLayoutControls";
+import { useTemporaryTemplateRows } from "./DynamicResource/temporaryLayout/useTemporaryTemplateRows";
+import { useTemporaryPageLayoutOfEnclosingPage } from "./DynamicResource/temporaryLayout/temporaryPageLayoutStore";
 import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
 
 const wrappedPageTitleStyle: React.CSSProperties = {
@@ -151,7 +154,9 @@ const useActionsWrapping = (headerButtons: any, pageBreadcrumb: React.ReactNode)
     const paneNav = usePaneNavigation();
     const isInMultiPane = Boolean(paneNav);
     const isDetailPane = Boolean(paneNav && paneNav.paneIndex > 0);
-    const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
+    // A position the user picked for now (temporary layout) wins over the configured one.
+    const { layout: temporaryLayout } = useTemporaryPageLayoutOfEnclosingPage();
+    const actionsPosition = temporaryLayout.actionsPosition || viewSettings?.generalActionsButtonPosition || "top-right";
     const [verticalBarEl, setVerticalBarEl] = useState<HTMLDivElement | null>(null);
     const [topRightEl, setTopRightEl] = useState<HTMLDivElement | null>(null);
 
@@ -203,18 +208,29 @@ const useActionsWrapping = (headerButtons: any, pageBreadcrumb: React.ReactNode)
     return { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb };
 };
 
+/**
+ * Puts the data detail slider (when active) and the temporary page layout
+ * controls in front of a page's header buttons.
+ */
+const withLayoutControls = (
+    headerButtons: ((args: { defaultButtons: React.ReactNode }) => React.ReactNode) | undefined,
+    detailState: ReturnType<typeof getCurrentDataDetailLevelState>,
+): ((args: { defaultButtons: React.ReactNode }) => React.ReactNode) | undefined => {
+    if (!headerButtons) return headerButtons;
+    return (args: { defaultButtons: React.ReactNode }) => (
+        <>
+            {detailState?.isActive && <DataDetailSlider detailState={detailState} />}
+            <TemporaryPageLayoutControls />
+            {headerButtons(args)}
+        </>
+    );
+};
+
 export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="show" resource={props.resource} />;
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
-    const headerButtonsWithSlider: (args: { defaultButtons: React.ReactNode }) => React.ReactNode = detailState?.isActive && effectiveHeaderButtons
-        ? (args: { defaultButtons: React.ReactNode }) => (
-            <>
-                <DataDetailSlider detailState={detailState} />
-                {(effectiveHeaderButtons as any)(args)}
-            </>
-          )
-        : effectiveHeaderButtons as any;
+    const headerButtonsWithSlider = withLayoutControls(effectiveHeaderButtons as any, detailState) as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
         useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
     return (
@@ -235,14 +251,7 @@ export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) =
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons =
         headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons));
-    const headerButtonsWithSlider: (args: { defaultButtons: React.ReactNode }) => React.ReactNode = detailState?.isActive && effectiveHeaderButtons
-        ? (args: { defaultButtons: React.ReactNode }) => (
-            <>
-                <DataDetailSlider detailState={detailState} />
-                {(effectiveHeaderButtons as any)(args)}
-            </>
-          )
-        : effectiveHeaderButtons as any;
+    const headerButtonsWithSlider = withLayoutControls(effectiveHeaderButtons as any, detailState) as any;
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
         useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
     return (
@@ -259,7 +268,7 @@ export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) =
 
 export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="list" resource={props.resource} />;
-    const effectiveHeaderButtons = headerButtons;
+    const effectiveHeaderButtons = withLayoutControls(headerButtons as any, undefined);
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
         useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
 
@@ -268,10 +277,16 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
     const [listSections, setListSections] = useState<any[] | null>(null);
     const [cfgLoading, setCfgLoading] = useState(false);
 
+    // A template the user picked for now replaces the configured list sections.
+    const { scope: layoutScope } = useTemporaryPageLayoutOfEnclosingPage();
+    const temporaryTemplateRows = useTemporaryTemplateRows(layoutScope?.pageKey ?? null, layoutScope?.model, "list");
+
     useEffect(() => {
         if (!resource) { setListSections(null); return; }
         setCfgLoading(true);
-        authenticatedFetch(`/api/views/configurations/${resource}`)
+        (temporaryTemplateRows
+            ? Promise.resolve({ ok: true, json: async () => temporaryTemplateRows } as Response)
+            : authenticatedFetch(`/api/views/configurations/${resource}`))
             .then((r) => r.ok ? r.json() : [])
             .then((rows: any[]) => {
                 const listRows = (rows || []).filter((r: any) => r.form_type === "list");
@@ -287,7 +302,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
             })
             .catch(() => setListSections(null))
             .finally(() => setCfgLoading(false));
-    }, [resource]);
+    }, [resource, temporaryTemplateRows]);
 
     const { Title: ATitle } = Typography;
 
@@ -331,7 +346,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
 export const StandardCreate: React.FC<CreateProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="create" resource={props.resource} />;
     const effectiveHeaderButtons =
-        headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons));
+        withLayoutControls(headerButtons ?? (({ defaultButtons }: { defaultButtons: React.ReactNode }) => renderIconOnlyButtons(defaultButtons)) as any, undefined);
     const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } =
         useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
     return (

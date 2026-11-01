@@ -186,6 +186,15 @@ import {
     DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD,
 } from "./utils/viewConfig";
 import type { ViewSettings, NormalizedViewConfigRow } from "./utils/viewConfig";
+import { useCalendarPeriodsWithData } from "./utils/useCalendarPeriodsWithData";
+import { TemporaryPageLayoutControls } from "./temporaryLayout/TemporaryPageLayoutControls";
+import {
+    TemporaryPageLayoutScopeProvider,
+    buildTemporaryPageKey,
+    publishListAnalyzeState,
+    updateTemporaryPageLayout,
+    useTemporaryPageLayoutFor,
+} from "./temporaryLayout/temporaryPageLayoutStore";
 import { ActionsButtonStack, VerticalActionsLayout } from "./utils/verticalActionsBar";
 import { buildColumnFilterOptions, matchesColumnFilterValue } from "./utils/columnFilters";
 import { RelationSelect } from "./fields/RelationSelect";
@@ -260,6 +269,12 @@ import { INLINE_EDIT_LIST_VIEW_TYPES, InlineCellEditor, InlineEditActions, isInl
 
 
 
+/** Every list view type the temporary view type button can offer. */
+const TEMPORARY_LIST_VIEW_TYPES = [
+    "table", "editable-table", "list", "editable-list", "gallery", "image", "calendar", "kanban",
+    "totals-details", "crosstab", "editable-crosstab", "primary", "primary-carousel",
+];
+
 const DynamicListPage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
@@ -304,6 +319,10 @@ const DynamicListPage: React.FC<{
     const apiUrl = useApiUrl();
     // Stable resource identifier used by useTable, useCan, etc.
     const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
+    // Temporary page layout: only the standalone list page (not a relation list or
+    // dashboard cell) lets the user change its layout for now.
+    const temporaryLayoutPageKey = isEmbedded || filter ? null : buildTemporaryPageKey(resourceIdentifier, "list");
+    const temporaryLayout = useTemporaryPageLayoutFor(temporaryLayoutPageKey);
     // Only the standalone List route owns the page-level Help key — embedded
     // uses (relation lists, dashboard cells) must not hijack the help drawer
     // from whatever page they're embedded in.
@@ -320,7 +339,7 @@ const DynamicListPage: React.FC<{
     // Create, clone and "create and relate" need Create (AC-E2).
     const canCreate = canCreateData?.can !== false && model.capabilities?.create !== false;
     const { settings: viewSettings } = useViewSettings();
-    const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
+    const actionsPosition = temporaryLayout.actionsPosition || viewSettings?.generalActionsButtonPosition || "top-right";
     const [actionsBarEl, setActionsBarEl] = useState<HTMLDivElement | null>(null);
     const resolvedLayoutPreferenceType = layoutPreferenceType ?? "ShowLayout";
 
@@ -374,7 +393,7 @@ const DynamicListPage: React.FC<{
     // Falls through to the existing resolution unchanged when absent.
     const urlViewType = searchParams.get("view_type");
     const resolvedListViewType = String(
-        urlViewType || listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
+        temporaryLayout.listViewType || urlViewType || listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
     ).toLowerCase();
     // "image" is the gallery with each image at full width (no thumbnails).
     const isImageView = resolvedListViewType === "image";
@@ -411,6 +430,11 @@ const DynamicListPage: React.FC<{
     const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
     const calendarDateFieldOptions = useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
     const calendarHeatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(model.fields), [model.fields]);
+    // View types a user may switch the list page to for now; the calendar needs a date field.
+    const temporaryListViewTypes = useMemo(
+        () => TEMPORARY_LIST_VIEW_TYPES.filter((token) => token !== "calendar" || calendarDateFieldOptions.length > 0),
+        [calendarDateFieldOptions],
+    );
 
     const [localSearch, setLocalSearch] = useState("");
     const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
@@ -479,6 +503,31 @@ const DynamicListPage: React.FC<{
     const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
+
+    // Temporary page layout: the Analyze choices made in the header controls are
+    // applied once to this page's own state and then consumed, so the page's own
+    // buttons keep working and a repeated choice is applied again.
+    useEffect(() => {
+        if (!temporaryLayoutPageKey || temporaryLayout.analyzeOpen === undefined) return;
+        analyzeTouchedRef.current = true;
+        setAnalyzeOpen(temporaryLayout.analyzeOpen);
+        updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeOpen: undefined });
+    }, [temporaryLayoutPageKey, temporaryLayout.analyzeOpen]);
+    useEffect(() => {
+        if (!temporaryLayoutPageKey || temporaryLayout.analyzeFirst === undefined) return;
+        setIsAnalyzeFirst(temporaryLayout.analyzeFirst);
+        updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeFirst: undefined });
+    }, [temporaryLayoutPageKey, temporaryLayout.analyzeFirst]);
+    useEffect(() => {
+        if (!temporaryLayoutPageKey || temporaryLayout.analyzeVertical === undefined) return;
+        setIsAnalyzeVertical(temporaryLayout.analyzeVertical);
+        updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeVertical: undefined });
+    }, [temporaryLayoutPageKey, temporaryLayout.analyzeVertical]);
+    // Tell the header controls what the Analyze area really shows now.
+    useEffect(() => {
+        if (!temporaryLayoutPageKey) return;
+        publishListAnalyzeState(temporaryLayoutPageKey, { analyzeOpen, analyzeFirst: isAnalyzeFirst, analyzeVertical: isAnalyzeVertical });
+    }, [temporaryLayoutPageKey, analyzeOpen, isAnalyzeFirst, isAnalyzeVertical]);
     const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
 
     const defaultDisplayFields = useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
@@ -1058,10 +1107,12 @@ const DynamicListPage: React.FC<{
             isCrosstabView ||
             isKanbanView ||
             isPrimaryCarouselView ||
+            // The calendar needs every record to know which months and weeks hold data.
+            isCalendarView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, localSearch]);
+    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, isCalendarView, localSearch]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
@@ -3269,6 +3320,13 @@ const DynamicListPage: React.FC<{
         });
         return grouped;
     }, [calendarEntries]);
+    // Previous / Next / Today only go to months or weeks that hold records.
+    const calendarEntryDates = useMemo(() => calendarEntries.map((entry) => entry.date), [calendarEntries]);
+    const {
+        previousPeriodStart: previousCalendarPeriodWithData,
+        nextPeriodStart: nextCalendarPeriodWithData,
+        periodStartNearestToday: calendarPeriodWithDataNearestToday,
+    } = useCalendarPeriodsWithData(calendarEntryDates, calendarMode, calendarAnchorDate);
     const calendarRangeDays = useMemo(() => {
         const current = calendarAnchorDate.startOf(calendarMode);
         if (calendarMode === "week") {
@@ -3359,7 +3417,8 @@ const DynamicListPage: React.FC<{
                                 size="small"
                                 icon={<ArrowLeftOutlined />}
                                 aria-label={_("Previous")}
-                                onClick={() => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))}
+                                disabled={previousCalendarPeriodWithData === undefined}
+                                onClick={() => previousCalendarPeriodWithData !== undefined && setCalendarAnchorDate(dayjs(previousCalendarPeriodWithData))}
                             />
                         </Tooltip>
                         <Tooltip title={_("Today")}>
@@ -3367,7 +3426,9 @@ const DynamicListPage: React.FC<{
                                 size="small"
                                 icon={<CalendarOutlined />}
                                 aria-label={_("Today")}
-                                onClick={() => setCalendarAnchorDate(dayjs().startOf(calendarMode))}
+                                onClick={() => setCalendarAnchorDate(
+                                    calendarPeriodWithDataNearestToday !== undefined ? dayjs(calendarPeriodWithDataNearestToday) : dayjs().startOf(calendarMode),
+                                )}
                             />
                         </Tooltip>
                         <Tooltip title={_("Next")}>
@@ -3375,7 +3436,8 @@ const DynamicListPage: React.FC<{
                                 size="small"
                                 icon={<ArrowRightOutlined />}
                                 aria-label={_("Next")}
-                                onClick={() => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))}
+                                disabled={nextCalendarPeriodWithData === undefined}
+                                onClick={() => nextCalendarPeriodWithData !== undefined && setCalendarAnchorDate(dayjs(nextCalendarPeriodWithData))}
                             />
                         </Tooltip>
                     </Space>
@@ -4407,14 +4469,25 @@ const DynamicListPage: React.FC<{
                     </List>
                 </VerticalActionsLayout>
             ) : (
-                <StandardList
-                    title={renderWrappedPageTitle(listTitle)}
-                    resource={model.resource || model.name}
-                    headerButtons={renderListHeaderButtons}
+                <TemporaryPageLayoutScopeProvider
+                    scope={temporaryLayoutPageKey ? {
+                        pageKey: temporaryLayoutPageKey,
+                        pageType: "list",
+                        model,
+                        listViewTypes: temporaryListViewTypes,
+                        currentListViewType: resolvedListViewType,
+                        analyzeAvailable: analyzeSectionAvailable,
+                    } : null}
                 >
-                    {listContent}
-                    {appendedListsNodes}
-                </StandardList>
+                    <StandardList
+                        title={renderWrappedPageTitle(listTitle)}
+                        resource={model.resource || model.name}
+                        headerButtons={renderListHeaderButtons}
+                    >
+                        {listContent}
+                        {appendedListsNodes}
+                    </StandardList>
+                </TemporaryPageLayoutScopeProvider>
             )}
         </div>
     );
@@ -4428,11 +4501,37 @@ export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>>
     const [searchParams] = useSearchParams();
     // A single-record resource (e.g. a settings form) in the "primary" view is
     // that record's own form, not a list (same rule for pages and grid cells).
-    const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, searchParams.get("view_type") || props.listViewType);
+    // The view type the user picked for now (standalone list pages only) decides this too.
+    const outerAllModels = useAllModelsIncludingNonModelData(props.allModels);
+    const outerPageKey = props.isEmbedded || props.filter
+        ? null
+        : buildTemporaryPageKey(resolveResourcePath(props.model.resource || props.model.name, outerAllModels), "list");
+    const outerTemporaryLayout = useTemporaryPageLayoutFor(outerPageKey);
+    const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, outerTemporaryLayout.listViewType || searchParams.get("view_type") || props.listViewType);
     return (
         <ResourceAccessGate resource={props.model.resource || props.model.name} action="read" embedded={Boolean(props.isEmbedded)}>
             {showsSingleRecordForm
-                ? <SingleRecordPrimaryView model={props.model} allModels={props.allModels} />
+                ? (
+                    // The form has no list header, so while the user's chosen view type is what
+                    // turned the page into this form, keep the layout controls above it to let
+                    // the user choose another view type.
+                    <TemporaryPageLayoutScopeProvider
+                        scope={outerPageKey && outerTemporaryLayout.listViewType ? {
+                            pageKey: outerPageKey,
+                            pageType: "list",
+                            model: props.model,
+                            listViewTypes: TEMPORARY_LIST_VIEW_TYPES.filter((token) => token !== "calendar"),
+                            currentListViewType: outerTemporaryLayout.listViewType,
+                        } : null}
+                    >
+                        {outerPageKey && outerTemporaryLayout.listViewType && (
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
+                                <TemporaryPageLayoutControls />
+                            </div>
+                        )}
+                        <SingleRecordPrimaryView model={props.model} allModels={props.allModels} />
+                    </TemporaryPageLayoutScopeProvider>
+                )
                 : <DynamicListPage {...props} />}
         </ResourceAccessGate>
     );

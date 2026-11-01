@@ -2271,3 +2271,79 @@ msgstr "Campos mostrados en las tarjetas"
 
 msgid "Hide Analyze"
 msgstr "Ocultar Analizar"
+
+msgid "Images"
+msgstr "Imágenes"
+
+msgid "Totals and details"
+msgstr "Totales y detalles"
+
+msgid "Editable crosstab"
+msgstr "Tabla cruzada editable"
+
+msgid "Primary carousel"
+msgstr "Carrusel principal"
+
+msgid "Configured layout"
+msgstr "Diseño configurado"
+
+msgid "Temporary layout"
+msgstr "Diseño temporal"
+
+msgid "These changes last until the page is reloaded and do not change the page configuration."
+msgstr "Estos cambios duran hasta que se recargue la página y no modifican la configuración de la página."
+
+msgid "Analyze position"
+msgstr "Posición de Analizar"
+
+msgid "After the data"
+msgstr "Después de los datos"
+
+msgid "Before the data"
+msgstr "Antes de los datos"
+
+msgid "Stacked"
+msgstr "Apilado"
+
+msgid "Side by side"
+msgstr "Lado a lado"
+
+msgid "Configured"
+msgstr "Configurado"
+
+msgid "Action buttons position"
+msgstr "Posición de los botones de acción"
+
+msgid "Top right"
+msgstr "Arriba a la derecha"
+
+msgid "Left"
+msgstr "Izquierda"
+
+msgid "Right"
+msgstr "Derecha"
+
+msgid "Stack"
+msgstr "Pila"
+
+msgid "Breadcrumb"
+msgstr "Ruta de navegación"
+
+msgid "Overlay"
+msgstr "Superpuesto"
+
+msgid "Scroll"
+msgstr "Desplazable"
+
+msgid "Back to the configured layout"
+msgstr "Volver al diseño configurado"
+
+
+msgid "Change the page template for now"
+msgstr "Cambiar la plantilla de la página por ahora"
+
+msgid "Page template"
+msgstr "Plantilla de página"
+
+msgid "Design options"
+msgstr "Opciones de diseño"

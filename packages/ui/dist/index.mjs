@@ -2,13 +2,13 @@ import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from 
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
 import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
 import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useInvalidate, useOne, useCustom, useLogin, Refine, Authenticated, useResource, useNavigation, useTranslate, useUserFriendlyName, useRefineContext, useLink, matchResourceFromRoute, useWarnAboutChange, pickNotDeprecated } from '@refinedev/core';
-import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Tag, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
+import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Slider, Popover, Tag, Table, message, Switch, Alert, Breadcrumb, Tree, Tabs, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Segmented, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
-import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, DoubleRightOutlined, DoubleLeftOutlined, UpOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, TableOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, SlidersOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, DoubleRightOutlined, DoubleLeftOutlined, UpOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined, TableOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, BarChartOutlined, ColumnHeightOutlined, SwapOutlined, FilterOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FolderOutlined, FileOutlined, FullscreenExitOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useInRouterContext, useParams, useSearchParams, Link, Navigate, Routes, Route, useHref, BrowserRouter, Outlet, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import dayjs11 from 'dayjs';
+import dayjs12 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
 import axios from 'axios';
 import routerProvider from '@refinedev/react-router-v6';
@@ -4242,7 +4242,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_82, value) {
+                validator(_83, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -4597,6 +4597,410 @@ var DataDetailSlider = ({ detailState }) => {
     }
   );
 };
+var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
+var GRID_DENSITY_ROW_HEIGHT = {
+  small: 180,
+  medium: 320,
+  large: 480
+};
+var FIT_PAGE_MIN_ROW_HEIGHT = 120;
+function loadStoredGridDensity(storageKey, defaultValue) {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored && GRID_DENSITY_STEPS.includes(stored)) {
+      return stored;
+    }
+  } catch {
+  }
+  return defaultValue;
+}
+function useGridDensity(storageKey, defaultValue) {
+  const [gridDensity, setGridDensityState] = useState(() => loadStoredGridDensity(storageKey, defaultValue));
+  const setGridDensityByStep = useCallback((stepIndex) => {
+    const next = GRID_DENSITY_STEPS[stepIndex] ?? defaultValue;
+    setGridDensityState(next);
+    try {
+      localStorage.setItem(storageKey, next);
+    } catch {
+    }
+  }, [storageKey, defaultValue]);
+  return { gridDensity, setGridDensityByStep };
+}
+function buildGridDensityMarks(_83) {
+  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _83(text) });
+  return {
+    0: label("Original"),
+    1: label("Small"),
+    2: label("Page"),
+    3: label("Row"),
+    4: label("Cell"),
+    5: label("Medium"),
+    6: label("Large")
+  };
+}
+function buildGridDensityLabelText(_83) {
+  return {
+    original: _83("Original"),
+    small: _83("Small"),
+    fit: _83("Page"),
+    "fit-row": _83("Row"),
+    "fit-cell": _83("Cell"),
+    medium: _83("Medium"),
+    large: _83("Large")
+  };
+}
+function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
+  switch (gridDensity) {
+    case "small":
+    case "medium":
+    case "large": {
+      const h = GRID_DENSITY_ROW_HEIGHT[gridDensity];
+      return growPastFixedHeight ? `minmax(${h}px, auto)` : `minmax(${h}px, ${h}px)`;
+    }
+    case "fit": {
+      const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
+      return `minmax(${height}px, ${height}px)`;
+    }
+    case "original":
+    default:
+      return `minmax(${originalMinPx}px, auto)`;
+  }
+}
+function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding) {
+  const [fitRowHeight, setFitRowHeight] = useState(null);
+  useLayoutEffect(() => {
+    if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
+    const el = containerRef.current;
+    if (!el) return;
+    const effectiveRows = gridDensity === "fit" ? numRows : 1;
+    const findScrollableAncestor = (node) => {
+      let current2 = node.parentElement;
+      while (current2 && current2 !== document.body) {
+        const overflowY = window.getComputedStyle(current2).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return current2;
+        current2 = current2.parentElement;
+      }
+      return null;
+    };
+    const recompute = () => {
+      const top = el.getBoundingClientRect().top;
+      const ancestor2 = findScrollableAncestor(el);
+      const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
+      const availableHeight = bottomBoundary - top;
+      const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
+      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
+      setFitRowHeight(rowHeight);
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    let debounceTimer = null;
+    const debouncedRecompute = () => {
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(recompute, 150);
+    };
+    const ancestor = findScrollableAncestor(el);
+    const observer = ancestor ? new ResizeObserver(debouncedRecompute) : null;
+    if (ancestor && observer) observer.observe(ancestor);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+      observer?.disconnect();
+    };
+  }, [gridDensity, numRows]);
+  return fitRowHeight;
+}
+
+// src/components/DynamicResource/temporaryLayout/pageTemplateProviderRegistry.ts
+var registeredProvider = null;
+var registrationListeners = /* @__PURE__ */ new Set();
+function registerPageTemplateProvider(provider) {
+  registeredProvider = provider;
+  registrationListeners.forEach((listener) => listener());
+}
+function getRegisteredPageTemplateProvider() {
+  return registeredProvider;
+}
+function subscribeToPageTemplateProviderRegistration(listener) {
+  registrationListeners.add(listener);
+  return () => {
+    registrationListeners.delete(listener);
+  };
+}
+var snapshot = {
+  layoutsByPageKey: {},
+  publishedAnalyzeByPageKey: {},
+  panesLayoutMode: void 0
+};
+var snapshotListeners = /* @__PURE__ */ new Set();
+function replaceSnapshot(next) {
+  snapshot = next;
+  snapshotListeners.forEach((listener) => listener());
+}
+function subscribeToSnapshot(listener) {
+  snapshotListeners.add(listener);
+  return () => {
+    snapshotListeners.delete(listener);
+  };
+}
+function buildTemporaryPageKey(resourceName, pageType) {
+  return `${resourceName}:${pageType}`;
+}
+function updateTemporaryPageLayout(pageKey, changes) {
+  const merged = { ...snapshot.layoutsByPageKey[pageKey], ...changes };
+  Object.keys(merged).forEach((key) => {
+    if (merged[key] === void 0) delete merged[key];
+  });
+  replaceSnapshot({
+    ...snapshot,
+    layoutsByPageKey: { ...snapshot.layoutsByPageKey, [pageKey]: merged }
+  });
+}
+function resetTemporaryPageLayout(pageKey) {
+  const { [pageKey]: _removed, ...remaining } = snapshot.layoutsByPageKey;
+  replaceSnapshot({ ...snapshot, layoutsByPageKey: remaining });
+}
+function updateTemporaryPanesLayoutMode(mode) {
+  replaceSnapshot({ ...snapshot, panesLayoutMode: mode });
+}
+function publishListAnalyzeState(pageKey, state) {
+  const previous = snapshot.publishedAnalyzeByPageKey[pageKey];
+  if (previous && previous.analyzeOpen === state.analyzeOpen && previous.analyzeFirst === state.analyzeFirst && previous.analyzeVertical === state.analyzeVertical) return;
+  replaceSnapshot({
+    ...snapshot,
+    publishedAnalyzeByPageKey: { ...snapshot.publishedAnalyzeByPageKey, [pageKey]: state }
+  });
+}
+function getTemporaryPageLayout(pageKey) {
+  return (pageKey ? snapshot.layoutsByPageKey[pageKey] : void 0) ?? NO_OVERRIDES;
+}
+var NO_OVERRIDES = Object.freeze({});
+function useTemporaryPageLayoutFor(pageKey) {
+  return useSyncExternalStore(
+    subscribeToSnapshot,
+    () => getTemporaryPageLayout(pageKey),
+    () => getTemporaryPageLayout(pageKey)
+  );
+}
+function usePublishedListAnalyzeState(pageKey) {
+  return useSyncExternalStore(
+    subscribeToSnapshot,
+    () => pageKey ? snapshot.publishedAnalyzeByPageKey[pageKey] : void 0,
+    () => pageKey ? snapshot.publishedAnalyzeByPageKey[pageKey] : void 0
+  );
+}
+function useTemporaryPanesLayoutMode() {
+  return useSyncExternalStore(subscribeToSnapshot, () => snapshot.panesLayoutMode, () => snapshot.panesLayoutMode);
+}
+var TemporaryPageLayoutScopeContext = createContext(null);
+var TemporaryPageLayoutScopeProvider = ({ scope, children }) => {
+  const stableScope = useMemo(
+    () => scope,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scope?.pageKey, scope?.pageType, scope?.model, scope?.listViewTypes?.join("|"), scope?.currentListViewType, scope?.analyzeAvailable, scope?.cellSizeAvailable]
+  );
+  return /* @__PURE__ */ jsx(TemporaryPageLayoutScopeContext.Provider, { value: stableScope, children });
+};
+function useTemporaryPageLayoutScope() {
+  return useContext(TemporaryPageLayoutScopeContext);
+}
+function useTemporaryPageLayoutOfEnclosingPage() {
+  const scope = useTemporaryPageLayoutScope();
+  const layout = useTemporaryPageLayoutFor(scope?.pageKey ?? null);
+  const change = useCallback((changes) => {
+    if (scope) updateTemporaryPageLayout(scope.pageKey, changes);
+  }, [scope]);
+  const reset = useCallback(() => {
+    if (scope) {
+      resetTemporaryPageLayout(scope.pageKey);
+      updateTemporaryPanesLayoutMode(void 0);
+    }
+  }, [scope]);
+  return { scope, layout, change, reset };
+}
+var { Text: Text4 } = Typography;
+var _16 = window._ || ((text) => text);
+function buildListViewTypeLabels() {
+  return {
+    "table": _16("Table"),
+    "editable-table": _16("Editable table"),
+    "list": _16("List"),
+    "editable-list": _16("Editable list"),
+    "gallery": _16("Gallery"),
+    "image": _16("Images"),
+    "calendar": _16("Calendar"),
+    "kanban": _16("Kanban"),
+    "totals-details": _16("Totals and details"),
+    "crosstab": _16("Crosstab"),
+    "editable-crosstab": _16("Editable crosstab"),
+    "primary": _16("Primary"),
+    "primary-carousel": _16("Primary carousel")
+  };
+}
+function usePageTemplateChoices(model, pageType) {
+  const provider = useSyncExternalStore(subscribeToPageTemplateProviderRegistration, getRegisteredPageTemplateProvider, getRegisteredPageTemplateProvider);
+  const [choices, setChoices] = useState([]);
+  const latestModel = useRef(model);
+  latestModel.current = model;
+  const modelName = model?.name;
+  useEffect(() => {
+    if (!provider || !latestModel.current || !pageType) {
+      setChoices([]);
+      return;
+    }
+    let cancelled = false;
+    provider.listTemplatesForPage(latestModel.current, pageType).then((found) => {
+      if (!cancelled) setChoices(found);
+    }).catch(() => {
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, modelName, pageType]);
+  return { hasProvider: Boolean(provider), choices };
+}
+var TemporaryPageLayoutControls = () => {
+  const { scope, layout, change, reset } = useTemporaryPageLayoutOfEnclosingPage();
+  const published = usePublishedListAnalyzeState(scope?.pageKey ?? null);
+  const temporaryPanesMode = useTemporaryPanesLayoutMode();
+  const { hasProvider: hasTemplateProvider, choices: templateChoices } = usePageTemplateChoices(scope?.model, scope?.pageType);
+  const [moreOpen, setMoreOpen] = useState(false);
+  if (!scope) return null;
+  const isList = scope.pageType === "list";
+  const viewTypeLabels = buildListViewTypeLabels();
+  const analyzeOpen = layout.analyzeOpen ?? published?.analyzeOpen ?? false;
+  const analyzeFirst = layout.analyzeFirst ?? published?.analyzeFirst ?? false;
+  const analyzeVertical = layout.analyzeVertical ?? published?.analyzeVertical ?? false;
+  const showAnalyze = isList && Boolean(scope.analyzeAvailable);
+  const densityLabels = buildGridDensityLabelText(_16);
+  const showCellSize = Boolean(scope.cellSizeAvailable);
+  const showTemplate = hasTemplateProvider && (templateChoices.length > 0 || Boolean(layout.templateName));
+  const templateMenu = {
+    selectable: true,
+    selectedKeys: [layout.templateName ?? ""],
+    items: [
+      { key: "", label: _16("Configured layout") },
+      ...templateChoices.map((choice) => ({
+        key: choice.name,
+        label: choice.description ? /* @__PURE__ */ jsx(Tooltip, { title: choice.description, children: /* @__PURE__ */ jsx("span", { children: choice.label }) }) : choice.label
+      }))
+    ],
+    onClick: ({ key }) => change({ templateName: key || void 0 })
+  };
+  const showViewType = isList && (scope.listViewTypes?.length ?? 0) > 0;
+  const moreContent = /* @__PURE__ */ jsxs("div", { style: { width: 300, display: "flex", flexDirection: "column", gap: 10 }, children: [
+    /* @__PURE__ */ jsx(Text4, { strong: true, children: _16("Temporary layout") }),
+    /* @__PURE__ */ jsx(Text4, { type: "secondary", children: _16("These changes last until the page is reloaded and do not change the page configuration.") }),
+    showViewType && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(Text4, { children: _16("View type") }),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: layout.listViewType ?? scope.currentListViewType,
+          options: (scope.listViewTypes ?? []).map((token) => ({ value: token, label: viewTypeLabels[token] ?? token })),
+          onChange: (value) => change({ listViewType: value })
+        }
+      )
+    ] }),
+    showAnalyze && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
+        /* @__PURE__ */ jsx(Text4, { children: _16("Analyze") }),
+        /* @__PURE__ */ jsx(Switch, { size: "small", checked: analyzeOpen, "aria-label": _16("Analyze"), onChange: (checked) => change({ analyzeOpen: checked }) })
+      ] }),
+      /* @__PURE__ */ jsx(Text4, { children: _16("Analyze position") }),
+      /* @__PURE__ */ jsx(
+        Segmented,
+        {
+          block: true,
+          value: analyzeFirst ? "first" : "last",
+          options: [{ label: _16("After the data"), value: "last" }, { label: _16("Before the data"), value: "first" }],
+          onChange: (value) => change({ analyzeFirst: value === "first" })
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        Segmented,
+        {
+          block: true,
+          value: analyzeVertical ? "vertical" : "horizontal",
+          options: [{ label: _16("Stacked"), value: "horizontal" }, { label: _16("Side by side"), value: "vertical" }],
+          onChange: (value) => change({ analyzeVertical: value === "vertical" })
+        }
+      )
+    ] }),
+    showCellSize && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx(Text4, { children: _16("Cell size") }),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: layout.cellSize,
+          placeholder: _16("Configured"),
+          allowClear: true,
+          options: GRID_DENSITY_STEPS.map((step) => ({ value: step, label: densityLabels[step] })),
+          onChange: (value) => change({ cellSize: value })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx(Text4, { children: _16("Action buttons position") }),
+    /* @__PURE__ */ jsx(
+      Segmented,
+      {
+        block: true,
+        value: layout.actionsPosition ?? "",
+        options: [
+          { label: _16("Configured"), value: "" },
+          { label: _16("Top right"), value: "top-right" },
+          { label: _16("Left"), value: "left" },
+          { label: _16("Right"), value: "right" }
+        ],
+        onChange: (value) => change({ actionsPosition: value || void 0 })
+      }
+    ),
+    /* @__PURE__ */ jsx(Text4, { children: _16("Side panels layout") }),
+    /* @__PURE__ */ jsx(
+      Select,
+      {
+        size: "small",
+        value: temporaryPanesMode,
+        placeholder: _16("Configured"),
+        allowClear: true,
+        options: [
+          { value: "stack", label: _16("Stack") },
+          { value: "breadcrumb", label: _16("Breadcrumb") },
+          { value: "overlay", label: _16("Overlay") },
+          { value: "scroll", label: _16("Scroll") }
+        ],
+        onChange: (value) => updateTemporaryPanesLayoutMode(value)
+      }
+    ),
+    /* @__PURE__ */ jsx(Button, { size: "small", onClick: reset, children: _16("Back to the configured layout") })
+  ] });
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    showTemplate && /* @__PURE__ */ jsx(Dropdown, { menu: templateMenu, trigger: ["click"], children: /* @__PURE__ */ jsx(Tooltip, { title: _16("Change the page template for now"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(LayoutOutlined, {}), type: layout.templateName ? "primary" : "default", "aria-label": _16("Page template") }) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: moreContent, trigger: "click", open: moreOpen, onOpenChange: setMoreOpen, placement: "bottomRight", children: /* @__PURE__ */ jsx(Tooltip, { title: _16("Design options"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(TableOutlined, {}), "aria-label": _16("Design options") }) }) })
+  ] });
+};
+function useTemporaryTemplateRows(pageKey, model, pageType) {
+  const { templateName } = useTemporaryPageLayoutFor(pageKey);
+  const [resolved, setResolved] = useState(null);
+  useEffect(() => {
+    const provider = getRegisteredPageTemplateProvider();
+    if (!templateName || !model || !provider) {
+      setResolved(null);
+      return;
+    }
+    let cancelled = false;
+    provider.resolveTemplateRows(model, pageType, templateName).then((rows) => {
+      if (!cancelled) setResolved({ templateName, rows });
+    }).catch(() => {
+      if (!cancelled) setResolved(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [templateName, model, pageType]);
+  return resolved && resolved.templateName === templateName ? resolved.rows : void 0;
+}
 
 // src/components/DynamicResource/hooks/DataDetailLevelStore.ts
 var _current;
@@ -4702,7 +5106,8 @@ var useActionsWrapping = (headerButtons, pageBreadcrumb) => {
   const paneNav = usePaneNavigation();
   const isInMultiPane = Boolean(paneNav);
   const isDetailPane = Boolean(paneNav && paneNav.paneIndex > 0);
-  const actionsPosition = viewSettings?.generalActionsButtonPosition || "top-right";
+  const { layout: temporaryLayout } = useTemporaryPageLayoutOfEnclosingPage();
+  const actionsPosition = temporaryLayout.actionsPosition || viewSettings?.generalActionsButtonPosition || "top-right";
   const [verticalBarEl, setVerticalBarEl] = useState(null);
   const [topRightEl, setTopRightEl] = useState(null);
   const wrappedHeaderButtons = (ctx) => {
@@ -4748,14 +5153,19 @@ var useActionsWrapping = (headerButtons, pageBreadcrumb) => {
   const suppressDefaultBreadcrumb = actionsPosition === "top-right";
   return { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb };
 };
+var withLayoutControls = (headerButtons, detailState) => {
+  if (!headerButtons) return headerButtons;
+  return (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
+    detailState?.isActive && /* @__PURE__ */ jsx(DataDetailSlider, { detailState }),
+    /* @__PURE__ */ jsx(TemporaryPageLayoutControls, {}),
+    headerButtons(args)
+  ] });
+};
 var StandardShow = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "show", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
-  const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(DataDetailSlider, { detailState }),
-    effectiveHeaderButtons(args)
-  ] }) : effectiveHeaderButtons;
+  const headerButtonsWithSlider = withLayoutControls(effectiveHeaderButtons, detailState);
   const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
@@ -4774,10 +5184,7 @@ var StandardEdit = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "edit", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
-  const headerButtonsWithSlider = detailState?.isActive && effectiveHeaderButtons ? (args) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(DataDetailSlider, { detailState }),
-    effectiveHeaderButtons(args)
-  ] }) : effectiveHeaderButtons;
+  const headerButtonsWithSlider = withLayoutControls(effectiveHeaderButtons, detailState);
   const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(headerButtonsWithSlider, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
@@ -4793,18 +5200,20 @@ var StandardEdit = ({ headerButtons, ...props }) => {
 };
 var StandardList = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "list", resource: props.resource });
-  const effectiveHeaderButtons = headerButtons;
+  const effectiveHeaderButtons = withLayoutControls(headerButtons, void 0);
   const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   const resource = props.resource;
   const [listSections, setListSections] = useState(null);
   const [cfgLoading, setCfgLoading] = useState(false);
+  const { scope: layoutScope } = useTemporaryPageLayoutOfEnclosingPage();
+  const temporaryTemplateRows = useTemporaryTemplateRows(layoutScope?.pageKey ?? null, layoutScope?.model, "list");
   useEffect(() => {
     if (!resource) {
       setListSections(null);
       return;
     }
     setCfgLoading(true);
-    authenticatedFetch(`/api/views/configurations/${resource}`).then((r) => r.ok ? r.json() : []).then((rows) => {
+    (temporaryTemplateRows ? Promise.resolve({ ok: true, json: async () => temporaryTemplateRows }) : authenticatedFetch(`/api/views/configurations/${resource}`)).then((r) => r.ok ? r.json() : []).then((rows) => {
       const listRows = (rows || []).filter((r) => r.form_type === "list");
       if (listRows.length === 0) {
         setListSections(null);
@@ -4819,7 +5228,7 @@ var StandardList = ({ headerButtons, ...props }) => {
       }
       setListSections(Array.from(map.values()).sort((a, b) => a.grid_row - b.grid_row));
     }).catch(() => setListSections(null)).finally(() => setCfgLoading(false));
-  }, [resource]);
+  }, [resource, temporaryTemplateRows]);
   const { Title: ATitle } = Typography;
   const renderList = () => /* @__PURE__ */ jsx(
     List$1,
@@ -4850,7 +5259,7 @@ var StandardList = ({ headerButtons, ...props }) => {
 };
 var StandardCreate = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "create", resource: props.resource });
-  const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
+  const effectiveHeaderButtons = withLayoutControls(headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons)), void 0);
   const { actionsPosition, setVerticalBarEl, wrappedHeaderButtons, stickyBarNode, suppressDefaultBreadcrumb } = useActionsWrapping(effectiveHeaderButtons, pageBreadcrumb);
   return /* @__PURE__ */ jsxs(VerticalActionsLayout, { position: actionsPosition, onBarMount: setVerticalBarEl, children: [
     stickyBarNode,
@@ -4960,7 +5369,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_82, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_83, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -5116,19 +5525,19 @@ var renderSharedGalleryCard = ({
 };
 
 // src/components/DynamicResource/analysis/aggregation.ts
-var _16 = (text) => {
+var _17 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
 var COUNT_SERIES_KEY = "__count__";
 var CATEGORY_LABEL_SEPARATOR = " \u2022 ";
 var getSummaryFnOptions = () => [
-  { label: _16("Sum"), value: "sum" },
-  { label: _16("Average"), value: "avg" },
-  { label: _16("Count"), value: "count" },
-  { label: _16("Max"), value: "max" },
-  { label: _16("Min"), value: "min" },
-  { label: _16("Std Dev"), value: "stddev" }
+  { label: _17("Sum"), value: "sum" },
+  { label: _17("Average"), value: "avg" },
+  { label: _17("Count"), value: "count" },
+  { label: _17("Max"), value: "max" },
+  { label: _17("Min"), value: "min" },
+  { label: _17("Std Dev"), value: "stddev" }
 ];
 var summarizeValues = (values, fn) => {
   if (values.length === 0) return 0;
@@ -5196,7 +5605,7 @@ var resolveSeries = (numericFields, selectedSeriesKeys) => {
   const seriesLabels = numericFields.reduce((acc, field) => {
     acc[field.key] = field.label;
     return acc;
-  }, { [COUNT_SERIES_KEY]: _16("Count") });
+  }, { [COUNT_SERIES_KEY]: _17("Count") });
   return { seriesKeys: selectedValid.length > 0 ? selectedValid : rawSeriesKeys, seriesLabels };
 };
 var aggregateChartData = ({
@@ -5261,7 +5670,7 @@ var aggregateChartData = ({
   const filteredRawRows = data.filter((record) => allowedGroupKeys.has(groupLabelOf(record)));
   return { groups, seriesKeys, seriesLabels, filteredRawRows };
 };
-var _17 = window._ || ((text) => text);
+var _18 = window._ || ((text) => text);
 var openPdfWindow = (title, bodyHtml) => {
   const pdfWindow = window.open("", "_blank", "width=960,height=720");
   if (!pdfWindow) return;
@@ -5307,16 +5716,16 @@ var buildStatsHtml = (statsSummary) => {
             </tr>
         `).join("");
   const numericSection = statsSummary.numericStats.length > 0 ? `
-            <h3>${_17("Numeric columns")}</h3>
+            <h3>${_18("Numeric columns")}</h3>
             <table>
               <thead>
                 <tr>
-                  <th>${_17("Field")}</th>
-                  <th>${_17("Sum")}</th>
-                  <th>${_17("Average")}</th>
-                  <th>${_17("Min")}</th>
-                  <th>${_17("Max")}</th>
-                  <th>${_17("Std Dev")}</th>
+                  <th>${_18("Field")}</th>
+                  <th>${_18("Sum")}</th>
+                  <th>${_18("Average")}</th>
+                  <th>${_18("Min")}</th>
+                  <th>${_18("Max")}</th>
+                  <th>${_18("Std Dev")}</th>
                 </tr>
               </thead>
               <tbody>${numericRows}</tbody>
@@ -5334,8 +5743,8 @@ var buildStatsHtml = (statsSummary) => {
                     <table>
                       <thead>
                         <tr>
-                          <th>${_17("Value")}</th>
-                          <th>${_17("Count")}</th>
+                          <th>${_18("Value")}</th>
+                          <th>${_18("Count")}</th>
                         </tr>
                       </thead>
                       <tbody>${countRows}</tbody>
@@ -5343,7 +5752,7 @@ var buildStatsHtml = (statsSummary) => {
                 `;
   }).join("") : "";
   return `
-        <h2>${_17("Stats")}</h2>
+        <h2>${_18("Stats")}</h2>
         ${numericSection}
         ${categoricalSection}
     `;
@@ -5360,7 +5769,7 @@ var buildStatsSummary = (rows, fields, labelCache) => {
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _17("Yes") : _17("No");
+    if (field.type === "boolean") return raw ? _18("Yes") : _18("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   };
@@ -5501,7 +5910,7 @@ var RelatedObjectPrimaryCard = ({ record, model, allModels, customPageName, foot
     }
   );
 };
-var _18 = (text) => {
+var _19 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -5511,7 +5920,7 @@ var CarouselSideArrow = ({ direction, disabled, onClick }) => /* @__PURE__ */ js
     shape: "circle",
     size: "small",
     icon: direction === "left" ? /* @__PURE__ */ jsx(ArrowLeftOutlined, {}) : /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-    "aria-label": direction === "left" ? _18("Previous") : _18("Next"),
+    "aria-label": direction === "left" ? _19("Previous") : _19("Next"),
     disabled,
     onClick,
     style: {
@@ -5620,14 +6029,14 @@ function registerPrimaryCarouselFooter(resource, footer) {
 function registeredPrimaryCarouselFooter(resource) {
   return footersByResource.get(resource);
 }
-var _19 = (text) => {
+var _20 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
 var JUMP_OPTIONS_PAGE_SIZE = 50;
 var FullPageButton = ({ showPath }) => {
   const href = useHref(showPath);
-  return /* @__PURE__ */ jsx(Tooltip, { title: _19("View in full page"), children: /* @__PURE__ */ jsx(Button, { icon: /* @__PURE__ */ jsx(EyeOutlined, {}), href, target: "_blank", rel: "noopener noreferrer", "aria-label": _19("View in full page") }) });
+  return /* @__PURE__ */ jsx(Tooltip, { title: _20("View in full page"), children: /* @__PURE__ */ jsx(Button, { icon: /* @__PURE__ */ jsx(EyeOutlined, {}), href, target: "_blank", rel: "noopener noreferrer", "aria-label": _20("View in full page") }) });
 };
 var CAROUSEL_COMPACT_STYLE = `
 .jm-primary-carousel .ant-page-header-heading-left { margin: 0; }
@@ -5650,7 +6059,7 @@ var PrimaryCarouselLayout = ({ records, model, allModels, customPageName, height
     const wanted = jumpSearch.trim().toLowerCase();
     return shownRecords.map((record, index) => ({ value: index, label: getRecordDisplayLabel(record) })).filter((option) => !wanted || String(option.label).toLowerCase().includes(wanted));
   }, [shownRecords, jumpSearch]);
-  if (shownRecords.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _19("No records available") });
+  if (shownRecords.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _20("No records available") });
   const currentIndex = Math.min(activeIndex, shownRecords.length - 1);
   const currentRecordId = recordId(shownRecords[currentIndex]);
   const currentShowHref = currentRecordId !== void 0 && currentRecordId !== null ? getShowHref(resolveResourcePath(model.resource || model.name, allModels || []), currentRecordId, allModels || []) : void 0;
@@ -5674,7 +6083,7 @@ var PrimaryCarouselLayout = ({ records, model, allModels, customPageName, height
         onOpenChange: (open) => {
           if (!open) setJumpSearch("");
         },
-        placeholder: _19("Go to\u2026"),
+        placeholder: _20("Go to\u2026"),
         style: { flex: 1 }
       }
     ),
@@ -5763,8 +6172,8 @@ var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, co
   }, [records, rowsStore]);
   return /* @__PURE__ */ jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true }, rowsStore.model.resource);
 };
-var _20 = (text) => translateText(text, text);
-var { Text: Text4 } = Typography;
+var _21 = (text) => translateText(text, text);
+var { Text: Text5 } = Typography;
 var KANBAN_COLUMN_WIDTH = 420;
 var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
 var COLUMN_VIEW_TYPE_LABELS = {
@@ -5808,8 +6217,8 @@ var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, mo
               gap: 8
             },
             children: [
-              /* @__PURE__ */ jsx(Text4, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
-              /* @__PURE__ */ jsxs(Text4, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
+              /* @__PURE__ */ jsx(Text5, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
+              /* @__PURE__ */ jsxs(Text5, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
                 "(",
                 records.length,
                 ")"
@@ -5849,7 +6258,7 @@ var KanbanView = (props) => {
     [cardFieldKeys, cardFieldOptions]
   );
   const columns = useMemo(
-    () => buildKanbanColumns(records, splitFields, maximumColumns, formatValue, _20("(empty)"), _20("All")),
+    () => buildKanbanColumns(records, splitFields, maximumColumns, formatValue, _21("(empty)"), _21("All")),
     [records, splitFields, maximumColumns, formatValue]
   );
   return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
@@ -5865,8 +6274,8 @@ var KanbanView = (props) => {
           onChange: setSplitFieldKeys,
           options: splitFieldOptions.map((field) => ({ label: field.label, value: field.key })),
           style: { minWidth: 240 },
-          placeholder: _20("Split columns by"),
-          "aria-label": _20("Split columns by")
+          placeholder: _21("Split columns by"),
+          "aria-label": _21("Split columns by")
         }
       ),
       /* @__PURE__ */ jsx(
@@ -5875,9 +6284,9 @@ var KanbanView = (props) => {
           size: "small",
           value: columnViewType,
           onChange: setColumnViewType,
-          options: KANBAN_COLUMN_VIEW_TYPES.map((viewType) => ({ label: _20(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType })),
+          options: KANBAN_COLUMN_VIEW_TYPES.map((viewType) => ({ label: _21(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType })),
           style: { minWidth: 140 },
-          "aria-label": _20("Column view type")
+          "aria-label": _21("Column view type")
         }
       ),
       /* @__PURE__ */ jsx(
@@ -5891,13 +6300,13 @@ var KanbanView = (props) => {
           onChange: setCardFieldKeys,
           options: cardFieldOptions.map((field) => ({ label: field.label, value: field.key })),
           style: { minWidth: 260 },
-          placeholder: _20("Fields shown in the cards"),
-          "aria-label": _20("Fields shown in the cards")
+          placeholder: _21("Fields shown in the cards"),
+          "aria-label": _21("Fields shown in the cards")
         }
       ),
       toolbarExtra
     ] }),
-    columns.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _20("No records available") }) : /* @__PURE__ */ jsx(
+    columns.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _21("No records available") }) : /* @__PURE__ */ jsx(
       "div",
       {
         "data-kanban-board": true,
@@ -6122,7 +6531,7 @@ var ReferenceField = ({ id, resource, onLabel }) => {
     }
   );
 };
-var _21 = window._ || ((text) => text);
+var _22 = window._ || ((text) => text);
 var StorageFieldValue = ({ storageKey }) => {
   const [busy, setBusy] = useState(false);
   const filename = storageKey.split("/").slice(1).join("/") || storageKey;
@@ -6131,7 +6540,7 @@ var StorageFieldValue = ({ storageKey }) => {
     try {
       const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
       const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
-      if (!res.ok) throw new Error(_21("Download failed."));
+      if (!res.ok) throw new Error(_22("Download failed."));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -6140,7 +6549,7 @@ var StorageFieldValue = ({ storageKey }) => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      message.error(err?.message || _21("Download failed."));
+      message.error(err?.message || _22("Download failed."));
     } finally {
       setBusy(false);
     }
@@ -6185,8 +6594,8 @@ function resolveRowTypedField(field, record) {
   }
   return resolved;
 }
-dayjs11.extend(relativeTime2);
-var _22 = window._ || ((text) => text);
+dayjs12.extend(relativeTime2);
+var _23 = window._ || ((text) => text);
 var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
@@ -6278,7 +6687,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-qrcode":
       return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
-      const parsed = dayjs11(str);
+      const parsed = dayjs12(str);
       if (!parsed.isValid()) return str || "-";
       return /* @__PURE__ */ jsx(Fragment, { children: parsed.fromNow() });
     }
@@ -6307,7 +6716,7 @@ var renderFieldValue = (rawField, record, allModels, inTable) => {
         value: value === null || value === void 0 ? "" : String(value),
         autoSize: { minRows: 3, maxRows: 18 },
         style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _22(field.key),
+        placeholder: _23(field.key),
         readOnly: true
       }
     );
@@ -6340,7 +6749,7 @@ var renderFieldValue = (rawField, record, allModels, inTable) => {
   }
   return value ?? "-";
 };
-var _23 = window._ || ((text) => text);
+var _24 = window._ || ((text) => text);
 var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
 var COUNT_KEY = "__count__";
 var CrosstabTable = ({
@@ -6366,7 +6775,7 @@ var CrosstabTable = ({
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
   const seriesLabel = useCallback(
     (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _23("Count");
+      if (seriesKey === COUNT_KEY) return _24("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
@@ -6513,10 +6922,10 @@ var CrosstabTable = ({
       const updates = computeProration(records, seriesKey, newAggregate);
       if (records.length > 1 && editable.confirmProration !== false) {
         Modal.confirm({
-          title: _23("Distribute value across records"),
+          title: _24("Distribute value across records"),
           width: 520,
           content: /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _23("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _24("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
             /* @__PURE__ */ jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
               /* @__PURE__ */ jsx("span", { children: rec?._label ?? recordId2(rec) }),
               /* @__PURE__ */ jsxs("span", { style: { color: token.colorTextTertiary }, children: [
@@ -6526,8 +6935,8 @@ var CrosstabTable = ({
               ] })
             ] }, String(recordId2(rec)))) })
           ] }),
-          okText: _23("Apply"),
-          cancelText: _23("Cancel"),
+          okText: _24("Apply"),
+          cancelText: _24("Cancel"),
           onOk: () => editable.onCommitCell(updates)
         });
         return;
@@ -6537,10 +6946,10 @@ var CrosstabTable = ({
     [editable, contributingRecords, cellAggregate, computeProration, recordId2, effectiveValue, token.colorTextTertiary]
   );
   if (!rowField && !colField) {
-    return /* @__PURE__ */ jsx(Empty, { description: _23("Crosstab needs at least one category field.") });
+    return /* @__PURE__ */ jsx(Empty, { description: _24("Crosstab needs at least one category field.") });
   }
   if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _23("No data available for this view.") });
+    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _24("No data available for this view.") });
   }
   const headerCellStyle = {
     background: token.colorBgLayout,
@@ -6705,7 +7114,7 @@ var ensurePlotly = () => {
 var getPlotly = () => window.Plotly;
 
 // src/components/DynamicResource/analysis/chartTheme.ts
-var _24 = (text) => {
+var _25 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -6740,7 +7149,7 @@ var CHART_THEME_COLORS = {
   dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
-var getChartEmptyMessage = () => _24(CHART_EMPTY_MESSAGE);
+var getChartEmptyMessage = () => _25(CHART_EMPTY_MESSAGE);
 var buildStandardChartLayout = (dark, title, overrides = {}) => {
   const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
   const axis = {
@@ -7127,7 +7536,7 @@ var AnalysisChart = (props) => {
 };
 
 // src/components/DynamicResource/analysis/chartCatalog.ts
-var _25 = (text) => {
+var _26 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -7171,7 +7580,7 @@ var normalizeChartTypeId = (id, fallback = DEFAULT_CHART_TYPE) => {
   return LEGACY_CHART_TYPE_IDS[raw] ?? fallback;
 };
 var getChartTypeDef = (id) => CHART_TYPE_BY_ID.get(id);
-var getChartTypeLabel = (id) => _25(CHART_TYPE_BY_ID.get(id)?.label ?? id);
+var getChartTypeLabel = (id) => _26(CHART_TYPE_BY_ID.get(id)?.label ?? id);
 var getFrontendChartTypes = () => CHART_TYPES.filter((def) => def.frontend);
 var ICONS = {
   AreaChartOutlined,
@@ -7196,7 +7605,7 @@ var ChartTypeIcon = ({ chartType }) => {
   if (!Icon) return null;
   return /* @__PURE__ */ jsx(Icon, { rotate: def?.iconRotate || void 0 });
 };
-var _26 = window._ || ((text) => text);
+var _27 = window._ || ((text) => text);
 var getChartTypeOptions = () => getFrontendChartTypes().map((def) => ({
   value: def.id,
   title: getChartTypeLabel(def.id),
@@ -7270,21 +7679,21 @@ var AnalyzePanel = ({
   const plotsIndividualRows = ["scatter", "bubble", "scatter3d", "histogram", "box"].includes(chartType);
   const waitingForServer = Boolean(serverAggregation && !serverAggregation.hasResult && !serverAggregation.error);
   const axisRoles = {
-    scatter: [_26("X"), _26("Y")],
-    bubble: [_26("X"), _26("Y"), _26("Bubble size")],
-    scatter3d: [_26("X"), _26("Y"), _26("Z")]
+    scatter: [_27("X"), _27("Y")],
+    bubble: [_27("X"), _27("Y"), _27("Bubble size")],
+    scatter3d: [_27("X"), _27("Y"), _27("Z")]
   };
   const axisSeries = chartData.seriesKeys.filter((key) => key !== COUNT_SERIES_KEY);
   const axisHint = axisRoles[chartType] && axisSeries.length > 0 ? axisRoles[chartType].map((role, index) => `${role}: ${chartData.seriesLabels[axisSeries[Math.min(index, axisSeries.length - 1)]] || ""}`).join(" \xB7 ") : null;
   const category3Options = [
-    { label: _26("None"), value: "__none__" },
+    { label: _27("None"), value: "__none__" },
     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
   ];
   return /* @__PURE__ */ jsx(
     Card,
     {
       size: "small",
-      "aria-label": _26("Analyze"),
+      "aria-label": _27("Analyze"),
       styles: { body: { padding: 0 } },
       children: /* @__PURE__ */ jsx("div", { style: { perspective: 1600, padding: 12 }, children: /* @__PURE__ */ jsxs(
         "div",
@@ -7308,15 +7717,15 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _26("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _26("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _26("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _26("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _26("Export chart") }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _27("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _27("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _27("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _27("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _27("Export chart") }) })
                   ] }),
                   serverAggregation?.error && /* @__PURE__ */ jsx(Alert, { type: "error", showIcon: true, message: serverAggregation.error }),
                   waitingForServer ? /* @__PURE__ */ jsxs("div", { style: { padding: 48, textAlign: "center", color: token.colorTextSecondary }, children: [
                     /* @__PURE__ */ jsx(Spin, {}),
-                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _26("Aggregating on the server...") })
+                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _27("Aggregating on the server...") })
                   ] }) : isCrosstab ? /* @__PURE__ */ jsx(
                     CrosstabTable,
                     {
@@ -7350,7 +7759,7 @@ var AnalyzePanel = ({
                       graphRef: chartGraphRef
                     }
                   ),
-                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _26("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
+                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _27("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
                   /* @__PURE__ */ jsx(
                     Collapse,
                     {
@@ -7359,11 +7768,11 @@ var AnalyzePanel = ({
                       items: [
                         {
                           key: "configure-chart",
-                          label: _26("Customize chart"),
+                          label: _27("Customize chart"),
                           children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                             /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Category 1") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 1") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7374,12 +7783,12 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _26("Select category")
+                                    placeholder: _27("Select category")
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Category 2") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 2") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7390,14 +7799,14 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _26("None"), value: "__none__" },
+                                      { label: _27("None"), value: "__none__" },
                                       ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Category 3") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 3") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7412,7 +7821,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Chart Type") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Chart Type") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7430,7 +7839,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Summary") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Summary") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7445,7 +7854,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 180 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Ranking Filter") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Ranking Filter") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7456,15 +7865,15 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _26("None"), value: "none" },
-                                      { label: _26("Top N"), value: "top" },
-                                      { label: _26("Bottom N"), value: "bottom" }
+                                      { label: _27("None"), value: "none" },
+                                      { label: _27("Top N"), value: "top" },
+                                      { label: _27("Bottom N"), value: "bottom" }
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("Ranking Column") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Ranking Column") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -7475,13 +7884,13 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _26("Select numeric column"),
+                                    placeholder: _27("Select numeric column"),
                                     disabled: rankingMode === "none" || numericFields.length === 0
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 120 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _26("N") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("N") }),
                                 /* @__PURE__ */ jsx(
                                   InputNumber,
                                   {
@@ -7500,8 +7909,8 @@ var AnalyzePanel = ({
                             ] }),
                             /* @__PURE__ */ jsxs("div", { children: [
                               /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _26("Series") }),
-                                /* @__PURE__ */ jsx(Tooltip, { title: _26("Unselect All"), children: /* @__PURE__ */ jsx(
+                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _27("Series") }),
+                                /* @__PURE__ */ jsx(Tooltip, { title: _27("Unselect All"), children: /* @__PURE__ */ jsx(
                                   Button,
                                   {
                                     size: "small",
@@ -7521,7 +7930,7 @@ var AnalyzePanel = ({
                                     markAnalyzePrefsTouched();
                                     setSelectedSeriesKeys(values);
                                   },
-                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _26("Count"), value: COUNT_SERIES_KEY }]
+                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _27("Count"), value: COUNT_SERIES_KEY }]
                                 }
                               ),
                               axisHint && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary, marginTop: 6 }, children: axisHint })
@@ -7548,11 +7957,11 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _26("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _26("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _27("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _27("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _26("Numeric columns") }), children: /* @__PURE__ */ jsxs(
+                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _27("Numeric columns") }), children: /* @__PURE__ */ jsxs(
                       Table,
                       {
                         dataSource: statsSummary.numericStats,
@@ -7563,18 +7972,18 @@ var AnalyzePanel = ({
                           /* @__PURE__ */ jsx(
                             Table.Column,
                             {
-                              title: _26("Field"),
+                              title: _27("Field"),
                               dataIndex: "label",
                               render: (label) => /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: label }),
                               onHeaderCell: () => ({ style: statsHeaderStyle })
                             },
                             "label"
                           ),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _26("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _26("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _26("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _26("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _26("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                          /* @__PURE__ */ jsx(Table.Column, { title: _27("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _27("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _27("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _27("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _27("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                         ]
                       }
                     ) }),
@@ -7586,7 +7995,7 @@ var AnalyzePanel = ({
                         items: [
                           {
                             key: "categorical-columns",
-                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _26("Categorical columns (distinct < 20)") }),
+                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _27("Categorical columns (distinct < 20)") }),
                             children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12 }, children: [
                               /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: field.label }) }),
                               /* @__PURE__ */ jsxs(
@@ -7597,11 +8006,11 @@ var AnalyzePanel = ({
                                   pagination: false,
                                   rowKey: (row) => row.value,
                                   children: [
-                                    /* @__PURE__ */ jsx(Table.Column, { title: _26("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                    /* @__PURE__ */ jsx(Table.Column, { title: _27("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                     /* @__PURE__ */ jsx(
                                       Table.Column,
                                       {
-                                        title: _26("Count"),
+                                        title: _27("Count"),
                                         dataIndex: "count",
                                         align: "right",
                                         onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -7630,7 +8039,7 @@ var AnalyzePanel = ({
     }
   );
 };
-var _27 = window._ || ((text) => text);
+var _28 = window._ || ((text) => text);
 var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
   const { token } = theme.useToken();
   const {
@@ -7659,11 +8068,11 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
       style: { marginBottom: 12 },
       items: [{
         key: "crosstab-config",
-        label: /* @__PURE__ */ jsx(Tooltip, { title: _27("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+        label: /* @__PURE__ */ jsx(Tooltip, { title: _28("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 1 (rows)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Category 1 (rows)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7674,12 +8083,12 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _27("Select category")
+                  placeholder: _28("Select category")
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 2 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Category 2 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7690,14 +8099,14 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _27("None"), value: "__none__" },
+                    { label: _28("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Category 3 (columns)") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Category 3 (columns)") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7708,7 +8117,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: [
-                    { label: _27("None"), value: "__none__" },
+                    { label: _28("None"), value: "__none__" },
                     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
                   ]
                 }
@@ -7717,7 +8126,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Cell fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Cell fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7730,13 +8139,13 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _27("All numeric fields"),
+                  placeholder: _28("All numeric fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Summary") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Summary") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7751,7 +8160,7 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
               )
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _27("Filter fields") }),
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _28("Filter fields") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -7764,19 +8173,19 @@ var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
                   },
                   style: { width: "100%" },
                   options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _27("Select filter fields"),
+                  placeholder: _28("Select filter fields"),
                   maxTagCount: "responsive"
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _27("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _27("Save configuration") }) }) })
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _28("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _28("Save configuration") }) }) })
         ] })
       }]
     }
   );
 };
-var _28 = window._ || ((text) => text);
+var _29 = window._ || ((text) => text);
 var useAnalyzeSettings = ({
   model,
   apiUrl,
@@ -7847,9 +8256,9 @@ var useAnalyzeSettings = ({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      message.success(_28("Analyze preferences saved."));
+      message.success(_29("Analyze preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _28("Failed to save analyze preferences."));
+      message.error(error instanceof Error ? error.message : _29("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -7990,7 +8399,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     return merged;
   }, [pageLabelCache, serverResult, model.fields]);
   const formatCategoryValue = useCallback((field, record) => {
-    if (!field) return _28("All");
+    if (!field) return _29("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -8001,7 +8410,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _28("Yes") : _28("No");
+    if (field.type === "boolean") return raw ? _29("Yes") : _29("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -8062,7 +8471,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const sampleInfo = serverResult && (serverResult.sample_rows || []).length < serverResult.total_rows ? { shown: serverResult.sample_rows.length, total: serverResult.total_rows } : null;
   const chartTitle = useMemo(() => {
     const labelOf = (key) => key ? model.fields.find((field) => field.key === key)?.label : null;
-    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _28("All")];
+    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _29("All")];
     [categoryField2, categoryField3].forEach((key) => {
       const label = labelOf(key);
       if (label) parts.push(label);
@@ -8198,7 +8607,7 @@ var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => 
       if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
       return { date: resolved.date?.toISOString() };
     }
-    const date = dayjs11(val?.date || val);
+    const date = dayjs12(val?.date || val);
     if (!date.isValid()) return {};
     if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
     return { date: date.startOf("day").toISOString() };
@@ -8241,7 +8650,7 @@ var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => 
 };
 
 // src/components/DynamicResource/analysis/useServerAnalyze.ts
-var _29 = (text) => {
+var _30 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -8303,7 +8712,7 @@ var useServerAnalyze = (options) => {
         setError(null);
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : _29("Failed to aggregate on the server."));
+        setError(e instanceof Error ? e.message : _30("Failed to aggregate on the server."));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -8382,7 +8791,7 @@ var SampleRowsTable = ({ rows }) => {
     }
   );
 };
-var _30 = window._ || ((text) => text);
+var _31 = window._ || ((text) => text);
 var SMART_IMPORT_EXPORT_MODULE = "data_import_export";
 var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
   const [file, setFile] = useState(null);
@@ -8430,7 +8839,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           detail = JSON.parse(bodyText)?.detail || bodyText;
         } catch {
         }
-        throw new Error(detail || _30("Import failed."));
+        throw new Error(detail || _31("Import failed."));
       }
       return await response.json();
     } finally {
@@ -8442,7 +8851,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       const report = await runImport(true);
       setPreview(report);
     } catch (err) {
-      message.error(err?.message || _30("Import failed."));
+      message.error(err?.message || _31("Import failed."));
     }
   };
   const handleConfirm = async () => {
@@ -8452,13 +8861,13 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
       setConfirmed(true);
       onImported?.();
     } catch (err) {
-      message.error(err?.message || _30("Import failed."));
+      message.error(err?.message || _31("Import failed."));
     }
   };
   return /* @__PURE__ */ jsx(
     Modal,
     {
-      title: _30("Import CSV"),
+      title: _31("Import CSV"),
       open,
       onCancel: handleClose,
       footer: null,
@@ -8482,17 +8891,17 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
             disabled: busy,
             children: [
               /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(InboxOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _30("Click or drag a CSV file here") }),
-              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _30("Headers must match the model's field names exactly.") })
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: file ? file.name : _31("Click or drag a CSV file here") }),
+              /* @__PURE__ */ jsx("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: _31("Headers must match the model's field names exactly.") })
             ]
           }
         ),
         !confirmed && !preview && localFileInfo && /* @__PURE__ */ jsxs(Typography.Text, { style: { fontSize: 12, color: "#888" }, children: [
           localFileInfo.rowCount,
           " ",
-          _30("rows detected"),
+          _31("rows detected"),
           " \u2014 ",
-          _30("headers"),
+          _31("headers"),
           ": ",
           localFileInfo.headers.join(", ")
         ] }),
@@ -8501,18 +8910,18 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
           {
             type: preview.errors.length > 0 ? "warning" : "success",
             showIcon: true,
-            message: confirmed ? _30("Import complete") : _30("Preview (no changes made yet)"),
+            message: confirmed ? _31("Import complete") : _31("Preview (no changes made yet)"),
             description: /* @__PURE__ */ jsxs(Fragment, { children: [
               /* @__PURE__ */ jsxs(Typography.Text, { children: [
-                _30("Rows"),
+                _31("Rows"),
                 ": ",
                 preview.total_rows,
                 " \u2014 ",
-                _30("Valid"),
+                _31("Valid"),
                 ": ",
                 preview.inserted + preview.updated,
                 " \u2014 ",
-                _30("Errors"),
+                _31("Errors"),
                 ": ",
                 preview.errors.length
               ] }),
@@ -8536,14 +8945,14 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                     )
                   },
                   columns: [
-                    { title: _30("Row"), dataIndex: "row", width: 80 },
-                    { title: _30("Error"), dataIndex: "message", ellipsis: true }
+                    { title: _31("Row"), dataIndex: "row", width: 80 },
+                    { title: _31("Error"), dataIndex: "message", ellipsis: true }
                   ]
                 }
               ),
               !!preview.sample_rows?.length && /* @__PURE__ */ jsxs(Fragment, { children: [
                 /* @__PURE__ */ jsxs(Typography.Text, { style: { display: "block", marginTop: 12 }, children: [
-                  _30("Sample of rows that will be loaded"),
+                  _31("Sample of rows that will be loaded"),
                   " (",
                   preview.sample_rows.length,
                   "/",
@@ -8566,9 +8975,9 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               borderRadius: 4
             },
             children: [
-              _30("Validation error, or custom/messy headers?"),
+              _31("Validation error, or custom/messy headers?"),
               " ",
-              _30("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
+              _31("Need AI column mapping, foreign key resolution, or bulk loads over 1,000 rows?"),
               " ",
               /* @__PURE__ */ jsx(
                 Typography.Link,
@@ -8577,7 +8986,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
                   href: isSmartTierInstalled ? `/data-import-export?model=${encodeURIComponent(resourcePath)}` : "https://www.juicemantics.com/iqvigilant",
                   target: isSmartTierInstalled ? void 0 : "_blank",
                   rel: isSmartTierInstalled ? void 0 : "noreferrer",
-                  children: _30("Open in IQVigilant Workbench \u2192")
+                  children: _31("Open in IQVigilant Workbench \u2192")
                 }
               )
             ]
@@ -8592,7 +9001,7 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: !file || busy,
               loading: busy && !preview,
               onClick: handlePreview,
-              children: _30("Preview")
+              children: _31("Preview")
             }
           ),
           !confirmed && preview && /* @__PURE__ */ jsx(
@@ -8602,10 +9011,10 @@ var ImportCsvModal = ({ open, onClose, apiUrl, resourcePath, onImported }) => {
               disabled: busy,
               loading: busy,
               onClick: handleConfirm,
-              children: _30("Confirm import")
+              children: _31("Confirm import")
             }
           ),
-          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _30("Close") })
+          confirmed && /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleClose, children: _31("Close") })
         ] })
       ] })
     }
@@ -8963,7 +9372,7 @@ body, table, th, td, input, button, select, textarea, div, span, p, li, ul, ol {
 };
 
 // src/components/DynamicResource/relations/helpers.ts
-var _31 = window._ || ((text) => text);
+var _32 = window._ || ((text) => text);
 var INLINE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["list", "csv", "read-and-edit-list", "read-and-edit-csv", "editable-csv"]);
 var TABLE_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["table", "totals-details", "crosstab", "editable-crosstab"]);
 var CROSSTAB_RELATION_VIEW_TYPES = /* @__PURE__ */ new Set(["crosstab", "editable-crosstab"]);
@@ -9002,7 +9411,7 @@ var getRelationTabName = (rel, mode, fallback) => {
       return fallback;
     }
   }
-  const translatedExplicit = _31(explicit);
+  const translatedExplicit = _32(explicit);
   if (translatedExplicit !== explicit) return explicit;
   const relationKey2 = rel.relationName || rel.resource || "";
   if (relationKey2) {
@@ -9015,11 +9424,11 @@ var getRelationTabName = (rel, mode, fallback) => {
   return explicit;
 };
 var getTabDisplayLabel = (tabName) => {
-  const direct = _31(tabName);
+  const direct = _32(tabName);
   if (direct !== tabName) return direct;
   return translateRelationKey(tabName);
 };
-var _32 = window._ || ((text) => text);
+var _33 = window._ || ((text) => text);
 var DARK_GRAY = "#444";
 var { Title } = Typography;
 var MetadataModal = ({ model, allModels, open, onClose }) => {
@@ -9050,7 +9459,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       const relations = (model.relations || []).map((r) => {
         const targetName = r.otherResource || r.resource;
         const relModel = findRelatedModel(targetName);
-        const other_label = relModel ? _32(getModelLabel(relModel)) : _32(targetName || "");
+        const other_label = relModel ? _33(getModelLabel(relModel)) : _33(targetName || "");
         return {
           relation_name: r.relationName || r.resource,
           relation_label: getRelationLabel(r),
@@ -9096,41 +9505,41 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   }, [navigate, onClose]);
   const fieldColumns = [
     {
-      title: _32("Field"),
+      title: _33("Field"),
       dataIndex: "label",
       key: "label",
       width: 160,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: tone.solid }, children: getFieldLabel(row) })
     },
     {
-      title: _32("Type"),
+      title: _33("Type"),
       dataIndex: "type",
       key: "type",
       width: 90,
-      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _32(v) })
+      render: (v) => /* @__PURE__ */ jsx(Tag, { style: { color: DARK_GRAY }, children: _33(v) })
     },
     {
-      title: _32("Required"),
+      title: _33("Required"),
       dataIndex: "required",
       key: "required",
       width: 80,
       render: (v) => v ? /* @__PURE__ */ jsx(CheckCircleOutlined, { style: { color: "#52c41a" } }) : null
     },
     {
-      title: _32("Description"),
+      title: _33("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _32(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _33(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _32("Constraints"),
+      title: _33("Constraints"),
       dataIndex: "constraints",
       key: "constraints",
       width: 180,
       render: (v) => v?.length ? v.map((c, i) => /* @__PURE__ */ jsx(Tag, { style: { fontSize: 11, color: DARK_GRAY }, children: c }, i)) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     },
     {
-      title: _32("Valid Values"),
+      title: _33("Valid Values"),
       dataIndex: "options",
       key: "options",
       width: 200,
@@ -9144,7 +9553,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _32("Default"),
+      title: _33("Default"),
       key: "default",
       width: 120,
       render: (_v, row) => {
@@ -9154,7 +9563,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       }
     },
     {
-      title: _32("Formula"),
+      title: _33("Formula"),
       dataIndex: "formula",
       key: "formula",
       render: (v) => v ? /* @__PURE__ */ jsx("code", { style: { fontSize: 12, color: DARK_GRAY }, children: v }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
@@ -9162,14 +9571,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
   ];
   const relationColumns = [
     {
-      title: _32("Relation"),
+      title: _33("Relation"),
       dataIndex: "label",
       key: "label",
       width: 200,
       render: (_val, row) => /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: getRelationLabel(row) })
     },
     {
-      title: _32("Related Model"),
+      title: _33("Related Model"),
       dataIndex: "otherResource",
       key: "otherResource",
       width: 160,
@@ -9185,15 +9594,15 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
               size: "small",
               style: { padding: 0, color: relTone.solid, fontWeight: 500 },
               onClick: () => setNestedModel(related),
-              children: _32(v)
+              children: _33(v)
             }
           );
         }
-        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _32(v) });
+        return /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _33(v) });
       }
     },
     {
-      title: _32("Keys"),
+      title: _33("Keys"),
       key: "keys",
       width: 170,
       render: (_val, row) => /* @__PURE__ */ jsxs("span", { style: { fontSize: 12, fontFamily: "monospace", color: DARK_GRAY }, children: [
@@ -9202,25 +9611,25 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
           " \u2192 ",
           row.otherKey
         ] }) : null,
-        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _32("recursive") }) : null
+        row.isRecursive ? /* @__PURE__ */ jsx(Tag, { style: { marginLeft: 4, fontSize: 10 }, children: _33("recursive") }) : null
       ] })
     },
     {
-      title: _32("Description"),
+      title: _33("Description"),
       dataIndex: "description",
       key: "description",
-      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _32(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
+      render: (v) => v ? /* @__PURE__ */ jsx("span", { style: { color: DARK_GRAY }, children: _33(v) }) : /* @__PURE__ */ jsx("span", { style: { color: "#bbb" }, children: "\u2014" })
     }
   ];
   const knowledgeGraphChildren = /* @__PURE__ */ jsxs(Fragment, { children: [
     graphLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
-    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _32("Error loading knowledge graph"), description: graphError }),
+    graphError && /* @__PURE__ */ jsx(Alert, { type: "error", message: _33("Error loading knowledge graph"), description: graphError }),
     graphHtml && !graphLoading && /* @__PURE__ */ jsx(ExecutableHtml, { html: graphHtml, style: { minHeight: 400 } })
   ] });
   const tabItems = [
     {
       key: "fields",
-      label: _32("Fields"),
+      label: _33("Fields"),
       children: /* @__PURE__ */ jsx(
         Table,
         {
@@ -9235,14 +9644,14 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     },
     ...model.relations?.length ? [{
       key: "relations",
-      label: _32("Relations"),
+      label: _33("Relations"),
       children: (() => {
         const sortByName = (a, b) => getRelationLabel(a).localeCompare(getRelationLabel(b));
         const reverseRels = (model.relations || []).filter((r) => isReverseRelation(r)).sort(sortByName);
         const forwardRels = (model.relations || []).filter((r) => !isReverseRelation(r)).sort(sortByName);
         return /* @__PURE__ */ jsxs(Fragment, { children: [
           reverseRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _32("Reverse Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _33("Reverse Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -9257,7 +9666,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             )
           ] }),
           forwardRels.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _32("Forward Relations") }),
+            /* @__PURE__ */ jsx(Title, { level: 5, style: { marginTop: 0, marginBottom: 8, fontWeight: 500 }, children: _33("Forward Relations") }),
             /* @__PURE__ */ jsx(
               Table,
               {
@@ -9275,7 +9684,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
     }] : [],
     {
       key: "knowledge_graph",
-      label: _32("Knowledge Graph"),
+      label: _33("Knowledge Graph"),
       children: knowledgeGraphChildren
     }
   ];
@@ -9286,7 +9695,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
       {
         title: /* @__PURE__ */ jsxs("span", { style: { color: tone.solid }, children: [
           /* @__PURE__ */ jsx(InfoCircleOutlined, { style: { marginRight: 8 } }),
-          _32("Metadata"),
+          _33("Metadata"),
           " \u2014 ",
           moduleLabel ? `${moduleLabel} \u203A ` : "",
           modelLabel
@@ -9306,7 +9715,7 @@ var MetadataModal = ({ model, allModels, open, onClose }) => {
             marginBottom: 16,
             fontStyle: "italic",
             border: "none"
-          }, children: _32(model.description) }),
+          }, children: _33(model.description) }),
           /* @__PURE__ */ jsx(Tabs, { items: tabItems, size: "small", activeKey: activeTab, onChange: setActiveTab })
         ]
       }
@@ -9366,18 +9775,18 @@ function useFrameworkUiFeatures() {
   }, []);
   return override ?? features;
 }
-var _33 = window._ || ((text) => text);
+var _34 = window._ || ((text) => text);
 var useMetadataModal = (model, allModels, initialOpen = false) => {
   const [metadataOpen, setMetadataOpen] = useState(initialOpen);
   useEffect(() => {
     if (initialOpen) setMetadataOpen(true);
   }, [initialOpen]);
   const { record_metadata: metadataAllowed } = useFrameworkUiFeatures();
-  const metadataButton = metadataAllowed ? /* @__PURE__ */ jsx(Tooltip, { title: _33("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) }) : null;
+  const metadataButton = metadataAllowed ? /* @__PURE__ */ jsx(Tooltip, { title: _34("Metadata"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(InfoCircleOutlined, {}), onClick: () => setMetadataOpen(true) }) }) : null;
   const metadataModal = /* @__PURE__ */ jsx(MetadataModal, { model, allModels, open: metadataOpen && metadataAllowed, onClose: () => setMetadataOpen(false) });
   return { metadataButton, metadataModal };
 };
-var _34 = window._ || ((text) => text);
+var _35 = window._ || ((text) => text);
 var useShowEditableForm = (resource, id) => {
   const navigate = useNavigate();
   const { formProps, saveButtonProps, queryResult } = useForm({
@@ -9386,7 +9795,7 @@ var useShowEditableForm = (resource, id) => {
     id,
     redirect: false,
     successNotification: () => ({
-      message: _34("Changes saved."),
+      message: _35("Changes saved."),
       type: "success"
     })
   });
@@ -9426,12 +9835,12 @@ var buildShowTabFormOptions = (formProps, model, allModels) => {
     effectiveFields
   };
 };
-var _35 = window._ || ((text) => text);
+var _36 = window._ || ((text) => text);
 var ShowFooterButtons = ({ model, allModels, recordId: recordId2, saveButtonProps }) => {
   const navigate = useNavigate();
   const allModelsList = allModels || [];
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }, children: [
-    recordId2 != null && model.capabilities?.delete !== false && /* @__PURE__ */ jsx(Tooltip, { title: _35("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId2 != null && model.capabilities?.delete !== false && /* @__PURE__ */ jsx(Tooltip, { title: _36("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.name,
@@ -9440,7 +9849,7 @@ var ShowFooterButtons = ({ model, allModels, recordId: recordId2, saveButtonProp
         onSuccess: () => navigate(`/${resolveResourcePath(model.resource || model.name, allModelsList)}`)
       }
     ) }) }),
-    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _35("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
+    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _36("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}) }) })
   ] });
 };
 var renderModelHeading = ({
@@ -9600,7 +10009,7 @@ var RelatedObjectPreview = ({ resource, id, model, allModels, fallbackLabel }) =
     }
   );
 };
-var _36 = window._ || ((text) => text);
+var _37 = window._ || ((text) => text);
 var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   const apiUrl = useApiUrl();
   const go = useGo();
@@ -9696,7 +10105,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
                 node: {
                   title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                     relationLabelNode,
-                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _36("Error") })
+                    /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _37("Error") })
                   ] }),
                   key: rel.relationName || rel.resource,
                   selectable: false,
@@ -9737,7 +10146,7 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
             node: {
               title: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 }, children: [
                 relationLabelNode,
-                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _36("Error") })
+                /* @__PURE__ */ jsx("span", { style: { color: "#b91c1c", fontSize: 12 }, children: _37("Error") })
               ] }),
               key: rel.relationName || rel.resource,
               selectable: false,
@@ -9772,12 +10181,12 @@ var RelationsExplorer = ({ model, record, allModels, isActive = true }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, {});
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, alignItems: "flex-start" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _36("Forward Relations") }),
-      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _36("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _37("Forward Relations") }),
+      forwardTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: forwardTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _37("None") })
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _36("Reverse Relations") }),
-      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _36("None") })
+      /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 8, color: "#1677ff" }, children: _37("Reverse Relations") }),
+      reverseTreeData.length > 0 ? /* @__PURE__ */ jsx(Card, { size: "small", variant: "outlined", style: { border: "1px solid #1677ff" }, children: /* @__PURE__ */ jsx(Tree, { showLine: true, switcherIcon: /* @__PURE__ */ jsx(DownOutlined, {}), defaultExpandAll: true, onSelect, treeData: reverseTreeData }) }) : /* @__PURE__ */ jsx("div", { style: { color: "#888", fontSize: 13, padding: "8px 0" }, children: _37("None") })
     ] })
   ] });
 };
@@ -9838,7 +10247,7 @@ async function unpinRecords(resource, recordIds) {
     )
   );
 }
-var _37 = window._ || ((text) => text);
+var _38 = window._ || ((text) => text);
 var useShowActionsPreferences = (model, allModels, record, saveButtonProps, configureLayoutButtonRef, saveLayoutRef, initialExploreOpen = false) => {
   const apiUrl = useApiUrl();
   const allModelsList = useMemo(() => allModels || [], [allModels]);
@@ -9906,7 +10315,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const configureLayoutRow = configureLayoutButtonRef?.current;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _37("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _38("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -9920,7 +10329,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _37("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _38("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -9949,7 +10358,7 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _37("Save")
+        children: _38("Save")
       }
     )
   ] });
@@ -9966,9 +10375,9 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
   const headerButtons = ({ defaultButtons }) => /* @__PURE__ */ jsxs(Fragment, { children: [
     metadataButton,
     metadataModal,
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _37("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _38("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     /* @__PURE__ */ jsx("span", { style: { marginInlineStart: 10 } }),
-    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _37("Unpin") : _37("Pin to dashboard"), children: /* @__PURE__ */ jsx(
+    pinned !== null && /* @__PURE__ */ jsx(Tooltip, { title: pinned ? _38("Unpin") : _38("Pin to dashboard"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -9977,14 +10386,14 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
         loading: pinLoading
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _37("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
+    /* @__PURE__ */ jsx(Tooltip, { title: _38("Explore"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ApartmentOutlined, {}), onClick: () => setExploreOpen(true) }) }),
     /* @__PURE__ */ jsx(
       Modal,
       {
         open: exploreOpen,
         onCancel: () => setExploreOpen(false),
         footer: null,
-        title: _37("Explore"),
+        title: _38("Explore"),
         width: "90vw",
         styles: { body: { height: "80vh", overflowY: "auto" } },
         destroyOnClose: true,
@@ -9992,13 +10401,33 @@ var useShowActionsPreferences = (model, allModels, record, saveButtonProps, conf
       }
     ),
     renderIconOnlyButtons(defaultButtons),
-    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _37("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
+    saveButtonProps && /* @__PURE__ */ jsx(Tooltip, { title: _38("Save"), children: /* @__PURE__ */ jsx(Button, { ...saveButtonProps, type: "primary", icon: /* @__PURE__ */ jsx(SaveFilled, {}), hideText: true }) })
   ] });
   return {
     actionsState: { showActions: showRelationActions, showCreate: showRelationCreate },
     headerButtons
   };
 };
+function useCalendarPeriodsWithData(entryDates, mode, anchorDate) {
+  const periodStartsWithData = useMemo(() => {
+    const periodStarts = /* @__PURE__ */ new Set();
+    entryDates.forEach((date) => periodStarts.add(date.startOf(mode).valueOf()));
+    return Array.from(periodStarts).sort((first, second) => first - second);
+  }, [entryDates, mode]);
+  const currentPeriodStart = anchorDate.startOf(mode).valueOf();
+  return useMemo(() => {
+    const todayPeriodStart = dayjs12().startOf(mode).valueOf();
+    let periodStartNearestToday;
+    periodStartsWithData.forEach((periodStart) => {
+      if (periodStartNearestToday === void 0 || Math.abs(periodStart - todayPeriodStart) < Math.abs(periodStartNearestToday - todayPeriodStart)) periodStartNearestToday = periodStart;
+    });
+    return {
+      previousPeriodStart: [...periodStartsWithData].reverse().find((periodStart) => periodStart < currentPeriodStart),
+      nextPeriodStart: periodStartsWithData.find((periodStart) => periodStart > currentPeriodStart),
+      periodStartNearestToday
+    };
+  }, [periodStartsWithData, currentPeriodStart, mode]);
+}
 
 // src/components/DynamicResource/utils/columnFilters.ts
 var truncateLabel = (s) => s.length > 15 ? s.substring(0, 15) + "\u2026" : s;
@@ -10171,8 +10600,8 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
-var _38 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_38("Sun"), _38("Mon"), _38("Tue"), _38("Wed"), _38("Thu"), _38("Fri"), _38("Sat")];
+var _39 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_39("Sun"), _39("Mon"), _39("Tue"), _39("Wed"), _39("Thu"), _39("Fri"), _39("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
 var isCalendarDateField = (field) => {
   const rawType = String(field?.type || "").trim().toLowerCase();
@@ -10200,7 +10629,7 @@ var getCalendarDateFieldOptions = (fields) => {
 var getCalendarRecordDate = (record, fieldKey) => {
   const rawValue = record?.[fieldKey];
   if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs11(rawValue);
+  const parsed = dayjs12(rawValue);
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
@@ -10264,7 +10693,7 @@ function useBeforeEditSave(handler) {
   latest.current = handler;
   useEffect(() => register?.(() => latest.current()), [register]);
 }
-var _39 = window._ || ((text) => text);
+var _40 = window._ || ((text) => text);
 var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride, embedded, beforeTabs, extraHeaderButtons }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
@@ -10306,7 +10735,7 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
       }
     };
   }, [builtShowFormProps]);
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_39("Show")} ${modelDisplayLabel}`) : `${_39("Show")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_40("Show")} ${modelDisplayLabel}`) : `${_40("Show")} ${modelDisplayLabel}`;
   const saveLayoutRef = useRef(() => {
   });
   const configureLayoutButtonRef = useRef(null);
@@ -10325,12 +10754,17 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
     (headerButtons ?? renderStandardShowHeaderButtons)(args)
   ] }) : headerButtons;
   const [activeTabKey, setActiveTabKey] = useState("details");
-  const { tabs: standardItems, layoutConfig, dataDetailLevelState, cellSizeControl } = useStandardShowTabs(
+  const temporaryLayoutPageKey = embedded ? null : buildTemporaryPageKey(model.resource || model.name, "show");
+  const temporaryTemplateRows = useTemporaryTemplateRows(temporaryLayoutPageKey, model, "show");
+  const { tabs: standardItems, layoutConfig, dataDetailLevelState } = useStandardShowTabs(
     model,
     record,
     allModelsList,
     actionsState,
-    { formProps: showFormProps, effectiveFields }
+    { formProps: showFormProps, effectiveFields },
+    temporaryTemplateRows,
+    void 0,
+    temporaryLayoutPageKey
   );
   const items = useMemo(() => {
     const extraTabs = (model.extraTabs ?? []).filter((tab) => tab.show);
@@ -10339,13 +10773,13 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
       ...standardItems,
       ...extraTabs.map((tab) => {
         const TabContent = tab.show;
-        return { key: tab.key, label: _39(tab.label), children: /* @__PURE__ */ jsx(TabContent, { record }) };
+        return { key: tab.key, label: _40(tab.label), children: /* @__PURE__ */ jsx(TabContent, { record }) };
       })
     ];
   }, [standardItems, model.extraTabs, record]);
   saveLayoutRef.current = layoutConfig.saveLayout;
   configureLayoutButtonRef.current = layoutConfig.hasConfig && canConfigureLayout ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-    /* @__PURE__ */ jsx("span", { children: _39("Configure page layout") }),
+    /* @__PURE__ */ jsx("span", { children: _40("Configure page layout") }),
     /* @__PURE__ */ jsx(
       Button,
       {
@@ -10368,12 +10802,13 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
     })),
     [activeTabKey, items]
   );
+  const temporaryLayoutScope = temporaryLayoutPageKey ? { pageKey: temporaryLayoutPageKey, pageType: "show", model, cellSizeAvailable: true } : null;
   if (embedded) {
-    return /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+    return /* @__PURE__ */ jsx(TemporaryPageLayoutScopeProvider, { scope: null, children: /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
       /* @__PURE__ */ jsx(ToneSharedStyles, {}),
       !record ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 32 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : /* @__PURE__ */ jsxs(Fragment, { children: [
         beforeTabs,
-        /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
+        /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
         /* @__PURE__ */ jsx(
           ShowFooterButtons,
           {
@@ -10384,9 +10819,9 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
           }
         )
       ] })
-    ] }) });
+    ] }) }) });
   }
-  return /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+  return /* @__PURE__ */ jsx(TemporaryPageLayoutScopeProvider, { scope: temporaryLayoutScope, children: /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxs(
       StandardShow,
@@ -10396,13 +10831,13 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _39("Show"),
+          actionLabel: _40("Show"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: combinedHeaderButtons,
         children: [
           beforeTabs,
-          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
+          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
           /* @__PURE__ */ jsx(
             ShowFooterButtons,
             {
@@ -10415,10 +10850,10 @@ var DynamicShowPage = ({ model: modelProp, allModels: allModelsProp, idOverride,
         ]
       }
     )
-  ] }) });
+  ] }) }) });
 };
 var DynamicShow = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.embedded), children: /* @__PURE__ */ jsx(DynamicShowPage, { ...props }) });
-var _40 = window._ || ((text) => text);
+var _41 = window._ || ((text) => text);
 function isSingleRecordPrimaryView(model, listViewType) {
   return Boolean(model.isSingleRecord) && String(listViewType || model.listViewType || "").toLowerCase() === "primary";
 }
@@ -10433,7 +10868,7 @@ var SingleRecordPrimaryView = ({ model, allModels }) => {
     setLoadError(null);
     authenticatedFetch(`${apiUrl}/${resourcePath}?_start=0&_end=1`).then(async (response) => {
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(typeof body?.detail === "string" ? body.detail : _40("The data of this list could not be read."));
+      if (!response.ok) throw new Error(typeof body?.detail === "string" ? body.detail : _41("The data of this list could not be read."));
       const row = Array.isArray(body) ? body[0] : void 0;
       if (!cancelled) setRecordId(row ? String(row.eid ?? row.id) : null);
     }).catch((error) => {
@@ -10458,7 +10893,7 @@ function registerResourceRowActions(resource, rowActions) {
 function registeredResourceRowActions(resource) {
   return rowActionsByResource.get(resource) ?? [];
 }
-var _41 = window._ || ((text) => text);
+var _42 = window._ || ((text) => text);
 var RELATION_SELECT_DEFAULT_PAGE_SIZE = 2e3;
 var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearch, excludeId }) => {
   const optionLabel = "_label";
@@ -10513,7 +10948,7 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
       }
     ),
     isCapped && /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }, children: [
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _41("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 11 }, children: _42("Showing N of T \u2014 type to search").replace("N", formatNumberValue(loadedCount)).replace("T", formatNumberValue(serverTotal)) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -10522,13 +10957,13 @@ var RelationSelect = ({ field, value, onChange, allModels, multiple, serverSearc
           style: { fontSize: 11, padding: 0 },
           loading: queryResult?.isLoading || queryResult?.isFetching,
           onClick: () => setLoadAll(true),
-          children: _41("Load all")
+          children: _42("Load all")
         }
       )
     ] })
   ] });
 };
-var _42 = window._ || ((text) => text);
+var _43 = window._ || ((text) => text);
 var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const form = Form.useFormInstance();
   const [uploading, setUploading] = useState(false);
@@ -10537,7 +10972,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
   const handleUpload = async (file) => {
     const recordId2 = form.getFieldValue("eid") ?? form.getFieldValue("id");
     if (!recordId2) {
-      message.error(_42("Save the record first before uploading a file."));
+      message.error(_43("Save the record first before uploading a file."));
       return false;
     }
     setUploading(true);
@@ -10561,9 +10996,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
         data_hash: result.data_hash
       });
       setFileName(result.data_name || file.name);
-      message.success(_42("File uploaded successfully."));
+      message.success(_43("File uploaded successfully."));
     } catch (err) {
-      message.error(err?.message || _42("File upload failed."));
+      message.error(err?.message || _43("File upload failed."));
     } finally {
       setUploading(false);
     }
@@ -10580,9 +11015,9 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
       style: { padding: "8px 16px" },
       children: [
         /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: uploading ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _42("Uploading...") : _42("Click or drag a file here to upload") }),
+        /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: uploading ? _43("Uploading...") : _43("Click or drag a file here to upload") }),
         displayName && !uploading && /* @__PURE__ */ jsxs("p", { style: { fontSize: 11, color: "#888", margin: "4px 0 0" }, children: [
-          _42("Current"),
+          _43("Current"),
           ": ",
           displayName
         ] })
@@ -10590,7 +11025,7 @@ var FileUploadInput = ({ value: _value, onChange: _onChange }) => {
     }
   ) });
 };
-var _43 = window._ || ((text) => text);
+var _44 = window._ || ((text) => text);
 var AsyncSelectInput = ({
   optionsUrl,
   placeholder,
@@ -10655,19 +11090,19 @@ var AsyncSelectInput = ({
       options,
       value,
       onChange,
-      placeholder: placeholder || _43("Select..."),
+      placeholder: placeholder || _44("Select..."),
       style: { width: "100%" },
       filterOption: (input, option) => String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
     }
   );
 };
-var _44 = window._ || ((text) => text);
+var _45 = window._ || ((text) => text);
 var STORAGE_FIELD_BASE = "/api/advanced-development/media/storage-field";
 var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
   const [busy, setBusy] = useState(false);
   const handleUpload = async (file) => {
     if (!pk) {
-      message.error(_44("Save the record first before attaching a file."));
+      message.error(_45("Save the record first before attaching a file."));
       return false;
     }
     if (!modelName || !fieldName) return false;
@@ -10700,7 +11135,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
           body: file,
           headers: { "Content-Type": file.type || "application/octet-stream" }
         });
-        if (!put.ok) throw new Error(_44("Upload to storage failed."));
+        if (!put.ok) throw new Error(_45("Upload to storage failed."));
         const confirm = await authenticatedFetch(`${STORAGE_FIELD_BASE}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -10714,9 +11149,9 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
       } else {
         throw new Error(await direct.text());
       }
-      message.success(_44("File uploaded."));
+      message.success(_45("File uploaded."));
     } catch (err) {
-      message.error(err?.message || _44("File upload failed."));
+      message.error(err?.message || _45("File upload failed."));
     } finally {
       setBusy(false);
     }
@@ -10730,7 +11165,7 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
         const res = await authenticatedFetch(`${STORAGE_FIELD_BASE}?${qs.toString()}`, { method: "DELETE" });
         if (!res.ok) throw new Error(await res.text());
       } catch (err) {
-        message.error(err?.message || _44("Could not remove the file."));
+        message.error(err?.message || _45("Could not remove the file."));
         setBusy(false);
         return;
       }
@@ -10739,25 +11174,25 @@ var StorageFieldInput = ({ value, onChange, modelName, fieldName, pk }) => {
     onChange?.(null);
   };
   if (!pk) {
-    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _44("Save the record first, then attach a file here.") });
+    return /* @__PURE__ */ jsx("div", { style: { color: "#999", fontSize: 12, padding: "8px 0" }, children: _45("Save the record first, then attach a file here.") });
   }
   const attachedName = value ? value.split("/").slice(1).join("/") || value : null;
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs(Upload.Dragger, { beforeUpload: handleUpload, showUploadList: false, multiple: false, disabled: busy, style: { padding: "8px 16px" }, children: [
       /* @__PURE__ */ jsx("p", { style: { marginBottom: 4 }, children: busy ? /* @__PURE__ */ jsx(Spin, { size: "small" }) : /* @__PURE__ */ jsx(UploadOutlined, { style: { fontSize: 24, color: "#1677ff" } }) }),
-      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _44("Uploading...") : _44("Click or drag a file here to upload") })
+      /* @__PURE__ */ jsx("p", { style: { fontSize: 13, margin: 0 }, children: busy ? _45("Uploading...") : _45("Click or drag a file here to upload") })
     ] }),
     attachedName && /* @__PURE__ */ jsxs("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12 }, children: [
       /* @__PURE__ */ jsxs("span", { style: { color: "#666" }, children: [
-        _44("Attached"),
+        _45("Attached"),
         ": ",
         attachedName
       ] }),
-      /* @__PURE__ */ jsx(Popconfirm, { title: _44("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
+      /* @__PURE__ */ jsx(Popconfirm, { title: _45("Remove this file?"), onConfirm: handleRemove, children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", danger: true, icon: /* @__PURE__ */ jsx(DeleteOutlined, {}), disabled: busy }) })
     ] })
   ] });
 };
-var _45 = window._ || ((text) => text);
+var _46 = window._ || ((text) => text);
 var ReactMarkdown3 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var MarkdownEditor = ({ value = "", onChange }) => {
   const [activeTab, setActiveTab] = useState("preview");
@@ -10771,12 +11206,12 @@ var MarkdownEditor = ({ value = "", onChange }) => {
       items: [
         {
           key: "preview",
-          label: _45("Preview"),
+          label: _46("Preview"),
           children: /* @__PURE__ */ jsx("div", { style: { minHeight: 60, padding: "4px 0" }, children: /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown3, { children: value }) }) })
         },
         {
           key: "edit",
-          label: _45("Edit"),
+          label: _46("Edit"),
           children: /* @__PURE__ */ jsx(
             Input.TextArea,
             {
@@ -10905,7 +11340,7 @@ var renderInput = (field, allModels, model, currentId, record) => {
     return /* @__PURE__ */ jsx(FileUploadInput, {});
   }
   const isNlSentenceField = resolvedField.key === "nl_sentence" || resolvedField.key === "nl_asks_sentence";
-  const sentenceFieldHelper = _45(resolvedField.key);
+  const sentenceFieldHelper = _46(resolvedField.key);
   if (isNlSentenceField) {
     return /* @__PURE__ */ jsx(
       Input.TextArea,
@@ -10936,7 +11371,7 @@ var renderInput = (field, allModels, model, currentId, record) => {
   }
   if (resolvedField.multiple) {
     if (resolvedField.optionsUrl) {
-      return /* @__PURE__ */ jsx(AsyncSelectInput, { mode: "tags", optionsUrl: resolvedField.optionsUrl, placeholder: `${_45("Select")} ${_45(resolvedField.label)}...` });
+      return /* @__PURE__ */ jsx(AsyncSelectInput, { mode: "tags", optionsUrl: resolvedField.optionsUrl, placeholder: `${_46("Select")} ${_46(resolvedField.label)}...` });
     }
     return /* @__PURE__ */ jsx(
       Select,
@@ -10944,20 +11379,20 @@ var renderInput = (field, allModels, model, currentId, record) => {
         mode: resolvedField.options ? "multiple" : "tags",
         options: resolvedField.options,
         style: { width: "100%" },
-        placeholder: `${_45("Select")} ${_45(resolvedField.label)}...`,
+        placeholder: `${_46("Select")} ${_46(resolvedField.label)}...`,
         allowClear: true
       }
     );
   }
-  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_45("Select")} ${_45(resolvedField.label)}...` });
+  if (resolvedField.optionsUrl) return /* @__PURE__ */ jsx(AsyncSelectInput, { optionsUrl: resolvedField.optionsUrl, placeholder: `${_46("Select")} ${_46(resolvedField.label)}...` });
   if (resolvedField.options) return /* @__PURE__ */ jsx(Select, { options: resolvedField.options, style: { width: "100%" }, placeholder: `Select ${resolvedField.label}...`, allowClear: true });
   switch (resolvedField.type) {
     case "boolean":
       return /* @__PURE__ */ jsx(BooleanCheckboxInput, {});
     case "date":
-      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _45("Select date") });
+      return /* @__PURE__ */ jsx(DatePicker, { style: { width: "100%" }, placeholder: _46("Select date") });
     case "datetime":
-      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _45("Select date and time") });
+      return /* @__PURE__ */ jsx(DatePicker, { showTime: true, style: { width: "100%" }, placeholder: _46("Select date and time") });
     case "time":
       return /* @__PURE__ */ jsx(TimePicker, { style: { width: "100%" } });
     case "number":
@@ -10966,7 +11401,7 @@ var renderInput = (field, allModels, model, currentId, record) => {
       return /* @__PURE__ */ jsx(Input, {});
   }
 };
-var _46 = window._ || ((text) => text);
+var _47 = window._ || ((text) => text);
 var INLINE_EDIT_LIST_VIEW_TYPES = /* @__PURE__ */ new Set(["editable-table", "editable-list"]);
 function isInlineEditableField(field, model) {
   if (field.readOnly || field.formula || field.isPk) return false;
@@ -10975,7 +11410,7 @@ function isInlineEditableField(field, model) {
   return true;
 }
 function formValueAsPayloadValue(field, value) {
-  if (dayjs11.isDayjs(value)) {
+  if (dayjs12.isDayjs(value)) {
     if (field.type === "date") return value.format("YYYY-MM-DD");
     if (field.type === "time") return value.format("HH:mm:ss");
     return value.toISOString();
@@ -11018,13 +11453,13 @@ function useInlineRowEdits(model, allModels, apiUrl, onSaved) {
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
           stillStaged[rowId] = values;
-          nextErrors[rowId] = typeof body?.detail === "string" ? body.detail : _46("Failed to save changes.");
+          nextErrors[rowId] = typeof body?.detail === "string" ? body.detail : _47("Failed to save changes.");
         } else {
           savedRows += 1;
         }
       } catch (error) {
         stillStaged[rowId] = values;
-        nextErrors[rowId] = error instanceof Error ? error.message : _46("Failed to save changes.");
+        nextErrors[rowId] = error instanceof Error ? error.message : _47("Failed to save changes.");
       }
     }
     setStagedValuesByRowId(stillStaged);
@@ -11033,15 +11468,15 @@ function useInlineRowEdits(model, allModels, apiUrl, onSaved) {
     if (Object.keys(nextErrors).length > 0) {
       message.error(Object.values(nextErrors)[0]);
     } else {
-      message.success(_46("Changes saved."));
+      message.success(_47("Changes saved."));
     }
     if (savedRows > 0) onSaved();
   }, [stagedValuesByRowId, model, allModels, apiUrl, onSaved]);
   return { hasPendingEdits: Object.keys(stagedValuesByRowId).length > 0, saving, stageValue, stagedValue, rowError, save, cancel };
 }
 var InlineEditActions = ({ inlineRowEdits }) => /* @__PURE__ */ jsxs(Space, { size: 4, children: [
-  /* @__PURE__ */ jsx(Tooltip, { title: _46("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: inlineRowEdits.cancel, disabled: !inlineRowEdits.hasPendingEdits || inlineRowEdits.saving, "aria-label": _46("Cancel") }) }),
-  /* @__PURE__ */ jsx(Tooltip, { title: _46("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: () => void inlineRowEdits.save(), loading: inlineRowEdits.saving, disabled: !inlineRowEdits.hasPendingEdits, "aria-label": _46("Save") }) })
+  /* @__PURE__ */ jsx(Tooltip, { title: _47("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: inlineRowEdits.cancel, disabled: !inlineRowEdits.hasPendingEdits || inlineRowEdits.saving, "aria-label": _47("Cancel") }) }),
+  /* @__PURE__ */ jsx(Tooltip, { title: _47("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: () => void inlineRowEdits.save(), loading: inlineRowEdits.saving, disabled: !inlineRowEdits.hasPendingEdits, "aria-label": _47("Save") }) })
 ] });
 var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits }) => {
   const rowField = useMemo(() => resolveRowTypedField(field, record), [field, record]);
@@ -11059,14 +11494,14 @@ var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits
           name: "cell",
           style: { margin: 0, minWidth: 120 },
           valuePropName: rowField.type === "boolean" ? "checked" : "value",
-          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs11.isDayjs(current2) ? { value: dayjs11(current2) } : rowField.type === "time" && current2 && !dayjs11.isDayjs(current2) ? { value: dayjs11("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
+          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs12.isDayjs(current2) ? { value: dayjs12(current2) } : rowField.type === "time" && current2 && !dayjs12.isDayjs(current2) ? { value: dayjs12("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
           children: renderInput(field, allModels, model, rowId, record)
         }
       )
     }
   );
 };
-var _47 = window._ || ((text) => text);
+var _48 = window._ || ((text) => text);
 var { Title: Title2 } = Typography;
 var requiredMark = (field) => field.required ? /* @__PURE__ */ jsx("span", { style: { color: "#ff4d4f", marginLeft: 3 }, children: "*" }) : null;
 var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCallbacks, injectedValues, extraHeaderButtons }) => {
@@ -11127,7 +11562,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
       if (canAutoRelate && relateResource && relateTargetKey && relateOtherKey && relateTargetId) {
         try {
           if (createdId === void 0 || createdId === null) {
-            throw new Error(_47("Could not resolve the new record id to create the relation."));
+            throw new Error(_48("Could not resolve the new record id to create the relation."));
           }
           const relationPayload = {
             [relateTargetKey]: relateTargetId,
@@ -11142,7 +11577,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
             throw new Error(`Failed to create relation (${relationResponse.status})`);
           }
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _47("Failed to create relation."));
+          message.error(error instanceof Error ? error.message : _48("Failed to create relation."));
         }
       }
       const hasModelRelations = (model.relations || []).length > 0;
@@ -11157,7 +11592,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
       }
     },
     successNotification: () => ({
-      message: _47("Changes saved."),
+      message: _48("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -11249,8 +11684,9 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     margin: 0,
     lineHeight: 1
   };
+  const temporaryTemplateRows = useTemporaryTemplateRows(buildTemporaryPageKey(model.resource || model.name, "create"), model, "create");
   const configRows = keepConfigRowsOfModel(filterConfigRowsForMode(
-    editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
+    temporaryTemplateRows ?? (editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows),
     "edit"
   ), model);
   const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
@@ -11292,8 +11728,8 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     renderIconOnlyButtons(defaultButtons)
   ] });
   const renderPostCreateHeaderButtons = (_unused) => /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(Tooltip, { title: _47("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
-    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _47("Done") })
+    /* @__PURE__ */ jsx(Tooltip, { title: _48("Edit record"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleGoToEdit }) }),
+    /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckCircleOutlined, {}), onClick: handleDone, children: _48("Done") })
   ] });
   const addTabsForNonConfiguredRelations = viewSettings?.addTabsForNonConfiguredRelations !== false;
   const relationTabEntries = useMemo(() => {
@@ -11319,7 +11755,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
   const hasRelationTabs = relationTabEntries.length > 0;
   const renderFormCell = (item, index) => {
     if (item.attribute_or_relation_type === "relation") {
-      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _47("Available after saving") }, `${item.name}-rel-ph-${index}`);
+      return /* @__PURE__ */ jsx("div", { style: { marginBottom: 4, padding: "4px 8px", color: token.colorTextTertiary, fontStyle: "italic", fontSize: token.fontSizeSM }, children: _48("Available after saving") }, `${item.name}-rel-ph-${index}`);
     }
     const key = item.object_name || item.name;
     const field = fieldByKey.get(key) || resolveFieldFromConfig(model, item);
@@ -11341,7 +11777,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
           name: field.key,
           rules: field.required ? [{ required: true }] : [],
           valuePropName: field.type === "boolean" ? "checked" : void 0,
-          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
           style: { margin: 0 },
           children: renderInput(field, allModels, model)
         }
@@ -11416,8 +11852,8 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const maxCol = Math.max(1, ...normalized.map((r) => r.column));
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
-      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _47(section) }),
-      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_82, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_83, colIdx) => {
+      /* @__PURE__ */ jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _48(section) }),
+      /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_83, rowIdx) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_84, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -11439,7 +11875,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
             field.label,
             requiredMark(field)
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
+          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
     ] }),
@@ -11484,7 +11920,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
         {
           type: "info",
           showIcon: true,
-          message: _47("Save the record first to add relations."),
+          message: _48("Save the record first to add relations."),
           style: { marginTop: 8 }
         }
       );
@@ -11518,7 +11954,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
   const tabItems = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_47("Details"), modelTone),
+      label: renderToneTabLabel(_48("Details"), modelTone),
       children: detailsContent
     },
     ...relationTabEntries.map(({ tabName, tone }) => ({
@@ -11539,7 +11975,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
         {
           saveButtonProps: { ...saveButtonProps, hideText: true, htmlType: "submit", form: "link-model-create-form" },
           headerButtons: renderHeaderButtons,
-          title: renderWrappedPageTitle(`${_47("Create")} ${modelDisplayLabel}`),
+          title: renderWrappedPageTitle(`${_48("Create")} ${modelDisplayLabel}`),
           children: /* @__PURE__ */ jsx(
             Form,
             {
@@ -11558,12 +11994,12 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
                       body: JSON.stringify({ eid_from: eidFrom, eid_to: eidTo })
                     });
                     if (res.ok) successCount++;
-                    else message.error(`${_47("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
+                    else message.error(`${_48("Failed to create relation for")} eid_to=${eidTo} (${res.status})`);
                   } catch {
-                    message.error(`${_47("Failed to create relation for")} eid_to=${eidTo}`);
+                    message.error(`${_48("Failed to create relation for")} eid_to=${eidTo}`);
                   }
                 }
-                if (successCount > 0) message.success(`${successCount} ${_47("relation(s) created.")}`);
+                if (successCount > 0) message.success(`${successCount} ${_48("relation(s) created.")}`);
                 if (returnTo) navigate(returnTo);
               },
               children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: effectiveFields.filter((f) => !isFormKeyFieldSkipped(f) && !f.formula).map((field) => {
@@ -11594,14 +12030,14 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
         saveButtonProps: isPostCreate ? { ...saveButtonProps, style: { display: "none" }, hideText: true } : { ...saveButtonProps, hideText: true },
         headerButtons: isPostCreate ? renderPostCreateHeaderButtons : renderHeaderButtons,
         title: renderWrappedPageTitle(
-          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_47("Create")} ${modelDisplayLabel}`
+          isPostCreate ? createdRecord?._label || modelDisplayLabel : `${_48("Create")} ${modelDisplayLabel}`
         ),
         children: [
           isPostCreate && /* @__PURE__ */ jsx(
             Alert,
             {
               type: "success",
-              message: _47("Record created. You can now manage relations below."),
+              message: _48("Record created. You can now manage relations below."),
               showIcon: true,
               style: { marginBottom: 12 }
             }
@@ -11620,8 +12056,14 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     )
   ] });
 };
-var DynamicCreate = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "create", children: /* @__PURE__ */ jsx(DynamicCreatePage, { ...props }) });
-var _48 = (text) => {
+var DynamicCreate = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "create", children: /* @__PURE__ */ jsx(
+  TemporaryPageLayoutScopeProvider,
+  {
+    scope: { pageKey: buildTemporaryPageKey(props.model.resource || props.model.name, "create"), pageType: "create", model: props.model },
+    children: /* @__PURE__ */ jsx(DynamicCreatePage, { ...props })
+  }
+) });
+var _49 = (text) => {
   const translate = window._;
   return typeof translate === "function" ? translate(text) : text;
 };
@@ -11630,30 +12072,30 @@ var FieldLabelWithHelp = ({ field }) => {
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     field.label,
     field.required ? /* @__PURE__ */ jsx("span", { style: { color: token.colorError, marginLeft: 3 }, children: "*" }) : null,
-    field.description ? /* @__PURE__ */ jsx(Tooltip, { title: _48(field.description), children: /* @__PURE__ */ jsx(
+    field.description ? /* @__PURE__ */ jsx(Tooltip, { title: _49(field.description), children: /* @__PURE__ */ jsx(
       InfoCircleOutlined,
       {
         className: "jm-field-help",
-        "aria-label": _48(field.description),
+        "aria-label": _49(field.description),
         style: { color: token.colorTextTertiary, fontSize: 12, marginLeft: 4, cursor: "help" }
       }
     ) }) : null
   ] });
 };
-var _49 = (text) => translateText(text, text);
-var { Text: Text5 } = Typography;
+var _50 = (text) => translateText(text, text);
+var { Text: Text6 } = Typography;
 var VIEW_TYPE_OPTIONS = [
-  { label: _49("Default (from model schema)"), value: "" },
-  { label: _49("Table"), value: "table" },
-  { label: _49("Editable table"), value: "editable-table" },
-  { label: _49("Gallery"), value: "gallery" },
-  { label: _49("Image"), value: "image" },
-  { label: _49("Calendar"), value: "calendar" },
-  { label: _49("Kanban"), value: "kanban" },
-  { label: _49("Totals / Details"), value: "totals-details" },
-  { label: _49("Primary"), value: "primary" },
-  { label: _49("List"), value: "list" },
-  { label: _49("Editable list"), value: "editable-list" }
+  { label: _50("Default (from model schema)"), value: "" },
+  { label: _50("Table"), value: "table" },
+  { label: _50("Editable table"), value: "editable-table" },
+  { label: _50("Gallery"), value: "gallery" },
+  { label: _50("Image"), value: "image" },
+  { label: _50("Calendar"), value: "calendar" },
+  { label: _50("Kanban"), value: "kanban" },
+  { label: _50("Totals / Details"), value: "totals-details" },
+  { label: _50("Primary"), value: "primary" },
+  { label: _50("List"), value: "list" },
+  { label: _50("Editable list"), value: "editable-list" }
 ];
 var nextGridPosition = (cells) => {
   if (!cells.length) return { row: 0, col: 0 };
@@ -11739,60 +12181,60 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
     onSave({ ...config, tabs: nextTabs });
     onClose();
   };
-  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _49(t.name) }));
+  const tabOptions = config.tabs.map((t) => ({ value: t.name, label: _50(t.name) }));
   return /* @__PURE__ */ jsx(
     Drawer,
     {
-      title: cell?.source_type === "plotly_chart" ? `${_49("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" && cell?.source_type !== "named_query" && cell?.source_type !== "non_model_data" ? `${_49("Configure section")}: ${cell?.section_name ? _49(cell.section_name) : cell?.model ?? ""}` : `${_49("Configure cell")}: ${cell?.model ?? ""}`,
+      title: cell?.source_type === "plotly_chart" ? `${_50("Configure chart")}: ${cell?.chart_title ?? cell?.model ?? ""}` : cell?.source_type !== "model" && cell?.source_type !== "named_query" && cell?.source_type !== "non_model_data" ? `${_50("Configure section")}: ${cell?.section_name ? _50(cell.section_name) : cell?.model ?? ""}` : `${_50("Configure cell")}: ${cell?.model ?? ""}`,
       placement: "right",
       width: 380,
       open,
       onClose,
       footer: /* @__PURE__ */ jsxs(Space, { style: { justifyContent: "flex-end", width: "100%", display: "flex" }, children: [
-        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _49("Cancel") }),
-        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _49("Save") })
+        /* @__PURE__ */ jsx(Button, { onClick: onClose, children: _50("Cancel") }),
+        /* @__PURE__ */ jsx(Button, { type: "primary", onClick: handleSave, children: _50("Save") })
       ] }),
       children: /* @__PURE__ */ jsxs(Form, { form, layout: "vertical", size: "small", children: [
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("Tab") }),
-        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _49("Tab name"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("Tab") }),
+        /* @__PURE__ */ jsx(Form.Item, { name: "tabName", label: _50("Tab name"), children: /* @__PURE__ */ jsx(
           AutoComplete,
           {
             options: tabOptions,
             filterOption: false,
-            placeholder: _49("Select existing or type a new name")
+            placeholder: _50("Select existing or type a new name")
           }
         ) }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("Position") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("Position") }),
         /* @__PURE__ */ jsxs(Space, { children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _49("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _49("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "row", label: _50("Row"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "col", label: _50("Column"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(InputNumber, { min: 1, style: { width: 80 } }) })
         ] }),
         (cell?.source_type === "model" || cell?.source_type === "named_query" || cell?.source_type === "non_model_data") && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("View") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _49("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("View") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "view_type", label: _50("View type"), children: /* @__PURE__ */ jsx(Select, { options: VIEW_TYPE_OPTIONS }) })
         ] }),
         cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("Chart") }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _49("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _49("e.g. Confidence by Month") }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _49("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
+          /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("Chart") }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_title", label: _50("Chart title"), children: /* @__PURE__ */ jsx(Input, { placeholder: _50("e.g. Confidence by Month") }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "chart_url", label: _50("Chart URL"), children: /* @__PURE__ */ jsx(Input, { placeholder: "/api/nl-answers-confidence-by-month-chart" }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("Size") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("Size") }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _49("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _49("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_width", label: _50("Min width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 320px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_width", label: _50("Max width"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 800px", style: { width: 130 } }) })
         ] }),
         /* @__PURE__ */ jsxs(Space, { wrap: true, style: { marginTop: 8 }, children: [
-          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _49("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
-          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _49("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
+          /* @__PURE__ */ jsx(Form.Item, { name: "min_height", label: _50("Min height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 300px", style: { width: 130 } }) }),
+          /* @__PURE__ */ jsx(Form.Item, { name: "max_height", label: _50("Max height"), style: { marginBottom: 0 }, children: /* @__PURE__ */ jsx(Input, { placeholder: "e.g. 600px", style: { width: 130 } }) })
         ] }),
-        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _49("Style") }),
+        /* @__PURE__ */ jsx(Divider, { orientation: "left", children: _50("Style") }),
         /* @__PURE__ */ jsx(
           Form.Item,
           {
             name: "html_style",
-            label: /* @__PURE__ */ jsxs(Text5, { children: [
+            label: /* @__PURE__ */ jsxs(Text6, { children: [
               "HTML style ",
-              /* @__PURE__ */ jsx(Text5, { type: "secondary", children: "(inline CSS)" })
+              /* @__PURE__ */ jsx(Text6, { type: "secondary", children: "(inline CSS)" })
             ] }),
             children: /* @__PURE__ */ jsx(
               Input.TextArea,
@@ -11892,119 +12334,7 @@ function useCellWindowState() {
   }, []);
   return { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset };
 }
-var GRID_DENSITY_STEPS = ["original", "small", "fit", "fit-row", "fit-cell", "medium", "large"];
-var GRID_DENSITY_ROW_HEIGHT = {
-  small: 180,
-  medium: 320,
-  large: 480
-};
-var FIT_PAGE_MIN_ROW_HEIGHT = 120;
-function loadStoredGridDensity(storageKey, defaultValue) {
-  try {
-    const stored = localStorage.getItem(storageKey);
-    if (stored && GRID_DENSITY_STEPS.includes(stored)) {
-      return stored;
-    }
-  } catch {
-  }
-  return defaultValue;
-}
-function useGridDensity(storageKey, defaultValue) {
-  const [gridDensity, setGridDensityState] = useState(() => loadStoredGridDensity(storageKey, defaultValue));
-  const setGridDensityByStep = useCallback((stepIndex) => {
-    const next = GRID_DENSITY_STEPS[stepIndex] ?? defaultValue;
-    setGridDensityState(next);
-    try {
-      localStorage.setItem(storageKey, next);
-    } catch {
-    }
-  }, [storageKey, defaultValue]);
-  return { gridDensity, setGridDensityByStep };
-}
-function buildGridDensityMarks(_82) {
-  const label = (text) => /* @__PURE__ */ jsx("span", { style: { fontSize: 11 }, children: _82(text) });
-  return {
-    0: label("Original"),
-    1: label("Small"),
-    2: label("Page"),
-    3: label("Row"),
-    4: label("Cell"),
-    5: label("Medium"),
-    6: label("Large")
-  };
-}
-function buildGridDensityLabelText(_82) {
-  return {
-    original: _82("Original"),
-    small: _82("Small"),
-    fit: _82("Page"),
-    "fit-row": _82("Row"),
-    "fit-cell": _82("Cell"),
-    medium: _82("Medium"),
-    large: _82("Large")
-  };
-}
-function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
-  switch (gridDensity) {
-    case "small":
-    case "medium":
-    case "large": {
-      const h = GRID_DENSITY_ROW_HEIGHT[gridDensity];
-      return growPastFixedHeight ? `minmax(${h}px, auto)` : `minmax(${h}px, ${h}px)`;
-    }
-    case "fit": {
-      const height = fitRowHeight ?? FIT_PAGE_MIN_ROW_HEIGHT;
-      return `minmax(${height}px, ${height}px)`;
-    }
-    case "original":
-    default:
-      return `minmax(${originalMinPx}px, auto)`;
-  }
-}
-function useFitRowHeight(containerRef, gridDensity, numRows, gridGap, gridPadding) {
-  const [fitRowHeight, setFitRowHeight] = useState(null);
-  useLayoutEffect(() => {
-    if (gridDensity !== "fit" && gridDensity !== "fit-row" && gridDensity !== "fit-cell") return;
-    const el = containerRef.current;
-    if (!el) return;
-    const effectiveRows = gridDensity === "fit" ? numRows : 1;
-    const findScrollableAncestor = (node) => {
-      let current2 = node.parentElement;
-      while (current2 && current2 !== document.body) {
-        const overflowY = window.getComputedStyle(current2).overflowY;
-        if (overflowY === "auto" || overflowY === "scroll") return current2;
-        current2 = current2.parentElement;
-      }
-      return null;
-    };
-    const recompute = () => {
-      const top = el.getBoundingClientRect().top;
-      const ancestor2 = findScrollableAncestor(el);
-      const bottomBoundary = ancestor2 ? ancestor2.getBoundingClientRect().bottom : window.innerHeight;
-      const availableHeight = bottomBoundary - top;
-      const usableHeight = availableHeight - gridGap * Math.max(0, effectiveRows - 1) - gridPadding * 2;
-      const rowHeight = Math.max(FIT_PAGE_MIN_ROW_HEIGHT, Math.floor(usableHeight / effectiveRows));
-      setFitRowHeight(rowHeight);
-    };
-    recompute();
-    window.addEventListener("resize", recompute);
-    let debounceTimer = null;
-    const debouncedRecompute = () => {
-      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(recompute, 150);
-    };
-    const ancestor = findScrollableAncestor(el);
-    const observer = ancestor ? new ResizeObserver(debouncedRecompute) : null;
-    if (ancestor && observer) observer.observe(ancestor);
-    return () => {
-      window.removeEventListener("resize", recompute);
-      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
-      observer?.disconnect();
-    };
-  }, [gridDensity, numRows]);
-  return fitRowHeight;
-}
-var _50 = (text) => translateText(text, text);
+var _51 = (text) => translateText(text, text);
 var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow }) => {
   const { token } = theme.useToken();
   return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [
@@ -12020,7 +12350,7 @@ var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow
       color: token.colorTextSecondary,
       border: `1px solid ${token.colorBorderSecondary}`
     }, children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _50("Go to first row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _51("Go to first row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -12035,7 +12365,7 @@ var RowPositionToolbar = ({ current: current2, total, onFirst, onLast, onPrevRow
         " / ",
         total
       ] }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _50("Go to last row"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _51("Go to last row"), children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -12185,7 +12515,7 @@ var FitRowCellCarousel = React6.forwardRef(({ cellsByRow, gridDensity, rowHeight
   );
 });
 FitRowCellCarousel.displayName = "FitRowCellCarousel";
-var _51 = (text) => translateText(text, text);
+var _52 = (text) => translateText(text, text);
 var SECTIONS_ORIGINAL_MIN_ROW_PX = 80;
 var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure, onMaximize, onMinimize, onMove, onResize, children }) => {
   const { token } = theme.useToken();
@@ -12304,15 +12634,15 @@ var SectionCell = ({ cell, isConfiguring, isMaximized, isMinimized, onConfigure,
       )
     ] }),
     isConfiguring && /* @__PURE__ */ jsxs("div", { className: "jm-cell-toolbar", style: toolbarStyle, children: [
-      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _51(cell.section_name) : cell.id }),
+      /* @__PURE__ */ jsx("span", { style: { fontSize: 13, fontWeight: 600, color: token.colorText, paddingLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: cell.section_name ? _52(cell.section_name) : cell.id }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _51("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _51("Restore") : _51("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _51("Restore") : _51("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
+        /* @__PURE__ */ jsx(Tooltip, { title: _52("Move left"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("left"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _52("Move up"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("up"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _52("Move down"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("down"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _52("Move right"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, { style: { fontSize: 10 } }), onClick: () => onMove("right"), style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: _52("Configure section"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, { style: { fontSize: 11 } }), onClick: onConfigure, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _52("Restore") : _52("Maximize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(FullscreenOutlined, { style: { fontSize: 11 } }), onClick: onMaximize, style: btnStyle }) }),
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _52("Restore") : _52("Minimize"), children: /* @__PURE__ */ jsx(Button, { type: "text", size: "small", icon: /* @__PURE__ */ jsx(MinusSquareOutlined, { style: { fontSize: 11 } }), onClick: onMinimize, style: btnStyle }) })
       ] })
     ] }),
     (!isMinimized || !isConfiguring) && /* @__PURE__ */ jsx("div", { style: { flex: 1, overflow: "auto", minHeight: 0 }, children })
@@ -12360,7 +12690,7 @@ var SectionsGrid = React6.forwardRef(({ cells, config, tabId, renderContent, onC
     boxSizing: "border-box"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _51("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _52("No sections configured"), style: { padding: 24 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   const drawerCell = isConfiguring && drawerCellId ? cells.find((c) => c.id === drawerCellId) ?? null : null;
   const renderCell = (cell) => /* @__PURE__ */ jsx(
@@ -12463,19 +12793,19 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_82, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_83, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
 }
-var { Text: Text6 } = Typography;
+var { Text: Text7 } = Typography;
 var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabelText }) => {
   const [open, setOpen] = useState(false);
   return /* @__PURE__ */ jsx(
     Popover,
     {
       content: /* @__PURE__ */ jsxs("div", { style: { width: 480, padding: "8px 4px" }, children: [
-        /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text6, { strong: true, children: label }) }),
+        /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text7, { strong: true, children: label }) }),
         /* @__PURE__ */ jsx(
           Slider,
           {
@@ -12498,7 +12828,7 @@ var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabel
     }
   );
 };
-var _52 = window._ || ((text) => text);
+var _53 = window._ || ((text) => text);
 var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentId }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(void 0);
@@ -12532,19 +12862,19 @@ var ReadAndEditReference = ({ value, onChange, field, allModels, model, currentI
           excludeId: isSelfRef ? currentId : void 0
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _52("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _52("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _53("Confirm"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(CheckOutlined, {}), onClick: handleConfirm }) }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _53("Cancel"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(CloseOutlined, {}), onClick: handleCancel }) })
     ] });
   }
   if (!value) {
     return /* @__PURE__ */ jsxs("div", { style: row, children: [
       /* @__PURE__ */ jsx("span", { children: "-" }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _52("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+      /* @__PURE__ */ jsx(Tooltip, { title: _53("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
     ] });
   }
   return /* @__PURE__ */ jsxs("div", { style: row, children: [
     /* @__PURE__ */ jsx(ReferenceField, { id: value, resource }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _52("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
+    /* @__PURE__ */ jsx(Tooltip, { title: _53("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: handleEdit, style: { padding: "0 2px", height: "auto" } }) })
   ] });
 };
 var NLSentenceBlock = ({
@@ -12608,7 +12938,7 @@ var NLSentenceBlock = ({
     !loading && html !== null && /* @__PURE__ */ jsx(ExecutableHtml, { html })
   ] });
 };
-var _53 = window._ || ((text) => text);
+var _54 = window._ || ((text) => text);
 var { Title: Title3 } = Typography;
 function coerce(v) {
   if (v && typeof v === "object" && typeof v.valueOf === "function") return v.valueOf();
@@ -12707,7 +13037,7 @@ var SectionCellContent = ({
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? recordId2 : void 0, record)
@@ -12734,7 +13064,7 @@ var SectionCellContent = ({
       if (!viewModel) return null;
       const viewType = String(getConfigVid(item, mode) || "").trim().toLowerCase();
       return /* @__PURE__ */ jsxs("div", { style: { marginBottom: 4, ...parseInlineStyle(item.html_format) }, children: [
-        item.show_label !== false && /* @__PURE__ */ jsx(Typography.Text, { style: { ...labelStyle, display: "block", marginBottom: 4 }, children: _53(viewModel.label) }),
+        item.show_label !== false && /* @__PURE__ */ jsx(Typography.Text, { style: { ...labelStyle, display: "block", marginBottom: 4 }, children: _54(viewModel.label) }),
         /* @__PURE__ */ jsx(
           DynamicList,
           {
@@ -12818,7 +13148,7 @@ var SectionCellContent = ({
             name: field.key,
             rules: field.required && !field.formula ? [{ required: true }] : [],
             valuePropName: field.type === "boolean" ? "checked" : void 0,
-            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
             style: { margin: 0 },
             children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
           }
@@ -12853,12 +13183,12 @@ var SectionCellContent = ({
   return /* @__PURE__ */ jsxs("div", { style: { padding: "4px 6px" }, children: [
     /* @__PURE__ */ jsxs(Title3, { level: 5, className: "jm-section-title", style: { margin: "0 0 4px 0", color: sectionLook?.section_accent_color || "#1677ff", display: "flex", alignItems: "center", gap: 6 }, children: [
       sectionLook?.section_icon ? resolveIcon(sectionLook.section_icon) : null,
-      /* @__PURE__ */ jsx("span", { children: _53(sectionName) })
+      /* @__PURE__ */ jsx("span", { children: _54(sectionName) })
     ] }),
-    sectionLook?.section_description && /* @__PURE__ */ jsx(Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _53(sectionLook.section_description) }),
+    sectionLook?.section_description && /* @__PURE__ */ jsx(Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _54(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_82, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_83, colIndex) => {
+    /* @__PURE__ */ jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsx("tbody", { children: Array.from({ length: maxRow }).map((_83, rowIndex) => /* @__PURE__ */ jsx("tr", { children: Array.from({ length: maxCol }).map((_84, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -13001,7 +13331,7 @@ function usePageSectionsConfig(configRows, resourceKey, mode) {
   }, [isConfiguring]);
   return { config, loading, save, getSectionRows, isConfiguring, enterConfigMode, saveLayout, cancelLayout, onLayoutChange };
 }
-var _54 = window._ || ((text) => text);
+var _55 = window._ || ((text) => text);
 var SCALABLE_SHOW = /* @__PURE__ */ new Set([
   "csv",
   "read-and-edit-csv",
@@ -13054,22 +13384,22 @@ var LEVEL_TO_EDIT = {
   6: "editable-table"
 };
 var DATA_DETAIL_LEVEL_LABELS = [
-  _54("Original"),
-  _54("Minimal"),
-  _54("Compact"),
-  _54("Summary"),
-  _54("Expandable"),
-  _54("Expanded"),
-  _54("Analyze")
+  _55("Original"),
+  _55("Minimal"),
+  _55("Compact"),
+  _55("Summary"),
+  _55("Expandable"),
+  _55("Expanded"),
+  _55("Analyze")
 ];
 var DATA_DETAIL_LEVEL_TOOLTIPS = [
-  _54("Shows each relation using its original configured view type with no slider overrides applied."),
-  _54("Sets all relations to CSV view. Great for summary quick reading."),
-  _54("Sets all relations to List view. Great for quick reading."),
-  _54("Sets relations to Crosstab. Great for analyzing trends."),
-  _54("Sets relations to Totals-Details. Great for going from summaries to details."),
-  _54("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
-  _54("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
+  _55("Shows each relation using its original configured view type with no slider overrides applied."),
+  _55("Sets all relations to CSV view. Great for summary quick reading."),
+  _55("Sets all relations to List view. Great for quick reading."),
+  _55("Sets relations to Crosstab. Great for analyzing trends."),
+  _55("Sets relations to Totals-Details. Great for going from summaries to details."),
+  _55("Sets relations to Full Tables. Great for heavy editing and deep-dives."),
+  _55("Shows relations in List view with the Analyze (chart) panel open by default. Use for dashboard-style overviews.")
 ];
 function getViewTypeLevel(viewType, mode) {
   const map = mode === "show" ? SHOW_VIEW_LEVELS : EDIT_VIEW_LEVELS;
@@ -13247,7 +13577,7 @@ function useDataDetailLevel(relations, mode, relationViewTypeDefaults) {
     isActive
   };
 }
-var _55 = window._ || ((text) => text);
+var _56 = window._ || ((text) => text);
 var emptyLayoutConfig = {
   isConfiguring: false,
   enterConfigMode: () => {
@@ -13258,7 +13588,7 @@ var emptyLayoutConfig = {
   },
   hasConfig: false
 };
-var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps, overrideConfigRows, dataDetailLevelState) => {
+var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps, overrideConfigRows, dataDetailLevelState, temporaryLayoutPageKey) => {
   if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig, cellSizeControl: null };
   const { token } = theme.useToken();
   const { settings: viewSettings, loading: viewSettingsLoading } = useViewSettings();
@@ -13289,13 +13619,20 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   );
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
-  const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_55), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_55);
+  const { gridDensity: storedGridDensity, setGridDensityByStep: setStoredGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+  const temporaryPageKey = temporaryLayoutPageKey ?? null;
+  const temporaryCellSize = useTemporaryPageLayoutFor(temporaryPageKey).cellSize;
+  const gridDensity = temporaryCellSize ?? storedGridDensity;
+  const setGridDensityByStep = (stepIndex) => {
+    if (temporaryPageKey) updateTemporaryPageLayout(temporaryPageKey, { cellSize: void 0 });
+    setStoredGridDensityByStep(stepIndex);
+  };
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_56), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_56);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _55("Cell size"),
+      label: _56("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -13384,7 +13721,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const items = [
     {
       key: "main_data",
-      label: renderToneTabLabel(_55("Details"), modelTone),
+      label: renderToneTabLabel(_56("Details"), modelTone),
       children: /* @__PURE__ */ jsxs("div", { style: { paddingBottom: 2 }, children: [
         configLoading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 6 } }),
         !configLoading && !hasConfig && /* @__PURE__ */ jsx(Form, { ...editFormProps, size: "small", children: /* @__PURE__ */ jsx("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginTop: 0 }, children: effectiveFields.filter((f) => !f.isPk).map((field) => /* @__PURE__ */ jsxs(
@@ -13404,7 +13741,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
                   name: field.key,
                   rules: field.required && !field.formula ? [{ required: true }] : [],
                   valuePropName: field.type === "boolean" ? "checked" : void 0,
-                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
                   style: { margin: 0 },
                   children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
                 }
@@ -13495,7 +13832,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_55(tabName), modelTone),
+      label: renderToneTabLabel(_56(tabName), modelTone),
       children: tabChildren
     };
   });
@@ -13504,7 +13841,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
   const layoutConfig = { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig };
   return { tabs: items, layoutConfig, cellSizeControl };
 };
-var _56 = window._ || ((text) => text);
+var _57 = window._ || ((text) => text);
 var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent, extraHeaderButtons, journeyCallbacks, idOverride }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
@@ -13547,7 +13884,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
       }
     } : {},
     successNotification: () => ({
-      message: _56("Changes saved."),
+      message: _57("Changes saved."),
       description: modelDisplayLabel,
       type: "success"
     })
@@ -13582,7 +13919,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
     { key: "s", ctrl: true, handler: () => formProps?.form?.submit() },
     { key: "Escape", handler: () => journeyCallbacks?.onCancel ? journeyCallbacks.onCancel() : navigate(-1) }
   ], [formProps?.form, navigate, journeyCallbacks]));
-  const pageTitle = record?._label ? asDisplayText(record._label, `${_56("Edit")} ${modelDisplayLabel}`) : `${_56("Edit")} ${modelDisplayLabel}`;
+  const pageTitle = record?._label ? asDisplayText(record._label, `${_57("Edit")} ${modelDisplayLabel}`) : `${_57("Edit")} ${modelDisplayLabel}`;
   const recordId2 = getRecordId(record, model.fields);
   const { metadataButton: editMetadataButton, metadataModal: editMetadataModal } = useMetadataModal(model, allModels);
   const [showRelationActions, setShowRelationActions] = useState(DEFAULT_EDIT_RELATION_ROW_ACTIONS);
@@ -13676,13 +14013,13 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         }
       }
       message.success(
-        withRelations ? _56("Object duplicated with relations.") : _56("Object duplicated.")
+        withRelations ? _57("Object duplicated with relations.") : _57("Object duplicated.")
       );
       if (newId) {
         go({ to: { resource: model.resource || model.name, action: "edit", id: newId } });
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _56("Failed to duplicate object."));
+      message.error(error instanceof Error ? error.message : _57("Failed to duplicate object."));
     } finally {
       setIsDuplicating(false);
     }
@@ -13719,19 +14056,24 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
       cancelled = true;
     };
   }, [apiUrl, allModelsList, model.name, model.resource]);
-  const { tabs: items, layoutConfig, cellSizeControl } = useStandardEditTabs(
+  const temporaryLayoutPageKey = buildTemporaryPageKey(model.resource || model.name, "edit");
+  const temporaryTemplateRows = useTemporaryTemplateRows(temporaryLayoutPageKey, model, "edit");
+  const { tabs: items, layoutConfig } = useStandardEditTabs(
     model,
     record,
     allModelsList,
     { showActions: showRelationActions, showCreate: showRelationCreate },
-    editFormProps
+    editFormProps,
+    temporaryTemplateRows,
+    void 0,
+    temporaryLayoutPageKey
   );
   const { isConfiguring, enterConfigMode, saveLayout, cancelLayout, hasConfig } = layoutConfig;
   const { data: canLayoutData } = useCan({ resource: "veloiq_layout", action: "configure_layout" });
   const canConfigureLayout = canLayoutData?.can !== false;
   const actionsSettingsContent = /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8, minWidth: 200 }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _56("Relation's row actions buttons") }),
+      /* @__PURE__ */ jsx("span", { children: _57("Relation's row actions buttons") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -13745,7 +14087,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
       )
     ] }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-      /* @__PURE__ */ jsx("span", { children: _56("Relation's create action button") }),
+      /* @__PURE__ */ jsx("span", { children: _57("Relation's create action button") }),
       /* @__PURE__ */ jsx(
         Switch,
         {
@@ -13761,7 +14103,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
     hasConfig && canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
       /* @__PURE__ */ jsx(Divider, { style: { margin: "4px 0" } }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-        /* @__PURE__ */ jsx("span", { children: _56("Configure page layout") }),
+        /* @__PURE__ */ jsx("span", { children: _57("Configure page layout") }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -13785,13 +14127,13 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         },
         loading: isSavingActionsPrefs,
         block: true,
-        children: _56("Save")
+        children: _57("Save")
       }
     )
   ] });
   const extraEditTabs = useMemo(() => (model.extraTabs ?? []).filter((tab) => tab.edit), [model.extraTabs]);
   const allItems = useMemo(
-    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _56(tab.label), children: null }))],
+    () => [...items, ...extraEditTabs.map((tab) => ({ key: tab.key, label: _57(tab.label), children: null }))],
     [items, extraEditTabs]
   );
   const [activeTabKey, setActiveTabKey] = useState("main_data");
@@ -13811,9 +14153,9 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
     typeof extraHeaderButtons === "function" ? record ? extraHeaderButtons(record, formProps?.form) : null : extraHeaderButtons,
     editMetadataButton,
     editMetadataModal,
-    recordId2 && /* @__PURE__ */ jsx(Tooltip, { title: _56("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId2 } }) }) }),
+    recordId2 && /* @__PURE__ */ jsx(Tooltip, { title: _57("Show"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => go({ to: { resource: model.resource || model.name, action: "show", id: recordId2 } }) }) }),
     record && /* @__PURE__ */ jsxs(Fragment, { children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _56("Duplicate"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _57("Duplicate"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -13822,7 +14164,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
           loading: isDuplicating
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _56("Duplicate with relations"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _57("Duplicate with relations"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -13832,9 +14174,9 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         }
       ) })
     ] }),
-    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _56("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+    /* @__PURE__ */ jsx(Popover, { content: actionsSettingsContent, title: _57("Actions"), trigger: "hover", children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
     renderIconOnlyButtons(defaultButtons),
-    recordId2 != null && /* @__PURE__ */ jsx(Tooltip, { title: _56("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+    recordId2 != null && /* @__PURE__ */ jsx(Tooltip, { title: _57("Delete"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
       DeleteButton,
       {
         resource: model.resource || model.name,
@@ -13843,7 +14185,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         onSuccess: () => go({ to: { resource: model.resource || model.name, action: "list" } })
       }
     ) }) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _56("Save"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _57("Save"), children: /* @__PURE__ */ jsx(
       Button,
       {
         ...saveButtonProps,
@@ -13856,7 +14198,7 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
       }
     ) })
   ] });
-  return /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
+  return /* @__PURE__ */ jsx(BeforeEditSaveContext.Provider, { value: registerBeforeSave, children: /* @__PURE__ */ jsx(TemporaryPageLayoutScopeProvider, { scope: { pageKey: temporaryLayoutPageKey, pageType: "edit", model, cellSizeAvailable: true }, children: /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxs(
       StandardEdit,
@@ -13866,13 +14208,13 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         title: renderWrappedPageTitle(renderModelHeading({
           model,
           title: pageTitle,
-          actionLabel: _56("Edit"),
+          actionLabel: _57("Edit"),
           moduleLabel: model.module ? getModuleLabel(model.module) : void 0
         })),
         headerButtons: renderHeaderButtons,
         children: [
           topContent,
-          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true, tabBarExtraContent: { right: cellSizeControl } }),
+          /* @__PURE__ */ jsx(Tabs, { activeKey: activeTabKey, onChange: setActiveTabKey, items: lazyItems, destroyInactiveTabPane: true }),
           record && extraEditTabs.map((tab) => {
             const TabContent = tab.edit;
             return /* @__PURE__ */ jsx("div", { hidden: activeTabKey !== tab.key, children: /* @__PURE__ */ jsx(TabContent, { record }) }, tab.key);
@@ -13880,10 +14222,10 @@ var DynamicEditPage = ({ model: modelProp, allModels: allModelsProp, topContent,
         ]
       }
     )
-  ] }) });
+  ] }) }) });
 };
 var DynamicEdit = (props) => /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "update", children: /* @__PURE__ */ jsx(DynamicEditPage, { ...props }) });
-var _57 = window._ || ((text) => text);
+var _58 = window._ || ((text) => text);
 var emptyLayoutConfig2 = {
   isConfiguring: false,
   enterConfigMode: () => {
@@ -13894,7 +14236,7 @@ var emptyLayoutConfig2 = {
   },
   hasConfig: false
 };
-var useStandardShowTabs = (model, record, allModels, actionsState, editForm, overrideConfigRows, dataDetailLevelState) => {
+var useStandardShowTabs = (model, record, allModels, actionsState, editForm, overrideConfigRows, dataDetailLevelState, temporaryLayoutPageKey) => {
   if (!model) return { tabs: [], layoutConfig: emptyLayoutConfig2, cellSizeControl: null };
   applyI18nLabelsToModel(model);
   applyI18nLabelsToModels(allModels);
@@ -13921,13 +14263,20 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   );
   const effectiveDetailState = dataDetailLevelState ?? internalDetailLevelState;
   setCurrentDataDetailLevelState(effectiveDetailState);
-  const { gridDensity, setGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_57), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_57);
+  const { gridDensity: storedGridDensity, setGridDensityByStep: setStoredGridDensityByStep } = useGridDensity("veloiq.dynamicCrud.cellSize", "original");
+  const temporaryPageKey = temporaryLayoutPageKey ?? null;
+  const temporaryCellSize = useTemporaryPageLayoutFor(temporaryPageKey).cellSize;
+  const gridDensity = temporaryCellSize ?? storedGridDensity;
+  const setGridDensityByStep = (stepIndex) => {
+    if (temporaryPageKey) updateTemporaryPageLayout(temporaryPageKey, { cellSize: void 0 });
+    setStoredGridDensityByStep(stepIndex);
+  };
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_58), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_58);
   const cellSizeControl = /* @__PURE__ */ jsx(
     CellSizeSelector,
     {
-      label: _57("Cell size"),
+      label: _58("Cell size"),
       stepCount: GRID_DENSITY_STEPS.length,
       marks: gridDensityMarks,
       value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -14006,7 +14355,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0, record)
@@ -14015,7 +14364,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
   };
   const detailsTab = {
     key: "details",
-    label: renderToneTabLabel(_57("Details"), modelTone),
+    label: renderToneTabLabel(_58("Details"), modelTone),
     children: /* @__PURE__ */ jsxs(
       Form,
       {
@@ -14177,7 +14526,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
     ) });
     return {
       key: `custom-tab::${tabName}`,
-      label: renderToneTabLabel(_57(tabName), { text: token.colorText, border: token.colorBorder }),
+      label: renderToneTabLabel(_58(tabName), { text: token.colorText, border: token.colorBorder }),
       children: tabChildren
     };
   });
@@ -14545,7 +14894,7 @@ var RelatedObjectsInlineValues = ({ rel, record, viewType, allowedRelatedIds, al
     paginationProps && /* @__PURE__ */ jsx(Pagination, { ...paginationProps })
   ] });
 };
-var _58 = window._ || ((text) => text);
+var _59 = window._ || ((text) => text);
 var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   useGo();
   const { token } = theme.useToken();
@@ -14555,7 +14904,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const heatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs11().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs12().startOf("month"));
   const [heatmapField, setHeatmapField] = useState("");
   const dateFieldKeySet = useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   useEffect(() => {
@@ -14595,10 +14944,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
     if (earliestDateTs === null) {
-      setCalendarAnchorDate(dayjs11().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs12().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs11(earliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs12(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
   const entriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -14629,14 +14978,20 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     }
     return calendarAnchorDate.startOf("month").format("MMMM YYYY");
   }, [calendarAnchorDate, calendarMode]);
+  const calendarEntryDates = useMemo(() => calendarEntries.map((entry) => entry.date), [calendarEntries]);
+  const {
+    previousPeriodStart,
+    nextPeriodStart,
+    periodStartNearestToday
+  } = useCalendarPeriodsWithData(calendarEntryDates, calendarMode, calendarAnchorDate);
   const heatmapTotals = useMemo(
     () => getCalendarHeatmapTotals(entriesByDate, rangeDays.map((day) => day.format("YYYY-MM-DD")), heatmapField),
     [entriesByDate, heatmapField, rangeDays]
   );
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _58("No date/datetime fields available for calendar view.") });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _58("No related records available.") });
+  if (dateFieldOptions.length === 0) return /* @__PURE__ */ jsx(Empty, { description: _59("No date/datetime fields available for calendar view.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _59("No related records available.") });
   const selectedDateField = relatedModel.fields.find((field) => field.key === calendarDateField);
   const selectedLabel = selectedDateField?.label || calendarDateField;
   return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
@@ -14649,8 +15004,8 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: calendarMode,
             onChange: (value) => setCalendarMode(value),
             options: [
-              { label: _58("Monthly"), value: "month" },
-              { label: _58("Weekly"), value: "week" }
+              { label: _59("Monthly"), value: "month" },
+              { label: _59("Weekly"), value: "week" }
             ],
             style: { minWidth: 120 }
           }
@@ -14663,7 +15018,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             onChange: (value) => setCalendarDateField(value),
             options: dateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
             style: { minWidth: 220 },
-            placeholder: _58("Date field")
+            placeholder: _59("Date field")
           }
         ),
         heatmapFieldOptions.length > 0 && /* @__PURE__ */ jsx(
@@ -14673,40 +15028,44 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             value: heatmapField,
             onChange: (value) => setHeatmapField(value),
             options: [
-              { label: _58("No heatmap"), value: "" },
+              { label: _59("No heatmap"), value: "" },
               ...heatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
             ],
             style: { minWidth: 180 },
-            placeholder: _58("Heatmap field")
+            placeholder: _59("Heatmap field")
           }
         )
       ] }),
       /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-        /* @__PURE__ */ jsx(Tooltip, { title: _58("Previous"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _59("Previous"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-            "aria-label": _58("Previous"),
-            onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
+            "aria-label": _59("Previous"),
+            disabled: previousPeriodStart === void 0,
+            onClick: () => previousPeriodStart !== void 0 && setCalendarAnchorDate(dayjs12(previousPeriodStart))
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _58("Today"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _59("Today"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-            "aria-label": _58("Today"),
-            onClick: () => setCalendarAnchorDate(dayjs11().startOf(calendarMode))
+            "aria-label": _59("Today"),
+            onClick: () => setCalendarAnchorDate(
+              periodStartNearestToday !== void 0 ? dayjs12(periodStartNearestToday) : dayjs12().startOf(calendarMode)
+            )
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _58("Next"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _59("Next"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-            "aria-label": _58("Next"),
-            onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
+            "aria-label": _59("Next"),
+            disabled: nextPeriodStart === void 0,
+            onClick: () => nextPeriodStart !== void 0 && setCalendarAnchorDate(dayjs12(nextPeriodStart))
           }
         ) })
       ] })
@@ -14746,7 +15105,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const dayKey = day.format("YYYY-MM-DD");
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-            const isToday = day.isSame(dayjs11(), "day");
+            const isToday = day.isSame(dayjs12(), "day");
             const heatmapTotal = heatmapTotals.get(dayKey);
             const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
             return /* @__PURE__ */ jsxs(
@@ -14806,12 +15165,12 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     )
   ] });
 };
-var _59 = window._ || ((text) => text);
+var _60 = window._ || ((text) => text);
 var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName, layout = "scroll" }) => {
   const { records, loading, error } = useRelatedGalleryRecords({ rel, record, allModels });
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
-  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _59("No related objects.") });
+  if (!records.length) return /* @__PURE__ */ jsx(Empty, { description: _60("No related objects.") });
   if (layout === "carousel") {
     return /* @__PURE__ */ jsx(PrimaryCarouselLayout, { records, model, allModels, customPageName });
   }
@@ -14829,7 +15188,7 @@ var RelatedObjectsPrimaryView = ({ rel, record, model, allModels, customPageName
     );
   }) });
 };
-var _60 = window._ || ((text) => text);
+var _61 = window._ || ((text) => text);
 var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "gallery" }) => {
   const fill = variant === "image";
   const apiUrl = useApiUrl();
@@ -14845,7 +15204,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!records.length) return /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
     /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-    _60("No images available")
+    _61("No images available")
   ] });
   return /* @__PURE__ */ jsx("div", { style: fill ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: records.map((item) => {
     const id = getGalleryItemId(item);
@@ -14870,7 +15229,7 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
     });
   }) });
 };
-var _61 = window._ || ((text) => text);
+var _62 = window._ || ((text) => text);
 var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const go = useGo();
   const paneNav = usePaneNavigation();
@@ -14895,9 +15254,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   const [searchText, setSearchText] = useState("");
   useEffect(() => {
     if (!editing) return;
-    const snapshot = new Set(items.map((item) => Number(item.id)));
-    setBaselineIds(snapshot);
-    setSelectedIds(new Set(snapshot));
+    const snapshot2 = new Set(items.map((item) => Number(item.id)));
+    setBaselineIds(snapshot2);
+    setSelectedIds(new Set(snapshot2));
     let cancelled = false;
     const fetchAllOptions = async () => {
       if (!rel.otherResource) return;
@@ -14969,7 +15328,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
               const d = String(body.detail);
               if (d.toLowerCase().includes("unique") || d.toLowerCase().includes("duplicate")) {
                 const optLabel = allOptions.find((o) => o.id === id)?.label ?? String(id);
-                detail = `"${optLabel}" ${_61("is already linked to another record and cannot be added here.")}`;
+                detail = `"${optLabel}" ${_62("is already linked to another record and cannot be added here.")}`;
               } else {
                 detail = d;
               }
@@ -14988,9 +15347,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       setSelectedIds(new Set(newBaseline));
       if (errors.length > 0) {
         message.error(errors[0], 6);
-        if (errors.length > 1) message.warning(`${errors.length - 1} ${_61("other error(s) occurred.")}`, 4);
+        if (errors.length > 1) message.warning(`${errors.length - 1} ${_62("other error(s) occurred.")}`, 4);
       } else {
-        message.success(_61("Changes saved."));
+        message.success(_62("Changes saved."));
         setEditing(false);
         setSearchText("");
       }
@@ -14998,7 +15357,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       const newItems = allOptions.filter((opt) => newBaseline.has(opt.id)).map((opt) => ({ id: opt.id, label: opt.label, resource: otherResource }));
       setLocalItems(newItems);
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _61("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _62("Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -15018,7 +15377,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
     const relatedModel = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
     const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
     if (!relatedResource) {
-      message.warning(_61("No create route for the related model. Opening relation create form."));
+      message.warning(_62("No create route for the related model. Opening relation create form."));
       params.append(rel.targetKey, String(recordId2));
       const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
       if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -15037,7 +15396,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!editing) {
     return /* @__PURE__ */ jsxs("div", { style: { minHeight: 22 }, children: [
-      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _61("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
+      /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _62("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "text", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => setEditing(true) }) }) }),
       items.length === 0 && total === 0 ? /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontStyle: "italic" }, children: "\u2014" }) : /* @__PURE__ */ jsxs(Fragment, { children: [
         /* @__PURE__ */ jsx("ul", { style: { margin: 0, paddingLeft: 16 }, children: items.map((item, index) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(
           "a",
@@ -15076,7 +15435,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_82, newPageSize) => {
+            onShowSizeChange: (_83, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -15108,7 +15467,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
         Input,
         {
           prefix: /* @__PURE__ */ jsx(SearchOutlined, { style: { color: token.colorTextSecondary } }),
-          placeholder: _61("Search..."),
+          placeholder: _62("Search..."),
           value: searchText,
           onChange: (e) => setSearchText(e.target.value),
           allowClear: true,
@@ -15116,9 +15475,9 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
           style: { flex: 1 }
         }
       ),
-      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _61("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
+      rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _62("Create new and relate"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ShareAltOutlined, {}), onClick: handleCreateNewAndRelate }) })
     ] }),
-    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _61("No options") }) : sortedOptions.map((opt) => {
+    /* @__PURE__ */ jsx("div", { style: { maxHeight: 280, overflowY: "auto", marginBottom: 8 }, children: optionsLoading ? /* @__PURE__ */ jsx("div", { style: { textAlign: "center", padding: 16 }, children: /* @__PURE__ */ jsx(Spin, { size: "small" }) }) : sortedOptions.length === 0 ? /* @__PURE__ */ jsx(Empty, { image: Empty.PRESENTED_IMAGE_SIMPLE, description: _62("No options") }) : sortedOptions.map((opt) => {
       const checked = selectedIds.has(opt.id);
       return /* @__PURE__ */ jsxs(
         "div",
@@ -15155,12 +15514,12 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
       );
     }) }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }, children: [
-      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _61("Cancel") }),
-      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _61("Save") })
+      /* @__PURE__ */ jsx(Button, { size: "small", onClick: handleCancel, children: _62("Cancel") }),
+      /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: handleSave, loading: saving, disabled: !hasChanges, children: _62("Save") })
     ] })
   ] });
 };
-var _62 = window._ || ((text) => text);
+var _63 = window._ || ((text) => text);
 var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   const apiUrl = useApiUrl();
   const { items: fetchedItems, loading, error } = useRelatedInlineItems({ rel, record, allModels });
@@ -15240,7 +15599,7 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
   if (loading) return /* @__PURE__ */ jsx(Spin, { size: "small" });
   if (error) return /* @__PURE__ */ jsx(Alert, { type: "error", message: error, showIcon: true });
   if (!rel.otherResource || !rel.otherKey) {
-    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _62("editable-csv requires a many-to-many relation"), showIcon: true });
+    return /* @__PURE__ */ jsx(Alert, { type: "warning", message: _63("editable-csv requires a many-to-many relation"), showIcon: true });
   }
   return /* @__PURE__ */ jsx(
     Select,
@@ -15251,14 +15610,14 @@ var RelatedObjectsEditableCsv = ({ rel, record, allModels }) => {
       options: allOptions,
       loading: optionsLoading || saving,
       style: { width: "100%" },
-      placeholder: `${_62("Select")} ${_62(rel.label)}...`,
+      placeholder: `${_63("Select")} ${_63(rel.label)}...`,
       optionFilterProp: "label",
       showSearch: true,
       allowClear: true
     }
   );
 };
-var _63 = window._ || ((text) => text);
+var _64 = window._ || ((text) => text);
 var { Title: Title4 } = Typography;
 var PolymorphicRelatedObjectsTable = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
   const recordId2 = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
@@ -15514,9 +15873,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_63("Layout preferences saved."));
+      message.success(_64("Layout preferences saved."));
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _63("Failed to save layout preferences."));
+      message.error(error2 instanceof Error ? error2.message : _64("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -15603,11 +15962,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_63("View name already exists. Choose a new name."));
+      message.error(_64("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_63('Choose a new name or enable "Save as new view".'));
+      message.error(_64('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -15663,7 +16022,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_63("View name already exists."));
+      message.error(_64("View name already exists."));
       return;
     }
     try {
@@ -15676,18 +16035,18 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_63("View renamed."));
+      message.success(_64("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error2) {
-      message.error(error2 instanceof Error ? error2.message : _63("Failed to rename view."));
+      message.error(error2 instanceof Error ? error2.message : _64("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, relatedModel.name, relatedModel.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _63(_63("Delete view")),
+      title: _64(_64("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _63("Delete"),
+      okText: _64("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -15700,10 +16059,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_63("View deleted."));
+          message.success(_64("View deleted."));
           await loadViewNames();
         } catch (error2) {
-          message.error(error2 instanceof Error ? error2.message : _63("Failed to delete view."));
+          message.error(error2 instanceof Error ? error2.message : _64("Failed to delete view."));
         }
       }
     });
@@ -15836,7 +16195,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs11();
+    const base = dayjs12();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -15909,7 +16268,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return true;
     }
     if (field.type === "date") {
-      const recordDate = dayjs11(rawValue);
+      const recordDate = dayjs12(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -15917,7 +16276,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs11(val?.date || val);
+        const date = dayjs12(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -15928,13 +16287,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs11(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs12(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs12(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs11(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs12(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs12(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -16080,9 +16439,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
     if (deleteId === void 0 || deleteId === null) return;
     Modal.confirm({
-      title: _63("Delete"),
-      content: _63("Are you sure you want to delete this relation?"),
-      okText: _63("Delete"),
+      title: _64("Delete"),
+      content: _64("Are you sure you want to delete this relation?"),
+      okText: _64("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -16103,9 +16462,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             const itemDeleteId = rel.targetKey && rel.otherKey ? `${itemRelationRow[rel.targetKey]}:${itemRelationRow[rel.otherKey]}` : itemRelationRow?.id ?? itemRelationRow?.eid;
             return String(itemDeleteId) !== String(deleteId);
           }));
-          message.success(_63("Relation deleted."));
+          message.success(_64("Relation deleted."));
         } catch (err) {
-          message.error(err instanceof Error ? err.message : _63("Failed to delete relation."));
+          message.error(err instanceof Error ? err.message : _64("Failed to delete relation."));
         }
       }
     });
@@ -16455,7 +16814,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _63("All"),
+          placeholder: _64("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -16515,7 +16874,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _63("Yes") : _63("No");
+    if (field.type === "boolean") return raw ? _64("Yes") : _64("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -16627,7 +16986,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _63("Yes") : _63("No");
+    if (field.type === "boolean") return raw ? _64("Yes") : _64("No");
     if (field.type === "date") return formatDateValue(raw);
     return String(raw);
   }, [labelCache]);
@@ -16685,13 +17044,13 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const getSummaryFunctionDisplayText = (fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _63("Sum"),
-      avg: _63("Average"),
-      count: _63("Count"),
-      max: _63("Max"),
-      min: _63("Min"),
-      stddev: _63("Std Dev"),
-      distinct: _63("Distinct")
+      sum: _64("Sum"),
+      avg: _64("Average"),
+      count: _64("Count"),
+      max: _64("Max"),
+      min: _64("Min"),
+      stddev: _64("Std Dev"),
+      distinct: _64("Distinct")
     };
     return labels[fn] || fn;
   };
@@ -16767,12 +17126,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             ]
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _63("Show totals") : _63("Show details"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isTotalsDetailsFlipped ? _64("Show totals") : _64("Show details"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
             icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-            "aria-label": isTotalsDetailsFlipped ? _63("Show totals") : _63("Show details"),
+            "aria-label": isTotalsDetailsFlipped ? _64("Show totals") : _64("Show details"),
             onClick: () => setIsTotalsDetailsFlipped((prev) => !prev),
             style: {
               flexShrink: 0,
@@ -16784,7 +17143,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         ) })
       ] }),
       relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _63("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+        /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _64("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
         /* @__PURE__ */ jsx(
           Button,
           {
@@ -16795,7 +17154,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               setFullDataLoaded(false);
               setLoadAllRelatedRequested(true);
             },
-            children: _63("Load all related")
+            children: _64("Load all related")
           }
         )
       ] })
@@ -16806,7 +17165,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { minHeight: 22, display: "flex", alignItems: "center" }, children: title && /* @__PURE__ */ jsx(Title4, { level: 5, style: { color: relatedModelTone.text, margin: 0 }, children: title }) }),
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-        frameworkUiFeatures.column_selector && /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _63("Hide view configuration") : _63("Show view configuration"), children: /* @__PURE__ */ jsx(
+        frameworkUiFeatures.column_selector && /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _64("Hide view configuration") : _64("Show view configuration"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -16818,11 +17177,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 return next;
               });
             },
-            "aria-label": columnsSelectorOpen ? _63("Hide view configuration") : _63("Show view configuration")
+            "aria-label": columnsSelectorOpen ? _64("Hide view configuration") : _64("Show view configuration")
           }
         ) }),
         showCreate && recordId2 !== void 0 && recordId2 !== null && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _63("Associate existing") : _63("Add relation"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: rel.otherResource && rel.otherKey ? _64("Associate existing") : _64("Add relation"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -16855,7 +17214,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               }
             }
           ) }),
-          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _63("Create new and relate"), children: /* @__PURE__ */ jsx(
+          rel.otherResource && rel.otherKey && rel.targetKey && /* @__PURE__ */ jsx(Tooltip, { title: _64("Create new and relate"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
@@ -16869,7 +17228,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                 const relatedModel2 = findModelByName(allModels, rel.otherResource || rel.otherResourcePath);
                 const relatedResource = relatedModel2 ? resolveResourcePath(relatedModel2.resource || relatedModel2.name, allModels) : null;
                 if (!relatedResource) {
-                  message.warning(_63("No create route for the related model. Opening relation create form."));
+                  message.warning(_64("No create route for the related model. Opening relation create form."));
                   params.append(rel.targetKey, String(recordId2));
                   if (allowInlineEdit) params.append("inline", "1");
                   const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
@@ -16888,7 +17247,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ) })
         ] }),
-        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _63("Save"), children: /* @__PURE__ */ jsx(
+        allowInlineEdit && /* @__PURE__ */ jsx(Tooltip, { title: _64("Save"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -16896,10 +17255,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
             onClick: saveAllEdits,
             loading: savingAll,
-            "aria-label": _63("Save")
+            "aria-label": _64("Save")
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: _63("Export CSV"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: _64("Export CSV"), children: /* @__PURE__ */ jsx(
           Button,
           {
             size: "small",
@@ -16914,20 +17273,20 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: saveViewModalOpen,
-        title: _63("Save view"),
+        title: _64("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _63("Save layout") : _63("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _64("Save layout") : _64("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _63("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _64("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _63("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _64("Save as new view") })
         ] })
       }
     ),
@@ -16935,10 +17294,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Modal,
       {
         open: renameViewModalOpen,
-        title: _63("Rename view"),
+        title: _64("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _63("Rename"),
+        okText: _64("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -16948,11 +17307,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _63("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _64("Filters") }),
           /* @__PURE__ */ jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(
             Input,
             {
-              placeholder: _63("Search all fields..."),
+              placeholder: _64("Search all fields..."),
               prefix: /* @__PURE__ */ jsx(SearchOutlined, {}),
               allowClear: true,
               value: localSearch,
@@ -16970,31 +17329,31 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _63("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _64("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _63("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _63("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _64("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _64("No filters yet.") }) : filterRules.map((rule) => {
                 const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _63("="), value: "eq" },
-                  { label: _63(">"), value: "gt" },
-                  { label: _63(">="), value: "gte" },
-                  { label: _63("<"), value: "lt" },
-                  { label: _63("<="), value: "lte" },
-                  { label: _63("Between"), value: "between" }
+                  { label: _64("="), value: "eq" },
+                  { label: _64(">"), value: "gt" },
+                  { label: _64(">="), value: "gte" },
+                  { label: _64("<"), value: "lt" },
+                  { label: _64("<="), value: "lte" },
+                  { label: _64("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _63("On"), value: "on" },
-                  { label: _63("After"), value: "after" },
-                  { label: _63("Before"), value: "before" },
-                  { label: _63("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _63("Is"), value: "is" }] : [
-                  { label: _63("Contains"), value: "contains" },
-                  { label: _63("Equals"), value: "equals" }
+                  { label: _64("On"), value: "on" },
+                  { label: _64("After"), value: "after" },
+                  { label: _64("Before"), value: "before" },
+                  { label: _64("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _64("Is"), value: "is" }] : [
+                  { label: _64("Contains"), value: "contains" },
+                  { label: _64("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -17007,9 +17366,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _63("Previous"), value: "previous" },
-                            { label: _63("Current"), value: "current" },
-                            { label: _63("Next"), value: "next" }
+                            { label: _64("Previous"), value: "previous" },
+                            { label: _64("Current"), value: "current" },
+                            { label: _64("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -17019,11 +17378,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _63("Days"), value: "days" },
-                            { label: _63("Weeks"), value: "weeks" },
-                            { label: _63("Months"), value: "months" },
-                            { label: _63("Quarters"), value: "quarters" },
-                            { label: _63("Years"), value: "years" }
+                            { label: _64("Days"), value: "days" },
+                            { label: _64("Weeks"), value: "weeks" },
+                            { label: _64("Months"), value: "months" },
+                            { label: _64("Quarters"), value: "quarters" },
+                            { label: _64("Years"), value: "years" }
                           ]
                         }
                       )
@@ -17032,7 +17391,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   return /* @__PURE__ */ jsx(
                     DatePicker,
                     {
-                      value: value?.date ? dayjs11(value.date) : void 0,
+                      value: value?.date ? dayjs12(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -17045,7 +17404,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: relatedModel.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _63("Field")
+                      placeholder: _64("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -17055,7 +17414,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _63("Operator")
+                      placeholder: _64("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -17088,10 +17447,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _63("True"), value: true },
-                        { label: _63("False"), value: false }
+                        { label: _64("True"), value: true },
+                        { label: _64("False"), value: false }
                       ],
-                      placeholder: _63("Value")
+                      placeholder: _64("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -17104,7 +17463,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _63("Value"),
+                      placeholder: _64("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -17117,8 +17476,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _63("Date"), value: "absolute" },
-                        { label: _63("Relative"), value: "relative" }
+                        { label: _64("Date"), value: "absolute" },
+                        { label: _64("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -17131,8 +17490,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _63("Date"), value: "absolute" },
-                        { label: _63("Relative"), value: "relative" }
+                        { label: _64("Date"), value: "absolute" },
+                        { label: _64("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -17142,7 +17501,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _63("Remove")
+                      children: _64("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -17154,14 +17513,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _63("Add Filter")
+                    children: _64("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _63("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _64("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _63("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _64("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -17182,12 +17541,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _63("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _63("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _64("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _64("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _63("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _64("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -17200,7 +17559,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                       setRenameViewName(currentViewName);
                       setRenameViewModalOpen(true);
                     },
-                    children: _63("Rename view")
+                    children: _64("Rename view")
                   }
                 ),
                 /* @__PURE__ */ jsx(
@@ -17211,7 +17570,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                     disabled: availableViewNames.length <= 1,
                     onClick: confirmDeleteView,
-                    children: _63("Delete view")
+                    children: _64("Delete view")
                   }
                 )
               ] }),
@@ -17222,7 +17581,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _63("Save layout")
+                  children: _64("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -17234,7 +17593,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _63("Show Filters") : _63("Hide Filters")
+                  children: filtersCollapsed ? _64("Show Filters") : _64("Hide Filters")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -17246,7 +17605,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setListVisible((prev) => !prev);
                   },
-                  children: _63("View list")
+                  children: _64("View list")
                 }
               ),
               analyzeSectionAvailable && /* @__PURE__ */ jsx(
@@ -17260,7 +17619,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _63("Analyze")
+                  children: _64("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -17272,7 +17631,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _63("Switch orientation")
+                  children: _64("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -17284,21 +17643,21 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _63("Switch positions")
+                  children: _64("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _63("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _64("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _63("Reset to default") })
+              }, children: _64("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _63("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _64("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -17310,27 +17669,27 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _63("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _63("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _64("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _64("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = relatedModel.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _63("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _63("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _64("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _64("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _63("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _63("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _64("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _64("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _63("Sum"), value: "sum" },
-                  { label: _63("Average"), value: "avg" },
-                  { label: _63("Count"), value: "count" },
-                  { label: _63("Max"), value: "max" },
-                  { label: _63("Min"), value: "min" },
-                  { label: _63("Std Dev"), value: "stddev" }
+                  { label: _64("Sum"), value: "sum" },
+                  { label: _64("Average"), value: "avg" },
+                  { label: _64("Count"), value: "count" },
+                  { label: _64("Max"), value: "max" },
+                  { label: _64("Min"), value: "min" },
+                  { label: _64("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -17386,7 +17745,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_82, newPageSize) => {
+                    onShowSizeChange: (_83, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -17399,8 +17758,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   onRow: (row) => ({
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
-                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _63("No related records") }) } : void 0,
-                  onChange: (_82, filters, sorter, extra) => {
+                  locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _64("No related records") }) } : void 0,
+                  onChange: (_83, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -17491,7 +17850,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 name: [rowId, field.key],
                                 style: { margin: 0 },
                                 valuePropName: field.type === "boolean" ? "checked" : "value",
-                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs11(val) } : field.type === "time" && val ? { value: dayjs11("1970-01-01T" + val) } : { value: val },
+                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs12(val) } : field.type === "time" && val ? { value: dayjs12("1970-01-01T" + val) } : { value: val },
                                 children: renderEditableInput(field, rowId, row)
                               }
                             );
@@ -17542,7 +17901,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     showActions && /* @__PURE__ */ jsx(
                       Table.Column,
                       {
-                        title: _63("Actions"),
+                        title: _64("Actions"),
                         width: 140,
                         render: (_unused, row) => {
                           const id = row?.eid ?? row?.id;
@@ -17550,14 +17909,14 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                           const deleteId = relationRow && rel.targetKey && rel.otherKey ? `${relationRow["eid_from"]}:${relationRow["eid_to"]}` : relationRow?.id ?? relationRow?.eid;
                           return /* @__PURE__ */ jsxs(Space, { children: [
                             id && /* @__PURE__ */ jsxs(Fragment, { children: [
-                              /* @__PURE__ */ jsx(Tooltip, { title: _63("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _64("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => {
                                 if (paneNav?.isInMultiPane) {
                                   paneNav.openDetail(relatedModel.name, id);
                                 } else {
                                   go({ to: { resource: relatedModel.name, action: "show", id } });
                                 }
                               } }) }),
-                              /* @__PURE__ */ jsx(Tooltip, { title: _63("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
+                              /* @__PURE__ */ jsx(Tooltip, { title: _64("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => {
                                 if (allowInlineEdit) {
                                   const params = new URLSearchParams();
                                   params.append("inline", "1");
@@ -17569,7 +17928,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 }
                               } }) })
                             ] }),
-                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _63("Delete"), children: /* @__PURE__ */ jsx(
+                            deleteId && /* @__PURE__ */ jsx(Tooltip, { title: _64("Delete"), children: /* @__PURE__ */ jsx(
                               Button,
                               {
                                 size: "small",
@@ -17589,7 +17948,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
             }
           ),
           relationRowsCapped && /* @__PURE__ */ jsxs("div", { style: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _63("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
+            /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", style: { fontSize: 12 }, children: _64("Only the first N rows are loaded").replace("N", formatNumberValue(loadedRowsCount || relationsMaxRowsToLoad)) }),
             /* @__PURE__ */ jsx(
               Button,
               {
@@ -17599,7 +17958,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                   setFullDataLoaded(false);
                   setLoadAllRelatedRequested(true);
                 },
-                children: _63("Load all related")
+                children: _64("Load all related")
               }
             )
           ] })
@@ -17719,7 +18078,7 @@ var RelatedObjectSingleSelect = ({ rel, record, allModels, required }) => {
     }
   );
 };
-var _64 = window._ || ((text) => text);
+var _65 = window._ || ((text) => text);
 function useMillerColumnItems({
   parentId,
   rel,
@@ -17837,7 +18196,7 @@ function useMillerColumnItems({
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
-          setError(err instanceof Error ? err.message : _64("Failed to load items"));
+          setError(err instanceof Error ? err.message : _65("Failed to load items"));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -17889,7 +18248,7 @@ var MillerColumn = ({
         Empty,
         {
           image: Empty.PRESENTED_IMAGE_SIMPLE,
-          description: _64("No items"),
+          description: _65("No items"),
           style: { margin: "32px 0" }
         }
       ),
@@ -17966,12 +18325,12 @@ var DetailPaneContent = ({ node, allModels }) => {
   const model = allModels?.find((m) => m.name === node.resource);
   const showHref = getShowHref(node.resource, node.id, allModels);
   if (!model) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_64("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_65("No schema for")} ${node.resource}`, style: { marginTop: 32 } });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }, children: [
       /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0, color: token.colorTextSecondary, fontWeight: 500, flex: 1, minWidth: 0 }, children: node.label }),
-      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _64("Open in new tab"), children: /* @__PURE__ */ jsx(
+      showHref && /* @__PURE__ */ jsx(Tooltip, { title: _65("Open in new tab"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -18077,7 +18436,7 @@ var MillerBrowserLayout = ({
     }
   };
   if (!rootId) {
-    return /* @__PURE__ */ jsx(Empty, { description: _64("No record selected") });
+    return /* @__PURE__ */ jsx(Empty, { description: _65("No record selected") });
   }
   const columnsAreaStyle = columnsWidth !== null ? { width: columnsWidth, flexShrink: 0, flexGrow: 0, minWidth: 200, overflowX: "auto", display: "flex", height: "100%" } : { width: showDetails ? "fit-content" : "100%", maxWidth: showDetails ? "50%" : "100%", flexShrink: 0, minWidth: 240, overflowX: "auto", display: "flex", height: "100%" };
   return /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -18140,7 +18499,7 @@ var MillerBrowserLayout = ({
       showDetails && /* @__PURE__ */ jsx(
         Drawer,
         {
-          title: detailNode?.label ?? _64("Details"),
+          title: detailNode?.label ?? _65("Details"),
           placement: "right",
           open: drawerOpen && !isDesktop,
           onClose: () => setDrawerOpen(false),
@@ -18485,8 +18844,23 @@ var renderRelationBlock = (relationBlockArguments) => {
   if (relationBlockArguments.mode !== "show") return relationBlock;
   return /* @__PURE__ */ jsx(ConfigProvider, { componentDisabled: false, children: relationBlock }, relationBlock.key ?? void 0);
 };
-var _65 = window._ || ((text) => text);
+var _66 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
+var TEMPORARY_LIST_VIEW_TYPES = [
+  "table",
+  "editable-table",
+  "list",
+  "editable-list",
+  "gallery",
+  "image",
+  "calendar",
+  "kanban",
+  "totals-details",
+  "crosstab",
+  "editable-crosstab",
+  "primary",
+  "primary-carousel"
+];
 var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
@@ -18500,6 +18874,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const invalidate = useInvalidate();
   const apiUrl = useApiUrl();
   const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
+  const temporaryLayoutPageKey = isEmbedded || filter ? null : buildTemporaryPageKey(resourceIdentifier, "list");
+  const temporaryLayout = useTemporaryPageLayoutFor(temporaryLayoutPageKey);
   useSetHelpPageKey(isEmbedded ? null : `${resourceIdentifier}:list`);
   const prefsKey = preferencesResourceOverride ?? resourceIdentifier;
   const { data: canDeleteData } = useCan({ resource: resourceIdentifier, action: "delete" });
@@ -18509,7 +18885,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const canBulkEdit = canEditData?.can !== false && model.capabilities?.update !== false;
   const canCreate = canCreateData?.can !== false && model.capabilities?.create !== false;
   const { settings: viewSettings } = useViewSettings();
-  viewSettings?.generalActionsButtonPosition || "top-right";
+  temporaryLayout.actionsPosition || viewSettings?.generalActionsButtonPosition || "top-right";
   const [actionsBarEl, setActionsBarEl] = useState(null);
   const resolvedLayoutPreferenceType = layoutPreferenceType ?? "ShowLayout";
   const [searchParams] = useSearchParams();
@@ -18550,7 +18926,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const fileListViewType = String(viewSettings?.fileListViewType || "").toLowerCase();
   const urlViewType = searchParams.get("view_type");
   const resolvedListViewType = String(
-    urlViewType || listViewType || (isFileModel3 && fileListViewType ? fileListViewType : defaultListViewType) || "table"
+    temporaryLayout.listViewType || urlViewType || listViewType || (isFileModel3 && fileListViewType ? fileListViewType : defaultListViewType) || "table"
   ).toLowerCase();
   const isImageView = resolvedListViewType === "image";
   const isGalleryView = resolvedListViewType === "gallery" || isImageView;
@@ -18577,6 +18953,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const galleryImageHeight = viewSettings?.galleryImageHeight ?? 140;
   const calendarDateFieldOptions = useMemo(() => getCalendarDateFieldOptions(model.fields), [model.fields]);
   const calendarHeatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(model.fields), [model.fields]);
+  const temporaryListViewTypes = useMemo(
+    () => TEMPORARY_LIST_VIEW_TYPES.filter((token2) => token2 !== "calendar" || calendarDateFieldOptions.length > 0),
+    [calendarDateFieldOptions]
+  );
   const [localSearch, setLocalSearch] = useState("");
   const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
   const [isTdFlipped, setIsTdFlipped] = useState(false);
@@ -18590,7 +18970,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [carouselToolbarSlot, setCarouselToolbarSlot] = useState(null);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs11().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs12().startOf("month"));
   const [calendarHeatmapField, setCalendarHeatmapField] = useState("");
   const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
   const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
@@ -18624,6 +19004,26 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
   const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
   const analyzeTouchedRef = useRef(false);
+  useEffect(() => {
+    if (!temporaryLayoutPageKey || temporaryLayout.analyzeOpen === void 0) return;
+    analyzeTouchedRef.current = true;
+    setAnalyzeOpen(temporaryLayout.analyzeOpen);
+    updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeOpen: void 0 });
+  }, [temporaryLayoutPageKey, temporaryLayout.analyzeOpen]);
+  useEffect(() => {
+    if (!temporaryLayoutPageKey || temporaryLayout.analyzeFirst === void 0) return;
+    setIsAnalyzeFirst(temporaryLayout.analyzeFirst);
+    updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeFirst: void 0 });
+  }, [temporaryLayoutPageKey, temporaryLayout.analyzeFirst]);
+  useEffect(() => {
+    if (!temporaryLayoutPageKey || temporaryLayout.analyzeVertical === void 0) return;
+    setIsAnalyzeVertical(temporaryLayout.analyzeVertical);
+    updateTemporaryPageLayout(temporaryLayoutPageKey, { analyzeVertical: void 0 });
+  }, [temporaryLayoutPageKey, temporaryLayout.analyzeVertical]);
+  useEffect(() => {
+    if (!temporaryLayoutPageKey) return;
+    publishListAnalyzeState(temporaryLayoutPageKey, { analyzeOpen, analyzeFirst: isAnalyzeFirst, analyzeVertical: isAnalyzeVertical });
+  }, [temporaryLayoutPageKey, analyzeOpen, isAnalyzeFirst, isAnalyzeVertical]);
   const { metadataButton, metadataModal } = useMetadataModal(model, allModels, searchParams.get("metadata") === "1");
   const defaultDisplayFields = useMemo(() => getListViewFields(model, filter?.field), [model, filter?.field]);
   const orderedColumnKeys = useMemo(() => {
@@ -18708,12 +19108,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           });
         }
       }
-      message.success(_65("Relations added."));
+      message.success(_66("Relations added."));
       if (selectModeReturnTo && selectModeReturnTo.startsWith("/")) {
         navigate(selectModeReturnTo);
       }
     } catch {
-      message.error(_65("Failed to add relations."));
+      message.error(_66("Failed to add relations."));
     } finally {
       setSelectModeAssociating(false);
     }
@@ -18829,7 +19229,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs11();
+    const base = dayjs12();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -18890,7 +19290,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       return true;
     }
     if (field.type === "date" || field.type === "datetime") {
-      const recordDate = dayjs11(rawValue);
+      const recordDate = dayjs12(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -18898,7 +19298,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs11(val?.date || val);
+        const date = dayjs12(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -18909,13 +19309,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs11(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs12(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs12(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs11(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs11(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs12(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs12(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -19024,7 +19424,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const columnFilterValuesLoading = !allRowsLoaded;
   const renderColumnFilterValuesLoading = () => /* @__PURE__ */ jsxs("div", { style: { padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }, children: [
     /* @__PURE__ */ jsx(Spin, { size: "small" }),
-    /* @__PURE__ */ jsx("span", { children: _65("Loading all values\u2026") })
+    /* @__PURE__ */ jsx("span", { children: _66("Loading all values\u2026") })
   ] });
   const allFieldOptions = useMemo(() => {
     return model.fields.map((field) => ({ label: field.label, value: field.key }));
@@ -19112,9 +19512,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   }, [columnFiltersSelected]);
   const shouldLoadAllRows = useMemo(() => {
     return Boolean(
-      localSearch.trim().length > 0 || hasActiveFilterRules || analyzeNeedsAllRows || exportRequested || isTotalsDetailsView || isCrosstabView || isKanbanView || isPrimaryCarouselView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
+      localSearch.trim().length > 0 || hasActiveFilterRules || analyzeNeedsAllRows || exportRequested || isTotalsDetailsView || isCrosstabView || isKanbanView || isPrimaryCarouselView || // The calendar needs every record to know which months and weeks hold data.
+      isCalendarView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
     );
-  }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, localSearch]);
+  }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, isCalendarView, localSearch]);
   const resetLayoutDefaults = useCallback(() => {
     setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(isEmbedded);
@@ -19244,7 +19645,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       return;
     }
     if (availableViewNames.includes(newName)) {
-      message.error(_65("View name already exists."));
+      message.error(_66("View name already exists."));
       return;
     }
     try {
@@ -19257,18 +19658,18 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       if (!response.ok) {
         throw new Error(`Rename failed (${response.status})`);
       }
-      message.success(_65("View renamed."));
+      message.success(_66("View renamed."));
       setRenameViewModalOpen(false);
       await loadViewNames();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _65("Failed to rename view."));
+      message.error(error instanceof Error ? error.message : _66("Failed to rename view."));
     }
   }, [apiUrl, availableViewNames, currentViewName, model.name, model.resource, renameViewName, allModels, loadViewNames]);
   const confirmDeleteView = useCallback(() => {
     Modal.confirm({
-      title: _65(_65("Delete view")),
+      title: _66(_66("Delete view")),
       content: `Delete "${currentViewName}" and all its saved preferences?`,
-      okText: _65("Delete"),
+      okText: _66("Delete"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -19281,10 +19682,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           if (!response.ok) {
             throw new Error(`Delete failed (${response.status})`);
           }
-          message.success(_65("View deleted."));
+          message.success(_66("View deleted."));
           await loadViewNames();
         } catch (error) {
-          message.error(error instanceof Error ? error.message : _65("Failed to delete view."));
+          message.error(error instanceof Error ? error.message : _66("Failed to delete view."));
         }
       }
     });
@@ -19326,9 +19727,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       if (failed) {
         throw new Error(`Save failed (${failed.status})`);
       }
-      message.success(_65("Layout preferences saved."));
+      message.success(_66("Layout preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _65("Failed to save layout preferences."));
+      message.error(error instanceof Error ? error.message : _66("Failed to save layout preferences."));
     } finally {
       setIsSavingLayoutPrefs(false);
     }
@@ -19338,11 +19739,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const viewName = normalizeViewName(saveViewName || currentViewName);
     const viewExists = availableViewNames.includes(viewName);
     if (saveViewAsNew && viewExists) {
-      message.error(_65("View name already exists. Choose a new name."));
+      message.error(_66("View name already exists. Choose a new name."));
       return;
     }
     if (!saveViewAsNew && viewName !== currentViewName && viewExists) {
-      message.error(_65('Choose a new name or enable "Save as new view".'));
+      message.error(_66('Choose a new name or enable "Save as new view".'));
       return;
     }
     setSaveViewModalOpen(false);
@@ -19486,7 +19887,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       }
       setAllRowsData(allRows2);
     } catch (error) {
-      setAllRowsError(error instanceof Error ? error.message : _65("Failed to fetch all rows"));
+      setAllRowsError(error instanceof Error ? error.message : _66("Failed to fetch all rows"));
     } finally {
       setIsAllRowsLoading(false);
       setAllRowsLoaded(true);
@@ -19554,10 +19955,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
       }
       setCrosstabStaged({});
-      message.success(_65("Changes saved."));
+      message.success(_66("Changes saved."));
       invalidate({ resource: model.resource || model.name, invalidates: ["list"] });
     } catch (err) {
-      message.error(err instanceof Error ? err.message : _65("Failed to save changes."));
+      message.error(err instanceof Error ? err.message : _66("Failed to save changes."));
     } finally {
       setCrosstabSaving(false);
     }
@@ -19622,7 +20023,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           allowClear: true,
           size: "small",
           style: { width: "100%" },
-          placeholder: _65("All"),
+          placeholder: _66("All"),
           maxTagCount: "responsive",
           value: columnFiltersSelected[fieldKey] || [],
           options,
@@ -19632,7 +20033,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     ] }, `ct-filter-${fieldKey}`);
   }) }) : null;
   const crosstabBodyNode = /* @__PURE__ */ jsxs("div", { children: [
-    editableCrosstab && canBulkEdit && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _65("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _65("Save") }) }) }),
+    editableCrosstab && canBulkEdit && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 8 }, children: /* @__PURE__ */ jsx(Tooltip, { title: _66("Save"), children: /* @__PURE__ */ jsx(Button, { size: "small", type: "primary", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: saveCrosstabEdits, loading: crosstabSaving, disabled: !crosstabHasPendingEdits, "aria-label": _66("Save") }) }) }),
     crosstabConfigPanel,
     crosstabFilterRow,
     /* @__PURE__ */ jsx(
@@ -19672,7 +20073,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           } else if (field.options) {
             label = field.options.find((o) => o && o.value === raw)?.label || String(raw);
           } else if (field.type === "boolean") {
-            label = raw ? _65("Yes") : _65("No");
+            label = raw ? _66("Yes") : _66("No");
           } else if (field.type === "date") {
             label = formatDateValue(raw);
           } else if (field.type === "datetime") {
@@ -19718,13 +20119,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const getSummaryFunctionDisplayText = useCallback((fn) => {
     if (!fn) return "";
     const labels = {
-      sum: _65("Sum"),
-      avg: _65("Average"),
-      count: _65("Count"),
-      max: _65("Max"),
-      min: _65("Min"),
-      stddev: _65("Std Dev"),
-      distinct: _65("Distinct")
+      sum: _66("Sum"),
+      avg: _66("Average"),
+      count: _66("Count"),
+      max: _66("Max"),
+      min: _66("Min"),
+      stddev: _66("Std Dev"),
+      distinct: _66("Distinct")
     };
     return labels[fn] || fn;
   }, []);
@@ -19785,12 +20186,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           `td-num-${item.key}`
         )) })
       ] }) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _65("Show totals") : _65("Show details"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: isTdFlipped ? _66("Show totals") : _66("Show details"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
           icon: /* @__PURE__ */ jsx(SwapOutlined, { style: { transform: "rotate(90deg)" } }),
-          "aria-label": isTdFlipped ? _65("Show totals") : _65("Show details"),
+          "aria-label": isTdFlipped ? _66("Show totals") : _66("Show details"),
           onClick: () => setIsTdFlipped((prev) => !prev),
           style: {
             flexShrink: 0,
@@ -19826,7 +20227,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _65("Yes") : _65("No");
+    if (field.type === "boolean") return raw ? _66("Yes") : _66("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -19963,7 +20364,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         for (const actionKey of apiActionKeys) {
           if (actionKey === "__delete__") {
             const resp = await authenticatedFetch(`${apiUrl}/${resource}/${id}`, { method: "DELETE" });
-            if (!resp.ok) throw new Error(`${_65("Delete failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_66("Delete failed for record")} ${id}`);
           } else if (actionKey === "__change_field__") {
             if (!bulkChangeFieldKey) continue;
             const payload = { ...record, [bulkChangeFieldKey]: bulkChangeFieldValue };
@@ -19973,7 +20374,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
-            if (!resp.ok) throw new Error(`${_65("Update failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_66("Update failed for record")} ${id}`);
           } else if (actionKey === "__clone__") {
             const clonePayload = { ...record };
             delete clonePayload.eid;
@@ -19985,7 +20386,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(clonePayload)
             });
-            if (!resp.ok) throw new Error(`${_65("Clone failed for record")} ${id}`);
+            if (!resp.ok) throw new Error(`${_66("Clone failed for record")} ${id}`);
           } else if (actionKey === "__pin__") {
             await authenticatedFetch(`${apiUrl}/dashboard/pinned-records`, {
               method: "POST",
@@ -20004,11 +20405,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
       message.success(
-        _65("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
+        _66("Actions applied successfully to {count} rows").replace("{count}", String(records.length))
       );
     } catch (e) {
       errorOccurred = true;
-      message.error(e?.message || _65("Bulk action failed"));
+      message.error(e?.message || _66("Bulk action failed"));
     } finally {
       setIsBulkExecuting(false);
       setBulkActionModalOpen(false);
@@ -20130,7 +20531,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       Table.SELECTION_NONE,
       {
         key: "select-all-filtered",
-        text: _65("Select all filtered rows"),
+        text: _66("Select all filtered rows"),
         onSelect: handleSelectAllFiltered
       }
     ]
@@ -20139,21 +20540,21 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const bulkActionsAvailable = useMemo(() => {
     const opts = [];
     if (canBulkEdit) {
-      opts.push({ label: _65("Change field value"), value: "__change_field__" });
+      opts.push({ label: _66("Change field value"), value: "__change_field__" });
     }
-    if (frameworkUiFeatures.csv_export) opts.push({ label: _65("Export selected (CSV)"), value: "__export_csv__" });
-    opts.push({ label: _65("Navigate to related"), value: "__navigate_to_related__" });
-    opts.push({ label: _65("Append related list"), value: "__append_related_list__" });
+    if (frameworkUiFeatures.csv_export) opts.push({ label: _66("Export selected (CSV)"), value: "__export_csv__" });
+    opts.push({ label: _66("Navigate to related"), value: "__navigate_to_related__" });
+    opts.push({ label: _66("Append related list"), value: "__append_related_list__" });
     if (canCreate) {
-      opts.push({ label: _65("Clone / Duplicate selected"), value: "__clone__" });
+      opts.push({ label: _66("Clone / Duplicate selected"), value: "__clone__" });
     }
     if (bulkActions && bulkActions.length > 0) {
-      bulkActions.forEach((a) => opts.push({ label: _65(a.label), value: a.key }));
+      bulkActions.forEach((a) => opts.push({ label: _66(a.label), value: a.key }));
     }
-    opts.push({ label: _65("Pin selected"), value: "__pin__" });
-    opts.push({ label: _65("Unpin selected"), value: "__unpin__" });
+    opts.push({ label: _66("Pin selected"), value: "__pin__" });
+    opts.push({ label: _66("Unpin selected"), value: "__unpin__" });
     if (canBulkDelete) {
-      opts.push({ label: _65("Delete selected"), value: "__delete__" });
+      opts.push({ label: _66("Delete selected"), value: "__delete__" });
     }
     return opts;
   }, [bulkActions, canBulkDelete, canBulkEdit, canCreate, frameworkUiFeatures.csv_export]);
@@ -20194,7 +20595,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       background: token.colorPrimaryBg,
       border: `1px solid ${token.colorPrimaryBorder}`
     }, children: [
-      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _65("Filtered by: {relation}").replace("{relation}", filterDescription) }),
+      /* @__PURE__ */ jsx("span", { style: { color: token.colorPrimaryText, fontSize: 13 }, children: _66("Filtered by: {relation}").replace("{relation}", filterDescription) }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -20207,7 +20608,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
             const newSearch = newParams.toString();
             navigate({ search: newSearch ? `?${newSearch}` : "" }, { replace: true });
           },
-          children: _65("Clear filter")
+          children: _66("Clear filter")
         }
       )
     ] });
@@ -20224,9 +20625,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     background: token.colorWarningBg,
     border: `1px solid ${token.colorWarningBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _65("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _65("Select rows to associate") }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, color: token.colorWarningText }, children: bulkSelectedRowKeys.length > 0 ? _66("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) : _66("Select rows to associate") }),
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8 }, children: [
-      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _65("Cancel") }),
+      selectModeReturnTo && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => navigate(selectModeReturnTo), children: _66("Cancel") }),
       /* @__PURE__ */ jsx(
         Button,
         {
@@ -20235,7 +20636,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           disabled: bulkSelectedRowKeys.length === 0,
           loading: selectModeAssociating,
           onClick: handleAssociateSelected,
-          children: _65("Associate selected")
+          children: _66("Associate selected")
         }
       )
     ] })
@@ -20251,7 +20652,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     background: token.colorInfoBg,
     border: `1px solid ${token.colorInfoBorder}`
   }, children: [
-    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _65("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500 }, children: _66("{count} rows selected").replace("{count}", String(bulkSelectedRowKeys.length)) }),
     bulkSelectedRowKeys.length < filteredTotalCount && /* @__PURE__ */ jsx(
       Button,
       {
@@ -20260,16 +20661,16 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         loading: selectAllFilteredPending && isAllRowsLoading,
         onClick: handleSelectAllFiltered,
         style: { padding: 0 },
-        children: _65("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
+        children: _66("Select all {count} filtered rows").replace("{count}", String(filteredTotalCount))
       }
     ),
-    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _65("Clear selection") }),
+    /* @__PURE__ */ jsx(Button, { type: "link", size: "small", onClick: clearBulkSelection, style: { padding: 0 }, children: _66("Clear selection") }),
     /* @__PURE__ */ jsx("div", { style: { flex: 1, minWidth: 180 }, children: /* @__PURE__ */ jsx(
       Select,
       {
         mode: "multiple",
         size: "small",
-        placeholder: _65("Actions"),
+        placeholder: _66("Actions"),
         style: { width: "100%" },
         value: bulkActionsToApply,
         onChange: (values) => {
@@ -20303,7 +20704,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         Select,
         {
           size: "small",
-          placeholder: _65("Select field"),
+          placeholder: _66("Select field"),
           style: { minWidth: 160 },
           value: bulkChangeFieldKey ?? void 0,
           onChange: (v) => {
@@ -20318,7 +20719,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         Select,
         {
           size: "small",
-          placeholder: _65("Select value"),
+          placeholder: _66("Select value"),
           style: { minWidth: 180 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
@@ -20329,25 +20730,25 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         Select,
         {
           size: "small",
-          placeholder: _65("Select value"),
+          placeholder: _66("Select value"),
           style: { minWidth: 120 },
           value: bulkChangeFieldValue ?? void 0,
           onChange: (v) => setBulkChangeFieldValue(v),
-          options: [{ label: _65("True"), value: true }, { label: _65("False"), value: false }],
+          options: [{ label: _66("True"), value: true }, { label: _66("False"), value: false }],
           allowClear: true
         }
       ) : bulkChangeField.type === "date" ? /* @__PURE__ */ jsx(
         DatePicker,
         {
           size: "small",
-          value: bulkChangeFieldValue ? dayjs11(bulkChangeFieldValue) : null,
+          value: bulkChangeFieldValue ? dayjs12(bulkChangeFieldValue) : null,
           onChange: (v) => setBulkChangeFieldValue(v ? v.toISOString() : null)
         }
       ) : bulkChangeField.type === "number" ? /* @__PURE__ */ jsx(
         InputNumber,
         {
           size: "small",
-          placeholder: _65("Value"),
+          placeholder: _66("Value"),
           value: bulkChangeFieldValue,
           onChange: (v) => setBulkChangeFieldValue(v),
           style: { minWidth: 120 }
@@ -20356,7 +20757,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         Input,
         {
           size: "small",
-          placeholder: _65("Value"),
+          placeholder: _66("Value"),
           value: bulkChangeFieldValue ?? "",
           onChange: (e) => setBulkChangeFieldValue(e.target.value),
           style: { minWidth: 160 }
@@ -20371,7 +20772,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         Select,
         {
           size: "small",
-          placeholder: isAppend ? _65("Select relation to append") : _65("Select relation"),
+          placeholder: isAppend ? _66("Select relation to append") : _66("Select relation"),
           style: { minWidth: 220 },
           showSearch: true,
           value: currentRelation ? `${currentRelation.targetResource}|${currentRelation.filterKey}` : void 0,
@@ -20441,7 +20842,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
             setBulkActionModalOpen(true);
           }
         },
-        children: _65("Apply")
+        children: _66("Apply")
       }
     )
   ] }) : null;
@@ -20449,16 +20850,16 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     Modal,
     {
       open: bulkActionModalOpen,
-      title: _65("Confirm bulk action"),
+      title: _66("Confirm bulk action"),
       onCancel: () => {
         if (!isBulkExecuting) setBulkActionModalOpen(false);
       },
       footer: [
-        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _65("Cancel") }, "cancel"),
-        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _65("Confirm") }, "ok")
+        /* @__PURE__ */ jsx(Button, { onClick: () => setBulkActionModalOpen(false), disabled: isBulkExecuting, children: _66("Cancel") }, "cancel"),
+        /* @__PURE__ */ jsx(Button, { type: "primary", loading: isBulkExecuting, onClick: executeBulkActions, children: _66("Confirm") }, "ok")
       ],
       children: [
-        /* @__PURE__ */ jsx("p", { children: _65("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
+        /* @__PURE__ */ jsx("p", { children: _66("You are about to apply the following actions to {count} rows:").replace("{count}", String(bulkSelectedRowKeys.length)) }),
         /* @__PURE__ */ jsx("ul", { style: { paddingLeft: 20, marginBottom: 8 }, children: bulkActionsToApply.map((actionKey) => {
           const label = bulkActionsAvailable.find((a) => a && a.value === actionKey)?.label ?? actionKey;
           const extra = actionKey === "__change_field__" && bulkChangeField ? ` \u2192 ${bulkChangeField.label}: ${String(bulkChangeFieldValue ?? "")}` : "";
@@ -20477,7 +20878,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const listTitle = !isEmbedded ? renderModelHeading({
     model,
     title: titleProp ?? modelDisplayLabel,
-    actionLabel: _65("List"),
+    actionLabel: _66("List"),
     moduleLabel: model.module ? getModuleLabel(model.module) : void 0
   }) : void 0;
   const numericBarColor = modelTone.soft || token.colorPrimaryBg || "rgba(22, 119, 255, 0.16)";
@@ -20501,7 +20902,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       items: selectedViewNames.map((name) => ({ key: name, label: renderToneTabLabel(name, modelTone) }))
     }
   ) : null;
-  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _65("View list"), children: /* @__PURE__ */ jsx(
+  const listToggleButton = /* @__PURE__ */ jsx(Tooltip, { title: _66("View list"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20518,7 +20919,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
       const response = await authenticatedFetch(`${apiUrl}/${resourcePath}/export-csv`);
       if (!response.ok) {
-        message.error(_65("Export failed."));
+        message.error(_66("Export failed."));
         return;
       }
       const blob = await response.blob();
@@ -20534,7 +20935,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       setExportLoading(false);
     }
   }, [apiUrl, model, allModels]);
-  const exportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+  const exportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20543,7 +20944,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       loading: exportLoading
     }
   ) }) : null;
-  const quickExportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+  const quickExportButton = !isEmbedded && frameworkUiFeatures.csv_export ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20552,7 +20953,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       loading: exportRequested && isAllRowsLoading
     }
   ) }) : null;
-  const importButton = !isEmbedded && !model.isNamedQuery && !model.isNonModelData ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Import CSV"), children: /* @__PURE__ */ jsx(
+  const importButton = !isEmbedded && !model.isNamedQuery && !model.isNonModelData ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Import CSV"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20560,7 +20961,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       onClick: () => setImportModalOpen(true)
     }
   ) }) : null;
-  const columnsToggleButton = frameworkUiFeatures.column_selector ? /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _65("Hide view configuration") : _65("Show view configuration"), children: /* @__PURE__ */ jsx(
+  const columnsToggleButton = frameworkUiFeatures.column_selector ? /* @__PURE__ */ jsx(Tooltip, { title: columnsSelectorOpen ? _66("Hide view configuration") : _66("Show view configuration"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20572,10 +20973,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           return next;
         });
       },
-      "aria-label": columnsSelectorOpen ? _65("Hide view configuration") : _65("Show view configuration")
+      "aria-label": columnsSelectorOpen ? _66("Hide view configuration") : _66("Show view configuration")
     }
   ) }) : null;
-  const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Add relation"), children: /* @__PURE__ */ jsx(
+  const createRelationButton = isRelationView && showCreate && canCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Add relation"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20591,7 +20992,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       }
     }
   ) }) : null;
-  const associateExistingFkButton = isRelationView && showCreate && canBulkEdit && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Associate existing"), children: /* @__PURE__ */ jsx(
+  const associateExistingFkButton = isRelationView && showCreate && canBulkEdit && filter?.field && filter?.value !== void 0 && filter?.value !== null && !relationConfig?.otherKey ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Associate existing"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20611,7 +21012,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       }
     }
   ) }) : null;
-  const createNewAndRelateButton = isRelationView && showCreate && canCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Create new and relate"), children: /* @__PURE__ */ jsx(
+  const createNewAndRelateButton = isRelationView && showCreate && canCreate && relationConfig?.otherResource && relationConfig?.otherKey && (relationConfig?.targetKey || filter?.field) && filter?.value !== void 0 && filter?.value !== null ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Create new and relate"), children: /* @__PURE__ */ jsx(
     Button,
     {
       size: "small",
@@ -20627,7 +21028,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         const relatedModel = findModelByName(allModels, relationConfig?.otherResource || relationConfig?.otherResourcePath);
         const relatedResource = relatedModel ? resolveResourcePath(relatedModel.resource || relatedModel.name, allModels) : null;
         if (!relatedResource) {
-          message.warning(_65("No create route for the related model. Opening relation create form."));
+          message.warning(_66("No create route for the related model. Opening relation create form."));
           params.append(targetKey, String(targetId));
           const returnTo2 = `${location.pathname}${location.search}${location.hash}`;
           if (returnTo2.startsWith("/")) params.append("returnTo", returnTo2);
@@ -20647,7 +21048,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const embeddedActionBar = isEmbedded ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: [
     columnsToggleButton,
     listToggleButton,
-    analyzeSectionAvailable && /* @__PURE__ */ jsx(Tooltip, { title: _65("Analyze"), children: /* @__PURE__ */ jsx(
+    analyzeSectionAvailable && /* @__PURE__ */ jsx(Tooltip, { title: _66("Analyze"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -20660,7 +21061,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _65("Switch orientation"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _66("Switch orientation"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -20671,7 +21072,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
     ) }),
-    /* @__PURE__ */ jsx(Tooltip, { title: _65("Switch positions"), children: /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(Tooltip, { title: _66("Switch positions"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -20682,7 +21083,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       }
     ) }),
-    resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsx(Tooltip, { title: _65("Save layout"), children: /* @__PURE__ */ jsx(
+    resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && /* @__PURE__ */ jsx(Tooltip, { title: _66("Save layout"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -20695,7 +21096,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     createRelationButton,
     createNewAndRelateButton,
     frameworkUiFeatures.csv_export && /* @__PURE__ */ jsxs(Fragment, { children: [
-      /* @__PURE__ */ jsx(Tooltip, { title: _65("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _66("Export to CSV (raw values, re-importable)"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -20704,7 +21105,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           loading: exportLoading
         }
       ) }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _65("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: _66("Export to CSV (as shown on screen)"), children: /* @__PURE__ */ jsx(
         Button,
         {
           size: "small",
@@ -20714,7 +21115,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
       ) })
     ] }),
-    !model.isNamedQuery && !model.isNonModelData && /* @__PURE__ */ jsx(Tooltip, { title: _65("Import CSV"), children: /* @__PURE__ */ jsx(
+    !model.isNamedQuery && !model.isNonModelData && /* @__PURE__ */ jsx(Tooltip, { title: _66("Import CSV"), children: /* @__PURE__ */ jsx(
       Button,
       {
         size: "small",
@@ -20752,19 +21153,19 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           invalidate({ resource: refreshed, invalidates: ["list"] });
         }
       } catch (error) {
-        message.error(error instanceof Error ? error.message : _65("Failed to save changes."));
+        message.error(error instanceof Error ? error.message : _66("Failed to save changes."));
       }
     };
-    const button = /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _65(action.label), onClick: (event) => {
+    const button = /* @__PURE__ */ jsx(Button, { size: "small", icon: action.icon, "aria-label": _66(action.label), onClick: (event) => {
       event.stopPropagation();
       if (!action.confirmMessage) void executeRowAction();
     } });
-    return /* @__PURE__ */ jsx(Tooltip, { title: _65(action.label), children: action.confirmMessage ? /* @__PURE__ */ jsx(
+    return /* @__PURE__ */ jsx(Tooltip, { title: _66(action.label), children: action.confirmMessage ? /* @__PURE__ */ jsx(
       Popconfirm,
       {
-        title: _65(action.confirmMessage),
-        okText: _65("Confirm"),
-        cancelText: _65("Cancel"),
+        title: _66(action.confirmMessage),
+        okText: _66("Confirm"),
+        cancelText: _66("Cancel"),
         onConfirm: (event) => {
           event?.stopPropagation();
           void executeRowAction();
@@ -21023,10 +21424,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (calendarInitSignatureRef.current === signature) return;
     calendarInitSignatureRef.current = signature;
     if (calendarEarliestDateTs === null) {
-      setCalendarAnchorDate(dayjs11().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs12().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs11(calendarEarliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs12(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
   const calendarEntriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -21038,6 +21439,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     });
     return grouped;
   }, [calendarEntries]);
+  const calendarEntryDates = useMemo(() => calendarEntries.map((entry) => entry.date), [calendarEntries]);
+  const {
+    previousPeriodStart: previousCalendarPeriodWithData,
+    nextPeriodStart: nextCalendarPeriodWithData,
+    periodStartNearestToday: calendarPeriodWithDataNearestToday
+  } = useCalendarPeriodsWithData(calendarEntryDates, calendarMode, calendarAnchorDate);
   const calendarRangeDays = useMemo(() => {
     const current2 = calendarAnchorDate.startOf(calendarMode);
     if (calendarMode === "week") {
@@ -21078,7 +21485,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   };
   const renderCalendarView = () => {
     if (calendarDateFieldOptions.length === 0) {
-      return /* @__PURE__ */ jsx(Empty, { description: _65("No date/datetime fields available for calendar view.") });
+      return /* @__PURE__ */ jsx(Empty, { description: _66("No date/datetime fields available for calendar view.") });
     }
     const selectedDateField = model.fields.find((field) => field.key === calendarDateField);
     const selectedLabel = selectedDateField?.label || calendarDateField;
@@ -21092,8 +21499,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               value: calendarMode,
               onChange: (value) => setCalendarMode(value),
               options: [
-                { label: _65("Monthly"), value: "month" },
-                { label: _65("Weekly"), value: "week" }
+                { label: _66("Monthly"), value: "month" },
+                { label: _66("Weekly"), value: "week" }
               ],
               style: { minWidth: 120 }
             }
@@ -21106,7 +21513,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               onChange: (value) => setCalendarDateField(value),
               options: calendarDateFieldOptions.map((field) => ({ label: field.label, value: field.key })),
               style: { minWidth: 220 },
-              placeholder: _65("Date field")
+              placeholder: _66("Date field")
             }
           ),
           calendarHeatmapFieldOptions.length > 0 && /* @__PURE__ */ jsx(
@@ -21116,40 +21523,44 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               value: calendarHeatmapField,
               onChange: (value) => setCalendarHeatmapField(value),
               options: [
-                { label: _65("No heatmap"), value: "" },
+                { label: _66("No heatmap"), value: "" },
                 ...calendarHeatmapFieldOptions.map((field) => ({ label: field.label, value: field.key }))
               ],
               style: { minWidth: 180 },
-              placeholder: _65("Heatmap field")
+              placeholder: _66("Heatmap field")
             }
           )
         ] }),
         /* @__PURE__ */ jsxs(Space, { size: 8, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _65("Previous"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _66("Previous"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
-              "aria-label": _65("Previous"),
-              onClick: () => setCalendarAnchorDate((prev) => prev.subtract(1, calendarMode).startOf(calendarMode))
+              "aria-label": _66("Previous"),
+              disabled: previousCalendarPeriodWithData === void 0,
+              onClick: () => previousCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs12(previousCalendarPeriodWithData))
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _65("Today"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _66("Today"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
-              "aria-label": _65("Today"),
-              onClick: () => setCalendarAnchorDate(dayjs11().startOf(calendarMode))
+              "aria-label": _66("Today"),
+              onClick: () => setCalendarAnchorDate(
+                calendarPeriodWithDataNearestToday !== void 0 ? dayjs12(calendarPeriodWithDataNearestToday) : dayjs12().startOf(calendarMode)
+              )
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _65("Next"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _66("Next"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
-              "aria-label": _65("Next"),
-              onClick: () => setCalendarAnchorDate((prev) => prev.add(1, calendarMode).startOf(calendarMode))
+              "aria-label": _66("Next"),
+              disabled: nextCalendarPeriodWithData === void 0,
+              onClick: () => nextCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs12(nextCalendarPeriodWithData))
             }
           ) })
         ] })
@@ -21189,7 +21600,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               const dayKey = day.format("YYYY-MM-DD");
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-              const isToday = day.isSame(dayjs11(), "day");
+              const isToday = day.isSame(dayjs12(), "day");
               const heatmapTotal = calendarHeatmapTotals.get(dayKey);
               const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
               return /* @__PURE__ */ jsxs(
@@ -21241,20 +21652,20 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       Modal,
       {
         open: saveViewModalOpen,
-        title: _65("Save view"),
+        title: _66("Save view"),
         onCancel: () => {
           setSaveViewModalOpen(false);
           setPendingSaveTarget(null);
         },
         onOk: handleConfirmSaveView,
-        okText: pendingSaveTarget === "layout" ? _65("Save layout") : _65("Save analyze"),
+        okText: pendingSaveTarget === "layout" ? _66("Save layout") : _66("Save analyze"),
         okButtonProps: { disabled: !pendingSaveTarget },
         children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _65("View name") }),
+            /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }, children: _66("View name") }),
             /* @__PURE__ */ jsx(Input, { value: saveViewName, onChange: (event) => setSaveViewName(event.target.value) })
           ] }),
-          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _65("Save as new view") })
+          /* @__PURE__ */ jsx(Checkbox, { checked: saveViewAsNew, onChange: (event) => setSaveViewAsNew(event.target.checked), children: _66("Save as new view") })
         ] })
       }
     ),
@@ -21262,10 +21673,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       Modal,
       {
         open: renameViewModalOpen,
-        title: _65("Rename view"),
+        title: _66("Rename view"),
         onCancel: () => setRenameViewModalOpen(false),
         onOk: handleRenameView,
-        okText: _65("Rename"),
+        okText: _66("Rename"),
         children: /* @__PURE__ */ jsx(Input, { value: renameViewName, onChange: (event) => setRenameViewName(event.target.value) })
       }
     ),
@@ -21275,7 +21686,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       {
         size: "small",
         title: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _65("Filters") }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _66("Filters") }),
           /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }, children: [
             !filtersCollapsed && searchField && /* @__PURE__ */ jsx(
               Form,
@@ -21290,7 +21701,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                   }
                   searchFormProps.onFinish?.(values);
                 },
-                children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _65("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
+                children: /* @__PURE__ */ jsx(Form.Item, { name: "q", style: { marginBottom: 0, width: "100%" }, children: /* @__PURE__ */ jsx(Input, { placeholder: _66("Search all fields..."), prefix: /* @__PURE__ */ jsx(SearchOutlined, {}), allowClear: true, style: { width: "100%" } }) })
               }
             ),
             isPrimaryCarouselView && /* @__PURE__ */ jsx("div", { ref: setCarouselToolbarSlot, style: { display: "flex", flex: 1, minWidth: 240 } })
@@ -21299,7 +21710,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         style: { marginBottom: 16 },
         styles: { body: { display: quickFilterFieldDefs.length > 0 ? "flex" : "none", gap: 12, flexWrap: "wrap" } },
         children: quickFilterFieldDefs.map((quickFilterField) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 260, flex: "1 1 260px" }, children: [
-          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, whiteSpace: "nowrap" }, children: _65(quickFilterField.label) }),
+          /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, whiteSpace: "nowrap" }, children: _66(quickFilterField.label) }),
           /* @__PURE__ */ jsx(
             Select,
             {
@@ -21307,9 +21718,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               allowClear: true,
               maxTagCount: "responsive",
               style: { flex: 1, minWidth: 180 },
-              placeholder: `${_65("Select")} ${_65(quickFilterField.label)}...`,
+              placeholder: `${_66("Select")} ${_66(quickFilterField.label)}...`,
               value: quickFilterValues[quickFilterField.key] ?? [],
-              options: (quickFilterField.options ?? []).map((option) => ({ label: _65(String(option.label)), value: option.value })),
+              options: (quickFilterField.options ?? []).map((option) => ({ label: _66(String(option.label)), value: option.value })),
               onChange: (values) => {
                 setQuickFilterValues((previous) => ({ ...previous, [quickFilterField.key]: values }));
                 setGalleryPage(1);
@@ -21323,31 +21734,31 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       Card,
       {
         size: "small",
-        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _65("View configuration") }),
+        title: /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _66("View configuration") }),
         style: { marginBottom: 16 },
         styles: { body: { display: "grid", gap: 12 } },
         children: [
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _65("Advanced filters") }),
-              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _65("No filters yet.") }) : filterRules.map((rule) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _66("Advanced filters") }),
+              filterRules.length === 0 ? /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _66("No filters yet.") }) : filterRules.map((rule) => {
                 const field = model.fields.find((f) => f.key === rule.fieldKey);
                 const type = field?.type || "string";
                 const operatorOptions = type === "number" ? [
-                  { label: _65("="), value: "eq" },
-                  { label: _65(">"), value: "gt" },
-                  { label: _65(">="), value: "gte" },
-                  { label: _65("<"), value: "lt" },
-                  { label: _65("<="), value: "lte" },
-                  { label: _65("Between"), value: "between" }
+                  { label: _66("="), value: "eq" },
+                  { label: _66(">"), value: "gt" },
+                  { label: _66(">="), value: "gte" },
+                  { label: _66("<"), value: "lt" },
+                  { label: _66("<="), value: "lte" },
+                  { label: _66("Between"), value: "between" }
                 ] : type === "date" ? [
-                  { label: _65("On"), value: "on" },
-                  { label: _65("After"), value: "after" },
-                  { label: _65("Before"), value: "before" },
-                  { label: _65("Between"), value: "between" }
-                ] : type === "boolean" ? [{ label: _65("Is"), value: "is" }] : [
-                  { label: _65("Contains"), value: "contains" },
-                  { label: _65("Equals"), value: "equals" }
+                  { label: _66("On"), value: "on" },
+                  { label: _66("After"), value: "after" },
+                  { label: _66("Before"), value: "before" },
+                  { label: _66("Between"), value: "between" }
+                ] : type === "boolean" ? [{ label: _66("Is"), value: "is" }] : [
+                  { label: _66("Contains"), value: "contains" },
+                  { label: _66("Equals"), value: "equals" }
                 ];
                 const renderDateInput = (value, onChange) => {
                   const mode = value?.mode || "absolute";
@@ -21360,9 +21771,9 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                           value: value?.direction || "next",
                           onChange: (val) => onChange({ ...value, mode: "relative", direction: val }),
                           options: [
-                            { label: _65("Previous"), value: "previous" },
-                            { label: _65("Current"), value: "current" },
-                            { label: _65("Next"), value: "next" }
+                            { label: _66("Previous"), value: "previous" },
+                            { label: _66("Current"), value: "current" },
+                            { label: _66("Next"), value: "next" }
                           ]
                         }
                       ),
@@ -21372,11 +21783,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                           value: value?.unit || "weeks",
                           onChange: (val) => onChange({ ...value, mode: "relative", unit: val }),
                           options: [
-                            { label: _65("Days"), value: "days" },
-                            { label: _65("Weeks"), value: "weeks" },
-                            { label: _65("Months"), value: "months" },
-                            { label: _65("Quarters"), value: "quarters" },
-                            { label: _65("Years"), value: "years" }
+                            { label: _66("Days"), value: "days" },
+                            { label: _66("Weeks"), value: "weeks" },
+                            { label: _66("Months"), value: "months" },
+                            { label: _66("Quarters"), value: "quarters" },
+                            { label: _66("Years"), value: "years" }
                           ]
                         }
                       )
@@ -21385,7 +21796,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                   return /* @__PURE__ */ jsx(
                     DatePicker,
                     {
-                      value: value?.date ? dayjs11(value.date) : void 0,
+                      value: value?.date ? dayjs12(value.date) : void 0,
                       onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
                     }
                   );
@@ -21398,7 +21809,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                       value: rule.fieldKey,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: void 0, value: void 0, value2: void 0 } : item)),
                       options: model.fields.map((f) => ({ label: f.label, value: f.key })),
-                      placeholder: _65("Field")
+                      placeholder: _66("Field")
                     }
                   ),
                   /* @__PURE__ */ jsx(
@@ -21408,7 +21819,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                       value: rule.operator,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item)),
                       options: operatorOptions,
-                      placeholder: _65("Operator")
+                      placeholder: _66("Operator")
                     }
                   ),
                   type === "number" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -21441,10 +21852,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                       value: rule.value,
                       onChange: (value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item)),
                       options: [
-                        { label: _65("True"), value: true },
-                        { label: _65("False"), value: false }
+                        { label: _66("True"), value: true },
+                        { label: _66("False"), value: false }
                       ],
-                      placeholder: _65("Value")
+                      placeholder: _66("Value")
                     }
                   ),
                   type === "date" && rule.operator === "between" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -21457,7 +21868,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     {
                       value: rule.value,
                       onChange: (event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item)),
-                      placeholder: _65("Value"),
+                      placeholder: _66("Value"),
                       style: { minWidth: 200 }
                     }
                   ),
@@ -21470,8 +21881,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...item.value || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _65("Date"), value: "absolute" },
-                        { label: _65("Relative"), value: "relative" }
+                        { label: _66("Date"), value: "absolute" },
+                        { label: _66("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -21484,8 +21895,8 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                         setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...item.value2 || {}, mode: val } } : item));
                       },
                       options: [
-                        { label: _65("Date"), value: "absolute" },
-                        { label: _65("Relative"), value: "relative" }
+                        { label: _66("Date"), value: "absolute" },
+                        { label: _66("Relative"), value: "relative" }
                       ]
                     }
                   ),
@@ -21495,7 +21906,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                       size: "small",
                       danger: true,
                       onClick: () => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id)),
-                      children: _65("Remove")
+                      children: _66("Remove")
                     }
                   )
                 ] }, rule.id);
@@ -21507,14 +21918,14 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     size: "small",
                     icon: /* @__PURE__ */ jsx(FilterOutlined, {}),
                     onClick: () => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }]),
-                    children: _65("Add Filter")
+                    children: _66("Add Filter")
                   }
                 ),
-                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _65("Clear filters") })
+                filterRules.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => setFilterRules([]), children: _66("Clear filters") })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _65("Views shown") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _66("Views shown") }),
               /* @__PURE__ */ jsx(
                 Select,
                 {
@@ -21535,12 +21946,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               ),
               selectedViewNames.length > 1 && /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: selectedViewNames.map((name, index) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                 /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: name }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _65("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
-                /* @__PURE__ */ jsx(Tooltip, { title: _65("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
+                /* @__PURE__ */ jsx(Tooltip, { title: _66("Move up"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowUpOutlined, {}), disabled: index === 0, onClick: () => moveSelectedView(name, "up") }) }),
+                /* @__PURE__ */ jsx(Tooltip, { title: _66("Move down"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowDownOutlined, {}), disabled: index === selectedViewNames.length - 1, onClick: () => moveSelectedView(name, "down") }) })
               ] }, name)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 6 }, children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _65("Active view") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }, children: _66("Active view") }),
               viewSelector
             ] }),
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }, children: [
@@ -21553,7 +21964,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                       setRenameViewName(currentViewName);
                       setRenameViewModalOpen(true);
                     },
-                    children: _65("Rename view")
+                    children: _66("Rename view")
                   }
                 ),
                 /* @__PURE__ */ jsx(
@@ -21564,7 +21975,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
                     disabled: availableViewNames.length <= 1,
                     onClick: confirmDeleteView,
-                    children: _65("Delete view")
+                    children: _66("Delete view")
                   }
                 )
               ] }),
@@ -21575,7 +21986,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                   icon: /* @__PURE__ */ jsx(SaveOutlined, {}),
                   onClick: () => openSaveViewModalFor("layout"),
                   loading: isSavingLayoutPrefs,
-                  children: _65("Save layout")
+                  children: _66("Save layout")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -21587,7 +21998,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     markLayoutPrefsTouched();
                     setFiltersCollapsed((prev) => !prev);
                   },
-                  children: filtersCollapsed ? _65("Show Filters") : _65("Hide Filters")
+                  children: filtersCollapsed ? _66("Show Filters") : _66("Hide Filters")
                 }
               ),
               analyzeSectionAvailable && /* @__PURE__ */ jsx(
@@ -21601,7 +22012,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     setIsStatsFlipped(false);
                     setAnalyzeOpen((prev) => !prev);
                   },
-                  children: _65("Analyze")
+                  children: _66("Analyze")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -21613,7 +22024,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     markLayoutPrefsTouched();
                     setIsAnalyzeVertical((prev) => !prev);
                   },
-                  children: _65("Switch orientation")
+                  children: _66("Switch orientation")
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -21625,21 +22036,21 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                     markLayoutPrefsTouched();
                     setIsAnalyzeFirst((prev) => !prev);
                   },
-                  children: _65("Switch positions")
+                  children: _66("Switch positions")
                 }
               )
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
             /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
-              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _65("Columns") }),
+              /* @__PURE__ */ jsx("span", { style: { color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }, children: _66("Columns") }),
               selectedColumnKeys && selectedColumnKeys.length > 0 && /* @__PURE__ */ jsx(Button, { size: "small", onClick: () => {
                 setSelectedColumnKeys(null);
                 setColumnOrder(null);
-              }, children: _65("Reset to default") })
+              }, children: _66("Reset to default") })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _65("Select columns") }),
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _66("Select columns") }),
               /* @__PURE__ */ jsx(
                 Checkbox.Group,
                 {
@@ -21651,27 +22062,27 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               (!selectedColumnKeys || selectedColumnKeys.length === 0) && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }, children: "Using default columns. Select fields to customize." })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _65("Column order") }),
-              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _65("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _66("Column order") }),
+              orderedSelectedColumns.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _66("No custom order yet.") }) : orderedSelectedColumns.map((key, index) => {
                 const field = model.fields.find((item) => item.key === key);
                 if (!field) return null;
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _65("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
-                  /* @__PURE__ */ jsx(Tooltip, { title: _65("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
+                  /* @__PURE__ */ jsx(Tooltip, { title: _66("Move left"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}), disabled: index === 0, onClick: () => moveColumnOrder(key, "left") }) }),
+                  /* @__PURE__ */ jsx(Tooltip, { title: _66("Move right"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}), disabled: index === orderedSelectedColumns.length - 1, onClick: () => moveColumnOrder(key, "right") }) })
                 ] }, key);
               })
             ] }),
             isTotalsDetailsView && /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _65("Totals summary function") }),
-              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _65("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
+              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }, children: _66("Totals summary function") }),
+              /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 6 }, children: totalsSummaryConfigFields.length === 0 ? /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _66("No numeric fields available.") }) : totalsSummaryConfigFields.map((field) => {
                 const options = [
-                  { label: _65("Sum"), value: "sum" },
-                  { label: _65("Average"), value: "avg" },
-                  { label: _65("Count"), value: "count" },
-                  { label: _65("Max"), value: "max" },
-                  { label: _65("Min"), value: "min" },
-                  { label: _65("Std Dev"), value: "stddev" }
+                  { label: _66("Sum"), value: "sum" },
+                  { label: _66("Average"), value: "avg" },
+                  { label: _66("Count"), value: "count" },
+                  { label: _66("Max"), value: "max" },
+                  { label: _66("Min"), value: "min" },
+                  { label: _66("Std Dev"), value: "stddev" }
                 ];
                 return /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
                   /* @__PURE__ */ jsx("div", { style: { flex: 1 }, children: field.label }),
@@ -21704,13 +22115,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           records: filteredDataSource,
           maximumColumns: viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW,
           formatValue: (field, record) => String(getFieldValueForFilter(field, record) ?? ""),
-          toolbarExtra: analyzeSectionAvailable ? /* @__PURE__ */ jsx(Tooltip, { title: analyzeOpen ? _65("Hide Analyze") : _65("Analyze"), children: /* @__PURE__ */ jsx(
+          toolbarExtra: analyzeSectionAvailable ? /* @__PURE__ */ jsx(Tooltip, { title: analyzeOpen ? _66("Hide Analyze") : _66("Analyze"), children: /* @__PURE__ */ jsx(
             Button,
             {
               size: "small",
               type: analyzeOpen ? "primary" : "default",
               icon: /* @__PURE__ */ jsx(BarChartOutlined, {}),
-              "aria-label": _65("Analyze"),
+              "aria-label": _66("Analyze"),
               onClick: () => {
                 markLayoutPrefsTouched();
                 analyzeTouchedRef.current = true;
@@ -21723,7 +22134,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       ) : isGalleryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         galleryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _65("No images available")
+          _66("No images available")
         ] }) : /* @__PURE__ */ jsx("div", { style: isImageView ? { display: "flex", flexDirection: "column", gap: 16 } : { display: "flex", flexWrap: "wrap", gap: 16 }, children: galleryRows.map((record) => renderGalleryItem(record)) }),
         galleryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...galleryPaginationProps }) })
       ] }) : isCrosstabView ? crosstabBodyNode : isPrimaryCarouselView ? allRowsLoaded ? /* @__PURE__ */ jsx(
@@ -21737,14 +22148,14 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       ) : /* @__PURE__ */ jsx(Spin, {}) : isPrimaryView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         primaryRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _65("No records available")
+          _66("No records available")
         ] }) : primaryRows.map((record, index) => renderPrimaryItem(record, index)),
         primaryPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...primaryPaginationProps }) })
       ] }) : isListView ? /* @__PURE__ */ jsxs(Fragment, { children: [
         inlineEditSaveCancelBar,
         listRows.length === 0 ? /* @__PURE__ */ jsxs("div", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }, children: [
           /* @__PURE__ */ jsx(FileTextOutlined, { style: { fontSize: 16 } }),
-          _65("No records available")
+          _66("No records available")
         ] }) : /* @__PURE__ */ jsx("ul", { style: { margin: 0, padding: 0 }, children: listRows.map((record, index) => renderListItem(record, index)) }),
         listPaginationProps && /* @__PURE__ */ jsx("div", { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Pagination, { ...listPaginationProps }) })
       ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -21820,13 +22231,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                             selectable: false,
                             onClick: handleContextMenuClick,
                             items: [
-                              { key: "__open_show__", label: _65("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
-                              { key: "__open_new_tab__", label: _65("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
-                              { key: "__open_new_window__", label: _65("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_show__", label: _66("Open show page"), icon: /* @__PURE__ */ jsx(EyeOutlined, {}) },
+                              { key: "__open_new_tab__", label: _66("Open in new tab"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
+                              { key: "__open_new_window__", label: _66("Open in new window"), icon: /* @__PURE__ */ jsx(LinkOutlined, {}) },
                               { type: "divider" },
                               ...(bulkActionsAvailable ?? []).map((action) => ({
                                 key: action.value,
-                                label: _65(action.label)
+                                label: _66(action.label)
                               }))
                             ]
                           }
@@ -21998,18 +22409,18 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               (showActions || effectiveRowActions.length > 0) && /* @__PURE__ */ jsx(
                 Table.Column,
                 {
-                  title: _65("Actions"),
+                  title: _66("Actions"),
                   width: 140,
                   render: (_unused, record) => {
                     const { resource, id, isLinkRow } = getTargetInfo(record);
-                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_65("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
+                    if (!id || !resource) return /* @__PURE__ */ jsx(Tooltip, { title: `${_66("Debug: Cannot find target")}. ID: ${id}, Resource: ${resource}. Keys: ${Object.keys(record).join(",")}`, children: /* @__PURE__ */ jsx(Button, { size: "small", danger: true, icon: /* @__PURE__ */ jsx(BugOutlined, {}) }) });
                     const deleteResource = isLinkRow ? model.name : resource;
                     const deleteId = isLinkRow && relationConfig?.targetKey && relationConfig?.otherKey ? `${record[relationConfig.targetKey]}:${record[relationConfig.otherKey]}` : id;
                     return /* @__PURE__ */ jsxs(Space, { children: [
                       renderRowActionButtons(record),
-                      showActions && /* @__PURE__ */ jsx(Tooltip, { title: _65("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
-                      showActions && canBulkEdit && /* @__PURE__ */ jsx(Tooltip, { title: _65("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
-                      showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && /* @__PURE__ */ jsx(Tooltip, { title: _65("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
+                      showActions && /* @__PURE__ */ jsx(Tooltip, { title: _66("View"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EyeOutlined, {}), onClick: () => paneNav?.isInMultiPane ? paneNav.openDetail(resource, id) : go({ to: { resource, action: "show", id } }) }) }),
+                      showActions && canBulkEdit && /* @__PURE__ */ jsx(Tooltip, { title: _66("Edit"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(EditOutlined, {}), onClick: () => go({ to: { resource, action: "edit", id } }) }) }),
+                      showActions && canBulkDelete && (!isRowDeletable || isRowDeletable(record)) && /* @__PURE__ */ jsx(Tooltip, { title: _66("Delete"), children: /* @__PURE__ */ jsx(DeleteButton, { hideText: true, size: "small", recordItemId: deleteId, resource: deleteResource }) })
                     ] });
                   }
                 },
@@ -22028,7 +22439,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           numericBarColor,
           onSaveClick: frameworkUiFeatures.saved_views ? () => openSaveViewModalFor("analyze") : void 0,
           customizeFooter: /* @__PURE__ */ jsxs(Fragment, { children: [
-            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _65("Loading all rows for analysis...") }),
+            isAllRowsLoading && /* @__PURE__ */ jsx("div", { style: { color: token.colorTextSecondary, fontSize: 12 }, children: _66("Loading all rows for analysis...") }),
             allRowsError && /* @__PURE__ */ jsx("div", { style: { color: token.colorError, fontSize: 12 }, children: allRowsError })
           ] })
         }
@@ -22048,11 +22459,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
             relatedModel.label || relatedModel.name,
             /* @__PURE__ */ jsxs(Typography.Text, { type: "secondary", style: { fontSize: 13, marginLeft: 8 }, children: [
               "(",
-              _65("filtered by"),
+              _66("filtered by"),
               " ",
               entry.filterIds.length,
               " ",
-              _65("rows"),
+              _66("rows"),
               ")"
             ] })
           ] }),
@@ -22062,7 +22473,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               size: "small",
               icon: /* @__PURE__ */ jsx(CloseOutlined, {}),
               onClick: () => setAppendedLists((prev) => prev.filter((e) => e.id !== entry.id)),
-              children: _65("Take this list out")
+              children: _66("Take this list out")
             }
           )
         ] }),
@@ -22093,7 +22504,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     exportButton,
     quickExportButton,
     importButton,
-    onCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _65("Create"), children: /* @__PURE__ */ jsx(Button, { type: "primary", icon: /* @__PURE__ */ jsx(PlusSquareOutlined, {}), "aria-label": _65("Create"), onClick: onCreate }) }) : !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
+    onCreate ? /* @__PURE__ */ jsx(Tooltip, { title: _66("Create"), children: /* @__PURE__ */ jsx(Button, { type: "primary", icon: /* @__PURE__ */ jsx(PlusSquareOutlined, {}), "aria-label": _66("Create"), onClick: onCreate }) }) : !model.isNamedQuery && canCreate && renderIconOnlyButtons(defaultButtons)
   ] });
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(modelTone), children: [
     /* @__PURE__ */ jsx(ToneSharedStyles, {}),
@@ -22119,24 +22530,60 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           appendedListsNodes
         ]
       }
-    ) }) : /* @__PURE__ */ jsxs(
-      StandardList,
+    ) }) : /* @__PURE__ */ jsx(
+      TemporaryPageLayoutScopeProvider,
       {
-        title: renderWrappedPageTitle(listTitle),
-        resource: model.resource || model.name,
-        headerButtons: renderListHeaderButtons,
-        children: [
-          listContent,
-          appendedListsNodes
-        ]
+        scope: temporaryLayoutPageKey ? {
+          pageKey: temporaryLayoutPageKey,
+          pageType: "list",
+          model,
+          listViewTypes: temporaryListViewTypes,
+          currentListViewType: resolvedListViewType,
+          analyzeAvailable: analyzeSectionAvailable
+        } : null,
+        children: /* @__PURE__ */ jsxs(
+          StandardList,
+          {
+            title: renderWrappedPageTitle(listTitle),
+            resource: model.resource || model.name,
+            headerButtons: renderListHeaderButtons,
+            children: [
+              listContent,
+              appendedListsNodes
+            ]
+          }
+        )
       }
     )
   ] });
 };
 var DynamicList = (props) => {
   const [searchParams] = useSearchParams();
-  const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, searchParams.get("view_type") || props.listViewType);
-  return /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.isEmbedded), children: showsSingleRecordForm ? /* @__PURE__ */ jsx(SingleRecordPrimaryView, { model: props.model, allModels: props.allModels }) : /* @__PURE__ */ jsx(DynamicListPage, { ...props }) });
+  const outerAllModels = useAllModelsIncludingNonModelData(props.allModels);
+  const outerPageKey = props.isEmbedded || props.filter ? null : buildTemporaryPageKey(resolveResourcePath(props.model.resource || props.model.name, outerAllModels), "list");
+  const outerTemporaryLayout = useTemporaryPageLayoutFor(outerPageKey);
+  const showsSingleRecordForm = isSingleRecordPrimaryView(props.model, outerTemporaryLayout.listViewType || searchParams.get("view_type") || props.listViewType);
+  return /* @__PURE__ */ jsx(ResourceAccessGate, { resource: props.model.resource || props.model.name, action: "read", embedded: Boolean(props.isEmbedded), children: showsSingleRecordForm ? (
+    // The form has no list header, so while the user's chosen view type is what
+    // turned the page into this form, keep the layout controls above it to let
+    // the user choose another view type.
+    /* @__PURE__ */ jsxs(
+      TemporaryPageLayoutScopeProvider,
+      {
+        scope: outerPageKey && outerTemporaryLayout.listViewType ? {
+          pageKey: outerPageKey,
+          pageType: "list",
+          model: props.model,
+          listViewTypes: TEMPORARY_LIST_VIEW_TYPES.filter((token) => token !== "calendar"),
+          currentListViewType: outerTemporaryLayout.listViewType
+        } : null,
+        children: [
+          outerPageKey && outerTemporaryLayout.listViewType && /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 8 }, children: /* @__PURE__ */ jsx(TemporaryPageLayoutControls, {}) }),
+          /* @__PURE__ */ jsx(SingleRecordPrimaryView, { model: props.model, allModels: props.allModels })
+        ]
+      }
+    )
+  ) : /* @__PURE__ */ jsx(DynamicListPage, { ...props }) });
 };
 
 // src/components/MultiPane/paneUtils.ts
@@ -22267,7 +22714,7 @@ function useBottomOverlayInset() {
   }, []);
   return inset;
 }
-var _66 = window._ || ((text) => text);
+var _67 = window._ || ((text) => text);
 var FakeRouteProvider = ({ model, id, children }) => {
   const existingRouteContext = useContext(UNSAFE_RouteContext);
   const fakeRouteContext = useMemo(() => ({
@@ -22302,7 +22749,7 @@ var useMainPaneLabel = (allModels) => {
     id: id ?? "",
     queryOptions: { enabled: Boolean(resourceName && id) }
   });
-  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _66("Back to list")));
+  const modelLabel = asDisplayText(model?.label, asDisplayText(resource?.meta?.label, resourceName || _67("Back to list")));
   const recordLabel = data?.data?._label;
   if (givenLabel) return givenLabel;
   return id && recordLabel ? asDisplayText(recordLabel, modelLabel) : modelLabel;
@@ -22359,7 +22806,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
   const { token } = theme.useToken();
   const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
   const href = `/${resourcePath}/show/${pane.id}`;
-  const restoreTitle = hoverToExpand ? _66("Restore pane (also re-enables hover-to-expand)") : _66("Restore pane");
+  const restoreTitle = hoverToExpand ? _67("Restore pane (also re-enables hover-to-expand)") : _67("Restore pane");
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -22380,7 +22827,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
       children: [
         leading && /* @__PURE__ */ jsx("div", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden" }, children: leading }),
         /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }, children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _66("Open in full page"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _67("Open in full page"), children: /* @__PURE__ */ jsx(
             "a",
             {
               href,
@@ -22390,7 +22837,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } })
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _66("Minimize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: minimized ? restoreTitle : _67("Minimize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -22407,7 +22854,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _66("Maximize pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: maximized ? restoreTitle : _67("Maximize pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -22424,7 +22871,7 @@ var PaneToolbar = ({ model, pane, allModels, maximized, minimized, hoverToExpand
               }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _66("Close pane"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _67("Close pane"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -22457,7 +22904,7 @@ var PaneBody = ({ resolved, allModels, navContext, PrimaryShowRenderer, maximize
   ),
   PrimaryShowRenderer && /* @__PURE__ */ jsx(PaneResourceContext.Provider, { value: resolved.model.resource || resolved.model.name, children: /* @__PURE__ */ jsx(FakeRouteProvider, { model: resolved.model, id: resolved.pane.id, children: /* @__PURE__ */ jsx(PrimaryShowRenderer, { model: resolved.model, id: resolved.pane.id, allModels }) }) })
 ] });
-var _67 = window._ || ((text) => text);
+var _68 = window._ || ((text) => text);
 var FlexPaneLayout = ({
   mode,
   entries,
@@ -22535,11 +22982,11 @@ var FlexPaneLayout = ({
     const trail = active && /* @__PURE__ */ jsx(
       Breadcrumb,
       {
-        "aria-label": _67("Panel trail"),
+        "aria-label": _68("Panel trail"),
         style: { fontSize: 12, whiteSpace: "nowrap" },
         items: [
           {
-            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _67("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
+            title: /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(0), title: _68("Back to list"), children: /* @__PURE__ */ jsx(HomeOutlined, {}) })
           },
           ...entries.map((e, i) => ({
             title: i === activeIdx ? /* @__PURE__ */ jsx("span", { style: { fontWeight: 600 }, children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) }) : /* @__PURE__ */ jsx("a", { onClick: () => closeFrom(e.idx + 1), children: /* @__PURE__ */ jsx(PaneLabelText, { model: e.model, id: e.pane.id }) })
@@ -24465,19 +24912,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _82 }) => _82).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_82) => {
-        if (_82.collapsible) {
+      const ut = R.panels.map(({ id: _83 }) => _83).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_83) => {
+        if (_83.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _82.collapsedSize,
-              ce[_82.panelId]
+              _83.collapsedSize,
+              ce[_83.panelId]
             ), dt = I(
-              _82.collapsedSize,
-              ge[_82.panelId]
+              _83.collapsedSize,
+              ge[_83.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_82.panelId] = ge[_82.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_83.panelId] = ge[_83.panelId]);
           }
         }
       });
@@ -25057,11 +25504,11 @@ var SplitPaneLayout = ({
     prevVisibleRef.current = visible;
     if (!prevIds) return;
     if (sameIds(prevIds, entryIds) && sameIds(prevVisible, visible)) return;
-    const snapshot = snapshotRef.current ?? lastLayoutRef.current ?? groupRef.current?.getLayout() ?? null;
+    const snapshot2 = snapshotRef.current ?? lastLayoutRef.current ?? groupRef.current?.getLayout() ?? null;
     snapshotRef.current = null;
-    if (!snapshot) return;
+    if (!snapshot2) return;
     const appended = entryIds.length === prevIds.length + 1 && prevIds.every((id, i) => entryIds[i] === id);
-    const next = computeStackLayout(snapshot, prevVisible, entryIds, cap, spinePctRef.current, appended);
+    const next = computeStackLayout(snapshot2, prevVisible, entryIds, cap, spinePctRef.current, appended);
     const frameId = requestAnimationFrame(() => groupRef.current?.setLayout(next));
     return () => cancelAnimationFrame(frameId);
   }, [idsKey, cap]);
@@ -25247,11 +25694,13 @@ var MultiPaneLayout = ({ children, mainLabel }) => {
       fixedWidth: settings.panesFixedWidth
     };
   }
-  const paneSettings = cachedPaneSettings ?? {
+  const configuredPaneSettings = cachedPaneSettings ?? {
     mode: DEFAULT_PANES_LAYOUT_MODE,
     maxVisible: DEFAULT_PANES_MAX_VISIBLE,
     fixedWidth: DEFAULT_PANES_FIXED_WIDTH
   };
+  const temporaryPanesMode = useTemporaryPanesLayoutMode();
+  const paneSettings = temporaryPanesMode ? { ...configuredPaneSettings, mode: temporaryPanesMode } : configuredPaneSettings;
   const settingsReady = cachedPaneSettings !== null || !settingsLoading;
   const panes = useMemo(() => parsePanes(searchParams), [searchParams]);
   const entries = useMemo(() => {
@@ -25312,7 +25761,7 @@ var MultiPaneLayout = ({ children, mainLabel }) => {
     [openDetail]
   );
   const detailContexts = useMemo(
-    () => panes.map((_82, idx) => ({
+    () => panes.map((_83, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -25337,7 +25786,7 @@ var MultiPaneLayout = ({ children, mainLabel }) => {
   )) }) });
 };
 var { Title: Title7 } = Typography;
-var _68 = window._ || ((text) => text);
+var _69 = window._ || ((text) => text);
 var HierarchyView = ({ resource, recordId: recordId2, fallback }) => {
   const go = useGo();
   const { data: ancestorsData, isLoading: ancestorsLoading, error: ancestorsError } = useCustom({
@@ -25390,15 +25839,15 @@ var HierarchyView = ({ resource, recordId: recordId2, fallback }) => {
   }
   if (ancestorsError || descendantsError) {
     if (fallback) return /* @__PURE__ */ jsx(Fragment, { children: fallback });
-    return /* @__PURE__ */ jsx(Alert, { message: _68("Error loading hierarchy data"), type: "error" });
+    return /* @__PURE__ */ jsx(Alert, { message: _69("Error loading hierarchy data"), type: "error" });
   }
   return /* @__PURE__ */ jsxs("div", { children: [
     ancestorsList.length > 0 && /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _68("Parent Hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _69("Parent Hierarchy") }),
       /* @__PURE__ */ jsx(Breadcrumb, { children: ancestorsList.slice().reverse().map((node) => /* @__PURE__ */ jsx(Breadcrumb.Item, { children: /* @__PURE__ */ jsx("a", { onClick: () => go({ to: { resource, action: "show", id: node.cw_eid } }), children: node._label }) }, node.cw_eid)) })
     ] }),
     treeData.length > 0 && /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsx(Title7, { level: 5, children: _68("Sub-hierarchy") }),
+      /* @__PURE__ */ jsx(Title7, { level: 5, children: _69("Sub-hierarchy") }),
       /* @__PURE__ */ jsx(
         Tree,
         {
@@ -25622,7 +26071,7 @@ var InlinePlotlyHtml = ({ html, style, minScale = DEFAULT_MIN_CARD_SCALE, scaleT
 
 // src/providers/authProvider.ts
 var AUTH_BASE = "/auth";
-var _69 = window._ || ((text) => text);
+var _70 = window._ || ((text) => text);
 async function startSignedInSession(token, signedInUser) {
   localStorage.setItem(signInStorageKeys().accessToken, token);
   resetFrameworkUiFeatures();
@@ -25671,8 +26120,8 @@ var authProvider = {
           return {
             success: false,
             error: {
-              name: _69("Login failed"),
-              message: body?.detail || _69("Invalid credentials")
+              name: _70("Login failed"),
+              message: body?.detail || _70("Invalid credentials")
             }
           };
         }
@@ -25686,8 +26135,8 @@ var authProvider = {
       return {
         success: false,
         error: {
-          name: _69("Login failed"),
-          message: err?.message || _69("Network error")
+          name: _70("Login failed"),
+          message: err?.message || _70("Network error")
         }
       };
     }
@@ -25771,7 +26220,7 @@ var authProvider = {
 // src/providers/accessControlProvider.ts
 var ADMIN_ROLE = "Admin";
 var SIGNED_OUT_VISITOR_ACTIONS = /* @__PURE__ */ new Set(["list", "show"]);
-var _70 = window._ || ((text) => text);
+var _71 = window._ || ((text) => text);
 var FALLBACK_ROLE_ACTIONS = {
   Admin: ["list", "show", "create", "edit", "delete", "clone", "field", "configure_layout"],
   Manager: ["list", "show", "create", "edit", "clone", "field", "configure_layout"],
@@ -25797,20 +26246,20 @@ var accessControlProvider = {
       if (signedOutVisitorsAllowed() && SIGNED_OUT_VISITOR_ACTIONS.has(action)) {
         return { can: true };
       }
-      return { can: false, reason: _70("Not authenticated") };
+      return { can: false, reason: _71("Not authenticated") };
     }
     let user;
     try {
       user = JSON.parse(cached);
     } catch {
-      return { can: false, reason: _70("Not authenticated") };
+      return { can: false, reason: _71("Not authenticated") };
     }
     const roles = user?.roles ?? [];
     const accessAction = REFINE_TO_ACTION[action];
     const access = getAccessSnapshot();
     if (accessAction && access) {
       const decision = evaluateAccess(access.context, null, resource ?? null, accessAction);
-      return decision.allowed ? { can: true } : { can: false, reason: _70("You do not have permission to perform this action.") };
+      return decision.allowed ? { can: true } : { can: false, reason: _71("You do not have permission to perform this action.") };
     }
     if (roles.includes(ADMIN_ROLE)) {
       return { can: true };
@@ -25826,7 +26275,7 @@ var accessControlProvider = {
     }
     return {
       can: false,
-      reason: _70("Access denied \u2014 insufficient role for this action")
+      reason: _71("Access denied \u2014 insufficient role for this action")
     };
   },
   options: {
@@ -25969,7 +26418,7 @@ var ResourceContext = createContext({
   allResources: [],
   allSystemModels: []
 });
-var _71 = window._ || ((text) => text);
+var _72 = window._ || ((text) => text);
 var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
   const { mutate: login, isLoading, error } = useLogin();
   const [form] = Form.useForm();
@@ -25998,14 +26447,14 @@ var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
             /* @__PURE__ */ jsxs("div", { style: { textAlign: "center" }, children: [
               logo && /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: typeof logo === "string" ? /* @__PURE__ */ jsx("img", { src: logo, alt: appTitle, style: { height: 48, width: "auto" } }) : logo }),
               /* @__PURE__ */ jsx(Typography.Title, { level: 3, style: { marginBottom: 4 }, children: appTitle }),
-              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _71("Sign in to your account") })
+              /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _72("Sign in to your account") })
             ] }),
             error && /* @__PURE__ */ jsx(
               Alert,
               {
                 type: "error",
-                message: error?.name || _71("Login failed"),
-                description: error?.message || _71("Invalid credentials"),
+                message: error?.name || _72("Login failed"),
+                description: error?.message || _72("Invalid credentials"),
                 showIcon: true
               }
             ),
@@ -26021,13 +26470,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
                     Form.Item,
                     {
                       name: "username",
-                      label: _71("Username"),
-                      rules: [{ required: true, message: _71("Please enter your username") }],
+                      label: _72("Username"),
+                      rules: [{ required: true, message: _72("Please enter your username") }],
                       children: /* @__PURE__ */ jsx(
                         Input,
                         {
                           prefix: /* @__PURE__ */ jsx(UserOutlined, {}),
-                          placeholder: _71("Username"),
+                          placeholder: _72("Username"),
                           size: "large"
                         }
                       )
@@ -26037,13 +26486,13 @@ var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
                     Form.Item,
                     {
                       name: "password",
-                      label: _71("Password"),
-                      rules: [{ required: true, message: _71("Please enter your password") }],
+                      label: _72("Password"),
+                      rules: [{ required: true, message: _72("Please enter your password") }],
                       children: /* @__PURE__ */ jsx(
                         Input.Password,
                         {
                           prefix: /* @__PURE__ */ jsx(LockOutlined, {}),
-                          placeholder: _71("Password"),
+                          placeholder: _72("Password"),
                           size: "large"
                         }
                       )
@@ -26057,7 +26506,7 @@ var LoginPage = ({ appTitle = "VeloIQ", logo, footer }) => {
                       loading: isLoading,
                       block: true,
                       size: "large",
-                      children: _71("Login")
+                      children: _72("Login")
                     }
                   ) })
                 ]
@@ -26120,7 +26569,7 @@ function useHelpContent(pageKey) {
   };
   return { loading, doc, fetchContent };
 }
-var _72 = window._ || ((text) => text);
+var _73 = window._ || ((text) => text);
 var ReactMarkdown4 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var DashboardCellHelp = ({ resource }) => {
   const { token } = theme.useToken();
@@ -26140,61 +26589,7 @@ var DashboardCellHelp = ({ resource }) => {
       Empty,
       {
         image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _72("No help written for this cell yet."),
-        children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
-          Button,
-          {
-            type: "link",
-            size: "small",
-            onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
-            children: _72("Write help for this")
-          }
-        )
-      }
-    )
-  ] });
-  return /* @__PURE__ */ jsx(
-    Popover,
-    {
-      open,
-      onOpenChange: handleOpenChange,
-      trigger: "click",
-      placement: "bottomRight",
-      content,
-      children: /* @__PURE__ */ jsx(
-        Button,
-        {
-          type: "text",
-          size: "small",
-          icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _72("Dashboard cell help"),
-          title: _72("Dashboard cell help"),
-          style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
-        }
-      )
-    }
-  );
-};
-var _73 = window._ || ((text) => text);
-var ReactMarkdown5 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var DashboardTabHelp = ({ tabId }) => {
-  const navigate = useNavigate();
-  const pageKey = `dashboard-tab:${tabId}`;
-  const { loading, doc, fetchContent } = useHelpContent(pageKey);
-  const [open, setOpen] = useState(false);
-  const { data: canCreateHelpDoc } = useCan({ resource: "veloiq_help_document", action: "create" });
-  const handleOpenChange = (next) => {
-    setOpen(next);
-    if (next) fetchContent();
-  };
-  const content = /* @__PURE__ */ jsxs("div", { style: { width: 280 }, children: [
-    loading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }),
-    !loading && doc?.found && /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }), children: /* @__PURE__ */ jsx(ReactMarkdown5, { children: doc.body || "" }) }),
-    !loading && doc && !doc.found && /* @__PURE__ */ jsx(
-      Empty,
-      {
-        image: Empty.PRESENTED_IMAGE_SIMPLE,
-        description: _73("No help written for this tab yet."),
+        description: _73("No help written for this cell yet."),
         children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
           Button,
           {
@@ -26221,8 +26616,62 @@ var DashboardTabHelp = ({ tabId }) => {
           type: "text",
           size: "small",
           icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
-          "aria-label": _73("Dashboard tab help"),
-          title: _73("Dashboard tab help"),
+          "aria-label": _73("Dashboard cell help"),
+          title: _73("Dashboard cell help"),
+          style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
+        }
+      )
+    }
+  );
+};
+var _74 = window._ || ((text) => text);
+var ReactMarkdown5 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var DashboardTabHelp = ({ tabId }) => {
+  const navigate = useNavigate();
+  const pageKey = `dashboard-tab:${tabId}`;
+  const { loading, doc, fetchContent } = useHelpContent(pageKey);
+  const [open, setOpen] = useState(false);
+  const { data: canCreateHelpDoc } = useCan({ resource: "veloiq_help_document", action: "create" });
+  const handleOpenChange = (next) => {
+    setOpen(next);
+    if (next) fetchContent();
+  };
+  const content = /* @__PURE__ */ jsxs("div", { style: { width: 280 }, children: [
+    loading && /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }),
+    !loading && doc?.found && /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton, { active: true, paragraph: { rows: 2 } }), children: /* @__PURE__ */ jsx(ReactMarkdown5, { children: doc.body || "" }) }),
+    !loading && doc && !doc.found && /* @__PURE__ */ jsx(
+      Empty,
+      {
+        image: Empty.PRESENTED_IMAGE_SIMPLE,
+        description: _74("No help written for this tab yet."),
+        children: canCreateHelpDoc?.can !== false && /* @__PURE__ */ jsx(
+          Button,
+          {
+            type: "link",
+            size: "small",
+            onClick: () => navigate(`/veloiq_help_document/create?page_key=${encodeURIComponent(pageKey)}`),
+            children: _74("Write help for this")
+          }
+        )
+      }
+    )
+  ] });
+  return /* @__PURE__ */ jsx(
+    Popover,
+    {
+      open,
+      onOpenChange: handleOpenChange,
+      trigger: "click",
+      placement: "bottomRight",
+      content,
+      children: /* @__PURE__ */ jsx(
+        Button,
+        {
+          type: "text",
+          size: "small",
+          icon: /* @__PURE__ */ jsx(QuestionCircleOutlined, { style: { fontSize: 11 } }),
+          "aria-label": _74("Dashboard tab help"),
+          title: _74("Dashboard tab help"),
           onClick: (e) => e.stopPropagation(),
           style: { padding: "0 2px", height: 18, minWidth: 18 }
         }
@@ -26230,7 +26679,7 @@ var DashboardTabHelp = ({ tabId }) => {
     }
   );
 };
-var _74 = (text) => translateText(text, text);
+var _75 = (text) => translateText(text, text);
 var GRID_DENSITY_STORAGE_KEY = "veloiq.dashboard.cellSize";
 var FIXED_DENSITY_CARD_MIN_SCALE = 0.6;
 var FIT_CARD_MIN_SCALE = 0.15;
@@ -26270,10 +26719,10 @@ var PlotlyChartContent = ({ chartUrl, refreshNonce, minScale }) => {
     return /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", alignItems: "center", height: "100%", minHeight: 200 }, children: /* @__PURE__ */ jsx(Spin, {}) });
   }
   if (error) {
-    return /* @__PURE__ */ jsx(Empty, { description: `${_74("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: `${_75("Chart error")}: ${error}`, style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   if (!chartHtml) {
-    return /* @__PURE__ */ jsx(Empty, { description: _74("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
+    return /* @__PURE__ */ jsx(Empty, { description: _75("No chart data"), style: { padding: 20 }, image: Empty.PRESENTED_IMAGE_SIMPLE });
   }
   return /* @__PURE__ */ jsx(InlinePlotlyHtml, { html: chartHtml, style: { padding: 8, height: "100%", overflow: "auto" }, minScale });
 };
@@ -26325,7 +26774,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
   const isPlotlyChart = cell.source_type === "plotly_chart";
   const resource = model?.resource || cell.model;
   const isModelLike = cell.source_type === "model" || cell.source_type === "named_query" || cell.source_type === "non_model_data";
-  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _74(cell.section_name) : cell.model;
+  const cellTitle = isPlotlyChart ? cell.chart_title || cell.model : isModelLike ? model?.label || cell.model : cell.section_name ? _75(cell.section_name) : cell.model;
   const tone = isModelLike && model ? getModelTone(model) : null;
   const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
   const isNlSentenceCell = isPlotlyChart && typeof cell.model === "string" && cell.model.toLowerCase().includes("nlsentence");
@@ -26445,7 +26894,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
       }, children: cellTitle }),
       /* @__PURE__ */ jsxs("div", { className: "jm-cell-actions", style: { display: "flex", alignItems: "center", gap: 2 }, children: [
         canConfigureLayout && /* @__PURE__ */ jsxs(Fragment, { children: [
-          /* @__PURE__ */ jsx(Tooltip, { title: _74("Move left"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _75("Move left"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -26455,7 +26904,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _74("Move up"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _75("Move up"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -26465,7 +26914,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _74("Move down"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _75("Move down"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -26475,7 +26924,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _74("Move right"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _75("Move right"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -26485,7 +26934,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
               style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
             }
           ) }),
-          /* @__PURE__ */ jsx(Tooltip, { title: _74("Configure cell"), children: /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx(Tooltip, { title: _75("Configure cell"), children: /* @__PURE__ */ jsx(
             Button,
             {
               type: "text",
@@ -26498,8 +26947,8 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ] }),
         isModelLike && model && cellExtraActions ? cellExtraActions(resource, model, allModels) : null,
         isModelLike && resource ? /* @__PURE__ */ jsx(DashboardCellHelp, { resource }) : null,
-        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _74("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
-        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _74("Restore") : _74("Maximize"), children: /* @__PURE__ */ jsx(
+        isModelLike || cell.source_type === "relation" ? /* @__PURE__ */ jsx(Tooltip, { title: _75("Open full page"), children: /* @__PURE__ */ jsx(Link, { to: `/${resource}`, style: { color: token.colorTextTertiary, display: "flex", alignItems: "center", padding: "0 4px" }, children: /* @__PURE__ */ jsx(LinkOutlined, { style: { fontSize: 11 } }) }) }) : null,
+        /* @__PURE__ */ jsx(Tooltip, { title: isMaximized ? _75("Restore") : _75("Maximize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -26509,7 +26958,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
             style: { color: token.colorTextTertiary, padding: "0 4px", height: 22, minWidth: 22 }
           }
         ) }),
-        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _74("Restore") : _74("Minimize"), children: /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Tooltip, { title: isMinimized ? _75("Restore") : _75("Minimize"), children: /* @__PURE__ */ jsx(
           Button,
           {
             type: "text",
@@ -26541,7 +26990,7 @@ var DashboardGridCell = ({ cell, allModels, isMaximized, isMinimized, canConfigu
         ) : /* @__PURE__ */ jsx(
           Empty,
           {
-            description: _74('Model "{model}" not found').replace("{model}", cell.model),
+            description: _75('Model "{model}" not found').replace("{model}", cell.model),
             style: { padding: 24 },
             image: Empty.PRESENTED_IMAGE_SIMPLE
           }
@@ -26570,7 +27019,7 @@ var DashboardTabContent = ({ tab, allModels, maximizedCellId, minimizedCellIds, 
     overflowX: "auto"
   };
   if (!cells.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _74("No models in this tab"), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _75("No models in this tab"), style: { padding: 48 } });
   }
   const renderCell = (cell) => /* @__PURE__ */ jsx(
     DashboardGridCell,
@@ -26633,8 +27082,8 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
   const { maximizedCellId, minimizedCellIds, handleMaximize, handleMinimize, reset: resetCellWindowState } = useCellWindowState();
   const [drawerSelection, setDrawerSelection] = useState(null);
   const { gridDensity, setGridDensityByStep: handleGridDensityChange } = useGridDensity(GRID_DENSITY_STORAGE_KEY, "original");
-  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_74), []);
-  const gridDensityLabelText = buildGridDensityLabelText(_74);
+  const gridDensityMarks = useMemo(() => buildGridDensityMarks(_75), []);
+  const gridDensityLabelText = buildGridDensityLabelText(_75);
   const handleOpenDrawer = useCallback((tabId, cell) => {
     setDrawerSelection({ tabId, cell });
   }, []);
@@ -26652,7 +27101,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     () => config.tabs.map((tab) => ({
       key: tab.id,
       label: /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        _74(tab.name),
+        _75(tab.name),
         tabExtraActions ? tabExtraActions(tab, allModels) : null,
         /* @__PURE__ */ jsx(DashboardTabHelp, { tabId: tab.id })
       ] }),
@@ -26677,7 +27126,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
     [config.tabs, allModels, maximizedCellId, minimizedCellIds, canConfigureLayout, gridDensity, handleMaximize, handleMinimize, handleOpenDrawer, handleResizeCell, handleMoveCell, cellExtraActions, tabExtraActions]
   );
   if (!config.tabs.length) {
-    return /* @__PURE__ */ jsx(Empty, { description: _74("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
+    return /* @__PURE__ */ jsx(Empty, { description: _75("No tabs configured. Run veloiq add-dashboard to add models."), style: { padding: 48 } });
   }
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
@@ -26691,7 +27140,7 @@ var ViewsGrid = ({ config, allModels, onConfigChange, cellExtraActions, tabExtra
           right: /* @__PURE__ */ jsx(
             CellSizeSelector,
             {
-              label: _74("Cell size"),
+              label: _75("Cell size"),
               stepCount: GRID_DENSITY_STEPS.length,
               marks: gridDensityMarks,
               value: GRID_DENSITY_STEPS.indexOf(gridDensity),
@@ -26723,23 +27172,23 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_82, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_83, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
 }
-var _75 = (text) => translateText(text, text);
-var { Text: Text7, Title: Title8 } = Typography;
+var _76 = (text) => translateText(text, text);
+var { Text: Text8, Title: Title8 } = Typography;
 function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 6e4);
-  if (mins < 1) return _75("just now");
-  if (mins < 60) return _75("{count}m ago").replace("{count}", String(mins));
+  if (mins < 1) return _76("just now");
+  if (mins < 60) return _76("{count}m ago").replace("{count}", String(mins));
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return _75("{count}h ago").replace("{count}", String(hrs));
+  if (hrs < 24) return _76("{count}h ago").replace("{count}", String(hrs));
   const days = Math.floor(hrs / 24);
-  if (days < 30) return _75("{count}d ago").replace("{count}", String(days));
+  if (days < 30) return _76("{count}d ago").replace("{count}", String(days));
   return new Date(iso).toLocaleDateString();
 }
 var RecentActivityPanel = () => {
@@ -26750,7 +27199,7 @@ var RecentActivityPanel = () => {
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsx(Text7, { type: "secondary", children: _75("Show activity from the last") }),
+      /* @__PURE__ */ jsx(Text8, { type: "secondary", children: _76("Show activity from the last") }),
       /* @__PURE__ */ jsx(
         InputNumber,
         {
@@ -26762,20 +27211,20 @@ var RecentActivityPanel = () => {
           size: "small"
         }
       ),
-      /* @__PURE__ */ jsx(Text7, { type: "secondary", children: _75("days") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _75("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Text8, { type: "secondary", children: _76("days") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _76("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      data && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: _75("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
+      data && /* @__PURE__ */ jsx(Text8, { type: "secondary", style: { fontSize: 12 }, children: _76("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : groups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
-        description: _75("No activity in the last {days} days").replace("{days}", String(days)),
+        description: _76("No activity in the last {days} days").replace("{days}", String(days)),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
         style: { padding: 48 }
       }
@@ -26833,8 +27282,8 @@ var RecentActivityPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _75("new") }),
-                      /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
+                      isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _76("new") }),
+                      /* @__PURE__ */ jsx(Text8, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
                 }
@@ -26846,7 +27295,7 @@ var RecentActivityPanel = () => {
     }) })
   ] });
 };
-var _76 = (text) => translateText(text, text);
+var _77 = (text) => translateText(text, text);
 var { Text: AntText, Title: AntTitle } = Typography;
 function usePinnedRecords() {
   const [groups, setGroups] = useState([]);
@@ -26892,28 +27341,28 @@ var PinnedRecordsPanel = () => {
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
       /* @__PURE__ */ jsx(PushpinFilled, { style: { color: "#faad14", fontSize: 14 } }),
-      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _76("Records you've pinned across the app") }),
-      /* @__PURE__ */ jsx(Tooltip, { title: _76("Refresh"), children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(AntText, { type: "secondary", children: _77("Records you've pinned across the app") }),
+      /* @__PURE__ */ jsx(Tooltip, { title: _77("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
           style: { color: token.colorTextTertiary, cursor: "pointer", fontSize: 13 },
           onClick: reload
         }
       ) }),
-      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _76("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
+      !loading && /* @__PURE__ */ jsx(AntText, { type: "secondary", style: { fontSize: 12 }, children: _77("{pins} pins across {models} models").replace("{pins}", String(visibleGroups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(visibleGroups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : visibleGroups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
       {
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _76("No pinned records yet."),
+          _77("No pinned records yet."),
           /* @__PURE__ */ jsx("br", {}),
           /* @__PURE__ */ jsxs(AntText, { type: "secondary", style: { fontSize: 12 }, children: [
-            _76("Open any record and click the"),
+            _77("Open any record and click the"),
             " ",
             /* @__PURE__ */ jsx(PushpinOutlined, {}),
             " ",
-            _76("pin button to pin it here.")
+            _77("pin button to pin it here.")
           ] })
         ] }),
         image: Empty.PRESENTED_IMAGE_SIMPLE,
@@ -26974,7 +27423,7 @@ var PinnedRecordsPanel = () => {
                           children: rec._label || `#${rec.id}`
                         }
                       ),
-                      /* @__PURE__ */ jsx(Tooltip, { title: _76("Unpin"), children: /* @__PURE__ */ jsx(
+                      /* @__PURE__ */ jsx(Tooltip, { title: _77("Unpin"), children: /* @__PURE__ */ jsx(
                         Button,
                         {
                           className: "jm-unpin-btn",
@@ -26997,8 +27446,8 @@ var PinnedRecordsPanel = () => {
     }) })
   ] });
 };
-var { Text: Text8 } = Typography;
-var _77 = window._ || ((text) => text);
+var { Text: Text9 } = Typography;
+var _78 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
   const { token } = theme.useToken();
@@ -27039,14 +27488,14 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
         image: /* @__PURE__ */ jsx(DashboardOutlined, { style: { fontSize: 48, color: token.colorTextTertiary } }),
         imageStyle: { height: 60 },
         description: /* @__PURE__ */ jsxs("span", { children: [
-          _77("No dashboard configured."),
+          _78("No dashboard configured."),
           /* @__PURE__ */ jsx("br", {}),
-          /* @__PURE__ */ jsxs(Text8, { type: "secondary", children: [
-            _77("Run"),
+          /* @__PURE__ */ jsxs(Text9, { type: "secondary", children: [
+            _78("Run"),
             " ",
             /* @__PURE__ */ jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
             " ",
-            _77("to get started.")
+            _78("to get started.")
           ] })
         ] })
       }
@@ -27055,7 +27504,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   const tabs = [
     {
       key: "models_grid",
-      label: _77("Models Grid"),
+      label: _78("Models Grid"),
       children: /* @__PURE__ */ jsx("div", { ref: contentRef, style: contentAreaStyle, children: /* @__PURE__ */ jsx(
         ViewsGrid,
         {
@@ -27069,12 +27518,12 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
     },
     {
       key: "recent_activity",
-      label: _77("Recent Activity"),
+      label: _78("Recent Activity"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(RecentActivityPanel, {}) })
     },
     {
       key: "pinned_records",
-      label: _77("Pinned Records"),
+      label: _78("Pinned Records"),
       children: /* @__PURE__ */ jsx("div", { style: { ...contentAreaStyle, padding: "0 12px" }, children: /* @__PURE__ */ jsx(PinnedRecordsPanel, {}) })
     }
   ];
@@ -27241,7 +27690,7 @@ function usePortalPublicSettings(site) {
 }
 
 // src/portal/limitPortalResourcesToNavigationConfig.ts
-var _78 = (text) => {
+var _79 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -27258,7 +27707,7 @@ function limitPortalResourcesToNavigationConfig(resources, navConfig) {
         ...resource.meta,
         // Listed in the menu file: shown, even a resource hidden by default (e.g. a non-model data resource).
         hide: false,
-        label: navEntry.label ? _78(navEntry.label) : resource.meta?.label,
+        label: navEntry.label ? _79(navEntry.label) : resource.meta?.label,
         parent: parent && navEntryByKey.has(parent) ? parent : void 0
       }
     };
@@ -27329,7 +27778,7 @@ function mergeUiModelSchemas(generatedModels, ...overrideLists) {
   });
   return [...generatedModels.map(applyOverrides), ...declaredOnlyModels];
 }
-var _79 = (text) => {
+var _80 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -27370,7 +27819,7 @@ var PortalAppWithSettings = ({
     [moduleRegistrations]
   );
   const modelResources = useMemo(() => [
-    ...portalSettings.show_dashboard_menu_entry ? [{ name: "dashboard", list: "/dashboard", meta: { label: _79("Dashboard"), canDelete: false } }] : [],
+    ...portalSettings.show_dashboard_menu_entry ? [{ name: "dashboard", list: "/dashboard", meta: { label: _80("Dashboard"), canDelete: false } }] : [],
     ...moduleRegistrations.flatMap(({ moduleName, models, moduleLabel }) => generateResources(models, moduleName, moduleLabel ? { moduleLabel } : {}))
   ], [moduleRegistrations, portalSettings.show_dashboard_menu_entry]);
   const modelAndNonModelDataResources = useRefineResourcesIncludingNonModelData(modelResources);
@@ -27441,7 +27890,7 @@ var PortalAppWithSettings = ({
         ) }, "portal-auth"), children: [
           /* @__PURE__ */ jsx(Route, { path: "/", element: /* @__PURE__ */ jsx(Navigate, { to: resolvedLandingPath, replace: true }) }),
           portalSettings.show_dashboard_menu_entry && /* @__PURE__ */ jsx(Route, { path: "/dashboard", element: /* @__PURE__ */ jsx(DashboardPage, {}) }),
-          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: pageRoute.multiPane ? /* @__PURE__ */ jsx(MultiPaneLayout, { mainLabel: pageRoute.label ? _79(pageRoute.label) : void 0, children: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }) : /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
+          signedInPageRoutes.map((pageRoute) => /* @__PURE__ */ jsx(Route, { path: pageRoute.path, element: pageRoute.multiPane ? /* @__PURE__ */ jsx(MultiPaneLayout, { mainLabel: pageRoute.label ? _80(pageRoute.label) : void 0, children: /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }) : /* @__PURE__ */ jsx(LazyPortalPage, { pageRoute }) }, pageRoute.path)),
           portalModels.map((model) => {
             const resource = model.resource || model.name;
             return /* @__PURE__ */ jsxs(Route, { path: `/${resource}`, children: [
@@ -27467,7 +27916,7 @@ var VeloIQPortalApp = (props) => {
     setSessionNamespaceSetFor(settings.token_storage_key);
   }
   if (error) {
-    return /* @__PURE__ */ jsx(Result, { status: "warning", title: _79("This site is not available"), subTitle: error });
+    return /* @__PURE__ */ jsx(Result, { status: "warning", title: _80("This site is not available"), subTitle: error });
   }
   if (!loaded2 || !settings || sessionNamespaceSetFor !== settings.token_storage_key) {
     return /* @__PURE__ */ jsx(Spin, { size: "large", style: { display: "block", margin: "120px auto" } });
@@ -27499,13 +27948,13 @@ var TonedPage = ({ seed, style, children }) => {
     children
   ] });
 };
-var _80 = (text) => {
+var _81 = (text) => {
   const translate = window._;
   return typeof translate === "function" ? translate(text) : text;
 };
-var { Text: Text9 } = Typography;
+var { Text: Text10 } = Typography;
 var COLLAPSED_SPINE_WIDTH = 34;
-var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(Tooltip, { title: `${_80("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxs("div", { onClick: onExpand, role: "button", style: {
+var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(Tooltip, { title: `${_81("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxs("div", { onClick: onExpand, role: "button", style: {
   width: COLLAPSED_SPINE_WIDTH,
   flexShrink: 0,
   cursor: "pointer",
@@ -27519,9 +27968,9 @@ var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(T
   borderLeft: side === "right" ? `1px solid ${token.colorBorderSecondary}` : void 0
 }, children: [
   side === "left" ? /* @__PURE__ */ jsx(DoubleRightOutlined, {}) : /* @__PURE__ */ jsx(DoubleLeftOutlined, {}),
-  /* @__PURE__ */ jsx(Text9, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsx(Text10, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
 ] }) });
-var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(Tooltip, { title: minimized ? `${_80("Expand")}: ${title}` : `${_80("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxs("div", { onClick: onToggle, role: "button", style: {
+var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(Tooltip, { title: minimized ? `${_81("Expand")}: ${title}` : `${_81("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxs("div", { onClick: onToggle, role: "button", style: {
   display: "flex",
   alignItems: "center",
   gap: 8,
@@ -27533,7 +27982,7 @@ var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(
   borderBottom: `1px solid ${token.colorBorderSecondary}`
 }, children: [
   minimized ? /* @__PURE__ */ jsx(DownOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsx(UpOutlined, { style: { fontSize: 11 } }),
-  /* @__PURE__ */ jsx(Text9, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsx(Text10, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
 ] }) });
 function useRememberedFlag(storageKey) {
   const [flag, setFlag] = useState(() => {
@@ -27566,7 +28015,7 @@ var CollapsibleSidePanel = ({ title, side, token, collapsed, onCollapsedChange, 
   }, children: [
     /* @__PURE__ */ jsxs("div", { className: "jm-panel-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 2px 8px", borderBottom: `1px solid ${token.colorBorderSecondary}` }, children: [
       /* @__PURE__ */ jsx("span", { className: "jm-panel-title", style: { fontWeight: 500 }, children: title }),
-      /* @__PURE__ */ jsx(Tooltip, { title: `${_80("Collapse")}: ${title}`, children: /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsx(Tooltip, { title: `${_81("Collapse")}: ${title}`, children: /* @__PURE__ */ jsx(
         Button,
         {
           type: "text",
@@ -27579,7 +28028,7 @@ var CollapsibleSidePanel = ({ title, side, token, collapsed, onCollapsedChange, 
     /* @__PURE__ */ jsx("div", { style: { padding, flex: 1, minHeight: 0, overflow: "auto" }, children })
   ] });
 };
-var _81 = (text) => {
+var _82 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -27593,10 +28042,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_81(moduleName)} \u203A ${_81(e.model_key)}` : _81(moduleName);
+  return e.model_key ? `${_82(moduleName)} \u203A ${_82(e.model_key)}` : _82(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _81("Allowlist") : mode === "block" ? _81("Blocklist") : _81("No policy");
-var modeHelp = (mode) => mode === "allow" ? _81("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _81("Users with this role can use everything except the checked actions on the listed modules and models.") : _81("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _82("Allowlist") : mode === "block" ? _82("Blocklist") : _82("No policy");
+var modeHelp = (mode) => mode === "allow" ? _82("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _82("Users with this role can use everything except the checked actions on the listed modules and models.") : _82("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -27617,7 +28066,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      message.error(_81("Could not load access policies."));
+      message.error(_82("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -27632,7 +28081,7 @@ var AdminNote = () => /* @__PURE__ */ jsx(
   {
     type: "info",
     showIcon: true,
-    message: _81("The Admin role always has full access and can't be given an access policy.")
+    message: _82("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -27657,9 +28106,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _81("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _81("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _81("No policy");
+    if (row.event === "role_get_migration") return _82("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _82("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _82("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsx(
@@ -27669,20 +28118,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _81("No changes recorded yet.") },
+      locale: { emptyText: _82("No changes recorded yet.") },
       columns: [
         {
-          title: _81("When"),
+          title: _82("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _81("Changed by"),
+          title: _82("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _81("System")
+          render: (_v, row) => row.actor_username || _82("System")
         },
         {
-          title: _81("Change"),
+          title: _82("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -27691,11 +28140,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _81("Module or model"),
+  title: _82("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _81("Inactive") })
+    e.active === false && /* @__PURE__ */ jsx(Tag, { children: _82("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -27708,11 +28157,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _81(label),
+      title: _82(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _81(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsx(CheckOutlined, { "aria-label": _82(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -27728,10 +28177,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _81("No modules or models listed yet.") }
+        locale: { emptyText: _82("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _81("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _82("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -27767,21 +28216,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _81("Could not save the access policy."));
+      message.error(typeof body?.detail === "string" ? body.detail : _82("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    message.success(mode === "none" ? _81("Access policy removed.") : _81("Access policy saved."));
+    message.success(mode === "none" ? _82("Access policy removed.") : _82("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = useMemo(
     () => modules.map((m) => ({
-      title: _81(m.name),
+      title: _82(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _81(model.key),
+        title: _82(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -27837,7 +28286,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _81(label),
+      title: _82(label),
       key: action,
       width: 90,
       align: "center",
@@ -27846,7 +28295,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_81(label)} ${resourceLabel(e)}`
+          "aria-label": `${_82(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -27859,27 +28308,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsx(DeleteOutlined, {}),
-          "aria-label": _81("Remove"),
+          "aria-label": _82("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _81("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _82("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _81("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _81("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _81("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _82("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _82("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _82("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _81("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _82("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _81("This allowlist is empty: users with this role will lose access to every module.")
+        message: _82("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxs(Fragment, { children: [
@@ -27889,7 +28338,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _81("Add a module or model"),
+          placeholder: _82("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -27904,12 +28353,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _81("No modules or models listed yet.") }
+          locale: { emptyText: _82("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _81("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: _82("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _81("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _82("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -27918,7 +28367,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _81("Users with this role can use only the listed features.") : mode === "block" ? _81("Users with this role can use every feature except the listed ones.") : _81("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _82("Users with this role can use only the listed features.") : mode === "block" ? _82("Users with this role can use every feature except the listed ones.") : _82("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = useState([]);
@@ -27952,15 +28401,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _81("Feature"),
+    title: _82("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxs(Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsx(Tag, { children: _81("Inactive") })
+      !r.active && /* @__PURE__ */ jsx(Tag, { children: _82("Inactive") })
     ] })
   },
-  { title: _81("Group"), dataIndex: "group", key: "group" },
-  { title: _81("Description"), dataIndex: "description", key: "description" }
+  { title: _82("Group"), dataIndex: "group", key: "group" },
+  { title: _82("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -27986,10 +28435,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _81("No features listed yet.") }
+        locale: { emptyText: _82("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _81("Change history") }),
+    /* @__PURE__ */ jsx(Typography.Title, { level: 5, style: { margin: 0 }, children: _82("Change history") }),
     /* @__PURE__ */ jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -28017,10 +28466,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      message.error(typeof body?.detail === "string" ? body.detail : _81("Could not save the feature access."));
+      message.error(typeof body?.detail === "string" ? body.detail : _82("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    message.success(mode === "none" ? _81("Feature access removed.") : _81("Feature access saved."));
+    message.success(mode === "none" ? _82("Feature access removed.") : _82("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -28030,20 +28479,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxs(Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _81("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _82("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxs(Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _81("No policy") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _81("Allowlist") }),
-      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _81("Blocklist") })
+      /* @__PURE__ */ jsx(Radio.Button, { value: "none", children: _82("No policy") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "allow", children: _82("Allowlist") }),
+      /* @__PURE__ */ jsx(Radio.Button, { value: "block", children: _82("Blocklist") })
     ] }),
     /* @__PURE__ */ jsx(Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _81("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsx(Alert, { type: "warning", showIcon: true, message: _82("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsx(
       Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _81("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _82("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsx(
@@ -28058,10 +28507,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _81("No features are registered.") }
+        locale: { emptyText: _82("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _81("Discard changes") })
+    dirty && /* @__PURE__ */ jsx(Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _82("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -28248,6 +28697,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TonedPage, VeloIQPortalApp, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TonedPage, VeloIQPortalApp, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildShowTabFormOptions, clearAccess, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getModelTone, getNavEntry, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPageTemplateProvider, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

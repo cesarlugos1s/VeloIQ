@@ -16,6 +16,7 @@ import { useBottomOverlayInset } from "../../hooks/useBottomOverlayInset";
 import { FlexPaneLayout } from "./FlexPaneLayout";
 import { SplitPaneLayout } from "./SplitPaneLayout";
 import { MainPaneLabelContext, type ResolvedPane } from "./PaneParts";
+import { useTemporaryPanesLayoutMode } from "../DynamicResource/temporaryLayout/temporaryPageLayoutStore";
 
 /** Pane settings resolved from `[views]` in veloiq.toml. */
 interface PaneSettings {
@@ -101,11 +102,16 @@ export const MultiPaneLayout: React.FC<{ children: React.ReactNode; mainLabel?: 
             fixedWidth: settings.panesFixedWidth,
         };
     }
-    const paneSettings: PaneSettings = cachedPaneSettings ?? {
+    const configuredPaneSettings: PaneSettings = cachedPaneSettings ?? {
         mode: DEFAULT_PANES_LAYOUT_MODE,
         maxVisible: DEFAULT_PANES_MAX_VISIBLE,
         fixedWidth: DEFAULT_PANES_FIXED_WIDTH,
     };
+    // A layout the user picked for now (temporary page layout) wins over the configured one.
+    const temporaryPanesMode = useTemporaryPanesLayoutMode();
+    const paneSettings: PaneSettings = temporaryPanesMode
+        ? { ...configuredPaneSettings, mode: temporaryPanesMode }
+        : configuredPaneSettings;
     // Hold the page until the mode is known (unless a cached value exists), so
     // the main page is never mounted in one layout and then remounted in another.
     const settingsReady = cachedPaneSettings !== null || !settingsLoading;

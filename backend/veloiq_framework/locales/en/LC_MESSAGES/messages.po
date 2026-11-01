@@ -2272,3 +2272,79 @@ msgstr ""
 
 msgid "Hide Analyze"
 msgstr ""
+
+msgid "Images"
+msgstr "Images"
+
+msgid "Totals and details"
+msgstr "Totals and details"
+
+msgid "Editable crosstab"
+msgstr "Editable crosstab"
+
+msgid "Primary carousel"
+msgstr "Primary carousel"
+
+msgid "Configured layout"
+msgstr "Configured layout"
+
+msgid "Temporary layout"
+msgstr "Temporary layout"
+
+msgid "These changes last until the page is reloaded and do not change the page configuration."
+msgstr "These changes last until the page is reloaded and do not change the page configuration."
+
+msgid "Analyze position"
+msgstr "Analyze position"
+
+msgid "After the data"
+msgstr "After the data"
+
+msgid "Before the data"
+msgstr "Before the data"
+
+msgid "Stacked"
+msgstr "Stacked"
+
+msgid "Side by side"
+msgstr "Side by side"
+
+msgid "Configured"
+msgstr "Configured"
+
+msgid "Action buttons position"
+msgstr "Action buttons position"
+
+msgid "Top right"
+msgstr "Top right"
+
+msgid "Left"
+msgstr "Left"
+
+msgid "Right"
+msgstr "Right"
+
+msgid "Stack"
+msgstr "Stack"
+
+msgid "Breadcrumb"
+msgstr "Breadcrumb"
+
+msgid "Overlay"
+msgstr "Overlay"
+
+msgid "Scroll"
+msgstr "Scroll"
+
+msgid "Back to the configured layout"
+msgstr "Back to the configured layout"
+
+
+msgid "Change the page template for now"
+msgstr "Change the page template for now"
+
+msgid "Page template"
+msgstr "Page template"
+
+msgid "Design options"
+msgstr "Design options"

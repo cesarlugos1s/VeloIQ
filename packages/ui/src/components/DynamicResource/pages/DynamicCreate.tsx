@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiUrl, useGo } from "@refinedev/core";
 import { useForm } from "@refinedev/antd";
 import { StandardCreate } from "../../StandardCrud";
+import { TemporaryPageLayoutScopeProvider, buildTemporaryPageKey } from "../temporaryLayout/temporaryPageLayoutStore";
+import { useTemporaryTemplateRows } from "../temporaryLayout/useTemporaryTemplateRows";
 import { Alert, Button, Form, Skeleton, Tabs, Tooltip, Typography, message, theme } from "antd";
 import { CheckCircleOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -271,8 +273,10 @@ const DynamicCreatePage: React.FC<{
         lineHeight: 1.0,
     };
 
+    // A template the user picked for now replaces the configured layout of this page.
+    const temporaryTemplateRows = useTemporaryTemplateRows(buildTemporaryPageKey(model.resource || model.name, "create"), model, "create");
     const configRows = keepConfigRowsOfModel(filterConfigRowsForMode(
-        editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows,
+        temporaryTemplateRows ?? (editConfigRows.length > 0 ? editConfigRows : fallbackConfigRows),
         "edit"
     ), model);
     const configLoading = editConfigLoading || fallbackConfigLoading || viewSettingsLoading;
@@ -778,6 +782,10 @@ const DynamicCreatePage: React.FC<{
  */
 export const DynamicCreate: React.FC<React.ComponentProps<typeof DynamicCreatePage>> = (props) => (
     <ResourceAccessGate resource={props.model.resource || props.model.name} action="create">
-        <DynamicCreatePage {...props} />
+        <TemporaryPageLayoutScopeProvider
+            scope={{ pageKey: buildTemporaryPageKey(props.model.resource || props.model.name, "create"), pageType: "create", model: props.model }}
+        >
+            <DynamicCreatePage {...props} />
+        </TemporaryPageLayoutScopeProvider>
     </ResourceAccessGate>
 );
