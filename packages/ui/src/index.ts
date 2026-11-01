@@ -21,6 +21,9 @@ export { ExecutableHtml } from "./components/ExecutableHtml";
 export { InlinePlotlyHtml } from "./components/InlinePlotlyHtml";
 export { SingleItemCarousel, CarouselPositionBadge } from "./components/DynamicResource/utils/singleItemCarousel";
 export type { SingleItemCarouselProps } from "./components/DynamicResource/utils/singleItemCarousel";
+export { PrimaryCarouselLayout } from "./components/DynamicResource/PrimaryCarouselLayout";
+export { registerPrimaryCarouselFooter } from "./components/DynamicResource/primaryCarouselFooters";
+export type { PrimaryCarouselFooterProps } from "./components/DynamicResource/primaryCarouselFooters";
 
 // ── DynamicResource ────────────────────────────────────────────────────────
 export {

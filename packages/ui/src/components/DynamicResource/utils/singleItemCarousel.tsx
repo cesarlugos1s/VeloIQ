@@ -37,12 +37,14 @@ export interface SingleItemCarouselProps<Item> {
     onActiveIndexChange?: (index: number) => void;
     /** Go from the last item to the first and back (default true). */
     wrapAround?: boolean;
-    /** Fixed height of the carousel; omit to take the items' height. */
-    height?: number;
+    /** Fixed height of the carousel (pixels or any CSS length); omit to take the items' height. */
+    height?: number | string;
     /** Padding around each item: pixels, or CSS shorthand such as "0 36px" (default 0). */
     itemPadding?: number | string;
     /** Where the "N / M" badge sits (default bottom-right). */
     positionBadgeCorner?: "top-right" | "bottom-right";
+    /** Draw the "N / M" badge (default true); false when the page shows the position itself. */
+    showPositionBadge?: boolean;
     /** Disable the arrows (e.g. while an item animates out). */
     navigationDisabled?: boolean;
     /** Move with the keyboard's left/right arrow keys while focused (default false: a
@@ -89,7 +91,7 @@ export const CarouselPositionBadge: React.FC<{ corner: "top-right" | "bottom-rig
 
 export function SingleItemCarousel<Item>({
     items, getItemKey, renderItem, activeIndex: controlledActiveIndex, onActiveIndexChange,
-    wrapAround = true, height, itemPadding = 0, positionBadgeCorner = "bottom-right", navigationDisabled = false,
+    wrapAround = true, height, itemPadding = 0, positionBadgeCorner = "bottom-right", showPositionBadge = true, navigationDisabled = false,
     arrowKeyNavigation = false,
 }: SingleItemCarouselProps<Item>): React.ReactElement {
     const [ownActiveIndex, setOwnActiveIndex] = useState(0);
@@ -119,7 +121,7 @@ export function SingleItemCarousel<Item>({
                 <>
                     <CarouselSideArrow direction="left" disabled={!canGoBack} onClick={() => showIndex(activeIndex - 1)} />
                     <CarouselSideArrow direction="right" disabled={!canGoForward} onClick={() => showIndex(activeIndex + 1)} />
-                    <CarouselPositionBadge corner={positionBadgeCorner} current={activeIndex + 1} total={count} />
+                    {showPositionBadge && <CarouselPositionBadge corner={positionBadgeCorner} current={activeIndex + 1} total={count} />}
                 </>
             )}
             <div style={{

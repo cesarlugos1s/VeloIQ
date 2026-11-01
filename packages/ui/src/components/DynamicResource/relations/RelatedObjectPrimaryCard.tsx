@@ -12,7 +12,15 @@ export const RelatedObjectPrimaryCard: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
     customPageName?: string;
-}> = ({ record, model, allModels, customPageName }) => {
+    /** Content under the record's show page (e.g. a host's decision buttons). */
+    footer?: React.ReactNode;
+    /** Open the record's full page in a new browser tab (default: the same tab). */
+    openFullPageInNewTab?: boolean;
+    /** Show the title bar with the record's title and full-page link (default true); false when the page inside already shows the title. */
+    showHeader?: boolean;
+    /** Space under the card in pixels (default 12, the spacing of stacked cards). */
+    marginBottom?: number;
+}> = ({ record, model, allModels, customPageName, footer, openFullPageInNewTab = false, showHeader = true, marginBottom = 12 }) => {
     const allModelsList = useMemo(() => allModels || [], [allModels]);
     const tone = useModelTone(model);
     const PrimaryShowRenderer = useContext(PrimaryShowContext);
@@ -32,21 +40,26 @@ export const RelatedObjectPrimaryCard: React.FC<{
     return (
         <Card
             size="small"
-            title={
+            title={!showHeader ? undefined : (
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span>{label}</span>
                     {showHref && (
-                        <a href={showHref} style={{ fontSize: 12, color: tone.solid }}>
+                        <a
+                            href={showHref}
+                            {...(openFullPageInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                            style={{ fontSize: 12, color: tone.solid }}
+                        >
                             <EyeOutlined />
                         </a>
                     )}
                 </span>
-            }
+            )}
             variant="borderless"
-            style={{ marginBottom: 12, boxShadow: `0 8px 20px -16px ${tone.shadow}` }}
+            style={{ marginBottom, boxShadow: `0 8px 20px -16px ${tone.shadow}` }}
             styles={{ header: { background: "transparent", color: tone.text }, body: { padding: 0 } }}
         >
             {bodyContent}
+            {footer}
         </Card>
     );
 };

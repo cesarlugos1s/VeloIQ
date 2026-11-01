@@ -152,7 +152,7 @@ analyze_server_aggregation_threshold = 10000
 | `modules_color_schema` | `"plain-color"` | `"color-coded"` gives each module its own color; `"plain-color"` uses one light/dark-aware color. |
 | `models_color_schema` | `"plain-color"` | Same options, applied per model. |
 | `plain_color_base_hex` | `""` (grayscale) | Base hex color used when a schema is `"plain-color"`. |
-| `show_view_type` | framework default | Default view type for show forms (`table`, `editable-table`, `list`, `editable-list`, `csv`, `primary`, `gallery`, `calendar`, `kanban`, `totals-details`). |
+| `show_view_type` | framework default | Default view type for show forms (`table`, `editable-table`, `list`, `editable-list`, `csv`, `primary`, `primary-carousel`, `gallery`, `calendar`, `kanban`, `totals-details`). |
 | `edit_view_type` | framework default | Default view type for edit forms (same options). |
 | `list_view_type` | framework default | Default view type for list pages. |
 | `file_list_view_type` | framework default | Default view type for file / attachment lists. |
@@ -567,3 +567,14 @@ VELOIQ_NLP_LOG_LEVEL=2         # overrides [logging] log_up_to_relevance
 VELOIQ_I18N_LOCALES_DIR=../config/internationalization/locales
 VELOIQ_I18N_DEFAULT_LOCALE=en
 ```
+
+### The `primary-carousel` view type
+
+`primary-carousel` is the `primary` view (each record shown as its own page) with a carousel layout: one record at a time, moved with the arrows or the keyboard's left and right keys. It works wherever `primary` does: a list page (`list_view_type`, or `view_type` in a page or view configuration) and a relation on a show or edit page (`showViewType` / `editViewType`).
+
+- A dropdown above the carousel lists the records by title (the same title as their show page); it is searchable and shows more titles as it is scrolled. Choosing one moves the carousel to it.
+- The carousel's badge shows the position in the list, as `5 / 250`.
+- The title's link opens the record's full page in a new browser tab.
+- On a list page the search and filters of the page apply, and the whole list is loaded (500 records per request), so the position, the total and the dropdown cover the filtered list.
+- A host application can add content under each record with `registerPrimaryCarouselFooter(resource, Footer)` (from `@juicemantics/veloiq-ui`); the footer receives the `record` and `removeRecord()`, which takes the record out of the carousel (for example after the user decided on it).
+- In backend-rendered results (natural language sentences) `primary-carousel` is shown as `primary`, scrolling vertically.

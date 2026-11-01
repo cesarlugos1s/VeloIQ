@@ -112,6 +112,7 @@ import {
 import { RelatedObjectPreview } from "./relations/RelatedObjectPreview";
 import { RelatedObjectPrimaryCard } from "./relations/RelatedObjectPrimaryCard";
 import { RelatedObjectsPrimaryView } from "./relations/RelatedObjectsPrimaryView";
+import { PrimaryCarouselLayout } from "./PrimaryCarouselLayout";
 import { RelatedObjectsInlineValues } from "./relations/RelatedObjectsInlineValues";
 import { RelatedObjectsGallery } from "./relations/RelatedObjectsGallery";
 import { RelatedObjectsCalendar } from "./relations/RelatedObjectsCalendar";
@@ -265,10 +266,12 @@ const DynamicListPage: React.FC<{
     filter?: any;
     relationConfig?: RelationDef;
     isEmbedded?: boolean;
+    /** The page heading, already translated (default: the model's label), e.g. "Unmatched candidates for <position>". */
+    title?: string;
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "primary-carousel" | "list" | "editable-list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -286,7 +289,7 @@ const DynamicListPage: React.FC<{
     onRowClick?: (record: any) => void;
     /** Handles the list's create button (and Ctrl+N) instead of opening the create form (e.g. a new record in the page's own editor). */
     onCreate?: () => void;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     // Tools a role or an external portal can switch off (Analyze, CSV export, saved views, columns, metadata).
@@ -380,7 +383,9 @@ const DynamicListPage: React.FC<{
     const isKanbanView = resolvedListViewType === "kanban";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
-    const isPrimaryView = resolvedListViewType === "primary";
+    // "primary-carousel" is the primary view with its carousel layout (one record at a time).
+    const isPrimaryCarouselView = resolvedListViewType === "primary-carousel";
+    const isPrimaryView = resolvedListViewType === "primary" || isPrimaryCarouselView;
     const isListView = resolvedListViewType === "list" || resolvedListViewType === "editable-list";
     // A key made of several fields: each key column shows its own value (the
     // record's title stands in for the key only when the key is one field).
@@ -421,6 +426,8 @@ const DynamicListPage: React.FC<{
         [model.quickFilterFields, model.fields],
     );
     const [galleryPage, setGalleryPage] = useState(1);
+    // Where the primary carousel draws its toolbar: in the Filters bar, beside the search (set by a callback ref).
+    const [carouselToolbarSlot, setCarouselToolbarSlot] = useState<HTMLElement | null>(null);
     const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
     const [calendarDateField, setCalendarDateField] = useState<string>(() => calendarDateFieldOptions[0]?.key || "");
     const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs().startOf("month"));
@@ -1050,10 +1057,11 @@ const DynamicListPage: React.FC<{
             isTotalsDetailsView ||
             isCrosstabView ||
             isKanbanView ||
+            isPrimaryCarouselView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, localSearch]);
+    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, localSearch]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
@@ -2610,7 +2618,7 @@ const DynamicListPage: React.FC<{
     const listTitle = !isEmbedded
         ? renderModelHeading({
             model,
-            title: modelDisplayLabel,
+            title: titleProp ?? modelDisplayLabel,
             actionLabel: _("List"),
             moduleLabel: model.module ? getModuleLabel(model.module) : undefined,
         })
@@ -3504,6 +3512,7 @@ const DynamicListPage: React.FC<{
                                         </Form.Item>
                                     </Form>
                                 )}
+                                {isPrimaryCarouselView && <div ref={setCarouselToolbarSlot} style={{ display: "flex", flex: 1, minWidth: 240 }} />}
                             </div>
                         </div>
                     }
@@ -3964,6 +3973,15 @@ const DynamicListPage: React.FC<{
                         </>
                     ) : isCrosstabView ? (
                         crosstabBodyNode
+                    ) : isPrimaryCarouselView ? (
+                        allRowsLoaded
+                            ? <PrimaryCarouselLayout
+                                records={filteredDataSource}
+                                model={model.primaryResource ? (allModels?.find((candidate) => (candidate.resource || candidate.name) === model.primaryResource) ?? model) : model}
+                                allModels={allModels}
+                                toolbarContainer={carouselToolbarSlot}
+                            />
+                            : <Spin />
                     ) : isPrimaryView ? (
                         <>
                             {primaryRows.length === 0 ? (

@@ -510,6 +510,7 @@ export const normalizeRelationViewType = (rawVid: string): RelationViewType | ""
     if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
     if (normalized === "kanban") return "kanban";
     if (normalized === "primary") return "primary";
+    if (normalized === "primarycarousel") return "primary-carousel";
     if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";
     if (normalized === "tree") return "tree";
     if (normalized === "treedetails") return "tree-details";

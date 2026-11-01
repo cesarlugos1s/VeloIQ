@@ -241,13 +241,13 @@ const renderRelationBlockContent = ({
         );
     }
 
-    if (viewType === "primary") {
+    if (viewType === "primary" || viewType === "primary-carousel") {
         const primaryModel = relatedModel || relationModel;
         const customPageName = mode === "show" ? rel.showCustomPageName : rel.editCustomPageName;
         return (
             <div key={rel.resource} style={{ marginTop: 12 }}>
                 {showLabel && <div style={{ ...resolvedLabelStyle, marginBottom: 6 }}>{relationLabel}</div>}
-                <RelatedObjectsPrimaryView rel={rel} record={record} model={primaryModel} allModels={allModels} customPageName={customPageName} />
+                <RelatedObjectsPrimaryView rel={rel} record={record} model={primaryModel} allModels={allModels} customPageName={customPageName} layout={viewType === "primary-carousel" ? "carousel" : "scroll"} />
             </div>
         );
     }
