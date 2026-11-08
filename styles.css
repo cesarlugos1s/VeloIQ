@@ -71,6 +71,8 @@ nav {
 .nav-dropdown:focus-within .nav-dropdown-menu {
   opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(0);
 }
+/* invisible bridge over the gap above the menu so hover isn't lost on the way down */
+.nav-dropdown-menu::before { content: ""; position: absolute; left: 0; right: 0; top: -14px; height: 14px; }
 .nav-dropdown-menu a { padding: 9px 12px; border-radius: 6px; white-space: nowrap; font-size: 0.85rem; }
 .nav-dropdown-menu a:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 .nav-cta {
@@ -426,4 +428,9 @@ footer { border-top: 1px solid var(--border-subtle); padding: 44px 0; }
     padding: 0 0 0 14px; margin-top: 0; min-width: 0; gap: 10px;
   }
   .nav-dropdown-menu a { padding: 0; }
+  .nav-dropdown-menu::before { display: none; }
 }
+
+/* Solutions page: smooth anchor jumps that clear the sticky nav + industry row */
+html { scroll-behavior: smooth; }
+.section[id] { scroll-margin-top: 130px; }
