@@ -47,6 +47,9 @@
     .sol-badge.accent { background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent); }
     .sol-badge.muted { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-muted); }
     .sol-btn { font-size: 0.74rem; padding: 6px 14px; }
+    /* Industry row is three pill rows tall: keep it in flow, not sticky */
+    .subnav { position: static; }
+    .section[id] { scroll-margin-top: 80px; }
     @media (max-width: 768px) {
       .solutions-grid, .solutions-grid.wide { grid-template-columns: 1fr; }
       .solutions-grid > *:last-child:nth-child(odd) { max-width: none; }
@@ -63,7 +66,23 @@
     <div class="nav-links" onclick="document.querySelector('nav').classList.remove('nav-open')">
       <a href="index.html#features">Features</a>
       <a href="showcase.html">Showcase</a>
-      <a href="solutions.html">Solutions</a>
+      <div class="nav-dropdown">
+        <a href="solutions.html" class="nav-dropdown-trigger">Solutions ▾</a>
+        <div class="nav-dropdown-menu">
+          <a href="solutions.html">All Solutions</a>
+          <a href="solutions.html#retail">Retail, Distribution &amp; Food Service</a>
+          <a href="solutions.html#manufacturing">Manufacturing</a>
+          <a href="solutions.html#ehs">Environmental Health &amp; Safety</a>
+          <a href="solutions.html#logistics">Logistics and Supply Chain</a>
+          <a href="solutions.html#healthcare">Healthcare</a>
+          <a href="solutions.html#real-estate">Real Estate &amp; Construction</a>
+          <a href="solutions.html#finance">Finance &amp; Compliance</a>
+          <a href="solutions.html#public-sector">Public Sector &amp; Government</a>
+          <a href="solutions.html#hr-talent">Human Resources &amp; Talent</a>
+          <a href="solutions.html#sales-revops">Sales &amp; RevOps</a>
+          <a href="solutions.html#marketing-support">Marketing &amp; Support</a>
+        </div>
+      </div>
       <a href="https://github.com/cesarlugos1s/veloiq/tree/main/docs" target="_blank">Docs</a>
       <a href="pricing.html">Pricing</a>
       <div class="nav-dropdown">
@@ -99,10 +118,27 @@
   </div>
 </section>
 
+<!-- Solutions by industry -->
+<div class="subnav" aria-label="Solutions by industry">
+  <div class="subnav-inner">
+    <a href="#retail">Retail, Distribution &amp; Food Service</a>
+    <a href="#manufacturing">Manufacturing</a>
+    <a href="#ehs">Environmental Health &amp; Safety</a>
+    <a href="#logistics">Logistics and Supply Chain</a>
+    <a href="#healthcare">Healthcare</a>
+    <a href="#real-estate">Real Estate &amp; Construction</a>
+    <a href="#finance">Finance &amp; Compliance</a>
+    <a href="#public-sector">Public Sector &amp; Government</a>
+    <a href="#hr-talent">Human Resources &amp; Talent</a>
+    <a href="#sales-revops">Sales &amp; RevOps</a>
+    <a href="#marketing-support">Marketing &amp; Support</a>
+  </div>
+</div>
+
 <!-- App Cards by Category -->
 
 <!-- 🏬 Retail & Distribution -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="retail" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#7c3aed">Retail, Distribution &amp; Food Service</span>
@@ -220,7 +256,7 @@
 </section>
 
 <!-- 🏭 Manufacturing -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="manufacturing" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#f97316">Manufacturing</span>
@@ -251,7 +287,7 @@
 </section>
 
 <!-- 🦺 Environmental Health & Safety -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="ehs" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#65a30d">Environmental Health &amp; Safety</span>
@@ -282,7 +318,7 @@
 </section>
 
 <!-- 🧊 Logistics and Supply Chain -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="logistics" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#0284c7">Logistics and Supply Chain</span>
@@ -393,7 +429,7 @@
 </section>
 
 <!-- 🏥 Healthcare -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="healthcare" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#0891b2">Healthcare</span>
@@ -445,7 +481,7 @@
 </section>
 
 <!-- 🏢 Real Estate & Construction -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="real-estate" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#a16207">Real Estate &amp; Construction</span>
@@ -497,7 +533,7 @@
 </section>
 
 <!-- 💰 Finance & Compliance -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="finance" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#d4a236">Finance &amp; Compliance</span>
@@ -668,7 +704,7 @@
 </section>
 
 <!-- 🏛️ Public Sector & Government -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="public-sector" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#1e3a8a">Public Sector &amp; Government</span>
@@ -699,7 +735,7 @@
 </section>
 
 <!-- 👥 Human Resources & Talent -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="hr-talent" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#e11d48">Human Resources &amp; Talent</span>
@@ -730,7 +766,7 @@
 </section>
 
 <!-- 📈 Sales & RevOps -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="sales-revops" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#16a34a">Sales &amp; RevOps</span>
@@ -782,7 +818,7 @@
 </section>
 
 <!-- 📢 Marketing & Support -->
-<section class="section" style="padding-top:8px">
+<section class="section" id="marketing-support" style="padding-top:8px">
   <div class="container">
     <div class="section-header" style="margin-bottom:10px">
       <span class="section-tag" style="color:#2563eb">Marketing &amp; Support</span>
