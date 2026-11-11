@@ -1,7 +1,7 @@
 import { onlineManager, QueryClient, useQueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React6, { createContext, lazy, useState, useImperativeHandle, useRef, useCallback, useEffect, useMemo, useLayoutEffect, useSyncExternalStore, useContext, Suspense, createElement, useId } from 'react';
-import { ThemedLayoutV2, Show, useForm, DeleteButton, RefineThemes, List as List$1, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, Edit, ListButton, EditButton, RefreshButton } from '@refinedev/antd';
-import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useInvalidate, useOne, useCustom, useLogin, Refine, Authenticated, useResource, useNavigation, useTranslate, useUserFriendlyName, useRefineContext, useLink, matchResourceFromRoute, pickNotDeprecated, useWarnAboutChange } from '@refinedev/core';
+import { ThemedLayoutV2, useForm, DeleteButton, RefineThemes, List as List$1, Show, Breadcrumb as Breadcrumb$1, useTable, notificationProvider, Create, useSelect, ListButton, EditButton, RefreshButton, Edit } from '@refinedev/antd';
+import { useMenu, useGo, useApiUrl, useCan, useGetIdentity, useLogout, useInvalidate, useOne, useCustom, useLogin, useResource, Refine, Authenticated, useNavigation, useTranslate, useUserFriendlyName, useRefineContext, useLink, matchResourceFromRoute, pickNotDeprecated, useWarnAboutChange } from '@refinedev/core';
 import { Typography, Carousel, theme, Empty, Button, Form, Drawer, Divider, AutoComplete, Space, InputNumber, Select, Input, Tooltip, ConfigProvider, Menu, Layout, Spin, Row, Col, Card, Grid, Skeleton, Modal, Result, Tag, Table, message, Switch, Slider, Popover, Alert, Breadcrumb, Tree, Tabs, List, Checkbox, Radio, TreeSelect, Dropdown, Avatar, TimePicker, DatePicker, Segmented, Pagination, Upload, Rate, Progress, Collapse, Popconfirm } from 'antd';
 import * as AntDIcons2 from '@ant-design/icons';
 import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTopOutlined, VerticalAlignBottomOutlined, ArrowDownOutlined, SettingOutlined, FullscreenOutlined, MinusSquareOutlined, SearchOutlined, CloseOutlined, PushpinFilled, ClockCircleOutlined, AppstoreOutlined, ThunderboltOutlined, RightOutlined, DatabaseOutlined, QuestionCircleOutlined, LockOutlined, LogoutOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined, SlidersOutlined, DownOutlined, UserOutlined, ReloadOutlined, PushpinOutlined, DashboardOutlined, DoubleRightOutlined, DoubleLeftOutlined, UpOutlined, CheckOutlined, DeleteOutlined, MenuOutlined, MenuUnfoldOutlined, MenuFoldOutlined, LayoutOutlined, BorderInnerOutlined, ApartmentOutlined, SaveFilled, VerticalAlignMiddleOutlined, ColumnWidthOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined, TableOutlined, UnorderedListOutlined, DownloadOutlined, CameraOutlined, UploadOutlined, PlusOutlined, LinkOutlined, ShareAltOutlined, ColumnHeightOutlined, SwapOutlined, BugOutlined, EditOutlined, HomeOutlined, CopyOutlined, BarChartOutlined, FilterOutlined, CalendarOutlined, FilePdfOutlined, InboxOutlined, PlusSquareOutlined, CommentOutlined, FullscreenExitOutlined, FolderOutlined, FileOutlined, StockOutlined, RiseOutlined, RadarChartOutlined, PieChartOutlined, LineChartOutlined, HeatMapOutlined, FundOutlined, FallOutlined, DotChartOutlined, DeploymentUnitOutlined, BuildOutlined, BoxPlotOutlined, AreaChartOutlined } from '@ant-design/icons';
@@ -4813,7 +4813,7 @@ function usePublishedListAnalyzeState(pageKey) {
 function useTemporaryPanesLayoutMode() {
   return useSyncExternalStore(subscribeToSnapshot, () => snapshot.panesLayoutMode, () => snapshot.panesLayoutMode);
 }
-var TemporaryPageLayoutScopeContext = createContext(null);
+var TemporaryPageLayoutScopeContext = createContext(void 0);
 var TemporaryPageLayoutScopeProvider = ({ scope, children }) => {
   const stableScope = useMemo(
     () => scope,
@@ -4823,7 +4823,10 @@ var TemporaryPageLayoutScopeProvider = ({ scope, children }) => {
   return /* @__PURE__ */ jsx(TemporaryPageLayoutScopeContext.Provider, { value: stableScope, children });
 };
 function useTemporaryPageLayoutScope() {
-  return useContext(TemporaryPageLayoutScopeContext);
+  return useContext(TemporaryPageLayoutScopeContext) ?? null;
+}
+function useHasTemporaryPageLayoutScopeProvider() {
+  return useContext(TemporaryPageLayoutScopeContext) !== void 0;
 }
 function useTemporaryPageLayoutOfEnclosingPage() {
   const scope = useTemporaryPageLayoutScope();
@@ -5212,7 +5215,20 @@ var withLayoutControls = (headerButtons, detailState) => {
     headerButtons(args)
   ] });
 };
-var StandardShow = ({ headerButtons, ...props }) => {
+var EnsureTemporaryPageLayoutScope = ({ resource, pageType, children }) => {
+  const hasProvider = useHasTemporaryPageLayoutScopeProvider();
+  const allModels = useAllModels();
+  const { resource: routeResource } = useResource(resource);
+  const resourceName = resource ?? routeResource?.name;
+  const model = useMemo(
+    () => resourceName ? allModels.find((candidate) => (candidate.resource || candidate.name) === resourceName) : void 0,
+    [allModels, resourceName]
+  );
+  if (hasProvider) return /* @__PURE__ */ jsx(Fragment, { children });
+  const scope = model ? { pageKey: buildTemporaryPageKey(model.resource || model.name, pageType), pageType, model } : null;
+  return /* @__PURE__ */ jsx(TemporaryPageLayoutScopeProvider, { scope, children });
+};
+var StandardShowContent = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "show", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
@@ -5231,7 +5247,8 @@ var StandardShow = ({ headerButtons, ...props }) => {
     )
   ] });
 };
-var StandardEdit = ({ headerButtons, ...props }) => {
+var StandardShow = (props) => /* @__PURE__ */ jsx(EnsureTemporaryPageLayoutScope, { resource: props.resource, pageType: "show", children: /* @__PURE__ */ jsx(StandardShowContent, { ...props }) });
+var StandardEditContent = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "edit", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
@@ -5249,6 +5266,7 @@ var StandardEdit = ({ headerButtons, ...props }) => {
     )
   ] });
 };
+var StandardEdit = (props) => /* @__PURE__ */ jsx(EnsureTemporaryPageLayoutScope, { resource: props.resource, pageType: "edit", children: /* @__PURE__ */ jsx(StandardEditContent, { ...props }) });
 var StandardList = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsx(PageBreadcrumb, { action: "list", resource: props.resource });
   const effectiveHeaderButtons = withLayoutControls(headerButtons, void 0);

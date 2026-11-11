@@ -207,7 +207,8 @@ export interface TemporaryPageLayoutScope {
     cellSizeAvailable?: boolean;
 }
 
-const TemporaryPageLayoutScopeContext = createContext<TemporaryPageLayoutScope | null>(null);
+// undefined: no page provides a scope; null: a page provides none on purpose (an embedded page).
+const TemporaryPageLayoutScopeContext = createContext<TemporaryPageLayoutScope | null | undefined>(undefined);
 
 /** Marks the subtree as one page whose layout may be changed temporarily (null scope = embedded, inert). */
 export const TemporaryPageLayoutScopeProvider: React.FC<{
@@ -226,7 +227,12 @@ export const TemporaryPageLayoutScopeProvider: React.FC<{
 
 /** The scope of the enclosing page, or null outside any (or inside an embedded) page. */
 export function useTemporaryPageLayoutScope(): TemporaryPageLayoutScope | null {
-    return useContext(TemporaryPageLayoutScopeContext);
+    return useContext(TemporaryPageLayoutScopeContext) ?? null;
+}
+
+/** True inside a page that decided its scope, including an embedded page whose scope is null on purpose. */
+export function useHasTemporaryPageLayoutScopeProvider(): boolean {
+    return useContext(TemporaryPageLayoutScopeContext) !== undefined;
 }
 
 /** Overrides and setters for the enclosing page. */

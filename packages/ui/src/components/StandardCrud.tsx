@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useResource } from "@refinedev/core";
 import {
     Show,
     Edit,
@@ -24,7 +25,13 @@ import { TemporaryPageLayoutControls } from "./DynamicResource/temporaryLayout/T
 import { useTemporaryTemplateRows } from "./DynamicResource/temporaryLayout/useTemporaryTemplateRows";
 import { fieldSequenceFromTemplateRows } from "./DynamicResource/viewState/templateFieldSequence";
 import { TemplateListDefaultsContext } from "./DynamicResource/viewState/TemplateListDefaultsContext";
-import { useTemporaryPageLayoutOfEnclosingPage } from "./DynamicResource/temporaryLayout/temporaryPageLayoutStore";
+import {
+    TemporaryPageLayoutScopeProvider,
+    buildTemporaryPageKey,
+    useHasTemporaryPageLayoutScopeProvider,
+    useTemporaryPageLayoutOfEnclosingPage,
+} from "./DynamicResource/temporaryLayout/temporaryPageLayoutStore";
+import { useAllModels } from "../contexts/AllModelsContext";
 import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
 
 const wrappedPageTitleStyle: React.CSSProperties = {
@@ -226,7 +233,27 @@ const withLayoutControls = (
     );
 };
 
-export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) => {
+/**
+ * Gives a page that uses StandardShow or StandardEdit directly (a custom page of an application or
+ * extension) the temporary layout scope the standard pages provide, so its relation blocks offer the
+ * temporary view type button and its header offers Design options. A page that already provides a
+ * scope (the standard pages) is left as it is.
+ */
+const EnsureTemporaryPageLayoutScope: React.FC<{ resource?: string; pageType: "show" | "edit"; children: React.ReactNode }> = ({ resource, pageType, children }) => {
+    const hasProvider = useHasTemporaryPageLayoutScopeProvider();
+    const allModels = useAllModels();
+    const { resource: routeResource } = useResource(resource);
+    const resourceName = resource ?? routeResource?.name;
+    const model = useMemo(
+        () => (resourceName ? allModels.find((candidate) => (candidate.resource || candidate.name) === resourceName) : undefined),
+        [allModels, resourceName],
+    );
+    if (hasProvider) return <>{children}</>;
+    const scope = model ? { pageKey: buildTemporaryPageKey(model.resource || model.name, pageType), pageType, model } : null;
+    return <TemporaryPageLayoutScopeProvider scope={scope}>{children}</TemporaryPageLayoutScopeProvider>;
+};
+
+const StandardShowContent: React.FC<ShowProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="show" resource={props.resource} />;
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
@@ -246,7 +273,13 @@ export const StandardShow: React.FC<ShowProps> = ({ headerButtons, ...props }) =
     );
 };
 
-export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) => {
+export const StandardShow: React.FC<ShowProps> = (props) => (
+    <EnsureTemporaryPageLayoutScope resource={props.resource} pageType="show">
+        <StandardShowContent {...props} />
+    </EnsureTemporaryPageLayoutScope>
+);
+
+const StandardEditContent: React.FC<EditProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="edit" resource={props.resource} />;
     const detailState = getCurrentDataDetailLevelState();
     const effectiveHeaderButtons =
@@ -265,6 +298,12 @@ export const StandardEdit: React.FC<EditProps> = ({ headerButtons, ...props }) =
         </VerticalActionsLayout>
     );
 };
+
+export const StandardEdit: React.FC<EditProps> = (props) => (
+    <EnsureTemporaryPageLayoutScope resource={props.resource} pageType="edit">
+        <StandardEditContent {...props} />
+    </EnsureTemporaryPageLayoutScope>
+);
 
 export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) => {
     const pageBreadcrumb = <PageBreadcrumb action="list" resource={props.resource} />;

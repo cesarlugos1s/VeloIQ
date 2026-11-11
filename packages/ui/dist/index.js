@@ -4841,7 +4841,7 @@ function usePublishedListAnalyzeState(pageKey) {
 function useTemporaryPanesLayoutMode() {
   return React6.useSyncExternalStore(subscribeToSnapshot, () => snapshot.panesLayoutMode, () => snapshot.panesLayoutMode);
 }
-var TemporaryPageLayoutScopeContext = React6.createContext(null);
+var TemporaryPageLayoutScopeContext = React6.createContext(void 0);
 var TemporaryPageLayoutScopeProvider = ({ scope, children }) => {
   const stableScope = React6.useMemo(
     () => scope,
@@ -4851,7 +4851,10 @@ var TemporaryPageLayoutScopeProvider = ({ scope, children }) => {
   return /* @__PURE__ */ jsxRuntime.jsx(TemporaryPageLayoutScopeContext.Provider, { value: stableScope, children });
 };
 function useTemporaryPageLayoutScope() {
-  return React6.useContext(TemporaryPageLayoutScopeContext);
+  return React6.useContext(TemporaryPageLayoutScopeContext) ?? null;
+}
+function useHasTemporaryPageLayoutScopeProvider() {
+  return React6.useContext(TemporaryPageLayoutScopeContext) !== void 0;
 }
 function useTemporaryPageLayoutOfEnclosingPage() {
   const scope = useTemporaryPageLayoutScope();
@@ -5240,7 +5243,20 @@ var withLayoutControls = (headerButtons, detailState) => {
     headerButtons(args)
   ] });
 };
-var StandardShow = ({ headerButtons, ...props }) => {
+var EnsureTemporaryPageLayoutScope = ({ resource, pageType, children }) => {
+  const hasProvider = useHasTemporaryPageLayoutScopeProvider();
+  const allModels = useAllModels();
+  const { resource: routeResource } = core.useResource(resource);
+  const resourceName = resource ?? routeResource?.name;
+  const model = React6.useMemo(
+    () => resourceName ? allModels.find((candidate) => (candidate.resource || candidate.name) === resourceName) : void 0,
+    [allModels, resourceName]
+  );
+  if (hasProvider) return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children });
+  const scope = model ? { pageKey: buildTemporaryPageKey(model.resource || model.name, pageType), pageType, model } : null;
+  return /* @__PURE__ */ jsxRuntime.jsx(TemporaryPageLayoutScopeProvider, { scope, children });
+};
+var StandardShowContent = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "show", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? renderStandardShowHeaderButtons;
@@ -5259,7 +5275,8 @@ var StandardShow = ({ headerButtons, ...props }) => {
     )
   ] });
 };
-var StandardEdit = ({ headerButtons, ...props }) => {
+var StandardShow = (props) => /* @__PURE__ */ jsxRuntime.jsx(EnsureTemporaryPageLayoutScope, { resource: props.resource, pageType: "show", children: /* @__PURE__ */ jsxRuntime.jsx(StandardShowContent, { ...props }) });
+var StandardEditContent = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "edit", resource: props.resource });
   const detailState = getCurrentDataDetailLevelState();
   const effectiveHeaderButtons = headerButtons ?? (({ defaultButtons }) => renderIconOnlyButtons2(defaultButtons));
@@ -5277,6 +5294,7 @@ var StandardEdit = ({ headerButtons, ...props }) => {
     )
   ] });
 };
+var StandardEdit = (props) => /* @__PURE__ */ jsxRuntime.jsx(EnsureTemporaryPageLayoutScope, { resource: props.resource, pageType: "edit", children: /* @__PURE__ */ jsxRuntime.jsx(StandardEditContent, { ...props }) });
 var StandardList = ({ headerButtons, ...props }) => {
   const pageBreadcrumb = /* @__PURE__ */ jsxRuntime.jsx(PageBreadcrumb, { action: "list", resource: props.resource });
   const effectiveHeaderButtons = withLayoutControls(headerButtons, void 0);
