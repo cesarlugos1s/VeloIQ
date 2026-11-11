@@ -1,3 +1,13 @@
+import { AdvancedFilterBuilder } from "../viewState/AdvancedFilterBuilder";
+import { MultiSortControl } from "../viewState/MultiSortControl";
+import { FieldSequenceEditor } from "../viewState/FieldSequenceEditor";
+import { SummaryFunctionsEditor } from "../viewState/SummaryFunctionsEditor";
+import { AnalyzeToggleButton } from "../viewState/AnalyzeToggleButton";
+import { useSharedViewState } from "../viewState/useSharedViewState";
+import { buildRelationBlockId, buildViewStateBlockKey, mapLegacyPreferencesToViewStateLayer } from "../viewState/viewStateLayers";
+import type { AdvancedFilterRule, ViewStateLayer } from "../viewState/viewStateTypes";
+import { useTemporaryPageLayoutScope } from "../temporaryLayout/temporaryPageLayoutStore";
+import { orderAfterMove, orderAfterSelection } from "../viewState/fieldSequenceOperations";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
@@ -246,20 +256,49 @@ export const RelatedObjectsTable: React.FC<{
     const relatedResourcePath = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const [rows, setRows] = useState<any[]>([]);
     const [localSearch, setLocalSearch] = useState("");
-    const [filterRules, setFilterRules] = useState<Array<{
-        id: string;
-        fieldKey?: string;
-        operator?: string;
-        value?: any;
-        value2?: any;
-    }>>([]);
     const [filtersCollapsed, setFiltersCollapsed] = useState(true);
     const [columnsSelectorOpen, setColumnsSelectorOpen] = useState(false);
-    const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[] | null>(null);
-    const [columnOrder, setColumnOrder] = useState<string[] | null>(null);
-    const [totalsSummaryFunctions, setTotalsSummaryFunctions] = useState<Record<string, TotalsSummaryFn>>({});
-    const [columnFiltersSelected, setColumnFiltersSelected] = useState<Record<string, string[]>>({});
-    const [columnSort, setColumnSort] = useState<ColumnSortState[]>([]);
+    // The sort, filters, field sequence, page size and summary functions live in the shared view
+    // state of this relation block of the enclosing page (see viewState/); a page without a layout
+    // scope (an embedded page) keeps them in the component.
+    const enclosingPageScope = useTemporaryPageLayoutScope();
+    const viewStateBlockKey = enclosingPageScope
+        ? buildViewStateBlockKey(enclosingPageScope.pageKey, buildRelationBlockId(rel.relationName || rel.resource || rel.label || relatedModel.name))
+        : null;
+    const [savedViewStateLayer, setSavedViewStateLayer] = useState<ViewStateLayer>({});
+    // A template's or page configuration's `limit` for this relation is the starting page size.
+    const defaultViewStateLayer = useMemo<ViewStateLayer>(() => (rel.defaultPageSize ? { pageSize: rel.defaultPageSize } : {}), [rel.defaultPageSize]);
+    const sharedViewState = useSharedViewState({ blockKey: viewStateBlockKey, defaults: defaultViewStateLayer, saved: savedViewStateLayer });
+    const setSharedValue = sharedViewState.setValue;
+    const updateSharedViewState = sharedViewState.update;
+    // Loaded or just-saved preferences become the saved layer; temporary values for the same keys are dropped.
+    const applySavedViewStateLayer = useCallback((layer: ViewStateLayer) => {
+        setSavedViewStateLayer((previous) => ({ ...previous, ...layer }));
+        const dropped: Record<string, undefined> = {};
+        Object.keys(layer).forEach((key) => { dropped[key] = undefined; });
+        updateSharedViewState(dropped as ViewStateLayer);
+    }, [updateSharedViewState]);
+    const pageSize = sharedViewState.state.pageSize;
+    const setPageSize = useCallback((next: React.SetStateAction<number>) => setSharedValue("pageSize", next), [setSharedValue]);
+    const filterRules = sharedViewState.state.advancedFilterRules as Array<{ id: string; fieldKey?: string; operator?: string; value?: any; value2?: any }>;
+    const setFilterRules = useCallback((next: React.SetStateAction<typeof filterRules>) => setSharedValue("advancedFilterRules", next as React.SetStateAction<AdvancedFilterRule[]>), [setSharedValue]);
+    const columnFiltersSelected = sharedViewState.state.columnFilters;
+    const setColumnFiltersSelected = useCallback((next: React.SetStateAction<Record<string, string[]>>) => setSharedValue("columnFilters", next), [setSharedValue]);
+    const columnSort = sharedViewState.state.sortList;
+    const setColumnSort = useCallback((next: React.SetStateAction<ColumnSortState[]>) => setSharedValue("sortList", next), [setSharedValue]);
+    const totalsSummaryFunctions = sharedViewState.state.summaryFunctions;
+    const setTotalsSummaryFunctions = useCallback((next: React.SetStateAction<Record<string, TotalsSummaryFn>>) => setSharedValue("summaryFunctions", next), [setSharedValue]);
+    // The field sequence is one value; no custom sequence reads as null (the defaults apply).
+    const selectedColumnKeys = sharedViewState.state.fieldSequence.visibleKeys.length > 0 ? sharedViewState.state.fieldSequence.visibleKeys : null;
+    const columnOrder = sharedViewState.state.fieldSequence.order.length > 0 ? sharedViewState.state.fieldSequence.order : null;
+    const setSelectedColumnKeys = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
+        const visibleKeys = (typeof next === "function" ? next(previous.visibleKeys.length > 0 ? previous.visibleKeys : null) : next) ?? [];
+        return { ...previous, visibleKeys };
+    }), [setSharedValue]);
+    const setColumnOrder = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
+        const order = (typeof next === "function" ? next(previous.order.length > 0 ? previous.order : null) : next) ?? [];
+        return { ...previous, order };
+    }), [setSharedValue]);
     const [currentViewName, setCurrentViewName] = useState<string>(getDefaultViewName());
     const [selectedViewNames, setSelectedViewNames] = useState<string[]>([]);
     const [availableViewNames, setAvailableViewNames] = useState<string[]>([]);
@@ -271,7 +310,6 @@ export const RelatedObjectsTable: React.FC<{
     const [pendingSaveTarget, setPendingSaveTarget] = useState<"layout" | "analyze" | null>(null);
     const [renameViewModalOpen, setRenameViewModalOpen] = useState(false);
     const [renameViewName, setRenameViewName] = useState<string>("");
-    const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [fullDataLoaded, setFullDataLoaded] = useState(false);
     const [relationRowsCapped, setRelationRowsCapped] = useState(false);
@@ -405,12 +443,13 @@ export const RelatedObjectsTable: React.FC<{
                 throw new Error(`Save failed (${failed.status})`);
             }
             message.success(_("Layout preferences saved."));
+            applySavedViewStateLayer(mapLegacyPreferencesToViewStateLayer(preferences));
         } catch (error) {
             message.error(error instanceof Error ? error.message : _("Failed to save layout preferences."));
         } finally {
             setIsSavingLayoutPrefs(false);
         }
-    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, layoutPreferenceType, listVisible, pageSize, selectedColumnKeys, relatedModel.name, relatedModel.resource, totalsSummaryFunctions, allModels]);
+    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, layoutPreferenceType, listVisible, pageSize, selectedColumnKeys, relatedModel.name, relatedModel.resource, totalsSummaryFunctions, allModels, applySavedViewStateLayer]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(true);
@@ -665,41 +704,10 @@ export const RelatedObjectsTable: React.FC<{
             if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
             if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
             if ("filtersCollapsed" in prefs) setFiltersCollapsed(Boolean(prefs.filtersCollapsed));
-            if ("filters" in prefs && Array.isArray(prefs.filters)) {
-                setFilterRules(normalizeFilterRules(prefs.filters));
-            }
-            if ("rowsPerPage" in prefs) {
-                const nextPageSize = Number(prefs.rowsPerPage);
-                if (Number.isFinite(nextPageSize) && nextPageSize > 0) {
-                    setPageSize(nextPageSize);
-                    setCurrentPage(1);
-                }
-            }
-            if ("tableColumns" in prefs && prefs.tableColumns) {
-                const selectedKeys = Array.isArray(prefs.tableColumns.selectedKeys)
-                    ? prefs.tableColumns.selectedKeys
-                    : Array.isArray(prefs.tableColumns)
-                        ? prefs.tableColumns
-                        : null;
-                const order = Array.isArray(prefs.tableColumns.order)
-                    ? prefs.tableColumns.order
-                    : Array.isArray(prefs.tableColumns)
-                        ? prefs.tableColumns
-                        : null;
-                if (selectedKeys && selectedKeys.length > 0) {
-                    setSelectedColumnKeys(selectedKeys);
-                    setColumnOrder(order && order.length > 0 ? order : selectedKeys);
-                }
-            }
-            if ("columnFilters" in prefs && prefs.columnFilters && typeof prefs.columnFilters === "object") {
-                setColumnFiltersSelected(prefs.columnFilters);
-            }
-            if ("columnSort" in prefs && prefs.columnSort) {
-                setColumnSort(normalizeColumnSortPreference(prefs.columnSort));
-            }
-            if ("totalsSummaryFunctions" in prefs && prefs.totalsSummaryFunctions && typeof prefs.totalsSummaryFunctions === "object") {
-                setTotalsSummaryFunctions(prefs.totalsSummaryFunctions as Record<string, TotalsSummaryFn>);
-            }
+            // Sort, filters, field sequence, page size and summaries are the saved layer of the shared view state.
+            const savedLayer = mapLegacyPreferencesToViewStateLayer(prefs);
+            applySavedViewStateLayer(savedLayer);
+            if (savedLayer.pageSize !== undefined) setCurrentPage(1);
             return Object.keys(prefs).length > 0;
         };
         const loadPreferences = async () => {
@@ -1478,6 +1486,8 @@ export const RelatedObjectsTable: React.FC<{
                 summaryFn={summaryFn}
                 formatCategoryValue={formatCategoryValue}
                 numericBarColor={numericBarColor}
+                sortList={columnSort}
+                compareValues={compareSortValues}
                 editable={editableCrosstab ? {
                     pkField: relatedModel.pkField || "eid",
                     getStagedValue: getCrosstabStagedValue,
@@ -1589,27 +1599,11 @@ export const RelatedObjectsTable: React.FC<{
             return;
         }
         setSelectedColumnKeys(values);
-        setColumnOrder((prev) => {
-            const baseOrder = prev && prev.length > 0 ? prev.filter((key) => values.includes(key)) : [];
-            const missing = values.filter((key) => !baseOrder.includes(key));
-            return [...baseOrder, ...missing];
-        });
+        setColumnOrder((prev) => orderAfterSelection(prev, values));
     }, [markLayoutPrefsTouched]);
 
     const moveColumnOrder = useCallback((key: string, direction: "left" | "right") => {
-        setColumnOrder((prev) => {
-            const base = prev && prev.length > 0
-                ? [...prev]
-                : selectedColumnKeys
-                    ? [...selectedColumnKeys]
-                    : [];
-            const index = base.indexOf(key);
-            if (index === -1) return base;
-            const swapIndex = direction === "left" ? index - 1 : index + 1;
-            if (swapIndex < 0 || swapIndex >= base.length) return base;
-            [base[index], base[swapIndex]] = [base[swapIndex], base[index]];
-            return base;
-        });
+        setColumnOrder((prev) => orderAfterMove(prev, selectedColumnKeys, key, direction));
     }, [selectedColumnKeys]);
 
     const isTotalsDetailsVariant = viewVariant === "totals-details";
@@ -2035,189 +2029,8 @@ export const RelatedObjectsTable: React.FC<{
                     styles={{ body: { display: "grid", gap: 12 } }}
                 >
                     <div style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "grid", gap: 8 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Advanced filters")}</div>
-                            {filterRules.length === 0 ? (
-                                <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>{_("No filters yet.")}</div>
-                            ) : (
-                                filterRules.map((rule) => {
-                                    const field = relatedModel.fields.find((f) => f.key === rule.fieldKey);
-                                    const type = field?.type || "string";
-                                    const operatorOptions = type === "number"
-                                        ? [
-                                            { label: _("="), value: "eq" },
-                                            { label: _(">"), value: "gt" },
-                                            { label: _(">="), value: "gte" },
-                                            { label: _("<"), value: "lt" },
-                                            { label: _("<="), value: "lte" },
-                                            { label: _("Between"), value: "between" },
-                                        ]
-                                        : type === "date"
-                                            ? [
-                                                { label: _("On"), value: "on" },
-                                                { label: _("After"), value: "after" },
-                                                { label: _("Before"), value: "before" },
-                                                { label: _("Between"), value: "between" },
-                                            ]
-                                            : type === "boolean"
-                                                ? [{ label: _("Is"), value: "is" }]
-                                                : [
-                                                    { label: _("Contains"), value: "contains" },
-                                                    { label: _("Equals"), value: "equals" },
-                                                ];
-
-                                    const renderDateInput = (value: any, onChange: (val: any) => void) => {
-                                        const mode = value?.mode || "absolute";
-                                        if (mode === "relative") {
-                                            return (
-                                                <Space wrap>
-                                                    <InputNumber min={1} value={value?.count ?? 1} onChange={(val) => onChange({ ...value, mode: "relative", count: val ?? 1 })} />
-                                                    <Select
-                                                        value={value?.direction || "next"}
-                                                        onChange={(val) => onChange({ ...value, mode: "relative", direction: val })}
-                                                        options={[
-                                                            { label: _("Previous"), value: "previous" },
-                                                            { label: _("Current"), value: "current" },
-                                                            { label: _("Next"), value: "next" },
-                                                        ]}
-                                                    />
-                                                    <Select
-                                                        value={value?.unit || "weeks"}
-                                                        onChange={(val) => onChange({ ...value, mode: "relative", unit: val })}
-                                                        options={[
-                                                            { label: _("Days"), value: "days" },
-                                                            { label: _("Weeks"), value: "weeks" },
-                                                            { label: _("Months"), value: "months" },
-                                                            { label: _("Quarters"), value: "quarters" },
-                                                            { label: _("Years"), value: "years" },
-                                                        ]}
-                                                    />
-                                                </Space>
-                                            );
-                                        }
-                                        return (
-                                            <DatePicker
-                                                value={value?.date ? dayjs(value.date) : undefined}
-                                                onChange={(val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })}
-                                            />
-                                        );
-                                    };
-
-                                    return (
-                                        <div key={rule.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                            <Select
-                                                style={{ minWidth: 180 }}
-                                                value={rule.fieldKey}
-                                                onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: undefined, value: undefined, value2: undefined } : item))}
-                                                options={relatedModel.fields.map((f) => ({ label: f.label, value: f.key }))}
-                                                placeholder={_("Field")}
-                                            />
-                                            <Select
-                                                style={{ minWidth: 140 }}
-                                                value={rule.operator}
-                                                onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item))}
-                                                options={operatorOptions}
-                                                placeholder={_("Operator")}
-                                            />
-                                            {type === "number" && rule.operator === "between" && (
-                                                <>
-                                                    <InputNumber
-                                                        value={rule.value}
-                                                        onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                    />
-                                                    <InputNumber
-                                                        value={rule.value2}
-                                                        onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: value } : item))}
-                                                    />
-                                                </>
-                                            )}
-                                            {type === "number" && rule.operator !== "between" && (
-                                                <InputNumber
-                                                    value={rule.value}
-                                                    onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                />
-                                            )}
-                                            {type === "boolean" && (
-                                                <Select
-                                                    style={{ minWidth: 120 }}
-                                                    value={rule.value}
-                                                    onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                    options={[
-                                                        { label: _("True"), value: true },
-                                                        { label: _("False"), value: false },
-                                                    ]}
-                                                    placeholder={_("Value")}
-                                                />
-                                            )}
-                                            {type === "date" && rule.operator === "between" && (
-                                                <>
-                                                    {renderDateInput(rule.value, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: val } : item)))}
-                                                    {renderDateInput(rule.value2, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: val } : item)))}
-                                                </>
-                                            )}
-                                            {type === "date" && rule.operator !== "between" && (
-                                                renderDateInput(rule.value, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: val } : item)))
-                                            )}
-                                            {type === "string" && (
-                                                <Input
-                                                    value={rule.value}
-                                                    onChange={(event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item))}
-                                                    placeholder={_("Value")}
-                                                    style={{ minWidth: 200 }}
-                                                />
-                                            )}
-                                            {type === "date" && (
-                                                <Select
-                                                    size="small"
-                                                    value={rule.value?.mode || "absolute"}
-                                                    onChange={(val) => {
-                                                        setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...(item.value || {}), mode: val } } : item));
-                                                    }}
-                                                    options={[
-                                                        { label: _("Date"), value: "absolute" },
-                                                        { label: _("Relative"), value: "relative" },
-                                                    ]}
-                                                />
-                                            )}
-                                            {type === "date" && rule.operator === "between" && (
-                                                <Select
-                                                    size="small"
-                                                    value={rule.value2?.mode || "absolute"}
-                                                    onChange={(val) => {
-                                                        setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...(item.value2 || {}), mode: val } } : item));
-                                                    }}
-                                                    options={[
-                                                        { label: _("Date"), value: "absolute" },
-                                                        { label: _("Relative"), value: "relative" },
-                                                    ]}
-                                                />
-                                            )}
-                                            <Button
-                                                size="small"
-                                                danger
-                                                onClick={() => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id))}
-                                            >
-                                                {_("Remove")}
-                                            </Button>
-                                        </div>
-                                    );
-                                })
-                            )}
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <Button
-                                    size="small"
-                                    icon={<FilterOutlined />}
-                                    onClick={() => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }])}
-                                >
-                                    {_("Add Filter")}
-                                </Button>
-                                {filterRules.length > 0 && (
-                                    <Button size="small" onClick={() => setFilterRules([])}>
-                                        {_("Clear filters")}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                        <AdvancedFilterBuilder fields={relatedModel.fields} rules={filterRules} setRules={setFilterRules} />
+                        <MultiSortControl fields={relatedModel.fields} sortList={columnSort} setSortList={setColumnSort} />
                         <div style={{ display: "grid", gap: 6 }}>
                             <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Views shown")}</div>
                             <Select
@@ -2309,18 +2122,16 @@ export const RelatedObjectsTable: React.FC<{
                                 {_("View list")}
                             </Button>
                             {analyzeSectionAvailable && (
-                                <Button
-                                    size="small"
-                                    icon={<BarChartOutlined />}
-                                    onClick={() => {
+                                <AnalyzeToggleButton
+                                    open={analyzeOpen}
+                                    showLabel
+                                    onToggle={() => {
                                         markLayoutPrefsTouched();
                                         analyzeTouchedRef.current = true;
                                         setIsStatsFlipped(false);
                                         setAnalyzeOpen((prev) => !prev);
                                     }}
-                                >
-                                    {_("Analyze")}
-                                </Button>
+                                />
                             )}
                             <Button
                                 size="small"
@@ -2345,81 +2156,8 @@ export const RelatedObjectsTable: React.FC<{
                         </div>
                     </div>
                     <div style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <span style={{ color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }}>{_("Columns")}</span>
-                            {selectedColumnKeys && selectedColumnKeys.length > 0 && (
-                                <Button size="small" onClick={() => { setSelectedColumnKeys(null); setColumnOrder(null); }}>
-                                    {_("Reset to default")}
-                                </Button>
-                            )}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Select columns")}</div>
-                            <Checkbox.Group
-                                value={selectedColumnKeys || []}
-                                onChange={(values) => handleColumnSelectionChange(values as string[])}
-                                options={allFieldOptions}
-                            />
-                            {(!selectedColumnKeys || selectedColumnKeys.length === 0) && (
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }}>
-                                    Using default columns. Select fields to customize.
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Column order")}</div>
-                            {orderedSelectedColumns.length === 0 ? (
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{_("No custom order yet.")}</div>
-                            ) : (
-                                orderedSelectedColumns.map((key, index) => {
-                                    const field = relatedModel.fields.find((item) => item.key === key);
-                                    if (!field) return null;
-                                    return (
-                                        <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                                            <div style={{ flex: 1 }}>{field.label}</div>
-                                            <Tooltip title={_("Move left")}>
-                                                <Button size="small" icon={<ArrowLeftOutlined />} disabled={index === 0} onClick={() => moveColumnOrder(key, "left")} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Move right")}>
-                                                <Button size="small" icon={<ArrowRightOutlined />} disabled={index === orderedSelectedColumns.length - 1} onClick={() => moveColumnOrder(key, "right")} />
-                                            </Tooltip>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Totals summary function")}</div>
-                            <div style={{ display: "grid", gap: 6 }}>
-                                {totalsSummaryConfigFields.length === 0 ? (
-                                    <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{_("No numeric fields available.")}</div>
-                                ) : totalsSummaryConfigFields.map((field) => {
-                                    const options = [
-                                        { label: _("Sum"), value: "sum" },
-                                        { label: _("Average"), value: "avg" },
-                                        { label: _("Count"), value: "count" },
-                                        { label: _("Max"), value: "max" },
-                                        { label: _("Min"), value: "min" },
-                                        { label: _("Std Dev"), value: "stddev" },
-                                    ];
-                                    return (
-                                        <div key={`summary-${field.key}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                            <div style={{ flex: 1 }}>{field.label}</div>
-                                            <Select
-                                                size="small"
-                                                style={{ minWidth: 150 }}
-                                                value={resolveTotalsSummaryFn(field)}
-                                                options={options}
-                                                onChange={(value) => {
-                                                    markLayoutPrefsTouched();
-                                                    setTotalsSummaryFunctions((prev) => ({ ...prev, [field.key]: value as TotalsSummaryFn }));
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <FieldSequenceEditor fields={relatedModel.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
+                        <SummaryFunctionsEditor fields={totalsSummaryConfigFields} resolveFunction={resolveTotalsSummaryFn} onChange={(fieldKey, summaryFunction) => { markLayoutPrefsTouched(); setTotalsSummaryFunctions((prev) => ({ ...prev, [fieldKey]: summaryFunction })); }} />
                     </div>
                 </Card>
             )}

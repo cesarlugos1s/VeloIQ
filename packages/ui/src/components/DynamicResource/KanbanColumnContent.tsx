@@ -1,7 +1,7 @@
 /**
  * The content of one kanban column: the column's records shown by the standard DynamicList in the
- * chosen view type, so the column has that view type's own controls (search, filters, sorting,
- * column selector, paging).
+ * chosen view type. Filters, sorting and field selection are set once for the whole board, so the
+ * column hides its own data controls; only its paging stays per column.
  *
  * The records are held by an in-page rows store (see hooks/useInPageRowsStore), which answers the
  * list's requests; the records' links keep pointing to the model's own show pages.
@@ -23,12 +23,14 @@ export interface KanbanColumnContentProps {
     viewType: KanbanColumnViewType;
     /** Position of the column in the board; with the board's id it names the column's store. */
     columnIndex: number;
+    /** Page size of the column (the board's shared page size). */
+    pageSize?: number;
 }
 
-export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model, allModels, records, cardFields, viewType, columnIndex }) => {
+export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize }) => {
     const boardId = useId().replace(/[^a-zA-Z0-9]/g, "");
     // The store is made again (with the records) when the shown fields change, as its model is fixed at creation.
-    const storeName = `kanban_${boardId}_${columnIndex}_${cardFields.map((field) => field.key).join("_")}`;
+    const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
     const rowModel = useMemo((): Omit<ModelDef, "resource"> => {
         const { resource: _ownResource, ...modelWithoutResource } = model;
         return {
@@ -38,8 +40,9 @@ export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model,
             isNamedQuery: true,
             primaryResource: model.resource || model.name,
             showAnalyzeSection: false,
+            ...(pageSize ? { defaultPageSize: pageSize } : {}),
         };
-    }, [model, cardFields]);
+    }, [model, cardFields, pageSize]);
     const rowsStore = useInPageRowsStore(storeName, rowModel, records);
 
     // The store starts with the records; later changes of the records (filters, other column) replace its rows.
@@ -50,5 +53,5 @@ export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model,
         rowsStore.setRows(records);
     }, [records, rowsStore]);
 
-    return <DynamicList key={rowsStore.model.resource} model={rowsStore.model} allModels={allModels} listViewType={viewType} isEmbedded />;
+    return <DynamicList key={rowsStore.model.resource} model={rowsStore.model} allModels={allModels} listViewType={viewType} isEmbedded hideDataControls />;
 };

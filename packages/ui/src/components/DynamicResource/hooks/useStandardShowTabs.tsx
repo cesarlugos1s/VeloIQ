@@ -1,6 +1,8 @@
 import { setCurrentDataDetailLevelState } from "./DataDetailLevelStore";
 import { FieldLabelWithHelp } from "../fields/FieldLabelWithHelp";
-import React, { useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
+import { PrimaryFieldSequenceContext } from "../viewState/PrimaryFieldSequenceContext";
+import { orderSectionFieldRows } from "../viewState/orderSectionFieldRows";
 import { useCan } from "@refinedev/core";
 import { Form, Skeleton, theme } from "antd";
 import dayjs from "dayjs";
@@ -152,7 +154,10 @@ export const useStandardShowTabs = (
 
     const modelResource = resolveResourcePath(model.resource || model.name, allModels);
     const rawConfigRows = keepConfigRowsOfModel(filterConfigRowsForMode(showConfigRows, "show"), model);
-    const configRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "show");
+    const baseConfigRows = rawConfigRows.length > 0 ? rawConfigRows : synthesizeConfigRows(model, "show");
+    // A primary view inside a list page shows its fields in that page's shared field sequence.
+    const hostFieldSequence = useContext(PrimaryFieldSequenceContext);
+    const configRows = orderSectionFieldRows(baseConfigRows, hostFieldSequence);
     const hasConfig = configRows.length > 0;
     const configuredRelationKeys = buildConfiguredRelationKeys(configRows);
     const configuredResolvedRelationKeys = buildConfiguredResolvedRelationKeys(model.relations, configRows);

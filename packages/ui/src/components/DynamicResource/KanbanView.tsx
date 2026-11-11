@@ -56,6 +56,10 @@ export interface KanbanViewProps {
     initialColumnViewType?: KanbanColumnViewType;
     /** Buttons shown after the kanban's dropdowns (e.g. the toggle of the page's Analyze section). */
     toolbarExtra?: React.ReactNode;
+    /** Page size of every column (the shared view state's page size). */
+    pageSize?: number;
+    /** Visible fields in the shared field sequence order; the cards show these (all card fields when empty). */
+    fieldSequenceKeys?: string[];
 }
 
 const KanbanColumnPanel: React.FC<{
@@ -64,9 +68,10 @@ const KanbanColumnPanel: React.FC<{
     viewType: KanbanColumnViewType;
     cardFields: FieldDef[];
     columnIndex: number;
+    pageSize?: number;
     model: ModelDef;
     allModels?: ModelDef[];
-}> = ({ label, records, viewType, cardFields, columnIndex, model, allModels }) => {
+}> = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
     const { token } = theme.useToken();
     // The title bar takes the model's tone: the colour scheme chosen in System Configuration.
     const tone = useModelTone(model);
@@ -106,6 +111,7 @@ const KanbanColumnPanel: React.FC<{
                     cardFields={cardFields}
                     viewType={viewType}
                     columnIndex={columnIndex}
+                    pageSize={pageSize}
                 />
             </div>
         </div>
@@ -113,23 +119,25 @@ const KanbanColumnPanel: React.FC<{
 };
 
 export const KanbanView: React.FC<KanbanViewProps> = (props) => {
-    const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra } = props;
+    const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys } = props;
     const fields = model.fields;
     const splitFieldOptions = useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
     const cardFieldOptions = useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
 
     const [splitFieldKeys, setSplitFieldKeys] = useState<string[]>(() => getDefaultKanbanSplitFieldKeys(fields));
     const [columnViewType, setColumnViewType] = useState<KanbanColumnViewType>(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
-    const [cardFieldKeys, setCardFieldKeys] = useState<string[]>(() => cardFieldOptions.map((field) => field.key));
 
     const splitFields = useMemo(
         () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field): field is FieldDef => Boolean(field)),
         [fields, splitFieldKeys],
     );
-    const cardFields = useMemo(
-        () => cardFieldOptions.filter((field) => cardFieldKeys.includes(field.key)),
-        [cardFieldKeys, cardFieldOptions],
-    );
+    // The cards show the shared field sequence, in its order.
+    const cardFields = useMemo(() => {
+        const fromSequence = (fieldSequenceKeys ?? [])
+            .map((key) => cardFieldOptions.find((field) => field.key === key))
+            .filter((field): field is FieldDef => Boolean(field));
+        return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
+    }, [fieldSequenceKeys, cardFieldOptions]);
     const columns = useMemo(
         () => buildKanbanColumns(records, splitFields, maximumColumns, formatValue, _("(empty)"), _("All")),
         [records, splitFields, maximumColumns, formatValue],
@@ -158,18 +166,6 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                     style={{ minWidth: 140 }}
                     aria-label={_("Column view type")}
                 />
-                <Select
-                    size="small"
-                    mode="multiple"
-                    allowClear
-                    maxTagCount="responsive"
-                    value={cardFieldKeys}
-                    onChange={setCardFieldKeys}
-                    options={cardFieldOptions.map((field) => ({ label: field.label, value: field.key }))}
-                    style={{ minWidth: 260 }}
-                    placeholder={_("Fields shown in the cards")}
-                    aria-label={_("Fields shown in the cards")}
-                />
                 {toolbarExtra}
             </Space>
             {columns.length === 0 ? (
@@ -188,6 +184,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                                 viewType={columnViewType}
                                 cardFields={cardFields}
                                 columnIndex={columnIndex}
+                                pageSize={pageSize}
                                 model={model}
                                 allModels={allModels}
                             />

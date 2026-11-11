@@ -1,3 +1,5 @@
+import type { ColumnSortState } from "../utils/sorting";
+import { orderCrosstabHeaders, type HeaderValueComparer } from "../viewState/orderCrosstabHeaders";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Empty, InputNumber, Modal, theme, Typography } from "antd";
 import type { FieldDef, ModelDef } from "../types";
@@ -48,6 +50,10 @@ export interface CrosstabTableProps {
     caption?: string;
     /** Enables in-cell editing; cells stage edits via onCommitCell. */
     editable?: CrosstabEditConfig;
+    /** The shared multi-sort list: each sorted field orders the headers of the axis it is placed on. */
+    sortList?: ColumnSortState[];
+    /** Compares two records by one field; needed with `sortList`. */
+    compareValues?: HeaderValueComparer;
 }
 
 const COUNT_KEY = "__count__";
@@ -66,6 +72,8 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
     numericBarColor,
     caption,
     editable,
+    sortList,
+    compareValues,
 }) => {
     const { token } = theme.useToken();
 
@@ -114,6 +122,8 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
     const pivot = useMemo(() => {
         const rowLabels: string[] = [];
         const colLabels: string[] = [];
+        const rowRepresentatives = new Map<string, any>();
+        const colRepresentatives = new Map<string, any>();
         // cellKey -> seriesKey -> records[]
         const cellRecords = new Map<string, Map<string, any[]>>();
 
@@ -123,8 +133,8 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
             const colLabel = col3FieldDef
                 ? `${formatCategoryValue(colFieldDef, row)}${CATEGORY_LABEL_SEPARATOR}${formatCategoryValue(col3FieldDef, row)}`
                 : formatCategoryValue(colFieldDef, row);
-            if (!rowLabels.includes(rowLabel)) rowLabels.push(rowLabel);
-            if (!colLabels.includes(colLabel)) colLabels.push(colLabel);
+            if (!rowLabels.includes(rowLabel)) { rowLabels.push(rowLabel); rowRepresentatives.set(rowLabel, row); }
+            if (!colLabels.includes(colLabel)) { colLabels.push(colLabel); colRepresentatives.set(colLabel, row); }
             const cellKey = `${rowLabel}::${colLabel}`;
             if (!cellRecords.has(cellKey)) cellRecords.set(cellKey, new Map());
             const seriesMap = cellRecords.get(cellKey)!;
@@ -133,8 +143,14 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
                 seriesMap.get(seriesKey)!.push(row);
             });
         });
-        return { rowLabels, colLabels, cellRecords };
-    }, [rows, rowFieldDef, colFieldDef, col3FieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys]);
+        const orderedRowLabels = sortList && compareValues
+            ? orderCrosstabHeaders(rowLabels, rowRepresentatives, [rowFieldDef], sortList, compareValues)
+            : rowLabels;
+        const orderedColLabels = sortList && compareValues
+            ? orderCrosstabHeaders(colLabels, colRepresentatives, [colFieldDef, col3FieldDef], sortList, compareValues)
+            : colLabels;
+        return { rowLabels: orderedRowLabels, colLabels: orderedColLabels, cellRecords };
+    }, [rows, rowFieldDef, colFieldDef, col3FieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys, sortList, compareValues]);
 
     const { rowLabels, colLabels, cellRecords } = pivot;
 

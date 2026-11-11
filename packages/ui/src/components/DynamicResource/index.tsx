@@ -52,6 +52,20 @@ import {
 import { EyeOutlined, SearchOutlined, PlusOutlined, PlusSquareOutlined, EditOutlined, BugOutlined, DownOutlined, ShareAltOutlined, FileTextOutlined, CheckCircleOutlined, CloseOutlined, BarChartOutlined, DownloadOutlined, UnorderedListOutlined, FilterOutlined, ColumnHeightOutlined, SwapOutlined, SaveOutlined, SettingOutlined, DeleteOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, ArrowDownOutlined, CalendarOutlined, InfoCircleOutlined, UploadOutlined, LinkOutlined, CameraOutlined } from "@ant-design/icons";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
+import { AdvancedFilterBuilder } from "./viewState/AdvancedFilterBuilder";
+import { MultiSortControl } from "./viewState/MultiSortControl";
+import { FieldSequenceEditor } from "./viewState/FieldSequenceEditor";
+import { SummaryFunctionsEditor } from "./viewState/SummaryFunctionsEditor";
+import { orderAfterMove, orderAfterSelection } from "./viewState/fieldSequenceOperations";
+import { getViewTypeCapabilities } from "./viewState/viewTypeCapabilities";
+import { useSharedViewState } from "./viewState/useSharedViewState";
+import { sortRecordsBySortList } from "./viewState/sortRecords";
+import { PrimaryFieldSequenceContext } from "./viewState/PrimaryFieldSequenceContext";
+import { AnalyzeToggleButton } from "./viewState/AnalyzeToggleButton";
+import { TemplateListDefaultsContext } from "./viewState/TemplateListDefaultsContext";
+import { buildSequenceCaptionLines } from "./viewState/sequenceCaptions";
+import { LIST_BLOCK_ID, buildViewStateBlockKey, mapLegacyPreferencesToViewStateLayer } from "./viewState/viewStateLayers";
+import type { AdvancedFilterRule, ViewStateLayer } from "./viewState/viewStateTypes";
 import { HierarchyView } from "../HierarchyView";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { getContrastingTextColor, getModelTone, getPlainColorBaseHex, setColorSchemas, useModelTone, type ModelTone } from "../../utils/modelTone";
@@ -281,6 +295,8 @@ const DynamicListPage: React.FC<{
     filter?: any;
     relationConfig?: RelationDef;
     isEmbedded?: boolean;
+    /** Hides the list's own sorting, column filters and view configuration (the host sets them once for several lists, e.g. a kanban board). */
+    hideDataControls?: boolean;
     /** The page heading, already translated (default: the model's label), e.g. "Unmatched candidates for <position>". */
     title?: string;
     showActions?: boolean;
@@ -304,7 +320,7 @@ const DynamicListPage: React.FC<{
     onRowClick?: (record: any) => void;
     /** Handles the list's create button (and Ctrl+N) instead of opening the create form (e.g. a new record in the page's own editor). */
     onCreate?: () => void;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     // Tools a role or an external portal can switch off (Analyze, CSV export, saved views, columns, metadata).
@@ -439,7 +455,55 @@ const DynamicListPage: React.FC<{
     const [localSearch, setLocalSearch] = useState("");
     const [listVisible, setListVisible] = useState(defaultListVisible ?? true);
     const [isTdFlipped, setIsTdFlipped] = useState(false);
-    const [pageSize, setPageSize] = useState(model.defaultPageSize ?? 10);
+    // The sort, filters, field sequence, page size and summary functions live in the shared view
+    // state of this page block (see viewState/), not in private component state.
+    const viewStateBlockKey = temporaryLayoutPageKey ? buildViewStateBlockKey(temporaryLayoutPageKey, LIST_BLOCK_ID) : null;
+    const [savedViewStateLayer, setSavedViewStateLayer] = useState<ViewStateLayer>({});
+    // The fields a page template expands for this list are its starting field sequence.
+    const templateListDefaults = useContext(TemplateListDefaultsContext);
+    const templateFieldSequence = useMemo(() => {
+        if (isEmbedded) return [];
+        const known = new Set(model.fields.map((field) => field.key));
+        return templateListDefaults.fieldSequenceKeys.filter((key) => known.has(key));
+    }, [isEmbedded, model.fields, templateListDefaults.fieldSequenceKeys]);
+    const defaultViewStateLayer = useMemo<ViewStateLayer>(() => ({
+        pageSize: relationConfig?.defaultPageSize ?? model.defaultPageSize ?? 10,
+        ...(templateFieldSequence.length > 0 ? { fieldSequence: { visibleKeys: templateFieldSequence, order: templateFieldSequence } } : {}),
+        sortList: model.defaultSort
+            ? [{ fieldKey: model.defaultSort.field, order: (model.defaultSort.order === "desc" ? "descend" : "ascend") as ColumnSortOrder }]
+            : [],
+    }), [relationConfig?.defaultPageSize, model.defaultPageSize, model.defaultSort, templateFieldSequence]);
+    const sharedViewState = useSharedViewState({ blockKey: viewStateBlockKey, defaults: defaultViewStateLayer, saved: savedViewStateLayer });
+    const setSharedValue = sharedViewState.setValue;
+    const updateSharedViewState = sharedViewState.update;
+    // Loaded or just-saved preferences become the saved layer; temporary values for the same keys are dropped.
+    const applySavedViewStateLayer = useCallback((layer: ViewStateLayer) => {
+        setSavedViewStateLayer((previous) => ({ ...previous, ...layer }));
+        const dropped: Record<string, undefined> = {};
+        Object.keys(layer).forEach((key) => { dropped[key] = undefined; });
+        updateSharedViewState(dropped as ViewStateLayer);
+    }, [updateSharedViewState]);
+    const pageSize = sharedViewState.state.pageSize;
+    const setPageSize = useCallback((next: React.SetStateAction<number>) => setSharedValue("pageSize", next), [setSharedValue]);
+    const filterRules = sharedViewState.state.advancedFilterRules as Array<{ id: string; fieldKey?: string; operator?: string; value?: any; value2?: any }>;
+    const setFilterRules = useCallback((next: React.SetStateAction<typeof filterRules>) => setSharedValue("advancedFilterRules", next as React.SetStateAction<AdvancedFilterRule[]>), [setSharedValue]);
+    const columnFiltersSelected = sharedViewState.state.columnFilters;
+    const setColumnFiltersSelected = useCallback((next: React.SetStateAction<Record<string, string[]>>) => setSharedValue("columnFilters", next), [setSharedValue]);
+    const columnSort = sharedViewState.state.sortList;
+    const setColumnSort = useCallback((next: React.SetStateAction<ColumnSortState[]>) => setSharedValue("sortList", next), [setSharedValue]);
+    const totalsSummaryFunctions = sharedViewState.state.summaryFunctions;
+    const setTotalsSummaryFunctions = useCallback((next: React.SetStateAction<Record<string, TotalsSummaryFn>>) => setSharedValue("summaryFunctions", next), [setSharedValue]);
+    // The field sequence is one value; no custom sequence reads as null (the defaults apply).
+    const selectedColumnKeys = sharedViewState.state.fieldSequence.visibleKeys.length > 0 ? sharedViewState.state.fieldSequence.visibleKeys : null;
+    const columnOrder = sharedViewState.state.fieldSequence.order.length > 0 ? sharedViewState.state.fieldSequence.order : null;
+    const setSelectedColumnKeys = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
+        const visibleKeys = (typeof next === "function" ? next(previous.visibleKeys.length > 0 ? previous.visibleKeys : null) : next) ?? [];
+        return { ...previous, visibleKeys };
+    }), [setSharedValue]);
+    const setColumnOrder = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
+        const order = (typeof next === "function" ? next(previous.order.length > 0 ? previous.order : null) : next) ?? [];
+        return { ...previous, order };
+    }), [setSharedValue]);
     // Values chosen in the Filters panel's quick filters (ModelDef.quickFilterFields), by field key.
     const [quickFilterValues, setQuickFilterValues] = useState<Record<string, Array<string | number>>>({});
     // The quick filters offered (fields with options only).
@@ -458,13 +522,6 @@ const DynamicListPage: React.FC<{
     const [calendarHeatmapField, setCalendarHeatmapField] = useState<string>("");
     const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
     const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
-    const [filterRules, setFilterRules] = useState<Array<{
-        id: string;
-        fieldKey?: string;
-        operator?: string;
-        value?: any;
-        value2?: any;
-    }>>([]);
     const [filtersCollapsed, setFiltersCollapsed] = useState(isEmbedded);
     const [layoutPrefsReady, setLayoutPrefsReady] = useState(false);
     // Force-opened by a Help action (?view_config=1) — a plain read, not a
@@ -477,15 +534,6 @@ const DynamicListPage: React.FC<{
     useEffect(() => {
         if (searchParams.get("view_config") === "1") setColumnsSelectorOpen(true);
     }, [searchParams]);
-    const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[] | null>(null);
-    const [columnOrder, setColumnOrder] = useState<string[] | null>(null);
-    const [columnFiltersSelected, setColumnFiltersSelected] = useState<Record<string, string[]>>({});
-    const [columnSort, setColumnSort] = useState<ColumnSortState[]>(
-        model.defaultSort
-            ? [{ fieldKey: model.defaultSort.field, order: (model.defaultSort.order === "desc" ? "descend" : "ascend") as ColumnSortOrder }]
-            : []
-    );
-    const [totalsSummaryFunctions, setTotalsSummaryFunctions] = useState<Record<string, TotalsSummaryFn>>({});
     const [currentViewName, setCurrentViewName] = useState<string>(getDefaultViewName());
     const [selectedViewNames, setSelectedViewNames] = useState<string[]>([]);
     const [availableViewNames, setAvailableViewNames] = useState<string[]>([]);
@@ -1027,6 +1075,14 @@ const DynamicListPage: React.FC<{
         layoutPrefsTouchedRef.current = true;
     }, []);
 
+    // One handler for every Analyze toggle button of the page.
+    const toggleAnalyzeSection = useCallback(() => {
+        markLayoutPrefsTouched();
+        analyzeTouchedRef.current = true;
+        setIsStatsFlipped(false);
+        setAnalyzeOpen((previous) => !previous);
+    }, [markLayoutPrefsTouched]);
+
     const handleColumnSelectionChange = useCallback((values: string[]) => {
         markLayoutPrefsTouched();
         if (!values || values.length === 0) {
@@ -1035,27 +1091,11 @@ const DynamicListPage: React.FC<{
             return;
         }
         setSelectedColumnKeys(values);
-        setColumnOrder((prev) => {
-            const baseOrder = prev && prev.length > 0 ? prev.filter((key) => values.includes(key)) : [];
-            const missing = values.filter((key) => !baseOrder.includes(key));
-            return [...baseOrder, ...missing];
-        });
+        setColumnOrder((prev) => orderAfterSelection(prev, values));
     }, [markLayoutPrefsTouched]);
 
     const moveColumnOrder = useCallback((key: string, direction: "left" | "right") => {
-        setColumnOrder((prev) => {
-            const base = prev && prev.length > 0
-                ? [...prev]
-                : selectedColumnKeys
-                    ? [...selectedColumnKeys]
-                    : [];
-            const index = base.indexOf(key);
-            if (index === -1) return base;
-            const swapIndex = direction === "left" ? index - 1 : index + 1;
-            if (swapIndex < 0 || swapIndex >= base.length) return base;
-            [base[index], base[swapIndex]] = [base[swapIndex], base[index]];
-            return base;
-        });
+        setColumnOrder((prev) => orderAfterMove(prev, selectedColumnKeys, key, direction));
     }, [selectedColumnKeys]);
 
     const handleTablePageChange = useCallback((page: number, newPageSize?: number) => {
@@ -1346,12 +1386,13 @@ const DynamicListPage: React.FC<{
                 throw new Error(`Save failed (${failed.status})`);
             }
             message.success(_("Layout preferences saved."));
+            applySavedViewStateLayer(mapLegacyPreferencesToViewStateLayer(preferences));
         } catch (error) {
             message.error(error instanceof Error ? error.message : _("Failed to save layout preferences."));
         } finally {
             setIsSavingLayoutPrefs(false);
         }
-    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride]);
+    }, [apiUrl, analyzeOpen, columnFiltersSelected, columnOrder, columnSort, filtersCollapsed, filterRules, isAnalyzeFirst, isAnalyzeVertical, resolvedLayoutPreferenceType, listVisible, pageSize, selectedColumnKeys, totalsSummaryFunctions, model.name, model.resource, allModels, preferencesResourceOverride, applySavedViewStateLayer]);
 
     const handleConfirmSaveView = useCallback(async () => {
         if (!pendingSaveTarget) return;
@@ -1424,40 +1465,8 @@ const DynamicListPage: React.FC<{
             if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
             if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
             if ("filtersCollapsed" in prefs) setFiltersCollapsed(Boolean(prefs.filtersCollapsed));
-            if ("filters" in prefs && Array.isArray(prefs.filters)) {
-                setFilterRules(normalizeFilterRules(prefs.filters));
-            }
-            if ("rowsPerPage" in prefs) {
-                const nextPageSize = Number(prefs.rowsPerPage);
-                if (Number.isFinite(nextPageSize) && nextPageSize > 0) {
-                    setPageSize(nextPageSize);
-                }
-            }
-            if ("tableColumns" in prefs && prefs.tableColumns) {
-                const selectedKeys = Array.isArray(prefs.tableColumns.selectedKeys)
-                    ? prefs.tableColumns.selectedKeys
-                    : Array.isArray(prefs.tableColumns)
-                        ? prefs.tableColumns
-                        : null;
-                const order = Array.isArray(prefs.tableColumns.order)
-                    ? prefs.tableColumns.order
-                    : Array.isArray(prefs.tableColumns)
-                        ? prefs.tableColumns
-                        : null;
-                if (selectedKeys && selectedKeys.length > 0) {
-                    setSelectedColumnKeys(selectedKeys);
-                    setColumnOrder(order && order.length > 0 ? order : selectedKeys);
-                }
-            }
-            if ("columnFilters" in prefs && prefs.columnFilters && typeof prefs.columnFilters === "object") {
-                setColumnFiltersSelected(prefs.columnFilters);
-            }
-            if ("columnSort" in prefs && prefs.columnSort) {
-                setColumnSort(normalizeColumnSortPreference(prefs.columnSort));
-            }
-            if ("totalsSummaryFunctions" in prefs && prefs.totalsSummaryFunctions && typeof prefs.totalsSummaryFunctions === "object") {
-                setTotalsSummaryFunctions(prefs.totalsSummaryFunctions as Record<string, TotalsSummaryFn>);
-            }
+            // Sort, filters, field sequence, page size and summaries are the saved layer of the shared view state.
+            applySavedViewStateLayer(mapLegacyPreferencesToViewStateLayer(prefs));
             return Object.keys(prefs).length > 0;
         };
         const loadPreferences = async () => {
@@ -1715,6 +1724,8 @@ const DynamicListPage: React.FC<{
                 summaryFn={summaryFn}
                 formatCategoryValue={formatCategoryValue}
                 numericBarColor={crosstabBarColor}
+                sortList={columnSort}
+                compareValues={compareSortValues}
                 editable={editableCrosstab && canBulkEdit ? {
                     pkField: model.pkField || "eid",
                     getStagedValue: getCrosstabStagedValue,
@@ -2258,6 +2269,27 @@ const DynamicListPage: React.FC<{
         }
     };
 
+    // Records after the shared column filters and multi-sort, for the view types that order
+    // records themselves (kanban, gallery, calendar). Kanban splits them into columns afterwards.
+    const recordsInSharedOrder = useMemo(
+        () => sortRecordsBySortList(columnFilteredDataSource, columnSort, model.fields, compareSortValues),
+        [columnFilteredDataSource, columnSort, model.fields, compareSortValues],
+    );
+    // Server-side parity: view types without table headers (gallery, primary) send the shared sort to
+    // the server when the rows are paged there, so the order does not change when the data volume
+    // crosses the client-side threshold. (Table-like views send it through their header changes.)
+    const setServerSorters = (listTable as any).setSorters as ((sorters: Array<{ field: string; order: "asc" | "desc" }>) => void) | undefined;
+    const serverSortSignature = JSON.stringify(columnSort);
+    useEffect(() => {
+        if (isClientFiltering || !setServerSorters) return;
+        if (!(isGalleryView || isPrimaryView)) return;
+        setServerSorters(
+            columnSort
+                .filter((entry) => entry.fieldKey !== "eid")
+                .map((entry) => ({ field: entry.fieldKey, order: entry.order === "descend" ? "desc" as const : "asc" as const })),
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isClientFiltering, isGalleryView, isPrimaryView, serverSortSignature]);
     const isEmptyTable = (filteredDataSource?.length ?? 0) === 0;
 
     // --- Internal row selection config ---
@@ -2885,21 +2917,10 @@ const DynamicListPage: React.FC<{
 
     const embeddedActionBar = isEmbedded ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
-            {columnsToggleButton}
+            {!hideDataControls && columnsToggleButton}
             {listToggleButton}
             {analyzeSectionAvailable && (
-                <Tooltip title={_("Analyze")}>
-                    <Button
-                        size="small"
-                        icon={<BarChartOutlined />}
-                        onClick={() => {
-                            markLayoutPrefsTouched();
-                            analyzeTouchedRef.current = true;
-                            setIsStatsFlipped(false);
-                            setAnalyzeOpen((prev) => !prev);
-                        }}
-                    />
-                </Tooltip>
+                <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} />
             )}
             <Tooltip title={_("Switch orientation")}>
                 <Button
@@ -3054,6 +3075,11 @@ const DynamicListPage: React.FC<{
             fill: isImageView,
             onClick: resource && id !== undefined && id !== null ? handleClick : undefined,
             actions: renderRowActionButtons(record),
+            captionLines: buildSequenceCaptionLines(record, model.fields, orderedSelectedColumns, (field, row) => String(getFieldValueForFilter(field, row) ?? ""), {
+                excludedFieldKeys: model.imageSource ? [model.imageSource] : [],
+                maximumLines: 2,
+                labelText: label,
+            }),
         });
     };
 
@@ -3166,8 +3192,8 @@ const DynamicListPage: React.FC<{
         if (!isGalleryView) return [];
         if (!isClientFiltering) return filteredDataSource;
         const start = (galleryPage - 1) * galleryPageSize;
-        return filteredDataSource.slice(start, start + galleryPageSize);
-    }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
+        return recordsInSharedOrder.slice(start, start + galleryPageSize);
+    }, [recordsInSharedOrder, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
     const galleryPaginationProps = useMemo(() => {
         if (!isGalleryView) return undefined;
         if (!isClientFiltering) {
@@ -3185,14 +3211,14 @@ const DynamicListPage: React.FC<{
         return {
             current: galleryPage,
             pageSize: galleryPageSize,
-            total: filteredDataSource.length,
+            total: recordsInSharedOrder.length,
             hideOnSinglePage: true,
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50", "100"],
             onChange: handleGalleryPageChange,
             onShowSizeChange: handleGalleryPageChange,
         };
-    }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
+    }, [recordsInSharedOrder.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
     const primaryRows = useMemo(() => {
         if (!isPrimaryView) return [];
         if (!isClientFiltering) return filteredDataSource;
@@ -3275,7 +3301,7 @@ const DynamicListPage: React.FC<{
             id: any;
             label: string;
         }> = [];
-        filteredDataSource.forEach((record: any) => {
+        recordsInSharedOrder.forEach((record: any) => {
             const recordDate = getCalendarRecordDate(record, calendarDateField);
             if (!recordDate) return;
             const { resource, id } = getTargetInfo(record);
@@ -3289,7 +3315,7 @@ const DynamicListPage: React.FC<{
             });
         });
         return entries;
-    }, [calendarDateField, filteredDataSource, isCalendarView]);
+    }, [calendarDateField, recordsInSharedOrder, isCalendarView]);
     const calendarEarliestDateTs = useMemo(() => {
         if (calendarEntries.length === 0) return null;
         let earliest = calendarEntries[0].date.valueOf();
@@ -3364,7 +3390,11 @@ const DynamicListPage: React.FC<{
                 key={`${entry.key}-${index}`}
                 href={getShowHref(entry.resource, entry.id, allModels)}
                 style={{ display: "block", fontSize: 12, lineHeight: 1.3, color: token.colorLink, textDecoration: "none", wordWrap: "break-word", overflowWrap: "break-word" }}
-                title={entry.label}
+                title={[entry.label, ...buildSequenceCaptionLines(entry.record, model.fields, orderedSelectedColumns, (field, row) => String(getFieldValueForFilter(field, row) ?? ""), {
+                    excludedFieldKeys: [calendarDateField],
+                    maximumLines: 4,
+                    labelText: entry.label,
+                })].join("\n")}
             >
                 {entry.label}
             </a>
@@ -3610,189 +3640,10 @@ const DynamicListPage: React.FC<{
                     styles={{ body: { display: "grid", gap: 12 } }}
                 >
                     <div style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "grid", gap: 8 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Advanced filters")}</div>
-                            {filterRules.length === 0 ? (
-                                <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>{_("No filters yet.")}</div>
-                            ) : (
-                                filterRules.map((rule) => {
-                                    const field = model.fields.find((f) => f.key === rule.fieldKey);
-                                    const type = field?.type || "string";
-                                    const operatorOptions = type === "number"
-                                        ? [
-                                            { label: _("="), value: "eq" },
-                                            { label: _(">"), value: "gt" },
-                                            { label: _(">="), value: "gte" },
-                                            { label: _("<"), value: "lt" },
-                                            { label: _("<="), value: "lte" },
-                                            { label: _("Between"), value: "between" },
-                                        ]
-                                        : type === "date"
-                                            ? [
-                                                { label: _("On"), value: "on" },
-                                                { label: _("After"), value: "after" },
-                                                { label: _("Before"), value: "before" },
-                                                { label: _("Between"), value: "between" },
-                                            ]
-                                            : type === "boolean"
-                                                ? [{ label: _("Is"), value: "is" }]
-                                                : [
-                                                    { label: _("Contains"), value: "contains" },
-                                                    { label: _("Equals"), value: "equals" },
-                                                ];
-
-                                    const renderDateInput = (value: any, onChange: (val: any) => void) => {
-                                        const mode = value?.mode || "absolute";
-                                        if (mode === "relative") {
-                                            return (
-                                                <Space wrap>
-                                                    <InputNumber min={1} value={value?.count ?? 1} onChange={(val) => onChange({ ...value, mode: "relative", count: val ?? 1 })} />
-                                                    <Select
-                                                        value={value?.direction || "next"}
-                                                        onChange={(val) => onChange({ ...value, mode: "relative", direction: val })}
-                                                        options={[
-                                                            { label: _("Previous"), value: "previous" },
-                                                            { label: _("Current"), value: "current" },
-                                                            { label: _("Next"), value: "next" },
-                                                        ]}
-                                                    />
-                                                    <Select
-                                                        value={value?.unit || "weeks"}
-                                                        onChange={(val) => onChange({ ...value, mode: "relative", unit: val })}
-                                                        options={[
-                                                            { label: _("Days"), value: "days" },
-                                                            { label: _("Weeks"), value: "weeks" },
-                                                            { label: _("Months"), value: "months" },
-                                                            { label: _("Quarters"), value: "quarters" },
-                                                            { label: _("Years"), value: "years" },
-                                                        ]}
-                                                    />
-                                                </Space>
-                                            );
-                                        }
-                                        return (
-                                            <DatePicker
-                                                value={value?.date ? dayjs(value.date) : undefined}
-                                                onChange={(val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })}
-                                            />
-                                        );
-                                    };
-
-                                    return (
-                                        <div key={rule.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                            <Select
-                                                style={{ minWidth: 180 }}
-                                                value={rule.fieldKey}
-                                                onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, fieldKey: value, operator: undefined, value: undefined, value2: undefined } : item))}
-                                                options={model.fields.map((f) => ({ label: f.label, value: f.key }))}
-                                                placeholder={_("Field")}
-                                            />
-                                            <Select
-                                                style={{ minWidth: 140 }}
-                                                value={rule.operator}
-                                                onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, operator: value } : item))}
-                                                options={operatorOptions}
-                                                placeholder={_("Operator")}
-                                            />
-                                            {type === "number" && rule.operator === "between" && (
-                                                <>
-                                                    <InputNumber
-                                                        value={rule.value}
-                                                        onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                    />
-                                                    <InputNumber
-                                                        value={rule.value2}
-                                                        onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: value } : item))}
-                                                    />
-                                                </>
-                                            )}
-                                            {type === "number" && rule.operator !== "between" && (
-                                                <InputNumber
-                                                    value={rule.value}
-                                                    onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                />
-                                            )}
-                                            {type === "boolean" && (
-                                                <Select
-                                                    style={{ minWidth: 120 }}
-                                                    value={rule.value}
-                                                    onChange={(value) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value } : item))}
-                                                    options={[
-                                                        { label: _("True"), value: true },
-                                                        { label: _("False"), value: false },
-                                                    ]}
-                                                    placeholder={_("Value")}
-                                                />
-                                            )}
-                                            {type === "date" && rule.operator === "between" && (
-                                                <>
-                                                    {renderDateInput(rule.value, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: val } : item)))}
-                                                    {renderDateInput(rule.value2, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: val } : item)))}
-                                                </>
-                                            )}
-                                            {type === "date" && rule.operator !== "between" && (
-                                                renderDateInput(rule.value, (val) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: val } : item)))
-                                            )}
-                                            {type === "string" && (
-                                                <Input
-                                                    value={rule.value}
-                                                    onChange={(event) => setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: event.target.value } : item))}
-                                                    placeholder={_("Value")}
-                                                    style={{ minWidth: 200 }}
-                                                />
-                                            )}
-                                            {type === "date" && (
-                                                <Select
-                                                    size="small"
-                                                    value={rule.value?.mode || "absolute"}
-                                                    onChange={(val) => {
-                                                        setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value: { ...(item.value || {}), mode: val } } : item));
-                                                    }}
-                                                    options={[
-                                                        { label: _("Date"), value: "absolute" },
-                                                        { label: _("Relative"), value: "relative" },
-                                                    ]}
-                                                />
-                                            )}
-                                            {type === "date" && rule.operator === "between" && (
-                                                <Select
-                                                    size="small"
-                                                    value={rule.value2?.mode || "absolute"}
-                                                    onChange={(val) => {
-                                                        setFilterRules((prev) => prev.map((item) => item.id === rule.id ? { ...item, value2: { ...(item.value2 || {}), mode: val } } : item));
-                                                    }}
-                                                    options={[
-                                                        { label: _("Date"), value: "absolute" },
-                                                        { label: _("Relative"), value: "relative" },
-                                                    ]}
-                                                />
-                                            )}
-                                            <Button
-                                                size="small"
-                                                danger
-                                                onClick={() => setFilterRules((prev) => prev.filter((item) => item.id !== rule.id))}
-                                            >
-                                                {_("Remove")}
-                                            </Button>
-                                        </div>
-                                    );
-                                })
-                            )}
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <Button
-                                    size="small"
-                                    icon={<FilterOutlined />}
-                                    onClick={() => setFilterRules((prev) => [...prev, { id: `${Date.now()}-${Math.random()}` }])}
-                                >
-                                    {_("Add Filter")}
-                                </Button>
-                                {filterRules.length > 0 && (
-                                    <Button size="small" onClick={() => setFilterRules([])}>
-                                        {_("Clear filters")}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                        <AdvancedFilterBuilder fields={model.fields} rules={filterRules} setRules={setFilterRules} />
+                        {getViewTypeCapabilities(resolvedListViewType === "totalsdetails" ? "totals-details" : resolvedListViewType).multiSort && (
+                            <MultiSortControl fields={model.fields} sortList={columnSort} setSortList={setColumnSort} />
+                        )}
                         <div style={{ display: "grid", gap: 6 }}>
                             <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Views shown")}</div>
                             <Select
@@ -3874,18 +3725,7 @@ const DynamicListPage: React.FC<{
                                 {filtersCollapsed ? _("Show Filters") : _("Hide Filters")}
                             </Button>
                             {analyzeSectionAvailable && (
-                                <Button
-                                    size="small"
-                                    icon={<BarChartOutlined />}
-                                    onClick={() => {
-                                        markLayoutPrefsTouched();
-                                        analyzeTouchedRef.current = true;
-                                        setIsStatsFlipped(false);
-                                        setAnalyzeOpen((prev) => !prev);
-                                    }}
-                                >
-                                    {_("Analyze")}
-                                </Button>
+                                <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} showLabel />
                             )}
                             <Button
                                 size="small"
@@ -3910,82 +3750,9 @@ const DynamicListPage: React.FC<{
                         </div>
                     </div>
                     <div style={{ display: "grid", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <span style={{ color: token.colorTextSecondary, fontSize: 12, fontWeight: 600 }}>{_("Columns")}</span>
-                            {selectedColumnKeys && selectedColumnKeys.length > 0 && (
-                                <Button size="small" onClick={() => { setSelectedColumnKeys(null); setColumnOrder(null); }}>
-                                    {_("Reset to default")}
-                                </Button>
-                            )}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Select columns")}</div>
-                            <Checkbox.Group
-                                value={selectedColumnKeys || []}
-                                onChange={(values) => handleColumnSelectionChange(values as string[])}
-                                options={allFieldOptions}
-                            />
-                            {(!selectedColumnKeys || selectedColumnKeys.length === 0) && (
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 6 }}>
-                                    Using default columns. Select fields to customize.
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Column order")}</div>
-                            {orderedSelectedColumns.length === 0 ? (
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{_("No custom order yet.")}</div>
-                            ) : (
-                                orderedSelectedColumns.map((key, index) => {
-                                    const field = model.fields.find((item) => item.key === key);
-                                    if (!field) return null;
-                                    return (
-                                        <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                                            <div style={{ flex: 1 }}>{field.label}</div>
-                                            <Tooltip title={_("Move left")}>
-                                                <Button size="small" icon={<ArrowLeftOutlined />} disabled={index === 0} onClick={() => moveColumnOrder(key, "left")} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Move right")}>
-                                                <Button size="small" icon={<ArrowRightOutlined />} disabled={index === orderedSelectedColumns.length - 1} onClick={() => moveColumnOrder(key, "right")} />
-                                            </Tooltip>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
+                        <FieldSequenceEditor fields={model.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
                         {isTotalsDetailsView && (
-                            <div>
-                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{_("Totals summary function")}</div>
-                                <div style={{ display: "grid", gap: 6 }}>
-                                    {totalsSummaryConfigFields.length === 0 ? (
-                                        <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{_("No numeric fields available.")}</div>
-                                    ) : totalsSummaryConfigFields.map((field) => {
-                                        const options = [
-                                            { label: _("Sum"), value: "sum" },
-                                            { label: _("Average"), value: "avg" },
-                                            { label: _("Count"), value: "count" },
-                                            { label: _("Max"), value: "max" },
-                                            { label: _("Min"), value: "min" },
-                                            { label: _("Std Dev"), value: "stddev" },
-                                        ];
-                                        return (
-                                            <div key={`summary-${field.key}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                <div style={{ flex: 1 }}>{field.label}</div>
-                                                <Select
-                                                    size="small"
-                                                    style={{ minWidth: 150 }}
-                                                    value={resolveTotalsSummaryFn(field)}
-                                                    options={options}
-                                                    onChange={(value) => {
-                                                        markLayoutPrefsTouched();
-                                                        setTotalsSummaryFunctions((prev) => ({ ...prev, [field.key]: value as TotalsSummaryFn }));
-                                                    }}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                            <SummaryFunctionsEditor fields={totalsSummaryConfigFields} resolveFunction={resolveTotalsSummaryFn} onChange={(fieldKey, summaryFunction) => { markLayoutPrefsTouched(); setTotalsSummaryFunctions((prev) => ({ ...prev, [fieldKey]: summaryFunction })); }} />
                         )}
                     </div>
                 </Card>
@@ -3999,25 +3766,12 @@ const DynamicListPage: React.FC<{
                         <KanbanView
                             model={model}
                             allModels={allModels}
-                            records={filteredDataSource as any[]}
+                            records={recordsInSharedOrder}
+                            pageSize={pageSize}
+                            fieldSequenceKeys={orderedSelectedColumns}
                             maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
                             formatValue={(field, record) => String(getFieldValueForFilter(field, record) ?? "")}
-                            toolbarExtra={analyzeSectionAvailable ? (
-                                <Tooltip title={analyzeOpen ? _("Hide Analyze") : _("Analyze")}>
-                                    <Button
-                                        size="small"
-                                        type={analyzeOpen ? "primary" : "default"}
-                                        icon={<BarChartOutlined />}
-                                        aria-label={_("Analyze")}
-                                        onClick={() => {
-                                            markLayoutPrefsTouched();
-                                            analyzeTouchedRef.current = true;
-                                            setIsStatsFlipped(false);
-                                            setAnalyzeOpen((prev) => !prev);
-                                        }}
-                                    />
-                                </Tooltip>
-                            ) : undefined}
+                            toolbarExtra={analyzeSectionAvailable ? <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} /> : undefined}
                         />
                     ) : isGalleryView ? (
                         <>
@@ -4050,7 +3804,9 @@ const DynamicListPage: React.FC<{
                             {primaryRows.length === 0 ? (
                                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#bfbfbf", fontSize: 12 }}><FileTextOutlined style={{ fontSize: 16 }} />{_("No records available")}</div>
                             ) : (
-                                primaryRows.map((record, index) => renderPrimaryItem(record, index))
+                                <PrimaryFieldSequenceContext.Provider value={orderedSelectedColumns}>
+                                    {primaryRows.map((record, index) => renderPrimaryItem(record, index))}
+                                </PrimaryFieldSequenceContext.Provider>
                             )}
                             {primaryPaginationProps && (
                                 <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
@@ -4235,10 +3991,10 @@ const DynamicListPage: React.FC<{
                                     key={field.key}
                                     dataIndex={field.key}
                                     title={field.label}
-                                    sorter={{ compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) }}
+                                    sorter={hideDataControls ? undefined : { compare: (a, b) => compareSortValues(field, a, b), multiple: getSortPriority(columnSort, field.key) }}
                                     align={(field.type === "number" && !isReferenceField(field) && !isPkField(field, model)) ? "right" : undefined}
-                                    filters={columnFilters.get(field.key)}
-                                    filterDropdown={columnFilterValuesLoading ? renderColumnFilterValuesLoading : undefined}
+                                    filters={hideDataControls ? undefined : columnFilters.get(field.key)}
+                                    filterDropdown={hideDataControls ? undefined : columnFilterValuesLoading ? renderColumnFilterValuesLoading : undefined}
                                     filteredValue={columnFiltersSelected[field.key] || null}
                                     sortOrder={columnSort.find((item) => item.fieldKey === field.key)?.order ?? null}
                                     onFilterDropdownOpenChange={(visible) => {
@@ -4254,7 +4010,7 @@ const DynamicListPage: React.FC<{
                                             };
                                         },
                                     })}
-                                    onFilter={(value, record: any) => matchesColumnFilterValue(field, record, value)}
+                                    onFilter={hideDataControls ? undefined : (value, record: any) => matchesColumnFilterValue(field, record, value)}
                                     render={(value, record: any) => {
                                         const { resource, id } = getTargetInfo(record);
                                         if (canInlineEdit && id != null && isInlineEditableField(field, model)) {

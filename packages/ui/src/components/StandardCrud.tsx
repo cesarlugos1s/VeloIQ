@@ -22,6 +22,8 @@ import { authenticatedFetch } from "../utils/authenticatedFetch";
 import { PageBreadcrumb } from "./PageBreadcrumb";
 import { TemporaryPageLayoutControls } from "./DynamicResource/temporaryLayout/TemporaryPageLayoutControls";
 import { useTemporaryTemplateRows } from "./DynamicResource/temporaryLayout/useTemporaryTemplateRows";
+import { fieldSequenceFromTemplateRows } from "./DynamicResource/viewState/templateFieldSequence";
+import { TemplateListDefaultsContext } from "./DynamicResource/viewState/TemplateListDefaultsContext";
 import { useTemporaryPageLayoutOfEnclosingPage } from "./DynamicResource/temporaryLayout/temporaryPageLayoutStore";
 import { getCurrentDataDetailLevelState } from "./DynamicResource/hooks/DataDetailLevelStore";
 
@@ -273,6 +275,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
     // ── Page config support (IQVigilant templates for list views) ──
     const resource = (props as any).resource;
     const [listSections, setListSections] = useState<any[] | null>(null);
+    const [templateFieldKeys, setTemplateFieldKeys] = useState<string[]>([]);
     const [cfgLoading, setCfgLoading] = useState(false);
 
     // A template the user picked for now replaces the configured list sections.
@@ -288,6 +291,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
             .then((r) => r.ok ? r.json() : [])
             .then((rows: any[]) => {
                 const listRows = (rows || []).filter((r: any) => r.form_type === "list");
+                setTemplateFieldKeys(fieldSequenceFromTemplateRows(rows || [], "list"));
                 if (listRows.length === 0) { setListSections(null); return; }
                 const map = new Map<string, any>();
                 for (const r of listRows) {
@@ -298,7 +302,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
                 }
                 setListSections(Array.from(map.values()).sort((a, b) => a.grid_row - b.grid_row));
             })
-            .catch(() => setListSections(null))
+            .catch(() => { setListSections(null); setTemplateFieldKeys([]); })
             .finally(() => setCfgLoading(false));
     }, [resource, temporaryTemplateRows]);
 
@@ -312,7 +316,10 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
         />
     );
 
+    const templateListDefaults = useMemo(() => ({ fieldSequenceKeys: templateFieldKeys }), [templateFieldKeys]);
+
     return (
+        <TemplateListDefaultsContext.Provider value={templateListDefaults}>
         <VerticalActionsLayout position={actionsPosition} onBarMount={setVerticalBarEl}>
             {stickyBarNode}
             {cfgLoading ? (
@@ -338,6 +345,7 @@ export const StandardList: React.FC<ListProps> = ({ headerButtons, ...props }) =
                 renderList()
             )}
         </VerticalActionsLayout>
+        </TemplateListDefaultsContext.Provider>
     );
 };
 

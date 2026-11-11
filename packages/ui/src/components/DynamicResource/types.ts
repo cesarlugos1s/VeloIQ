@@ -79,6 +79,8 @@ export interface RelationDef {
     showViewTypeFromCsv?: boolean;
     editViewTypeFromCsv?: boolean;
     showCustomPageName?: string;
+    /** Starting page size of the relation's block, from the `limit` of its page-configuration row (the saved or temporary page size overrides it). */
+    defaultPageSize?: number;
     editCustomPageName?: string;
     /** When false, the list table is hidden by default (only the Analyze panel shows). Controlled by DataDetail slider level. */
     defaultListVisible?: boolean;

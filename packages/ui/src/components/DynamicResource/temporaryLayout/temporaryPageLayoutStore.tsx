@@ -13,6 +13,7 @@ import type { GridDensity } from "../../../pages/dashboard/hooks/gridDensity";
 import type { PanesLayoutMode } from "../utils/viewConfig";
 import type { ModelDef } from "../types";
 import type { TemporaryLayoutPageType } from "./pageTemplateProviderRegistry";
+import type { ViewStateLayer } from "../viewState/viewStateTypes";
 
 /** Where the general action buttons of a page are drawn. */
 export type TemporaryActionsPosition = "top-right" | "left" | "right";
@@ -38,12 +39,15 @@ export interface PublishedListAnalyzeState {
 interface TemporaryLayoutSnapshot {
     layoutsByPageKey: Record<string, TemporaryPageLayout>;
     publishedAnalyzeByPageKey: Record<string, PublishedListAnalyzeState>;
+    /** Shared view state changes, keyed by page block (see buildViewStateBlockKey). */
+    viewStateByBlockKey: Record<string, ViewStateLayer>;
     panesLayoutMode: PanesLayoutMode | undefined;
 }
 
 let snapshot: TemporaryLayoutSnapshot = {
     layoutsByPageKey: {},
     publishedAnalyzeByPageKey: {},
+    viewStateByBlockKey: {},
     panesLayoutMode: undefined,
 };
 const snapshotListeners = new Set<() => void>();
@@ -76,7 +80,11 @@ export function updateTemporaryPageLayout(pageKey: string, changes: Partial<Temp
 /** Removes every override of one page (the "back to configured layout" action). */
 export function resetTemporaryPageLayout(pageKey: string): void {
     const { [pageKey]: _removed, ...remaining } = snapshot.layoutsByPageKey;
-    replaceSnapshot({ ...snapshot, layoutsByPageKey: remaining });
+    const blockKeyPrefix = `${pageKey}#`;
+    const remainingBlocks = Object.fromEntries(
+        Object.entries(snapshot.viewStateByBlockKey).filter(([blockKey]) => !blockKey.startsWith(blockKeyPrefix)),
+    );
+    replaceSnapshot({ ...snapshot, layoutsByPageKey: remaining, viewStateByBlockKey: remainingBlocks });
 }
 
 /** Sets or clears the application-wide side-panel layout override. */
@@ -97,7 +105,33 @@ export function publishListAnalyzeState(pageKey: string, state: PublishedListAna
 
 /** Clears every override (used by tests; a browser reload does the same). */
 export function resetAllTemporaryLayouts(): void {
-    replaceSnapshot({ layoutsByPageKey: {}, publishedAnalyzeByPageKey: {}, panesLayoutMode: undefined });
+    replaceSnapshot({ layoutsByPageKey: {}, publishedAnalyzeByPageKey: {}, viewStateByBlockKey: {}, panesLayoutMode: undefined });
+}
+
+/** Merges `changes` into the temporary view state of one block; a key set to undefined is removed. */
+export function updateTemporaryViewState(blockKey: string, changes: ViewStateLayer): void {
+    const merged: Record<string, unknown> = { ...snapshot.viewStateByBlockKey[blockKey], ...changes };
+    Object.keys(merged).forEach((key) => { if (merged[key] === undefined) delete merged[key]; });
+    replaceSnapshot({
+        ...snapshot,
+        viewStateByBlockKey: { ...snapshot.viewStateByBlockKey, [blockKey]: merged as ViewStateLayer },
+    });
+}
+
+const NO_VIEW_STATE: ViewStateLayer = Object.freeze({});
+
+/** The temporary view state of one block, read outside React. */
+export function getTemporaryViewState(blockKey: string | null): ViewStateLayer {
+    return (blockKey ? snapshot.viewStateByBlockKey[blockKey] : undefined) ?? NO_VIEW_STATE;
+}
+
+/** The temporary view state of one block; a null key (embedded page) never has any. */
+export function useTemporaryViewState(blockKey: string | null): ViewStateLayer {
+    return useSyncExternalStore(
+        subscribeToSnapshot,
+        () => getTemporaryViewState(blockKey),
+        () => getTemporaryViewState(blockKey),
+    );
 }
 
 /** The overrides of one page, read outside React (a null key never has any). */

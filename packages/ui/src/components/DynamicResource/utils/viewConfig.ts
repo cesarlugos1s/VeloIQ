@@ -549,7 +549,7 @@ export const normalizeFieldViewType = (raw: string): string => {
     return FIELD_VIEW_TYPE_TOKENS.has(normalized) ? normalized : "";
 };
 
-export const applyRelationViewOverride = (rel: RelationDef, item: ViewConfigRow, mode: "show" | "edit") => {
+const applyRelationViewTypeOverride = (rel: RelationDef, item: ViewConfigRow, mode: "show" | "edit"): RelationDef => {
     const rawVid = getConfigVid(item, mode);
     const trimmed = String(rawVid || "").trim();
     if (!trimmed) return rel;
@@ -574,4 +574,11 @@ export const applyRelationViewOverride = (rel: RelationDef, item: ViewConfigRow,
     return mode === "show"
         ? { ...rel, showViewType: "primary" as RelationViewType, showViewTypeFromCsv: true, showCustomPageName: trimmed }
         : { ...rel, editViewType: "primary" as RelationViewType, editViewTypeFromCsv: true, editCustomPageName: trimmed };
+};
+
+/** Applies a relation's page-configuration row: its view type, and its `limit` as the block's starting page size. */
+export const applyRelationViewOverride = (rel: RelationDef, item: ViewConfigRow, mode: "show" | "edit"): RelationDef => {
+    const overridden = applyRelationViewTypeOverride(rel, item, mode);
+    const limit = Number(item.limit);
+    return Number.isFinite(limit) && limit > 0 ? { ...overridden, defaultPageSize: limit } : overridden;
 };

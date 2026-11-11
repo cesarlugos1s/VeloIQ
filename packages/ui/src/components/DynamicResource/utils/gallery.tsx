@@ -92,6 +92,7 @@ export const renderSharedGalleryCard = ({
     onClick,
     fill = false,
     actions,
+    captionLines,
 }: {
     item: any;
     /** The model's `imageSource` (a URL field or a File relation); see getGalleryItemContentUrl. */
@@ -108,6 +109,8 @@ export const renderSharedGalleryCard = ({
     fill?: boolean;
     /** Buttons shown under the label (e.g. the list's row actions); clicking them doesn't open the item. */
     actions?: React.ReactNode[];
+    /** Lines under the label, drawn from the shared field sequence. */
+    captionLines?: string[];
 }) => {
     const contentUrl = getGalleryItemContentUrl(apiUrl, item, itemId, imageSource);
     const imageStyle: React.CSSProperties = {
@@ -136,6 +139,11 @@ export const renderSharedGalleryCard = ({
             <div style={{ fontSize: 12, color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {label}
             </div>
+            {captionLines?.map((line) => (
+                <div key={line} style={{ fontSize: 11, color: textColor, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {line}
+                </div>
+            ))}
             {actions && actions.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }} onClick={(event) => event.stopPropagation()}>
                     {actions}
