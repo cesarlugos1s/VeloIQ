@@ -41,6 +41,8 @@ interface TemporaryLayoutSnapshot {
     publishedAnalyzeByPageKey: Record<string, PublishedListAnalyzeState>;
     /** Shared view state changes, keyed by page block (see buildViewStateBlockKey). */
     viewStateByBlockKey: Record<string, ViewStateLayer>;
+    /** View type chosen for a relation block of a show or edit page, keyed like viewStateByBlockKey. */
+    relationViewTypeByBlockKey: Record<string, string>;
     panesLayoutMode: PanesLayoutMode | undefined;
 }
 
@@ -48,6 +50,7 @@ let snapshot: TemporaryLayoutSnapshot = {
     layoutsByPageKey: {},
     publishedAnalyzeByPageKey: {},
     viewStateByBlockKey: {},
+    relationViewTypeByBlockKey: {},
     panesLayoutMode: undefined,
 };
 const snapshotListeners = new Set<() => void>();
@@ -84,7 +87,12 @@ export function resetTemporaryPageLayout(pageKey: string): void {
     const remainingBlocks = Object.fromEntries(
         Object.entries(snapshot.viewStateByBlockKey).filter(([blockKey]) => !blockKey.startsWith(blockKeyPrefix)),
     );
-    replaceSnapshot({ ...snapshot, layoutsByPageKey: remaining, viewStateByBlockKey: remainingBlocks });
+    const remainingRelationViewTypes = Object.fromEntries(
+        Object.entries(snapshot.relationViewTypeByBlockKey).filter(([blockKey]) => !blockKey.startsWith(blockKeyPrefix)),
+    );
+    replaceSnapshot({
+        ...snapshot, layoutsByPageKey: remaining, viewStateByBlockKey: remainingBlocks, relationViewTypeByBlockKey: remainingRelationViewTypes,
+    });
 }
 
 /** Sets or clears the application-wide side-panel layout override. */
@@ -105,7 +113,7 @@ export function publishListAnalyzeState(pageKey: string, state: PublishedListAna
 
 /** Clears every override (used by tests; a browser reload does the same). */
 export function resetAllTemporaryLayouts(): void {
-    replaceSnapshot({ layoutsByPageKey: {}, publishedAnalyzeByPageKey: {}, viewStateByBlockKey: {}, panesLayoutMode: undefined });
+    replaceSnapshot({ layoutsByPageKey: {}, publishedAnalyzeByPageKey: {}, viewStateByBlockKey: {}, relationViewTypeByBlockKey: {}, panesLayoutMode: undefined });
 }
 
 /** Merges `changes` into the temporary view state of one block; a key set to undefined is removed. */
@@ -116,6 +124,26 @@ export function updateTemporaryViewState(blockKey: string, changes: ViewStateLay
         ...snapshot,
         viewStateByBlockKey: { ...snapshot.viewStateByBlockKey, [blockKey]: merged as ViewStateLayer },
     });
+}
+
+/** Sets the temporary view type of one relation block; undefined goes back to the configured one. */
+export function updateTemporaryRelationViewType(blockKey: string, viewType: string | undefined): void {
+    const { [blockKey]: _removed, ...remaining } = snapshot.relationViewTypeByBlockKey;
+    replaceSnapshot({
+        ...snapshot,
+        relationViewTypeByBlockKey: viewType ? { ...remaining, [blockKey]: viewType } : remaining,
+    });
+}
+
+/** The temporary view type of one relation block, read outside React. */
+export function getTemporaryRelationViewType(blockKey: string | null): string | undefined {
+    return blockKey ? snapshot.relationViewTypeByBlockKey[blockKey] : undefined;
+}
+
+/** The temporary view type of one relation block; a null key (embedded page) never has one. */
+export function useTemporaryRelationViewType(blockKey: string | null): string | undefined {
+    const read = () => getTemporaryRelationViewType(blockKey);
+    return useSyncExternalStore(subscribeToSnapshot, read, read);
 }
 
 const NO_VIEW_STATE: ViewStateLayer = Object.freeze({});

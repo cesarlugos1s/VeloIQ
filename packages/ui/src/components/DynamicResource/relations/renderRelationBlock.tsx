@@ -1,8 +1,14 @@
 import React from "react";
 import { Card, ConfigProvider, Typography } from "antd";
+import {
+    updateTemporaryRelationViewType, useTemporaryPageLayoutScope, useTemporaryRelationViewType,
+} from "../temporaryLayout/temporaryPageLayoutStore";
+import { RelationViewTypeButton, RelationViewTypeSwitchContext, useToolbarSlotCount } from "./RelationViewTypeSwitch";
+import { buildRelationBlockId, buildViewStateBlockKey, getRelationIdentityName } from "../viewState/viewStateLayers";
+import { getCalendarDateFieldOptions } from "../utils/calendar";
 import { getModelTone } from "../../../utils/modelTone";
 import type { ModelDef, RelationDef, RelationViewType } from "../types";
-import { getRelationLabel } from "../utils/i18n";
+import { getFieldLabel, getRelationLabel } from "../utils/i18n";
 import { renderToneTabLabel } from "../utils/colors";
 import { findModelByName, getPolymorphicReferenceInfo, getRecordId } from "../utils/model";
 import {
@@ -66,12 +72,21 @@ const renderRelationBlockContent = ({
     const usesTableBehavior = usesTableRelationBehavior(viewType);
     const isCrosstab = isCrosstabViewType(viewType);
     const allowInlineEdit = viewType === "editable-table" || viewType === "editable-crosstab";
-    const crosstabViewMode: "table" | "crosstab" = isCrosstab ? "crosstab" : "table";
+    const crosstabViewMode: "table" | "crosstab" | "kanban" = isCrosstab ? "crosstab" : viewType === "kanban" ? "kanban" : "table";
     const tableViewVariant: "default" | "totals-details" = viewType === "totals-details" ? "totals-details" : "default";
     const showRelationActions = showActions;
     const showCreateButton = showCreate;
     const layoutPreferenceType = mode === "show" ? "ShowLayout" : "EditLayout";
-    const relationLabel = getRelationLabel(rel) || rel.label || rel.relationName || rel.resource || "";
+    const baseRelationLabel = getRelationLabel(rel) || rel.label || rel.relationName || rel.resource || "";
+    // Several relations of a page can point at one resource through different keys; the key's
+    // field label tells their titles apart.
+    const hasSiblingRelationToSameResource = (parentModel?.relations || []).filter(
+        (other) => other.resource === rel.resource && !other.relationName,
+    ).length > 1;
+    const linkField = hasSiblingRelationToSameResource && !rel.relationName
+        ? relationModel.fields.find((field) => field.key === rel.targetKey)
+        : undefined;
+    const relationLabel = linkField ? `${baseRelationLabel} (${getFieldLabel(linkField)})` : baseRelationLabel;
     const title = renderToneTabLabel(relationLabel, relationTone);
     const shouldShowRelatedObjects = relatedModel && rel.otherResource && rel.otherKey;
     // View type of the DynamicList that shows a one-to-many relation: table-like
@@ -414,6 +429,66 @@ const renderRelationBlockContent = ({
     );
 };
 
+const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
+
+/** View types a user may pick for a relation block for now; the editable ones only on edit pages. */
+const RELATION_VIEW_TYPES_SHOWN = ["table", "totals-details", "crosstab", "list", "csv", "kanban", "gallery", "image", "calendar", "primary", "primary-carousel"];
+const RELATION_VIEW_TYPES_EDIT_ONLY = ["editable-table", "editable-crosstab", "editable-list", "editable-csv"];
+
+type RelationBlockArguments = Parameters<typeof renderRelationBlockContent>[0];
+
+/**
+ * One relation block of a record page. Shows the block in the configured view
+ * type, or in the one the user picked with the small selector above it. The
+ * choice is temporary: it is kept until the page is reloaded and never saved.
+ */
+const RelationBlockHost: React.FC<{ blockArguments: RelationBlockArguments }> = ({ blockArguments }) => {
+    const { rel, mode, relatedModel, relationModel, relationViewTypeDefaults } = blockArguments;
+    const scope = useTemporaryPageLayoutScope();
+    const isSingleItemRelation = rel.maxItems === 1 && Boolean(rel.otherResource) && Boolean(rel.otherKey);
+    const blockKey = scope && !isSingleItemRelation
+        ? buildViewStateBlockKey(scope.pageKey, buildRelationBlockId(getRelationIdentityName(rel, (relatedModel || relationModel).name)))
+        : null;
+    const temporaryViewType = useTemporaryRelationViewType(blockKey);
+    const configuredViewType = getRelationViewType(rel, mode, relationViewTypeDefaults);
+    const effectiveViewType = (temporaryViewType || configuredViewType) as RelationViewType;
+    const effectiveRel: RelationDef = temporaryViewType
+        ? { ...rel, ...(mode === "show" ? { showViewType: effectiveViewType } : { editViewType: effectiveViewType }) }
+        : rel;
+    const block = renderRelationBlockContent(temporaryViewType ? { ...blockArguments, rel: effectiveRel } : blockArguments);
+
+    const hasCalendarDate = getCalendarDateFieldOptions((relatedModel || relationModel).fields).length > 0;
+    const offeredTypes = [
+        ...RELATION_VIEW_TYPES_SHOWN,
+        ...(mode === "edit" ? RELATION_VIEW_TYPES_EDIT_ONLY : []),
+    ].filter((token) => token !== "calendar" || hasCalendarDate);
+    // A configured type outside the list (a tree, a single-select) is left alone.
+    const canSwitch = blockKey !== null && offeredTypes.includes(configuredViewType);
+    const { hasToolbarSlot, registerToolbarSlot } = useToolbarSlotCount();
+    const switchContext = React.useMemo(() => ({
+        registerToolbarSlot,
+        button: canSwitch ? (
+            <RelationViewTypeButton
+                temporaryViewType={temporaryViewType}
+                offeredViewTypes={offeredTypes}
+                onChange={(viewType) => updateTemporaryRelationViewType(blockKey as string, viewType)}
+            />
+        ) : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [registerToolbarSlot, canSwitch, temporaryViewType, offeredTypes.join("|"), blockKey]);
+    // A view without a toolbar gets the button floating at the top right, so no row is added.
+    const wrapped = canSwitch ? (
+        <RelationViewTypeSwitchContext.Provider value={switchContext}>
+            <div style={{ position: "relative" }}>
+                {!hasToolbarSlot && <div style={{ position: "absolute", top: 0, right: 0, zIndex: 2 }}>{switchContext.button}</div>}
+                {block}
+            </div>
+        </RelationViewTypeSwitchContext.Provider>
+    ) : block;
+    if (mode !== "show") return wrapped;
+    return <ConfigProvider componentDisabled={false}>{wrapped}</ConfigProvider>;
+};
+
 /**
  * A relation's block on a record page. On a show page the relation's rows are
  * other records, governed by their own permissions, so the block does not
@@ -421,9 +496,7 @@ const renderRelationBlockContent = ({
  * totals/details switch and navigation stay usable on records the user may
  * only read. On an edit page it keeps the form's disabled state.
  */
-export const renderRelationBlock = (relationBlockArguments: Parameters<typeof renderRelationBlockContent>[0]) => {
-    const relationBlock = renderRelationBlockContent(relationBlockArguments);
-    if (relationBlockArguments.mode !== "show") return relationBlock;
-    // Keep the block's key: some pages collect the blocks in arrays.
-    return <ConfigProvider key={relationBlock.key ?? undefined} componentDisabled={false}>{relationBlock}</ConfigProvider>;
-};
+export const renderRelationBlock = (relationBlockArguments: RelationBlockArguments) => (
+    // Keyed like the blocks themselves, since some pages collect the blocks in arrays.
+    <RelationBlockHost key={`${relationBlockArguments.rel.relationName || relationBlockArguments.rel.resource}|${relationBlockArguments.rel.targetKey}|${relationBlockArguments.rel.label}`} blockArguments={relationBlockArguments} />
+);

@@ -34,7 +34,7 @@ const { Text } = Typography;
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
 /** Display text of each list view type; the keys are the framework's view type tokens. */
-function buildListViewTypeLabels(): Record<string, string> {
+export function buildListViewTypeLabels(): Record<string, string> {
     return {
         "table": _("Table"),
         "editable-table": _("Editable table"),
@@ -45,6 +45,8 @@ function buildListViewTypeLabels(): Record<string, string> {
         "calendar": _("Calendar"),
         "kanban": _("Kanban"),
         "totals-details": _("Totals and details"),
+        "csv": _("CSV"),
+        "editable-csv": _("Editable CSV"),
         "crosstab": _("Crosstab"),
         "editable-crosstab": _("Editable crosstab"),
         "primary": _("Primary"),

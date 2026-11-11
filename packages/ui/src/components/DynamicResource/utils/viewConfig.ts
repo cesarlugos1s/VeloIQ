@@ -370,16 +370,29 @@ export const applyRelationFieldOverrides = (model: ModelDef, allModels?: ModelDe
     });
 };
 
-export const resolveRelationFromConfig = (relations: RelationDef[] | undefined, item: ViewConfigRow) => {
+/** How many rows before `item` list the same relation name: tells apart relations configured twice. */
+export const countEarlierRowsOfSameRelation = (rows: ViewConfigRow[], item: ViewConfigRow): number => {
+    const name = (item.relation_name || "").toLowerCase();
+    const position = rows.indexOf(item);
+    if (!name || position < 0) return 0;
+    return rows.slice(0, position).filter((row) =>
+        row.attribute_or_relation_type === "relation" && (row.relation_name || "").toLowerCase() === name).length;
+};
+
+export const resolveRelationFromConfig = (relations: RelationDef[] | undefined, item: ViewConfigRow, duplicateIndex = 0) => {
     if (!relations) return undefined;
     const target = (item.relation_name || "").toLowerCase();
     const targetVariants = new Set(buildRelationNameVariants(target));
     // Exact match first so forward and reverse entries resolve to distinct RelationDefs
-    const exact = relations.find((rel) =>
+    const exactMatches = relations.filter((rel) =>
         (rel.relationName || "").toLowerCase() === target
         || (rel.resource || "").toLowerCase() === target
         || (rel.label || "").toLowerCase() === target
     );
+    // Several relations can point to the same resource through different keys (for example
+    // "Movements" and "Authorized Movements") and a configuration then lists the resource once
+    // per relation: the n-th listing takes the n-th relation.
+    const exact = exactMatches[duplicateIndex] ?? exactMatches[0];
     if (exact) return exact;
     const byVariant = relations.find((rel) =>
         targetVariants.has((rel.relationName || "").toLowerCase())
@@ -436,7 +449,7 @@ export const buildConfiguredResolvedRelationKeys = (relations: RelationDef[] | u
     rows
         .filter((row) => row.attribute_or_relation_type === "relation")
         .forEach((row) => {
-            const resolved = resolveRelationFromConfig(relations, row);
+            const resolved = resolveRelationFromConfig(relations, row, countEarlierRowsOfSameRelation(rows, row));
             if (!resolved) return;
             getRelationIdentityKeys(resolved).forEach((key) => keys.add(key));
         });
@@ -452,7 +465,7 @@ export const buildConfiguredRelationDisplayKeys = (relations: RelationDef[] | un
         .forEach((row) => {
             const rawRelationName = String(row.relation_name || "").trim();
             if (rawRelationName) keys.add(normalizeLooseRelationKey(rawRelationName));
-            const resolved = resolveRelationFromConfig(relations, row);
+            const resolved = resolveRelationFromConfig(relations, row, countEarlierRowsOfSameRelation(rows, row));
             if (!resolved) return;
             const label = getRelationLabel(resolved) || resolved.label || resolved.relationName || resolved.resource || "";
             if (label) keys.add(normalizeLooseRelationKey(label));

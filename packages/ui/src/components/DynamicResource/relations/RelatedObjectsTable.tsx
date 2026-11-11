@@ -7,7 +7,7 @@ import { PAGE_SIZE_OPTIONS } from "../viewState/pagination";
 import { useSharedViewState } from "../viewState/useSharedViewState";
 import { useViewStateAccessors } from "../viewState/useViewStateAccessors";
 import { getViewTypeCapabilitiesForPage } from "../viewState/viewTypeCapabilities";
-import { buildRelationBlockId, buildViewStateBlockKey, mapLegacyPreferencesToViewStateLayer } from "../viewState/viewStateLayers";
+import { buildRelationBlockId, buildViewStateBlockKey, getRelationIdentityName, mapLegacyPreferencesToViewStateLayer } from "../viewState/viewStateLayers";
 import type { AdvancedFilterRule, ViewStateLayer } from "../viewState/viewStateTypes";
 import { useTemporaryPageLayoutScope } from "../temporaryLayout/temporaryPageLayoutStore";
 import { orderAfterMove, orderAfterSelection } from "../viewState/fieldSequenceOperations";
@@ -92,6 +92,10 @@ import { getDefaultViewName, normalizeViewName, normalizeFieldViewType, useViewS
 import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
 import { CrosstabTable } from "../analysis/CrosstabTable";
+import { KanbanView } from "../KanbanView";
+import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "../utils/kanban";
+import { sortRecordsBySortList } from "../viewState/sortRecords";
+import { RelationViewTypeSwitchSlot } from "./RelationViewTypeSwitch";
 import { AnalyzePanel } from "../analysis/AnalyzePanel";
 import { CrosstabConfigPanel } from "../analysis/CrosstabConfigPanel";
 import { useAnalyzeResults, useAnalyzeSettings } from "../analysis/useAnalyze";
@@ -113,7 +117,7 @@ export const PolymorphicRelatedObjectsTable: React.FC<{
     allowInlineEdit?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
     viewVariant?: "default" | "totals-details";
-    viewMode?: "table" | "crosstab";
+    viewMode?: "table" | "crosstab" | "kanban";
 }> = ({ rel, record, relationModel, parentModel, allModels, showActions = false, showCreate = false, allowInlineEdit = false, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
     const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
     const apiUrl = useApiUrl();
@@ -242,9 +246,10 @@ export const RelatedObjectsTable: React.FC<{
     allModels?: ModelDef[];
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
     viewVariant?: "default" | "totals-details";
-    viewMode?: "table" | "crosstab";
+    viewMode?: "table" | "crosstab" | "kanban";
 }> = ({ rel, record, relatedModel, parentModel, showActions = false, showCreate = false, title, allowInlineEdit = false, allowedRelatedIds, allModels, layoutPreferenceType, viewVariant = "default", viewMode = "table" }) => {
     const isCrosstabView = viewMode === "crosstab";
+    const isKanbanView = viewMode === "kanban";
     const recordId = record?.[parentModel?.pkField ?? "eid"] ?? record?.eid ?? record?.id;
     const apiUrl = useApiUrl();
     const go = useGo();
@@ -266,7 +271,7 @@ export const RelatedObjectsTable: React.FC<{
     // scope (an embedded page) keeps them in the component.
     const enclosingPageScope = useTemporaryPageLayoutScope();
     const viewStateBlockKey = enclosingPageScope
-        ? buildViewStateBlockKey(enclosingPageScope.pageKey, buildRelationBlockId(rel.relationName || rel.resource || rel.label || relatedModel.name))
+        ? buildViewStateBlockKey(enclosingPageScope.pageKey, buildRelationBlockId(getRelationIdentityName(rel, relatedModel.name)))
         : null;
     const [savedViewStateLayer, setSavedViewStateLayer] = useState<ViewStateLayer>({});
     // A template's or page configuration's `limit` for this relation is the starting page size.
@@ -331,7 +336,7 @@ export const RelatedObjectsTable: React.FC<{
     const frameworkUiFeatures = useFrameworkUiFeatures();
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
     // What the block's view type supports decides which options it offers (see viewState/viewTypeCapabilities).
-    const viewCapabilities = getViewTypeCapabilitiesForPage(isCrosstabView ? "crosstab" : viewVariant === "totals-details" ? "totals-details" : "table");
+    const viewCapabilities = getViewTypeCapabilitiesForPage(isKanbanView ? "kanban" : isCrosstabView ? "crosstab" : viewVariant === "totals-details" ? "totals-details" : "table");
     const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze && viewCapabilities.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
@@ -1837,6 +1842,20 @@ export const RelatedObjectsTable: React.FC<{
         );
     };
 
+    // Kanban: the rows left by the search, filter rules and column filters, in the shared sort order,
+    // split into columns. Each column pages its own cards with the shared page size.
+    const kanbanBodyNode = isKanbanView ? (
+        <KanbanView
+            model={relatedModel}
+            allModels={allModels}
+            records={sortRecordsBySortList(columnFilteredRows, columnSort, relatedModel.fields, compareSortValues)}
+            pageSize={pageSize}
+            fieldSequenceKeys={displayFields.map((field) => field.key)}
+            maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
+            formatValue={(field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? "")}
+        />
+    ) : null;
+
     return (
         <div className="jm-tone-scope" style={toneScopeStyle(relatedModelTone)}>
             <ToneSharedStyles />
@@ -1845,6 +1864,7 @@ export const RelatedObjectsTable: React.FC<{
                     {title && <Title level={5} style={{ color: relatedModelTone.text, margin: 0 }}>{title}</Title>}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
+                    <RelationViewTypeSwitchSlot />
                     {frameworkUiFeatures.column_selector && (
                         <Tooltip title={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}>
                             <Button
@@ -2071,7 +2091,7 @@ export const RelatedObjectsTable: React.FC<{
                                 if (allowInlineEdit) setHasPendingEdits(true);
                             }}
                         >
-                        {isCrosstabView ? crosstabBodyNode : (
+                        {isCrosstabView ? crosstabBodyNode : isKanbanView ? kanbanBodyNode : (
                         <Table
                             dataSource={filteredRows}
                             pagination={{

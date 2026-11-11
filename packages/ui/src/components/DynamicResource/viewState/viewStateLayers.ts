@@ -50,6 +50,17 @@ export function buildViewStateBlockKey(pageKey: string, blockId: string): string
 export const LIST_BLOCK_ID = "list";
 
 /** Block id of a related-model block. */
+/**
+ * The name that identifies a relation among the relations of a page: its relation name, or the
+ * resource and key when it has none (several relations can point at one resource, for example
+ * "Movements" and "Authorized Movements").
+ */
+export function getRelationIdentityName(relation: { relationName?: string; resource?: string; targetKey?: string; label?: string }, fallbackName: string): string {
+    if (relation.relationName) return relation.relationName;
+    if (relation.resource) return relation.targetKey ? `${relation.resource}:${relation.targetKey}` : relation.resource;
+    return relation.label || fallbackName;
+}
+
 export function buildRelationBlockId(relationName: string): string {
     return `relation:${relationName}`;
 }

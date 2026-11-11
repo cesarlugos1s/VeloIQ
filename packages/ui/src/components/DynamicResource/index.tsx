@@ -57,6 +57,7 @@ import { MultiSortControl } from "./viewState/MultiSortControl";
 import { FieldSequenceEditor } from "./viewState/FieldSequenceEditor";
 import { SummaryFunctionsEditor } from "./viewState/SummaryFunctionsEditor";
 import { orderAfterMove, orderAfterSelection } from "./viewState/fieldSequenceOperations";
+import { RelationViewTypeSwitchSlot } from "./relations/RelationViewTypeSwitch";
 import { getViewTypeCapabilitiesForPage } from "./viewState/viewTypeCapabilities";
 import { useSharedViewState } from "./viewState/useSharedViewState";
 import { useViewStateAccessors } from "./viewState/useViewStateAccessors";
@@ -2908,6 +2909,7 @@ const DynamicListPage: React.FC<{
 
     const embeddedActionBar = isEmbedded ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
+            <RelationViewTypeSwitchSlot />
             {!hideDataControls && columnsToggleButton}
             {listToggleButton}
             {analyzeSectionAvailable && (

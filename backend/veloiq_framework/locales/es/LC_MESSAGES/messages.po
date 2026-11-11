@@ -2365,3 +2365,15 @@ msgstr "Ascendente"
 
 msgid "Descending"
 msgstr "Descendente"
+
+msgid "CSV"
+msgstr "CSV"
+
+msgid "Editable CSV"
+msgstr "CSV editable"
+
+msgid "Configured view type"
+msgstr "Tipo de vista configurado"
+
+msgid "View type for now: kept until the page is reloaded, not saved"
+msgstr "Tipo de vista por ahora: se mantiene hasta recargar la página y no se guarda"

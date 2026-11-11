@@ -12,6 +12,7 @@ import {
     normalizeSectionRows,
     resolveFieldFromConfig,
     resolveRelationFromConfig,
+    countEarlierRowsOfSameRelation,
     isAttributeValueEditable,
     normalizeRelationViewType,
     applyRelationViewOverride,
@@ -200,7 +201,7 @@ export const SectionCellContent: React.FC<SectionCellContentProps> = ({
 
         if (item.attribute_or_relation_type === "relation") {
             if (!record || !allModels) return null;
-            const relation = resolveRelationFromConfig(model.relations, item);
+            const relation = resolveRelationFromConfig(model.relations, item, countEarlierRowsOfSameRelation(normalized, item));
             if (!relation) return null;
             const relationModel = findModelByName(allModels, relation.resource);
             if (!relationModel) return null;

@@ -12,6 +12,8 @@ import {
     resetAllTemporaryLayouts,
     resetTemporaryPageLayout,
     updateTemporaryPageLayout,
+    updateTemporaryRelationViewType,
+    getTemporaryRelationViewType,
 } from "./temporaryPageLayoutStore";
 import { getRegisteredPageTemplateProvider, registerPageTemplateProvider } from "./pageTemplateProviderRegistry";
 
@@ -88,5 +90,22 @@ describe("TemporaryPageLayoutControls", () => {
         const html = await renderControls({ pageKey: buildTemporaryPageKey("task", "create"), pageType: "create", model: { name: "Task", fields: [] } as any });
         expect(html).not.toContain('aria-label="Analyze"');
         expect(html).toContain('aria-label="Design options"');
+    });
+});
+
+describe("temporary relation view type", () => {
+    const blockKey = `${buildTemporaryPageKey("project", "show")}#relation:tasks`;
+
+    it("is kept per relation block and cleared with undefined", () => {
+        updateTemporaryRelationViewType(blockKey, "gallery");
+        expect(getTemporaryRelationViewType(blockKey)).toBe("gallery");
+        updateTemporaryRelationViewType(blockKey, undefined);
+        expect(getTemporaryRelationViewType(blockKey)).toBeUndefined();
+    });
+
+    it("is dropped when the page goes back to its configured layout", () => {
+        updateTemporaryRelationViewType(blockKey, "list");
+        resetTemporaryPageLayout(buildTemporaryPageKey("project", "show"));
+        expect(getTemporaryRelationViewType(blockKey)).toBeUndefined();
     });
 });
