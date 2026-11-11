@@ -2256,7 +2256,7 @@ msgid "Sign in"
 msgstr "Sign in"
 
 msgid "Kanban"
-msgstr ""
+msgstr "Kanban Cards"
 
 msgid "(empty)"
 msgstr ""
@@ -2348,3 +2348,21 @@ msgstr "Page template"
 
 msgid "Design options"
 msgstr "Design options"
+
+msgid "Sorting"
+msgstr "Sorting"
+
+msgid "No sorting yet."
+msgstr "No sorting yet."
+
+msgid "Add sort"
+msgstr "Add sort"
+
+msgid "Clear sort"
+msgstr "Clear sort"
+
+msgid "Ascending"
+msgstr "Ascending"
+
+msgid "Descending"
+msgstr "Descending"

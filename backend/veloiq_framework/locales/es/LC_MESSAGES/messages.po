@@ -664,7 +664,7 @@ msgid "List"
 msgstr "Lista"
 
 msgid "View list"
-msgstr "Lista de vistas"
+msgstr "Ver la lista"
 
 msgid "Export failed."
 msgstr "La exportación falló."
@@ -2255,7 +2255,7 @@ msgid "Sign in"
 msgstr "Iniciar sesión"
 
 msgid "Kanban"
-msgstr "Kanban"
+msgstr "Tarjetas Kanban"
 
 msgid "(empty)"
 msgstr "(vacío)"
@@ -2347,3 +2347,21 @@ msgstr "Plantilla de página"
 
 msgid "Design options"
 msgstr "Opciones de diseño"
+
+msgid "Sorting"
+msgstr "Ordenación"
+
+msgid "No sorting yet."
+msgstr "Aún no hay ordenación."
+
+msgid "Add sort"
+msgstr "Añadir orden"
+
+msgid "Clear sort"
+msgstr "Quitar orden"
+
+msgid "Ascending"
+msgstr "Ascendente"
+
+msgid "Descending"
+msgstr "Descendente"
