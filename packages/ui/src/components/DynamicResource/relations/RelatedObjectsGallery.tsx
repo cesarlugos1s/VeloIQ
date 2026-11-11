@@ -41,6 +41,8 @@ export const RelatedObjectsGallery: React.FC<{
                 const label = getGalleryItemLabel(item, id);
                 return renderSharedGalleryCard({
                     item,
+                    // The related model names where its image comes from (a URL field or a File relation).
+                    imageSource: relatedModel.imageSource,
                     itemId: id,
                     label,
                     apiUrl,

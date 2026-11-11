@@ -16066,6 +16066,8 @@ var RelatedObjectsGallery = ({ rel, record, relatedModel, allModels, variant = "
     const label = getGalleryItemLabel(item, id);
     return renderSharedGalleryCard({
       item,
+      // The related model names where its image comes from (a URL field or a File relation).
+      imageSource: relatedModel.imageSource,
       itemId: id,
       label,
       apiUrl,
