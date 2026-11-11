@@ -57,11 +57,14 @@ import { MultiSortControl } from "./viewState/MultiSortControl";
 import { FieldSequenceEditor } from "./viewState/FieldSequenceEditor";
 import { SummaryFunctionsEditor } from "./viewState/SummaryFunctionsEditor";
 import { orderAfterMove, orderAfterSelection } from "./viewState/fieldSequenceOperations";
-import { getViewTypeCapabilities } from "./viewState/viewTypeCapabilities";
+import { getViewTypeCapabilitiesForPage } from "./viewState/viewTypeCapabilities";
 import { useSharedViewState } from "./viewState/useSharedViewState";
+import { useViewStateAccessors } from "./viewState/useViewStateAccessors";
 import { sortRecordsBySortList } from "./viewState/sortRecords";
 import { PrimaryFieldSequenceContext } from "./viewState/PrimaryFieldSequenceContext";
 import { AnalyzeToggleButton } from "./viewState/AnalyzeToggleButton";
+import { ViewManagementControls } from "./viewState/ViewManagementControls";
+import { PAGE_SIZE_OPTIONS, buildPaginationProps } from "./viewState/pagination";
 import { TemplateListDefaultsContext } from "./viewState/TemplateListDefaultsContext";
 import { buildSequenceCaptionLines } from "./viewState/sequenceCaptions";
 import { LIST_BLOCK_ID, buildViewStateBlockKey, mapLegacyPreferencesToViewStateLayer } from "./viewState/viewStateLayers";
@@ -411,6 +414,8 @@ const DynamicListPage: React.FC<{
     const resolvedListViewType = String(
         temporaryLayout.listViewType || urlViewType || listViewType || (isFileModel && fileListViewType ? fileListViewType : defaultListViewType) || "table"
     ).toLowerCase();
+    // What the view type supports decides which options the page offers (see viewState/viewTypeCapabilities).
+    const viewCapabilities = getViewTypeCapabilitiesForPage(resolvedListViewType);
     // "image" is the gallery with each image at full width (no thumbnails).
     const isImageView = resolvedListViewType === "image";
     const isGalleryView = resolvedListViewType === "gallery" || isImageView;
@@ -468,11 +473,12 @@ const DynamicListPage: React.FC<{
     }, [isEmbedded, model.fields, templateListDefaults.fieldSequenceKeys]);
     const defaultViewStateLayer = useMemo<ViewStateLayer>(() => ({
         pageSize: relationConfig?.defaultPageSize ?? model.defaultPageSize ?? 10,
+        analyze: { open: isEmbedded, first: false, vertical: false },
         ...(templateFieldSequence.length > 0 ? { fieldSequence: { visibleKeys: templateFieldSequence, order: templateFieldSequence } } : {}),
         sortList: model.defaultSort
             ? [{ fieldKey: model.defaultSort.field, order: (model.defaultSort.order === "desc" ? "descend" : "ascend") as ColumnSortOrder }]
             : [],
-    }), [relationConfig?.defaultPageSize, model.defaultPageSize, model.defaultSort, templateFieldSequence]);
+    }), [relationConfig?.defaultPageSize, model.defaultPageSize, model.defaultSort, templateFieldSequence, isEmbedded]);
     const sharedViewState = useSharedViewState({ blockKey: viewStateBlockKey, defaults: defaultViewStateLayer, saved: savedViewStateLayer });
     const setSharedValue = sharedViewState.setValue;
     const updateSharedViewState = sharedViewState.update;
@@ -483,27 +489,18 @@ const DynamicListPage: React.FC<{
         Object.keys(layer).forEach((key) => { dropped[key] = undefined; });
         updateSharedViewState(dropped as ViewStateLayer);
     }, [updateSharedViewState]);
-    const pageSize = sharedViewState.state.pageSize;
-    const setPageSize = useCallback((next: React.SetStateAction<number>) => setSharedValue("pageSize", next), [setSharedValue]);
-    const filterRules = sharedViewState.state.advancedFilterRules as Array<{ id: string; fieldKey?: string; operator?: string; value?: any; value2?: any }>;
-    const setFilterRules = useCallback((next: React.SetStateAction<typeof filterRules>) => setSharedValue("advancedFilterRules", next as React.SetStateAction<AdvancedFilterRule[]>), [setSharedValue]);
-    const columnFiltersSelected = sharedViewState.state.columnFilters;
-    const setColumnFiltersSelected = useCallback((next: React.SetStateAction<Record<string, string[]>>) => setSharedValue("columnFilters", next), [setSharedValue]);
-    const columnSort = sharedViewState.state.sortList;
-    const setColumnSort = useCallback((next: React.SetStateAction<ColumnSortState[]>) => setSharedValue("sortList", next), [setSharedValue]);
-    const totalsSummaryFunctions = sharedViewState.state.summaryFunctions;
-    const setTotalsSummaryFunctions = useCallback((next: React.SetStateAction<Record<string, TotalsSummaryFn>>) => setSharedValue("summaryFunctions", next), [setSharedValue]);
-    // The field sequence is one value; no custom sequence reads as null (the defaults apply).
-    const selectedColumnKeys = sharedViewState.state.fieldSequence.visibleKeys.length > 0 ? sharedViewState.state.fieldSequence.visibleKeys : null;
-    const columnOrder = sharedViewState.state.fieldSequence.order.length > 0 ? sharedViewState.state.fieldSequence.order : null;
-    const setSelectedColumnKeys = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
-        const visibleKeys = (typeof next === "function" ? next(previous.visibleKeys.length > 0 ? previous.visibleKeys : null) : next) ?? [];
-        return { ...previous, visibleKeys };
-    }), [setSharedValue]);
-    const setColumnOrder = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
-        const order = (typeof next === "function" ? next(previous.order.length > 0 ? previous.order : null) : next) ?? [];
-        return { ...previous, order };
-    }), [setSharedValue]);
+    const {
+        pageSize, setPageSize,
+        filterRules, setFilterRules,
+        columnFiltersSelected, setColumnFiltersSelected,
+        columnSort, setColumnSort,
+        totalsSummaryFunctions, setTotalsSummaryFunctions,
+        selectedColumnKeys, setSelectedColumnKeys,
+        columnOrder, setColumnOrder,
+        analyzeOpenPreference, setAnalyzeOpen,
+        isAnalyzeFirst, setIsAnalyzeFirst,
+        isAnalyzeVertical, setIsAnalyzeVertical,
+    } = useViewStateAccessors(sharedViewState);
     // Values chosen in the Filters panel's quick filters (ModelDef.quickFilterFields), by field key.
     const [quickFilterValues, setQuickFilterValues] = useState<Record<string, Array<string | number>>>({});
     // The quick filters offered (fields with options only).
@@ -520,8 +517,6 @@ const DynamicListPage: React.FC<{
     const [calendarDateField, setCalendarDateField] = useState<string>(() => calendarDateFieldOptions[0]?.key || "");
     const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs().startOf("month"));
     const [calendarHeatmapField, setCalendarHeatmapField] = useState<string>("");
-    const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
-    const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [filtersCollapsed, setFiltersCollapsed] = useState(isEmbedded);
     const [layoutPrefsReady, setLayoutPrefsReady] = useState(false);
     // Force-opened by a Help action (?view_config=1) — a plain read, not a
@@ -546,9 +541,8 @@ const DynamicListPage: React.FC<{
     const [renameViewModalOpen, setRenameViewModalOpen] = useState(false);
     const [renameViewName, setRenameViewName] = useState<string>("");
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
-    const [analyzeOpenPreference, setAnalyzeOpen] = useState(isEmbedded);
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
-    const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
+    const analyzeSectionAvailable = model.showAnalyzeSection !== false && frameworkUiFeatures.analyze && viewCapabilities.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
 
@@ -727,7 +721,7 @@ const DynamicListPage: React.FC<{
     const { tableProps, searchFormProps, filters: activeFilters, setFilters, ...listTable } = useTable({
         resource: resourceIdentifier,
         syncWithLocation: !isEmbedded,
-        pagination: { pageSize, hideOnSinglePage: true, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } as any,
+        pagination: { pageSize, hideOnSinglePage: true, showSizeChanger: true, pageSizeOptions: PAGE_SIZE_OPTIONS } as any,
         filters: { initial: tableFilters, permanent: tableFilters },
         onSearch: (values: any) => {
             if (!searchField) return [];
@@ -1116,7 +1110,7 @@ const DynamicListPage: React.FC<{
                 ...tableProps.pagination,
                 pageSize,
                 showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50", "100"],
+                pageSizeOptions: PAGE_SIZE_OPTIONS,
                 onChange: handleTablePageChange,
                 onShowSizeChange: handleTablePageChange,
             };
@@ -1125,7 +1119,7 @@ const DynamicListPage: React.FC<{
             pageSize,
             hideOnSinglePage: true,
             showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
             onChange: handleTablePageChange,
             onShowSizeChange: handleTablePageChange,
         };
@@ -1461,9 +1455,6 @@ const DynamicListPage: React.FC<{
         const applyPrefs = (prefs: any) => {
             if (!prefs || typeof prefs !== "object") return false;
             if ("listVisible" in prefs && defaultListVisible !== false) setListVisible(Boolean(prefs.listVisible));
-            if ("analyzeOpen" in prefs) setAnalyzeOpen(Boolean(prefs.analyzeOpen));
-            if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
-            if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
             if ("filtersCollapsed" in prefs) setFiltersCollapsed(Boolean(prefs.filtersCollapsed));
             // Sort, filters, field sequence, page size and summaries are the saved layer of the shared view state.
             applySavedViewStateLayer(mapLegacyPreferencesToViewStateLayer(prefs));
@@ -2275,21 +2266,21 @@ const DynamicListPage: React.FC<{
         () => sortRecordsBySortList(columnFilteredDataSource, columnSort, model.fields, compareSortValues),
         [columnFilteredDataSource, columnSort, model.fields, compareSortValues],
     );
-    // Server-side parity: view types without table headers (gallery, primary) send the shared sort to
+    // Server-side parity: view types without table headers (gallery, list) send the shared sort to
     // the server when the rows are paged there, so the order does not change when the data volume
     // crosses the client-side threshold. (Table-like views send it through their header changes.)
     const setServerSorters = (listTable as any).setSorters as ((sorters: Array<{ field: string; order: "asc" | "desc" }>) => void) | undefined;
     const serverSortSignature = JSON.stringify(columnSort);
     useEffect(() => {
         if (isClientFiltering || !setServerSorters) return;
-        if (!(isGalleryView || isPrimaryView)) return;
+        if (!(isGalleryView || isListView)) return;
         setServerSorters(
             columnSort
                 .filter((entry) => entry.fieldKey !== "eid")
                 .map((entry) => ({ field: entry.fieldKey, order: entry.order === "descend" ? "desc" as const : "asc" as const })),
         );
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isClientFiltering, isGalleryView, isPrimaryView, serverSortSignature]);
+    }, [isClientFiltering, isGalleryView, isListView, serverSortSignature]);
     const isEmptyTable = (filteredDataSource?.length ?? 0) === 0;
 
     // --- Internal row selection config ---
@@ -3196,28 +3187,15 @@ const DynamicListPage: React.FC<{
     }, [recordsInSharedOrder, galleryPage, galleryPageSize, isClientFiltering, isGalleryView]);
     const galleryPaginationProps = useMemo(() => {
         if (!isGalleryView) return undefined;
-        if (!isClientFiltering) {
-            return {
+        return buildPaginationProps(isClientFiltering
+            ? { current: galleryPage, pageSize: galleryPageSize, total: recordsInSharedOrder.length, onChange: handleGalleryPageChange }
+            : {
                 current: galleryPage,
                 pageSize: galleryPageSize,
                 total: Number.isFinite(serverTotal) ? serverTotal : undefined,
                 hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50", "100"],
                 onChange: handleGalleryPageChange,
-                onShowSizeChange: handleGalleryPageChange,
-            };
-        }
-        return {
-            current: galleryPage,
-            pageSize: galleryPageSize,
-            total: recordsInSharedOrder.length,
-            hideOnSinglePage: true,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            onChange: handleGalleryPageChange,
-            onShowSizeChange: handleGalleryPageChange,
-        };
+            });
     }, [recordsInSharedOrder.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isGalleryView, serverTotal, tablePagination]);
     const primaryRows = useMemo(() => {
         if (!isPrimaryView) return [];
@@ -3227,60 +3205,35 @@ const DynamicListPage: React.FC<{
     }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isPrimaryView]);
     const primaryPaginationProps = useMemo(() => {
         if (!isPrimaryView) return undefined;
-        if (!isClientFiltering) {
-            return {
+        return buildPaginationProps(isClientFiltering
+            ? { current: galleryPage, pageSize: galleryPageSize, total: filteredDataSource.length, onChange: handleGalleryPageChange }
+            : {
                 current: galleryPage,
                 pageSize: galleryPageSize,
                 total: Number.isFinite(serverTotal) ? serverTotal : undefined,
                 hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50", "100"],
                 onChange: handleGalleryPageChange,
-                onShowSizeChange: handleGalleryPageChange,
-            };
-        }
-        return {
-            current: galleryPage,
-            pageSize: galleryPageSize,
-            total: filteredDataSource.length,
-            hideOnSinglePage: true,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            onChange: handleGalleryPageChange,
-            onShowSizeChange: handleGalleryPageChange,
-        };
+            });
     }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isPrimaryView, serverTotal, tablePagination]);
+    // The list view orders its records by the shared multi-sort and column filters (client-side rows).
     const listRows = useMemo(() => {
         if (!isListView) return [];
         if (!isClientFiltering) return filteredDataSource;
         const start = (galleryPage - 1) * galleryPageSize;
-        return filteredDataSource.slice(start, start + galleryPageSize);
-    }, [filteredDataSource, galleryPage, galleryPageSize, isClientFiltering, isListView]);
+        return recordsInSharedOrder.slice(start, start + galleryPageSize);
+    }, [filteredDataSource, recordsInSharedOrder, galleryPage, galleryPageSize, isClientFiltering, isListView]);
     const listPaginationProps = useMemo(() => {
         if (!isListView) return undefined;
-        if (!isClientFiltering) {
-            return {
+        return buildPaginationProps(isClientFiltering
+            ? { current: galleryPage, pageSize: galleryPageSize, total: recordsInSharedOrder.length, onChange: handleGalleryPageChange }
+            : {
                 current: galleryPage,
                 pageSize: galleryPageSize,
                 total: Number.isFinite(serverTotal) ? serverTotal : undefined,
                 hideOnSinglePage: typeof tablePagination === "object" ? tablePagination.hideOnSinglePage : true,
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50", "100"],
                 onChange: handleGalleryPageChange,
-                onShowSizeChange: handleGalleryPageChange,
-            };
-        }
-        return {
-            current: galleryPage,
-            pageSize: galleryPageSize,
-            total: filteredDataSource.length,
-            hideOnSinglePage: true,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            onChange: handleGalleryPageChange,
-            onShowSizeChange: handleGalleryPageChange,
-        };
-    }, [filteredDataSource.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isListView, serverTotal, tablePagination]);
+            });
+    }, [recordsInSharedOrder.length, galleryPage, galleryPageSize, handleGalleryPageChange, isClientFiltering, isListView, serverTotal, tablePagination]);
     const calendarDateFieldKeySet = useMemo(
         () => new Set(calendarDateFieldOptions.map((field) => field.key)),
         [calendarDateFieldOptions]
@@ -3640,118 +3593,39 @@ const DynamicListPage: React.FC<{
                     styles={{ body: { display: "grid", gap: 12 } }}
                 >
                     <div style={{ display: "grid", gap: 12 }}>
-                        <AdvancedFilterBuilder fields={model.fields} rules={filterRules} setRules={setFilterRules} />
-                        {getViewTypeCapabilities(resolvedListViewType === "totalsdetails" ? "totals-details" : resolvedListViewType).multiSort && (
+                        {viewCapabilities.advancedFilter && (
+                            <AdvancedFilterBuilder fields={model.fields} rules={filterRules} setRules={setFilterRules} />
+                        )}
+                        {viewCapabilities.multiSort && (
                             <MultiSortControl fields={model.fields} sortList={columnSort} setSortList={setColumnSort} />
                         )}
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Views shown")}</div>
-                            <Select
-                                mode="multiple"
-                                size="small"
-                                value={selectedViewNames}
-                                onChange={(values) => {
-                                    const next = [
-                                        ...selectedViewNames.filter((name) => (values as string[]).includes(name)),
-                                        ...(values as string[]).filter((name) => !selectedViewNames.includes(name)),
-                                    ];
-                                    updateSelectedViewNames(next);
-                                }}
-                                loading={isLoadingViewNames}
-                                options={availableViewNames.map((name) => ({ label: name, value: name }))}
-                                style={{ minWidth: 240 }}
-                            />
-                            {selectedViewNames.length > 1 && (
-                                <div style={{ display: "grid", gap: 6 }}>
-                                    {selectedViewNames.map((name, index) => (
-                                        <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                            <div style={{ flex: 1 }}>{name}</div>
-                                            <Tooltip title={_("Move up")}>
-                                                <Button size="small" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => moveSelectedView(name, "up")} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Move down")}>
-                                                <Button size="small" icon={<ArrowDownOutlined />} disabled={index === selectedViewNames.length - 1} onClick={() => moveSelectedView(name, "down")} />
-                                            </Tooltip>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Active view")}</div>
-                            {viewSelector}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                            {frameworkUiFeatures.saved_views && (
-                                <>
-                                <Button
-                                    size="small"
-                                    onClick={() => {
-                                        setRenameViewName(currentViewName);
-                                        setRenameViewModalOpen(true);
-                                    }}
-                                >
-                                    {_("Rename view")}
-                                </Button>
-                                <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    disabled={availableViewNames.length <= 1}
-                                    onClick={confirmDeleteView}
-                                >
-                                    {_("Delete view")}
-                                </Button>
-                                </>
-                            )}
-                            {resolvedLayoutPreferenceType && frameworkUiFeatures.saved_views && (
-                                <Button
-                                    size="small"
-                                    icon={<SaveOutlined />}
-                                    onClick={() => openSaveViewModalFor("layout")}
-                                    loading={isSavingLayoutPrefs}
-                                >
-                                    {_("Save layout")}
-                                </Button>
-                            )}
-                            <Button
-                                size="small"
-                                icon={<FilterOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setFiltersCollapsed((prev) => !prev);
-                                }}
-                            >
-                                {filtersCollapsed ? _("Show Filters") : _("Hide Filters")}
-                            </Button>
-                            {analyzeSectionAvailable && (
-                                <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} showLabel />
-                            )}
-                            <Button
-                                size="small"
-                                icon={<ColumnHeightOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setIsAnalyzeVertical((prev) => !prev);
-                                }}
-                            >
-                                {_("Switch orientation")}
-                            </Button>
-                            <Button
-                                size="small"
-                                icon={<SwapOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setIsAnalyzeFirst((prev) => !prev);
-                                }}
-                            >
-                                {_("Switch positions")}
-                            </Button>
-                        </div>
+                        <ViewManagementControls
+                            selectedViewNames={selectedViewNames}
+                            availableViewNames={availableViewNames}
+                            isLoadingViewNames={isLoadingViewNames}
+                            onSelectedViewNamesChange={updateSelectedViewNames}
+                            onMoveView={moveSelectedView}
+                            viewSelector={viewSelector}
+                            savedViewsEnabled={frameworkUiFeatures.saved_views}
+                            onRename={() => { setRenameViewName(currentViewName); setRenameViewModalOpen(true); }}
+                            onDelete={confirmDeleteView}
+                            canSaveLayout={Boolean(resolvedLayoutPreferenceType)}
+                            isSavingLayout={isSavingLayoutPrefs}
+                            onSaveLayout={() => openSaveViewModalFor("layout")}
+                            filtersCollapsed={filtersCollapsed}
+                            onToggleFilters={() => { markLayoutPrefsTouched(); setFiltersCollapsed((prev) => !prev); }}
+                            analyzeAvailable={analyzeSectionAvailable}
+                            analyzeOpen={analyzeOpen}
+                            onToggleAnalyze={toggleAnalyzeSection}
+                            onToggleAnalyzeOrientation={() => { markLayoutPrefsTouched(); setIsAnalyzeVertical((prev) => !prev); }}
+                            onToggleAnalyzePosition={() => { markLayoutPrefsTouched(); setIsAnalyzeFirst((prev) => !prev); }}
+                        />
                     </div>
                     <div style={{ display: "grid", gap: 12 }}>
-                        <FieldSequenceEditor fields={model.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
-                        {isTotalsDetailsView && (
+{viewCapabilities.fieldSequence && (
+                            <FieldSequenceEditor fields={model.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
+                        )}
+                        {isTotalsDetailsView && viewCapabilities.summaries && (
                             <SummaryFunctionsEditor fields={totalsSummaryConfigFields} resolveFunction={resolveTotalsSummaryFn} onChange={(fieldKey, summaryFunction) => { markLayoutPrefsTouched(); setTotalsSummaryFunctions((prev) => ({ ...prev, [fieldKey]: summaryFunction })); }} />
                         )}
                     </div>

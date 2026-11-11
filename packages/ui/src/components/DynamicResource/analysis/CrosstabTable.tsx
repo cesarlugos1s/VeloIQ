@@ -58,6 +58,9 @@ export interface CrosstabTableProps {
 
 const COUNT_KEY = "__count__";
 
+/** Class the color schema styles like a table header cell (see utils/modelTone.ts and utils/colors.tsx). */
+export const CROSSTAB_HEADER_CLASS = "jm-crosstab-header";
+
 export const CrosstabTable: React.FC<CrosstabTableProps> = ({
     rows,
     rowField,
@@ -322,9 +325,8 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
         );
     }
 
+    // Header colors come from the color schema through CROSSTAB_HEADER_CLASS, like the other view types' headers.
     const headerCellStyle: React.CSSProperties = {
-        background: token.colorBgLayout,
-        color: token.colorText,
         fontWeight: "normal",
     };
 
@@ -336,11 +338,12 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
                     <thead>
                         {hasColDimension && (
                             <tr>
-                                <th style={{ position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }}>
+                                <th className={CROSSTAB_HEADER_CLASS} style={{ position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }}>
                                     {[colFieldDef?.label || colField, col3FieldDef?.label].filter(Boolean).join(CATEGORY_LABEL_SEPARATOR)}
                                 </th>
                                 {colLabels.map((colLabel, colIndex) => (
                                     <th
+                                        className={CROSSTAB_HEADER_CLASS}
                                         key={`crosstab-col-${colLabel}`}
                                         colSpan={activeSeriesKeys.length}
                                         style={{
@@ -361,12 +364,13 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
                             </tr>
                         )}
                         <tr>
-                            <th style={{ position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `2px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }}>
+                            <th className={CROSSTAB_HEADER_CLASS} style={{ position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `2px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }}>
                                 {hasRowDimension ? (rowFieldDef?.label || rowField) : ""}
                             </th>
                             {colLabels.flatMap((colLabel) =>
                                 activeSeriesKeys.map((seriesKey, seriesIndex) => (
                                     <th
+                                        className={CROSSTAB_HEADER_CLASS}
                                         key={`crosstab-head-${colLabel}-${seriesKey}`}
                                         style={{
                                             ...headerCellStyle,
@@ -391,7 +395,7 @@ export const CrosstabTable: React.FC<CrosstabTableProps> = ({
                     <tbody>
                         {rowLabels.map((rowLabel, rowIndex) => (
                             <tr key={`crosstab-row-${rowLabel}`}>
-                                <th style={{ position: "sticky", left: 0, zIndex: 1, background: token.colorBgContainer, color: token.colorText, borderBottom: `1px solid ${token.colorBorder}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", fontWeight: "normal" }}>
+                                <th className={CROSSTAB_HEADER_CLASS} style={{ position: "sticky", left: 0, zIndex: 1, borderBottom: `1px solid ${token.colorBorder}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", fontWeight: "normal" }}>
                                     {rowLabel}
                                 </th>
                                 {colLabels.flatMap((colLabel, colIndex) =>

@@ -2,8 +2,11 @@ import { AdvancedFilterBuilder } from "../viewState/AdvancedFilterBuilder";
 import { MultiSortControl } from "../viewState/MultiSortControl";
 import { FieldSequenceEditor } from "../viewState/FieldSequenceEditor";
 import { SummaryFunctionsEditor } from "../viewState/SummaryFunctionsEditor";
-import { AnalyzeToggleButton } from "../viewState/AnalyzeToggleButton";
+import { ViewManagementControls } from "../viewState/ViewManagementControls";
+import { PAGE_SIZE_OPTIONS } from "../viewState/pagination";
 import { useSharedViewState } from "../viewState/useSharedViewState";
+import { useViewStateAccessors } from "../viewState/useViewStateAccessors";
+import { getViewTypeCapabilitiesForPage } from "../viewState/viewTypeCapabilities";
 import { buildRelationBlockId, buildViewStateBlockKey, mapLegacyPreferencesToViewStateLayer } from "../viewState/viewStateLayers";
 import type { AdvancedFilterRule, ViewStateLayer } from "../viewState/viewStateTypes";
 import { useTemporaryPageLayoutScope } from "../temporaryLayout/temporaryPageLayoutStore";
@@ -278,27 +281,18 @@ export const RelatedObjectsTable: React.FC<{
         Object.keys(layer).forEach((key) => { dropped[key] = undefined; });
         updateSharedViewState(dropped as ViewStateLayer);
     }, [updateSharedViewState]);
-    const pageSize = sharedViewState.state.pageSize;
-    const setPageSize = useCallback((next: React.SetStateAction<number>) => setSharedValue("pageSize", next), [setSharedValue]);
-    const filterRules = sharedViewState.state.advancedFilterRules as Array<{ id: string; fieldKey?: string; operator?: string; value?: any; value2?: any }>;
-    const setFilterRules = useCallback((next: React.SetStateAction<typeof filterRules>) => setSharedValue("advancedFilterRules", next as React.SetStateAction<AdvancedFilterRule[]>), [setSharedValue]);
-    const columnFiltersSelected = sharedViewState.state.columnFilters;
-    const setColumnFiltersSelected = useCallback((next: React.SetStateAction<Record<string, string[]>>) => setSharedValue("columnFilters", next), [setSharedValue]);
-    const columnSort = sharedViewState.state.sortList;
-    const setColumnSort = useCallback((next: React.SetStateAction<ColumnSortState[]>) => setSharedValue("sortList", next), [setSharedValue]);
-    const totalsSummaryFunctions = sharedViewState.state.summaryFunctions;
-    const setTotalsSummaryFunctions = useCallback((next: React.SetStateAction<Record<string, TotalsSummaryFn>>) => setSharedValue("summaryFunctions", next), [setSharedValue]);
-    // The field sequence is one value; no custom sequence reads as null (the defaults apply).
-    const selectedColumnKeys = sharedViewState.state.fieldSequence.visibleKeys.length > 0 ? sharedViewState.state.fieldSequence.visibleKeys : null;
-    const columnOrder = sharedViewState.state.fieldSequence.order.length > 0 ? sharedViewState.state.fieldSequence.order : null;
-    const setSelectedColumnKeys = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
-        const visibleKeys = (typeof next === "function" ? next(previous.visibleKeys.length > 0 ? previous.visibleKeys : null) : next) ?? [];
-        return { ...previous, visibleKeys };
-    }), [setSharedValue]);
-    const setColumnOrder = useCallback((next: React.SetStateAction<string[] | null>) => setSharedValue("fieldSequence", (previous) => {
-        const order = (typeof next === "function" ? next(previous.order.length > 0 ? previous.order : null) : next) ?? [];
-        return { ...previous, order };
-    }), [setSharedValue]);
+    const {
+        pageSize, setPageSize,
+        filterRules, setFilterRules,
+        columnFiltersSelected, setColumnFiltersSelected,
+        columnSort, setColumnSort,
+        totalsSummaryFunctions, setTotalsSummaryFunctions,
+        selectedColumnKeys, setSelectedColumnKeys,
+        columnOrder, setColumnOrder,
+        analyzeOpenPreference, setAnalyzeOpen,
+        isAnalyzeFirst, setIsAnalyzeFirst,
+        isAnalyzeVertical, setIsAnalyzeVertical,
+    } = useViewStateAccessors(sharedViewState);
     const [currentViewName, setCurrentViewName] = useState<string>(getDefaultViewName());
     const [selectedViewNames, setSelectedViewNames] = useState<string[]>([]);
     const [availableViewNames, setAvailableViewNames] = useState<string[]>([]);
@@ -332,14 +326,13 @@ export const RelatedObjectsTable: React.FC<{
         }, 200);
         return () => clearInterval(interval);
     }, [listVisible]);
-    const [isAnalyzeVertical, setIsAnalyzeVertical] = useState(false);
-    const [isAnalyzeFirst, setIsAnalyzeFirst] = useState(false);
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
-    const [analyzeOpenPreference, setAnalyzeOpen] = useState(false);
     // Tools a role or an external portal can switch off (Analyze, saved views, columns).
     const frameworkUiFeatures = useFrameworkUiFeatures();
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
-    const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze;
+    // What the block's view type supports decides which options it offers (see viewState/viewTypeCapabilities).
+    const viewCapabilities = getViewTypeCapabilitiesForPage(isCrosstabView ? "crosstab" : viewVariant === "totals-details" ? "totals-details" : "table");
+    const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze && viewCapabilities.analyze;
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     // Analyze section configuration and its saved preferences (shared with list pages).
@@ -700,9 +693,6 @@ export const RelatedObjectsTable: React.FC<{
         const applyPrefs = (prefs: any) => {
             if (!prefs || typeof prefs !== "object") return false;
             // Embedded relation tables should always render the list body; do not hide it via saved layout prefs.
-            if ("analyzeOpen" in prefs) setAnalyzeOpen(Boolean(prefs.analyzeOpen));
-            if ("isAnalyzeVertical" in prefs) setIsAnalyzeVertical(Boolean(prefs.isAnalyzeVertical));
-            if ("isAnalyzeFirst" in prefs) setIsAnalyzeFirst(Boolean(prefs.isAnalyzeFirst));
             if ("filtersCollapsed" in prefs) setFiltersCollapsed(Boolean(prefs.filtersCollapsed));
             // Sort, filters, field sequence, page size and summaries are the saved layer of the shared view state.
             const savedLayer = mapLegacyPreferencesToViewStateLayer(prefs);
@@ -2029,135 +2019,42 @@ export const RelatedObjectsTable: React.FC<{
                     styles={{ body: { display: "grid", gap: 12 } }}
                 >
                     <div style={{ display: "grid", gap: 12 }}>
-                        <AdvancedFilterBuilder fields={relatedModel.fields} rules={filterRules} setRules={setFilterRules} />
-                        <MultiSortControl fields={relatedModel.fields} sortList={columnSort} setSortList={setColumnSort} />
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Views shown")}</div>
-                            <Select
-                                mode="multiple"
-                                size="small"
-                                value={selectedViewNames}
-                                onChange={(values) => {
-                                    const next = [
-                                        ...selectedViewNames.filter((name) => (values as string[]).includes(name)),
-                                        ...(values as string[]).filter((name) => !selectedViewNames.includes(name)),
-                                    ];
-                                    updateSelectedViewNames(next);
-                                }}
-                                loading={isLoadingViewNames}
-                                options={availableViewNames.map((name) => ({ label: name, value: name }))}
-                                style={{ minWidth: 240 }}
-                            />
-                            {selectedViewNames.length > 1 && (
-                                <div style={{ display: "grid", gap: 6 }}>
-                                    {selectedViewNames.map((name, index) => (
-                                        <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                            <div style={{ flex: 1 }}>{name}</div>
-                                            <Tooltip title={_("Move up")}>
-                                                <Button size="small" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => moveSelectedView(name, "up")} />
-                                            </Tooltip>
-                                            <Tooltip title={_("Move down")}>
-                                                <Button size="small" icon={<ArrowDownOutlined />} disabled={index === selectedViewNames.length - 1} onClick={() => moveSelectedView(name, "down")} />
-                                            </Tooltip>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 600 }}>{_("Active view")}</div>
-                            {viewSelector}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                            {frameworkUiFeatures.saved_views && (
-                                <>
-                                <Button
-                                    size="small"
-                                    onClick={() => {
-                                        setRenameViewName(currentViewName);
-                                        setRenameViewModalOpen(true);
-                                    }}
-                                >
-                                    {_("Rename view")}
-                                </Button>
-                                <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    disabled={availableViewNames.length <= 1}
-                                    onClick={confirmDeleteView}
-                                >
-                                    {_("Delete view")}
-                                </Button>
-                                </>
-                            )}
-                            {layoutPreferenceType && frameworkUiFeatures.saved_views && (
-                                <Button
-                                    size="small"
-                                    icon={<SaveOutlined />}
-                                    onClick={() => openSaveViewModalFor("layout")}
-                                    loading={isSavingLayoutPrefs}
-                                >
-                                    {_("Save layout")}
-                                </Button>
-                            )}
-                            <Button
-                                size="small"
-                                icon={<FilterOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setFiltersCollapsed((prev) => !prev);
-                                }}
-                            >
-                                {filtersCollapsed ? _("Show Filters") : _("Hide Filters")}
-                            </Button>
-                            <Button
-                                size="small"
-                                icon={<UnorderedListOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setListVisible((prev) => !prev);
-                                }}
-                            >
-                                {_("View list")}
-                            </Button>
-                            {analyzeSectionAvailable && (
-                                <AnalyzeToggleButton
-                                    open={analyzeOpen}
-                                    showLabel
-                                    onToggle={() => {
-                                        markLayoutPrefsTouched();
-                                        analyzeTouchedRef.current = true;
-                                        setIsStatsFlipped(false);
-                                        setAnalyzeOpen((prev) => !prev);
-                                    }}
-                                />
-                            )}
-                            <Button
-                                size="small"
-                                icon={<ColumnHeightOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setIsAnalyzeVertical((prev) => !prev);
-                                }}
-                            >
-                                {_("Switch orientation")}
-                            </Button>
-                            <Button
-                                size="small"
-                                icon={<SwapOutlined />}
-                                onClick={() => {
-                                    markLayoutPrefsTouched();
-                                    setIsAnalyzeFirst((prev) => !prev);
-                                }}
-                            >
-                                {_("Switch positions")}
-                            </Button>
-                        </div>
+                        {viewCapabilities.advancedFilter && (
+                            <AdvancedFilterBuilder fields={relatedModel.fields} rules={filterRules} setRules={setFilterRules} />
+                        )}
+                        {viewCapabilities.multiSort && (
+                            <MultiSortControl fields={relatedModel.fields} sortList={columnSort} setSortList={setColumnSort} />
+                        )}
+                        <ViewManagementControls
+                            selectedViewNames={selectedViewNames}
+                            availableViewNames={availableViewNames}
+                            isLoadingViewNames={isLoadingViewNames}
+                            onSelectedViewNamesChange={updateSelectedViewNames}
+                            onMoveView={moveSelectedView}
+                            viewSelector={viewSelector}
+                            savedViewsEnabled={frameworkUiFeatures.saved_views}
+                            onRename={() => { setRenameViewName(currentViewName); setRenameViewModalOpen(true); }}
+                            onDelete={confirmDeleteView}
+                            canSaveLayout={Boolean(layoutPreferenceType)}
+                            isSavingLayout={isSavingLayoutPrefs}
+                            onSaveLayout={() => openSaveViewModalFor("layout")}
+                            filtersCollapsed={filtersCollapsed}
+                            onToggleFilters={() => { markLayoutPrefsTouched(); setFiltersCollapsed((prev) => !prev); }}
+                            onToggleList={() => { markLayoutPrefsTouched(); setListVisible((prev) => !prev); }}
+                            analyzeAvailable={analyzeSectionAvailable}
+                            analyzeOpen={analyzeOpen}
+                            onToggleAnalyze={() => { markLayoutPrefsTouched(); analyzeTouchedRef.current = true; setIsStatsFlipped(false); setAnalyzeOpen((prev) => !prev); }}
+                            onToggleAnalyzeOrientation={() => { markLayoutPrefsTouched(); setIsAnalyzeVertical((prev) => !prev); }}
+                            onToggleAnalyzePosition={() => { markLayoutPrefsTouched(); setIsAnalyzeFirst((prev) => !prev); }}
+                        />
                     </div>
                     <div style={{ display: "grid", gap: 12 }}>
-                        <FieldSequenceEditor fields={relatedModel.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
-                        <SummaryFunctionsEditor fields={totalsSummaryConfigFields} resolveFunction={resolveTotalsSummaryFn} onChange={(fieldKey, summaryFunction) => { markLayoutPrefsTouched(); setTotalsSummaryFunctions((prev) => ({ ...prev, [fieldKey]: summaryFunction })); }} />
+{viewCapabilities.fieldSequence && (
+                            <FieldSequenceEditor fields={relatedModel.fields} selectedKeys={selectedColumnKeys} orderedKeys={orderedSelectedColumns} onSelectionChange={handleColumnSelectionChange} onMove={moveColumnOrder} onReset={() => { setSelectedColumnKeys(null); setColumnOrder(null); }} />
+                        )}
+                        {isTotalsDetailsVariant && viewCapabilities.summaries && (
+                            <SummaryFunctionsEditor fields={totalsSummaryConfigFields} resolveFunction={resolveTotalsSummaryFn} onChange={(fieldKey, summaryFunction) => { markLayoutPrefsTouched(); setTotalsSummaryFunctions((prev) => ({ ...prev, [fieldKey]: summaryFunction })); }} />
+                        )}
                     </div>
                 </Card>
             )}
@@ -2185,7 +2082,7 @@ export const RelatedObjectsTable: React.FC<{
                                 total: columnFilteredRows.length,
                                 hideOnSinglePage: true,
                                 showSizeChanger: true,
-                                pageSizeOptions: ["10", "20", "50", "100"],
+                                pageSizeOptions: PAGE_SIZE_OPTIONS,
                                 onChange: (page, newPageSize) => {
                                     setCurrentPage(page);
                                     if (newPageSize && newPageSize !== pageSize) {

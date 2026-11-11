@@ -47,6 +47,8 @@ const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
     "editable-csv": CSV,
     "read-and-edit-csv": CSV,
     "totals-details": TOTALS_DETAILS,
+    "totalsdetails": TOTALS_DETAILS,
+    "totaldetails": TOTALS_DETAILS,
     "crosstab": CROSSTAB,
     "editable-crosstab": CROSSTAB,
     "kanban": KANBAN,
@@ -60,4 +62,13 @@ const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
 /** The capabilities of a view type; an unknown view type supports nothing. */
 export function getViewTypeCapabilities(viewType: string | undefined | null): ViewTypeCapabilities {
     return (viewType ? CAPABILITIES_BY_VIEW_TYPE[viewType] : undefined) ?? NONE;
+}
+
+/**
+ * Capabilities for deciding what the page shows: a view type without a
+ * declaration (for example tree) keeps the table's options, so a missing
+ * declaration never removes a control that was available before.
+ */
+export function getViewTypeCapabilitiesForPage(viewType: string | undefined | null): ViewTypeCapabilities {
+    return (viewType ? CAPABILITIES_BY_VIEW_TYPE[viewType] : undefined) ?? TABLE;
 }

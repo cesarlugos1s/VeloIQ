@@ -13,6 +13,10 @@ export const ToneSharedStyles = () => (
             .jm-tone-scope .ant-table-thead > tr > th {
                 color: var(--jm-table-header-text, #475569) !important;
             }
+            .jm-tone-scope .jm-crosstab-header {
+                color: var(--jm-table-header-text, #475569) !important;
+                font-weight: 400;
+            }
             .jm-tone-scope .ant-table-column-title {
                 color: var(--jm-table-header-text, #475569) !important;
                 font-weight: 400;

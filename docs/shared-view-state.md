@@ -72,7 +72,7 @@ with its last value when the user returns to a view type that supports it.
   is placed on. Several sorted fields on one axis nest in sort list order. A
   sorted field on no axis stays dormant. Sorting headers by summarized values
   is not included.
-- **Server-side parity.** Views without table headers (gallery, primary) send
+- **Server-side parity.** Views without table headers (gallery, list) send
   the sort to the server when rows are paged there, so results do not change
   when the data volume crosses a threshold.
 
@@ -88,7 +88,11 @@ Code lives in `packages/ui/src/components/DynamicResource/viewState/`:
 - Shared controls: `AdvancedFilterBuilder`, `MultiSortControl`,
   `FieldSequenceEditor`, `SummaryFunctionsEditor`.
 - Pure helpers: `sortRecords.ts`, `orderCrosstabHeaders.ts`,
-  `sequenceCaptions.ts`, `orderSectionFieldRows.ts`, `fieldSequenceOperations.ts`.
+  `sequenceCaptions.ts`, `orderSectionFieldRows.ts`, `fieldSequenceOperations.ts`,
+  `pagination.ts`.
+- `ViewManagementControls` (saved views and layout toggles), `AnalyzeToggleButton`
+  and `useViewStateAccessors` complete the shared set. The configuration card
+  shows an option only when the view type supports it.
 
 Temporary changes are stored by `updateTemporaryViewState` in
 `temporaryLayout/temporaryPageLayoutStore.tsx`.

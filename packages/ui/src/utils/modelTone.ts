@@ -222,6 +222,7 @@ export const setColorSchemas = (schemas: {
                     }
                     body.jm-light .ant-card,
                     body.jm-light .ant-table-thead > tr > th,
+                    body.jm-light .jm-crosstab-header,
                     body.jm-light .ant-tabs-nav,
                     body.jm-light .ant-tabs-nav::before,
                     body.jm-light .ant-tabs-tab {
@@ -285,6 +286,7 @@ export const setColorSchemas = (schemas: {
                     body.jm-dark .ant-card,
                     body.jm-dark .ant-table-wrapper .ant-table,
                     body.jm-dark .ant-table-thead > tr > th,
+                    body.jm-dark .jm-crosstab-header,
                     body.jm-dark .ant-tabs-nav,
                     body.jm-dark .ant-tabs-nav::before,
                     body.jm-dark .ant-tabs-tab {
