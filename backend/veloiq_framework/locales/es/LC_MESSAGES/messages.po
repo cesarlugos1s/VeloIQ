@@ -564,6 +564,9 @@ msgstr "Guardar configuración"
 msgid "Distinct"
 msgstr "Distintos"
 
+msgid "Others"
+msgstr "Otros"
+
 msgid "Show totals"
 msgstr "Mostrar totales"
 

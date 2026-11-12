@@ -114,6 +114,8 @@ import {
     renderSharedGalleryCard,
 } from "./utils/gallery";
 import { renderNumericValueBar } from "./utils/statistics";
+import { TotalsDetailsCard, CATEGORICAL_CARD_TONE } from "./TotalsDetailsCard";
+import { buildCategoricalBreakdown } from "./utils/categoricalBreakdown";
 import {
     INLINE_RELATION_MAX_ITEMS,
     GALLERY_RELATION_MAX_ITEMS,
@@ -1762,15 +1764,13 @@ const DynamicListPage: React.FC<{
                     }
                     counts.set(label, (counts.get(label) || 0) + 1);
                 });
-                const breakdown = Array.from(counts.entries())
-                    .map(([value, count]) => ({ value, count }))
-                    .sort((a, b) => b.count - a.count);
+                const breakdown = buildCategoricalBreakdown(counts, _("Others"));
                 return {
                     key: field.key,
                     label: field.label,
-                    value: breakdown.length,
+                    value: counts.size,
                     breakdown,
-                    showBreakdown: breakdown.length > 0 && breakdown.length < 5,
+                    showBreakdown: breakdown.length > 0,
                 };
             });
     }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
@@ -1824,7 +1824,7 @@ const DynamicListPage: React.FC<{
         const hasCat = tdCategoricalBoxes.length > 0;
         const hasNum = tdNumericBoxes.length > 0;
         if (!hasCat && !hasNum) return null;
-        const catTone = { soft: "#fde68a", softer: "#fffbeb", text: "#92400e", chipBg: "#ffffff" };
+        const catTone = CATEGORICAL_CARD_TONE;
         return (
             <div style={{ marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1833,23 +1833,19 @@ const DynamicListPage: React.FC<{
                         {hasCat && (
                             <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }}>
                                 {tdCategoricalBoxes.map((item) => (
-                                    <Card key={`td-cat-${item.key}`} size="small" variant="borderless"
-                                        style={{ minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${catTone.softer} 0%, ${catTone.soft} 100%)` }}
-                                        styles={{ body: { padding: 10 } }}
-                                    >
-                                        <div style={{ fontSize: 12, fontWeight: 400, color: catTone.text, textAlign: "center", marginTop: 2 }}>{item.label}</div>
+                                    <TotalsDetailsCard key={`td-cat-${item.key}`} title={item.label} tone={catTone}>
                                         {item.showBreakdown ? (
-                                            <div style={{ display: "grid", gap: 4, marginTop: 8 }}>
+                                            <div style={{ display: "grid", gap: 4 }}>
                                                 {item.breakdown.map((entry) => (
                                                     <div key={`td-cat-${item.key}-${entry.value}`}
-                                                        style={{ fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center", borderRadius: 8, background: catTone.chipBg, padding: "2px 8px" }}
+                                                        style={{ fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center" }}
                                                     >{`${entry.value}: ${formatNumberValue(entry.count)}`}</div>
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div style={{ fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center", marginTop: 4 }}>{formatNumberValue(item.value)}</div>
+                                            <div style={{ fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center" }}>{formatNumberValue(item.value)}</div>
                                         )}
-                                    </Card>
+                                    </TotalsDetailsCard>
                                 ))}
                             </div>
                         )}
@@ -1857,17 +1853,15 @@ const DynamicListPage: React.FC<{
                         {hasNum && (
                             <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }}>
                                 {tdNumericBoxes.map((item) => (
-                                    <Card key={`td-num-${item.key}`} size="small" variant="borderless"
-                                        style={{ minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${modelTone.softer} 0%, ${modelTone.soft} 100%)` }}
-                                        styles={{ body: { padding: 10 } }}
+                                    <TotalsDetailsCard
+                                        key={`td-num-${item.key}`}
+                                        tone={modelTone}
+                                        title={item.summaryFn && item.summaryFn !== "sum"
+                                            ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})`
+                                            : item.label}
                                     >
-                                        <div style={{ fontSize: 12, fontWeight: 400, color: modelTone.text, textAlign: "center", marginTop: 2 }}>
-                                            {item.summaryFn && item.summaryFn !== "sum"
-                                                ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})`
-                                                : item.label}
-                                        </div>
-                                        <div style={{ fontSize: 24, fontWeight: 400, color: modelTone.solid, textAlign: "center", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{formatNumberValue(item.value)}</div>
-                                    </Card>
+                                        <div style={{ fontSize: 24, fontWeight: 400, color: modelTone.solid, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{formatNumberValue(item.value)}</div>
+                                    </TotalsDetailsCard>
                                 ))}
                             </div>
                         )}

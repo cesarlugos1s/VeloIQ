@@ -6663,6 +6663,42 @@ var renderNumericValueBar = (value, maxValue, formattedValue, barColor) => {
     /* @__PURE__ */ jsx("span", { style: { position: "relative", display: "inline-block", paddingLeft: 6, width: "100%", textAlign: "right" }, children: formattedValue })
   ] });
 };
+var { Text: Text5 } = Typography;
+var CATEGORICAL_CARD_TONE = {
+  soft: "#fde68a",
+  softer: "#fffbeb",
+  text: "#92400e",
+  border: "#fcd34d",
+  shadow: "#d97706"
+};
+var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxs(
+  "div",
+  {
+    style: {
+      minWidth: 170,
+      display: "flex",
+      flexDirection: "column",
+      borderRadius: 8,
+      background: tone.softer,
+      boxShadow: `0 8px 20px -16px ${tone.shadow}`,
+      overflow: "hidden"
+    },
+    children: [
+      /* @__PURE__ */ jsx("div", { style: { padding: "8px 12px", background: tone.soft }, children: /* @__PURE__ */ jsx(Text5, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: title }) }),
+      /* @__PURE__ */ jsx("div", { style: { padding: 12, flex: 1 }, children })
+    ]
+  }
+);
+
+// src/components/DynamicResource/utils/categoricalBreakdown.ts
+var CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5;
+var buildCategoricalBreakdown = (counts, othersLabel, threshold = CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD) => {
+  const sorted = Array.from(counts.entries()).map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
+  if (sorted.length < threshold) return sorted;
+  const shown = sorted.slice(0, threshold - 1);
+  const othersCount = sorted.slice(threshold - 1).reduce((sum, entry) => sum + entry.count, 0);
+  return [...shown, { value: othersLabel, count: othersCount, isOthers: true }];
+};
 var PrimaryShowContext = React6.createContext(null);
 
 // src/components/DynamicResource/utils/navigation.ts
@@ -6977,7 +7013,7 @@ var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, co
   return /* @__PURE__ */ jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
 };
 var _27 = (text) => translateText(text, text);
-var { Text: Text5 } = Typography;
+var { Text: Text6 } = Typography;
 var KANBAN_COLUMN_WIDTH = 420;
 var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
 var COLUMN_VIEW_TYPE_LABELS = {
@@ -7021,8 +7057,8 @@ var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pa
               gap: 8
             },
             children: [
-              /* @__PURE__ */ jsx(Text5, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
-              /* @__PURE__ */ jsxs(Text5, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
+              /* @__PURE__ */ jsx(Text6, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
+              /* @__PURE__ */ jsxs(Text6, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
                 "(",
                 records.length,
                 ")"
@@ -12906,7 +12942,7 @@ var FieldLabelWithHelp = ({ field }) => {
   ] });
 };
 var _56 = (text) => translateText(text, text);
-var { Text: Text6 } = Typography;
+var { Text: Text7 } = Typography;
 var VIEW_TYPE_OPTIONS = [
   { label: _56("Default (from model schema)"), value: "" },
   { label: _56("Table"), value: "table" },
@@ -13055,9 +13091,9 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
           Form.Item,
           {
             name: "html_style",
-            label: /* @__PURE__ */ jsxs(Text6, { children: [
+            label: /* @__PURE__ */ jsxs(Text7, { children: [
               "HTML style ",
-              /* @__PURE__ */ jsx(Text6, { type: "secondary", children: "(inline CSS)" })
+              /* @__PURE__ */ jsx(Text7, { type: "secondary", children: "(inline CSS)" })
             ] }),
             children: /* @__PURE__ */ jsx(
               Input.TextArea,
@@ -13621,14 +13657,14 @@ function parseInlineStyle2(cssText) {
   });
   return result;
 }
-var { Text: Text7 } = Typography;
+var { Text: Text8 } = Typography;
 var CellSizeSelector = ({ label, stepCount, marks, value, onChange, currentLabelText }) => {
   const [open, setOpen] = useState(false);
   return /* @__PURE__ */ jsx(
     Popover,
     {
       content: /* @__PURE__ */ jsxs("div", { style: { width: 480, padding: "8px 4px" }, children: [
-        /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text7, { strong: true, children: label }) }),
+        /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text8, { strong: true, children: label }) }),
         /* @__PURE__ */ jsx(
           Slider,
           {
@@ -17846,12 +17882,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
         const label = formatCategoricalBoxValue(field, row?.[field.key]);
         counts.set(label, (counts.get(label) || 0) + 1);
       });
-      const breakdown = Array.from(counts.entries()).map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
-      const showBreakdown = breakdown.length > 0 && breakdown.length < 5;
+      const breakdown = buildCategoricalBreakdown(counts, _70("Others"));
+      const showBreakdown = breakdown.length > 0;
       return {
         key: field.key,
         label: field.label,
-        value: breakdown.length,
+        value: counts.size,
         breakdown,
         showBreakdown
       };
@@ -17907,12 +17943,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const hasCategoricalBoxes = totalsDetailsCategoricalBoxes.length > 0;
     const hasNumericBoxes = totalsDetailsNumericBoxes.length > 0;
     if (!hasCategoricalBoxes && !hasNumericBoxes) return null;
-    const categoricalTone = {
-      soft: "#fde68a",
-      softer: "#fffbeb",
-      text: "#92400e",
-      chipBg: "#ffffff"
-    };
+    const categoricalTone = CATEGORICAL_CARD_TONE;
     const numericTone = relatedModelTone;
     return /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: [
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8, alignItems: "center" }, children: [
@@ -17928,47 +17959,21 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               alignItems: "stretch"
             },
             children: [
-              hasCategoricalBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsCategoricalBoxes.map((item) => /* @__PURE__ */ jsxs(
-                Card,
+              hasCategoricalBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: categoricalTone, children: item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
+                "div",
                 {
-                  size: "small",
-                  variant: "borderless",
-                  style: { minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${categoricalTone.softer} 0%, ${categoricalTone.soft} 100%)` },
-                  styles: { body: { padding: 10 } },
-                  children: [
-                    /* @__PURE__ */ jsx("div", { style: { fontSize: 12, fontWeight: 400, color: categoricalTone.text, textAlign: "center", marginTop: 2 }, children: item.label }),
-                    item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4, marginTop: 8 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
-                      "div",
-                      {
-                        style: {
-                          fontSize: 12,
-                          color: categoricalTone.text,
-                          fontWeight: 400,
-                          textAlign: "center",
-                          borderRadius: 8,
-                          background: categoricalTone.chipBg,
-                          padding: "2px 8px"
-                        },
-                        children: `${entry.value}: ${formatNumberValue(entry.count)}`
-                      },
-                      `${keyPrefix}${item.key}-${entry.value}`
-                    )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.text, textAlign: "center", marginTop: 4 }, children: formatNumberValue(item.value) })
-                  ]
+                  style: { fontSize: 12, color: categoricalTone.text, fontWeight: 400, textAlign: "center" },
+                  children: `${entry.value}: ${formatNumberValue(entry.count)}`
                 },
-                `${keyPrefix}${item.key}`
-              )) }),
+                `${keyPrefix}${item.key}-${entry.value}`
+              )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `${keyPrefix}${item.key}`)) }),
               hasCategoricalBoxes && hasNumericBoxes && /* @__PURE__ */ jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
-              hasNumericBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsNumericBoxes.map((item) => /* @__PURE__ */ jsxs(
-                Card,
+              hasNumericBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsNumericBoxes.map((item) => /* @__PURE__ */ jsx(
+                TotalsDetailsCard,
                 {
-                  size: "small",
-                  variant: "borderless",
-                  style: { minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${numericTone.softer} 0%, ${numericTone.soft} 100%)` },
-                  styles: { body: { padding: 10 } },
-                  children: [
-                    /* @__PURE__ */ jsx("div", { style: { fontSize: 12, fontWeight: 400, color: numericTone.text, textAlign: "center", marginTop: 2 }, children: item.summaryFn && item.summaryFn !== "sum" ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})` : item.label }),
-                    /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: numericTone.solid, textAlign: "center", marginTop: 4, fontVariantNumeric: "tabular-nums" }, children: formatNumberValue(item.value) })
-                  ]
+                  tone: numericTone,
+                  title: item.summaryFn && item.summaryFn !== "sum" ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})` : item.label,
+                  children: /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: numericTone.solid, textAlign: "center", fontVariantNumeric: "tabular-nums" }, children: formatNumberValue(item.value) })
                 },
                 `${keyPrefix}${item.key}`
               )) })
@@ -19430,7 +19435,7 @@ var renderRelationBlock = (relationBlockArguments) => (
   // Keyed like the blocks themselves, since some pages collect the blocks in arrays.
   /* @__PURE__ */ jsx(RelationBlockHost, { blockArguments: relationBlockArguments }, `${relationBlockArguments.rel.relationName || relationBlockArguments.rel.resource}|${relationBlockArguments.rel.targetKey}|${relationBlockArguments.rel.label}`)
 );
-var { Text: Text8 } = Typography;
+var { Text: Text9 } = Typography;
 var _73 = window._ || ((text) => text);
 var DataDetailSlider = ({ detailState }) => {
   if (!detailState) return null;
@@ -19443,7 +19448,7 @@ var DataDetailSlider = ({ detailState }) => {
     marks[i] = /* @__PURE__ */ jsx(Tooltip, { title: levelTooltips[i], children: /* @__PURE__ */ jsx("span", { children: levelLabels[i] }) });
   }
   const popoverContent = /* @__PURE__ */ jsxs("div", { style: { width: 580, padding: "8px 4px" }, children: [
-    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text8, { strong: true, children: _73("Data Detail Level") }) }),
+    /* @__PURE__ */ jsx("div", { style: { marginBottom: 8 }, children: /* @__PURE__ */ jsx(Text9, { strong: true, children: _73("Data Detail Level") }) }),
     /* @__PURE__ */ jsx(
       Slider,
       {
@@ -19456,7 +19461,7 @@ var DataDetailSlider = ({ detailState }) => {
         tooltip: { formatter: (val) => levelTooltips[val ?? 0] }
       }
     ),
-    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text8, { type: "secondary", children: _73("Adjust how relations are displayed on this page.") }) })
+    /* @__PURE__ */ jsx("div", { style: { marginTop: 8, textAlign: "center" }, children: /* @__PURE__ */ jsx(Text9, { type: "secondary", children: _73("Adjust how relations are displayed on this page.") }) })
   ] });
   return /* @__PURE__ */ jsx(
     Popover,
@@ -20717,13 +20722,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
         counts.set(label, (counts.get(label) || 0) + 1);
       });
-      const breakdown = Array.from(counts.entries()).map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
+      const breakdown = buildCategoricalBreakdown(counts, _74("Others"));
       return {
         key: field.key,
         label: field.label,
-        value: breakdown.length,
+        value: counts.size,
         breakdown,
-        showBreakdown: breakdown.length > 0 && breakdown.length < 5
+        showBreakdown: breakdown.length > 0
       };
     });
   }, [isTotalsDetailsView, allRows, displayFields, labelCache]);
@@ -20777,42 +20782,24 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const hasCat = tdCategoricalBoxes.length > 0;
     const hasNum = tdNumericBoxes.length > 0;
     if (!hasCat && !hasNum) return null;
-    const catTone = { soft: "#fde68a", softer: "#fffbeb", text: "#92400e", chipBg: "#ffffff" };
+    const catTone = CATEGORICAL_CARD_TONE;
     return /* @__PURE__ */ jsx("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { flex: 1, overflowX: "auto", paddingBottom: 2 }, children: /* @__PURE__ */ jsxs("div", { style: { width: "max-content", minWidth: "100%", display: "flex", justifyContent: "center", gap: 12, alignItems: "stretch" }, children: [
-        hasCat && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsxs(
-          Card,
+        hasCat && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
+          "div",
           {
-            size: "small",
-            variant: "borderless",
-            style: { minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${catTone.softer} 0%, ${catTone.soft} 100%)` },
-            styles: { body: { padding: 10 } },
-            children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, fontWeight: 400, color: catTone.text, textAlign: "center", marginTop: 2 }, children: item.label }),
-              item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4, marginTop: 8 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
-                "div",
-                {
-                  style: { fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center", borderRadius: 8, background: catTone.chipBg, padding: "2px 8px" },
-                  children: `${entry.value}: ${formatNumberValue(entry.count)}`
-                },
-                `td-cat-${item.key}-${entry.value}`
-              )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center", marginTop: 4 }, children: formatNumberValue(item.value) })
-            ]
+            style: { fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center" },
+            children: `${entry.value}: ${formatNumberValue(entry.count)}`
           },
-          `td-cat-${item.key}`
-        )) }),
+          `td-cat-${item.key}-${entry.value}`
+        )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `td-cat-${item.key}`)) }),
         hasCat && hasNum && /* @__PURE__ */ jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
-        hasNum && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdNumericBoxes.map((item) => /* @__PURE__ */ jsxs(
-          Card,
+        hasNum && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdNumericBoxes.map((item) => /* @__PURE__ */ jsx(
+          TotalsDetailsCard,
           {
-            size: "small",
-            variant: "borderless",
-            style: { minWidth: 170, borderRadius: 8, background: `linear-gradient(165deg, ${modelTone.softer} 0%, ${modelTone.soft} 100%)` },
-            styles: { body: { padding: 10 } },
-            children: [
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 12, fontWeight: 400, color: modelTone.text, textAlign: "center", marginTop: 2 }, children: item.summaryFn && item.summaryFn !== "sum" ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})` : item.label }),
-              /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: modelTone.solid, textAlign: "center", marginTop: 4, fontVariantNumeric: "tabular-nums" }, children: formatNumberValue(item.value) })
-            ]
+            tone: modelTone,
+            title: item.summaryFn && item.summaryFn !== "sum" ? `${item.label} (${getSummaryFunctionDisplayText(item.summaryFn)})` : item.label,
+            children: /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: modelTone.solid, textAlign: "center", fontVariantNumeric: "tabular-nums" }, children: formatNumberValue(item.value) })
           },
           `td-num-${item.key}`
         )) })
@@ -27449,7 +27436,7 @@ function parseInlineStyle4(cssText) {
   return result;
 }
 var _84 = (text) => translateText(text, text);
-var { Text: Text9, Title: Title8 } = Typography;
+var { Text: Text10, Title: Title8 } = Typography;
 function relativeTime3(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
@@ -27470,7 +27457,7 @@ var RecentActivityPanel = () => {
   const groups = data?.groups ?? [];
   return /* @__PURE__ */ jsxs("div", { style: { padding: "16px 0" }, children: [
     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingLeft: 4 }, children: [
-      /* @__PURE__ */ jsx(Text9, { type: "secondary", children: _84("Show activity from the last") }),
+      /* @__PURE__ */ jsx(Text10, { type: "secondary", children: _84("Show activity from the last") }),
       /* @__PURE__ */ jsx(
         InputNumber,
         {
@@ -27482,7 +27469,7 @@ var RecentActivityPanel = () => {
           size: "small"
         }
       ),
-      /* @__PURE__ */ jsx(Text9, { type: "secondary", children: _84("days") }),
+      /* @__PURE__ */ jsx(Text10, { type: "secondary", children: _84("days") }),
       /* @__PURE__ */ jsx(Tooltip, { title: _84("Refresh"), children: /* @__PURE__ */ jsx(
         ReloadOutlined,
         {
@@ -27490,7 +27477,7 @@ var RecentActivityPanel = () => {
           onClick: reload
         }
       ) }),
-      data && /* @__PURE__ */ jsx(Text9, { type: "secondary", style: { fontSize: 12 }, children: _84("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
+      data && /* @__PURE__ */ jsx(Text10, { type: "secondary", style: { fontSize: 12 }, children: _84("{records} records across {models} models").replace("{records}", String(groups.reduce((n, g) => n + g.records.length, 0))).replace("{models}", String(groups.length)) })
     ] }),
     loading ? /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "center", padding: 48 }, children: /* @__PURE__ */ jsx(Spin, {}) }) : groups.length === 0 ? /* @__PURE__ */ jsx(
       Empty,
@@ -27554,7 +27541,7 @@ var RecentActivityPanel = () => {
                         }
                       ),
                       isNew && /* @__PURE__ */ jsx(Tag, { color: "green", style: { fontSize: 10, padding: "0 4px", lineHeight: "16px" }, children: _84("new") }),
-                      /* @__PURE__ */ jsx(Text9, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
+                      /* @__PURE__ */ jsx(Text10, { type: "secondary", style: { fontSize: 11, flexShrink: 0 }, children: relativeTime3(timestamp) })
                     ] })
                   ]
                 }
@@ -27717,7 +27704,7 @@ var PinnedRecordsPanel = () => {
     }) })
   ] });
 };
-var { Text: Text10 } = Typography;
+var { Text: Text11 } = Typography;
 var _86 = window._ || ((text) => text);
 var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
   useSetHelpPageKey(DASHBOARD_MAIN_PAGE_KEY);
@@ -27761,7 +27748,7 @@ var DashboardPage = ({ cellExtraActions, tabExtraActions }) => {
         description: /* @__PURE__ */ jsxs("span", { children: [
           _86("No dashboard configured."),
           /* @__PURE__ */ jsx("br", {}),
-          /* @__PURE__ */ jsxs(Text10, { type: "secondary", children: [
+          /* @__PURE__ */ jsxs(Text11, { type: "secondary", children: [
             _86("Run"),
             " ",
             /* @__PURE__ */ jsx("code", { children: "veloiq add-dashboard <model> \u2026" }),
@@ -28223,7 +28210,7 @@ var _89 = (text) => {
   const translate = window._;
   return typeof translate === "function" ? translate(text) : text;
 };
-var { Text: Text11 } = Typography;
+var { Text: Text12 } = Typography;
 var COLLAPSED_SPINE_WIDTH = 34;
 var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(Tooltip, { title: `${_89("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxs("div", { onClick: onExpand, role: "button", style: {
   width: COLLAPSED_SPINE_WIDTH,
@@ -28239,7 +28226,7 @@ var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsx(T
   borderLeft: side === "right" ? `1px solid ${token.colorBorderSecondary}` : void 0
 }, children: [
   side === "left" ? /* @__PURE__ */ jsx(DoubleRightOutlined, {}) : /* @__PURE__ */ jsx(DoubleLeftOutlined, {}),
-  /* @__PURE__ */ jsx(Text11, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsx(Text12, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
 ] }) });
 var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(Tooltip, { title: minimized ? `${_89("Expand")}: ${title}` : `${_89("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxs("div", { onClick: onToggle, role: "button", style: {
   display: "flex",
@@ -28253,7 +28240,7 @@ var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsx(
   borderBottom: `1px solid ${token.colorBorderSecondary}`
 }, children: [
   minimized ? /* @__PURE__ */ jsx(DownOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsx(UpOutlined, { style: { fontSize: 11 } }),
-  /* @__PURE__ */ jsx(Text11, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsx(Text12, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
 ] }) });
 function useRememberedFlag(storageKey) {
   const [flag, setFlag] = useState(() => {

@@ -565,6 +565,9 @@ msgstr ""
 msgid "Distinct"
 msgstr ""
 
+msgid "Others"
+msgstr ""
+
 msgid "Show totals"
 msgstr ""
 
