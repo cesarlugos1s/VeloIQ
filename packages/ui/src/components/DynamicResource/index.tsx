@@ -284,16 +284,11 @@ import { useRoleFilteredModel } from "./utils/roleAccess";
 import { resolveRowTypedField } from "./utils/resolveRowTypedField";
 import { SingleRecordPrimaryView, isSingleRecordPrimaryView } from "./showSingleRecordPrimaryView";
 import { registeredResourceRowActions } from "./registerResourceRowActions";
+import { getSelectableViewTypes } from "./utils/applicableViewTypes";
 import { INLINE_EDIT_LIST_VIEW_TYPES, InlineCellEditor, InlineEditActions, isInlineEditableField, useInlineRowEdits } from "./editListRowsInline";
 
 
 
-
-/** Every list view type the temporary view type button can offer. */
-const TEMPORARY_LIST_VIEW_TYPES = [
-    "table", "editable-table", "list", "editable-list", "gallery", "image", "calendar", "kanban",
-    "totals-details", "crosstab", "editable-crosstab", "primary", "primary-carousel",
-];
 
 const DynamicListPage: React.FC<{
     model: ModelDef;
@@ -456,8 +451,8 @@ const DynamicListPage: React.FC<{
     const calendarHeatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(model.fields), [model.fields]);
     // View types a user may switch the list page to for now; the calendar needs a date field.
     const temporaryListViewTypes = useMemo(
-        () => TEMPORARY_LIST_VIEW_TYPES.filter((token) => token !== "calendar" || calendarDateFieldOptions.length > 0),
-        [calendarDateFieldOptions],
+        () => getSelectableViewTypes("list-page", model),
+        [model],
     );
 
     const [localSearch, setLocalSearch] = useState("");
@@ -4147,7 +4142,7 @@ export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>>
                             pageKey: outerPageKey,
                             pageType: "list",
                             model: props.model,
-                            listViewTypes: TEMPORARY_LIST_VIEW_TYPES.filter((token) => token !== "calendar"),
+                            listViewTypes: getSelectableViewTypes("list-page", props.model),
                             currentListViewType: outerTemporaryLayout.listViewType,
                         } : null}
                     >

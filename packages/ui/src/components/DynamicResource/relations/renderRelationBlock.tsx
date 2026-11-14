@@ -5,7 +5,7 @@ import {
 } from "../temporaryLayout/temporaryPageLayoutStore";
 import { RelationViewTypeButton, RelationViewTypeSwitchContext, useToolbarSlotCount } from "./RelationViewTypeSwitch";
 import { buildRelationBlockId, buildViewStateBlockKey, getRelationIdentityName } from "../viewState/viewStateLayers";
-import { getCalendarDateFieldOptions } from "../utils/calendar";
+import { getSelectableViewTypes } from "../utils/applicableViewTypes";
 import { getModelTone } from "../../../utils/modelTone";
 import type { ModelDef, RelationDef, RelationViewType } from "../types";
 import { getFieldLabel, getRelationLabel } from "../utils/i18n";
@@ -431,10 +431,6 @@ const renderRelationBlockContent = ({
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-/** View types a user may pick for a relation block for now; the editable ones only on edit pages. */
-const RELATION_VIEW_TYPES_SHOWN = ["table", "totals-details", "crosstab", "list", "csv", "kanban", "gallery", "image", "calendar", "primary", "primary-carousel"];
-const RELATION_VIEW_TYPES_EDIT_ONLY = ["editable-table", "editable-crosstab", "editable-list", "editable-csv"];
-
 type RelationBlockArguments = Parameters<typeof renderRelationBlockContent>[0];
 
 /**
@@ -457,11 +453,7 @@ const RelationBlockHost: React.FC<{ blockArguments: RelationBlockArguments }> = 
         : rel;
     const block = renderRelationBlockContent(temporaryViewType ? { ...blockArguments, rel: effectiveRel } : blockArguments);
 
-    const hasCalendarDate = getCalendarDateFieldOptions((relatedModel || relationModel).fields).length > 0;
-    const offeredTypes = [
-        ...RELATION_VIEW_TYPES_SHOWN,
-        ...(mode === "edit" ? RELATION_VIEW_TYPES_EDIT_ONLY : []),
-    ].filter((token) => token !== "calendar" || hasCalendarDate);
+    const offeredTypes = getSelectableViewTypes(mode === "edit" ? "relation-edit" : "relation-show", relatedModel || relationModel);
     // A configured type outside the list (a tree, a single-select) is left alone.
     const canSwitch = blockKey !== null && offeredTypes.includes(configuredViewType);
     const { hasToolbarSlot, registerToolbarSlot } = useToolbarSlotCount();

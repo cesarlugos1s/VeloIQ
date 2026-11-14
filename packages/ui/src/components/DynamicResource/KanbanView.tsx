@@ -12,13 +12,13 @@ import type { FieldDef, ModelDef } from "./types";
 import { KanbanColumnContent } from "./KanbanColumnContent";
 import {
     DEFAULT_KANBAN_COLUMN_VIEW_TYPE,
-    KANBAN_COLUMN_VIEW_TYPES,
     buildKanbanColumns,
     getDefaultKanbanSplitFieldKeys,
     getKanbanCardFieldOptions,
     getKanbanSplitFieldOptions,
     type KanbanColumnViewType,
 } from "./utils/kanban";
+import { getSelectableViewTypes } from "./utils/applicableViewTypes";
 import { useModelTone } from "../../utils/modelTone";
 import { translateText } from "./utils/i18n";
 
@@ -125,7 +125,10 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
     const cardFieldOptions = useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
 
     const [splitFieldKeys, setSplitFieldKeys] = useState<string[]>(() => getDefaultKanbanSplitFieldKeys(fields));
-    const [columnViewType, setColumnViewType] = useState<KanbanColumnViewType>(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
+    const [chosenColumnViewType, setColumnViewType] = useState<KanbanColumnViewType>(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
+    // Only the view types that suit the model's fields are offered; a choice that does not suit falls back to the default.
+    const applicableColumnViewTypes = useMemo(() => getSelectableViewTypes("kanban-column", model) as KanbanColumnViewType[], [model]);
+    const columnViewType = applicableColumnViewTypes.includes(chosenColumnViewType) ? chosenColumnViewType : DEFAULT_KANBAN_COLUMN_VIEW_TYPE;
 
     const splitFields = useMemo(
         () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field): field is FieldDef => Boolean(field)),
@@ -162,7 +165,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                     size="small"
                     value={columnViewType}
                     onChange={setColumnViewType}
-                    options={KANBAN_COLUMN_VIEW_TYPES.map((viewType) => ({ label: _(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType }))}
+                    options={applicableColumnViewTypes.map((viewType) => ({ label: _(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType }))}
                     style={{ minWidth: 140 }}
                     aria-label={_("Column view type")}
                 />

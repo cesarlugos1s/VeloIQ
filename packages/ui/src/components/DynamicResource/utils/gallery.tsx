@@ -32,11 +32,26 @@ export const AuthenticatedImage: React.FC<{
     return src ? <img src={src} alt={alt ?? ""} style={style} /> : null;
 };
 
+/** Fields of a record that hold a direct image URL; the gallery and image views read them first. */
+export const DIRECT_IMAGE_URL_FIELD_KEYS = ["avatar_url", "image_url", "photo_url"] as const;
+
+/** Fields of a File record that describe its content; they tell whether the file is an image. */
+const FILE_CONTENT_FIELD_KEYS = ["data_format", "data_name"] as const;
+
+/** True when the model's records can have a picture: a named image source, an image URL field, or File-like content fields. */
+export const modelHasImageSource = (model: { imageSource?: string; fields: { key: string; type?: string }[] }): boolean => {
+    if (model.imageSource) return true;
+    return model.fields.some((field) =>
+        field.type === "image_url"
+        || (DIRECT_IMAGE_URL_FIELD_KEYS as readonly string[]).includes(field.key)
+        || (FILE_CONTENT_FIELD_KEYS as readonly string[]).includes(field.key));
+};
+
 export const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tif", "tiff"]);
 
 export const isImageRecord = (record: any) => {
     // Direct URL fields (avatar_url, image_url, photo_url) always qualify.
-    if (record?.avatar_url || record?.image_url || record?.photo_url) return true;
+    if (DIRECT_IMAGE_URL_FIELD_KEYS.some((key) => record?.[key])) return true;
     const format = String(record?.data_format || "").toLowerCase();
     if (format.startsWith("image/")) return true;
     const name = String(record?.data_name || "");
