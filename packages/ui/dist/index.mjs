@@ -1170,9 +1170,19 @@ var HorizontalMenu = ({ navConfig = [], collapsed = false }) => {
     return /* @__PURE__ */ jsx(
       "span",
       {
+        title: label,
+        translate: "no",
+        className: "notranslate",
         style: {
-          display: "inline-flex",
-          alignItems: "center",
+          // inline-block (not inline-flex): the menu item clips overflow with
+          // text-overflow: ellipsis, which hides an atomic inline-flex box
+          // entirely and shows a bare "…" instead of the truncated name.
+          display: "inline-block",
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          verticalAlign: "middle",
           padding: isModule ? "2px 5px" : "1px 5px",
           borderRadius: 8,
           background: "transparent",
@@ -1206,20 +1216,29 @@ var HorizontalMenu = ({ navConfig = [], collapsed = false }) => {
   const items = transformItems(injectJourneyMenuItems(sortedMenuItems, journeysByModule));
   return (
     // Minimized (icons only), the entries sit closer together so more of them fit on one line.
-    /* @__PURE__ */ jsx(ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsx(
-      Menu,
-      {
-        mode: "horizontal",
-        theme: mode === "dark" ? "light" : "dark",
-        selectedKeys: [selectedKey],
-        items,
-        style: {
-          borderBottom: "none",
-          flex: 1,
-          background: "transparent"
+    /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx("style", { children: `
+            .ant-menu-submenu-popup .ant-menu-item { display: flex !important; align-items: center; }
+            .ant-menu-submenu-popup .ant-menu-item .ant-menu-title-content {
+                display: block !important; flex: auto; min-width: 0;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            }
+        ` }),
+      /* @__PURE__ */ jsx(ConfigProvider, { theme: collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : void 0, children: /* @__PURE__ */ jsx(
+        Menu,
+        {
+          mode: "horizontal",
+          theme: mode === "dark" ? "light" : "dark",
+          selectedKeys: [selectedKey],
+          items,
+          style: {
+            borderBottom: "none",
+            flex: 1,
+            background: "transparent"
+          }
         }
-      }
-    ) })
+      ) })
+    ] })
   );
 };
 var COLLAPSED_MENU_COMPACT_TOKENS = { itemHeight: 32, itemMarginBlock: 1, itemMarginInline: 4 };
@@ -1255,9 +1274,19 @@ var CustomSider = ({ collapsed, logo, appTitle, navConfig = [] }) => {
     return /* @__PURE__ */ jsx(
       "span",
       {
+        title: label,
+        translate: "no",
+        className: "notranslate",
         style: {
-          display: "inline-flex",
-          alignItems: "center",
+          // inline-block (not inline-flex): the menu item clips overflow with
+          // text-overflow: ellipsis, which hides an atomic inline-flex box
+          // entirely and shows a bare "…" instead of the truncated name.
+          display: "inline-block",
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          verticalAlign: "middle",
           padding: isModule ? "3px 8px" : "2px 8px",
           borderRadius: 8,
           background: "transparent",

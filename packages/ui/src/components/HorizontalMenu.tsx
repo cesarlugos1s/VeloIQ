@@ -58,9 +58,21 @@ export const HorizontalMenu: React.FC<{
             : getModelTone(resolveModelSeed(item));
         return (
             <span
+                title={label}
+                // The app localizes its own menu; a browser/extension translator rewriting
+                // these text nodes breaks the label rendering.
+                translate="no"
+                className="notranslate"
                 style={{
-                    display: "inline-flex",
-                    alignItems: "center",
+                    // inline-block (not inline-flex): the menu item clips overflow with
+                    // text-overflow: ellipsis, which hides an atomic inline-flex box
+                    // entirely and shows a bare "…" instead of the truncated name.
+                    display: "inline-block",
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    verticalAlign: "middle",
                     padding: isModule ? "2px 5px" : "1px 5px",
                     borderRadius: 8,
                     background: "transparent",
@@ -106,6 +118,17 @@ export const HorizontalMenu: React.FC<{
 
     return (
         // Minimized (icons only), the entries sit closer together so more of them fit on one line.
+        <>
+        {/* Popup entries: a flex row whose title can shrink, so a name wider than the popup is
+            clipped as "text…". With the default block layout the entry's own ellipsis hides the
+            whole label (icon margin pushes it past the line) and only "…" shows. */}
+        <style>{`
+            .ant-menu-submenu-popup .ant-menu-item { display: flex !important; align-items: center; }
+            .ant-menu-submenu-popup .ant-menu-item .ant-menu-title-content {
+                display: block !important; flex: auto; min-width: 0;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            }
+        `}</style>
         <ConfigProvider theme={collapsed ? { components: { Menu: COLLAPSED_HORIZONTAL_MENU_COMPACT_TOKENS } } : undefined}>
         <Menu
             mode="horizontal"
@@ -119,5 +142,6 @@ export const HorizontalMenu: React.FC<{
             }}
         />
         </ConfigProvider>
+        </>
     );
 };

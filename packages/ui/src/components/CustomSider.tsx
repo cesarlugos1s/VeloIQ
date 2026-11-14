@@ -62,9 +62,21 @@ export const CustomSider: React.FC<{
             : getModelTone(resolveModelSeed(item));
         return (
             <span
+                title={label}
+                // The app localizes its own menu; a browser/extension translator rewriting
+                // these text nodes breaks the label rendering.
+                translate="no"
+                className="notranslate"
                 style={{
-                    display: "inline-flex",
-                    alignItems: "center",
+                    // inline-block (not inline-flex): the menu item clips overflow with
+                    // text-overflow: ellipsis, which hides an atomic inline-flex box
+                    // entirely and shows a bare "…" instead of the truncated name.
+                    display: "inline-block",
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    verticalAlign: "middle",
                     padding: isModule ? "3px 8px" : "2px 8px",
                     borderRadius: 8,
                     background: "transparent",
