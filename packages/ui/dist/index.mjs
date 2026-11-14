@@ -8724,7 +8724,7 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _34("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    onSaveClick && /* @__PURE__ */ jsx(Tooltip, { title: _34("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
                     /* @__PURE__ */ jsx(Tooltip, { title: _34("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
                     !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _34("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
                     !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _34("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _34("Export chart") }) })
@@ -17702,18 +17702,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setFullDataLoaded(false);
     }
   }, [fullDataLoaded, shouldUseFullDataMode]);
+  const analyzeAutoManyRowsRef = useRef(null);
   useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
-    if (filteredRows.length <= 1 && analyzeOpen) {
-      setAnalyzeOpen(false);
-    }
-  }, [analyzeOpen, filteredRows.length, loading]);
-  useEffect(() => {
-    if (loading) return;
-    if (analyzeTouchedRef.current) return;
-    if (filteredRows.length > 1 && !analyzeOpen) {
-      setAnalyzeOpen(true);
+    const hasManyRows = filteredRows.length > 1;
+    if (analyzeAutoManyRowsRef.current === hasManyRows) return;
+    analyzeAutoManyRowsRef.current = hasManyRows;
+    if (hasManyRows !== analyzeOpen) {
+      setAnalyzeOpen(hasManyRows);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
   const editableCrosstab = isCrosstabView && allowInlineEdit;

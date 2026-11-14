@@ -8752,7 +8752,7 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Save preferences"), children: onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
                     /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
                     !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
                     !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _34("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _34("Export chart") }) })
@@ -17730,18 +17730,15 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       setFullDataLoaded(false);
     }
   }, [fullDataLoaded, shouldUseFullDataMode]);
+  const analyzeAutoManyRowsRef = React6.useRef(null);
   React6.useEffect(() => {
     if (loading) return;
     if (analyzeTouchedRef.current) return;
-    if (filteredRows.length <= 1 && analyzeOpen) {
-      setAnalyzeOpen(false);
-    }
-  }, [analyzeOpen, filteredRows.length, loading]);
-  React6.useEffect(() => {
-    if (loading) return;
-    if (analyzeTouchedRef.current) return;
-    if (filteredRows.length > 1 && !analyzeOpen) {
-      setAnalyzeOpen(true);
+    const hasManyRows = filteredRows.length > 1;
+    if (analyzeAutoManyRowsRef.current === hasManyRows) return;
+    analyzeAutoManyRowsRef.current = hasManyRows;
+    if (hasManyRows !== analyzeOpen) {
+      setAnalyzeOpen(hasManyRows);
     }
   }, [analyzeOpen, filteredRows.length, loading]);
   const editableCrosstab = isCrosstabView && allowInlineEdit;

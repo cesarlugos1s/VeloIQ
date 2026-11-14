@@ -178,9 +178,11 @@ export const AnalyzePanel: React.FC<AnalyzePanelProps> = ({
                         styles={{ body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } }}
                     >
                         <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }}>
-                            <Tooltip title={_("Save preferences")}>
-                                {onSaveClick && <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} />}
-                            </Tooltip>
+                            {onSaveClick && (
+                                <Tooltip title={_("Save preferences")}>
+                                    <Button size="small" icon={<SaveOutlined />} onClick={onSaveClick} loading={isSavingAnalyzePrefs} />
+                                </Tooltip>
+                            )}
                             <Tooltip title={_("Stats")}>
                                 <Button size="small" icon={<FileTextOutlined />} onClick={() => setIsStatsFlipped(true)} />
                             </Tooltip>

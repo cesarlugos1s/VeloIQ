@@ -1342,19 +1342,19 @@ export const RelatedObjectsTable: React.FC<{
         }
     }, [fullDataLoaded, shouldUseFullDataMode]);
 
+    // Analyze opens when there is more than one row and closes otherwise, decided once each time this
+    // table's own row count crosses that line. Reconciling on every render would make two relation
+    // blocks that share one view state key (the same relation shown twice on a page, with different
+    // row counts) set it back and forth without end.
+    const analyzeAutoManyRowsRef = useRef<boolean | null>(null);
     useEffect(() => {
         if (loading) return;
         if (analyzeTouchedRef.current) return;
-        if (filteredRows.length <= 1 && analyzeOpen) {
-            setAnalyzeOpen(false);
-        }
-    }, [analyzeOpen, filteredRows.length, loading]);
-
-    useEffect(() => {
-        if (loading) return;
-        if (analyzeTouchedRef.current) return;
-        if (filteredRows.length > 1 && !analyzeOpen) {
-            setAnalyzeOpen(true);
+        const hasManyRows = filteredRows.length > 1;
+        if (analyzeAutoManyRowsRef.current === hasManyRows) return;
+        analyzeAutoManyRowsRef.current = hasManyRows;
+        if (hasManyRows !== analyzeOpen) {
+            setAnalyzeOpen(hasManyRows);
         }
     }, [analyzeOpen, filteredRows.length, loading]);
 
