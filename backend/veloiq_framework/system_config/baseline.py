@@ -8,6 +8,7 @@ rather than "core list + extras".
 """
 from __future__ import annotations
 
+from ..view_types import get_view_types_for_context
 from .system_config_settings_registry import register_system_config
 
 # Each entry: ``key``, ``type`` ("int" / "bool" / "string" / "color"), ``source``
@@ -71,22 +72,22 @@ BASELINE_SYSTEM_CONFIG_KEYS: list = [
      "source": "toml", "card": "views", "default": "list",
      "label": "Default show view type",
      "tooltip": "Default view type for a model's show page when nothing else is configured.",
-     "options": ["list", "table", "editable-table", "editable-list", "csv", "primary", "primary-carousel", "gallery", "image", "calendar", "kanban", "totals-details"]},
+     "options": get_view_types_for_context("default-setting")},
     {"key": "edit_view_type", "type": "string",
      "source": "toml", "card": "views", "default": "editable-list",
      "label": "Default edit view type",
      "tooltip": "Default view type for a model's edit page when nothing else is configured.",
-     "options": ["editable-list", "list", "table", "editable-table", "csv", "primary", "primary-carousel", "gallery", "image", "calendar", "kanban", "totals-details"]},
+     "options": get_view_types_for_context("default-setting")},
     {"key": "list_view_type", "type": "string",
      "source": "toml", "card": "views", "default": "table",
      "label": "Default list view type",
      "tooltip": "Default view type for list pages when nothing else is configured.",
-     "options": ["table", "list", "editable-table", "editable-list", "csv", "primary", "primary-carousel", "gallery", "image", "calendar", "kanban", "totals-details"]},
+     "options": get_view_types_for_context("default-setting")},
     {"key": "file_list_view_type", "type": "string",
      "source": "toml", "card": "views", "default": "gallery",
      "label": "File list view type",
      "tooltip": "Default view type for file/attachment list views.",
-     "options": ["gallery", "image", "table", "list", "editable-table", "editable-list", "csv", "primary", "calendar", "kanban", "totals-details"]},
+     "options": get_view_types_for_context("default-setting")},
     {"key": "gallery_image_width", "type": "int",
      "source": "toml", "card": "views", "default": "180",
      "label": "Gallery image width (px)",

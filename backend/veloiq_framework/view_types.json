@@ -1,0 +1,193 @@
+{
+  "_comment": "The single source of truth for view types, read by the Python backend (veloiq_framework.view_types) and by the UI package (utils/viewTypeCatalog.ts). Entries are listed in the order selectors show them. offeredIn names the selectors that offer a view type; the context 'configuration' (every entry) is implicit. requires names what the model's fields must provide.",
+  "viewTypes": [
+    {
+      "token": "table",
+      "label": "Table",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "editable-table",
+      "label": "Editable table",
+      "aliases": [
+        "editable"
+      ],
+      "offeredIn": [
+        "list-page",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "list",
+      "label": "List",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "editable-list",
+      "label": "Editable list",
+      "offeredIn": [
+        "list-page",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "csv",
+      "label": "CSV",
+      "offeredIn": [
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "editable-csv",
+      "label": "Editable CSV",
+      "offeredIn": [
+        "relation-edit"
+      ]
+    },
+    {
+      "token": "crosstab",
+      "label": "Crosstab",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column"
+      ],
+      "requires": "number-field"
+    },
+    {
+      "token": "editable-crosstab",
+      "label": "Editable crosstab",
+      "offeredIn": [
+        "list-page",
+        "relation-edit"
+      ],
+      "requires": "number-field"
+    },
+    {
+      "token": "totals-details",
+      "label": "Totals and details",
+      "aliases": [
+        "totaldetails"
+      ],
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "gallery",
+      "label": "Gallery",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      "requires": "image-source"
+    },
+    {
+      "token": "image",
+      "label": "Images",
+      "aliases": [
+        "images"
+      ],
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      "requires": "image-source"
+    },
+    {
+      "token": "calendar",
+      "label": "Calendar",
+      "aliases": [
+        "week",
+        "month"
+      ],
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      "requires": "date-field"
+    },
+    {
+      "token": "kanban",
+      "label": "Kanban",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ],
+      "requires": "split-field"
+    },
+    {
+      "token": "primary",
+      "label": "Primary",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "primary-carousel",
+      "label": "Primary carousel",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      "token": "read-and-edit-list",
+      "label": "Read and edit list",
+      "offeredIn": []
+    },
+    {
+      "token": "read-and-edit-csv",
+      "label": "Read and edit CSV",
+      "offeredIn": []
+    },
+    {
+      "token": "tree",
+      "label": "Tree",
+      "offeredIn": []
+    },
+    {
+      "token": "tree-details",
+      "label": "Tree with details",
+      "offeredIn": []
+    }
+  ]
+}

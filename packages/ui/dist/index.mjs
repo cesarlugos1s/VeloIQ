@@ -3492,32 +3492,202 @@ var buildKanbanColumns = (records, splitFields, maximumColumns, formatValue, emp
   return [...columnsByLabel.values()].sort((a, b) => b.records.length - a.records.length || a.label.localeCompare(b.label)).slice(0, limit).sort((a, b) => a.label.localeCompare(b.label));
 };
 
+// ../../backend/veloiq_framework/view_types.json
+var view_types_default = {
+  viewTypes: [
+    {
+      token: "table",
+      label: "Table",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      token: "editable-table",
+      label: "Editable table",
+      aliases: [
+        "editable"
+      ],
+      offeredIn: [
+        "list-page",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      token: "list",
+      label: "List",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      token: "editable-list",
+      label: "Editable list",
+      offeredIn: [
+        "list-page",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      token: "csv",
+      label: "CSV",
+      offeredIn: [
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      token: "editable-csv",
+      label: "Editable CSV",
+      offeredIn: [
+        "relation-edit"
+      ]
+    },
+    {
+      token: "crosstab",
+      label: "Crosstab",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column"
+      ],
+      requires: "number-field"
+    },
+    {
+      token: "editable-crosstab",
+      label: "Editable crosstab",
+      offeredIn: [
+        "list-page",
+        "relation-edit"
+      ],
+      requires: "number-field"
+    },
+    {
+      token: "totals-details",
+      label: "Totals and details",
+      aliases: [
+        "totaldetails"
+      ],
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      token: "gallery",
+      label: "Gallery",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      requires: "image-source"
+    },
+    {
+      token: "image",
+      label: "Images",
+      aliases: [
+        "images"
+      ],
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      requires: "image-source"
+    },
+    {
+      token: "calendar",
+      label: "Calendar",
+      aliases: [
+        "week",
+        "month"
+      ],
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ],
+      requires: "date-field"
+    },
+    {
+      token: "kanban",
+      label: "Kanban",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ],
+      requires: "split-field"
+    },
+    {
+      token: "primary",
+      label: "Primary",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "kanban-column",
+        "default-setting"
+      ]
+    },
+    {
+      token: "primary-carousel",
+      label: "Primary carousel",
+      offeredIn: [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ]
+    },
+    {
+      token: "read-and-edit-list",
+      label: "Read and edit list",
+      offeredIn: []
+    },
+    {
+      token: "read-and-edit-csv",
+      label: "Read and edit CSV",
+      offeredIn: []
+    },
+    {
+      token: "tree",
+      label: "Tree",
+      offeredIn: []
+    },
+    {
+      token: "tree-details",
+      label: "Tree with details",
+      offeredIn: []
+    }
+  ]
+};
+
 // src/components/DynamicResource/utils/viewTypeCatalog.ts
-var ALL_TEMPORARY_SELECTORS = ["list-page", "relation-show", "relation-edit", "kanban-column"];
-var NOT_IN_KANBAN = ["list-page", "relation-show", "relation-edit"];
-var EDITABLE = ["list-page", "relation-edit"];
-var VIEW_TYPE_CATALOG = [
-  { token: "table", label: "Table", offeredIn: ALL_TEMPORARY_SELECTORS },
-  { token: "editable-table", label: "Editable table", aliases: ["editable"], offeredIn: EDITABLE },
-  { token: "list", label: "List", offeredIn: ALL_TEMPORARY_SELECTORS },
-  { token: "editable-list", label: "Editable list", offeredIn: EDITABLE },
-  { token: "csv", label: "CSV", offeredIn: ["relation-show", "relation-edit"] },
-  { token: "editable-csv", label: "Editable CSV", offeredIn: ["relation-edit"] },
-  { token: "crosstab", label: "Crosstab", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "number-field" },
-  { token: "editable-crosstab", label: "Editable crosstab", offeredIn: EDITABLE, requires: "number-field" },
-  { token: "totals-details", label: "Totals and details", aliases: ["totaldetails"], offeredIn: ALL_TEMPORARY_SELECTORS },
-  { token: "gallery", label: "Gallery", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
-  { token: "image", label: "Images", aliases: ["images"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
-  { token: "calendar", label: "Calendar", aliases: ["week", "month"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "date-field" },
-  { token: "kanban", label: "Kanban", offeredIn: NOT_IN_KANBAN, requires: "split-field" },
-  { token: "primary", label: "Primary", offeredIn: ALL_TEMPORARY_SELECTORS },
-  { token: "primary-carousel", label: "Primary carousel", offeredIn: NOT_IN_KANBAN },
-  // Known to configurations, but not offered to users to switch to for now.
-  { token: "read-and-edit-list", label: "Read and edit list", offeredIn: [] },
-  { token: "read-and-edit-csv", label: "Read and edit CSV", offeredIn: [] },
-  { token: "tree", label: "Tree", offeredIn: [] },
-  { token: "tree-details", label: "Tree with details", offeredIn: [] }
-];
+var VIEW_TYPE_CATALOG = view_types_default.viewTypes;
 function getViewTypeCatalogEntries(context) {
   if (context === "configuration") return [...VIEW_TYPE_CATALOG];
   return VIEW_TYPE_CATALOG.filter((entry) => entry.offeredIn.includes(context));

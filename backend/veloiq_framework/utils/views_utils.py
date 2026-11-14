@@ -30,6 +30,7 @@ except Exception:
     Fore = Style = _NoColor()
     def init(*a, **k): pass
 
+from veloiq_framework.view_types import resolve_view_type_token
 from veloiq_framework.utils.i18n_utils import _
 from veloiq_framework.utils.data_mgmt_utils import (
     absolute_url, jm_action_db_query_prefix, jm_rowcount, pre_save, jm_obtain_config,
@@ -257,32 +258,22 @@ def jm_group_and_summarize(rows, category_columns, value_columns,
             for label, group in grouped.items()}
 
 
+# Legacy CubicWeb view ids and the view type each is rendered as: "muledit" (multi-edit) as the
+# table (inline editing is a frontend concern), "sameetypelist" (list of same-type entities) as the list.
+LEGACY_DASHBOARD_VIEW_TYPES = {"muledit": "editable-table", "sameetypelist": "list"}
+
+
 def resolve_dashboard_view_type(raw: Optional[str]) -> str:
-    normalized = str(raw or "").strip().lower()
-    normalized = normalized.replace("_", "").replace("-", "").replace(" ", "")
-    normalized = normalized.removesuffix("view")
-    if normalized in {"primary", "primarycarousel"}:
+    token = resolve_view_type_token(raw)
+    if token == "primary-carousel":
         # primary-carousel is the frontend primary view's carousel layout; the
         # backend-rendered HTML has no carousel layout and scrolls vertically.
         return "primary"
-    if normalized == "gallery":
-        return "gallery"
-    if normalized in {"image", "images"}:
-        return "image"
-    if normalized in {"editabletable", "editable", "muledit"}:
-        # muledit is a legacy CubicWeb multi-edit view; render it as the
-        # (read-only) table view — inline editing is a frontend concern.
-        return "editable-table"
-    if normalized in {"list", "sameetypelist"}:
-        # sameetypelist is a legacy CubicWeb list of same-type entities;
-        # render it as the list view.
-        return "list"
-    if normalized == "csv":
-        return "csv"
-    if normalized == "kanban":
-        return "kanban"
-    if normalized in {"totalsdetails", "totaldetails"}:
-        return "totals-details"
+    if token:
+        return token
+    legacy_view_type = LEGACY_DASHBOARD_VIEW_TYPES.get(re.sub(r"[\s_-]", "", str(raw or "").strip().lower()).removesuffix("view"))
+    if legacy_view_type:
+        return legacy_view_type
     # Pass through custom page names (e.g. "custom_show_mechanism_results",
     # or legacy CubicWeb view ids such as "iap-chart-view")
     raw_trimmed = str(raw or "").strip()

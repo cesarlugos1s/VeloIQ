@@ -5,19 +5,23 @@
  *
  * Selectors, configuration tools and view type normalizers read this catalog;
  * none of them keeps a list of its own. Adding a view type means adding one entry
- * here (plus its declaration in viewState/viewTypeCapabilities.ts).
+ * to backend/veloiq_framework/view_types.json, which the Python backend reads too
+ * (plus its declaration in viewState/viewTypeCapabilities.ts).
  */
 import { translateText } from "./i18n";
+// backend/veloiq_framework/view_types.json: shared with the Python backend (veloiq_framework.view_types).
+import viewTypeCatalogFile from "../../../../../../backend/veloiq_framework/view_types.json";
 
 /** What the model's fields must provide for a view type to be worth offering. */
 export type ViewTypeFieldRequirement = "image-source" | "number-field" | "date-field" | "split-field";
 
 /**
  * Where a view type selector is offered. "configuration" is for tools that
- * assign a view type to a page or relation (every known view type); the others
- * are the temporary selectors shown to users.
+ * assign a view type to a page or relation (every known view type);
+ * "default-setting" is for the default view type settings of System
+ * Configuration; the others are the temporary selectors shown to users.
  */
-export type ViewTypeSelectorContext = "list-page" | "relation-show" | "relation-edit" | "kanban-column" | "configuration";
+export type ViewTypeSelectorContext = "list-page" | "relation-show" | "relation-edit" | "kanban-column" | "default-setting" | "configuration";
 
 type TemporarySelectorContext = Exclude<ViewTypeSelectorContext, "configuration">;
 
@@ -33,33 +37,8 @@ export interface ViewTypeCatalogEntry {
     requires?: ViewTypeFieldRequirement;
 }
 
-const ALL_TEMPORARY_SELECTORS: readonly TemporarySelectorContext[] = ["list-page", "relation-show", "relation-edit", "kanban-column"];
-const NOT_IN_KANBAN: readonly TemporarySelectorContext[] = ["list-page", "relation-show", "relation-edit"];
-const EDITABLE: readonly TemporarySelectorContext[] = ["list-page", "relation-edit"];
-
-/** Every view type, in the order selectors list them. */
-export const VIEW_TYPE_CATALOG: readonly ViewTypeCatalogEntry[] = [
-    { token: "table", label: "Table", offeredIn: ALL_TEMPORARY_SELECTORS },
-    { token: "editable-table", label: "Editable table", aliases: ["editable"], offeredIn: EDITABLE },
-    { token: "list", label: "List", offeredIn: ALL_TEMPORARY_SELECTORS },
-    { token: "editable-list", label: "Editable list", offeredIn: EDITABLE },
-    { token: "csv", label: "CSV", offeredIn: ["relation-show", "relation-edit"] },
-    { token: "editable-csv", label: "Editable CSV", offeredIn: ["relation-edit"] },
-    { token: "crosstab", label: "Crosstab", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "number-field" },
-    { token: "editable-crosstab", label: "Editable crosstab", offeredIn: EDITABLE, requires: "number-field" },
-    { token: "totals-details", label: "Totals and details", aliases: ["totaldetails"], offeredIn: ALL_TEMPORARY_SELECTORS },
-    { token: "gallery", label: "Gallery", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
-    { token: "image", label: "Images", aliases: ["images"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
-    { token: "calendar", label: "Calendar", aliases: ["week", "month"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "date-field" },
-    { token: "kanban", label: "Kanban", offeredIn: NOT_IN_KANBAN, requires: "split-field" },
-    { token: "primary", label: "Primary", offeredIn: ALL_TEMPORARY_SELECTORS },
-    { token: "primary-carousel", label: "Primary carousel", offeredIn: NOT_IN_KANBAN },
-    // Known to configurations, but not offered to users to switch to for now.
-    { token: "read-and-edit-list", label: "Read and edit list", offeredIn: [] },
-    { token: "read-and-edit-csv", label: "Read and edit CSV", offeredIn: [] },
-    { token: "tree", label: "Tree", offeredIn: [] },
-    { token: "tree-details", label: "Tree with details", offeredIn: [] },
-];
+/** Every view type, in the order selectors list them (read from the file the backend reads too). */
+export const VIEW_TYPE_CATALOG: readonly ViewTypeCatalogEntry[] = viewTypeCatalogFile.viewTypes as ViewTypeCatalogEntry[];
 
 /** The entries a selector in the given place can offer, before the model's fields are considered. */
 export function getViewTypeCatalogEntries(context: ViewTypeSelectorContext): ViewTypeCatalogEntry[] {
