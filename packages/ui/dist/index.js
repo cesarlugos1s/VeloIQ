@@ -7246,6 +7246,39 @@ var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, co
   }, [records, rowsStore]);
   return /* @__PURE__ */ jsxRuntime.jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
 };
+var getReferenceRecordTitle = (record, id) => record?._label || record?.name || record?.description || id;
+var ReferenceField = ({ id, resource, onLabel }) => {
+  const { data, isLoading } = core.useOne({ resource, id, queryOptions: { enabled: !!id } });
+  const record = data?.data;
+  const label = getReferenceRecordTitle(record, id);
+  const go = core.useGo();
+  const paneNav = usePaneNavigation();
+  const { token } = antd.theme.useToken();
+  React6.useEffect(() => {
+    if (onLabel && !isLoading && label !== void 0 && label !== null) {
+      onLabel(String(label));
+    }
+  }, [label, onLabel, isLoading]);
+  if (isLoading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
+  const href = getShowHref(resource, id);
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    "a",
+    {
+      href,
+      onClick: (e) => {
+        if (!shouldHandleLinkClick(e)) return;
+        e.preventDefault();
+        if (paneNav?.isInMultiPane) {
+          paneNav.openDetail(resource, id);
+        } else {
+          go({ to: { resource, action: "show", id } });
+        }
+      },
+      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
+      children: label
+    }
+  );
+};
 var _27 = window._ || ((text) => text);
 var CALENDAR_WEEKDAYS = [_27("Sun"), _27("Mon"), _27("Tue"), _27("Wed"), _27("Thu"), _27("Fri"), _27("Sat")];
 var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
@@ -7410,9 +7443,50 @@ var KanbanView = (props) => {
     const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
     return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
   }, [fieldSequenceKeys, cardFieldOptions]);
+  const apiUrl = core.useApiUrl();
+  const [referenceTitles, setReferenceTitles] = React6.useState({});
+  const requestedTitleKeys = React6.useRef(/* @__PURE__ */ new Set());
+  const isMounted = React6.useRef(true);
+  React6.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  React6.useEffect(() => {
+    splitFields.filter((field) => field.reference).forEach((field) => {
+      records.forEach((record) => {
+        const id = record?.[field.key];
+        if (id === void 0 || id === null || id === "") return;
+        const cacheKey = `${field.reference}:${id}`;
+        if (requestedTitleKeys.current.has(cacheKey)) return;
+        requestedTitleKeys.current.add(cacheKey);
+        const resourcePath = field.referencePath || resolveResourcePath(field.reference, allModels);
+        authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`).then(async (response) => {
+          if (!response.ok) throw new Error(String(response.status));
+          const data = await response.json();
+          if (!isMounted.current) return;
+          const title = String(getReferenceRecordTitle(data, id));
+          setReferenceTitles((previous) => previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title });
+        }).catch(() => {
+          requestedTitleKeys.current.delete(cacheKey);
+        });
+      });
+    });
+  }, [records, splitFields, apiUrl, allModels]);
+  const formatColumnValue = React6.useMemo(
+    () => (field, record) => {
+      if (field.reference) {
+        const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
+        if (title !== void 0) return title;
+      }
+      return formatValue(field, record);
+    },
+    [referenceTitles, formatValue]
+  );
   const columns = React6.useMemo(
-    () => buildKanbanColumns(records, splitFields, maximumColumns, formatValue, _28("(empty)"), _28("All")),
-    [records, splitFields, maximumColumns, formatValue]
+    () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _28("(empty)"), _28("All")),
+    [records, splitFields, maximumColumns, formatColumnValue]
   );
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, size: 8, align: "start", children: [
@@ -7657,38 +7731,6 @@ var renderOptionTag = (field, rawValue) => {
   const colorMap = getFieldValueColors(field);
   const color = colorMap[String(rawValue)] || getFallbackColor(label);
   return /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
-};
-var ReferenceField = ({ id, resource, onLabel }) => {
-  const { data, isLoading } = core.useOne({ resource, id, queryOptions: { enabled: !!id } });
-  const record = data?.data;
-  const label = record?._label || record?.name || record?.description || id;
-  const go = core.useGo();
-  const paneNav = usePaneNavigation();
-  const { token } = antd.theme.useToken();
-  React6.useEffect(() => {
-    if (onLabel && !isLoading && label !== void 0 && label !== null) {
-      onLabel(String(label));
-    }
-  }, [label, onLabel, isLoading]);
-  if (isLoading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
-  const href = getShowHref(resource, id);
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    "a",
-    {
-      href,
-      onClick: (e) => {
-        if (!shouldHandleLinkClick(e)) return;
-        e.preventDefault();
-        if (paneNav?.isInMultiPane) {
-          paneNav.openDetail(resource, id);
-        } else {
-          go({ to: { resource, action: "show", id } });
-        }
-      },
-      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
-      children: label
-    }
-  );
 };
 var _29 = window._ || ((text) => text);
 var StorageFieldValue = ({ storageKey }) => {

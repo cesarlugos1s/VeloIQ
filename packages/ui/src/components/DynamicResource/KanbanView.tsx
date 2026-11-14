@@ -6,10 +6,14 @@
  * column layout; each column's content is the standard DynamicList in the chosen view type
  * (KanbanColumnContent), so it has that view type's own controls.
  */
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useApiUrl } from "@refinedev/core";
+import { authenticatedFetch } from "../../utils/authenticatedFetch";
+import { resolveResourcePath } from "./utils/model";
 import { Empty, Select, Space, Typography, theme } from "antd";
 import type { FieldDef, ModelDef } from "./types";
 import { KanbanColumnContent } from "./KanbanColumnContent";
+import { getReferenceRecordTitle } from "./fields/ReferenceField";
 import {
     DEFAULT_KANBAN_COLUMN_VIEW_TYPE,
     buildKanbanColumns,
@@ -131,9 +135,51 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
             .filter((field): field is FieldDef => Boolean(field));
         return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
     }, [fieldSequenceKeys, cardFieldOptions]);
+    // A foreign key split field shows the related record's title (dc_title(), fetched as the Show page does), not the id.
+    const apiUrl = useApiUrl();
+    const [referenceTitles, setReferenceTitles] = useState<Record<string, string>>({});
+    // Keys already requested live in a ref and responses are kept after a re-render: the parents
+    // (e.g. the related lists) pass a new records array on every render, which must not drop in-flight fetches.
+    const requestedTitleKeys = useRef<Set<string>>(new Set());
+    const isMounted = useRef(true);
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
+    useEffect(() => {
+        splitFields.filter((field) => field.reference).forEach((field) => {
+            records.forEach((record) => {
+                const id = record?.[field.key];
+                if (id === undefined || id === null || id === "") return;
+                const cacheKey = `${field.reference}:${id}`;
+                if (requestedTitleKeys.current.has(cacheKey)) return;
+                requestedTitleKeys.current.add(cacheKey);
+                const resourcePath = field.referencePath || resolveResourcePath(field.reference as string, allModels);
+                authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`)
+                    .then(async (response) => {
+                        if (!response.ok) throw new Error(String(response.status));
+                        const data = await response.json();
+                        if (!isMounted.current) return;
+                        const title = String(getReferenceRecordTitle(data, id));
+                        setReferenceTitles((previous) => (previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title }));
+                    })
+                    .catch(() => { requestedTitleKeys.current.delete(cacheKey); /* best-effort: the column keeps the raw value */ });
+            });
+        });
+    }, [records, splitFields, apiUrl, allModels]);
+    const formatColumnValue = useMemo(
+        () => (field: FieldDef, record: any): string => {
+            if (field.reference) {
+                const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
+                if (title !== undefined) return title;
+            }
+            return formatValue(field, record);
+        },
+        [referenceTitles, formatValue],
+    );
     const columns = useMemo(
-        () => buildKanbanColumns(records, splitFields, maximumColumns, formatValue, _("(empty)"), _("All")),
-        [records, splitFields, maximumColumns, formatValue],
+        () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _("(empty)"), _("All")),
+        [records, splitFields, maximumColumns, formatColumnValue],
     );
 
     return (

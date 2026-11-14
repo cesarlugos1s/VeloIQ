@@ -4,10 +4,14 @@ import { Skeleton, theme } from "antd";
 import { getShowHref, shouldHandleLinkClick } from "../utils/navigation";
 import { usePaneNavigation } from "../../../contexts/PaneNavigationContext";
 
+/** The title of a related record: the one the Show page's reference fields display (dc_title() as `_label`). */
+export const getReferenceRecordTitle = (record: any, id: string | number): string | number =>
+    record?._label || record?.name || record?.description || id;
+
 export const ReferenceField: React.FC<{ id: string | number; resource: string; onLabel?: (label: string) => void }> = ({ id, resource, onLabel }) => {
     const { data, isLoading } = useOne({ resource: resource, id: id, queryOptions: { enabled: !!id } });
     const record = data?.data;
-    const label = record?._label || record?.name || record?.description || id;
+    const label = getReferenceRecordTitle(record, id);
     const go = useGo();
     const paneNav = usePaneNavigation();
     const { token } = theme.useToken();
