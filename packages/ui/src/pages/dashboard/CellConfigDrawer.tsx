@@ -5,20 +5,14 @@ import { translateText } from "../../components/DynamicResource/utils/i18n";
 // Resolved at call time — see utils/i18n.ts's translateText for why.
 const _ = (text: string): string => translateText(text, text);
 
+import { getViewTypeLabel, getViewTypesForContext } from "../../components/DynamicResource/utils/viewTypeCatalog";
+
 const { Text } = Typography;
 
-const VIEW_TYPE_OPTIONS = [
+/** The default choice followed by every view type a dashboard cell's list can show. */
+const buildViewTypeOptions = () => [
     { label: _("Default (from model schema)"), value: "" },
-    { label: _("Table"), value: "table" },
-    { label: _("Editable table"), value: "editable-table" },
-    { label: _("Gallery"), value: "gallery" },
-    { label: _("Image"), value: "image" },
-    { label: _("Calendar"), value: "calendar" },
-    { label: _("Kanban"), value: "kanban" },
-    { label: _("Totals / Details"), value: "totals-details" },
-    { label: _("Primary"), value: "primary" },
-    { label: _("List"), value: "list" },
-    { label: _("Editable list"), value: "editable-list" },
+    ...getViewTypesForContext("list-page").map((token) => ({ label: getViewTypeLabel(token), value: token })),
 ];
 
 interface Props {
@@ -177,7 +171,7 @@ export const CellConfigDrawer: React.FC<Props> = ({ open, cell, tabId, config, o
                     <>
                         <Divider orientation="left">{_("View")}</Divider>
                         <Form.Item name="view_type" label={_("View type")}>
-                            <Select options={VIEW_TYPE_OPTIONS} />
+                            <Select options={buildViewTypeOptions()} />
                         </Form.Item>
                     </>
                 )}

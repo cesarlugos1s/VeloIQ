@@ -19,6 +19,7 @@ import {
     type KanbanColumnViewType,
 } from "./utils/kanban";
 import { getSelectableViewTypes } from "./utils/applicableViewTypes";
+import { getViewTypeLabel } from "./utils/viewTypeCatalog";
 import { useModelTone } from "../../utils/modelTone";
 import { translateText } from "./utils/i18n";
 
@@ -30,17 +31,6 @@ const { Text } = Typography;
 const KANBAN_COLUMN_WIDTH = 420;
 /** The board scrolls inside the room left under the page header and the view's own controls. */
 const KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
-
-const COLUMN_VIEW_TYPE_LABELS: Record<KanbanColumnViewType, string> = {
-    list: "List",
-    table: "Table",
-    gallery: "Gallery",
-    image: "Image",
-    primary: "Primary",
-    "totals-details": "Totals / Details",
-    crosstab: "Crosstab",
-    calendar: "Calendar",
-};
 
 export interface KanbanViewProps {
     /** The model whose records the board shows (its fields are the frontend schema's). */
@@ -165,7 +155,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                     size="small"
                     value={columnViewType}
                     onChange={setColumnViewType}
-                    options={applicableColumnViewTypes.map((viewType) => ({ label: _(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType }))}
+                    options={applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType }))}
                     style={{ minWidth: 140 }}
                     aria-label={_("Column view type")}
                 />

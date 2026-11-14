@@ -2381,3 +2381,15 @@ msgstr "Configured view type"
 
 msgid "View type for now: kept until the page is reloaded, not saved"
 msgstr "View type for now: kept until the page is reloaded, not saved"
+
+msgid "Read and edit list"
+msgstr "Read and edit list"
+
+msgid "Read and edit CSV"
+msgstr "Read and edit CSV"
+
+msgid "Tree"
+msgstr "Tree"
+
+msgid "Tree with details"
+msgstr "Tree with details"

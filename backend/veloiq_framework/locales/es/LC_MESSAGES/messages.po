@@ -2380,3 +2380,15 @@ msgstr "Tipo de vista configurado"
 
 msgid "View type for now: kept until the page is reloaded, not saved"
 msgstr "Tipo de vista por ahora: se mantiene hasta recargar la página y no se guarda"
+
+msgid "Read and edit list"
+msgstr "Leer y editar lista"
+
+msgid "Read and edit CSV"
+msgstr "Leer y editar CSV"
+
+msgid "Tree"
+msgstr "Árbol"
+
+msgid "Tree with details"
+msgstr "Árbol con detalles"

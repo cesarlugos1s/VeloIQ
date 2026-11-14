@@ -7,6 +7,7 @@ import { resolveResourcePath } from "./model";
 import { getRelationLabel } from "./i18n";
 import { ddlTrace } from "./ddlTrace";
 import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "./kanban";
+import { resolveViewTypeToken } from "./viewTypeCatalog";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
@@ -502,33 +503,8 @@ export const isAttributeValueEditable = (item: ViewConfigRow | undefined, mode: 
     return true;
 };
 
-export const normalizeRelationViewType = (rawVid: string): RelationViewType | "" => {
-    const normalized = String(rawVid || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s_-]/g, "")
-        .replace(/view$/, "");
-    if (normalized === "table") return "table";
-    if (normalized === "editabletable" || normalized === "editable") return "editable-table";
-    if (normalized === "crosstab") return "crosstab";
-    if (normalized === "editablecrosstab") return "editable-crosstab";
-    if (normalized === "editablelist") return "editable-list";
-    if (normalized === "list") return "list";
-    if (normalized === "csv") return "csv";
-    if (normalized === "readandeditlist") return "read-and-edit-list";
-    if (normalized === "readandeditcsv") return "read-and-edit-csv";
-    if (normalized === "editablecsv") return "editable-csv";
-    if (normalized === "gallery") return "gallery";
-    if (normalized === "image" || normalized === "images") return "image";
-    if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
-    if (normalized === "kanban") return "kanban";
-    if (normalized === "primary") return "primary";
-    if (normalized === "primarycarousel") return "primary-carousel";
-    if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";
-    if (normalized === "tree") return "tree";
-    if (normalized === "treedetails") return "tree-details";
-    return "";
-};
+export const normalizeRelationViewType = (rawVid: string): RelationViewType | "" =>
+    resolveViewTypeToken(rawVid) as RelationViewType | "";
 
 const FIELD_VIEW_TYPE_TOKENS = new Set([
     "read-only-field", "editable-field",

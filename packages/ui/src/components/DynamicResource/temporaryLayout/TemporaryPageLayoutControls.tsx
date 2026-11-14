@@ -13,6 +13,7 @@ import { Button, Dropdown, Popover, Segmented, Select, Switch, Tooltip, Typograp
 import type { MenuProps } from "antd";
 import { LayoutOutlined, TableOutlined } from "@ant-design/icons";
 import { GRID_DENSITY_STEPS, buildGridDensityLabelText, type GridDensity } from "../../../pages/dashboard/hooks/gridDensity";
+import { buildViewTypeLabels } from "../utils/viewTypeCatalog";
 import type { PanesLayoutMode } from "../utils/viewConfig";
 import type { ModelDef } from "../types";
 import type { DataDetailLevelState } from "../hooks/useDataDetailLevel";
@@ -33,26 +34,8 @@ const { Text } = Typography;
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
 
-/** Display text of each list view type; the keys are the framework's view type tokens. */
-export function buildListViewTypeLabels(): Record<string, string> {
-    return {
-        "table": _("Table"),
-        "editable-table": _("Editable table"),
-        "list": _("List"),
-        "editable-list": _("Editable list"),
-        "gallery": _("Gallery"),
-        "image": _("Images"),
-        "calendar": _("Calendar"),
-        "kanban": _("Kanban"),
-        "totals-details": _("Totals and details"),
-        "csv": _("CSV"),
-        "editable-csv": _("Editable CSV"),
-        "crosstab": _("Crosstab"),
-        "editable-crosstab": _("Editable crosstab"),
-        "primary": _("Primary"),
-        "primary-carousel": _("Primary carousel"),
-    };
-}
+/** Display text of each view type, by token (from the view type catalog). */
+export const buildListViewTypeLabels = buildViewTypeLabels;
 
 /** Templates available for the page from the registered provider (empty when none). */
 function usePageTemplateChoices(model: ModelDef | undefined, pageType: string | undefined): {

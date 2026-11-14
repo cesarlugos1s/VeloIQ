@@ -157,6 +157,11 @@ export type { InPageRowsStoreHandle } from "./hooks/useInPageRowsStore";
 export { IN_PAGE_ROWS_RESOURCE_PREFIX, createInPageRowsStore, removeInPageRowsStore } from "./utils/serveInPageRowsStores";
 export type { InPageRowsStore } from "./utils/serveInPageRowsStores";
 export { getActiveLocale } from "./utils/activeLocale";
+export {
+    VIEW_TYPE_CATALOG, getAllViewTypes, getViewTypesForContext, getViewTypeLabel, buildViewTypeLabels, resolveViewTypeToken,
+} from "./components/DynamicResource/utils/viewTypeCatalog";
+export type { ViewTypeCatalogEntry, ViewTypeSelectorContext, ViewTypeFieldRequirement } from "./components/DynamicResource/utils/viewTypeCatalog";
+export { getSelectableViewTypes, isViewTypeApplicable } from "./components/DynamicResource/utils/applicableViewTypes";
 export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/DynamicResource/utils/gallery";
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
 export { TonedPage, usePageTone, CollapsedSpine, CollapsibleSidePanel, SectionBar, useRememberedFlag, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING } from "./components/PageStyling";

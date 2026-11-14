@@ -3495,16 +3495,6 @@ window.ddlTraceClear = ddlTraceClear;
 // src/components/DynamicResource/utils/kanban.ts
 var KANBAN_COLUMN_LABEL_SEPARATOR = " - ";
 var DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW = 10;
-var KANBAN_COLUMN_VIEW_TYPES = [
-  "list",
-  "table",
-  "gallery",
-  "image",
-  "primary",
-  "totals-details",
-  "crosstab",
-  "calendar"
-];
 var DEFAULT_KANBAN_COLUMN_VIEW_TYPE = "list";
 var isKanbanSplitField = (field) => Boolean(field.options?.length) || field.type === "boolean" || Boolean(field.reference);
 var getKanbanSplitFieldOptions = (fields) => fields.filter(isKanbanSplitField);
@@ -3529,6 +3519,57 @@ var buildKanbanColumns = (records, splitFields, maximumColumns, formatValue, emp
   const limit = Math.max(1, Math.floor(maximumColumns) || DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW);
   return [...columnsByLabel.values()].sort((a, b) => b.records.length - a.records.length || a.label.localeCompare(b.label)).slice(0, limit).sort((a, b) => a.label.localeCompare(b.label));
 };
+
+// src/components/DynamicResource/utils/viewTypeCatalog.ts
+var ALL_TEMPORARY_SELECTORS = ["list-page", "relation-show", "relation-edit", "kanban-column"];
+var NOT_IN_KANBAN = ["list-page", "relation-show", "relation-edit"];
+var EDITABLE = ["list-page", "relation-edit"];
+var VIEW_TYPE_CATALOG = [
+  { token: "table", label: "Table", offeredIn: ALL_TEMPORARY_SELECTORS },
+  { token: "editable-table", label: "Editable table", aliases: ["editable"], offeredIn: EDITABLE },
+  { token: "list", label: "List", offeredIn: ALL_TEMPORARY_SELECTORS },
+  { token: "editable-list", label: "Editable list", offeredIn: EDITABLE },
+  { token: "csv", label: "CSV", offeredIn: ["relation-show", "relation-edit"] },
+  { token: "editable-csv", label: "Editable CSV", offeredIn: ["relation-edit"] },
+  { token: "crosstab", label: "Crosstab", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "number-field" },
+  { token: "editable-crosstab", label: "Editable crosstab", offeredIn: EDITABLE, requires: "number-field" },
+  { token: "totals-details", label: "Totals and details", aliases: ["totaldetails"], offeredIn: ALL_TEMPORARY_SELECTORS },
+  { token: "gallery", label: "Gallery", offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
+  { token: "image", label: "Images", aliases: ["images"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "image-source" },
+  { token: "calendar", label: "Calendar", aliases: ["week", "month"], offeredIn: ALL_TEMPORARY_SELECTORS, requires: "date-field" },
+  { token: "kanban", label: "Kanban", offeredIn: NOT_IN_KANBAN, requires: "split-field" },
+  { token: "primary", label: "Primary", offeredIn: ALL_TEMPORARY_SELECTORS },
+  { token: "primary-carousel", label: "Primary carousel", offeredIn: NOT_IN_KANBAN },
+  // Known to configurations, but not offered to users to switch to for now.
+  { token: "read-and-edit-list", label: "Read and edit list", offeredIn: [] },
+  { token: "read-and-edit-csv", label: "Read and edit CSV", offeredIn: [] },
+  { token: "tree", label: "Tree", offeredIn: [] },
+  { token: "tree-details", label: "Tree with details", offeredIn: [] }
+];
+function getViewTypeCatalogEntries(context) {
+  if (context === "configuration") return [...VIEW_TYPE_CATALOG];
+  return VIEW_TYPE_CATALOG.filter((entry) => entry.offeredIn.includes(context));
+}
+function getAllViewTypes() {
+  return VIEW_TYPE_CATALOG.map((entry) => entry.token);
+}
+function getViewTypesForContext(context) {
+  return getViewTypeCatalogEntries(context).map((entry) => entry.token);
+}
+function getViewTypeLabel(token) {
+  const entry = VIEW_TYPE_CATALOG.find((candidate) => candidate.token === token);
+  return entry ? translateText(entry.label, entry.label) : token;
+}
+function buildViewTypeLabels() {
+  return Object.fromEntries(VIEW_TYPE_CATALOG.map((entry) => [entry.token, getViewTypeLabel(entry.token)]));
+}
+var looseKey = (raw) => raw.trim().toLowerCase().replace(/[\s_-]/g, "");
+function resolveViewTypeToken(raw) {
+  const key = looseKey(String(raw || "")).replace(/view$/, "");
+  if (!key) return "";
+  const entry = VIEW_TYPE_CATALOG.find((candidate) => looseKey(candidate.token) === key || (candidate.aliases ?? []).some((alias) => looseKey(alias) === key));
+  return entry?.token ?? "";
+}
 
 // src/components/DynamicResource/utils/viewConfig.ts
 var _9 = window._ || ((text) => text);
@@ -3907,29 +3948,7 @@ var isAttributeValueEditable = (item, mode) => {
   if (vid === "readonly") return false;
   return true;
 };
-var normalizeRelationViewType = (rawVid) => {
-  const normalized = String(rawVid || "").trim().toLowerCase().replace(/[\s_-]/g, "").replace(/view$/, "");
-  if (normalized === "table") return "table";
-  if (normalized === "editabletable" || normalized === "editable") return "editable-table";
-  if (normalized === "crosstab") return "crosstab";
-  if (normalized === "editablecrosstab") return "editable-crosstab";
-  if (normalized === "editablelist") return "editable-list";
-  if (normalized === "list") return "list";
-  if (normalized === "csv") return "csv";
-  if (normalized === "readandeditlist") return "read-and-edit-list";
-  if (normalized === "readandeditcsv") return "read-and-edit-csv";
-  if (normalized === "editablecsv") return "editable-csv";
-  if (normalized === "gallery") return "gallery";
-  if (normalized === "image" || normalized === "images") return "image";
-  if (normalized === "calendar" || normalized === "week" || normalized === "month") return "calendar";
-  if (normalized === "kanban") return "kanban";
-  if (normalized === "primary") return "primary";
-  if (normalized === "primarycarousel") return "primary-carousel";
-  if (normalized === "totalsdetails" || normalized === "totaldetails") return "totals-details";
-  if (normalized === "tree") return "tree";
-  if (normalized === "treedetails") return "tree-details";
-  return "";
-};
+var normalizeRelationViewType = (rawVid) => resolveViewTypeToken(rawVid);
 var FIELD_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
   "read-only-field",
   "editable-field",
@@ -4901,25 +4920,7 @@ function useTemporaryPageLayoutOfEnclosingPage() {
 }
 var { Text: Text3 } = antd.Typography;
 var _15 = window._ || ((text) => text);
-function buildListViewTypeLabels() {
-  return {
-    "table": _15("Table"),
-    "editable-table": _15("Editable table"),
-    "list": _15("List"),
-    "editable-list": _15("Editable list"),
-    "gallery": _15("Gallery"),
-    "image": _15("Images"),
-    "calendar": _15("Calendar"),
-    "kanban": _15("Kanban"),
-    "totals-details": _15("Totals and details"),
-    "csv": _15("CSV"),
-    "editable-csv": _15("Editable CSV"),
-    "crosstab": _15("Crosstab"),
-    "editable-crosstab": _15("Editable crosstab"),
-    "primary": _15("Primary"),
-    "primary-carousel": _15("Primary carousel")
-  };
-}
+var buildListViewTypeLabels = buildViewTypeLabels;
 function usePageTemplateChoices(model, pageType) {
   const provider = React6.useSyncExternalStore(subscribeToPageTemplateProviderRegistration, getRegisteredPageTemplateProvider, getRegisteredPageTemplateProvider);
   const [choices, setChoices] = React6.useState([]);
@@ -7141,65 +7142,31 @@ var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maxim
 
 // src/components/DynamicResource/utils/applicableViewTypes.ts
 var hasNumericField = (model) => model.fields.some((field) => field.type === "number" && !field.reference && !isPkField(field, model));
-function isViewTypeApplicable(token, model) {
-  switch (token) {
-    case "gallery":
-    case "image":
+function modelMeetsRequirement(requirement, model) {
+  switch (requirement) {
+    case "image-source":
       return modelHasImageSource(model);
-    case "calendar":
+    case "date-field":
       return getCalendarDateFieldOptions(model.fields).length > 0;
-    case "crosstab":
-    case "editable-crosstab":
+    case "number-field":
       return hasNumericField(model);
-    case "kanban":
+    case "split-field":
       return getKanbanSplitFieldOptions(model.fields).length > 0;
     default:
       return true;
   }
 }
-var LIST_PAGE_VIEW_TYPES = [
-  "table",
-  "editable-table",
-  "list",
-  "editable-list",
-  "gallery",
-  "image",
-  "calendar",
-  "kanban",
-  "totals-details",
-  "crosstab",
-  "editable-crosstab",
-  "primary",
-  "primary-carousel"
-];
-var RELATION_VIEW_TYPES_SHOWN = ["table", "totals-details", "crosstab", "list", "csv", "kanban", "gallery", "image", "calendar", "primary", "primary-carousel"];
-var RELATION_VIEW_TYPES_EDIT_ONLY = ["editable-table", "editable-crosstab", "editable-list", "editable-csv"];
-var CANDIDATE_VIEW_TYPES = {
-  "list-page": LIST_PAGE_VIEW_TYPES,
-  "relation-show": RELATION_VIEW_TYPES_SHOWN,
-  "relation-edit": [...RELATION_VIEW_TYPES_SHOWN, ...RELATION_VIEW_TYPES_EDIT_ONLY],
-  "kanban-column": KANBAN_COLUMN_VIEW_TYPES
-};
-function getSelectableViewTypes(context, model) {
-  return filterApplicableViewTypes(CANDIDATE_VIEW_TYPES[context], model);
+function isViewTypeApplicable(token, model) {
+  const entry = getViewTypeCatalogEntries("configuration").find((candidate) => candidate.token === token);
+  return modelMeetsRequirement(entry?.requires, model);
 }
-function filterApplicableViewTypes(tokens, model) {
-  return tokens.filter((token) => isViewTypeApplicable(token, model));
+function getSelectableViewTypes(context, model) {
+  return getViewTypeCatalogEntries(context).filter((entry) => modelMeetsRequirement(entry.requires, model)).map((entry) => entry.token);
 }
 var _28 = (text) => translateText(text, text);
 var { Text: Text6 } = antd.Typography;
 var KANBAN_COLUMN_WIDTH = 420;
 var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
-var COLUMN_VIEW_TYPE_LABELS = {
-  list: "List",
-  table: "Table",
-  gallery: "Gallery",
-  image: "Image",
-  primary: "Primary",
-  "totals-details": "Totals / Details",
-  crosstab: "Crosstab",
-  calendar: "Calendar"
-};
 var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
   const { token } = antd.theme.useToken();
   const tone = useModelTone(model);
@@ -7300,7 +7267,7 @@ var KanbanView = (props) => {
           size: "small",
           value: columnViewType,
           onChange: setColumnViewType,
-          options: applicableColumnViewTypes.map((viewType) => ({ label: _28(COLUMN_VIEW_TYPE_LABELS[viewType]), value: viewType })),
+          options: applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType })),
           style: { minWidth: 140 },
           "aria-label": _28("Column view type")
         }
@@ -13056,18 +13023,9 @@ var FieldLabelWithHelp = ({ field }) => {
 };
 var _56 = (text) => translateText(text, text);
 var { Text: Text7 } = antd.Typography;
-var VIEW_TYPE_OPTIONS = [
+var buildViewTypeOptions = () => [
   { label: _56("Default (from model schema)"), value: "" },
-  { label: _56("Table"), value: "table" },
-  { label: _56("Editable table"), value: "editable-table" },
-  { label: _56("Gallery"), value: "gallery" },
-  { label: _56("Image"), value: "image" },
-  { label: _56("Calendar"), value: "calendar" },
-  { label: _56("Kanban"), value: "kanban" },
-  { label: _56("Totals / Details"), value: "totals-details" },
-  { label: _56("Primary"), value: "primary" },
-  { label: _56("List"), value: "list" },
-  { label: _56("Editable list"), value: "editable-list" }
+  ...getViewTypesForContext("list-page").map((token) => ({ label: getViewTypeLabel(token), value: token }))
 ];
 var nextGridPosition = (cells) => {
   if (!cells.length) return { row: 0, col: 0 };
@@ -13183,7 +13141,7 @@ var CellConfigDrawer = ({ open, cell, tabId, config, onClose, onSave }) => {
         ] }),
         (cell?.source_type === "model" || cell?.source_type === "named_query" || cell?.source_type === "non_model_data") && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: _56("View") }),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "view_type", label: _56("View type"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: VIEW_TYPE_OPTIONS }) })
+          /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: "view_type", label: _56("View type"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Select, { options: buildViewTypeOptions() }) })
         ] }),
         cell?.source_type === "plotly_chart" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
           /* @__PURE__ */ jsxRuntime.jsx(antd.Divider, { orientation: "left", children: _56("Chart") }),
@@ -29110,6 +29068,7 @@ exports.SingleItemCarousel = SingleItemCarousel;
 exports.StandardList = StandardList;
 exports.StandardShow = StandardShow;
 exports.TonedPage = TonedPage;
+exports.VIEW_TYPE_CATALOG = VIEW_TYPE_CATALOG;
 exports.VeloIQPortalApp = VeloIQPortalApp;
 exports.ViewsGrid = ViewsGrid;
 exports.accessControlProvider = accessControlProvider;
@@ -29122,6 +29081,7 @@ exports.bannerIcon = bannerIcon;
 exports.bannerMoves = bannerMoves;
 exports.bannersUrl = bannersUrl;
 exports.buildShowTabFormOptions = buildShowTabFormOptions;
+exports.buildViewTypeLabels = buildViewTypeLabels;
 exports.clearAccess = clearAccess;
 exports.clipToViewport = clipToViewport;
 exports.createInPageRowsStore = createInPageRowsStore;
@@ -29130,8 +29090,12 @@ exports.filterMenuItemsByAccess = filterMenuItemsByAccess;
 exports.generateResources = generateResources;
 exports.getAccessSnapshot = getAccessSnapshot;
 exports.getActiveLocale = getActiveLocale;
+exports.getAllViewTypes = getAllViewTypes;
 exports.getModelTone = getModelTone;
 exports.getNavEntry = getNavEntry;
+exports.getSelectableViewTypes = getSelectableViewTypes;
+exports.getViewTypeLabel = getViewTypeLabel;
+exports.getViewTypesForContext = getViewTypesForContext;
 exports.groupBannersByAnchor = groupBannersByAnchor;
 exports.guessIcon = guessIcon;
 exports.helpSystemModels = helpSystemModels;
@@ -29139,6 +29103,7 @@ exports.httpClient = httpClient;
 exports.isCurrentPosition = isCurrentPosition;
 exports.isModuleLicensedIn = isModuleLicensedIn;
 exports.isModuleWriteAllowedIn = isModuleWriteAllowedIn;
+exports.isViewTypeApplicable = isViewTypeApplicable;
 exports.mergeUiModelSchemas = mergeUiModelSchemas;
 exports.moduleKeyForName = moduleKeyForName;
 exports.normalizeToneKey = normalizeToneKey;
@@ -29156,6 +29121,7 @@ exports.resetFrameworkUiFeatures = resetFrameworkUiFeatures;
 exports.resolveFallbackLandingPath = resolveFallbackLandingPath;
 exports.resolveIcon = resolveIcon;
 exports.resolveNavKey = resolveNavKey;
+exports.resolveViewTypeToken = resolveViewTypeToken;
 exports.setColorSchemas = setColorSchemas;
 exports.setPortalRequestContext = setPortalRequestContext;
 exports.setSignInStorageNamespace = setSignInStorageNamespace;
