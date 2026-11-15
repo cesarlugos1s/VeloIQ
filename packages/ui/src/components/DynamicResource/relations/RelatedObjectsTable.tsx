@@ -69,7 +69,7 @@ import {
 } from "../utils/sorting";
 import type { ColumnSortState, ColumnSortIntent, TotalsSummaryFn } from "../utils/sorting";
 import { renderNumericValueBar } from "../utils/statistics";
-import { TotalsDetailsCard, CATEGORICAL_CARD_TONE } from "../TotalsDetailsCard";
+import { TotalsDetailsCard, useCategoricalCardTone } from "../TotalsDetailsCard";
 import { buildCategoricalBreakdown } from "../utils/categoricalBreakdown";
 import { fetchPolymorphicGroups } from "../utils/polymorphic";
 import {
@@ -264,6 +264,7 @@ export const RelatedObjectsTable: React.FC<{
     const location = useLocation();
     const { token } = theme.useToken();
     const relatedModelTone = useModelTone(relatedModel);
+    const categoricalTone = useCategoricalCardTone(relatedModel);
     const relatedResourcePath = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
     const [rows, setRows] = useState<any[]>([]);
     const [localSearch, setLocalSearch] = useState("");
@@ -1723,7 +1724,6 @@ export const RelatedObjectsTable: React.FC<{
         const hasCategoricalBoxes = totalsDetailsCategoricalBoxes.length > 0;
         const hasNumericBoxes = totalsDetailsNumericBoxes.length > 0;
         if (!hasCategoricalBoxes && !hasNumericBoxes) return null;
-        const categoricalTone = CATEGORICAL_CARD_TONE;
         const numericTone = relatedModelTone;
         return (
             <div style={{ marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }}>
@@ -1748,14 +1748,14 @@ export const RelatedObjectsTable: React.FC<{
                                                     {item.breakdown.map((entry) => (
                                                         <div
                                                             key={`${keyPrefix}${item.key}-${entry.value}`}
-                                                            style={{ fontSize: 12, color: categoricalTone.text, fontWeight: 400, textAlign: "center" }}
+                                                            style={{ fontSize: 12, color: categoricalTone.bodyText ?? categoricalTone.text, fontWeight: 400, textAlign: "center" }}
                                                         >
                                                             {`${entry.value}: ${formatNumberValue(entry.count)}`}
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div style={{ fontSize: 24, fontWeight: 400, color: categoricalTone.text, textAlign: "center" }}>{formatNumberValue(item.value)}</div>
+                                                <div style={{ fontSize: 24, fontWeight: 400, color: categoricalTone.bodyText ?? categoricalTone.text, textAlign: "center" }}>{formatNumberValue(item.value)}</div>
                                             )}
                                         </TotalsDetailsCard>
                                     ))}

@@ -55,7 +55,7 @@ export type { TemporaryPageSetup } from "./components/DynamicResource/temporaryL
 export { AdvancedFilterBuilder } from "./components/DynamicResource/viewState/AdvancedFilterBuilder";
 export type { AdvancedFilterRuleDraft, AdvancedFilterBuilderProps } from "./components/DynamicResource/viewState/AdvancedFilterBuilder";
 export type { ListExtraColumn } from "./components/DynamicResource";
-export { TotalsDetailsCard, CATEGORICAL_CARD_TONE, CategoricalCardBody } from "./components/DynamicResource/TotalsDetailsCard";
+export { TotalsDetailsCard, useCategoricalCardTone, CategoricalCardBody } from "./components/DynamicResource/TotalsDetailsCard";
 export type { TotalsDetailsCardTone } from "./components/DynamicResource/TotalsDetailsCard";
 export { buildCategoricalBreakdown, CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD } from "./components/DynamicResource/utils/categoricalBreakdown";
 export type { CategoricalBreakdownEntry } from "./components/DynamicResource/utils/categoricalBreakdown";

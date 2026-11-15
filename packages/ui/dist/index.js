@@ -6934,12 +6934,33 @@ var renderNumericValueBar = (value, maxValue, formattedValue, barColor) => {
   ] });
 };
 var { Text: Text5 } = antd.Typography;
-var CATEGORICAL_CARD_TONE = {
-  soft: "#fde68a",
-  softer: "#fffbeb",
-  text: "#92400e",
-  border: "#fcd34d",
-  shadow: "#d97706"
+var toHexChannel = (value) => Math.round(value).toString(16).padStart(2, "0");
+var flattenColorOverSurface = (color, surfaceHex) => {
+  const surface = [1, 3, 5].map((index) => parseInt(surfaceHex.slice(index, index + 2), 16));
+  const rgbaMatch = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+  if (rgbaMatch) {
+    const alpha = rgbaMatch[4] === void 0 ? 1 : Number(rgbaMatch[4]);
+    const channels = [rgbaMatch[1], rgbaMatch[2], rgbaMatch[3]].map((channel, index) => Number(channel) * alpha + surface[index] * (1 - alpha));
+    return `#${channels.map(toHexChannel).join("")}`;
+  }
+  return color;
+};
+var LIGHT_SURFACE_HEX = "#ffffff";
+var useCategoricalCardTone = (modelLike) => {
+  const { mode, schemaVersion } = React6.useContext(ColorModeContext);
+  const currentTone = getModelTone(modelLike, mode === "dark");
+  const { token } = antd.theme.useToken();
+  const titleTone = getModelTone(modelLike, mode !== "dark");
+  const appSurface = mode === "dark" ? LIGHT_SURFACE_HEX : /^#[0-9a-fA-F]{6}$/.test(token.colorBgContainer) ? token.colorBgContainer : LIGHT_SURFACE_HEX;
+  const titleBackground = flattenColorOverSurface(titleTone.soft, appSurface);
+  return {
+    soft: titleBackground,
+    softer: currentTone.softer,
+    text: getContrastingTextColor(titleBackground),
+    bodyText: currentTone.solid,
+    border: currentTone.border,
+    shadow: currentTone.shadow
+  };
 };
 var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxRuntime.jsxs(
   "div",
@@ -6959,7 +6980,7 @@ var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxRuntim
     ]
   }
 );
-var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
+var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: tone.bodyText ?? tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.bodyText ?? tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
 
 // src/components/DynamicResource/utils/categoricalBreakdown.ts
 var CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5;
@@ -17372,6 +17393,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const location = reactRouterDom.useLocation();
   const { token } = antd.theme.useToken();
   const relatedModelTone = useModelTone(relatedModel);
+  const categoricalTone = useCategoricalCardTone(relatedModel);
   const relatedResourcePath = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
   const [rows, setRows] = React6.useState([]);
   const [localSearch, setLocalSearch] = React6.useState("");
@@ -18683,7 +18705,6 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const hasCategoricalBoxes = totalsDetailsCategoricalBoxes.length > 0;
     const hasNumericBoxes = totalsDetailsNumericBoxes.length > 0;
     if (!hasCategoricalBoxes && !hasNumericBoxes) return null;
-    const categoricalTone = CATEGORICAL_CARD_TONE;
     const numericTone = relatedModelTone;
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: [
       /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 8, alignItems: "center" }, children: [
@@ -18702,11 +18723,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               hasCategoricalBoxes && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsCategoricalBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(TotalsDetailsCard, { title: item.label, tone: categoricalTone, children: item.showBreakdown ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsxRuntime.jsx(
                 "div",
                 {
-                  style: { fontSize: 12, color: categoricalTone.text, fontWeight: 400, textAlign: "center" },
+                  style: { fontSize: 12, color: categoricalTone.bodyText ?? categoricalTone.text, fontWeight: 400, textAlign: "center" },
                   children: `${entry.value}: ${formatNumberValue(entry.count)}`
                 },
                 `${keyPrefix}${item.key}-${entry.value}`
-              )) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `${keyPrefix}${item.key}`)) }),
+              )) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.bodyText ?? categoricalTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `${keyPrefix}${item.key}`)) }),
               hasCategoricalBoxes && hasNumericBoxes && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
               hasNumericBoxes && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsNumericBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(
                 TotalsDetailsCard,
@@ -20297,6 +20318,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   ], [model.name, model.resource, go, isEmbedded, onCreate]));
   const { token } = antd.theme.useToken();
   const modelTone = useModelTone(model);
+  const catTone = useCategoricalCardTone(model);
   const searchField = model.fields.find((f) => f.type === "string" && !f.key.includes("_id") && !f.key.includes("eid")) || model.fields.find((f) => f.type === "string") || model.fields[0];
   const isFileModel3 = (model.resource || model.name).toLowerCase() === "file";
   const modelDefaultListViewType = String(model.listViewType || "").toLowerCase();
@@ -21496,7 +21518,6 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const hasCat = tdCategoricalBoxes.length > 0;
     const hasNum = tdNumericBoxes.length > 0;
     if (!hasCat && !hasNum) return null;
-    const catTone = CATEGORICAL_CARD_TONE;
     return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflowX: "auto", paddingBottom: 2 }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: "max-content", minWidth: "100%", display: "flex", justifyContent: "center", gap: 12, alignItems: "stretch" }, children: [
         hasCat && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: /* @__PURE__ */ jsxRuntime.jsx(CategoricalCardBody, { tone: catTone, breakdown: item.showBreakdown ? item.breakdown : void 0, value: item.value }) }, `td-cat-${item.key}`)) }),
@@ -29758,7 +29779,6 @@ exports.BANNER_STACK_GAP = BANNER_STACK_GAP;
 exports.BOTTOM_OVERLAY_ATTR = BOTTOM_OVERLAY_ATTR;
 exports.BannerHost = BannerHost;
 exports.CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD;
-exports.CATEGORICAL_CARD_TONE = CATEGORICAL_CARD_TONE;
 exports.COLLAPSED_SPINE_WIDTH = COLLAPSED_SPINE_WIDTH;
 exports.COMPACT_GROUP_PADDING = COMPACT_GROUP_PADDING;
 exports.CarouselPositionBadge = CarouselPositionBadge;
@@ -29903,6 +29923,7 @@ exports.useAllModels = useAllModels;
 exports.useAuthenticatedFileUrl = useAuthenticatedFileUrl;
 exports.useBeforeEditSave = useBeforeEditSave;
 exports.useBottomOverlayInset = useBottomOverlayInset;
+exports.useCategoricalCardTone = useCategoricalCardTone;
 exports.useContentRect = useContentRect;
 exports.useDataDetailLevel = useDataDetailLevel;
 exports.useFrameworkUiFeatures = useFrameworkUiFeatures;

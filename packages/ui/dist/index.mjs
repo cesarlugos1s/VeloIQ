@@ -6906,12 +6906,33 @@ var renderNumericValueBar = (value, maxValue, formattedValue, barColor) => {
   ] });
 };
 var { Text: Text5 } = Typography;
-var CATEGORICAL_CARD_TONE = {
-  soft: "#fde68a",
-  softer: "#fffbeb",
-  text: "#92400e",
-  border: "#fcd34d",
-  shadow: "#d97706"
+var toHexChannel = (value) => Math.round(value).toString(16).padStart(2, "0");
+var flattenColorOverSurface = (color, surfaceHex) => {
+  const surface = [1, 3, 5].map((index) => parseInt(surfaceHex.slice(index, index + 2), 16));
+  const rgbaMatch = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+  if (rgbaMatch) {
+    const alpha = rgbaMatch[4] === void 0 ? 1 : Number(rgbaMatch[4]);
+    const channels = [rgbaMatch[1], rgbaMatch[2], rgbaMatch[3]].map((channel, index) => Number(channel) * alpha + surface[index] * (1 - alpha));
+    return `#${channels.map(toHexChannel).join("")}`;
+  }
+  return color;
+};
+var LIGHT_SURFACE_HEX = "#ffffff";
+var useCategoricalCardTone = (modelLike) => {
+  const { mode, schemaVersion } = useContext(ColorModeContext);
+  const currentTone = getModelTone(modelLike, mode === "dark");
+  const { token } = theme.useToken();
+  const titleTone = getModelTone(modelLike, mode !== "dark");
+  const appSurface = mode === "dark" ? LIGHT_SURFACE_HEX : /^#[0-9a-fA-F]{6}$/.test(token.colorBgContainer) ? token.colorBgContainer : LIGHT_SURFACE_HEX;
+  const titleBackground = flattenColorOverSurface(titleTone.soft, appSurface);
+  return {
+    soft: titleBackground,
+    softer: currentTone.softer,
+    text: getContrastingTextColor(titleBackground),
+    bodyText: currentTone.solid,
+    border: currentTone.border,
+    shadow: currentTone.shadow
+  };
 };
 var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxs(
   "div",
@@ -6931,7 +6952,7 @@ var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxs(
     ]
   }
 );
-var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
+var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: tone.bodyText ?? tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.bodyText ?? tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
 
 // src/components/DynamicResource/utils/categoricalBreakdown.ts
 var CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5;
@@ -17344,6 +17365,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const location = useLocation();
   const { token } = theme.useToken();
   const relatedModelTone = useModelTone(relatedModel);
+  const categoricalTone = useCategoricalCardTone(relatedModel);
   const relatedResourcePath = resolveResourcePath(relatedModel.resource || relatedModel.name, allModels);
   const [rows, setRows] = useState([]);
   const [localSearch, setLocalSearch] = useState("");
@@ -18655,7 +18677,6 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     const hasCategoricalBoxes = totalsDetailsCategoricalBoxes.length > 0;
     const hasNumericBoxes = totalsDetailsNumericBoxes.length > 0;
     if (!hasCategoricalBoxes && !hasNumericBoxes) return null;
-    const categoricalTone = CATEGORICAL_CARD_TONE;
     const numericTone = relatedModelTone;
     return /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: [
       /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 8, alignItems: "center" }, children: [
@@ -18674,11 +18695,11 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
               hasCategoricalBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: categoricalTone, children: item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
                 "div",
                 {
-                  style: { fontSize: 12, color: categoricalTone.text, fontWeight: 400, textAlign: "center" },
+                  style: { fontSize: 12, color: categoricalTone.bodyText ?? categoricalTone.text, fontWeight: 400, textAlign: "center" },
                   children: `${entry.value}: ${formatNumberValue(entry.count)}`
                 },
                 `${keyPrefix}${item.key}-${entry.value}`
-              )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `${keyPrefix}${item.key}`)) }),
+              )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: categoricalTone.bodyText ?? categoricalTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `${keyPrefix}${item.key}`)) }),
               hasCategoricalBoxes && hasNumericBoxes && /* @__PURE__ */ jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
               hasNumericBoxes && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: totalsDetailsNumericBoxes.map((item) => /* @__PURE__ */ jsx(
                 TotalsDetailsCard,
@@ -20269,6 +20290,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   ], [model.name, model.resource, go, isEmbedded, onCreate]));
   const { token } = theme.useToken();
   const modelTone = useModelTone(model);
+  const catTone = useCategoricalCardTone(model);
   const searchField = model.fields.find((f) => f.type === "string" && !f.key.includes("_id") && !f.key.includes("eid")) || model.fields.find((f) => f.type === "string") || model.fields[0];
   const isFileModel3 = (model.resource || model.name).toLowerCase() === "file";
   const modelDefaultListViewType = String(model.listViewType || "").toLowerCase();
@@ -21468,7 +21490,6 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const hasCat = tdCategoricalBoxes.length > 0;
     const hasNum = tdNumericBoxes.length > 0;
     if (!hasCat && !hasNum) return null;
-    const catTone = CATEGORICAL_CARD_TONE;
     return /* @__PURE__ */ jsx("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { flex: 1, overflowX: "auto", paddingBottom: 2 }, children: /* @__PURE__ */ jsxs("div", { style: { width: "max-content", minWidth: "100%", display: "flex", justifyContent: "center", gap: 12, alignItems: "stretch" }, children: [
         hasCat && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: /* @__PURE__ */ jsx(CategoricalCardBody, { tone: catTone, breakdown: item.showBreakdown ? item.breakdown : void 0, value: item.value }) }, `td-cat-${item.key}`)) }),
@@ -29719,6 +29740,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL2 as API_URL, AdvancedFilterBuilder, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD, CATEGORICAL_CARD_TONE, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CategoricalCardBody, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, ColumnFilterValuesEditor, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FieldSequenceEditor, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, MultiSortControl, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TemporaryPageLayoutControls, TonedPage, TotalsDetailsCard, VIEW_TYPE_CATALOG, VeloIQPortalApp, ViewConfigurationToggleButton, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, applyTemporaryPageSetup, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildCategoricalBreakdown, buildColumnFilterOptions, buildListFilterParams, buildServerFiltersFromRules, buildShowTabFormOptions, buildViewTypeLabels, clearAccess, clearTemporaryPageSetup, clipToViewport, createInPageRowsStore, evaluateAccess, fetchAllListRows, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getAllViewTypes, getListViewFields, getModelTone, getNavEntry, getSelectableViewTypes, getViewTypeCapabilitiesForPage, getViewTypeLabel, getViewTypesForContext, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, isViewTypeApplicable, matchesColumnFilterValue, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, orderAfterMove, orderAfterSelection, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPageTemplateProvider, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, resolveRelativeDate, resolveViewTypeToken, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AdvancedFilterBuilder, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CategoricalCardBody, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, ColumnFilterValuesEditor, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FieldSequenceEditor, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, MultiSortControl, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TemporaryPageLayoutControls, TonedPage, TotalsDetailsCard, VIEW_TYPE_CATALOG, VeloIQPortalApp, ViewConfigurationToggleButton, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, applyTemporaryPageSetup, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildCategoricalBreakdown, buildColumnFilterOptions, buildListFilterParams, buildServerFiltersFromRules, buildShowTabFormOptions, buildViewTypeLabels, clearAccess, clearTemporaryPageSetup, clipToViewport, createInPageRowsStore, evaluateAccess, fetchAllListRows, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getAllViewTypes, getListViewFields, getModelTone, getNavEntry, getSelectableViewTypes, getViewTypeCapabilitiesForPage, getViewTypeLabel, getViewTypesForContext, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, isViewTypeApplicable, matchesColumnFilterValue, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, orderAfterMove, orderAfterSelection, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPageTemplateProvider, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, resolveRelativeDate, resolveViewTypeToken, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useCategoricalCardTone, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

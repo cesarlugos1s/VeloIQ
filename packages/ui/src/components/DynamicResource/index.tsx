@@ -115,7 +115,7 @@ import {
     renderSharedGalleryCard,
 } from "./utils/gallery";
 import { renderNumericValueBar } from "./utils/statistics";
-import { TotalsDetailsCard, CATEGORICAL_CARD_TONE, CategoricalCardBody } from "./TotalsDetailsCard";
+import { TotalsDetailsCard, useCategoricalCardTone, CategoricalCardBody } from "./TotalsDetailsCard";
 import { buildCategoricalBreakdown } from "./utils/categoricalBreakdown";
 import {
     INLINE_RELATION_MAX_ITEMS,
@@ -416,6 +416,7 @@ const DynamicListPage: React.FC<{
     ], [model.name, model.resource, go, isEmbedded, onCreate]));
     const { token } = theme.useToken();
     const modelTone = useModelTone(model);
+    const catTone = useCategoricalCardTone(model);
     const searchField = model.fields.find(f => f.type === 'string' && !f.key.includes('_id') && !f.key.includes('eid'))
         || model.fields.find(f => f.type === 'string')
         || model.fields[0];
@@ -1802,7 +1803,6 @@ const DynamicListPage: React.FC<{
         const hasCat = tdCategoricalBoxes.length > 0;
         const hasNum = tdNumericBoxes.length > 0;
         if (!hasCat && !hasNum) return null;
-        const catTone = CATEGORICAL_CARD_TONE;
         return (
             <div style={{ marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
