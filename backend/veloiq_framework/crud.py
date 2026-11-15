@@ -359,6 +359,59 @@ def _to_dict(obj: SQLModel) -> dict:
     return _sanitize(data)
 
 
+def reference_models_for(model_class: type) -> dict:
+    """Reference fields of *model_class* mapped to the model each one points to (by foreign key)."""
+    from sqlalchemy.inspection import inspect as sa_inspect
+    tables = {getattr(mapper.class_, "__tablename__", None): mapper.class_
+              for mapper in SQLModel._sa_registry.mappers}
+    references = {}
+    for col_attr in sa_inspect(model_class).column_attrs:
+        for foreign_key in col_attr.columns[0].foreign_keys:
+            target = tables.get(foreign_key.column.table.name)
+            if target is not None:
+                references[col_attr.key] = target
+    return references
+
+
+def read_list_rows(
+    model_class: type,
+    request: Request,
+    session: Session,
+    *,
+    query_params=None,
+    limit: int | None = None,
+    with_titles: bool = False,
+) -> list[dict]:
+    """The rows a signed-in user may read from *model_class*, as the list endpoint selects them.
+
+    Applies the same rules as the list endpoints: the model access decision (403 when
+    denied), the query-param filters of :func:`_build_where_clauses`, the row-level
+    ``@rebac`` filter and the role's field permissions. Extensions use it to read the
+    rows of a list without going through HTTP (for example to count what needs attention).
+
+    :param query_params: ``?field=value`` style filters (a mapping); none by default.
+    :param limit: Read at most this many rows.
+    :param with_titles: Add each row's display title as ``_label``.
+    """
+    _require_model_access(request, model_class, "read")
+    user = getattr(request.state, "user", None) or {}
+    statement = select(model_class)
+    for clause in _build_where_clauses(model_class, query_params or {}):
+        statement = statement.where(clause)
+    rebac_clause = _build_rebac_clause(model_class, user, session)
+    if rebac_clause is not None:
+        statement = statement.where(rebac_clause)
+    if limit is not None:
+        statement = statement.limit(limit)
+    rows = []
+    for record in session.exec(statement).all():
+        data = record.model_dump()
+        if with_titles:
+            data["_label"] = build_model_str_label(record)
+        rows.append(_filter_read_fields(data, model_class, user.get("roles", [])))
+    return rows
+
+
 def create_crud_router(
     model_class: Type[T],
     *,
@@ -685,17 +738,7 @@ def create_crud_router(
     # Registered before the "/{record_id}" routes for the same reason as export-csv above.
 
     def _reference_models() -> dict:
-        """Field key -> referenced model class, for this model's foreign-key columns."""
-        from sqlalchemy.inspection import inspect as sa_inspect
-        tables = {getattr(mapper.class_, "__tablename__", None): mapper.class_
-                  for mapper in SQLModel._sa_registry.mappers}
-        references = {}
-        for col_attr in sa_inspect(model_class).column_attrs:
-            for foreign_key in col_attr.columns[0].foreign_keys:
-                target = tables.get(foreign_key.column.table.name)
-                if target is not None:
-                    references[col_attr.key] = target
-        return references
+        return reference_models_for(model_class)
 
     @router.post("/analyze", summary=f"Aggregate {tablename} for the Analyze section", dependencies=[Depends(require_framework_ui_feature("analyze"))])
     def analyze_items(spec: dict, request: Request, session: Session = Depends(get_session)):
@@ -711,16 +754,6 @@ def create_crud_router(
         from veloiq_framework.analyze import jm_analyze_rows, reference_titles_for
         from veloiq_framework.extension_registry import read_views_config
 
-        _require_model_access(request, model_class, "read")
-        user = getattr(request.state, "user", None) or {}
-        user_roles = user.get("roles", [])
-        stmt = select(model_class)
-        for clause in _build_where_clauses(model_class, request.query_params):
-            stmt = stmt.where(clause)
-        rebac_clause = _build_rebac_clause(model_class, user, session)
-        if rebac_clause is not None:
-            stmt = stmt.where(rebac_clause)
-
         fields = [field for field in (spec.get("fields") or []) if isinstance(field, dict) and field.get("key")]
         category_keys = [key for key in (spec.get("category_keys") or []) if key]
         column_filters = {key: values for key, values in (spec.get("column_filters") or {}).items() if values}
@@ -729,12 +762,7 @@ def create_crud_router(
         # Record titles are only needed when searching, or when the primary key is grouped or filtered on.
         needs_titles = bool(search.strip()) or pk_field in category_keys or pk_field in column_filters
 
-        rows = []
-        for record in session.exec(stmt).all():
-            data = record.model_dump()
-            if needs_titles:
-                data["_label"] = build_model_str_label(record)
-            rows.append(_filter_read_fields(data, model_class, user_roles))
+        rows = read_list_rows(model_class, request, session, query_params=request.query_params, with_titles=needs_titles)
 
         reference_models = _reference_models()
         wanted = set(category_keys) | set(stats_keys) | (set(reference_models) if search.strip() else set())

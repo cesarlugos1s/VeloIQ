@@ -19,6 +19,7 @@ it uses for rows it aggregates itself.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 from veloiq_framework.utils.views_utils import (
@@ -265,3 +266,203 @@ def reference_titles_for(rows: Iterable[dict], reference_fields: Dict[str, type]
             for record in session.exec(select(model).where(pk_column.in_(id_list[start:start + 500]))).all():
                 titles[key][js_text(getattr(record, pk_column.key))] = title_of(record)
     return titles
+
+
+# ── Advanced filter rules (the list's "Advanced filters"), ported from the frontend ──────────
+
+def _month_start(moment: "datetime") -> "datetime":
+    """First instant of the month of ``moment``."""
+    return moment.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _shift_months(moment: "datetime", months: int) -> "datetime":
+    """``moment`` moved by ``months`` calendar months (the day is clamped to the month's length)."""
+    from calendar import monthrange
+    index = moment.year * 12 + (moment.month - 1) + months
+    year, month = divmod(index, 12)
+    month += 1
+    return moment.replace(year=year, month=month, day=min(moment.day, monthrange(year, month)[1]))
+
+
+def _unit_bounds(moment: "datetime", unit: str) -> "tuple[datetime, datetime]":
+    """First and last instants of the day, week (Sunday first, as dayjs), month, quarter or year of ``moment``."""
+    from datetime import timedelta
+    day_start = moment.replace(hour=0, minute=0, second=0, microsecond=0)
+    last_microsecond = timedelta(microseconds=1)
+    if unit in ("week", "weeks"):
+        start = day_start - timedelta(days=(day_start.weekday() + 1) % 7)
+        return start, start + timedelta(days=7) - last_microsecond
+    if unit in ("month", "months"):
+        start = _month_start(moment)
+        return start, _shift_months(start, 1) - last_microsecond
+    if unit in ("quarter", "quarters"):
+        start = _month_start(_shift_months(moment, -((moment.month - 1) % 3)))
+        return start, _shift_months(start, 3) - last_microsecond
+    if unit in ("year", "years"):
+        start = day_start.replace(month=1, day=1)
+        return start, start.replace(year=start.year + 1) - last_microsecond
+    return day_start, day_start + timedelta(days=1) - last_microsecond
+
+
+def resolve_relative_date(value: Optional[dict], as_range: bool, now: Optional["datetime"] = None) -> dict:
+    """Resolve a relative date of an advanced filter rule ("next 2 weeks", "current quarter"...).
+
+    Returns ``{"start", "end"}`` when ``as_range`` is set or the direction is "current",
+    otherwise ``{"date"}`` -- the frontend's resolveRelativeDate.
+    """
+    from datetime import datetime, timedelta
+    value = value or {}
+    base = now or datetime.now()
+    count = int(value.get("count") if value.get("count") is not None else 1)
+    direction = value.get("direction") or "next"
+    unit = value.get("unit") or "weeks"
+    sign = -1 if direction == "previous" else 1
+
+    def shifted() -> "datetime":
+        if direction == "current":
+            return base
+        if unit == "quarters":
+            return _shift_months(base, sign * count * 3)
+        if unit == "months":
+            return _shift_months(base, sign * count)
+        if unit == "years":
+            return _shift_months(base, sign * count * 12)
+        return base + timedelta(days=sign * count * (7 if unit == "weeks" else 1))
+
+    anchor = shifted()
+    start, end = _unit_bounds(anchor, unit)
+    if as_range or direction == "current":
+        return {"start": start, "end": end}
+    return {"date": start}
+
+
+def _to_naive_datetime(value: Any) -> "Optional[datetime]":
+    """A date, datetime or ISO text as a naive local datetime, or None when it is not a date."""
+    from datetime import date, datetime
+    if isinstance(value, datetime):
+        moment = value
+    elif isinstance(value, date):
+        moment = datetime(value.year, value.month, value.day)
+    elif isinstance(value, str) and value.strip():
+        try:
+            from dateutil.parser import isoparse
+            moment = isoparse(value.strip())
+        except (ValueError, OverflowError):
+            return None
+    else:
+        return None
+    return moment.astimezone().replace(tzinfo=None) if moment.tzinfo else moment
+
+
+def _rule_date_range(value: Any, as_range: bool) -> dict:
+    """An advanced filter rule's date value as a range or one date (relative or absolute)."""
+    if isinstance(value, dict) and value.get("mode") == "relative":
+        return resolve_relative_date(value, as_range)
+    moment = _to_naive_datetime(value.get("date") if isinstance(value, dict) else value)
+    if moment is None:
+        return {}
+    start, end = _unit_bounds(moment, "day")
+    return {"start": start, "end": end} if as_range else {"date": start}
+
+
+def row_matches_advanced_filter_rule(field: dict, row: dict, rule: dict,
+                                     reference_titles: Optional[Dict[str, Dict[str, str]]] = None) -> bool:
+    """True when ``row`` satisfies one advanced filter rule -- the browser's list ``matchesRule``.
+
+    :param field: The rule's field metadata: ``key``, ``type``, ``reference`` (bool) and
+        optionally ``options`` (``[{"value", "label"}]``).
+    :param rule: ``{"fieldKey", "operator", "value", "value2"}`` as the advanced filter builder saves it.
+    :param reference_titles: Titles of the records reference fields point to, per field key.
+    """
+    operator = rule.get("operator")
+    if not field or not operator:
+        return True
+    raw = row.get(field["key"])
+    if raw is None:
+        return False
+    if field.get("reference"):
+        raw = ((reference_titles or {}).get(field["key"], {})).get(js_text(raw)) or raw
+    elif field.get("options"):
+        raw = next((option.get("label") for option in field["options"] if option and option.get("value") == raw), None) or raw
+    field_type = field.get("type")
+
+    if field_type == "string":
+        target = js_text(rule.get("value") if rule.get("value") is not None else "").lower()
+        if not target:
+            return True
+        text = js_text(raw).lower()
+        if operator == "contains":
+            return target in text
+        if operator == "equals":
+            return text == target
+        return True
+
+    if field_type == "number":
+        try:
+            number = float(raw)
+        except (TypeError, ValueError):
+            return False
+
+        def as_number(value: Any) -> Optional[float]:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        target, target2 = as_number(rule.get("value")), as_number(rule.get("value2"))
+        if operator == "between":
+            return target is not None and target2 is not None and target <= number <= target2
+        comparisons = {"eq": lambda a, b: a == b, "gt": lambda a, b: a > b, "gte": lambda a, b: a >= b,
+                       "lt": lambda a, b: a < b, "lte": lambda a, b: a <= b}
+        if operator in comparisons:
+            return target is not None and comparisons[operator](number, target)
+        return True
+
+    if field_type == "boolean":
+        return bool(raw) == bool(rule.get("value")) if operator == "is" else True
+
+    if field_type in ("date", "datetime"):
+        moment = _to_naive_datetime(raw)
+        if moment is None:
+            return False
+        if operator == "on":
+            window = _rule_date_range(rule.get("value"), True)
+            return bool(window) and window["start"] <= moment <= window["end"]
+        if operator in ("after", "before"):
+            target = _rule_date_range(rule.get("value"), False).get("date")
+            if target is None:
+                return False
+            day_start, day_end = _unit_bounds(target, "day")
+            return moment > day_end if operator == "after" else moment < day_start
+        if operator == "between":
+            first = _rule_date_range(rule.get("value"), True)
+            last = _rule_date_range(rule.get("value2"), True)
+            if not first or not last:
+                return False
+            return first["start"] <= moment <= last["end"]
+        return True
+    return True
+
+
+# ── Categorical breakdown (the rows of a categorical summary card), ported from the frontend ─────
+
+#: A summary card lists every distinct value while there are fewer than this many (the frontend's
+#: CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD).
+CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5
+
+
+def build_categorical_breakdown(counts: Dict[str, int], others_label: str,
+                                threshold: int = CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD) -> List[dict]:
+    """The rows of a categorical summary card: the values with the highest counts (descending, at
+    most ``threshold - 1``), then one row grouping all the remaining values when there are more
+    distinct values than fit -- the frontend's buildCategoricalBreakdown.
+
+    Each row is ``{"value", "count"}``; the grouping row also has ``"is_others": True``.
+    """
+    ranked = sorted(({"value": value, "count": count} for value, count in counts.items()),
+                    key=lambda entry: entry["count"], reverse=True)
+    if len(ranked) < threshold:
+        return ranked
+    shown = ranked[:threshold - 1]
+    others = sum(entry["count"] for entry in ranked[threshold - 1:])
+    return shown + [{"value": others_label, "count": others, "is_others": True}]
