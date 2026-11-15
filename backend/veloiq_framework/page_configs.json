@@ -131,6 +131,17 @@
             {"kind": "field", "key": "panes_max_visible", "row": 1, "column": 2},
             {"kind": "field", "key": "panes_fixed_width", "row": 1, "column": 3}
           ]
+        },
+        {
+          "id": "veloiq_system_config:map",
+          "name": "Map",
+          "grid_row": 6,
+          "grid_col": 2,
+          "style": "veloiq_system_config_views",
+          "entries": [
+            {"kind": "field", "key": "map_tile_url", "row": 1, "column": 1},
+            {"kind": "field", "key": "map_tile_attribution", "row": 1, "column": 2}
+          ]
         }
       ]
     }
