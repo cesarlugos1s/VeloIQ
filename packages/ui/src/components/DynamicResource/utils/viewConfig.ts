@@ -72,6 +72,9 @@ export type PanesLayoutMode = "stack" | "breadcrumb" | "overlay" | "scroll";
 export const DEFAULT_PANES_LAYOUT_MODE: PanesLayoutMode = "stack";
 export const DEFAULT_PANES_MAX_VISIBLE = 2;
 export const DEFAULT_PANES_FIXED_WIDTH = 480;
+/** The map view's base map when `[views]` sets none: the public OpenStreetMap tile server (matches the System Configuration default). */
+export const DEFAULT_MAP_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const DEFAULT_MAP_TILE_ATTRIBUTION = "© OpenStreetMap contributors";
 /** Rows above which a list's Analyze section aggregates on the server (System Configuration). */
 export const DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD = 10000;
 
@@ -88,6 +91,10 @@ export type ViewSettings = {
     analyzeServerAggregationThreshold: number;
     /** The most columns a kanban view shows; those with the most records are kept. */
     maximumColumnsInKanbanView: number;
+    /** Raster tile URL template of the map view's base map; empty draws a plain background. */
+    mapTileUrl: string;
+    /** Credit shown under the map for the tile provider. */
+    mapTileAttribution: string;
     modulesColorSchema: string;
     modelsColorSchema: string;
     generalActionsButtonPosition: GeneralActionsButtonPosition;
@@ -154,6 +161,8 @@ export const useViewSettings = (): { settings: ViewSettings | null; loading: boo
                         data?.analyzeServerAggregationThreshold, DEFAULT_ANALYZE_SERVER_AGGREGATION_THRESHOLD),
                     maximumColumnsInKanbanView: normalizePositiveInt(
                         data?.maximumColumnsInKanbanView, DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW),
+                    mapTileUrl: String(data?.mapTileUrl || DEFAULT_MAP_TILE_URL),
+                    mapTileAttribution: String(data?.mapTileAttribution || DEFAULT_MAP_TILE_ATTRIBUTION),
                     modulesColorSchema,
                     modelsColorSchema,
                     generalActionsButtonPosition: normalizeActionsPosition(data?.generalActionsButtonPosition),

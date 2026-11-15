@@ -149,6 +149,17 @@
       "requires": "split-field"
     },
     {
+      "token": "map",
+      "label": "Map",
+      "offeredIn": [
+        "list-page",
+        "relation-show",
+        "relation-edit",
+        "default-setting"
+      ],
+      "requires": "map-location"
+    },
+    {
       "token": "primary",
       "label": "Primary",
       "offeredIn": [

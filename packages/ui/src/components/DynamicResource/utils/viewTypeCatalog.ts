@@ -13,7 +13,7 @@ import { translateText } from "./i18n";
 import viewTypeCatalogFile from "../../../../../../backend/veloiq_framework/view_types.json";
 
 /** What the model's fields must provide for a view type to be worth offering. */
-export type ViewTypeFieldRequirement = "image-source" | "number-field" | "date-field" | "split-field";
+export type ViewTypeFieldRequirement = "image-source" | "number-field" | "date-field" | "split-field" | "map-location";
 
 /**
  * Where a view type selector is offered. "configuration" is for tools that

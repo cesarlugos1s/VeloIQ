@@ -1,6 +1,7 @@
 """The view type catalog (view_types.json) is the one source of the backend's view type lists."""
 from veloiq_framework.utils.views_utils import resolve_dashboard_view_type
 from veloiq_framework.view_types import (
+    _read_catalog,
     get_all_view_types,
     get_view_type_label_text,
     get_view_types_for_context,
@@ -34,3 +35,12 @@ def test_dashboard_view_type_resolution_uses_the_catalog():
     assert resolve_dashboard_view_type("sameetypelist") == "list"
     assert resolve_dashboard_view_type("custom_show_page") == "custom_show_page"
     assert resolve_dashboard_view_type("") == "table"
+
+
+def test_map_view_type_requires_a_declared_map_location():
+    assert "map" in get_view_types_for_context("list-page")
+    assert "map" in get_view_types_for_context("relation-show")
+    assert "map" not in get_view_types_for_context("kanban-column")
+    assert resolve_view_type_token("MapView") == "map"
+    map_entry = next(entry for entry in _read_catalog() if entry["token"] == "map")
+    assert map_entry["requires"] == "map-location"

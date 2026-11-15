@@ -2393,3 +2393,36 @@ msgstr "Tree"
 
 msgid "Tree with details"
 msgstr "Tree with details"
+
+msgid "Map"
+msgstr "Map"
+
+msgid "Latitude field"
+msgstr "Latitude field"
+
+msgid "Longitude field"
+msgstr "Longitude field"
+
+msgid "Measure"
+msgstr "Measure"
+
+msgid "Points"
+msgstr "Points"
+
+msgid "Look"
+msgstr "Look"
+
+msgid "No records have a location."
+msgstr "No records have a location."
+
+msgid "records"
+msgstr "records"
+
+msgid "Grouped into grid cells"
+msgstr "Grouped into grid cells"
+
+msgid "Records without a location"
+msgstr "Records without a location"
+
+msgid "Open"
+msgstr "Open"

@@ -7,6 +7,7 @@ import type { ModelDef } from "../types";
 import { getCalendarDateFieldOptions } from "./calendar";
 import { modelHasImageSource } from "./gallery";
 import { getKanbanSplitFieldOptions } from "./kanban";
+import { modelHasMapLocation } from "./mapView";
 import { isPkField } from "./model";
 import { getViewTypeCatalogEntries, type ViewTypeFieldRequirement, type ViewTypeSelectorContext } from "./viewTypeCatalog";
 
@@ -21,6 +22,7 @@ function modelMeetsRequirement(requirement: ViewTypeFieldRequirement | undefined
         case "date-field": return getCalendarDateFieldOptions(model.fields).length > 0;
         case "number-field": return hasNumericField(model);
         case "split-field": return getKanbanSplitFieldOptions(model.fields).length > 0;
+        case "map-location": return modelHasMapLocation(model);
         default: return true;
     }
 }

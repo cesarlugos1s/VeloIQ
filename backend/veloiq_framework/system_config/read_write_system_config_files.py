@@ -155,6 +155,14 @@ VIEWS_KEY_COMMENTS: dict[str, str] = {
         "# Most columns a kanban view shows; with more distinct values of the split\n"
         "# fields, the columns with the most records are kept (default: 10).\n"
     ),
+    "map_tile_url": (
+        "# Raster tile URL template of the map view's base map (default: the public\n"
+        "# OpenStreetMap tile server). Use your own tile server's URL for an installation\n"
+        "# without internet access, e.g. https://tiles.example.com/{z}/{x}/{y}.png\n"
+    ),
+    "map_tile_attribution": (
+        "# Credit shown under the map for the tile provider (default: OpenStreetMap).\n"
+    ),
     "general_actions_button_position": (
         '# Where the general action buttons are rendered on model pages:\n'
         '# "top-right", "left", or "right" (default: "top-right").\n'

@@ -2392,3 +2392,36 @@ msgstr "Árbol"
 
 msgid "Tree with details"
 msgstr "Árbol con detalles"
+
+msgid "Map"
+msgstr "Mapa"
+
+msgid "Latitude field"
+msgstr "Campo de latitud"
+
+msgid "Longitude field"
+msgstr "Campo de longitud"
+
+msgid "Measure"
+msgstr "Medida"
+
+msgid "Points"
+msgstr "Puntos"
+
+msgid "Look"
+msgstr "Aspecto"
+
+msgid "No records have a location."
+msgstr "Ningún registro tiene ubicación."
+
+msgid "records"
+msgstr "registros"
+
+msgid "Grouped into grid cells"
+msgstr "Agrupados en celdas de cuadrícula"
+
+msgid "Records without a location"
+msgstr "Registros sin ubicación"
+
+msgid "Open"
+msgstr "Abrir"

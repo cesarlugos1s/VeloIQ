@@ -23,6 +23,7 @@ import {
 import { ddlTrace } from "../utils/ddlTrace";
 import { RelatedObjectsInlineValues } from "./RelatedObjectsInlineValues";
 import { RelatedObjectsCalendar } from "./RelatedObjectsCalendar";
+import { RelatedObjectsMap } from "./RelatedObjectsMap";
 import { RelatedObjectsPrimaryView } from "./RelatedObjectsPrimaryView";
 import { RelatedObjectsGallery } from "./RelatedObjectsGallery";
 import { RelatedObjectsEditableList } from "./RelatedObjectsEditableList";
@@ -250,6 +251,35 @@ const renderRelationBlockContent = ({
                     showCreate={showCreateButton}
                     layoutPreferenceType={layoutPreferenceType}
                     listViewType="calendar"
+                    defaultListVisible={rel.defaultListVisible}
+                />
+            </div>
+        );
+    }
+
+    if (viewType === "map") {
+        if (shouldShowRelatedObjects) {
+            return (
+                <div key={rel.resource} style={{ marginTop: 12 }}>
+                    {showLabel && <div style={{ ...resolvedLabelStyle, marginBottom: 6 }}>{relationLabel}</div>}
+                    <RelatedObjectsMap rel={rel} record={record} relatedModel={relatedModel} allModels={allModels} />
+                </div>
+            );
+        }
+        return (
+            <div key={rel.resource} style={{ marginTop: 12 }}>
+                {showLabel && <div style={{ ...resolvedLabelStyle, marginBottom: 6 }}>{relationLabel}</div>}
+                <DynamicList
+                    key={`${(rel as any).relationName || rel.resource || "dl"}-ddl-${(window as any).__veloiq_dataDetailLevel ?? 0}`}
+                    model={relationModel}
+                    allModels={allModels}
+                    filter={{ field: rel.targetKey, operator: "eq", value: getRecordId(record) }}
+                    relationConfig={rel}
+                    isEmbedded={true}
+                    showActions={showRelationActions}
+                    showCreate={showCreateButton}
+                    layoutPreferenceType={layoutPreferenceType}
+                    listViewType="map"
                     defaultListVisible={rel.defaultListVisible}
                 />
             </div>

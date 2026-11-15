@@ -139,6 +139,10 @@ _VIEWS_KEY_MAP: dict[str, tuple[str, type]] = {
     "analyze_server_aggregation_threshold": ("analyzeServerAggregationThreshold", int),
     # The most columns a kanban view shows (those with the most records are kept).
     "maximum_columns_in_kanban_view": ("maximumColumnsInKanbanView", int),
+    # Raster tile URL template of the map view's base map ("https://host/{z}/{x}/{y}.png")
+    # and the credit shown for it.
+    "map_tile_url": ("mapTileUrl", str),
+    "map_tile_attribution": ("mapTileAttribution", str),
     "general_actions_button_position": ("generalActionsButtonPosition", str),
     "add_tabs_for_non_configured_relations": ("addTabsForNonConfiguredRelations", bool),
     # Show the Dashboard entry in the app's menus (external portals have their own setting).

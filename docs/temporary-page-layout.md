@@ -10,7 +10,7 @@ selector, on list, show, edit and create pages. Pages embedded in another page
 
 | Control | List | Show | Edit | Create | Notes |
 |---|---|---|---|---|---|
-| View type (first option of **Design options**) | yes | - | - | - | Table, list, gallery, calendar, kanban, crosstab, primary, ... The calendar is offered only when the model has a date field. |
+| View type (first option of **Design options**) | yes | - | - | - | Table, list, gallery, calendar, kanban, map, crosstab, primary, ... The calendar is offered only when the model has a date field, and the map only when the model declares its location fields. |
 | Template | yes | yes | yes | yes | Shown only when an extension registers a page template provider. "Configured layout" returns to the page configuration. |
 | Analyze on/off (switch in **Design options**) | yes | - | - | - | Only where the resource has an Analyze area. |
 | Analyze position | yes | - | - | - | Before/after the data, stacked/side by side. |

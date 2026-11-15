@@ -137,6 +137,8 @@ import { RelatedObjectsInlineValues } from "./relations/RelatedObjectsInlineValu
 import { RelatedObjectsGallery } from "./relations/RelatedObjectsGallery";
 import { RelatedObjectsCalendar } from "./relations/RelatedObjectsCalendar";
 import { KanbanView } from "./KanbanView";
+import { MapView } from "./MapView";
+import { resolveListVisibilityOnDetailLevelChange } from "./utils/listVisibilityOnDetailLevelChange";
 import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "./utils/kanban";
 import { RelatedObjectsEditableList } from "./relations/RelatedObjectsEditableList";
 import { RelationsExplorer } from "./relations/RelationsExplorer";
@@ -303,7 +305,7 @@ const DynamicListPage: React.FC<{
     showActions?: boolean;
     showCreate?: boolean;
     layoutPreferenceType?: "ShowLayout" | "EditLayout";
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "primary-carousel" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "map" | "totals-details" | "crosstab" | "editable-crosstab" | "primary" | "primary-carousel" | "list" | "editable-list";
     rowSelection?: any;
     extraHeaderButtons?: React.ReactNode;
     bulkActions?: BulkActionDef[];
@@ -419,6 +421,7 @@ const DynamicListPage: React.FC<{
     const isGalleryView = resolvedListViewType === "gallery" || isImageView;
     const isCalendarView = resolvedListViewType === "calendar";
     const isKanbanView = resolvedListViewType === "kanban";
+    const isMapView = resolvedListViewType === "map";
     const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
     const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
     // "primary-carousel" is the primary view with its carousel layout (one record at a time).
@@ -1138,13 +1141,15 @@ const DynamicListPage: React.FC<{
             isTotalsDetailsView ||
             isCrosstabView ||
             isKanbanView ||
+            // The map places every record, so it needs them all.
+            isMapView ||
             isPrimaryCarouselView ||
             // The calendar needs every record to know which months and weeks hold data.
             isCalendarView ||
             columnFilterDropdownEverOpened ||
             hasActiveRangeColumnFilter
         );
-    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isPrimaryCarouselView, isCalendarView, localSearch]);
+    }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isMapView, isPrimaryCarouselView, isCalendarView, localSearch]);
 
     const resetLayoutDefaults = useCallback(() => {
         setListVisible(defaultListVisible ?? true);
@@ -1160,18 +1165,21 @@ const DynamicListPage: React.FC<{
 
     // React to DataDetail slider level 6 (Analyze) — poll window variable
     // because Ant Design Tabs caches panel content and prevents normal re-renders.
+    // Only a change of the level acts: the list is hidden on entering level 6 and shown again on
+    // leaving it. Acting on every tick would undo the user's own show/hide of the list within 200 ms.
+    const previousDetailLevelRef = useRef<unknown>(null);
     useEffect(() => {
         const interval = setInterval(() => {
             const lvl = (window as any).__veloiq_dataDetailLevel;
+            const previousLevel = previousDetailLevelRef.current;
+            previousDetailLevelRef.current = lvl;
             // Without an Analyze section (showAnalyzeSection: false) the list stays at every level.
-            if (lvl === 6 && analyzeSectionAvailable) {
-                setListVisible(false);
-            } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible && defaultListVisible === undefined && !isTotalsDetailsView) {
-                setListVisible(true);
-            }
+            const change = resolveListVisibilityOnDetailLevelChange(previousLevel, lvl, analyzeSectionAvailable, defaultListVisible === undefined && !isTotalsDetailsView);
+            if (change === "hide") setListVisible(false);
+            else if (change === "show") setListVisible(true);
         }, 200);
         return () => { clearInterval(interval); };
-    }, [listVisible, defaultListVisible]);
+    }, [defaultListVisible, analyzeSectionAvailable, isTotalsDetailsView]);
 
     const persistCurrentViewNames = useCallback(async (nextSelected: string[], nextCurrent: string) => {
         try {
@@ -1544,13 +1552,13 @@ const DynamicListPage: React.FC<{
         if (!allRowsLoaded) return;
         if (analyzeTouchedRef.current) return;
         // Totals / details and kanban start with the Analyze section hidden (the user opens it).
-        if (isTotalsDetailsView || isKanbanView) return;
+        if (isTotalsDetailsView || isKanbanView || isMapView) return;
         if ((allRows?.length ?? 0) <= 1) {
             setAnalyzeOpen(false);
         } else {
             setAnalyzeOpen(true);
         }
-    }, [allRows?.length, allRowsLoaded, isTotalsDetailsView, isKanbanView]);
+    }, [allRows?.length, allRowsLoaded, isTotalsDetailsView, isKanbanView, isMapView]);
 
     useEffect(() => {
         if (!hasActiveFilterRules || isClientFiltering) return;
@@ -2437,7 +2445,7 @@ const DynamicListPage: React.FC<{
         </div>
     ) : null;
 
-    const bulkActionsToolbar = !isGalleryView && !isCalendarView && !isKanbanView && bulkSelectedRowKeys.length > 0 ? (
+    const bulkActionsToolbar = !isGalleryView && !isCalendarView && !isKanbanView && !isMapView && bulkSelectedRowKeys.length > 0 ? (
         <div style={{
             display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8,
             padding: "6px 10px", marginBottom: 8, borderRadius: 6,
@@ -3636,6 +3644,16 @@ const DynamicListPage: React.FC<{
                             fieldSequenceKeys={orderedSelectedColumns}
                             maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
                             formatValue={(field, record) => String(getFieldValueForFilter(field, record) ?? "")}
+                            toolbarExtra={analyzeSectionAvailable ? <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} /> : undefined}
+                        />
+                    ) : isMapView ? (
+                        <MapView
+                            model={model}
+                            allModels={allModels}
+                            records={recordsInSharedOrder}
+                            tileUrl={viewSettings?.mapTileUrl}
+                            tileAttribution={viewSettings?.mapTileAttribution}
+                            aggregationThreshold={analyzeServerAggregationThreshold}
                             toolbarExtra={analyzeSectionAvailable ? <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} /> : undefined}
                         />
                     ) : isGalleryView ? (

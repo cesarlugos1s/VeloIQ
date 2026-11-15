@@ -53,6 +53,7 @@ component.
 | Kanban | yes | yes (cards) | yes | yes (per column) | yes (cards) | no | yes |
 | Gallery, image | yes | yes | yes | yes | yes (captions) | no | no |
 | Calendar | yes | same-day order | yes | no | yes (event popup) | no | no |
+| Map | yes | no (not applicable) | yes | no | no | no | yes |
 | Primary | no | no | no | no | yes | no | no |
 
 An option a view type does not support is hidden but kept: it applies again

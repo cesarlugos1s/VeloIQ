@@ -51,7 +51,7 @@ export interface FieldDef {
     referenceKey?: string;
 }
 
-export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "kanban" | "primary" | "primary-carousel" | "totals-details" | "tree" | "tree-details";
+export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "kanban" | "map" | "primary" | "primary-carousel" | "totals-details" | "tree" | "tree-details";
 
 export interface MillerLeafConfig {
     relationPath: string;
@@ -122,7 +122,7 @@ export interface ModelDef {
     resource?: string;
     description?: string;
     pkField?: string;
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "totals-details" | "primary" | "primary-carousel" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "map" | "totals-details" | "primary" | "primary-carousel" | "list" | "editable-list";
     /** Field keys whose values compose this model's record title (space-joined).
      *  Configured via `veloiq set-title` and stored on the model's
      *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */
@@ -130,6 +130,9 @@ export interface ModelDef {
     /** Where the gallery / image views take a record's picture from: a URL field of this
      *  model, or a relation to File records. Mirrors `__veloiq_ui__["imageSource"]`. */
     imageSource?: string;
+    /** The latitude and longitude fields the map view takes each record's position from.
+     *  Mirrors `__veloiq_ui__["mapLocation"]`; a model without it never offers the map view. */
+    mapLocation?: { latitude: string; longitude: string };
     /** True when this ModelDef represents a NamedQuery rather than a plain model table. */
     isNamedQuery?: boolean;
     /** Resource name of the primary model (for show/edit navigation and write routing). */

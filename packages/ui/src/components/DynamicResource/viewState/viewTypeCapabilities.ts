@@ -35,6 +35,8 @@ const CROSSTAB = withOverrides({ pagination: false, summaries: true, analyze: tr
 const KANBAN = withOverrides({ analyze: true });
 const GALLERY = withOverrides({});
 const CALENDAR = withOverrides({ pagination: false });
+/** The map shows every record that has a position, so it has no pages. */
+const MAP = withOverrides({ pagination: false, fieldSequence: false, analyze: true });
 const PRIMARY: ViewTypeCapabilities = { ...NONE, fieldSequence: true };
 
 const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
@@ -55,6 +57,7 @@ const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
     "gallery": GALLERY,
     "image": GALLERY,
     "calendar": CALENDAR,
+    "map": MAP,
     "primary": PRIMARY,
     "primary-carousel": PRIMARY,
 };

@@ -74,6 +74,10 @@ export const HELP_ACTION_CATALOG: Record<string, HelpActionCatalogEntry> = {
         execute: (ctx) => ctx.setSearchParam("view_type", "kanban"),
         description: "Switches this list to kanban view.",
     },
+    "switch_view_type:map": {
+        execute: (ctx) => ctx.setSearchParam("view_type", "map"),
+        description: "Switches this list to map view.",
+    },
     export_csv: {
         execute: exportCsv,
         description: "Downloads the current list as a CSV file.",

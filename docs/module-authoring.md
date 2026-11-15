@@ -1028,12 +1028,38 @@ relations, or on `FieldDef.showViewType` / `FieldDef.editViewType` for FK
 | `editable-table` | **Default for to-many in edit mode.** Table with inline editing |
 | `crosstab` | Pivot table: Category 1 → rows, Category 2 → columns (optional), Category 3 added to the column labels (optional), one or more fields per cell. Numeric cells aggregate (sum/avg/count/max/min/stddev, the sample standard deviation) with value bars; other fields render with their own field view type. Includes Excel-style multi-select filter dropdowns and the Analyze chart/stats card. Reuses the Analysis-area crosstab chart-type, so the two stay in sync. Config (categories, cell fields, filters, summary) is saved to the views JSON. |
 | `editable-crosstab` | Same as `crosstab` with editable numeric cells (Tab / arrow-key navigation). Editing an aggregated cell distributes the value back to its underlying records prorated by the summary function (sum/avg, with a confirmation step; max/min/stddev only when the cell maps to a single record), rounded to 2 decimals, persisted via the standard Save button. |
-| `gallery` | Image / card grid |
-| `calendar` | Calendar view (requires a `date` or `datetime` field in the related model) |
+| `gallery` | Image / card grid (requires an image source: an image URL field, File-like content fields, or `imageSource` declared in `__veloiq_ui__`) |
+| `image` | The gallery with each image at full width instead of as a thumbnail (same requirement as `gallery`) |
+| `calendar` | Month / week calendar placing records on the days of a `date` or `datetime` field. An optional number field shades each day by its total (a heatmap). Requires a `date` or `datetime` field in the related model |
+| `kanban` | Board with one column per value of one or more split fields (fields with a list of valid values, flags and references). Each column shows its records as a list, table, gallery, primary, totals-details, crosstab or calendar. The `maximum_columns_in_kanban_view` setting caps the columns. Requires a field that can split the records |
+| `map` | Records as points on a map, sized and coloured by a measure, or as a density heatmap. Requires the model to declare its location fields (see [Map view](#map-view)) |
 | `primary` | Embedded show view of the related record |
+| `primary-carousel` | The `primary` view shown one record at a time, with previous / next controls |
 | `totals-details` | **Default for to-many in show mode.** Summary totals + expandable details |
 | `tree` | Hierarchical tree (recursive self-relations) |
 | `tree-details` | Hierarchical Miller-columns tree with leaf details |
+
+### Map view
+
+The `map` view type shows a model's records as points on a map. Records are placed with a latitude and a
+longitude field, which the model declares on its `__veloiq_ui__` class attribute (field names are never
+guessed). A model without the declaration never offers the map view:
+
+```python
+class Store(Base):
+    __veloiq_ui__: ClassVar[Dict] = {
+        "mapLocation": {"latitude": "latitude", "longitude": "longitude"},
+    }
+```
+
+`veloiq generate` emits the declaration into the frontend schema as `mapLocation`.
+
+- **Measure.** The map's controls let the user pick a number field (any number field that is not a reference, the same rule as the calendar's heatmap field). Points are sized and coloured by it; with none, all points look alike.
+- **Looks.** *Points* draws one semi-transparent marker per record and *Heatmap* shades areas by how much is there.
+- **Different fields for one page block.** The location fields chosen in the map's controls override the model's declaration for that view.
+- **Records without a location.** Records whose position is missing or outside the valid range (latitude ±90, longitude ±180) are left off, and the page shows how many.
+- **Base map.** The map shows the public OpenStreetMap tiles by default, so it needs internet access and nothing to configure. For an installation without internet access, or with its own tile server, change `map_tile_url` (System Configuration, Views card, or `[views]` in `veloiq.toml`) to a raster tile URL such as `https://tiles.example.com/{z}/{x}/{y}.png`, and `map_tile_attribution` to that provider's credit. A plain background shows while tiles load or when the tile server is unreachable.
+- **Many records.** Above `analyze_server_aggregation_threshold` records, the map groups points into grid cells instead of drawing every record.
 
 Example — render the `project_id` FK as a read-only link and `assignee_id` as
 the default inline edit widget:

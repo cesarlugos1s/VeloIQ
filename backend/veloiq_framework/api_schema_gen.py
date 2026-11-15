@@ -634,6 +634,13 @@ def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[st
         image_source = veloiq_ui.get("imageSource")
         if isinstance(image_source, str) and image_source:
             extra_props.append(f'    imageSource: {json.dumps(image_source)},')
+        # The fields the map view takes each record's position from: a latitude and a
+        # longitude field of the model (__veloiq_ui__["mapLocation"]).
+        map_location = veloiq_ui.get("mapLocation")
+        if isinstance(map_location, dict) and map_location.get("latitude") and map_location.get("longitude"):
+            extra_props.append(
+                f'    mapLocation: {json.dumps({"latitude": str(map_location["latitude"]), "longitude": str(map_location["longitude"])})},'
+            )
         # Developer-configured fields whose values compose this model's title /
         # __str__ (set via `veloiq set-title`, stored on __veloiq_ui__["titleFields"]).
         title_fields = veloiq_ui.get("titleFields")

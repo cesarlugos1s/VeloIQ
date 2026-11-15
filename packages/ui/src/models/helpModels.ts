@@ -57,6 +57,7 @@ export const helpSystemModels: ModelDef[] = [
                     { label: "Switch to Gallery view", value: "switch_view_type:gallery" },
                     { label: "Switch to Calendar view", value: "switch_view_type:calendar" },
                     { label: "Switch to Kanban view", value: "switch_view_type:kanban" },
+                    { label: "Switch to Map view", value: "switch_view_type:map" },
                     // Show page (current record)
                     { label: "Go to Edit", value: "go_to_edit" },
                     { label: "Back to List", value: "go_to_list" },

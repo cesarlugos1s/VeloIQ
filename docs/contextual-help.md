@@ -80,7 +80,7 @@ actions are in the catalog:
 | `open_import` | List | Opens the CSV import dialog |
 | `open_metadata` | List | Shows model metadata |
 | `open_view_config` | List | Opens the view configuration panel (columns/filters) |
-| `switch_view_type:gallery` / `:calendar` | List | Switches the list's view type — add only where the model actually supports that view |
+| `switch_view_type:gallery` / `:calendar` / `:kanban` / `:map` | List | Switches the list's view type — add only where the model actually supports that view |
 | `go_to_list` | Show | Navigates back to the list |
 | `go_to_show` | Edit | Navigates to Show for the current record |
 | `go_to_edit` | Show | Navigates to Edit for the current record |

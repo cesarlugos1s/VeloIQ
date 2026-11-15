@@ -10,7 +10,7 @@ beforeAll(async () => {
 
 const modelWith = (fields: ModelDef["fields"], extra: Partial<ModelDef> = {}): ModelDef =>
     ({ name: "m", label: "M", fields, ...extra } as ModelDef);
-const ALL = ["table", "gallery", "image", "calendar", "kanban", "crosstab", "editable-crosstab", "totals-details"] as const;
+const ALL = ["table", "gallery", "image", "calendar", "kanban", "map", "crosstab", "editable-crosstab", "totals-details"] as const;
 
 describe("filterApplicableViewTypes", () => {
     it("offers only the always-applicable types for text-only fields", () => {
@@ -31,6 +31,12 @@ describe("filterApplicableViewTypes", () => {
     it("offers calendar for a date field and kanban for a flag", () => {
         const model = modelWith([{ key: "due", label: "Due", type: "date" } as any, { key: "done", label: "Done", type: "boolean" } as any]);
         expect(filterApplicableViewTypes(ALL, model)).toEqual(expect.arrayContaining(["calendar", "kanban"]));
+    });
+    it("offers map only when the model declares location fields it has", () => {
+        const fields = [{ key: "lat", label: "Lat", type: "number" } as any, { key: "lng", label: "Lng", type: "number" } as any];
+        expect(filterApplicableViewTypes(ALL, modelWith(fields))).not.toContain("map");
+        expect(filterApplicableViewTypes(ALL, modelWith(fields, { mapLocation: { latitude: "lat", longitude: "missing" } }))).not.toContain("map");
+        expect(filterApplicableViewTypes(ALL, modelWith(fields, { mapLocation: { latitude: "lat", longitude: "lng" } }))).toContain("map");
     });
 });
 

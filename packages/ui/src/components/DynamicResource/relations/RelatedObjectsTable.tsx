@@ -95,6 +95,7 @@ import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
 import { CrosstabTable } from "../analysis/CrosstabTable";
 import { KanbanView } from "../KanbanView";
+import { resolveListVisibilityOnDetailLevelChange } from "../utils/listVisibilityOnDetailLevelChange";
 import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "../utils/kanban";
 import { sortRecordsBySortList } from "../viewState/sortRecords";
 import { RelationViewTypeSwitchSlot } from "./RelationViewTypeSwitch";
@@ -320,19 +321,6 @@ export const RelatedObjectsTable: React.FC<{
     const [error, setError] = useState<string | null>(null);
     const [listVisible, setListVisible] = useState(true);
 
-    // React to DataDetail slider level 6 (Analyze) — hide table via polling
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const lvl = (window as any).__veloiq_dataDetailLevel;
-            // Without an Analyze section (showAnalyzeSection: false) the list stays at every level.
-            if (lvl === 6 && analyzeSectionAvailable) {
-                setListVisible(false);
-            } else if ((lvl !== 6 || !analyzeSectionAvailable) && !listVisible) {
-                setListVisible(true);
-            }
-        }, 200);
-        return () => clearInterval(interval);
-    }, [listVisible]);
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
     // Tools a role or an external portal can switch off (Analyze, saved views, columns).
     const frameworkUiFeatures = useFrameworkUiFeatures();
@@ -340,6 +328,23 @@ export const RelatedObjectsTable: React.FC<{
     // What the block's view type supports decides which options it offers (see viewState/viewTypeCapabilities).
     const viewCapabilities = getViewTypeCapabilitiesForPage(isKanbanView ? "kanban" : isCrosstabView ? "crosstab" : viewVariant === "totals-details" ? "totals-details" : "table");
     const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze && viewCapabilities.analyze;
+
+    // React to DataDetail slider level 6 (Analyze) — hide table via polling
+    // Only a change of the level acts: the table is hidden on entering level 6 and shown again on
+    // leaving it. Acting on every tick would undo the user's own show/hide of the table within 200 ms.
+    const previousDetailLevelRef = useRef<unknown>(null);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const lvl = (window as any).__veloiq_dataDetailLevel;
+            const previousLevel = previousDetailLevelRef.current;
+            previousDetailLevelRef.current = lvl;
+            // Without an Analyze section (showAnalyzeSection: false) the table stays at every level.
+            const change = resolveListVisibilityOnDetailLevelChange(previousLevel, lvl, analyzeSectionAvailable, true);
+            if (change === "hide") setListVisible(false);
+            else if (change === "show") setListVisible(true);
+        }, 200);
+        return () => clearInterval(interval);
+    }, [analyzeSectionAvailable]);
     const analyzeOpen = analyzeSectionAvailable && analyzeOpenPreference;
     const analyzeTouchedRef = useRef(false);
     // Analyze section configuration and its saved preferences (shared with list pages).
