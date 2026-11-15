@@ -28,6 +28,8 @@ import {
     useTemporaryPanesLayoutMode,
     useTemporaryPageLayoutOfEnclosingPage,
     type TemporaryActionsPosition,
+    type TemporaryPageLayout,
+    type TemporaryPageLayoutScope,
 } from "./temporaryPageLayoutStore";
 
 const { Text } = Typography;
@@ -60,11 +62,38 @@ function usePageTemplateChoices(model: ModelDef | undefined, pageType: string | 
     return { hasProvider: Boolean(provider), choices };
 }
 
+/** The parts of the controls a configuration tool can ask for (the template button and the view type of Design options). */
+export type TemporaryPageLayoutControlsSection = "template" | "view-type";
+
+/**
+ * Controlled use: a configuration tool (for example the Journey Builder, which sets what a
+ * step's page starts with) keeps the layout itself instead of the temporary layout store.
+ */
+export interface ControlledTemporaryPageLayout {
+    scope: TemporaryPageLayoutScope;
+    layout: TemporaryPageLayout;
+    onChange: (changes: Partial<TemporaryPageLayout>) => void;
+    /** Called by "Back to the configured layout". */
+    onReset: () => void;
+    /** Replaces the heading and the note of the Design options popover. */
+    heading?: string;
+    note?: string;
+}
+
 export const TemporaryPageLayoutControls: React.FC<{
     /** Show and edit pages: the data detail level (how related objects are shown), offered in Design options. */
     detailState?: DataDetailLevelState;
-}> = ({ detailState }) => {
-    const { scope, layout, change, reset } = useTemporaryPageLayoutOfEnclosingPage();
+    /** Keeps the layout in the caller instead of the temporary layout store. */
+    controlled?: ControlledTemporaryPageLayout;
+    /** Shows only these parts; absent shows every part that applies. */
+    only?: TemporaryPageLayoutControlsSection[];
+}> = ({ detailState, controlled, only }) => {
+    const enclosing = useTemporaryPageLayoutOfEnclosingPage();
+    const scope = controlled ? controlled.scope : enclosing.scope;
+    const layout = controlled ? controlled.layout : enclosing.layout;
+    const change = controlled ? controlled.onChange : enclosing.change;
+    const reset = controlled ? controlled.onReset : enclosing.reset;
+    const shows = (section: TemporaryPageLayoutControlsSection) => !only || only.includes(section);
     const published = usePublishedListAnalyzeState(scope?.pageKey ?? null);
     const temporaryPanesMode = useTemporaryPanesLayoutMode();
     const { hasProvider: hasTemplateProvider, choices: templateChoices } = usePageTemplateChoices(scope?.model, scope?.pageType);
@@ -82,7 +111,7 @@ export const TemporaryPageLayoutControls: React.FC<{
     const showCellSize = Boolean(scope.cellSizeAvailable);
     // Offered whenever an extension supplies templates, and kept while one is applied,
     // so the user can always choose another one (or go back to the configured layout).
-    const showTemplate = hasTemplateProvider && (templateChoices.length > 0 || Boolean(layout.templateName));
+    const showTemplate = shows("template") && hasTemplateProvider && (templateChoices.length > 0 || Boolean(layout.templateName));
     const templateMenu: MenuProps = {
         selectable: true,
         selectedKeys: [layout.templateName ?? ""],
@@ -95,23 +124,28 @@ export const TemporaryPageLayoutControls: React.FC<{
         ],
         onClick: ({ key }) => change({ templateName: key || undefined }),
     };
-    const showViewType = isList && (scope.listViewTypes?.length ?? 0) > 0;
+    const showViewType = shows("view-type") && isList && (scope.listViewTypes?.length ?? 0) > 0;
+    // A tool that asks for specific parts shows only those; the rest are page-use options.
+    const showPageUseOptions = !only;
     const moreContent = (
         <div style={{ width: 300, display: "flex", flexDirection: "column", gap: 10 }}>
-            <Text strong>{_("Temporary layout")}</Text>
-            <Text type="secondary">{_("These changes last until the page is reloaded and do not change the page configuration.")}</Text>
+            <Text strong>{controlled?.heading ?? _("Temporary layout")}</Text>
+            <Text type="secondary">{controlled?.note ?? _("These changes last until the page is reloaded and do not change the page configuration.")}</Text>
             {showViewType && (
                 <>
                     <Text>{_("View type")}</Text>
                     <Select<string>
                         size="small"
                         value={layout.listViewType ?? scope.currentListViewType}
+                        // No choice yet (a configuration tool): say the configured view type is used, and let it be cleared.
+                        placeholder={_("Configured")}
+                        allowClear={Boolean(controlled)}
                         options={(scope.listViewTypes ?? []).map((token) => ({ value: token, label: viewTypeLabels[token] ?? token }))}
-                        onChange={(value) => change({ listViewType: value })}
+                        onChange={(value) => change({ listViewType: value ?? undefined })}
                     />
                 </>
             )}
-            {detailState?.isActive && (
+            {showPageUseOptions && detailState?.isActive && (
                 <>
                     <Text>{_("Data Detail Level")}</Text>
                     <Select<number>
@@ -127,7 +161,7 @@ export const TemporaryPageLayoutControls: React.FC<{
                     <Text type="secondary">{_("Adjust how relations are displayed on this page.")}</Text>
                 </>
             )}
-            {showAnalyze && (
+            {showPageUseOptions && showAnalyze && (
                 <>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         <Text>{_("Analyze")}</Text>
@@ -148,7 +182,7 @@ export const TemporaryPageLayoutControls: React.FC<{
                     />
                 </>
             )}
-            {showCellSize && (
+            {showPageUseOptions && showCellSize && (
                 <>
                     <Text>{_("Cell size")}</Text>
                     <Select<GridDensity>
@@ -161,6 +195,8 @@ export const TemporaryPageLayoutControls: React.FC<{
                     />
                 </>
             )}
+            {showPageUseOptions && (
+                <>
             <Text>{_("Action buttons position")}</Text>
             <Segmented
                 block
@@ -187,6 +223,8 @@ export const TemporaryPageLayoutControls: React.FC<{
                 ]}
                 onChange={(value) => updateTemporaryPanesLayoutMode(value)}
             />
+                </>
+            )}
             <Button size="small" onClick={reset}>{_("Back to the configured layout")}</Button>
         </div>
     );

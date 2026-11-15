@@ -55,6 +55,7 @@ import dayjs from "dayjs";
 import { AdvancedFilterBuilder } from "./viewState/AdvancedFilterBuilder";
 import { MultiSortControl } from "./viewState/MultiSortControl";
 import { FieldSequenceEditor } from "./viewState/FieldSequenceEditor";
+import { ViewConfigurationToggleButton } from "./viewState/ViewConfigurationToggleButton";
 import { SummaryFunctionsEditor } from "./viewState/SummaryFunctionsEditor";
 import { orderAfterMove, orderAfterSelection } from "./viewState/fieldSequenceOperations";
 import { RelationViewTypeSwitchSlot } from "./relations/RelationViewTypeSwitch";
@@ -298,6 +299,8 @@ const DynamicListPage: React.FC<{
     filter?: any;
     relationConfig?: RelationDef;
     isEmbedded?: boolean;
+    /** An embedded list normally ignores the temporary page layout; set it to honour the one set for this resource's list page (for example a journey step that starts with a configured setup). */
+    applyTemporaryLayout?: boolean;
     /** Hides the list's own sorting, column filters and view configuration (the host sets them once for several lists, e.g. a kanban board). */
     hideDataControls?: boolean;
     /** The page heading, already translated (default: the model's label), e.g. "Unmatched candidates for <position>". */
@@ -323,7 +326,7 @@ const DynamicListPage: React.FC<{
     onRowClick?: (record: any) => void;
     /** Handles the list's create button (and Ctrl+N) instead of opening the create form (e.g. a new record in the page's own editor). */
     onCreate?: () => void;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     // Tools a role or an external portal can switch off (Analyze, CSV export, saved views, columns, metadata).
@@ -340,7 +343,7 @@ const DynamicListPage: React.FC<{
     const resourceIdentifier = resolveResourcePath(model.resource || model.name, allModels);
     // Temporary page layout: only the standalone list page (not a relation list or
     // dashboard cell) lets the user change its layout for now.
-    const temporaryLayoutPageKey = isEmbedded || filter ? null : buildTemporaryPageKey(resourceIdentifier, "list");
+    const temporaryLayoutPageKey = (isEmbedded && !applyTemporaryLayout) || filter ? null : buildTemporaryPageKey(resourceIdentifier, "list");
     const temporaryLayout = useTemporaryPageLayoutFor(temporaryLayoutPageKey);
     // Only the standalone List route owns the page-level Help key — embedded
     // uses (relation lists, dashboard cells) must not hijack the help drawer
@@ -2795,20 +2798,16 @@ const DynamicListPage: React.FC<{
     ) : null;
 
     const columnsToggleButton = frameworkUiFeatures.column_selector ? (
-        <Tooltip title={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}>
-            <Button
-                size="small"
-                icon={<SettingOutlined />}
-                onClick={() => {
-                    setColumnsSelectorOpen((prev) => {
-                        const next = !prev;
-                        if (next) syncColumnsSelectionToDisplay();
-                        return next;
-                    });
-                }}
-                aria-label={columnsSelectorOpen ? _("Hide view configuration") : _("Show view configuration")}
-            />
-        </Tooltip>
+        <ViewConfigurationToggleButton
+            open={columnsSelectorOpen}
+            onToggle={() => {
+                setColumnsSelectorOpen((prev) => {
+                    const next = !prev;
+                    if (next) syncColumnsSelectionToDisplay();
+                    return next;
+                });
+            }}
+        />
     ) : null;
 
     const createRelationButton = isRelationView && showCreate && canCreate ? (
@@ -4143,7 +4142,7 @@ export const DynamicList: React.FC<React.ComponentProps<typeof DynamicListPage>>
     // that record's own form, not a list (same rule for pages and grid cells).
     // The view type the user picked for now (standalone list pages only) decides this too.
     const outerAllModels = useAllModelsIncludingNonModelData(props.allModels);
-    const outerPageKey = props.isEmbedded || props.filter
+    const outerPageKey = (props.isEmbedded && !props.applyTemporaryLayout) || props.filter
         ? null
         : buildTemporaryPageKey(resolveResourcePath(props.model.resource || props.model.name, outerAllModels), "list");
     const outerTemporaryLayout = useTemporaryPageLayoutFor(outerPageKey);

@@ -2426,3 +2426,9 @@ msgstr "Records without a location"
 
 msgid "Open"
 msgstr "Open"
+
+msgid "Filters by field values"
+msgstr ""
+
+msgid "Add a field filter"
+msgstr ""

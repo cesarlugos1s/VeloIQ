@@ -2425,3 +2425,9 @@ msgstr "Registros sin ubicación"
 
 msgid "Open"
 msgstr "Abrir"
+
+msgid "Filters by field values"
+msgstr "Filtros por valores de campo"
+
+msgid "Add a field filter"
+msgstr "Añadir un filtro de campo"
