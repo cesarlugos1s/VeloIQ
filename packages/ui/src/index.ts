@@ -54,6 +54,16 @@ export { applyTemporaryPageSetup, clearTemporaryPageSetup } from "./components/D
 export type { TemporaryPageSetup } from "./components/DynamicResource/temporaryLayout/temporaryPageSetup";
 export { AdvancedFilterBuilder } from "./components/DynamicResource/viewState/AdvancedFilterBuilder";
 export type { AdvancedFilterRuleDraft, AdvancedFilterBuilderProps } from "./components/DynamicResource/viewState/AdvancedFilterBuilder";
+export type { ListExtraColumn } from "./components/DynamicResource";
+export { TotalsDetailsCard, CATEGORICAL_CARD_TONE, CategoricalCardBody } from "./components/DynamicResource/TotalsDetailsCard";
+export type { TotalsDetailsCardTone } from "./components/DynamicResource/TotalsDetailsCard";
+export { buildCategoricalBreakdown, CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD } from "./components/DynamicResource/utils/categoricalBreakdown";
+export type { CategoricalBreakdownEntry } from "./components/DynamicResource/utils/categoricalBreakdown";
+export { matchesColumnFilterValue } from "./components/DynamicResource/utils/columnFilters";
+export { buildListFilterParams, buildServerFiltersFromRules } from "./components/DynamicResource/utils/listFilters";
+export type { ListFilter } from "./components/DynamicResource/utils/listFilters";
+export { resolveRelativeDate } from "./components/DynamicResource/utils/relativeDates";
+export { fetchAllListRows } from "./components/DynamicResource/utils/fetchAllListRows";
 export { ColumnFilterValuesEditor } from "./components/DynamicResource/viewState/ColumnFilterValuesEditor";
 export { buildColumnFilterOptions } from "./components/DynamicResource/utils/columnFilters";
 export type { ColumnFilterOption } from "./components/DynamicResource/utils/columnFilters";

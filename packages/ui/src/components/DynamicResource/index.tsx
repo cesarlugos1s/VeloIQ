@@ -115,7 +115,7 @@ import {
     renderSharedGalleryCard,
 } from "./utils/gallery";
 import { renderNumericValueBar } from "./utils/statistics";
-import { TotalsDetailsCard, CATEGORICAL_CARD_TONE } from "./TotalsDetailsCard";
+import { TotalsDetailsCard, CATEGORICAL_CARD_TONE, CategoricalCardBody } from "./TotalsDetailsCard";
 import { buildCategoricalBreakdown } from "./utils/categoricalBreakdown";
 import {
     INLINE_RELATION_MAX_ITEMS,
@@ -159,6 +159,8 @@ import { useAnalyzeResults, useAnalyzeSettings } from "./analysis/useAnalyze";
 import { resolveSeries, summarizeValues } from "./analysis/aggregation";
 import { useServerAnalyze } from "./analysis/useServerAnalyze";
 import { buildListFilterParams, buildServerFiltersFromRules } from "./utils/listFilters";
+import { resolveRelativeDate } from "./utils/relativeDates";
+import { fetchAllListRows } from "./utils/fetchAllListRows";
 import { PolymorphicRelatedObjectsTable, RelatedObjectsTable } from "./relations/RelatedObjectsTable";
 import { MetadataModal } from "./MetadataModal";
 import { ImportCsvModal } from "./ImportCsvModal";
@@ -293,6 +295,14 @@ import { INLINE_EDIT_LIST_VIEW_TYPES, InlineCellEditor, InlineEditActions, isInl
 
 
 
+/** A read-only column a page adds to the list's table view. */
+export interface ListExtraColumn {
+    key: string;
+    /** Column title, already translated. */
+    title: string;
+    render: (record: any) => React.ReactNode;
+}
+
 const DynamicListPage: React.FC<{
     model: ModelDef;
     allModels?: ModelDef[];
@@ -326,7 +336,11 @@ const DynamicListPage: React.FC<{
     onRowClick?: (record: any) => void;
     /** Handles the list's create button (and Ctrl+N) instead of opening the create form (e.g. a new record in the page's own editor). */
     onCreate?: () => void;
-}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+    /** Keeps only the rows for which it returns true (e.g. a page that lists only the rows needing attention). */
+    rowFilter?: (record: any) => boolean;
+    /** Read-only columns the page adds after the model's own columns of the table view. */
+    extraColumns?: ListExtraColumn[];
+}> = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate, rowFilter, extraColumns }) => {
     const allModels = useAllModelsIncludingNonModelData(allModelsProp);
     const model = useRoleFilteredModel(modelProp);
     // Tools a role or an external portal can switch off (Analyze, CSV export, saved views, columns, metadata).
@@ -814,39 +828,6 @@ const DynamicListPage: React.FC<{
         return String(aVal).localeCompare(String(bVal));
     }, [getSortValue]);
 
-    const resolveRelativeDate = useCallback((value: any, asRange: boolean) => {
-        const count = Number(value?.count ?? 1);
-        const direction = value?.direction || "next";
-        const unit = value?.unit || "weeks";
-        const isQuarter = unit === "quarters";
-        const base = dayjs();
-        if (asRange || direction === "current") {
-            const anchor = direction === "current"
-                ? base
-                : direction === "previous"
-                    ? (isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit))
-                    : (isQuarter ? base.add(count * 3, "month") : base.add(count, unit));
-            if (isQuarter) {
-                const quarterStartMonth = Math.floor(anchor.month() / 3) * 3;
-                const start = anchor.month(quarterStartMonth).startOf("month");
-                const end = start.add(2, "month").endOf("month");
-                return { start, end };
-            }
-            return {
-                start: anchor.startOf(unit as dayjs.ManipulateType),
-                end: anchor.endOf(unit as dayjs.ManipulateType),
-            };
-        }
-        const target = direction === "previous"
-            ? (isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit))
-            : (isQuarter ? base.add(count * 3, "month") : base.add(count, unit));
-        if (isQuarter) {
-            const quarterStartMonth = Math.floor(target.month() / 3) * 3;
-            return { date: target.month(quarterStartMonth).startOf("month") };
-        }
-        return { date: target.startOf(unit as dayjs.ManipulateType) };
-    }, []);
-
     const matchesRule = useCallback((record: any, rule: any) => {
         const field = model.fields.find((f) => f.key === rule.fieldKey);
         if (!field || !rule.operator) return true;
@@ -975,10 +956,11 @@ const DynamicListPage: React.FC<{
 
     const isClientFiltering = allRowsLoaded && !allRowsError;
     const filteredDataSource = useMemo(() => {
-        if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
+        const keepRow = (rows: any[]) => (rowFilter ? rows.filter(rowFilter) : rows);
+        if (!isClientFiltering) return keepRow(Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
         const baseRows = allRows || [];
-        return applyFilterRules(applyGlobalSearch(baseRows));
-    }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
+        return keepRow(applyFilterRules(applyGlobalSearch(baseRows)));
+    }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, rowFilter, tableProps.dataSource]);
 
     const columnFilteredDataSource = useMemo((): any[] => {
         const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
@@ -1510,22 +1492,12 @@ const DynamicListPage: React.FC<{
         setIsAllRowsLoading(true);
         setAllRowsError(null);
         const filtersToApply = (activeFilters && activeFilters.length > 0) ? activeFilters : tableFilters;
-        const pageSize = 500;
-        let start = 0;
-        let allRows: any[] = [];
         try {
-            while (true) {
-                const params = buildListFilterParams(filtersToApply);
-                params.set("_start", String(start));
-                params.set("_end", String(start + pageSize));
-                const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
-                const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
-                const data = await response.json();
-                if (!Array.isArray(data)) break;
-                allRows = allRows.concat(data);
-                if (data.length < pageSize) break;
-                start += pageSize;
-            }
+            const allRows = await fetchAllListRows({
+                apiUrl,
+                resourcePath: resolveResourcePath(model.resource || model.name, allModels),
+                filters: filtersToApply,
+            });
             setAllRowsData(allRows);
         } catch (error) {
             setAllRowsError(error instanceof Error ? error.message : _("Failed to fetch all rows"));
@@ -1840,17 +1812,7 @@ const DynamicListPage: React.FC<{
                             <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }}>
                                 {tdCategoricalBoxes.map((item) => (
                                     <TotalsDetailsCard key={`td-cat-${item.key}`} title={item.label} tone={catTone}>
-                                        {item.showBreakdown ? (
-                                            <div style={{ display: "grid", gap: 4 }}>
-                                                {item.breakdown.map((entry) => (
-                                                    <div key={`td-cat-${item.key}-${entry.value}`}
-                                                        style={{ fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center" }}
-                                                    >{`${entry.value}: ${formatNumberValue(entry.count)}`}</div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div style={{ fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center" }}>{formatNumberValue(item.value)}</div>
-                                        )}
+                                        <CategoricalCardBody tone={catTone} breakdown={item.showBreakdown ? item.breakdown : undefined} value={item.value} />
                                     </TotalsDetailsCard>
                                 ))}
                             </div>
@@ -3956,6 +3918,9 @@ const DynamicListPage: React.FC<{
                                         );
                                     }}
                                 />
+                            ))}
+                            {(extraColumns ?? []).map((column) => (
+                                <Table.Column key={column.key} title={column.title} render={(_unused, record: any) => column.render(record)} />
                             ))}
                             {(showActions || effectiveRowActions.length > 0) && (
                                 <Table.Column title={_("Actions")} key="actions" width={140}

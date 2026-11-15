@@ -8,7 +8,7 @@ import { ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, VerticalAlignTo
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useNavigate, useLocation, useInRouterContext, useParams, useSearchParams, Link, Navigate, Routes, Route, useHref, BrowserRouter, Outlet, UNSAFE_RouteContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import dayjs13 from 'dayjs';
+import dayjs14 from 'dayjs';
 import relativeTime2 from 'dayjs/plugin/relativeTime';
 import axios from 'axios';
 import routerProvider from '@refinedev/react-router-v6';
@@ -5637,7 +5637,7 @@ var AdvancedFilterBuilder = ({ fields, rules: filterRules, setRules: setFilterRu
         return /* @__PURE__ */ jsx(
           DatePicker,
           {
-            value: value?.date ? dayjs13(value.date) : void 0,
+            value: value?.date ? dayjs14(value.date) : void 0,
             onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
           }
         );
@@ -6931,6 +6931,7 @@ var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxs(
     ]
   }
 );
+var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
 
 // src/components/DynamicResource/utils/categoricalBreakdown.ts
 var CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5;
@@ -7316,7 +7317,7 @@ var getCalendarDateFieldOptions = (fields) => {
 var getCalendarRecordDate = (record, fieldKey) => {
   const rawValue = record?.[fieldKey];
   if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs13(rawValue);
+  const parsed = dayjs14(rawValue);
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
@@ -8277,7 +8278,7 @@ function resolveRowTypedField(field, record) {
   }
   return resolved;
 }
-dayjs13.extend(relativeTime2);
+dayjs14.extend(relativeTime2);
 var _33 = window._ || ((text) => text);
 var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
@@ -8370,7 +8371,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-qrcode":
       return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
-      const parsed = dayjs13(str);
+      const parsed = dayjs14(str);
       if (!parsed.isValid()) return str || "-";
       return /* @__PURE__ */ jsx(Fragment, { children: parsed.fromNow() });
     }
@@ -10181,14 +10182,14 @@ var buildListFilterParams = (filters) => {
   });
   return params;
 };
-var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => {
+var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate2) => {
   const resolveServerDate = (val, forRange) => {
     if (val?.mode === "relative") {
-      const resolved = resolveRelativeDate(val, forRange);
+      const resolved = resolveRelativeDate2(val, forRange);
       if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
       return { date: resolved.date?.toISOString() };
     }
-    const date = dayjs13(val?.date || val);
+    const date = dayjs14(val?.date || val);
     if (!date.isValid()) return {};
     if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
     return { date: date.startOf("day").toISOString() };
@@ -10305,6 +10306,50 @@ var useServerAnalyze = (options) => {
   }, [request]);
   return { result, loading, error };
 };
+var resolveRelativeDate = (value, asRange) => {
+  const count = Number(value?.count ?? 1);
+  const direction = value?.direction || "next";
+  const unit = value?.unit || "weeks";
+  const isQuarter = unit === "quarters";
+  const base = dayjs14();
+  if (asRange || direction === "current") {
+    const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
+    if (isQuarter) {
+      const quarterStartMonth = Math.floor(anchor.month() / 3) * 3;
+      const start = anchor.month(quarterStartMonth).startOf("month");
+      const end = start.add(2, "month").endOf("month");
+      return { start, end };
+    }
+    return {
+      start: anchor.startOf(unit),
+      end: anchor.endOf(unit)
+    };
+  }
+  const target = direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
+  if (isQuarter) {
+    const quarterStartMonth = Math.floor(target.month() / 3) * 3;
+    return { date: target.month(quarterStartMonth).startOf("month") };
+  }
+  return { date: target.startOf(unit) };
+};
+
+// src/components/DynamicResource/utils/fetchAllListRows.ts
+async function fetchAllListRows({ apiUrl, resourcePath, filters = [], pageSize = 500, maxRows }) {
+  let start = 0;
+  let rows = [];
+  while (maxRows === void 0 || rows.length < maxRows) {
+    const params = buildListFilterParams(filters);
+    params.set("_start", String(start));
+    params.set("_end", String(start + pageSize));
+    const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) break;
+    rows = rows.concat(data);
+    if (data.length < pageSize) break;
+    start += pageSize;
+  }
+  return maxRows === void 0 ? rows : rows.slice(0, maxRows);
+}
 var ALWAYS_ON2 = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
 function useLicensePool() {
   const [pool, setPool] = useState(null);
@@ -11997,7 +12042,7 @@ function useCalendarPeriodsWithData(entryDates, mode, anchorDate) {
   }, [entryDates, mode]);
   const currentPeriodStart = anchorDate.startOf(mode).valueOf();
   return useMemo(() => {
-    const todayPeriodStart = dayjs13().startOf(mode).valueOf();
+    const todayPeriodStart = dayjs14().startOf(mode).valueOf();
     let periodStartNearestToday;
     periodStartsWithData.forEach((periodStart) => {
       if (periodStartNearestToday === void 0 || Math.abs(periodStart - todayPeriodStart) < Math.abs(periodStartNearestToday - todayPeriodStart)) periodStartNearestToday = periodStart;
@@ -12928,7 +12973,7 @@ function isInlineEditableField(field, model) {
   return true;
 }
 function formValueAsPayloadValue(field, value) {
-  if (dayjs13.isDayjs(value)) {
+  if (dayjs14.isDayjs(value)) {
     if (field.type === "date") return value.format("YYYY-MM-DD");
     if (field.type === "time") return value.format("HH:mm:ss");
     return value.toISOString();
@@ -13012,7 +13057,7 @@ var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits
           name: "cell",
           style: { margin: 0, minWidth: 120 },
           valuePropName: rowField.type === "boolean" ? "checked" : "value",
-          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs13.isDayjs(current2) ? { value: dayjs13(current2) } : rowField.type === "time" && current2 && !dayjs13.isDayjs(current2) ? { value: dayjs13("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
+          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs14.isDayjs(current2) ? { value: dayjs14(current2) } : rowField.type === "time" && current2 && !dayjs14.isDayjs(current2) ? { value: dayjs14("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
           children: renderInput(field, allModels, model, rowId, record)
         }
       )
@@ -13295,7 +13340,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
           name: field.key,
           rules: field.required ? [{ required: true }] : [],
           valuePropName: field.type === "boolean" ? "checked" : void 0,
-          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
           style: { margin: 0 },
           children: renderInput(field, allModels, model)
         }
@@ -13393,7 +13438,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
             field.label,
             requiredMark(field)
           ] }),
-          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
+          /* @__PURE__ */ jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsx(Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
     ] }),
@@ -14546,7 +14591,7 @@ var SectionCellContent = ({
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? recordId2 : void 0, record)
@@ -14657,7 +14702,7 @@ var SectionCellContent = ({
             name: field.key,
             rules: field.required && !field.formula ? [{ required: true }] : [],
             valuePropName: field.type === "boolean" ? "checked" : void 0,
-            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
             style: { margin: 0 },
             children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
           }
@@ -15250,7 +15295,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
                   name: field.key,
                   rules: field.required && !field.formula ? [{ required: true }] : [],
                   valuePropName: field.type === "boolean" ? "checked" : void 0,
-                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
                   style: { margin: 0 },
                   children: field.formula ? /* @__PURE__ */ jsx(Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
                 }
@@ -15896,7 +15941,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0, record)
@@ -16445,7 +16490,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const heatmapFieldOptions = useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs13().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs14().startOf("month"));
   const [heatmapField, setHeatmapField] = useState("");
   const dateFieldKeySet = useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   useEffect(() => {
@@ -16485,10 +16530,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
     if (earliestDateTs === null) {
-      setCalendarAnchorDate(dayjs13().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs14().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs13(earliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs14(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
   const entriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -16585,7 +16630,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
             "aria-label": _67("Previous"),
             disabled: previousPeriodStart === void 0,
-            onClick: () => previousPeriodStart !== void 0 && setCalendarAnchorDate(dayjs13(previousPeriodStart))
+            onClick: () => previousPeriodStart !== void 0 && setCalendarAnchorDate(dayjs14(previousPeriodStart))
           }
         ) }),
         /* @__PURE__ */ jsx(Tooltip, { title: _67("Today"), children: /* @__PURE__ */ jsx(
@@ -16595,7 +16640,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
             "aria-label": _67("Today"),
             onClick: () => setCalendarAnchorDate(
-              periodStartNearestToday !== void 0 ? dayjs13(periodStartNearestToday) : dayjs13().startOf(calendarMode)
+              periodStartNearestToday !== void 0 ? dayjs14(periodStartNearestToday) : dayjs14().startOf(calendarMode)
             )
           }
         ) }),
@@ -16606,7 +16651,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
             "aria-label": _67("Next"),
             disabled: nextPeriodStart === void 0,
-            onClick: () => nextPeriodStart !== void 0 && setCalendarAnchorDate(dayjs13(nextPeriodStart))
+            onClick: () => nextPeriodStart !== void 0 && setCalendarAnchorDate(dayjs14(nextPeriodStart))
           }
         ) })
       ] })
@@ -16646,7 +16691,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const dayKey = day.format("YYYY-MM-DD");
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-            const isToday = day.isSame(dayjs13(), "day");
+            const isToday = day.isSame(dayjs14(), "day");
             const heatmapTotal = heatmapTotals.get(dayKey);
             const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
             return /* @__PURE__ */ jsxs(
@@ -17755,12 +17800,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const hasActiveFilterRules = useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const resolveRelativeDate = useCallback((value, asRange) => {
+  const resolveRelativeDate2 = useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs13();
+    const base = dayjs14();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -17833,36 +17878,36 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return true;
     }
     if (field.type === "date") {
-      const recordDate = dayjs13(rawValue);
+      const recordDate = dayjs14(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
       const getDateValue = (val, asRange) => {
         if (val?.mode === "relative") {
-          return resolveRelativeDate(val, asRange);
+          return resolveRelativeDate2(val, asRange);
         }
-        const date = dayjs13(val?.date || val);
+        const date = dayjs14(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
         case "on": {
-          const range = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
+          const range = mode === "relative" ? resolveRelativeDate2(rule.value, true) : getDateValue(rule.value, true);
           const time = recordDate.valueOf();
           return time >= range.start.valueOf() && time <= range.end.valueOf();
         }
         case "after": {
-          const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs13(dateVal).endOf("day").valueOf();
+          const dateVal = mode === "relative" ? resolveRelativeDate2(rule.value, false).date : getDateValue(rule.value, false).date;
+          if (!dateVal || !dayjs14(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs14(dateVal).endOf("day").valueOf();
         }
         case "before": {
-          const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs13(dateVal).startOf("day").valueOf();
+          const dateVal = mode === "relative" ? resolveRelativeDate2(rule.value, false).date : getDateValue(rule.value, false).date;
+          if (!dateVal || !dayjs14(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs14(dateVal).startOf("day").valueOf();
         }
         case "between": {
-          const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
-          const endRange = mode2 === "relative" ? resolveRelativeDate(rule.value2, true) : getDateValue(rule.value2, true);
+          const startRange = mode === "relative" ? resolveRelativeDate2(rule.value, true) : getDateValue(rule.value, true);
+          const endRange = mode2 === "relative" ? resolveRelativeDate2(rule.value2, true) : getDateValue(rule.value2, true);
           if (!startRange.start || !endRange.end) return false;
           const time = recordDate.valueOf();
           return time >= startRange.start.valueOf() && time <= endRange.end.valueOf();
@@ -17872,7 +17917,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       }
     }
     return true;
-  }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate]);
+  }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate2]);
   const applyGlobalSearch = useCallback((data) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
@@ -19066,7 +19111,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 name: [rowId, field.key],
                                 style: { margin: 0 },
                                 valuePropName: field.type === "boolean" ? "checked" : "value",
-                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13(val) } : field.type === "time" && val ? { value: dayjs13("1970-01-01T" + val) } : { value: val },
+                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14(val) } : field.type === "time" && val ? { value: dayjs14("1970-01-01T" + val) } : { value: val },
                                 children: renderEditableInput(field, rowId, row)
                               }
                             );
@@ -20166,7 +20211,7 @@ var DataDetailSlider = ({ detailState }) => {
 };
 var _77 = window._ || ((text) => text);
 var { Title: Title6 } = Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate, rowFilter, extraColumns }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   const frameworkUiFeatures = useFrameworkUiFeatures();
@@ -20322,7 +20367,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [carouselToolbarSlot, setCarouselToolbarSlot] = useState(null);
   const [calendarMode, setCalendarMode] = useState("month");
   const [calendarDateField, setCalendarDateField] = useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs13().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(() => dayjs14().startOf("month"));
   const [calendarHeatmapField, setCalendarHeatmapField] = useState("");
   const [filtersCollapsed, setFiltersCollapsed] = useState(isEmbedded);
   const [layoutPrefsReady, setLayoutPrefsReady] = useState(false);
@@ -20565,32 +20610,6 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const resolveRelativeDate = useCallback((value, asRange) => {
-    const count = Number(value?.count ?? 1);
-    const direction = value?.direction || "next";
-    const unit = value?.unit || "weeks";
-    const isQuarter = unit === "quarters";
-    const base = dayjs13();
-    if (asRange || direction === "current") {
-      const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
-      if (isQuarter) {
-        const quarterStartMonth = Math.floor(anchor.month() / 3) * 3;
-        const start = anchor.month(quarterStartMonth).startOf("month");
-        const end = start.add(2, "month").endOf("month");
-        return { start, end };
-      }
-      return {
-        start: anchor.startOf(unit),
-        end: anchor.endOf(unit)
-      };
-    }
-    const target = direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
-    if (isQuarter) {
-      const quarterStartMonth = Math.floor(target.month() / 3) * 3;
-      return { date: target.month(quarterStartMonth).startOf("month") };
-    }
-    return { date: target.startOf(unit) };
-  }, []);
   const matchesRule = useCallback((record, rule) => {
     const field = model.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
@@ -20631,7 +20650,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       return true;
     }
     if (field.type === "date" || field.type === "datetime") {
-      const recordDate = dayjs13(rawValue);
+      const recordDate = dayjs14(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -20639,7 +20658,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs13(val?.date || val);
+        const date = dayjs14(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -20650,13 +20669,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs13(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs14(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs14(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs13(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs14(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs14(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -20716,10 +20735,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
   const filteredDataSource = useMemo(() => {
-    if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
+    const keepRow = (rows) => rowFilter ? rows.filter(rowFilter) : rows;
+    if (!isClientFiltering) return keepRow(Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
     const baseRows = allRows || [];
-    return applyFilterRules(applyGlobalSearch(baseRows));
-  }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
+    return keepRow(applyFilterRules(applyGlobalSearch(baseRows)));
+  }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, rowFilter, tableProps.dataSource]);
   const columnFilteredDataSource = useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredDataSource;
@@ -21179,22 +21199,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     setIsAllRowsLoading(true);
     setAllRowsError(null);
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
-    const pageSize2 = 500;
-    let start = 0;
-    let allRows2 = [];
     try {
-      while (true) {
-        const params = buildListFilterParams(filtersToApply);
-        params.set("_start", String(start));
-        params.set("_end", String(start + pageSize2));
-        const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
-        const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
-        const data = await response.json();
-        if (!Array.isArray(data)) break;
-        allRows2 = allRows2.concat(data);
-        if (data.length < pageSize2) break;
-        start += pageSize2;
-      }
+      const allRows2 = await fetchAllListRows({
+        apiUrl,
+        resourcePath: resolveResourcePath(model.resource || model.name, allModels),
+        filters: filtersToApply
+      });
       setAllRowsData(allRows2);
     } catch (error) {
       setAllRowsError(error instanceof Error ? error.message : _77("Failed to fetch all rows"));
@@ -21461,14 +21471,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const catTone = CATEGORICAL_CARD_TONE;
     return /* @__PURE__ */ jsx("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
       /* @__PURE__ */ jsx("div", { style: { flex: 1, overflowX: "auto", paddingBottom: 2 }, children: /* @__PURE__ */ jsxs("div", { style: { width: "max-content", minWidth: "100%", display: "flex", justifyContent: "center", gap: 12, alignItems: "stretch" }, children: [
-        hasCat && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: item.showBreakdown ? /* @__PURE__ */ jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsx(
-          "div",
-          {
-            style: { fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center" },
-            children: `${entry.value}: ${formatNumberValue(entry.count)}`
-          },
-          `td-cat-${item.key}-${entry.value}`
-        )) }) : /* @__PURE__ */ jsx("div", { style: { fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `td-cat-${item.key}`)) }),
+        hasCat && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: /* @__PURE__ */ jsx(CategoricalCardBody, { tone: catTone, breakdown: item.showBreakdown ? item.breakdown : void 0, value: item.value }) }, `td-cat-${item.key}`)) }),
         hasCat && hasNum && /* @__PURE__ */ jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
         hasNum && /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdNumericBoxes.map((item) => /* @__PURE__ */ jsx(
           TotalsDetailsCard,
@@ -22048,7 +22051,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         DatePicker,
         {
           size: "small",
-          value: bulkChangeFieldValue ? dayjs13(bulkChangeFieldValue) : null,
+          value: bulkChangeFieldValue ? dayjs14(bulkChangeFieldValue) : null,
           onChange: (v) => setBulkChangeFieldValue(v ? v.toISOString() : null)
         }
       ) : bulkChangeField.type === "number" ? /* @__PURE__ */ jsx(
@@ -22679,10 +22682,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (calendarInitSignatureRef.current === signature) return;
     calendarInitSignatureRef.current = signature;
     if (calendarEarliestDateTs === null) {
-      setCalendarAnchorDate(dayjs13().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs14().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs13(calendarEarliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs14(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
   const calendarEntriesByDate = useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -22798,7 +22801,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsx(ArrowLeftOutlined, {}),
               "aria-label": _77("Previous"),
               disabled: previousCalendarPeriodWithData === void 0,
-              onClick: () => previousCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs13(previousCalendarPeriodWithData))
+              onClick: () => previousCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs14(previousCalendarPeriodWithData))
             }
           ) }),
           /* @__PURE__ */ jsx(Tooltip, { title: _77("Today"), children: /* @__PURE__ */ jsx(
@@ -22808,7 +22811,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsx(CalendarOutlined, {}),
               "aria-label": _77("Today"),
               onClick: () => setCalendarAnchorDate(
-                calendarPeriodWithDataNearestToday !== void 0 ? dayjs13(calendarPeriodWithDataNearestToday) : dayjs13().startOf(calendarMode)
+                calendarPeriodWithDataNearestToday !== void 0 ? dayjs14(calendarPeriodWithDataNearestToday) : dayjs14().startOf(calendarMode)
               )
             }
           ) }),
@@ -22819,7 +22822,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsx(ArrowRightOutlined, {}),
               "aria-label": _77("Next"),
               disabled: nextCalendarPeriodWithData === void 0,
-              onClick: () => nextCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs13(nextCalendarPeriodWithData))
+              onClick: () => nextCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs14(nextCalendarPeriodWithData))
             }
           ) })
         ] })
@@ -22859,7 +22862,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               const dayKey = day.format("YYYY-MM-DD");
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-              const isToday = day.isSame(dayjs13(), "day");
+              const isToday = day.isSame(dayjs14(), "day");
               const heatmapTotal = calendarHeatmapTotals.get(dayKey);
               const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
               return /* @__PURE__ */ jsxs(
@@ -23349,6 +23352,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                 },
                 field.key
               )),
+              (extraColumns ?? []).map((column) => /* @__PURE__ */ jsx(Table.Column, { title: column.title, render: (_unused, record) => column.render(record) }, column.key)),
               (showActions || effectiveRowActions.length > 0) && /* @__PURE__ */ jsx(
                 Table.Column,
                 {
@@ -29715,6 +29719,6 @@ var helpSystemModels = [
   }
 ];
 
-export { ACCESS_ACTIONS, API_URL2 as API_URL, AdvancedFilterBuilder, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, ColumnFilterValuesEditor, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FieldSequenceEditor, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, MultiSortControl, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TemporaryPageLayoutControls, TonedPage, VIEW_TYPE_CATALOG, VeloIQPortalApp, ViewConfigurationToggleButton, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, applyTemporaryPageSetup, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildColumnFilterOptions, buildShowTabFormOptions, buildViewTypeLabels, clearAccess, clearTemporaryPageSetup, clipToViewport, createInPageRowsStore, evaluateAccess, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getAllViewTypes, getListViewFields, getModelTone, getNavEntry, getSelectableViewTypes, getViewTypeCapabilitiesForPage, getViewTypeLabel, getViewTypesForContext, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, isViewTypeApplicable, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, orderAfterMove, orderAfterSelection, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPageTemplateProvider, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, resolveViewTypeToken, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
+export { ACCESS_ACTIONS, API_URL2 as API_URL, AdvancedFilterBuilder, AllModelsProvider, AppBannerHost, AuthenticatedImage, BANNER_EDGE_MARGIN, BANNER_STACK_GAP, BOTTOM_OVERLAY_ATTR, BannerHost, CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD, CATEGORICAL_CARD_TONE, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING, CarouselPositionBadge, CategoricalCardBody, CollapsedSpine, CollapsibleBanner, CollapsibleSidePanel, ColorModeContext, ColorModeContextProvider, ColumnFilterValuesEditor, CommandCenterPortal, CustomSider, DEFAULT_CONTENT_SELECTOR, DEFAULT_HEADER_SELECTOR, DashboardPage, DataDetailSlider, DynamicCreate, DynamicEdit, DynamicList, DynamicShow, ExecutableHtml, FieldSequenceEditor, FrameworkUiFeaturesOverride, GlobalSearch, HelpButton, HelpContext, HelpDrawer, HierarchyView, HorizontalMenu, IN_PAGE_ROWS_RESOURCE_PREFIX, InlinePlotlyHtml, LandingRedirect, LayoutWrapper, LicenseGate, LoginPage, ModelBanner, ModelHeading, MultiPaneLayout, MultiSortControl, NON_MODEL_DATA_RESOURCE_ROUTE_PARAMETER, NavConfigContext, NoAccessResult, NonModelDataResourcePages, PORTAL_REQUEST_HEADER, PaneNavigationContext, PinnedRecordsPanel, PrimaryCarouselLayout, PrimaryShowContext, REFINE_TO_ACTION, RecentActivityPanel, ReferenceField, ResourceAccessGate, ResourceContext, SampleRowsTable, SectionBar, SectionsGrid, ShowFooterButtons, SingleItemCarousel, StandardList, StandardShow, TemporaryPageLayoutControls, TonedPage, TotalsDetailsCard, VIEW_TYPE_CATALOG, VeloIQPortalApp, ViewConfigurationToggleButton, ViewsGrid, accessControlProvider, anchorGroupStyle, anchorKey, applyTemporaryPageSetup, authProvider, authSystemModels, authenticatedFetch, bannerIcon, bannerMoves, bannersUrl, buildCategoricalBreakdown, buildColumnFilterOptions, buildListFilterParams, buildServerFiltersFromRules, buildShowTabFormOptions, buildViewTypeLabels, clearAccess, clearTemporaryPageSetup, clipToViewport, createInPageRowsStore, evaluateAccess, fetchAllListRows, filterMenuItemsByAccess, generateResources, getAccessSnapshot, getActiveLocale, getAllViewTypes, getListViewFields, getModelTone, getNavEntry, getSelectableViewTypes, getViewTypeCapabilitiesForPage, getViewTypeLabel, getViewTypesForContext, groupBannersByAnchor, guessIcon, helpSystemModels, httpClient, isCurrentPosition, isModuleLicensedIn, isModuleWriteAllowedIn, isViewTypeApplicable, matchesColumnFilterValue, mergeUiModelSchemas, moduleKeyForName, normalizeToneKey, orderAfterMove, orderAfterSelection, pageContextFromPath, percentSize, portalSiteOfRequests, readAccessToken, refreshAccess, registerPageTemplateProvider, registerPrimaryCarouselFooter, registerResourceRowActions, removeInPageRowsStore, renderRelationBlock, resetFrameworkUiFeatures, resolveFallbackLandingPath, resolveIcon, resolveNavKey, resolveRelativeDate, resolveViewTypeToken, setColorSchemas, setPortalRequestContext, setSignInStorageNamespace, signInStorageKeys, signedOutVisitorsAllowed, siteScopedStorageKey, sortItemsByNavConfig, useAccess, useAccessQueryInvalidation, useAllModels, useAuthenticatedFileUrl, useBeforeEditSave, useBottomOverlayInset, useContentRect, useDataDetailLevel, useFrameworkUiFeatures, useInPageRowsStore, useKeyboardShortcuts, useLayoutMenuItems, useLicensePool, useMetadataModal, useNavConfig, useNavModules, usePageTone, usePaneNavigation, usePortalPublicSettings, useRecordSearch, useRefineResourcesIncludingNavigationPages, useRefineResourcesIncludingNonModelData, useRememberedFlag, useSetHelpPageKey, useShowActionsPreferences, useShowEditableForm, useStandardEditTabs, useStandardShowTabs };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

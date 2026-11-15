@@ -5,6 +5,8 @@
  */
 import React from "react";
 import { Typography } from "antd";
+import { formatNumberValue } from "./utils/formatting";
+import type { CategoricalBreakdownEntry } from "./utils/categoricalBreakdown";
 
 const { Text } = Typography;
 
@@ -46,4 +48,27 @@ export const TotalsDetailsCard: React.FC<{
         </div>
         <div style={{ padding: 12, flex: 1 }}>{children}</div>
     </div>
+);
+
+/**
+ * Body of a categorical card: the breakdown rows ("value: count", most frequent first, the
+ * remaining values grouped in an "Others" row) or, when there is no breakdown, the one `value`
+ * in large type. Shared by the totals-details cards and by any list of categorical summaries.
+ */
+export const CategoricalCardBody: React.FC<{
+    tone: TotalsDetailsCardTone;
+    breakdown?: CategoricalBreakdownEntry[];
+    value?: number;
+}> = ({ tone, breakdown, value }) => (
+    breakdown && breakdown.length > 0 ? (
+        <div style={{ display: "grid", gap: 4 }}>
+            {breakdown.map((entry) => (
+                <div key={entry.value} style={{ fontSize: 12, color: tone.text, fontWeight: 400, textAlign: "center" }}>
+                    {`${entry.value}: ${formatNumberValue(entry.count)}`}
+                </div>
+            ))}
+        </div>
+    ) : (
+        <div style={{ fontSize: 24, fontWeight: 400, color: tone.text, textAlign: "center" }}>{formatNumberValue(value ?? 0)}</div>
+    )
 );

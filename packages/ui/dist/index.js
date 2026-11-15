@@ -9,7 +9,7 @@ var AntDIcons2 = require('@ant-design/icons');
 var jsxRuntime = require('react/jsx-runtime');
 var reactRouterDom = require('react-router-dom');
 var reactDom = require('react-dom');
-var dayjs13 = require('dayjs');
+var dayjs14 = require('dayjs');
 var relativeTime2 = require('dayjs/plugin/relativeTime');
 var axios = require('axios');
 var routerProvider = require('@refinedev/react-router-v6');
@@ -36,7 +36,7 @@ function _interopNamespace(e) {
 
 var React6__default = /*#__PURE__*/_interopDefault(React6);
 var AntDIcons2__namespace = /*#__PURE__*/_interopNamespace(AntDIcons2);
-var dayjs13__default = /*#__PURE__*/_interopDefault(dayjs13);
+var dayjs14__default = /*#__PURE__*/_interopDefault(dayjs14);
 var relativeTime2__default = /*#__PURE__*/_interopDefault(relativeTime2);
 var axios__default = /*#__PURE__*/_interopDefault(axios);
 var routerProvider__default = /*#__PURE__*/_interopDefault(routerProvider);
@@ -5665,7 +5665,7 @@ var AdvancedFilterBuilder = ({ fields, rules: filterRules, setRules: setFilterRu
         return /* @__PURE__ */ jsxRuntime.jsx(
           antd.DatePicker,
           {
-            value: value?.date ? dayjs13__default.default(value.date) : void 0,
+            value: value?.date ? dayjs14__default.default(value.date) : void 0,
             onChange: (val) => onChange({ mode: "absolute", date: val ? val.toISOString() : null })
           }
         );
@@ -6959,6 +6959,7 @@ var TotalsDetailsCard = ({ title, tone, children }) => /* @__PURE__ */ jsxRuntim
     ]
   }
 );
+var CategoricalCardBody = ({ tone, breakdown, value }) => breakdown && breakdown.length > 0 ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 4 }, children: breakdown.map((entry) => /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: tone.text, fontWeight: 400, textAlign: "center" }, children: `${entry.value}: ${formatNumberValue(entry.count)}` }, entry.value)) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: tone.text, textAlign: "center" }, children: formatNumberValue(value ?? 0) });
 
 // src/components/DynamicResource/utils/categoricalBreakdown.ts
 var CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = 5;
@@ -7344,7 +7345,7 @@ var getCalendarDateFieldOptions = (fields) => {
 var getCalendarRecordDate = (record, fieldKey) => {
   const rawValue = record?.[fieldKey];
   if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs13__default.default(rawValue);
+  const parsed = dayjs14__default.default(rawValue);
   if (!parsed.isValid()) return null;
   return parsed.startOf("day");
 };
@@ -8305,7 +8306,7 @@ function resolveRowTypedField(field, record) {
   }
   return resolved;
 }
-dayjs13__default.default.extend(relativeTime2__default.default);
+dayjs14__default.default.extend(relativeTime2__default.default);
 var _33 = window._ || ((text) => text);
 var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
@@ -8398,7 +8399,7 @@ var renderFieldViewTypeReadOnly = (token, value, inTable) => {
     case "read-only-qrcode":
       return /* @__PURE__ */ jsxRuntime.jsx(React6.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsxRuntime.jsx(QRCodeSVG, { value: str, size: 128 }) });
     case "read-only-relative": {
-      const parsed = dayjs13__default.default(str);
+      const parsed = dayjs14__default.default(str);
       if (!parsed.isValid()) return str || "-";
       return /* @__PURE__ */ jsxRuntime.jsx(jsxRuntime.Fragment, { children: parsed.fromNow() });
     }
@@ -10209,14 +10210,14 @@ var buildListFilterParams = (filters) => {
   });
   return params;
 };
-var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate) => {
+var buildServerFiltersFromRules = (filterRules, fields, resolveRelativeDate2) => {
   const resolveServerDate = (val, forRange) => {
     if (val?.mode === "relative") {
-      const resolved = resolveRelativeDate(val, forRange);
+      const resolved = resolveRelativeDate2(val, forRange);
       if (forRange) return { start: resolved.start?.toISOString(), end: resolved.end?.toISOString() };
       return { date: resolved.date?.toISOString() };
     }
-    const date = dayjs13__default.default(val?.date || val);
+    const date = dayjs14__default.default(val?.date || val);
     if (!date.isValid()) return {};
     if (forRange) return { start: date.startOf("day").toISOString(), end: date.endOf("day").toISOString() };
     return { date: date.startOf("day").toISOString() };
@@ -10333,6 +10334,50 @@ var useServerAnalyze = (options) => {
   }, [request]);
   return { result, loading, error };
 };
+var resolveRelativeDate = (value, asRange) => {
+  const count = Number(value?.count ?? 1);
+  const direction = value?.direction || "next";
+  const unit = value?.unit || "weeks";
+  const isQuarter = unit === "quarters";
+  const base = dayjs14__default.default();
+  if (asRange || direction === "current") {
+    const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
+    if (isQuarter) {
+      const quarterStartMonth = Math.floor(anchor.month() / 3) * 3;
+      const start = anchor.month(quarterStartMonth).startOf("month");
+      const end = start.add(2, "month").endOf("month");
+      return { start, end };
+    }
+    return {
+      start: anchor.startOf(unit),
+      end: anchor.endOf(unit)
+    };
+  }
+  const target = direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
+  if (isQuarter) {
+    const quarterStartMonth = Math.floor(target.month() / 3) * 3;
+    return { date: target.month(quarterStartMonth).startOf("month") };
+  }
+  return { date: target.startOf(unit) };
+};
+
+// src/components/DynamicResource/utils/fetchAllListRows.ts
+async function fetchAllListRows({ apiUrl, resourcePath, filters = [], pageSize = 500, maxRows }) {
+  let start = 0;
+  let rows = [];
+  while (maxRows === void 0 || rows.length < maxRows) {
+    const params = buildListFilterParams(filters);
+    params.set("_start", String(start));
+    params.set("_end", String(start + pageSize));
+    const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) break;
+    rows = rows.concat(data);
+    if (data.length < pageSize) break;
+    start += pageSize;
+  }
+  return maxRows === void 0 ? rows : rows.slice(0, maxRows);
+}
 var ALWAYS_ON2 = /* @__PURE__ */ new Set(["authobjs", "lib", "license"]);
 function useLicensePool() {
   const [pool, setPool] = React6.useState(null);
@@ -12025,7 +12070,7 @@ function useCalendarPeriodsWithData(entryDates, mode, anchorDate) {
   }, [entryDates, mode]);
   const currentPeriodStart = anchorDate.startOf(mode).valueOf();
   return React6.useMemo(() => {
-    const todayPeriodStart = dayjs13__default.default().startOf(mode).valueOf();
+    const todayPeriodStart = dayjs14__default.default().startOf(mode).valueOf();
     let periodStartNearestToday;
     periodStartsWithData.forEach((periodStart) => {
       if (periodStartNearestToday === void 0 || Math.abs(periodStart - todayPeriodStart) < Math.abs(periodStartNearestToday - todayPeriodStart)) periodStartNearestToday = periodStart;
@@ -12956,7 +13001,7 @@ function isInlineEditableField(field, model) {
   return true;
 }
 function formValueAsPayloadValue(field, value) {
-  if (dayjs13__default.default.isDayjs(value)) {
+  if (dayjs14__default.default.isDayjs(value)) {
     if (field.type === "date") return value.format("YYYY-MM-DD");
     if (field.type === "time") return value.format("HH:mm:ss");
     return value.toISOString();
@@ -13040,7 +13085,7 @@ var InlineCellEditor = ({ field, record, rowId, model, allModels, inlineRowEdits
           name: "cell",
           style: { margin: 0, minWidth: 120 },
           valuePropName: rowField.type === "boolean" ? "checked" : "value",
-          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs13__default.default.isDayjs(current2) ? { value: dayjs13__default.default(current2) } : rowField.type === "time" && current2 && !dayjs13__default.default.isDayjs(current2) ? { value: dayjs13__default.default("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
+          getValueProps: (current2) => (rowField.type === "date" || rowField.type === "datetime") && current2 && !dayjs14__default.default.isDayjs(current2) ? { value: dayjs14__default.default(current2) } : rowField.type === "time" && current2 && !dayjs14__default.default.isDayjs(current2) ? { value: dayjs14__default.default("1970-01-01T" + current2) } : rowField.type === "boolean" ? { checked: current2 === true || current2 === "true" } : { value: current2 },
           children: renderInput(field, allModels, model, rowId, record)
         }
       )
@@ -13323,7 +13368,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
           name: field.key,
           rules: field.required ? [{ required: true }] : [],
           valuePropName: field.type === "boolean" ? "checked" : void 0,
-          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+          getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
           style: { margin: 0 },
           children: renderInput(field, allModels, model)
         }
@@ -13421,7 +13466,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
             field.label,
             requiredMark(field)
           ] }),
-          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
+          /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: "2px 4px", lineHeight: 1.15, maxWidth: "100%", overflowWrap: "anywhere" }, children: /* @__PURE__ */ jsxRuntime.jsx(antd.Form.Item, { name: field.key, rules: field.required ? [{ required: true }] : [], valuePropName: field.type === "boolean" ? "checked" : void 0, getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val }, style: { margin: 0 }, children: renderInput(field, allModels, model) }) })
         ] }, field.key);
       }) }) })
     ] }),
@@ -14574,7 +14619,7 @@ var SectionCellContent = ({
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? recordId2 : void 0, record)
@@ -14685,7 +14730,7 @@ var SectionCellContent = ({
             name: field.key,
             rules: field.required && !field.formula ? [{ required: true }] : [],
             valuePropName: field.type === "boolean" ? "checked" : void 0,
-            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+            getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
             style: { margin: 0 },
             children: field.formula ? /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
           }
@@ -15278,7 +15323,7 @@ var useStandardEditTabs = (model, record, allModels, actionsState, editFormProps
                   name: field.key,
                   rules: field.required && !field.formula ? [{ required: true }] : [],
                   valuePropName: field.type === "boolean" ? "checked" : void 0,
-                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+                  getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
                   style: { margin: 0 },
                   children: field.formula ? /* @__PURE__ */ jsxRuntime.jsx(antd.Input, { disabled: true }) : renderInput(field, allModels, model, recordId2, record)
                 }
@@ -15924,7 +15969,7 @@ var useStandardShowTabs = (model, record, allModels, actionsState, editForm, ove
         name: field.key,
         rules: field.required && !field.formula ? [{ required: true }] : [],
         valuePropName: field.type === "boolean" ? "checked" : void 0,
-        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+        getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
         style: { margin: 0 },
         noStyle: false,
         children: renderInput(field, allModels, model, isSelfRef ? currentId : void 0, record)
@@ -16473,7 +16518,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
   const heatmapFieldOptions = React6.useMemo(() => getCalendarHeatmapFieldOptions(relatedModel.fields), [relatedModel.fields]);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => dateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs13__default.default().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs14__default.default().startOf("month"));
   const [heatmapField, setHeatmapField] = React6.useState("");
   const dateFieldKeySet = React6.useMemo(() => new Set(dateFieldOptions.map((field) => field.key)), [dateFieldOptions]);
   React6.useEffect(() => {
@@ -16513,10 +16558,10 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
     if (initSignatureRef.current === signature) return;
     initSignatureRef.current = signature;
     if (earliestDateTs === null) {
-      setCalendarAnchorDate(dayjs13__default.default().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs14__default.default().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs13__default.default(earliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs14__default.default(earliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarMode, earliestDateTs]);
   const entriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -16613,7 +16658,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
             "aria-label": _67("Previous"),
             disabled: previousPeriodStart === void 0,
-            onClick: () => previousPeriodStart !== void 0 && setCalendarAnchorDate(dayjs13__default.default(previousPeriodStart))
+            onClick: () => previousPeriodStart !== void 0 && setCalendarAnchorDate(dayjs14__default.default(previousPeriodStart))
           }
         ) }),
         /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _67("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -16623,7 +16668,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
             "aria-label": _67("Today"),
             onClick: () => setCalendarAnchorDate(
-              periodStartNearestToday !== void 0 ? dayjs13__default.default(periodStartNearestToday) : dayjs13__default.default().startOf(calendarMode)
+              periodStartNearestToday !== void 0 ? dayjs14__default.default(periodStartNearestToday) : dayjs14__default.default().startOf(calendarMode)
             )
           }
         ) }),
@@ -16634,7 +16679,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
             "aria-label": _67("Next"),
             disabled: nextPeriodStart === void 0,
-            onClick: () => nextPeriodStart !== void 0 && setCalendarAnchorDate(dayjs13__default.default(nextPeriodStart))
+            onClick: () => nextPeriodStart !== void 0 && setCalendarAnchorDate(dayjs14__default.default(nextPeriodStart))
           }
         ) })
       ] })
@@ -16674,7 +16719,7 @@ var RelatedObjectsCalendar = ({ rel, record, relatedModel, allModels }) => {
             const dayKey = day.format("YYYY-MM-DD");
             const entries = entriesByDate.get(dayKey) || [];
             const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-            const isToday = day.isSame(dayjs13__default.default(), "day");
+            const isToday = day.isSame(dayjs14__default.default(), "day");
             const heatmapTotal = heatmapTotals.get(dayKey);
             const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, heatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
             return /* @__PURE__ */ jsxRuntime.jsxs(
@@ -17783,12 +17828,12 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const hasActiveFilterRules = React6.useMemo(() => {
     return filterRules.some((rule) => rule.fieldKey && rule.operator && (rule.value !== void 0 && rule.value !== null && rule.value !== ""));
   }, [filterRules]);
-  const resolveRelativeDate = React6.useCallback((value, asRange) => {
+  const resolveRelativeDate2 = React6.useCallback((value, asRange) => {
     const count = Number(value?.count ?? 1);
     const direction = value?.direction || "next";
     const unit = value?.unit || "weeks";
     const isQuarter = unit === "quarters";
-    const base = dayjs13__default.default();
+    const base = dayjs14__default.default();
     if (asRange || direction === "current") {
       const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
       if (isQuarter) {
@@ -17861,36 +17906,36 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       return true;
     }
     if (field.type === "date") {
-      const recordDate = dayjs13__default.default(rawValue);
+      const recordDate = dayjs14__default.default(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
       const getDateValue = (val, asRange) => {
         if (val?.mode === "relative") {
-          return resolveRelativeDate(val, asRange);
+          return resolveRelativeDate2(val, asRange);
         }
-        const date = dayjs13__default.default(val?.date || val);
+        const date = dayjs14__default.default(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
         case "on": {
-          const range = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
+          const range = mode === "relative" ? resolveRelativeDate2(rule.value, true) : getDateValue(rule.value, true);
           const time = recordDate.valueOf();
           return time >= range.start.valueOf() && time <= range.end.valueOf();
         }
         case "after": {
-          const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs13__default.default(dateVal).endOf("day").valueOf();
+          const dateVal = mode === "relative" ? resolveRelativeDate2(rule.value, false).date : getDateValue(rule.value, false).date;
+          if (!dateVal || !dayjs14__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs14__default.default(dateVal).endOf("day").valueOf();
         }
         case "before": {
-          const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs13__default.default(dateVal).startOf("day").valueOf();
+          const dateVal = mode === "relative" ? resolveRelativeDate2(rule.value, false).date : getDateValue(rule.value, false).date;
+          if (!dateVal || !dayjs14__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs14__default.default(dateVal).startOf("day").valueOf();
         }
         case "between": {
-          const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
-          const endRange = mode2 === "relative" ? resolveRelativeDate(rule.value2, true) : getDateValue(rule.value2, true);
+          const startRange = mode === "relative" ? resolveRelativeDate2(rule.value, true) : getDateValue(rule.value, true);
+          const endRange = mode2 === "relative" ? resolveRelativeDate2(rule.value2, true) : getDateValue(rule.value2, true);
           if (!startRange.start || !endRange.end) return false;
           const time = recordDate.valueOf();
           return time >= startRange.start.valueOf() && time <= endRange.end.valueOf();
@@ -17900,7 +17945,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       }
     }
     return true;
-  }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate]);
+  }, [getFieldValueForFilter, relatedModel.fields, resolveRelativeDate2]);
   const applyGlobalSearch = React6.useCallback((data) => {
     const query = localSearch.trim().toLowerCase();
     if (!query) return data;
@@ -19094,7 +19139,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                                 name: [rowId, field.key],
                                 style: { margin: 0 },
                                 valuePropName: field.type === "boolean" ? "checked" : "value",
-                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs13__default.default(val) } : field.type === "time" && val ? { value: dayjs13__default.default("1970-01-01T" + val) } : { value: val },
+                                getValueProps: (val) => (field.type === "date" || field.type === "datetime") && val ? { value: dayjs14__default.default(val) } : field.type === "time" && val ? { value: dayjs14__default.default("1970-01-01T" + val) } : { value: val },
                                 children: renderEditableInput(field, rowId, row)
                               }
                             );
@@ -20194,7 +20239,7 @@ var DataDetailSlider = ({ detailState }) => {
 };
 var _77 = window._ || ((text) => text);
 var { Title: Title6 } = antd.Typography;
-var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate }) => {
+var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, relationConfig, isEmbedded = false, applyTemporaryLayout = false, hideDataControls = false, title: titleProp, showActions = true, showCreate = true, layoutPreferenceType, listViewType, rowSelection, extraHeaderButtons, bulkActions, rowActions, isRowDeletable, preferencesResourceOverride, defaultListVisible, highlightedRowKeys, onSelectedRowsChange, onRowClick, onCreate, rowFilter, extraColumns }) => {
   const allModels = useAllModelsIncludingNonModelData(allModelsProp);
   const model = useRoleFilteredModel(modelProp);
   const frameworkUiFeatures = useFrameworkUiFeatures();
@@ -20350,7 +20395,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const [carouselToolbarSlot, setCarouselToolbarSlot] = React6.useState(null);
   const [calendarMode, setCalendarMode] = React6.useState("month");
   const [calendarDateField, setCalendarDateField] = React6.useState(() => calendarDateFieldOptions[0]?.key || "");
-  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs13__default.default().startOf("month"));
+  const [calendarAnchorDate, setCalendarAnchorDate] = React6.useState(() => dayjs14__default.default().startOf("month"));
   const [calendarHeatmapField, setCalendarHeatmapField] = React6.useState("");
   const [filtersCollapsed, setFiltersCollapsed] = React6.useState(isEmbedded);
   const [layoutPrefsReady, setLayoutPrefsReady] = React6.useState(false);
@@ -20593,32 +20638,6 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (typeof aVal === "number" && typeof bVal === "number") return aVal - bVal;
     return String(aVal).localeCompare(String(bVal));
   }, [getSortValue]);
-  const resolveRelativeDate = React6.useCallback((value, asRange) => {
-    const count = Number(value?.count ?? 1);
-    const direction = value?.direction || "next";
-    const unit = value?.unit || "weeks";
-    const isQuarter = unit === "quarters";
-    const base = dayjs13__default.default();
-    if (asRange || direction === "current") {
-      const anchor = direction === "current" ? base : direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
-      if (isQuarter) {
-        const quarterStartMonth = Math.floor(anchor.month() / 3) * 3;
-        const start = anchor.month(quarterStartMonth).startOf("month");
-        const end = start.add(2, "month").endOf("month");
-        return { start, end };
-      }
-      return {
-        start: anchor.startOf(unit),
-        end: anchor.endOf(unit)
-      };
-    }
-    const target = direction === "previous" ? isQuarter ? base.subtract(count * 3, "month") : base.subtract(count, unit) : isQuarter ? base.add(count * 3, "month") : base.add(count, unit);
-    if (isQuarter) {
-      const quarterStartMonth = Math.floor(target.month() / 3) * 3;
-      return { date: target.month(quarterStartMonth).startOf("month") };
-    }
-    return { date: target.startOf(unit) };
-  }, []);
   const matchesRule = React6.useCallback((record, rule) => {
     const field = model.fields.find((f) => f.key === rule.fieldKey);
     if (!field || !rule.operator) return true;
@@ -20659,7 +20678,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       return true;
     }
     if (field.type === "date" || field.type === "datetime") {
-      const recordDate = dayjs13__default.default(rawValue);
+      const recordDate = dayjs14__default.default(rawValue);
       if (!recordDate.isValid()) return false;
       const mode = rule.value?.mode || "absolute";
       const mode2 = rule.value2?.mode || "absolute";
@@ -20667,7 +20686,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         if (val?.mode === "relative") {
           return resolveRelativeDate(val, asRange);
         }
-        const date = dayjs13__default.default(val?.date || val);
+        const date = dayjs14__default.default(val?.date || val);
         return asRange ? { start: date.startOf("day"), end: date.endOf("day") } : { date: date.startOf("day") };
       };
       switch (rule.operator) {
@@ -20678,13 +20697,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         }
         case "after": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() > dayjs13__default.default(dateVal).endOf("day").valueOf();
+          if (!dateVal || !dayjs14__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() > dayjs14__default.default(dateVal).endOf("day").valueOf();
         }
         case "before": {
           const dateVal = mode === "relative" ? resolveRelativeDate(rule.value, false).date : getDateValue(rule.value, false).date;
-          if (!dateVal || !dayjs13__default.default(dateVal).isValid()) return false;
-          return recordDate.valueOf() < dayjs13__default.default(dateVal).startOf("day").valueOf();
+          if (!dateVal || !dayjs14__default.default(dateVal).isValid()) return false;
+          return recordDate.valueOf() < dayjs14__default.default(dateVal).startOf("day").valueOf();
         }
         case "between": {
           const startRange = mode === "relative" ? resolveRelativeDate(rule.value, true) : getDateValue(rule.value, true);
@@ -20744,10 +20763,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   }, [allRowsData, useLocalSearch, localSearch, model.fields, labelCache]);
   const isClientFiltering = allRowsLoaded && !allRowsError;
   const filteredDataSource = React6.useMemo(() => {
-    if (!isClientFiltering) return Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
+    const keepRow = (rows) => rowFilter ? rows.filter(rowFilter) : rows;
+    if (!isClientFiltering) return keepRow(Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
     const baseRows = allRows || [];
-    return applyFilterRules(applyGlobalSearch(baseRows));
-  }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, tableProps.dataSource]);
+    return keepRow(applyFilterRules(applyGlobalSearch(baseRows)));
+  }, [allRows, applyFilterRules, applyGlobalSearch, isClientFiltering, rowFilter, tableProps.dataSource]);
   const columnFilteredDataSource = React6.useMemo(() => {
     const activeEntries = Object.entries(columnFiltersSelected).filter(([, values]) => values && values.length > 0);
     if (activeEntries.length === 0) return filteredDataSource;
@@ -21207,22 +21227,12 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     setIsAllRowsLoading(true);
     setAllRowsError(null);
     const filtersToApply = activeFilters && activeFilters.length > 0 ? activeFilters : tableFilters;
-    const pageSize2 = 500;
-    let start = 0;
-    let allRows2 = [];
     try {
-      while (true) {
-        const params = buildListFilterParams(filtersToApply);
-        params.set("_start", String(start));
-        params.set("_end", String(start + pageSize2));
-        const resourcePath = resolveResourcePath(model.resource || model.name, allModels);
-        const response = await authenticatedFetch(`${apiUrl}/${resourcePath}?${params.toString()}`);
-        const data = await response.json();
-        if (!Array.isArray(data)) break;
-        allRows2 = allRows2.concat(data);
-        if (data.length < pageSize2) break;
-        start += pageSize2;
-      }
+      const allRows2 = await fetchAllListRows({
+        apiUrl,
+        resourcePath: resolveResourcePath(model.resource || model.name, allModels),
+        filters: filtersToApply
+      });
       setAllRowsData(allRows2);
     } catch (error) {
       setAllRowsError(error instanceof Error ? error.message : _77("Failed to fetch all rows"));
@@ -21489,14 +21499,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     const catTone = CATEGORICAL_CARD_TONE;
     return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginBottom: 12, borderRadius: 8, padding: 10, background: token.colorBgContainer }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("div", { style: { flex: 1, overflowX: "auto", paddingBottom: 2 }, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { width: "max-content", minWidth: "100%", display: "flex", justifyContent: "center", gap: 12, alignItems: "stretch" }, children: [
-        hasCat && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: item.showBreakdown ? /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "grid", gap: 4 }, children: item.breakdown.map((entry) => /* @__PURE__ */ jsxRuntime.jsx(
-          "div",
-          {
-            style: { fontSize: 12, color: catTone.text, fontWeight: 400, textAlign: "center" },
-            children: `${entry.value}: ${formatNumberValue(entry.count)}`
-          },
-          `td-cat-${item.key}-${entry.value}`
-        )) }) : /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 24, fontWeight: 400, color: catTone.text, textAlign: "center" }, children: formatNumberValue(item.value) }) }, `td-cat-${item.key}`)) }),
+        hasCat && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdCategoricalBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(TotalsDetailsCard, { title: item.label, tone: catTone, children: /* @__PURE__ */ jsxRuntime.jsx(CategoricalCardBody, { tone: catTone, breakdown: item.showBreakdown ? item.breakdown : void 0, value: item.value }) }, `td-cat-${item.key}`)) }),
         hasCat && hasNum && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { borderLeft: `1px solid ${token.colorBorderSecondary}`, margin: "0 2px" } }),
         hasNum && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 8, flexWrap: "nowrap", alignItems: "stretch" }, children: tdNumericBoxes.map((item) => /* @__PURE__ */ jsxRuntime.jsx(
           TotalsDetailsCard,
@@ -22076,7 +22079,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
         antd.DatePicker,
         {
           size: "small",
-          value: bulkChangeFieldValue ? dayjs13__default.default(bulkChangeFieldValue) : null,
+          value: bulkChangeFieldValue ? dayjs14__default.default(bulkChangeFieldValue) : null,
           onChange: (v) => setBulkChangeFieldValue(v ? v.toISOString() : null)
         }
       ) : bulkChangeField.type === "number" ? /* @__PURE__ */ jsxRuntime.jsx(
@@ -22707,10 +22710,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (calendarInitSignatureRef.current === signature) return;
     calendarInitSignatureRef.current = signature;
     if (calendarEarliestDateTs === null) {
-      setCalendarAnchorDate(dayjs13__default.default().startOf(calendarMode));
+      setCalendarAnchorDate(dayjs14__default.default().startOf(calendarMode));
       return;
     }
-    setCalendarAnchorDate(dayjs13__default.default(calendarEarliestDateTs).startOf(calendarMode));
+    setCalendarAnchorDate(dayjs14__default.default(calendarEarliestDateTs).startOf(calendarMode));
   }, [calendarDateField, calendarEarliestDateTs, calendarMode, isCalendarView]);
   const calendarEntriesByDate = React6.useMemo(() => {
     const grouped = /* @__PURE__ */ new Map();
@@ -22826,7 +22829,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowLeftOutlined, {}),
               "aria-label": _77("Previous"),
               disabled: previousCalendarPeriodWithData === void 0,
-              onClick: () => previousCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs13__default.default(previousCalendarPeriodWithData))
+              onClick: () => previousCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs14__default.default(previousCalendarPeriodWithData))
             }
           ) }),
           /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _77("Today"), children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -22836,7 +22839,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CalendarOutlined, {}),
               "aria-label": _77("Today"),
               onClick: () => setCalendarAnchorDate(
-                calendarPeriodWithDataNearestToday !== void 0 ? dayjs13__default.default(calendarPeriodWithDataNearestToday) : dayjs13__default.default().startOf(calendarMode)
+                calendarPeriodWithDataNearestToday !== void 0 ? dayjs14__default.default(calendarPeriodWithDataNearestToday) : dayjs14__default.default().startOf(calendarMode)
               )
             }
           ) }),
@@ -22847,7 +22850,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ArrowRightOutlined, {}),
               "aria-label": _77("Next"),
               disabled: nextCalendarPeriodWithData === void 0,
-              onClick: () => nextCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs13__default.default(nextCalendarPeriodWithData))
+              onClick: () => nextCalendarPeriodWithData !== void 0 && setCalendarAnchorDate(dayjs14__default.default(nextCalendarPeriodWithData))
             }
           ) })
         ] })
@@ -22887,7 +22890,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               const dayKey = day.format("YYYY-MM-DD");
               const entries = calendarEntriesByDate.get(dayKey) || [];
               const isOutsideCurrentMonth = calendarMode === "month" && day.month() !== calendarAnchorDate.month();
-              const isToday = day.isSame(dayjs13__default.default(), "day");
+              const isToday = day.isSame(dayjs14__default.default(), "day");
               const heatmapTotal = calendarHeatmapTotals.get(dayKey);
               const heatmapBackground = getCalendarHeatmapBackground(heatmapTotal, calendarHeatmapTotals, getPlainColorBaseHex() || token.colorPrimary, token.colorBgContainer);
               return /* @__PURE__ */ jsxRuntime.jsxs(
@@ -23377,6 +23380,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
                 },
                 field.key
               )),
+              (extraColumns ?? []).map((column) => /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: column.title, render: (_unused, record) => column.render(record) }, column.key)),
               (showActions || effectiveRowActions.length > 0) && /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Table.Column,
                 {
@@ -29753,9 +29757,12 @@ exports.BANNER_EDGE_MARGIN = BANNER_EDGE_MARGIN;
 exports.BANNER_STACK_GAP = BANNER_STACK_GAP;
 exports.BOTTOM_OVERLAY_ATTR = BOTTOM_OVERLAY_ATTR;
 exports.BannerHost = BannerHost;
+exports.CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD = CATEGORICAL_BREAKDOWN_DISTINCT_THRESHOLD;
+exports.CATEGORICAL_CARD_TONE = CATEGORICAL_CARD_TONE;
 exports.COLLAPSED_SPINE_WIDTH = COLLAPSED_SPINE_WIDTH;
 exports.COMPACT_GROUP_PADDING = COMPACT_GROUP_PADDING;
 exports.CarouselPositionBadge = CarouselPositionBadge;
+exports.CategoricalCardBody = CategoricalCardBody;
 exports.CollapsedSpine = CollapsedSpine;
 exports.CollapsibleBanner = CollapsibleBanner;
 exports.CollapsibleSidePanel = CollapsibleSidePanel;
@@ -29814,6 +29821,7 @@ exports.StandardList = StandardList;
 exports.StandardShow = StandardShow;
 exports.TemporaryPageLayoutControls = TemporaryPageLayoutControls;
 exports.TonedPage = TonedPage;
+exports.TotalsDetailsCard = TotalsDetailsCard;
 exports.VIEW_TYPE_CATALOG = VIEW_TYPE_CATALOG;
 exports.VeloIQPortalApp = VeloIQPortalApp;
 exports.ViewConfigurationToggleButton = ViewConfigurationToggleButton;
@@ -29828,7 +29836,10 @@ exports.authenticatedFetch = authenticatedFetch;
 exports.bannerIcon = bannerIcon;
 exports.bannerMoves = bannerMoves;
 exports.bannersUrl = bannersUrl;
+exports.buildCategoricalBreakdown = buildCategoricalBreakdown;
 exports.buildColumnFilterOptions = buildColumnFilterOptions;
+exports.buildListFilterParams = buildListFilterParams;
+exports.buildServerFiltersFromRules = buildServerFiltersFromRules;
 exports.buildShowTabFormOptions = buildShowTabFormOptions;
 exports.buildViewTypeLabels = buildViewTypeLabels;
 exports.clearAccess = clearAccess;
@@ -29836,6 +29847,7 @@ exports.clearTemporaryPageSetup = clearTemporaryPageSetup;
 exports.clipToViewport = clipToViewport;
 exports.createInPageRowsStore = createInPageRowsStore;
 exports.evaluateAccess = evaluateAccess;
+exports.fetchAllListRows = fetchAllListRows;
 exports.filterMenuItemsByAccess = filterMenuItemsByAccess;
 exports.generateResources = generateResources;
 exports.getAccessSnapshot = getAccessSnapshot;
@@ -29856,6 +29868,7 @@ exports.isCurrentPosition = isCurrentPosition;
 exports.isModuleLicensedIn = isModuleLicensedIn;
 exports.isModuleWriteAllowedIn = isModuleWriteAllowedIn;
 exports.isViewTypeApplicable = isViewTypeApplicable;
+exports.matchesColumnFilterValue = matchesColumnFilterValue;
 exports.mergeUiModelSchemas = mergeUiModelSchemas;
 exports.moduleKeyForName = moduleKeyForName;
 exports.normalizeToneKey = normalizeToneKey;
@@ -29875,6 +29888,7 @@ exports.resetFrameworkUiFeatures = resetFrameworkUiFeatures;
 exports.resolveFallbackLandingPath = resolveFallbackLandingPath;
 exports.resolveIcon = resolveIcon;
 exports.resolveNavKey = resolveNavKey;
+exports.resolveRelativeDate = resolveRelativeDate;
 exports.resolveViewTypeToken = resolveViewTypeToken;
 exports.setColorSchemas = setColorSchemas;
 exports.setPortalRequestContext = setPortalRequestContext;
