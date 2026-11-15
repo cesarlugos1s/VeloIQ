@@ -15,9 +15,9 @@
   <script src="analytics.js" defer></script>
 
   <title>VeloIQ™ — The UI, Generated. A tour of the out-of-the-box interface.</title>
-  <meta name="description" content="Every screen generated from plain Python models — tables, galleries, crosstabs, Miller-column trees, master-detail panels, schema-driven forms, 18 chart types, dark mode. No React written, no design system assembled.">
+  <meta name="description" content="Every screen generated from plain Python models — tables, galleries, crosstabs, kanban boards, calendars, maps, Miller-column trees, master-detail panels, schema-driven forms, 18 chart types, dark mode. No React written, no design system assembled.">
   <meta property="og:title" content="VeloIQ™ — See the UI you didn't have to build">
-  <meta property="og:description" content="Tables, galleries, crosstabs, trees, master-detail panels, forms, and 18 chart types — all generated from your data models.">
+  <meta property="og:description" content="Tables, galleries, crosstabs, kanban boards, calendars, maps, trees, master-detail panels, forms, and 18 chart types — all generated from your data models.">
   <meta property="og:image" content="dashboard-dark.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,7 +80,7 @@
     <h1>The UI you <span class="highlight">didn't have to build</span></h1>
     <p>
       Every screen below comes from plain Python data models — VeloIQ™ generates the React
-      front-end automatically. Tables, galleries, crosstabs, trees, master-detail panels,
+      front-end automatically. Tables, galleries, crosstabs, kanban boards, calendars, maps, trees, master-detail panels,
       forms, and analytics, in light and dark mode, with zero boilerplate.
     </p>
     <div style="margin-top:24px;max-width:960px;margin-left:auto;margin-right:auto">
@@ -191,6 +191,47 @@
           <span class="shot-tag">Miller-Columns Tree</span>
           <h4>Hierarchies you can browse</h4>
           <p>Self-referential relationships are auto-detected and rendered as a column-by-column tree — drill from parent to child to leaf.</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="section-header" style="margin-top:48px">
+      <h3>More ways to see the same records</h3>
+      <p>Each of these appears in the view switcher of any model whose fields suit it.</p>
+    </div>
+    <div class="gallery">
+      <figure class="ui-shot">
+        <figcaption class="shot-body">
+          <span class="shot-tag">Kanban</span>
+          <h4>Boards from any category</h4>
+          <p>Split records into columns by a status, a flag or a related record. Each column can itself be shown as a list, table, gallery or calendar.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <figcaption class="shot-body">
+          <span class="shot-tag">Calendar</span>
+          <h4>Records on their dates</h4>
+          <p>A month or week calendar for any date field, with an optional number field that shades each day by its total, as a heatmap.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <figcaption class="shot-body">
+          <span class="shot-tag">Map</span>
+          <h4>Records on a map</h4>
+          <p>Places with a latitude and longitude appear as points sized and colored by a measure, or as a density heatmap. Uses OpenStreetMap tiles by default, or your own tile server.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <figcaption class="shot-body">
+          <span class="shot-tag">Images</span>
+          <h4>Full-width pictures</h4>
+          <p>The gallery with every image at full width, for photos, scans and documents that need to be read, not just recognized.</p>
+        </figcaption>
+      </figure>
+      <figure class="ui-shot">
+        <figcaption class="shot-body">
+          <span class="shot-tag">Primary carousel</span>
+          <h4>One record at a time</h4>
+          <p>Page through the full record view of each row with previous and next controls, without leaving the list.</p>
         </figcaption>
       </figure>
     </div>
