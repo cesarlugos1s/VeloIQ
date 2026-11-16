@@ -7500,7 +7500,8 @@ function getSelectableViewTypes(context, model) {
 }
 var _29 = (text) => translateText(text, text);
 var { Text: Text6 } = Typography;
-var KANBAN_COLUMN_WIDTH = 420;
+var KANBAN_COLUMN_MINIMUM_WIDTH = 420;
+var KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
 var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
 var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
   const { token } = theme.useToken();
@@ -7510,8 +7511,10 @@ var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pa
     {
       "data-kanban-column": label,
       style: {
-        flex: `0 0 ${KANBAN_COLUMN_WIDTH}px`,
-        width: KANBAN_COLUMN_WIDTH,
+        flex: "0 0 auto",
+        width: "max-content",
+        minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
+        maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
         display: "flex",
         flexDirection: "column",
         border: `1px solid ${tone.border}`,

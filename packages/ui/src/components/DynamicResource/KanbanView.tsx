@@ -32,7 +32,9 @@ const _ = (text: string): string => translateText(text, text);
 
 const { Text } = Typography;
 
-const KANBAN_COLUMN_WIDTH = 420;
+/** A column is never narrower than this; it grows to its widest card, up to the maximum. */
+const KANBAN_COLUMN_MINIMUM_WIDTH = 420;
+const KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
 /** The board scrolls inside the room left under the page header and the view's own controls. */
 const KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
 
@@ -73,8 +75,10 @@ const KanbanColumnPanel: React.FC<{
         <div
             data-kanban-column={label}
             style={{
-                flex: `0 0 ${KANBAN_COLUMN_WIDTH}px`,
-                width: KANBAN_COLUMN_WIDTH,
+                flex: "0 0 auto",
+                width: "max-content",
+                minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
+                maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
                 display: "flex",
                 flexDirection: "column",
                 border: `1px solid ${tone.border}`,
