@@ -1486,20 +1486,26 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
             except Exception:
                 typed_ids = list(ids)
 
-            with _SASession(engine) as session:
+            items = []
+            # Serialize while the session is still open: ``_to_dict`` may lazy-load
+            # relations (e.g. the ``imageSource`` relation), which raises
+            # DetachedInstanceError once the session has been closed. A SQLModel
+            # session is used (not the plain SQLAlchemy one) because title helpers
+            # on the models run ``session.exec(...)`` on the record's own session.
+            from sqlmodel import Session as _ModelSession
+            with _ModelSession(engine) as session:
                 objs = session.execute(
                     _sa_select(model_cls).where(pk_attr.in_(typed_ids))
                 ).scalars().all()
 
-            items = []
-            for obj in objs:
-                data = _to_dict(obj)
-                # Expose the primary-key value under the conventional ``eid`` alias
-                # so the frontend can correlate related records regardless of how
-                # the developer named the primary key.
-                if data.get("eid") is None:
-                    data["eid"] = getattr(obj, pk_field, None)
-                items.append(data)
+                for obj in objs:
+                    data = _to_dict(obj)
+                    # Expose the primary-key value under the conventional ``eid`` alias
+                    # so the frontend can correlate related records regardless of how
+                    # the developer named the primary key.
+                    if data.get("eid") is None:
+                        data["eid"] = getattr(obj, pk_field, None)
+                    items.append(data)
             return {"items": items}
 
         # ── Fallback: raw Core table (e.g. unmapped link/junction tables) ──────
