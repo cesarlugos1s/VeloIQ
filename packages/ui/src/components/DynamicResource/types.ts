@@ -71,6 +71,13 @@ export interface RelationDef {
     otherResourcePath?: string;
     relationName?: string;
     polymorphicType?: string;
+    /**
+     * Polymorphic relations only: API path, relative to the API root, whose rows
+     * ({ eid, type, resource, title }) name the objects linked to a record, with `{id}`
+     * standing for the record's id. When set, the relation reads its objects from it
+     * instead of loading each linked entity-registry row.
+     */
+    resolverPath?: string;
     isRecursive?: boolean;
     minItems?: number;
     maxItems?: number;

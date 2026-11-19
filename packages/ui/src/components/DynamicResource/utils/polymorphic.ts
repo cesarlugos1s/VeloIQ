@@ -1,6 +1,6 @@
 import type { ModelDef, RelationDef } from "../types";
 import { authenticatedFetch } from "../../../utils/authenticatedFetch";
-import { resolveResourcePath, resolveModelByEntityType, matchesPolymorphicType } from "./model";
+import { resolveResourcePath, resolveModelByEntityType, matchesPolymorphicType, findModelByName } from "./model";
 
 export const INLINE_RELATION_MAX_ITEMS = 80;
 export const GALLERY_RELATION_MAX_ITEMS = 120;
@@ -52,6 +52,34 @@ export const fetchPolymorphicGroups = async ({
     referenceResource: string;
     allModels: ModelDef[];
 }) => {
+    // A relation with a resolver path gets its objects (type, resource and title) from one
+    // request, so the entity registry rows need not be readable by the user.
+    if (rel.resolverPath) {
+        const resolverResponse = await authenticatedFetch(
+            `${apiUrl}/${rel.resolverPath.replace("{id}", encodeURIComponent(String(recordId)))}`,
+        );
+        if (!resolverResponse.ok) {
+            throw new Error(`Failed to load ${rel.label} relations`);
+        }
+        const resolvedObjects = await resolverResponse.json();
+        const resolverGroups = new Map<string, Set<string | number>>();
+        const resolverUnresolved: Array<string | number> = [];
+        const resolverLabelsById = new Map<string | number, string>();
+        (Array.isArray(resolvedObjects) ? resolvedObjects : []).forEach((resolvedObject: any) => {
+            const targetModel = resolvedObject?.resource
+                ? findModelByName(allModels, resolvedObject.resource)
+                : undefined;
+            if (!targetModel || !matchesPolymorphicType(rel, resolvedObject?.type)) {
+                resolverUnresolved.push(resolvedObject?.eid);
+                return;
+            }
+            const existingIds = resolverGroups.get(targetModel.name) || new Set<string | number>();
+            existingIds.add(resolvedObject.eid);
+            resolverGroups.set(targetModel.name, existingIds);
+            if (resolvedObject.title) resolverLabelsById.set(resolvedObject.eid, String(resolvedObject.title));
+        });
+        return { groups: resolverGroups, unresolved: resolverUnresolved, labelsById: resolverLabelsById };
+    }
     const pageSize = 500;
     let start = 0;
     let relationRows: any[] = [];

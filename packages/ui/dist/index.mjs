@@ -11569,6 +11569,30 @@ var fetchPolymorphicGroups = async ({
   referenceResource,
   allModels
 }) => {
+  if (rel.resolverPath) {
+    const resolverResponse = await authenticatedFetch(
+      `${apiUrl}/${rel.resolverPath.replace("{id}", encodeURIComponent(String(recordId2)))}`
+    );
+    if (!resolverResponse.ok) {
+      throw new Error(`Failed to load ${rel.label} relations`);
+    }
+    const resolvedObjects = await resolverResponse.json();
+    const resolverGroups = /* @__PURE__ */ new Map();
+    const resolverUnresolved = [];
+    const resolverLabelsById = /* @__PURE__ */ new Map();
+    (Array.isArray(resolvedObjects) ? resolvedObjects : []).forEach((resolvedObject) => {
+      const targetModel = resolvedObject?.resource ? findModelByName(allModels, resolvedObject.resource) : void 0;
+      if (!targetModel || !matchesPolymorphicType(rel, resolvedObject?.type)) {
+        resolverUnresolved.push(resolvedObject?.eid);
+        return;
+      }
+      const existingIds = resolverGroups.get(targetModel.name) || /* @__PURE__ */ new Set();
+      existingIds.add(resolvedObject.eid);
+      resolverGroups.set(targetModel.name, existingIds);
+      if (resolvedObject.title) resolverLabelsById.set(resolvedObject.eid, String(resolvedObject.title));
+    });
+    return { groups: resolverGroups, unresolved: resolverUnresolved, labelsById: resolverLabelsById };
+  }
   const pageSize = 500;
   let start = 0;
   let relationRows = [];
