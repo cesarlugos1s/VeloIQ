@@ -71,6 +71,10 @@ dependencies = [
     # they install cleanly in any host app's venv.
     "markdown>=3.5",
     "xhtml2pdf>=0.2.15",
+    # Imported (lazily) by utils/data_mgmt_utils.py for fuzzy matching and
+    # language detection; previously undeclared.
+    "fuzzywuzzy>=0.18.0",
+    "langdetect>=1.0.0",
 ]
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
