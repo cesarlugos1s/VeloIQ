@@ -49,6 +49,12 @@ export interface FieldDef {
     optionsFromField?: string;
     /** For a reference to a resource with a composite key: the target key field this field holds. */
     referenceKey?: string;
+    /**
+     * The reference is a many-to-one relation stored in a link table (there is no foreign-key
+     * column). The field's value is the related row's id, as for a foreign key, and it is treated
+     * like one by lists and forms.
+     */
+    viaLinkTable?: boolean;
 }
 
 export type RelationViewType = "table" | "editable-table" | "crosstab" | "editable-crosstab" | "editable-list" | "list" | "csv" | "read-and-edit-list" | "read-and-edit-csv" | "editable-csv" | "gallery" | "image" | "calendar" | "kanban" | "map" | "primary" | "primary-carousel" | "totals-details" | "tree" | "tree-details";

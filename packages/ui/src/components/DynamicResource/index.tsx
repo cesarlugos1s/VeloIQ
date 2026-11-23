@@ -222,6 +222,7 @@ import {
 } from "./temporaryLayout/temporaryPageLayoutStore";
 import { ActionsButtonStack, VerticalActionsLayout } from "./utils/verticalActionsBar";
 import { buildColumnFilterOptions, matchesColumnFilterValue } from "./utils/columnFilters";
+import { useReferenceTitles } from "./utils/useReferenceTitles";
 import { RelationSelect } from "./fields/RelationSelect";
 import { ReferenceField } from "./fields/ReferenceField";
 import { FileUploadInput } from "./fields/FileUploadInput";
@@ -1009,14 +1010,17 @@ const DynamicListPage: React.FC<{
         setGalleryPage(1);
     }, [localSearch, filterRules, resolvedListViewType]);
 
+    // Reference columns list the referenced records' titles in their filters, not ids.
+    const filterSourceRows = allRowsData.length > 0 ? allRowsData : (Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
+    const filterReferenceTitles = useReferenceTitles(displayFields, filterSourceRows, allModels, labelCache);
     const columnFilters = useMemo(() => {
         // Prefer allRowsData (complete dataset) over the current page whenever it has been
         // fetched, regardless of whether client-side filtering is active. This ensures filter
         // dropdowns always show all distinct values, not just those on the visible page.
         const data = allRowsData.length > 0 ? allRowsData : (Array.isArray(tableProps.dataSource) ? tableProps.dataSource : []);
         const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-        return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
-    }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
+        return buildColumnFilterOptions({ fields: displayFields, data, rangeCount, referenceTitles: filterReferenceTitles });
+    }, [allRowsData, displayFields, tableProps.dataSource, viewSettings, filterReferenceTitles]);
 
     // Until every row is loaded (they load when a column filter is first opened), the filter
     // dropdowns would only know the rows of the current page: show that they are loading instead.
@@ -3066,6 +3070,11 @@ const DynamicListPage: React.FC<{
         return value;
     };
 
+    // A table's first column is the record's own title, as in the rows of a show page's relations,
+    // unless a displayed key column already shows it (see keyColumnShowsTitle).
+    const showRecordTitleColumn = keyColumnShowsTitle && !model.isNamedQuery && !relationConfig
+        && !displayFields.some((field) => isPkField(field, model));
+
     const renderListItem = (record: any, index: number) => {
         const { resource, id } = getTargetInfo(record);
         const label = getRecordDisplayLabel(record);
@@ -3823,13 +3832,51 @@ const DynamicListPage: React.FC<{
                                 }
                                 // eid is sorted client-side by its _label value; strip it from the
                                 // server sorter so the backend isn't asked to sort by numeric eid.
-                                const isEidSort = (s: any) => s?.field === "eid" || s?.columnKey === "eid";
+                                const isEidSort = (s: any) => s?.field === "eid" || s?.columnKey === "eid" || s?.columnKey === "record-title";
                                 const serverSorter = Array.isArray(sorter)
                                     ? sorter.filter((s) => !isEidSort(s))
                                     : isEidSort(sorter) ? [] : sorter;
                                 tableProps.onChange?.(pagination, serverFilters, serverSorter, extra);
                             }}
                         >
+                            {showRecordTitleColumn && (
+                                <Table.Column
+                                    key="record-title"
+                                    title={getModelLabel(model)}
+                                    sorter={hideDataControls ? undefined : {
+                                        compare: (a: any, b: any) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)),
+                                        multiple: getSortPriority(columnSort, "record-title"),
+                                    }}
+                                    sortOrder={columnSort.find((item) => item.fieldKey === "record-title")?.order ?? null}
+                                    onHeaderCell={() => ({
+                                        onClick: (event: React.MouseEvent) => {
+                                            sortIntentRef.current = { fieldKey: "record-title", additive: event.ctrlKey || event.metaKey };
+                                        },
+                                    })}
+                                    render={(_unused, record: any) => {
+                                        const { resource, id } = getTargetInfo(record);
+                                        const label = getRecordDisplayLabel(record);
+                                        if (!resource || id === undefined || id === null) return label;
+                                        return (
+                                            <a
+                                                href={getShowHref(resource, id, allModels)}
+                                                onClick={(e) => {
+                                                    if (!shouldHandleLinkClick(e)) return;
+                                                    e.preventDefault();
+                                                    if (paneNav?.isInMultiPane) {
+                                                        paneNav.openDetail(resource, id);
+                                                    } else {
+                                                        go({ to: { resource, action: "show", id } });
+                                                    }
+                                                }}
+                                                style={{ cursor: "pointer", color: "inherit", textDecoration: "none" }}
+                                            >
+                                                {label}
+                                            </a>
+                                        );
+                                    }}
+                                />
+                            )}
                             {displayFields.map((field) => (
                                 <Table.Column
                                     key={field.key}

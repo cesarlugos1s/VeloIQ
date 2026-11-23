@@ -487,6 +487,24 @@ def _build_ts_schema_lines(module_name: str, models: list, portal_roles: list[st
             pk_field = "id"
             fields = []
 
+        # A many-to-one relation stored in a link table (``jm_relationship(link_model=…, max_items=1)``)
+        # becomes a field holding the related row's id, like a foreign-key column, so the UI shows the
+        # related row's title and lets the user pick it. Its relation tab is still emitted below.
+        from veloiq_framework.link_table_many_to_one import link_table_many_to_one_relations
+        for link_relation in link_table_many_to_one_relations(model):
+            related_tablename = getattr(link_relation.related_model, "__tablename__",
+                                        link_relation.related_model.__name__.lower())
+            if portal_roles is not None and not tablename_readable_by_roles(related_tablename, portal_roles):
+                continue
+            if any(f'key: "{link_relation.field_key}"' in field_str for field_str in fields):
+                continue
+            link_label = link_relation.field_key.replace("_", " ").title()
+            link_required = ", required: true" if link_relation.is_required else ""
+            fields.append(
+                f'{{ key: "{link_relation.field_key}", label: "{link_label}", type: "string", '
+                f'reference: "{related_tablename}", viaLinkTable: true{link_required} }}'
+            )
+
         # Discover SQLAlchemy relationships → RelationDef entries.
         # Three cases are handled:
         #

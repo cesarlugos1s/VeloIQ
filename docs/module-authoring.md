@@ -193,6 +193,27 @@ invoices: List["Invoice"] = jm_relationship(
 )
 ```
 
+### Many-to-one through a link table
+
+A many-to-many relation whose `max_items` is `1` holds at most one related row per record, so it
+behaves like a foreign key even though it is stored in a link table.
+
+```python
+class Inventory(TimestampedModel, table=True):
+    on_hand: int = 0
+    item: List["Item"] = jm_relationship(link_model=InventoryItemLink, min_items=1, max_items=1)
+```
+
+`veloiq generate` adds a field named after the relationship (`item`) to the model's schema, flagged
+`viaLinkTable: true` and holding the related row's id, as a foreign-key column does. The pages then
+treat it like a foreign key: the related row's title is a link in lists and show pages, an editable
+dropdown in edit forms, and a column of the column selector. Like a foreign key, it is one of a
+list's default columns only if it is among the model's first six fields. The relation's own tab is kept. `min_items=1` makes the field required.
+
+The REST endpoints of the model read and write the field like a column: `GET` returns the related id
+(or `null`), and `POST`, `PUT` and `PATCH` with `{"item": 3}` replace the link-table row (an empty value
+removes it). Relations without `max_items=1` stay many-to-many.
+
 ## Access control
 
 VeloIQ provides four layers of access control.  All are opt-in per model

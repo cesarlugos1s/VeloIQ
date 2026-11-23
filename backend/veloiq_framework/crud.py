@@ -41,6 +41,12 @@ from sqlmodel import Session, SQLModel, func, select
 
 from veloiq_framework.db import get_engine, get_session
 from veloiq_framework.models import get_pk_field_name, build_model_str_label
+from veloiq_framework.link_table_many_to_one import (
+    add_link_table_related_ids,
+    link_table_many_to_one_relations,
+    split_link_table_selections,
+    write_link_table_selections,
+)
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -370,6 +376,8 @@ def reference_models_for(model_class: type) -> dict:
             target = tables.get(foreign_key.column.table.name)
             if target is not None:
                 references[col_attr.key] = target
+    for relation in link_table_many_to_one_relations(model_class):
+        references[relation.field_key] = relation.related_model
     return references
 
 
@@ -403,13 +411,14 @@ def read_list_rows(
         statement = statement.where(rebac_clause)
     if limit is not None:
         statement = statement.limit(limit)
-    rows = []
+    unfiltered_rows = []
     for record in session.exec(statement).all():
         data = record.model_dump()
         if with_titles:
             data["_label"] = build_model_str_label(record)
-        rows.append(_filter_read_fields(data, model_class, user.get("roles", [])))
-    return rows
+        unfiltered_rows.append(data)
+    add_link_table_related_ids(unfiltered_rows, model_class, session)
+    return [_filter_read_fields(data, model_class, user.get("roles", [])) for data in unfiltered_rows]
 
 
 def create_crud_router(
@@ -465,6 +474,12 @@ def create_crud_router(
         stmt = select(model_class).where(pk_col == record_id).where(clause)
         return session.exec(stmt).first()
 
+    def _row_response(row, session, user_roles: list[str]) -> dict:
+        """A record as the API returns it: its columns, its title and its link-table relations' ids."""
+        data = _to_dict(row)
+        add_link_table_related_ids([data], model_class, session)
+        return _filter_read_fields(data, model_class, user_roles)
+
     # ── List ─────────────────────────────────────────────────────────────────
 
     @router.get("", summary=f"List {tablename}")
@@ -489,7 +504,9 @@ def create_crud_router(
         total = session.exec(count_stmt).one()
         rows = session.exec(list_stmt.offset(_start).limit(max(0, _end - _start))).all()
         user_roles = user.get("roles", [])
-        content = [_filter_read_fields(_to_dict(r), model_class, user_roles) for r in rows if r is not None]
+        row_dicts = [_to_dict(r) for r in rows if r is not None]
+        add_link_table_related_ids(row_dicts, model_class, session)
+        content = [_filter_read_fields(data, model_class, user_roles) for data in row_dicts]
         return JSONResponse(
             content=jsonable_encoder(content),
             headers={
@@ -792,7 +809,7 @@ def create_crud_router(
         row = _get_rebac_record(record_id, session, user)
         if row is None:
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
-        return _filter_read_fields(_to_dict(row), model_class, user.get("roles", []))
+        return _row_response(row, session, user.get("roles", []))
 
     # ── Create ────────────────────────────────────────────────────────────────
 
@@ -803,6 +820,7 @@ def create_crud_router(
         user_roles = user.get("roles", [])
         payload.pop(pk_field, None)
         filtered = _filter_write_payload(payload, model_class, user_roles)
+        filtered, link_table_selections = split_link_table_selections(filtered, model_class)
         coerced = {k: _coerce_value(k, v) for k, v in filtered.items()}
         # The model may complete a new row before it is validated (see NEW_ROW_COMPLETION_HOOK).
         complete_new_row = getattr(model_class, NEW_ROW_COMPLETION_HOOK, None)
@@ -813,9 +831,11 @@ def create_crud_router(
         except Exception as exc:
             raise HTTPException(status_code=422, detail=str(exc))
         session.add(row)
+        session.flush()
+        write_link_table_selections(session, row, model_class, link_table_selections)
         session.commit()
         session.refresh(row)
-        return _filter_read_fields(_to_dict(row), model_class, user_roles)
+        return _row_response(row, session, user_roles)
 
     # ── Update ────────────────────────────────────────────────────────────────
 
@@ -854,15 +874,17 @@ def create_crud_router(
             raise HTTPException(status_code=404, detail=f"{tablename} {record_id} not found")
         payload.pop(pk_field, None)
         filtered = _filter_write_payload(payload, model_class, user_roles)
+        filtered, link_table_selections = split_link_table_selections(filtered, model_class)
         for key, value in filtered.items():
             if key in _READONLY_FIELDS:
                 continue
             if hasattr(row, key):
                 setattr(row, key, _coerce_value(key, value))
         session.add(row)
+        write_link_table_selections(session, row, model_class, link_table_selections)
         session.commit()
         session.refresh(row)
-        return _filter_read_fields(_to_dict(row), model_class, user_roles)
+        return _row_response(row, session, user_roles)
 
     @router.put("/{record_id}", summary=f"Update {tablename}")
     def update_item(

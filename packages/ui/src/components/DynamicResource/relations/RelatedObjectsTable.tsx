@@ -77,6 +77,7 @@ import {
     getListViewFields,
     getPolymorphicReferenceInfo,
     getRecordDisplayLabel,
+    hasReferenceModel,
     isPkField,
     isReferenceField,
     resolveModelByEntityType,
@@ -93,6 +94,7 @@ import {
 import { getDefaultViewName, normalizeViewName, normalizeFieldViewType, useViewSettings } from "../utils/viewConfig";
 import { renderInput } from "../fields/renderInput";
 import { renderFieldValue } from "../fields/renderFieldValue";
+import { ReferenceField } from "../fields/ReferenceField";
 import { CrosstabTable } from "../analysis/CrosstabTable";
 import { KanbanView } from "../KanbanView";
 import { resolveListVisibilityOnDetailLevelChange } from "../utils/listVisibilityOnDetailLevelChange";
@@ -104,6 +106,7 @@ import { CrosstabConfigPanel } from "../analysis/CrosstabConfigPanel";
 import { useAnalyzeResults, useAnalyzeSettings } from "../analysis/useAnalyze";
 import { summarizeValues } from "../analysis/aggregation";
 import { buildColumnFilterOptions, matchesColumnFilterValue } from "../utils/columnFilters";
+import { useReferenceTitles } from "../utils/useReferenceTitles";
 import { useFrameworkUiFeatures } from "../../../hooks/useFrameworkUiFeatures";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
@@ -323,6 +326,10 @@ export const RelatedObjectsTable: React.FC<{
     const [listVisible, setListVisible] = useState(true);
 
     const [labelCache, setLabelCache] = useState<Record<string, string>>({});
+    const handleReferenceLabel = useCallback((reference: string, id: string | number, label: string) => {
+        const key = `${reference}:${id}`;
+        setLabelCache((prev) => (prev[key] === label ? prev : { ...prev, [key]: label }));
+    }, []);
     // Tools a role or an external portal can switch off (Analyze, saved views, columns).
     const frameworkUiFeatures = useFrameworkUiFeatures();
     // A resource configured without the Analyze section (showAnalyzeSection: false) never shows it.
@@ -1556,6 +1563,8 @@ export const RelatedObjectsTable: React.FC<{
         setExportRequested(false);
     }, [exportRequested, filteredRows, relatedModel.fields, relatedModel.name, formatValueForExport]);
 
+    // Reference columns list the referenced records' titles in their filters, not ids.
+    const filterReferenceTitles = useReferenceTitles(displayFields, filteredRows || [], allModels, labelCache);
     const columnFilters = useMemo(() => {
         // Build grouped filter options (ranges past the distinct threshold) from the loaded
         // rows. The loaded set is capped by relationsMaxRowsToLoad; the "Load all related"
@@ -1564,11 +1573,11 @@ export const RelatedObjectsTable: React.FC<{
         const options: ReturnType<typeof buildColumnFilterOptions> = new Map();
         displayFields.forEach((field) => {
             const data = applyColumnFilters(filteredRows || [], field.key);
-            const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount }).get(field.key);
+            const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount, referenceTitles: filterReferenceTitles }).get(field.key);
             if (fieldOptions) options.set(field.key, fieldOptions);
         });
         return options;
-    }, [applyColumnFilters, displayFields, filteredRows, viewSettings]);
+    }, [applyColumnFilters, displayFields, filteredRows, viewSettings, filterReferenceTitles]);
 
     const allFieldOptions = useMemo(() => {
         return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
@@ -2206,6 +2215,16 @@ export const RelatedObjectsTable: React.FC<{
                                             if (showToken && !(showToken === "read-only-field" && field.reference)) {
                                                 return renderFieldValue(field, row, allModels, true);
                                             }
+                                            if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+                                                // The title of the referenced record, as a link to it (as in list pages).
+                                                return (
+                                                    <ReferenceField
+                                                        id={value}
+                                                        resource={resolveResourcePath(field.referencePath || field.reference, allModels)}
+                                                        onLabel={(label) => handleReferenceLabel(field.reference!, value, label)}
+                                                    />
+                                                );
+                                            }
                                             if (field.reference && value) {
                                                 const cacheKey = `${field.reference}:${value}`;
                                                 return labelCache[cacheKey] || value;
@@ -2222,7 +2241,8 @@ export const RelatedObjectsTable: React.FC<{
                                             return value ?? "-";
                                         };
                                         const id = row?.eid ?? row?.id;
-                                        if (!id) return renderValue();
+                                        // A reference cell is itself a link to the referenced record.
+                                        if (!id || (field.reference && value && hasReferenceModel(field.reference, allModels))) return renderValue();
                                         return (
                                             <a
                                                 href={getShowHref(relatedModel.name, id, allModels)}

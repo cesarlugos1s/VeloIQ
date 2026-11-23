@@ -1442,6 +1442,7 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
         from datetime import datetime as _dt, date as _date
 
         from veloiq_framework.crud import _to_dict, _sanitize
+        from veloiq_framework.link_table_many_to_one import add_link_table_related_ids
         from veloiq_framework.models import get_pk_field_name
         from veloiq_framework.query_def import _model_by_tablename
 
@@ -1506,6 +1507,8 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
                     if data.get("eid") is None:
                         data["eid"] = getattr(obj, pk_field, None)
                     items.append(data)
+                # Many-to-one relations stored in a link table, as the list endpoint returns them.
+                add_link_table_related_ids(items, model_cls, session)
             return {"items": items}
 
         # ── Fallback: raw Core table (e.g. unmapped link/junction tables) ──────

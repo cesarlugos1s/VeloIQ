@@ -32,7 +32,8 @@ export const isPkField = (field: FieldDef, model?: ModelDef): boolean => {
 export const isReferenceField = (field: FieldDef): boolean => !!field.reference;
 
 /** The default columns of a list: the first six fields, skipping those marked `showInList: false`
- *  (still available in the column selector and on the record's page). */
+ *  (still available in the column selector and on the record's page). A reference field — a foreign
+ *  key or a many-to-one relation stored in a link table — is an ordinary field here. */
 export const getListViewFields = (model: ModelDef, filterField?: string) => {
     const baseFields = model.fields.filter((field) => field.key !== filterField && field.showInList !== false);
     return baseFields.slice(0, 6);

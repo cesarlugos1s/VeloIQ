@@ -29,6 +29,8 @@ export interface BuildColumnFilterOptionsParams {
     rangeCount?: number;
     /** Max individual distinct values listed when not bucketing. */
     distinctLimit?: number;
+    /** Titles of the records reference fields point to, by `"<reference>:<id>"`; an option shows its title instead of the id. */
+    referenceTitles?: Record<string, string>;
 }
 
 const truncateLabel = (s: string) => (s.length > 15 ? s.substring(0, 15) + "…" : s);
@@ -43,6 +45,7 @@ export function buildColumnFilterOptions({
     data,
     rangeCount = 20,
     distinctLimit = 50,
+    referenceTitles,
 }: BuildColumnFilterOptionsParams): Map<string, ColumnFilterOption[]> {
     const filtersMap = new Map<string, ColumnFilterOption[]>();
 
@@ -178,6 +181,9 @@ export function buildColumnFilterOptions({
             const key = String(value);
             if (seen.has(key)) continue;
             seen.add(key);
+            if (field.reference && referenceTitles) {
+                label = referenceTitles[`${field.reference}:${value}`] ?? label;
+            }
             options.push({ text: String(label), value: key });
             if (options.length >= distinctLimit) break;
         }

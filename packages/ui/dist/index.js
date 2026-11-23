@@ -12137,7 +12137,8 @@ function buildColumnFilterOptions({
   fields,
   data,
   rangeCount = 20,
-  distinctLimit = 50
+  distinctLimit = 50,
+  referenceTitles
 }) {
   const filtersMap = /* @__PURE__ */ new Map();
   for (const field of fields) {
@@ -12256,6 +12257,9 @@ function buildColumnFilterOptions({
       const key = String(value);
       if (seen.has(key)) continue;
       seen.add(key);
+      if (field.reference && referenceTitles) {
+        label = referenceTitles[`${field.reference}:${value}`] ?? label;
+      }
       options.push({ text: String(label), value: key });
       if (options.length >= distinctLimit) break;
     }
@@ -12302,6 +12306,71 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
+var IDS_PER_REQUEST = 200;
+var referenceTitleKey = (reference, id) => `${reference}:${id}`;
+var useReferenceTitles = (fields, rows, allModels, knownTitles) => {
+  const apiUrl = core.useApiUrl();
+  const [fetchedTitles, setFetchedTitles] = React6.useState({});
+  const referenceFields = React6.useMemo(
+    () => fields.filter((field) => field.reference && hasReferenceModel(field.reference, allModels)),
+    [fields, allModels]
+  );
+  const missingIdsByField = React6.useMemo(() => {
+    const missing = [];
+    for (const field of referenceFields) {
+      const ids = /* @__PURE__ */ new Set();
+      for (const row of rows) {
+        const id = row?.[field.key];
+        if (id === void 0 || id === null || id === "") continue;
+        const key = referenceTitleKey(field.reference, id);
+        if (knownTitles[key] === void 0 && fetchedTitles[key] === void 0) ids.add(id);
+      }
+      if (ids.size > 0) missing.push({ field, ids: Array.from(ids) });
+    }
+    return missing;
+  }, [referenceFields, rows, knownTitles, fetchedTitles]);
+  React6.useEffect(() => {
+    if (missingIdsByField.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const found = {};
+      for (const { field, ids } of missingIdsByField) {
+        const resource = resolveResourcePath(field.referencePath || field.reference, allModels);
+        for (let start = 0; start < ids.length; start += IDS_PER_REQUEST) {
+          const chunk = ids.slice(start, start + IDS_PER_REQUEST);
+          try {
+            const response = await authenticatedFetch(`${apiUrl}/_meta/bulk-read`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resource, ids: chunk })
+            });
+            if (!response.ok) continue;
+            const items = (await response.json())?.items;
+            for (const item of Array.isArray(items) ? items : []) {
+              const id = item?.eid ?? item?.id;
+              const title = item?._label ?? item?.name ?? item?.description;
+              if (id !== void 0 && id !== null && title !== void 0 && title !== null) {
+                found[referenceTitleKey(field.reference, id)] = String(title);
+              }
+            }
+          } catch {
+          }
+          for (const id of chunk) {
+            const key = referenceTitleKey(field.reference, id);
+            if (found[key] === void 0) found[key] = String(id);
+          }
+        }
+      }
+      if (!cancelled && Object.keys(found).length > 0) {
+        setFetchedTitles((previous) => ({ ...previous, ...found }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [missingIdsByField, apiUrl, allModels]);
+  return React6.useMemo(() => ({ ...fetchedTitles, ...knownTitles }), [fetchedTitles, knownTitles]);
+};
 function getCurrentUserRoles() {
   try {
     const raw = localStorage.getItem(signInStorageKeys().signedInUser);
@@ -17482,6 +17551,10 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const [error, setError] = React6.useState(null);
   const [listVisible, setListVisible] = React6.useState(true);
   const [labelCache, setLabelCache] = React6.useState({});
+  const handleReferenceLabel = React6.useCallback((reference, id, label) => {
+    const key = `${reference}:${id}`;
+    setLabelCache((prev) => prev[key] === label ? prev : { ...prev, [key]: label });
+  }, []);
   const frameworkUiFeatures = useFrameworkUiFeatures();
   const viewCapabilities = getViewTypeCapabilitiesForPage(isKanbanView ? "kanban" : isCrosstabView ? "crosstab" : viewVariant === "totals-details" ? "totals-details" : "table");
   const analyzeSectionAvailable = relatedModel.showAnalyzeSection !== false && frameworkUiFeatures.analyze && viewCapabilities.analyze;
@@ -18586,16 +18659,17 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
     URL.revokeObjectURL(url);
     setExportRequested(false);
   }, [exportRequested, filteredRows, relatedModel.fields, relatedModel.name, formatValueForExport]);
+  const filterReferenceTitles = useReferenceTitles(displayFields, filteredRows || [], allModels, labelCache);
   const columnFilters = React6.useMemo(() => {
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
     const options = /* @__PURE__ */ new Map();
     displayFields.forEach((field) => {
       const data = applyColumnFilters(filteredRows || [], field.key);
-      const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount }).get(field.key);
+      const fieldOptions = buildColumnFilterOptions({ fields: [field], data, rangeCount, referenceTitles: filterReferenceTitles }).get(field.key);
       if (fieldOptions) options.set(field.key, fieldOptions);
     });
     return options;
-  }, [applyColumnFilters, displayFields, filteredRows, viewSettings]);
+  }, [applyColumnFilters, displayFields, filteredRows, viewSettings, filterReferenceTitles]);
   React6.useMemo(() => {
     return relatedModel.fields.map((field) => ({ label: field.label, value: field.key }));
   }, [relatedModel.fields]);
@@ -19197,6 +19271,16 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                             if (showToken && !(showToken === "read-only-field" && field.reference)) {
                               return renderFieldValue(field, row, allModels, true);
                             }
+                            if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+                              return /* @__PURE__ */ jsxRuntime.jsx(
+                                ReferenceField,
+                                {
+                                  id: value,
+                                  resource: resolveResourcePath(field.referencePath || field.reference, allModels),
+                                  onLabel: (label) => handleReferenceLabel(field.reference, value, label)
+                                }
+                              );
+                            }
                             if (field.reference && value) {
                               const cacheKey = `${field.reference}:${value}`;
                               return labelCache[cacheKey] || value;
@@ -19213,7 +19297,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                             return value ?? "-";
                           };
                           const id = row?.eid ?? row?.id;
-                          if (!id) return renderValue();
+                          if (!id || field.reference && value && hasReferenceModel(field.reference, allModels)) return renderValue();
                           return /* @__PURE__ */ jsxRuntime.jsx(
                             "a",
                             {
@@ -20854,11 +20938,13 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   React6.useEffect(() => {
     setGalleryPage(1);
   }, [localSearch, filterRules, resolvedListViewType]);
+  const filterSourceRows = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
+  const filterReferenceTitles = useReferenceTitles(displayFields, filterSourceRows, allModels, labelCache);
   const columnFilters = React6.useMemo(() => {
     const data = allRowsData.length > 0 ? allRowsData : Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
     const rangeCount = viewSettings?.maxDistinctColumnFilterValuesToRanges ?? 20;
-    return buildColumnFilterOptions({ fields: displayFields, data, rangeCount });
-  }, [allRowsData, displayFields, tableProps.dataSource, viewSettings]);
+    return buildColumnFilterOptions({ fields: displayFields, data, rangeCount, referenceTitles: filterReferenceTitles });
+  }, [allRowsData, displayFields, tableProps.dataSource, viewSettings, filterReferenceTitles]);
   const columnFilterValuesLoading = !allRowsLoaded;
   const renderColumnFilterValuesLoading = () => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }, children: [
     /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, { size: "small" }),
@@ -22609,6 +22695,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     if (field.options) return renderOptionTag(field, value);
     return value;
   };
+  const showRecordTitleColumn = keyColumnShowsTitle && !model.isNamedQuery && !relationConfig && !displayFields.some((field) => isPkField(field, model));
   const renderListItem = (record, index) => {
     const { resource, id } = getTargetInfo(record);
     const label = getRecordDisplayLabel(record);
@@ -23337,11 +23424,50 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
               if (cleanActiveFilters.length !== (activeFilters || []).length) {
                 setFilters(cleanActiveFilters, "replace");
               }
-              const isEidSort = (s) => s?.field === "eid" || s?.columnKey === "eid";
+              const isEidSort = (s) => s?.field === "eid" || s?.columnKey === "eid" || s?.columnKey === "record-title";
               const serverSorter = Array.isArray(sorter) ? sorter.filter((s) => !isEidSort(s)) : isEidSort(sorter) ? [] : sorter;
               tableProps.onChange?.(pagination, serverFilters, serverSorter, extra);
             },
             children: [
+              showRecordTitleColumn && /* @__PURE__ */ jsxRuntime.jsx(
+                antd.Table.Column,
+                {
+                  title: getModelLabel(model),
+                  sorter: hideDataControls ? void 0 : {
+                    compare: (a, b) => getRecordDisplayLabel(a).localeCompare(getRecordDisplayLabel(b)),
+                    multiple: getSortPriority(columnSort, "record-title")
+                  },
+                  sortOrder: columnSort.find((item) => item.fieldKey === "record-title")?.order ?? null,
+                  onHeaderCell: () => ({
+                    onClick: (event) => {
+                      sortIntentRef.current = { fieldKey: "record-title", additive: event.ctrlKey || event.metaKey };
+                    }
+                  }),
+                  render: (_unused, record) => {
+                    const { resource, id } = getTargetInfo(record);
+                    const label = getRecordDisplayLabel(record);
+                    if (!resource || id === void 0 || id === null) return label;
+                    return /* @__PURE__ */ jsxRuntime.jsx(
+                      "a",
+                      {
+                        href: getShowHref(resource, id, allModels),
+                        onClick: (e) => {
+                          if (!shouldHandleLinkClick(e)) return;
+                          e.preventDefault();
+                          if (paneNav?.isInMultiPane) {
+                            paneNav.openDetail(resource, id);
+                          } else {
+                            go({ to: { resource, action: "show", id } });
+                          }
+                        },
+                        style: { cursor: "pointer", color: "inherit", textDecoration: "none" },
+                        children: label
+                      }
+                    );
+                  }
+                },
+                "record-title"
+              ),
               displayFields.map((field) => /* @__PURE__ */ jsxRuntime.jsx(
                 antd.Table.Column,
                 {

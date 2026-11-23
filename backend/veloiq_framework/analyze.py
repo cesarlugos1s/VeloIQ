@@ -259,12 +259,15 @@ def reference_titles_for(rows: Iterable[dict], reference_fields: Dict[str, type]
         ids = {row.get(key) for row in rows if row.get(key) is not None}
         if not ids:
             continue
-        pk_column = sa_inspect(model).primary_key[0]
+        mapper = sa_inspect(model)
+        pk_column = mapper.primary_key[0]
+        # The attribute holding the key is not always named like its column (``eid`` for ``cw_eid``).
+        pk_attribute = mapper.get_property_by_column(pk_column).key
         titles[key] = {}
         id_list = list(ids)
         for start in range(0, len(id_list), 500):
             for record in session.exec(select(model).where(pk_column.in_(id_list[start:start + 500]))).all():
-                titles[key][js_text(getattr(record, pk_column.key))] = title_of(record)
+                titles[key][js_text(getattr(record, pk_attribute))] = title_of(record)
     return titles
 
 

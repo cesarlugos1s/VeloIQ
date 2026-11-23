@@ -6,6 +6,12 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ### Added
 
+- **Many-to-one relations through a link table behave like foreign keys** — a relation
+  declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
+  schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit
+  pages show the related title as a link or an editable dropdown, the column selector offers it,
+  and, like a foreign key, it is a default column of lists only among a model's first six fields. The model's REST endpoints return
+  and accept the related id. See `docs/module-authoring.md`.
 - **Collapsible banners** — badges over the page content that expand into a list
   of rows, defined only in `banners.json` (an extension's packaged file, named by
   the new manifest attribute `banners_file`, merged by key below the host app's
