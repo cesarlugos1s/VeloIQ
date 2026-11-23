@@ -3613,6 +3613,7 @@ const DynamicListPage: React.FC<{
                             pageSize={pageSize}
                             fieldSequenceKeys={orderedSelectedColumns}
                             maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
+                            analyze={analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : undefined}
                             formatValue={(field, record) => String(getFieldValueForFilter(field, record) ?? "")}
                             toolbarExtra={analyzeSectionAvailable ? <AnalyzeToggleButton open={analyzeOpen} onToggle={toggleAnalyzeSection} /> : undefined}
                         />

@@ -1840,6 +1840,7 @@ export const RelatedObjectsTable: React.FC<{
             fieldSequenceKeys={displayFields.map((field) => field.key)}
             maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
             formatValue={(field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? "")}
+            analyze={analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : undefined}
         />
     ) : null;
 

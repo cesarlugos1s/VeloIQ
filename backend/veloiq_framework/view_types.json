@@ -1,5 +1,5 @@
 {
-  "_comment": "The single source of truth for view types, read by the Python backend (veloiq_framework.view_types) and by the UI package (utils/viewTypeCatalog.ts). Entries are listed in the order selectors show them. offeredIn names the selectors that offer a view type; the context 'configuration' (every entry) is implicit. requires names what the model's fields must provide.",
+  "_comment": "The single source of truth for view types, read by the Python backend (veloiq_framework.view_types) and by the UI package (utils/viewTypeCatalog.ts). Entries are listed in the order selectors show them. offeredIn names the selectors that offer a view type; kanbanColumnOnly marks a view type that exists only inside a kanban column, so the implicit configuration context leaves it out; the context 'configuration' (every entry) is implicit. requires names what the model's fields must provide.",
   "viewTypes": [
     {
       "token": "table",
@@ -147,6 +147,14 @@
         "default-setting"
       ],
       "requires": "split-field"
+    },
+    {
+      "token": "analyze",
+      "label": "Analyze",
+      "kanbanColumnOnly": true,
+      "offeredIn": [
+        "kanban-column"
+      ]
     },
     {
       "token": "map",

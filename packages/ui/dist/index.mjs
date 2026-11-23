@@ -3647,6 +3647,14 @@ var view_types_default = {
       requires: "split-field"
     },
     {
+      token: "analyze",
+      label: "Analyze",
+      kanbanColumnOnly: true,
+      offeredIn: [
+        "kanban-column"
+      ]
+    },
+    {
       token: "map",
       label: "Map",
       offeredIn: [
@@ -3704,7 +3712,7 @@ var view_types_default = {
 // src/components/DynamicResource/utils/viewTypeCatalog.ts
 var VIEW_TYPE_CATALOG = view_types_default.viewTypes;
 function getViewTypeCatalogEntries(context) {
-  if (context === "configuration") return [...VIEW_TYPE_CATALOG];
+  if (context === "configuration") return VIEW_TYPE_CATALOG.filter((entry) => !entry.kanbanColumnOnly);
   return VIEW_TYPE_CATALOG.filter((entry) => entry.offeredIn.includes(context));
 }
 function getAllViewTypes() {
@@ -5998,6 +6006,8 @@ var CAPABILITIES_BY_VIEW_TYPE = {
   "crosstab": CROSSTAB,
   "editable-crosstab": CROSSTAB,
   "kanban": KANBAN,
+  // Only a kanban column shows its records as Analyze; the column has no controls of its own.
+  "analyze": { ...NONE },
   "gallery": GALLERY,
   "image": GALLERY,
   "calendar": CALENDAR,
@@ -7252,454 +7262,6 @@ function useInPageRowsStore(storeName, model, initialRows = []) {
   }, [store, invalidate]);
   return useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
 }
-var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize }) => {
-  const boardId = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
-  const rowModel = useMemo(() => {
-    const { resource: _ownResource, ...modelWithoutResource } = model;
-    return {
-      ...modelWithoutResource,
-      fields: cardFields,
-      // Records link to their own show pages; the column has no create, import or Analyze section.
-      isNamedQuery: true,
-      primaryResource: model.resource || model.name,
-      showAnalyzeSection: false,
-      ...pageSize ? { defaultPageSize: pageSize } : {}
-    };
-  }, [model, cardFields, pageSize]);
-  const rowsStore = useInPageRowsStore(storeName, rowModel, records);
-  const shownRecords = useRef(records);
-  useEffect(() => {
-    if (shownRecords.current === records) return;
-    shownRecords.current = records;
-    rowsStore.setRows(records);
-  }, [records, rowsStore]);
-  return /* @__PURE__ */ jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
-};
-var getReferenceRecordTitle = (record, id) => record?._label || record?.name || record?.description || id;
-var ReferenceField = ({ id, resource, onLabel }) => {
-  const { data, isLoading } = useOne({ resource, id, queryOptions: { enabled: !!id } });
-  const record = data?.data;
-  const label = getReferenceRecordTitle(record, id);
-  const go = useGo();
-  const paneNav = usePaneNavigation();
-  const { token } = theme.useToken();
-  useEffect(() => {
-    if (onLabel && !isLoading && label !== void 0 && label !== null) {
-      onLabel(String(label));
-    }
-  }, [label, onLabel, isLoading]);
-  if (isLoading) return /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
-  const href = getShowHref(resource, id);
-  return /* @__PURE__ */ jsx(
-    "a",
-    {
-      href,
-      onClick: (e) => {
-        if (!shouldHandleLinkClick(e)) return;
-        e.preventDefault();
-        if (paneNav?.isInMultiPane) {
-          paneNav.openDetail(resource, id);
-        } else {
-          go({ to: { resource, action: "show", id } });
-        }
-      },
-      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
-      children: label
-    }
-  );
-};
-var _28 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_28("Sun"), _28("Mon"), _28("Tue"), _28("Wed"), _28("Thu"), _28("Fri"), _28("Sat")];
-var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
-var isCalendarDateField = (field) => {
-  const rawType = String(field?.type || "").trim().toLowerCase();
-  return rawType === "date" || rawType === "datetime";
-};
-var getCalendarDateFieldOptions = (fields) => {
-  const dateFields = fields.filter(isCalendarDateField);
-  if (dateFields.length === 0) return [];
-  const regularFields = [];
-  const footerFields = [];
-  dateFields.forEach((field) => {
-    const key = String(field.key || "").trim().toLowerCase();
-    if (CALENDAR_DATE_FOOTER_FIELDS.has(key)) {
-      footerFields.push(field);
-      return;
-    }
-    regularFields.push(field);
-  });
-  footerFields.sort((a, b) => {
-    const order = (key) => key === "creation_date" ? 1 : key === "modification_date" ? 2 : 3;
-    return order(String(a.key || "").trim().toLowerCase()) - order(String(b.key || "").trim().toLowerCase());
-  });
-  return [...regularFields, ...footerFields];
-};
-var getCalendarRecordDate = (record, fieldKey) => {
-  const rawValue = record?.[fieldKey];
-  if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs14(rawValue);
-  if (!parsed.isValid()) return null;
-  return parsed.startOf("day");
-};
-var isCalendarHeatmapField = (field) => field.type === "number" && !field.reference;
-var getCalendarHeatmapFieldOptions = (fields) => fields.filter(isCalendarHeatmapField);
-var toHeatmapNumber = (value) => {
-  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-var getCalendarHeatmapTotals = (entriesByDate, dayKeys, fieldKey) => {
-  const totals = /* @__PURE__ */ new Map();
-  if (!fieldKey) return totals;
-  dayKeys.forEach((dayKey) => {
-    let total = null;
-    (entriesByDate.get(dayKey) || []).forEach((entry) => {
-      const value = toHeatmapNumber(entry.record?.[fieldKey]);
-      if (value !== null) total = (total ?? 0) + value;
-    });
-    if (total !== null) totals.set(dayKey, total);
-  });
-  return totals;
-};
-var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
-  if (total === void 0 || totals.size === 0) return void 0;
-  const values = Array.from(totals.values());
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const ratio = max === min ? 1 : (total - min) / (max - min);
-  const percent = Math.round(8 + ratio * 37);
-  return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
-};
-var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
-
-// src/components/DynamicResource/utils/mapView.ts
-var MAP_MEASURE_COLORSCALE = "Viridis";
-var DEFAULT_MAP_LOOK = "points";
-var MAXIMUM_LATITUDE_DEGREES = 90;
-var MAXIMUM_LONGITUDE_DEGREES = 180;
-var getMapCoordinateFieldOptions = (fields) => fields.filter((field) => field.type === "number" && !field.reference);
-var getMapMeasureFieldOptions = (fields) => getCalendarHeatmapFieldOptions(fields);
-var getModelMapLocation = (model) => {
-  const declared = model.mapLocation;
-  if (!declared?.latitude || !declared?.longitude) return null;
-  const keys = new Set(model.fields.map((field) => field.key));
-  return keys.has(declared.latitude) && keys.has(declared.longitude) ? declared : null;
-};
-var modelHasMapLocation = (model) => getModelMapLocation(model) !== null;
-var toMapCoordinate = (value, limitDegrees) => {
-  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && Math.abs(parsed) <= limitDegrees ? parsed : null;
-};
-var getMapRecordTitle = (model, record) => {
-  const titleParts = (model.titleFields ?? []).map((fieldKey) => record?.[fieldKey]).filter((value) => value !== void 0 && value !== null && value !== "").map(String);
-  return titleParts.length > 0 ? titleParts.join(" ") : getRecordDisplayLabel(record);
-};
-var buildMapPoints = (records, location, measureFieldKey, getTitle) => {
-  const points = [];
-  let recordsWithoutLocation = 0;
-  records.forEach((record) => {
-    const latitude = toMapCoordinate(record?.[location.latitude], MAXIMUM_LATITUDE_DEGREES);
-    const longitude = toMapCoordinate(record?.[location.longitude], MAXIMUM_LONGITUDE_DEGREES);
-    if (latitude === null || longitude === null) {
-      recordsWithoutLocation += 1;
-      return;
-    }
-    const rawMeasure = measureFieldKey ? record?.[measureFieldKey] : null;
-    const measure2 = rawMeasure === null || rawMeasure === void 0 || rawMeasure === "" || typeof rawMeasure === "boolean" ? null : Number.isFinite(Number(rawMeasure)) ? Number(rawMeasure) : null;
-    points.push({ id: record?.eid ?? record?.id ?? null, latitude, longitude, label: getTitle(record), measure: measure2, recordCount: 1 });
-  });
-  return { points, recordsWithoutLocation };
-};
-var MAP_GRID_CELLS_ALONG_LONGER_SIDE = 100;
-var aggregateMapPointsIntoGridCells = (points) => {
-  if (points.length === 0) return [];
-  let minLatitude = Infinity, maxLatitude = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
-  points.forEach((point) => {
-    minLatitude = Math.min(minLatitude, point.latitude);
-    maxLatitude = Math.max(maxLatitude, point.latitude);
-    minLongitude = Math.min(minLongitude, point.longitude);
-    maxLongitude = Math.max(maxLongitude, point.longitude);
-  });
-  const longerSide = Math.max(maxLatitude - minLatitude, maxLongitude - minLongitude);
-  const cellSize = longerSide > 0 ? longerSide / MAP_GRID_CELLS_ALONG_LONGER_SIDE : 1;
-  const cells = /* @__PURE__ */ new Map();
-  points.forEach((point) => {
-    const cellKey = `${Math.floor((point.latitude - minLatitude) / cellSize)}:${Math.floor((point.longitude - minLongitude) / cellSize)}`;
-    const cell = cells.get(cellKey) ?? { latitudeSum: 0, longitudeSum: 0, measureSum: null, recordCount: 0 };
-    cell.latitudeSum += point.latitude * point.recordCount;
-    cell.longitudeSum += point.longitude * point.recordCount;
-    cell.recordCount += point.recordCount;
-    if (point.measure !== null) cell.measureSum = (cell.measureSum ?? 0) + point.measure;
-    cells.set(cellKey, cell);
-  });
-  return Array.from(cells.values()).map((cell) => ({
-    id: null,
-    latitude: cell.latitudeSum / cell.recordCount,
-    longitude: cell.longitudeSum / cell.recordCount,
-    label: "",
-    measure: cell.measureSum,
-    recordCount: cell.recordCount
-  }));
-};
-var WORLD_SIZE_AT_ZOOM_ZERO_PX = 512;
-var POINTS_EXTENT_SHARE_OF_MAP = 0.85;
-var MINIMUM_FIT_ZOOM = 0;
-var MAXIMUM_FIT_ZOOM = 14;
-var SINGLE_POSITION_ZOOM = 10;
-var toMercatorY = (latitudeDegrees) => Math.log(Math.tan(Math.PI / 4 + latitudeDegrees * Math.PI / 360));
-var fromMercatorY = (mercatorY) => (2 * Math.atan(Math.exp(mercatorY)) - Math.PI / 2) * (180 / Math.PI);
-var getMapViewportForPoints = (points, mapWidthPx, mapHeightPx) => {
-  if (points.length === 0) return { latitude: 0, longitude: 0, zoom: 1 };
-  let minMercatorY = Infinity, maxMercatorY = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
-  points.forEach((point) => {
-    const mercatorY = toMercatorY(point.latitude);
-    minMercatorY = Math.min(minMercatorY, mercatorY);
-    maxMercatorY = Math.max(maxMercatorY, mercatorY);
-    minLongitude = Math.min(minLongitude, point.longitude);
-    maxLongitude = Math.max(maxLongitude, point.longitude);
-  });
-  const centre = {
-    latitude: fromMercatorY((minMercatorY + maxMercatorY) / 2),
-    longitude: (minLongitude + maxLongitude) / 2
-  };
-  const longitudeSpanDegrees = maxLongitude - minLongitude;
-  const mercatorSpan = maxMercatorY - minMercatorY;
-  if (longitudeSpanDegrees <= 0 && mercatorSpan <= 0) return { ...centre, zoom: SINGLE_POSITION_ZOOM };
-  const zoomToFitLongitude = longitudeSpanDegrees > 0 ? Math.log2(mapWidthPx * POINTS_EXTENT_SHARE_OF_MAP * 360 / (WORLD_SIZE_AT_ZOOM_ZERO_PX * longitudeSpanDegrees)) : Infinity;
-  const zoomToFitLatitude = mercatorSpan > 0 ? Math.log2(mapHeightPx * POINTS_EXTENT_SHARE_OF_MAP * 2 * Math.PI / (WORLD_SIZE_AT_ZOOM_ZERO_PX * mercatorSpan)) : Infinity;
-  const zoom = Math.min(MAXIMUM_FIT_ZOOM, Math.max(MINIMUM_FIT_ZOOM, Math.min(zoomToFitLongitude, zoomToFitLatitude)));
-  return { ...centre, zoom };
-};
-
-// src/components/DynamicResource/utils/applicableViewTypes.ts
-var hasNumericField = (model) => model.fields.some((field) => field.type === "number" && !field.reference && !isPkField(field, model));
-function modelMeetsRequirement(requirement, model) {
-  switch (requirement) {
-    case "image-source":
-      return modelHasImageSource(model);
-    case "date-field":
-      return getCalendarDateFieldOptions(model.fields).length > 0;
-    case "number-field":
-      return hasNumericField(model);
-    case "split-field":
-      return getKanbanSplitFieldOptions(model.fields).length > 0;
-    case "map-location":
-      return modelHasMapLocation(model);
-    default:
-      return true;
-  }
-}
-function isViewTypeApplicable(token, model) {
-  const entry = getViewTypeCatalogEntries("configuration").find((candidate) => candidate.token === token);
-  return modelMeetsRequirement(entry?.requires, model);
-}
-function getSelectableViewTypes(context, model) {
-  return getViewTypeCatalogEntries(context).filter((entry) => modelMeetsRequirement(entry.requires, model)).map((entry) => entry.token);
-}
-var _29 = (text) => translateText(text, text);
-var { Text: Text6 } = Typography;
-var KANBAN_COLUMN_MINIMUM_WIDTH = 420;
-var KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
-var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
-var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
-  const { token } = theme.useToken();
-  const tone = useModelTone(model);
-  return /* @__PURE__ */ jsxs(
-    "div",
-    {
-      "data-kanban-column": label,
-      style: {
-        flex: "0 0 auto",
-        width: "max-content",
-        minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
-        maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
-        display: "flex",
-        flexDirection: "column",
-        border: `1px solid ${tone.border}`,
-        borderRadius: 8,
-        background: token.colorBgContainer,
-        boxShadow: `0 8px 20px -16px ${tone.shadow}`,
-        overflow: "hidden"
-      },
-      children: [
-        /* @__PURE__ */ jsxs(
-          "div",
-          {
-            style: {
-              padding: "8px 12px",
-              background: tone.soft,
-              borderBottom: `1px solid ${tone.border}`,
-              display: "flex",
-              alignItems: "baseline",
-              gap: 8
-            },
-            children: [
-              /* @__PURE__ */ jsx(Text6, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
-              /* @__PURE__ */ jsxs(Text6, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
-                "(",
-                records.length,
-                ")"
-              ] })
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsx("div", { style: { padding: 12, flex: 1, minHeight: 0, minWidth: 0, overflowX: "auto" }, children: /* @__PURE__ */ jsx(
-          KanbanColumnContent,
-          {
-            model,
-            allModels,
-            records,
-            cardFields,
-            viewType,
-            columnIndex,
-            pageSize
-          }
-        ) })
-      ]
-    }
-  );
-};
-var KanbanView = (props) => {
-  const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys } = props;
-  const fields = model.fields;
-  const splitFieldOptions = useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
-  const cardFieldOptions = useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
-  const [splitFieldKeys, setSplitFieldKeys] = useState(() => getDefaultKanbanSplitFieldKeys(fields));
-  const [chosenColumnViewType, setColumnViewType] = useState(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
-  const applicableColumnViewTypes = useMemo(() => getSelectableViewTypes("kanban-column", model), [model]);
-  const columnViewType = applicableColumnViewTypes.includes(chosenColumnViewType) ? chosenColumnViewType : DEFAULT_KANBAN_COLUMN_VIEW_TYPE;
-  const splitFields = useMemo(
-    () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field) => Boolean(field)),
-    [fields, splitFieldKeys]
-  );
-  const cardFields = useMemo(() => {
-    const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
-    return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
-  }, [fieldSequenceKeys, cardFieldOptions]);
-  const apiUrl = useApiUrl();
-  const [referenceTitles, setReferenceTitles] = useState({});
-  const requestedTitleKeys = useRef(/* @__PURE__ */ new Set());
-  const isMounted = useRef(true);
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    splitFields.filter((field) => field.reference).forEach((field) => {
-      records.forEach((record) => {
-        const id = record?.[field.key];
-        if (id === void 0 || id === null || id === "") return;
-        const cacheKey = `${field.reference}:${id}`;
-        if (requestedTitleKeys.current.has(cacheKey)) return;
-        requestedTitleKeys.current.add(cacheKey);
-        const resourcePath = field.referencePath || resolveResourcePath(field.reference, allModels);
-        authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`).then(async (response) => {
-          if (!response.ok) throw new Error(String(response.status));
-          const data = await response.json();
-          if (!isMounted.current) return;
-          const title = String(getReferenceRecordTitle(data, id));
-          setReferenceTitles((previous) => previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title });
-        }).catch(() => {
-          requestedTitleKeys.current.delete(cacheKey);
-        });
-      });
-    });
-  }, [records, splitFields, apiUrl, allModels]);
-  const formatColumnValue = useMemo(
-    () => (field, record) => {
-      if (field.reference) {
-        const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
-        if (title !== void 0) return title;
-      }
-      return formatValue(field, record);
-    },
-    [referenceTitles, formatValue]
-  );
-  const columns = useMemo(
-    () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _29("(empty)"), _29("All")),
-    [records, splitFields, maximumColumns, formatColumnValue]
-  );
-  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
-    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, align: "start", children: [
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          mode: "multiple",
-          allowClear: true,
-          maxTagCount: "responsive",
-          value: splitFieldKeys,
-          onChange: setSplitFieldKeys,
-          options: splitFieldOptions.map((field) => ({ label: field.label, value: field.key })),
-          style: { minWidth: 240 },
-          placeholder: _29("Split columns by"),
-          "aria-label": _29("Split columns by")
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          value: columnViewType,
-          onChange: setColumnViewType,
-          options: applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType })),
-          style: { minWidth: 140 },
-          "aria-label": _29("Column view type")
-        }
-      ),
-      toolbarExtra
-    ] }),
-    columns.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _29("No records available") }) : /* @__PURE__ */ jsx(
-      "div",
-      {
-        "data-kanban-board": true,
-        style: { overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 },
-        children: /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }, children: columns.map((column, columnIndex) => /* @__PURE__ */ jsx(
-          KanbanColumnPanel,
-          {
-            label: column.label,
-            records: column.records,
-            viewType: columnViewType,
-            cardFields,
-            columnIndex,
-            pageSize,
-            model,
-            allModels
-          },
-          column.label
-        )) })
-      }
-    )
-  ] });
-};
-
-// src/utils/plotlyLoader.ts
-var PLOTLY_RUNTIME_URL = "/veloiq-assets/plotly.min.js";
-var plotlyLoadPromise = null;
-var ensurePlotly = () => {
-  if (window.Plotly) return Promise.resolve();
-  if (plotlyLoadPromise) return plotlyLoadPromise;
-  plotlyLoadPromise = new Promise((resolve) => {
-    const existing = document.querySelector('script[data-jm-plotly-loader="1"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = PLOTLY_RUNTIME_URL;
-    script.async = true;
-    script.setAttribute("data-jm-plotly-loader", "1");
-    script.onload = () => resolve();
-    script.onerror = () => resolve();
-    document.head.appendChild(script);
-  });
-  return plotlyLoadPromise;
-};
-var getPlotly = () => window.Plotly;
 var ToneSharedStyles = () => /* @__PURE__ */ jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7876,8 +7438,32 @@ var renderOptionTag = (field, rawValue) => {
   return /* @__PURE__ */ jsx(Tag, { color, style: { marginInlineEnd: 0, borderRadius: 8, fontWeight: 500 }, children: label });
 };
 
+// src/utils/plotlyLoader.ts
+var PLOTLY_RUNTIME_URL = "/veloiq-assets/plotly.min.js";
+var plotlyLoadPromise = null;
+var ensurePlotly = () => {
+  if (window.Plotly) return Promise.resolve();
+  if (plotlyLoadPromise) return plotlyLoadPromise;
+  plotlyLoadPromise = new Promise((resolve) => {
+    const existing = document.querySelector('script[data-jm-plotly-loader="1"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = PLOTLY_RUNTIME_URL;
+    script.async = true;
+    script.setAttribute("data-jm-plotly-loader", "1");
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+  return plotlyLoadPromise;
+};
+var getPlotly = () => window.Plotly;
+
 // src/components/DynamicResource/analysis/chartTheme.ts
-var _30 = (text) => {
+var _28 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -7912,7 +7498,7 @@ var CHART_THEME_COLORS = {
   dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
-var getChartEmptyMessage = () => _30(CHART_EMPTY_MESSAGE);
+var getChartEmptyMessage = () => _28(CHART_EMPTY_MESSAGE);
 var buildStandardChartLayout = (dark, title, overrides = {}) => {
   const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
   const axis = {
@@ -7965,849 +7551,6 @@ var applyChartThemeToGraph = (graphDiv, dark, plotly) => {
     plotly.relayout(graphDiv, update);
   } catch {
   }
-};
-var _31 = (text) => translateText(text, text);
-var { Text: Text7 } = Typography;
-var MAP_HEIGHT = 520;
-var SMALLEST_MARKER_SIZE = 10;
-var LARGEST_MARKER_SIZE = 32;
-var DEFAULT_MARKER_SIZE = 14;
-var HEATMAP_RADIUS = 24;
-var MARKER_RING_COLOR = "#ffffff";
-var MARKER_RING_EXTRA_DIAMETER = 6;
-var MARKER_EDGE_COLOR = "#8a9096";
-var MARKER_EDGE_EXTRA_DIAMETER = 10;
-var PLAIN_BACKGROUND_COLORS = { light: "#eef1f4", dark: "#1b2226" };
-var buildMapStyle = (dark, tileUrl) => {
-  const background = dark ? PLAIN_BACKGROUND_COLORS.dark : PLAIN_BACKGROUND_COLORS.light;
-  const layers = [{ id: "plain-background", type: "background", paint: { "background-color": background } }];
-  const sources = {};
-  if (tileUrl) {
-    sources["base-map-tiles"] = { type: "raster", tiles: [tileUrl], tileSize: 256 };
-    layers.push({ id: "base-map-tiles", type: "raster", source: "base-map-tiles" });
-  }
-  return { version: 8, sources, layers };
-};
-var getMarkerSize = (measure2, smallest, largest) => {
-  if (measure2 === null || largest <= smallest) return DEFAULT_MARKER_SIZE;
-  return SMALLEST_MARKER_SIZE + (LARGEST_MARKER_SIZE - SMALLEST_MARKER_SIZE) * (measure2 - smallest) / (largest - smallest);
-};
-var MapView = ({ model, allModels, records, tileUrl, tileAttribution, aggregationThreshold, toolbarExtra }) => {
-  const { token } = theme.useToken();
-  const go = useGo();
-  const dark = isDarkColor2(token.colorBgContainer);
-  const graphRef = useRef(null);
-  const drawnFigureKindRef = useRef(null);
-  const declaredLocation = useMemo(() => getModelMapLocation(model), [model]);
-  const coordinateFieldOptions = useMemo(() => getMapCoordinateFieldOptions(model.fields), [model.fields]);
-  const measureFieldOptions = useMemo(() => getMapMeasureFieldOptions(model.fields), [model.fields]);
-  const [latitudeFieldKey, setLatitudeFieldKey] = useState(declaredLocation?.latitude ?? "");
-  const [longitudeFieldKey, setLongitudeFieldKey] = useState(declaredLocation?.longitude ?? "");
-  const [measureFieldKey, setMeasureFieldKey] = useState("");
-  const [look, setLook] = useState(DEFAULT_MAP_LOOK);
-  const [selectedRecordId, setSelectedRecordId] = useState(null);
-  const [mapWidthPx, setMapWidthPx] = useState(0);
-  const measureField = measureFieldOptions.find((field) => field.key === measureFieldKey);
-  const { points: recordPoints, recordsWithoutLocation } = useMemo(
-    () => buildMapPoints(records, { latitude: latitudeFieldKey, longitude: longitudeFieldKey }, measureFieldKey, (record) => getMapRecordTitle(model, record)),
-    [records, latitudeFieldKey, longitudeFieldKey, measureFieldKey, model]
-  );
-  const isAggregated = recordPoints.length > aggregationThreshold;
-  const points = useMemo(
-    () => isAggregated ? aggregateMapPointsIntoGridCells(recordPoints) : recordPoints,
-    [isAggregated, recordPoints]
-  );
-  const measureRange = useMemo(() => {
-    const measures = points.map((point) => point.measure).filter((value) => value !== null);
-    return measures.length > 0 ? { smallest: Math.min(...measures), largest: Math.max(...measures) } : null;
-  }, [points]);
-  const selectedPoint = selectedRecordId === null ? void 0 : recordPoints.find((point) => point.id === selectedRecordId);
-  useEffect(() => {
-    const graphDiv = graphRef.current;
-    if (!graphDiv || points.length === 0 || mapWidthPx === 0) return;
-    let cancelled = false;
-    ensurePlotly().then(() => {
-      const Plotly = getPlotly();
-      if (cancelled || !Plotly) return;
-      const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
-      const smallest = measureRange?.smallest ?? 0;
-      const largest = measureRange?.largest ?? 0;
-      const latitudes = points.map((point) => point.latitude);
-      const longitudes = points.map((point) => point.longitude);
-      const hoverTexts = points.map((point) => {
-        const title = point.recordCount > 1 ? `${point.recordCount} ${_31("records")}` : point.label;
-        return point.measure === null ? title : `${title}<br>${measureField?.label ?? measureFieldKey}: ${point.measure}`;
-      });
-      const hasMeasure = measureRange !== null;
-      const markerSizes = points.map((point) => point.recordCount > 1 ? LARGEST_MARKER_SIZE : getMarkerSize(point.measure, smallest, largest));
-      const buildUnderlayTrace = (color, extraDiameter) => ({
-        type: "scattermap",
-        mode: "markers",
-        lat: latitudes,
-        lon: longitudes,
-        customdata: points.map((point) => point.id),
-        hoverinfo: "skip",
-        marker: { size: markerSizes.map((size) => size + extraDiameter), color, opacity: 1 }
-      });
-      const trace = look === "heatmap" ? {
-        type: "densitymap",
-        lat: latitudes,
-        lon: longitudes,
-        ...hasMeasure ? { z: points.map((point) => point.measure ?? 0) } : {},
-        radius: HEATMAP_RADIUS,
-        colorscale: MAP_MEASURE_COLORSCALE,
-        showscale: hasMeasure,
-        colorbar: { title: { text: measureField?.label ?? "" }, tickfont: { color: colors.text } },
-        hoverinfo: "skip"
-      } : {
-        type: "scattermap",
-        mode: "markers",
-        lat: latitudes,
-        lon: longitudes,
-        text: hoverTexts,
-        hoverinfo: "text",
-        customdata: points.map((point) => point.id),
-        marker: {
-          size: markerSizes,
-          color: hasMeasure ? points.map((point) => point.measure ?? smallest) : CHART_COLORWAY[0],
-          ...hasMeasure ? {
-            colorscale: MAP_MEASURE_COLORSCALE,
-            showscale: true,
-            colorbar: { title: { text: measureField?.label ?? "" }, tickfont: { color: colors.text } }
-          } : {},
-          opacity: 1
-        }
-      };
-      const traces = look === "points" ? [buildUnderlayTrace(MARKER_EDGE_COLOR, MARKER_EDGE_EXTRA_DIAMETER), buildUnderlayTrace(MARKER_RING_COLOR, MARKER_RING_EXTRA_DIAMETER), trace] : [trace];
-      const viewport = getMapViewportForPoints(points, mapWidthPx, MAP_HEIGHT);
-      const layout = {
-        height: MAP_HEIGHT,
-        autosize: true,
-        margin: { l: 0, r: 0, t: 0, b: 0 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        font: { family: CHART_FONT_FAMILY, size: CHART_FONT_SIZE, color: colors.text },
-        showlegend: false,
-        map: {
-          style: buildMapStyle(dark, tileUrl),
-          center: { lat: viewport.latitude, lon: viewport.longitude },
-          zoom: viewport.zoom
-        }
-      };
-      const config = { responsive: true, displaylogo: false, displayModeBar: false };
-      const figureKind = `${look}:${hasMeasure}:${dark}:${tileUrl ?? ""}`;
-      if (drawnFigureKindRef.current === figureKind) {
-        Plotly.react(graphDiv, traces, layout, config);
-        return;
-      }
-      try {
-        Plotly.purge(graphDiv);
-      } catch {
-      }
-      Plotly.newPlot(graphDiv, traces, layout, config).then(() => {
-        if (cancelled) return;
-        drawnFigureKindRef.current = figureKind;
-        graphDiv.on?.("plotly_click", (event) => {
-          const clickedId = event?.points?.[0]?.customdata;
-          setSelectedRecordId(clickedId === void 0 || clickedId === null ? null : clickedId);
-        });
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [points, look, dark, tileUrl, measureRange, measureField, measureFieldKey, mapWidthPx]);
-  useEffect(() => {
-    const graphDiv = graphRef.current;
-    if (!graphDiv) return;
-    setMapWidthPx(graphDiv.clientWidth);
-    const observer = new ResizeObserver(() => {
-      setMapWidthPx(graphDiv.clientWidth);
-      const Plotly = getPlotly();
-      if (Plotly?.Plots?.resize && graphDiv.isConnected) {
-        try {
-          Plotly.Plots.resize(graphDiv);
-        } catch {
-        }
-      }
-    });
-    observer.observe(graphDiv);
-    return () => {
-      observer.disconnect();
-      try {
-        getPlotly()?.purge?.(graphDiv);
-      } catch {
-      }
-      drawnFigureKindRef.current = null;
-    };
-  }, [points.length === 0]);
-  const coordinateOptions = coordinateFieldOptions.map((field) => ({ label: field.label, value: field.key }));
-  const resource = resolveResourcePath(model.resource || model.name, allModels);
-  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
-    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, align: "start", children: [
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          value: latitudeFieldKey,
-          onChange: setLatitudeFieldKey,
-          options: coordinateOptions,
-          style: { minWidth: 160 },
-          "aria-label": _31("Latitude field"),
-          placeholder: _31("Latitude field")
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          value: longitudeFieldKey,
-          onChange: setLongitudeFieldKey,
-          options: coordinateOptions,
-          style: { minWidth: 160 },
-          "aria-label": _31("Longitude field"),
-          placeholder: _31("Longitude field")
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          allowClear: true,
-          value: measureFieldKey || void 0,
-          onChange: (value) => setMeasureFieldKey(value ?? ""),
-          options: measureFieldOptions.map((field) => ({ label: field.label, value: field.key })),
-          style: { minWidth: 160 },
-          "aria-label": _31("Measure"),
-          placeholder: _31("Measure")
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        Select,
-        {
-          size: "small",
-          value: look,
-          onChange: setLook,
-          options: [
-            { label: _31("Points"), value: "points" },
-            { label: _31("Heatmap"), value: "heatmap" }
-          ],
-          style: { minWidth: 120 },
-          "aria-label": _31("Look")
-        }
-      ),
-      toolbarExtra
-    ] }),
-    points.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _31("No records have a location.") }) : /* @__PURE__ */ jsx("div", { "data-map-view": true, style: { border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8, overflow: "hidden", background: token.colorBgContainer }, children: /* @__PURE__ */ jsx("div", { ref: graphRef, style: { width: "100%", height: MAP_HEIGHT } }) }),
-    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 12, children: [
-      measureRange && measureField && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${measureField.label}: ${measureRange.smallest} \u2013 ${measureRange.largest}` }),
-      tileUrl && tileAttribution && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: tileAttribution }),
-      isAggregated && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${_31("Grouped into grid cells")}: ${recordPoints.length} ${_31("records")}` }),
-      recordsWithoutLocation > 0 && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${_31("Records without a location")}: ${recordsWithoutLocation}` })
-    ] }),
-    selectedPoint && /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, "data-map-selected-record": true, children: [
-      /* @__PURE__ */ jsx(Text7, { strong: true, children: selectedPoint.label }),
-      selectedPoint.measure !== null && measureField && /* @__PURE__ */ jsx(Text7, { type: "secondary", children: `${measureField.label}: ${selectedPoint.measure}` }),
-      selectedPoint.id !== null && /* @__PURE__ */ jsx(Button, { size: "small", type: "link", href: getShowHref(resource, selectedPoint.id, allModels), onClick: (event) => {
-        event.preventDefault();
-        go({ to: getShowHref(resource, selectedPoint.id, allModels) });
-      }, children: _31("Open") })
-    ] })
-  ] });
-};
-
-// src/components/DynamicResource/utils/listVisibilityOnDetailLevelChange.ts
-var ANALYZE_DETAIL_LEVEL = 6;
-var resolveListVisibilityOnDetailLevelChange = (previousLevel, currentLevel, analyzeSectionAvailable, mayShowAgain) => {
-  if (currentLevel === previousLevel) return "keep";
-  if (currentLevel === ANALYZE_DETAIL_LEVEL && analyzeSectionAvailable) return "hide";
-  if (previousLevel === ANALYZE_DETAIL_LEVEL && mayShowAgain) return "show";
-  return "keep";
-};
-
-// src/components/DynamicResource/viewState/orderCrosstabHeaders.ts
-function orderCrosstabHeaders(labels, representatives, axisFields, sortList, compareValues) {
-  const axisKeys = new Set(axisFields.filter((field) => Boolean(field)).map((field) => field.key));
-  const applicable = sortList.filter((entry) => axisKeys.has(entry.fieldKey)).map((entry) => ({ field: axisFields.find((field) => field?.key === entry.fieldKey), descending: entry.order === "descend" }));
-  if (applicable.length === 0) return labels;
-  return [...labels].sort((labelA, labelB) => {
-    const recordA = representatives.get(labelA);
-    const recordB = representatives.get(labelB);
-    for (const { field, descending } of applicable) {
-      const result = compareValues(field, recordA, recordB);
-      if (result !== 0) return descending ? -result : result;
-    }
-    return 0;
-  });
-}
-var _32 = window._ || ((text) => text);
-var StorageFieldValue = ({ storageKey }) => {
-  const [busy, setBusy] = useState(false);
-  const filename = storageKey.split("/").slice(1).join("/") || storageKey;
-  const handleDownload = async () => {
-    setBusy(true);
-    try {
-      const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
-      const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
-      if (!res.ok) throw new Error(_32("Download failed."));
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      message.error(err?.message || _32("Download failed."));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), loading: busy, onClick: handleDownload, children: filename });
-};
-
-// src/components/DynamicResource/utils/resolveRowTypedField.ts
-var ROW_TYPED_FIELD_TYPES = [
-  "string",
-  "number",
-  "boolean",
-  "date",
-  "datetime",
-  "time",
-  "image_url"
-];
-var fieldViewTypeWithoutModePrefix = (token) => token.replace(/^(read-only-|editable-)/, "");
-function resolveRowTypedField(field, record) {
-  if (!field.typeFromField && !field.optionsFromField) return field;
-  const resolved = { ...field };
-  if (field.typeFromField) {
-    const rowType = record?.[field.typeFromField];
-    if (ROW_TYPED_FIELD_TYPES.includes(rowType)) {
-      resolved.type = rowType;
-    } else if (typeof rowType === "string" && rowType) {
-      const base = fieldViewTypeWithoutModePrefix(normalizeFieldViewType(`read-only-${fieldViewTypeWithoutModePrefix(rowType)}`) || "");
-      resolved.type = "string";
-      if (base) {
-        resolved.showViewType = field.showViewType || `read-only-${base}`;
-        if (normalizeFieldViewType(`editable-${base}`)) {
-          resolved.editViewType = field.editViewType || `editable-${base}`;
-        }
-      }
-    }
-  }
-  if (field.optionsFromField) {
-    const options = record?.[field.optionsFromField];
-    if (Array.isArray(options) && options.length > 0) {
-      resolved.options = options.map((option) => option !== null && typeof option === "object" && "value" in option ? option : { label: String(option), value: option });
-    }
-  }
-  return resolved;
-}
-dayjs14.extend(relativeTime2);
-var _33 = window._ || ((text) => text);
-var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
-var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
-function formatDuration(totalSeconds) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor(totalSeconds % 3600 / 60);
-  const s = totalSeconds % 60;
-  const parts = [];
-  if (h) parts.push(`${h}h`);
-  if (m) parts.push(`${m}m`);
-  if (s || !parts.length) parts.push(`${s}s`);
-  return parts.join(" ");
-}
-var TALL_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
-  "read-only-markdown",
-  "read-only-json",
-  "read-only-code",
-  "read-only-textarea",
-  "read-only-image-url"
-]);
-var renderFieldViewTypeReadOnly = (token, value, inTable) => {
-  const str = value === null || value === void 0 ? "" : String(value);
-  const isEmpty = str === "" || str === "null" || str === "undefined";
-  if (isEmpty && token !== "read-only-password" && token !== "read-only-progress" && token !== "read-only-rating") return "-";
-  switch (token) {
-    case "read-only-password":
-      return /* @__PURE__ */ jsx("span", { style: { letterSpacing: 2 }, children: str ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "-" });
-    case "read-only-textarea":
-      return /* @__PURE__ */ jsx(
-        Input.TextArea,
-        {
-          value: str,
-          autoSize: { minRows: 2, maxRows: 12 },
-          readOnly: true,
-          style: { resize: "vertical", background: "transparent", border: "none", padding: 0, boxShadow: "none" }
-        }
-      );
-    case "read-only-markdown":
-      return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown2, { children: str }) });
-    case "read-only-json": {
-      let formatted = str;
-      try {
-        formatted = JSON.stringify(JSON.parse(str), null, 2);
-      } catch {
-      }
-      return /* @__PURE__ */ jsx("pre", { style: { margin: 0, fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: formatted });
-    }
-    case "read-only-url":
-      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: str });
-    case "read-only-email":
-      return /* @__PURE__ */ jsx("a", { href: `mailto:${str}`, children: str });
-    case "read-only-currency": {
-      const num = parseFloat(str);
-      if (isNaN(num)) return str || "-";
-      return /* @__PURE__ */ jsx(Fragment, { children: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num) });
-    }
-    case "read-only-percentage": {
-      const num = parseFloat(str);
-      if (isNaN(num)) return str || "-";
-      return /* @__PURE__ */ jsx(Fragment, { children: `${num} %` });
-    }
-    case "read-only-progress": {
-      const num = Math.max(0, Math.min(100, parseFloat(str) || 0));
-      return /* @__PURE__ */ jsx(Progress, { percent: num, size: "small", style: { marginBottom: 0 } });
-    }
-    case "read-only-rating": {
-      const num = parseFloat(str) || 0;
-      return /* @__PURE__ */ jsx(Rate, { disabled: true, value: num });
-    }
-    case "read-only-duration": {
-      const secs = parseInt(str) || 0;
-      return /* @__PURE__ */ jsx(Fragment, { children: formatDuration(secs) });
-    }
-    case "read-only-phone":
-      return /* @__PURE__ */ jsx("a", { href: `tel:${str}`, children: str });
-    case "read-only-color":
-      return /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        /* @__PURE__ */ jsx("span", { style: { display: "inline-block", width: 16, height: 16, background: str, border: "1px solid #d9d9d9", borderRadius: 2, flexShrink: 0 } }),
-        str
-      ] });
-    case "read-only-code":
-      return /* @__PURE__ */ jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
-    case "read-only-image-url": {
-      const imageStyle = { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" };
-      if (str.includes("/api/file/")) return /* @__PURE__ */ jsx(AuthenticatedImage, { url: str, style: imageStyle });
-      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsx("img", { src: str, alt: "", style: imageStyle }) });
-    }
-    case "read-only-storage-field":
-      return /* @__PURE__ */ jsx(StorageFieldValue, { storageKey: str });
-    case "read-only-qrcode":
-      return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsx(QRCodeSVG, { value: str, size: 128 }) });
-    case "read-only-relative": {
-      const parsed = dayjs14(str);
-      if (!parsed.isValid()) return str || "-";
-      return /* @__PURE__ */ jsx(Fragment, { children: parsed.fromNow() });
-    }
-    case "read-only-truncated-text":
-      return /* @__PURE__ */ jsx(Tooltip, { title: str, children: /* @__PURE__ */ jsx("span", { style: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "default" }, children: str }) });
-    default:
-      return str || "-";
-  }
-};
-var wrapForTable = (node) => /* @__PURE__ */ jsx("div", { style: { maxHeight: 120, overflowY: "auto", overflowX: "hidden" }, children: node });
-var renderFieldValue = (rawField, record, allModels, inTable) => {
-  const field = resolveRowTypedField(rawField, record);
-  const value = record?.[field.key];
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "-";
-    return /* @__PURE__ */ jsx("span", { style: { display: "inline-flex", flexWrap: "wrap", gap: 4 }, children: value.map((item, index) => {
-      const option = field.options?.find((candidate) => candidate.value === item);
-      return /* @__PURE__ */ jsx(Tag, { style: { marginInlineEnd: 0 }, children: option ? option.label : String(item) }, `${String(item)}-${index}`);
-    }) });
-  }
-  const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
-  if (isNlSentenceField) {
-    return /* @__PURE__ */ jsx(
-      Input.TextArea,
-      {
-        value: value === null || value === void 0 ? "" : String(value),
-        autoSize: { minRows: 3, maxRows: 18 },
-        style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _33(field.key),
-        readOnly: true
-      }
-    );
-  }
-  const showToken = normalizeFieldViewType(field.showViewType || "");
-  if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
-    const node = renderFieldViewTypeReadOnly(showToken, value);
-    return inTable && TALL_VIEW_TYPE_TOKENS.has(showToken) ? wrapForTable(node) : node;
-  }
-  if (field.type === "boolean") {
-    return value ? /* @__PURE__ */ jsx(CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsx(CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
-  }
-  if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
-    return /* @__PURE__ */ jsx(ReferenceField, { id: value, resource: resolveResourcePath(field.referencePath || field.reference, allModels) });
-  }
-  if (field.type === "number") {
-    return formatNumberValue(value) ?? "-";
-  }
-  if (field.type === "date") {
-    return formatDateValue(value) ?? "-";
-  }
-  if (field.type === "datetime") {
-    return formatDateTimeValue(value) ?? "-";
-  }
-  if (field.type === "time") {
-    return formatTimeValue(value);
-  }
-  if (field.options && value !== void 0 && value !== null) {
-    return renderOptionTag(field, value);
-  }
-  return value ?? "-";
-};
-var _34 = window._ || ((text) => text);
-var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
-var COUNT_KEY = "__count__";
-var CROSSTAB_HEADER_CLASS = "jm-crosstab-header";
-var CrosstabTable = ({
-  rows,
-  rowField,
-  colField,
-  colField3 = null,
-  cellFieldKeys,
-  cellFieldLabels,
-  allFields,
-  allModels,
-  summaryFn,
-  formatCategoryValue,
-  numericBarColor,
-  caption,
-  editable,
-  sortList,
-  compareValues
-}) => {
-  const { token } = theme.useToken();
-  const modelField = useCallback(
-    (key) => key ? allFields.find((field) => field.key === key) : void 0,
-    [allFields]
-  );
-  const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
-  const seriesLabel = useCallback(
-    (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _34("Count");
-      return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
-    },
-    [cellFieldLabels, modelField]
-  );
-  const recordId2 = useCallback(
-    (record) => record?.[editable?.pkField || "eid"] ?? record?.eid ?? record?.id,
-    [editable?.pkField]
-  );
-  const effectiveValue = useCallback(
-    (record, fieldKey) => {
-      if (fieldKey === COUNT_KEY) return 1;
-      const staged = editable?.getStagedValue?.(recordId2(record), fieldKey);
-      const raw = staged !== void 0 ? staged : record?.[fieldKey];
-      if (raw === void 0 || raw === null || raw === "") return null;
-      const num = Number(raw);
-      return Number.isNaN(num) ? null : num;
-    },
-    [editable, recordId2]
-  );
-  const summarize = useCallback((values) => summarizeValues(values, summaryFn), [summaryFn]);
-  const colFieldDef = modelField(colField);
-  const col3FieldDef = modelField(colField3);
-  const rowFieldDef = modelField(rowField);
-  const hasColDimension = Boolean(colField);
-  const hasRowDimension = Boolean(rowField);
-  const pivot = useMemo(() => {
-    const rowLabels2 = [];
-    const colLabels2 = [];
-    const rowRepresentatives = /* @__PURE__ */ new Map();
-    const colRepresentatives = /* @__PURE__ */ new Map();
-    const cellRecords2 = /* @__PURE__ */ new Map();
-    (rows || []).forEach((row) => {
-      const rowLabel = formatCategoryValue(rowFieldDef, row);
-      const colLabel = col3FieldDef ? `${formatCategoryValue(colFieldDef, row)}${CATEGORY_LABEL_SEPARATOR}${formatCategoryValue(col3FieldDef, row)}` : formatCategoryValue(colFieldDef, row);
-      if (!rowLabels2.includes(rowLabel)) {
-        rowLabels2.push(rowLabel);
-        rowRepresentatives.set(rowLabel, row);
-      }
-      if (!colLabels2.includes(colLabel)) {
-        colLabels2.push(colLabel);
-        colRepresentatives.set(colLabel, row);
-      }
-      const cellKey = `${rowLabel}::${colLabel}`;
-      if (!cellRecords2.has(cellKey)) cellRecords2.set(cellKey, /* @__PURE__ */ new Map());
-      const seriesMap = cellRecords2.get(cellKey);
-      activeSeriesKeys.forEach((seriesKey) => {
-        if (!seriesMap.has(seriesKey)) seriesMap.set(seriesKey, []);
-        seriesMap.get(seriesKey).push(row);
-      });
-    });
-    const orderedRowLabels = sortList && compareValues ? orderCrosstabHeaders(rowLabels2, rowRepresentatives, [rowFieldDef], sortList, compareValues) : rowLabels2;
-    const orderedColLabels = sortList && compareValues ? orderCrosstabHeaders(colLabels2, colRepresentatives, [colFieldDef, col3FieldDef], sortList, compareValues) : colLabels2;
-    return { rowLabels: orderedRowLabels, colLabels: orderedColLabels, cellRecords: cellRecords2 };
-  }, [rows, rowFieldDef, colFieldDef, col3FieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys, sortList, compareValues]);
-  const { rowLabels, colLabels, cellRecords } = pivot;
-  const isAggregatedField = useCallback((seriesKey) => {
-    if (seriesKey === COUNT_KEY) return true;
-    const field = modelField(seriesKey);
-    return Boolean(field && field.type === "number" && !field.reference);
-  }, [modelField]);
-  const cellAllRecords = useCallback(
-    (rowLabel, colLabel, seriesKey) => {
-      return cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
-    },
-    [cellRecords]
-  );
-  const contributingRecords = useCallback(
-    (rowLabel, colLabel, seriesKey) => {
-      const records = cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
-      return records.filter((rec) => effectiveValue(rec, seriesKey) !== null);
-    },
-    [cellRecords, effectiveValue]
-  );
-  const cellAggregate = useCallback(
-    (rowLabel, colLabel, seriesKey) => {
-      const values = contributingRecords(rowLabel, colLabel, seriesKey).map((rec) => effectiveValue(rec, seriesKey));
-      return values.length > 0 ? summarize(values) : null;
-    },
-    [contributingRecords, effectiveValue, summarize]
-  );
-  const seriesMaxes = useMemo(() => {
-    return activeSeriesKeys.reduce((acc, seriesKey) => {
-      let maxForSeries = 0;
-      rowLabels.forEach((rowLabel) => {
-        colLabels.forEach((colLabel) => {
-          const summarized = cellAggregate(rowLabel, colLabel, seriesKey);
-          if (summarized !== null) maxForSeries = Math.max(maxForSeries, Math.abs(summarized));
-        });
-      });
-      acc[seriesKey] = maxForSeries;
-      return acc;
-    }, {});
-  }, [activeSeriesKeys, rowLabels, colLabels, cellAggregate]);
-  const inputRefs = useRef(/* @__PURE__ */ new Map());
-  const cellAddr = (r, c) => `${r}:${c}`;
-  const editableColumns = colLabels.length * activeSeriesKeys.length;
-  const focusCell = useCallback((r, c) => {
-    if (r < 0 || c < 0 || r >= rowLabels.length || c >= editableColumns) return;
-    const el = inputRefs.current.get(cellAddr(r, c));
-    if (el) {
-      el.focus();
-      el.select?.();
-    }
-  }, [rowLabels.length, editableColumns]);
-  const isSeriesEditable = useCallback(
-    (rowLabel, colLabel, seriesKey) => {
-      if (!editable || seriesKey === COUNT_KEY || !isAggregatedField(seriesKey)) return false;
-      const n = contributingRecords(rowLabel, colLabel, seriesKey).length;
-      if (n === 0) return false;
-      if (CROSSTAB_PRORATABLE_FNS.includes(summaryFn)) return true;
-      return n === 1;
-    },
-    [editable, contributingRecords, summaryFn, isAggregatedField]
-  );
-  const computeProration = useCallback(
-    (records, seriesKey, newAggregate) => {
-      const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
-      const n = records.length;
-      if (n === 1) {
-        return [{ recordId: recordId2(records[0]), fieldKey: seriesKey, value: round2(newAggregate) }];
-      }
-      const oldValues = records.map((rec) => effectiveValue(rec, seriesKey));
-      if (summaryFn === "sum") {
-        const oldSum = oldValues.reduce((acc, v) => acc + v, 0);
-        const raw = oldValues.map((v) => oldSum !== 0 ? v * (newAggregate / oldSum) : newAggregate / n);
-        const rounded = raw.map(round2);
-        const targetTotal = round2(newAggregate);
-        const residual = round2(targetTotal - rounded.reduce((acc, v) => acc + v, 0));
-        if (residual !== 0) {
-          let maxIdx = 0;
-          for (let i = 1; i < raw.length; i++) {
-            if (Math.abs(raw[i]) > Math.abs(raw[maxIdx])) maxIdx = i;
-          }
-          rounded[maxIdx] = round2(rounded[maxIdx] + residual);
-        }
-        return records.map((rec, idx) => ({ recordId: recordId2(rec), fieldKey: seriesKey, value: rounded[idx] }));
-      }
-      const oldAvg = oldValues.reduce((acc, v) => acc + v, 0) / n;
-      return records.map((rec, idx) => ({
-        recordId: recordId2(rec),
-        fieldKey: seriesKey,
-        value: round2(oldAvg !== 0 ? oldValues[idx] * (newAggregate / oldAvg) : newAggregate)
-      }));
-    },
-    [recordId2, effectiveValue, summaryFn]
-  );
-  const commitCellEdit = useCallback(
-    (rowLabel, colLabel, seriesKey, newAggregate) => {
-      if (!editable || newAggregate === null || Number.isNaN(newAggregate)) return;
-      const records = contributingRecords(rowLabel, colLabel, seriesKey);
-      if (records.length === 0) return;
-      const current2 = cellAggregate(rowLabel, colLabel, seriesKey);
-      if (current2 !== null && Math.abs(current2 - newAggregate) < 1e-9) return;
-      const updates = computeProration(records, seriesKey, newAggregate);
-      if (records.length > 1 && editable.confirmProration !== false) {
-        Modal.confirm({
-          title: _34("Distribute value across records"),
-          width: 520,
-          content: /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _34("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
-            /* @__PURE__ */ jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
-              /* @__PURE__ */ jsx("span", { children: rec?._label ?? recordId2(rec) }),
-              /* @__PURE__ */ jsxs("span", { style: { color: token.colorTextTertiary }, children: [
-                formatNumberValue(effectiveValue(rec, seriesKey)),
-                " \u2192 ",
-                /* @__PURE__ */ jsx("b", { children: formatNumberValue(updates[idx].value) })
-              ] })
-            ] }, String(recordId2(rec)))) })
-          ] }),
-          okText: _34("Apply"),
-          cancelText: _34("Cancel"),
-          onOk: () => editable.onCommitCell(updates)
-        });
-        return;
-      }
-      editable.onCommitCell(updates);
-    },
-    [editable, contributingRecords, cellAggregate, computeProration, recordId2, effectiveValue, token.colorTextTertiary]
-  );
-  if (!rowField && !colField) {
-    return /* @__PURE__ */ jsx(Empty, { description: _34("Crosstab needs at least one category field.") });
-  }
-  if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _34("No data available for this view.") });
-  }
-  const headerCellStyle = {
-    fontWeight: "normal"
-  };
-  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
-    caption && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: caption }),
-    /* @__PURE__ */ jsx("div", { style: { overflow: "auto", border: `1px solid ${token.colorBorder}`, borderRadius: 8 }, children: /* @__PURE__ */ jsxs("table", { style: { borderCollapse: "collapse", width: "100%", minWidth: "max-content", fontSize: 12 }, children: [
-      /* @__PURE__ */ jsxs("thead", { children: [
-        hasColDimension && /* @__PURE__ */ jsxs("tr", { children: [
-          /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }, children: [colFieldDef?.label || colField, col3FieldDef?.label].filter(Boolean).join(CATEGORY_LABEL_SEPARATOR) }),
-          colLabels.map((colLabel, colIndex) => /* @__PURE__ */ jsx(
-            "th",
-            {
-              className: CROSSTAB_HEADER_CLASS,
-              colSpan: activeSeriesKeys.length,
-              style: {
-                ...headerCellStyle,
-                borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                borderLeft: colIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorderSecondary}`,
-                borderRight: `4px solid ${token.colorTextQuaternary}`,
-                padding: "8px 6px 4px",
-                textAlign: "center",
-                verticalAlign: "bottom"
-              },
-              children: /* @__PURE__ */ jsx("div", { style: { writingMode: "vertical-rl", transform: "rotate(210deg)", whiteSpace: "normal", wordBreak: "break-word", display: "inline-block", lineHeight: 1.2, maxHeight: 200 }, children: colLabel })
-            },
-            `crosstab-col-${colLabel}`
-          ))
-        ] }),
-        /* @__PURE__ */ jsxs("tr", { children: [
-          /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `2px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }, children: hasRowDimension ? rowFieldDef?.label || rowField : "" }),
-          colLabels.flatMap(
-            (colLabel) => activeSeriesKeys.map((seriesKey, seriesIndex) => /* @__PURE__ */ jsx(
-              "th",
-              {
-                className: CROSSTAB_HEADER_CLASS,
-                style: {
-                  ...headerCellStyle,
-                  borderBottom: `2px solid ${token.colorBorderSecondary}`,
-                  borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : void 0,
-                  borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
-                  padding: "6px 4px 4px",
-                  textAlign: "center",
-                  verticalAlign: "bottom",
-                  maxWidth: 48,
-                  minWidth: 36
-                },
-                children: /* @__PURE__ */ jsx("div", { style: { writingMode: "vertical-rl", transform: "rotate(210deg)", whiteSpace: "normal", wordBreak: "break-word", display: "inline-block", lineHeight: 1.2, maxHeight: 200 }, children: seriesLabel(seriesKey) })
-              },
-              `crosstab-head-${colLabel}-${seriesKey}`
-            ))
-          )
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx("tbody", { children: rowLabels.map((rowLabel, rowIndex) => /* @__PURE__ */ jsxs("tr", { children: [
-        /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, borderBottom: `1px solid ${token.colorBorder}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", fontWeight: "normal" }, children: rowLabel }),
-        colLabels.flatMap(
-          (colLabel, colIndex) => activeSeriesKeys.map((seriesKey, seriesIndex) => {
-            const summarized = cellAggregate(rowLabel, colLabel, seriesKey);
-            const editableCell = isSeriesEditable(rowLabel, colLabel, seriesKey);
-            const flatCol = colIndex * activeSeriesKeys.length + seriesIndex;
-            const cellStyle = {
-              borderBottom: `1px solid ${token.colorBorder}`,
-              borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : void 0,
-              borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
-              padding: editableCell ? "2px 4px" : "8px 10px",
-              textAlign: "right",
-              whiteSpace: "nowrap"
-            };
-            const key = `crosstab-cell-${rowLabel}-${colLabel}-${seriesKey}`;
-            if (editableCell) {
-              return /* @__PURE__ */ jsx("td", { style: cellStyle, children: /* @__PURE__ */ jsx(
-                InputNumber,
-                {
-                  size: "small",
-                  variant: "borderless",
-                  controls: false,
-                  defaultValue: summarized ?? void 0,
-                  style: { width: "100%", textAlign: "right" },
-                  ref: (node) => {
-                    const el = node?.input ?? node?.nativeElement?.querySelector?.("input") ?? null;
-                    inputRefs.current.set(cellAddr(rowIndex, flatCol), el);
-                  },
-                  onPressEnter: (e) => {
-                    const next = Number(e.target.value);
-                    commitCellEdit(rowLabel, colLabel, seriesKey, Number.isNaN(next) ? null : next);
-                    focusCell(rowIndex + 1, flatCol);
-                  },
-                  onBlur: (e) => {
-                    const next = Number(e.target.value);
-                    commitCellEdit(rowLabel, colLabel, seriesKey, Number.isNaN(next) ? null : next);
-                  },
-                  onKeyDown: (e) => {
-                    if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      focusCell(rowIndex - 1, flatCol);
-                    } else if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      focusCell(rowIndex + 1, flatCol);
-                    } else if (e.key === "ArrowLeft" && e.target.selectionStart === 0) {
-                      e.preventDefault();
-                      focusCell(rowIndex, flatCol - 1);
-                    } else if (e.key === "ArrowRight") {
-                      const input = e.target;
-                      if (input.selectionStart === input.value.length) {
-                        e.preventDefault();
-                        focusCell(rowIndex, flatCol + 1);
-                      }
-                    }
-                  }
-                }
-              ) }, key);
-            }
-            if (!isAggregatedField(seriesKey)) {
-              const field = modelField(seriesKey);
-              const records = cellAllRecords(rowLabel, colLabel, seriesKey);
-              const seen = /* @__PURE__ */ new Set();
-              const rendered = [];
-              records.forEach((rec, i) => {
-                const raw = rec?.[seriesKey];
-                const dedupeKey = raw === void 0 || raw === null ? "" : String(raw);
-                if (dedupeKey !== "" && seen.has(dedupeKey)) return;
-                seen.add(dedupeKey);
-                if (dedupeKey === "") return;
-                rendered.push(
-                  /* @__PURE__ */ jsx("div", { style: { marginBottom: records.length > 1 ? 4 : 0 }, children: field ? renderFieldValue(field, rec, allModels, true) : String(raw) }, `${key}-v${i}`)
-                );
-              });
-              return /* @__PURE__ */ jsx("td", { style: { ...cellStyle, textAlign: "left", whiteSpace: "normal", minWidth: 160, maxWidth: 320 }, children: rendered.length > 0 ? rendered : "\u2013" }, key);
-            }
-            const display = summarized !== null ? renderNumericValueBar(summarized, seriesMaxes[seriesKey] || 0, formatNumberValue(summarized), numericBarColor) : "\u2013";
-            return /* @__PURE__ */ jsx("td", { style: cellStyle, children: display }, key);
-          })
-        )
-      ] }, `crosstab-row-${rowLabel}`)) })
-    ] }) })
-  ] });
 };
 var CHART_HEIGHT = 420;
 var valueHover = (categoryAxis, valueAxis) => `%{fullData.name}<br>%{${categoryAxis}}: %{${valueAxis}:${CHART_NUMBER_FORMAT}}<extra></extra>`;
@@ -9141,8 +7884,627 @@ var AnalysisChart = (props) => {
   );
 };
 
+// src/components/DynamicResource/viewState/orderCrosstabHeaders.ts
+function orderCrosstabHeaders(labels, representatives, axisFields, sortList, compareValues) {
+  const axisKeys = new Set(axisFields.filter((field) => Boolean(field)).map((field) => field.key));
+  const applicable = sortList.filter((entry) => axisKeys.has(entry.fieldKey)).map((entry) => ({ field: axisFields.find((field) => field?.key === entry.fieldKey), descending: entry.order === "descend" }));
+  if (applicable.length === 0) return labels;
+  return [...labels].sort((labelA, labelB) => {
+    const recordA = representatives.get(labelA);
+    const recordB = representatives.get(labelB);
+    for (const { field, descending } of applicable) {
+      const result = compareValues(field, recordA, recordB);
+      if (result !== 0) return descending ? -result : result;
+    }
+    return 0;
+  });
+}
+var getReferenceRecordTitle = (record, id) => record?._label || record?.name || record?.description || id;
+var ReferenceField = ({ id, resource, onLabel }) => {
+  const { data, isLoading } = useOne({ resource, id, queryOptions: { enabled: !!id } });
+  const record = data?.data;
+  const label = getReferenceRecordTitle(record, id);
+  const go = useGo();
+  const paneNav = usePaneNavigation();
+  const { token } = theme.useToken();
+  useEffect(() => {
+    if (onLabel && !isLoading && label !== void 0 && label !== null) {
+      onLabel(String(label));
+    }
+  }, [label, onLabel, isLoading]);
+  if (isLoading) return /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
+  const href = getShowHref(resource, id);
+  return /* @__PURE__ */ jsx(
+    "a",
+    {
+      href,
+      onClick: (e) => {
+        if (!shouldHandleLinkClick(e)) return;
+        e.preventDefault();
+        if (paneNav?.isInMultiPane) {
+          paneNav.openDetail(resource, id);
+        } else {
+          go({ to: { resource, action: "show", id } });
+        }
+      },
+      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
+      children: label
+    }
+  );
+};
+var _29 = window._ || ((text) => text);
+var StorageFieldValue = ({ storageKey }) => {
+  const [busy, setBusy] = useState(false);
+  const filename = storageKey.split("/").slice(1).join("/") || storageKey;
+  const handleDownload = async () => {
+    setBusy(true);
+    try {
+      const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
+      const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
+      if (!res.ok) throw new Error(_29("Download failed."));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      message.error(err?.message || _29("Download failed."));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), loading: busy, onClick: handleDownload, children: filename });
+};
+
+// src/components/DynamicResource/utils/resolveRowTypedField.ts
+var ROW_TYPED_FIELD_TYPES = [
+  "string",
+  "number",
+  "boolean",
+  "date",
+  "datetime",
+  "time",
+  "image_url"
+];
+var fieldViewTypeWithoutModePrefix = (token) => token.replace(/^(read-only-|editable-)/, "");
+function resolveRowTypedField(field, record) {
+  if (!field.typeFromField && !field.optionsFromField) return field;
+  const resolved = { ...field };
+  if (field.typeFromField) {
+    const rowType = record?.[field.typeFromField];
+    if (ROW_TYPED_FIELD_TYPES.includes(rowType)) {
+      resolved.type = rowType;
+    } else if (typeof rowType === "string" && rowType) {
+      const base = fieldViewTypeWithoutModePrefix(normalizeFieldViewType(`read-only-${fieldViewTypeWithoutModePrefix(rowType)}`) || "");
+      resolved.type = "string";
+      if (base) {
+        resolved.showViewType = field.showViewType || `read-only-${base}`;
+        if (normalizeFieldViewType(`editable-${base}`)) {
+          resolved.editViewType = field.editViewType || `editable-${base}`;
+        }
+      }
+    }
+  }
+  if (field.optionsFromField) {
+    const options = record?.[field.optionsFromField];
+    if (Array.isArray(options) && options.length > 0) {
+      resolved.options = options.map((option) => option !== null && typeof option === "object" && "value" in option ? option : { label: String(option), value: option });
+    }
+  }
+  return resolved;
+}
+dayjs14.extend(relativeTime2);
+var _30 = window._ || ((text) => text);
+var ReactMarkdown2 = lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
+var QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
+function formatDuration(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor(totalSeconds % 3600 / 60);
+  const s = totalSeconds % 60;
+  const parts = [];
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}m`);
+  if (s || !parts.length) parts.push(`${s}s`);
+  return parts.join(" ");
+}
+var TALL_VIEW_TYPE_TOKENS = /* @__PURE__ */ new Set([
+  "read-only-markdown",
+  "read-only-json",
+  "read-only-code",
+  "read-only-textarea",
+  "read-only-image-url"
+]);
+var renderFieldViewTypeReadOnly = (token, value, inTable) => {
+  const str = value === null || value === void 0 ? "" : String(value);
+  const isEmpty = str === "" || str === "null" || str === "undefined";
+  if (isEmpty && token !== "read-only-password" && token !== "read-only-progress" && token !== "read-only-rating") return "-";
+  switch (token) {
+    case "read-only-password":
+      return /* @__PURE__ */ jsx("span", { style: { letterSpacing: 2 }, children: str ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "-" });
+    case "read-only-textarea":
+      return /* @__PURE__ */ jsx(
+        Input.TextArea,
+        {
+          value: str,
+          autoSize: { minRows: 2, maxRows: 12 },
+          readOnly: true,
+          style: { resize: "vertical", background: "transparent", border: "none", padding: 0, boxShadow: "none" }
+        }
+      );
+    case "read-only-markdown":
+      return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 200 } }), children: /* @__PURE__ */ jsx(ReactMarkdown2, { children: str }) });
+    case "read-only-json": {
+      let formatted = str;
+      try {
+        formatted = JSON.stringify(JSON.parse(str), null, 2);
+      } catch {
+      }
+      return /* @__PURE__ */ jsx("pre", { style: { margin: 0, fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: formatted });
+    }
+    case "read-only-url":
+      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: str });
+    case "read-only-email":
+      return /* @__PURE__ */ jsx("a", { href: `mailto:${str}`, children: str });
+    case "read-only-currency": {
+      const num = parseFloat(str);
+      if (isNaN(num)) return str || "-";
+      return /* @__PURE__ */ jsx(Fragment, { children: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num) });
+    }
+    case "read-only-percentage": {
+      const num = parseFloat(str);
+      if (isNaN(num)) return str || "-";
+      return /* @__PURE__ */ jsx(Fragment, { children: `${num} %` });
+    }
+    case "read-only-progress": {
+      const num = Math.max(0, Math.min(100, parseFloat(str) || 0));
+      return /* @__PURE__ */ jsx(Progress, { percent: num, size: "small", style: { marginBottom: 0 } });
+    }
+    case "read-only-rating": {
+      const num = parseFloat(str) || 0;
+      return /* @__PURE__ */ jsx(Rate, { disabled: true, value: num });
+    }
+    case "read-only-duration": {
+      const secs = parseInt(str) || 0;
+      return /* @__PURE__ */ jsx(Fragment, { children: formatDuration(secs) });
+    }
+    case "read-only-phone":
+      return /* @__PURE__ */ jsx("a", { href: `tel:${str}`, children: str });
+    case "read-only-color":
+      return /* @__PURE__ */ jsxs("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        /* @__PURE__ */ jsx("span", { style: { display: "inline-block", width: 16, height: 16, background: str, border: "1px solid #d9d9d9", borderRadius: 2, flexShrink: 0 } }),
+        str
+      ] });
+    case "read-only-code":
+      return /* @__PURE__ */ jsx("pre", { style: { margin: 0, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: str });
+    case "read-only-image-url": {
+      const imageStyle = { maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 4, display: "block" };
+      if (str.includes("/api/file/")) return /* @__PURE__ */ jsx(AuthenticatedImage, { url: str, style: imageStyle });
+      return /* @__PURE__ */ jsx("a", { href: str, target: "_blank", rel: "noopener noreferrer", children: /* @__PURE__ */ jsx("img", { src: str, alt: "", style: imageStyle }) });
+    }
+    case "read-only-storage-field":
+      return /* @__PURE__ */ jsx(StorageFieldValue, { storageKey: str });
+    case "read-only-qrcode":
+      return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx(Skeleton.Input, { active: true, size: "small", style: { width: 128 } }), children: /* @__PURE__ */ jsx(QRCodeSVG, { value: str, size: 128 }) });
+    case "read-only-relative": {
+      const parsed = dayjs14(str);
+      if (!parsed.isValid()) return str || "-";
+      return /* @__PURE__ */ jsx(Fragment, { children: parsed.fromNow() });
+    }
+    case "read-only-truncated-text":
+      return /* @__PURE__ */ jsx(Tooltip, { title: str, children: /* @__PURE__ */ jsx("span", { style: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "default" }, children: str }) });
+    default:
+      return str || "-";
+  }
+};
+var wrapForTable = (node) => /* @__PURE__ */ jsx("div", { style: { maxHeight: 120, overflowY: "auto", overflowX: "hidden" }, children: node });
+var renderFieldValue = (rawField, record, allModels, inTable) => {
+  const field = resolveRowTypedField(rawField, record);
+  const value = record?.[field.key];
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
+    return /* @__PURE__ */ jsx("span", { style: { display: "inline-flex", flexWrap: "wrap", gap: 4 }, children: value.map((item, index) => {
+      const option = field.options?.find((candidate) => candidate.value === item);
+      return /* @__PURE__ */ jsx(Tag, { style: { marginInlineEnd: 0 }, children: option ? option.label : String(item) }, `${String(item)}-${index}`);
+    }) });
+  }
+  const isNlSentenceField = field.key === "nl_sentence" || field.key === "nl_asks_sentence";
+  if (isNlSentenceField) {
+    return /* @__PURE__ */ jsx(
+      Input.TextArea,
+      {
+        value: value === null || value === void 0 ? "" : String(value),
+        autoSize: { minRows: 3, maxRows: 18 },
+        style: { resize: "vertical", background: "#f3f6f9" },
+        placeholder: _30(field.key),
+        readOnly: true
+      }
+    );
+  }
+  const showToken = normalizeFieldViewType(field.showViewType || "");
+  if (showToken && showToken.startsWith("read-only-") && !(showToken === "read-only-field" && field.reference)) {
+    const node = renderFieldViewTypeReadOnly(showToken, value);
+    return inTable && TALL_VIEW_TYPE_TOKENS.has(showToken) ? wrapForTable(node) : node;
+  }
+  if (field.type === "boolean") {
+    return value ? /* @__PURE__ */ jsx(CheckCircleOutlined, { style: { color: "green", fontSize: "1.2em" } }) : /* @__PURE__ */ jsx(CloseCircleOutlined, { style: { color: "red", fontSize: "1.2em" } });
+  }
+  if (field.reference && value && hasReferenceModel(field.reference, allModels)) {
+    return /* @__PURE__ */ jsx(ReferenceField, { id: value, resource: resolveResourcePath(field.referencePath || field.reference, allModels) });
+  }
+  if (field.type === "number") {
+    return formatNumberValue(value) ?? "-";
+  }
+  if (field.type === "date") {
+    return formatDateValue(value) ?? "-";
+  }
+  if (field.type === "datetime") {
+    return formatDateTimeValue(value) ?? "-";
+  }
+  if (field.type === "time") {
+    return formatTimeValue(value);
+  }
+  if (field.options && value !== void 0 && value !== null) {
+    return renderOptionTag(field, value);
+  }
+  return value ?? "-";
+};
+var _31 = window._ || ((text) => text);
+var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
+var COUNT_KEY = "__count__";
+var CROSSTAB_HEADER_CLASS = "jm-crosstab-header";
+var CrosstabTable = ({
+  rows,
+  rowField,
+  colField,
+  colField3 = null,
+  cellFieldKeys,
+  cellFieldLabels,
+  allFields,
+  allModels,
+  summaryFn,
+  formatCategoryValue,
+  numericBarColor,
+  caption,
+  editable,
+  sortList,
+  compareValues
+}) => {
+  const { token } = theme.useToken();
+  const modelField = useCallback(
+    (key) => key ? allFields.find((field) => field.key === key) : void 0,
+    [allFields]
+  );
+  const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
+  const seriesLabel = useCallback(
+    (seriesKey) => {
+      if (seriesKey === COUNT_KEY) return _31("Count");
+      return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
+    },
+    [cellFieldLabels, modelField]
+  );
+  const recordId2 = useCallback(
+    (record) => record?.[editable?.pkField || "eid"] ?? record?.eid ?? record?.id,
+    [editable?.pkField]
+  );
+  const effectiveValue = useCallback(
+    (record, fieldKey) => {
+      if (fieldKey === COUNT_KEY) return 1;
+      const staged = editable?.getStagedValue?.(recordId2(record), fieldKey);
+      const raw = staged !== void 0 ? staged : record?.[fieldKey];
+      if (raw === void 0 || raw === null || raw === "") return null;
+      const num = Number(raw);
+      return Number.isNaN(num) ? null : num;
+    },
+    [editable, recordId2]
+  );
+  const summarize = useCallback((values) => summarizeValues(values, summaryFn), [summaryFn]);
+  const colFieldDef = modelField(colField);
+  const col3FieldDef = modelField(colField3);
+  const rowFieldDef = modelField(rowField);
+  const hasColDimension = Boolean(colField);
+  const hasRowDimension = Boolean(rowField);
+  const pivot = useMemo(() => {
+    const rowLabels2 = [];
+    const colLabels2 = [];
+    const rowRepresentatives = /* @__PURE__ */ new Map();
+    const colRepresentatives = /* @__PURE__ */ new Map();
+    const cellRecords2 = /* @__PURE__ */ new Map();
+    (rows || []).forEach((row) => {
+      const rowLabel = formatCategoryValue(rowFieldDef, row);
+      const colLabel = col3FieldDef ? `${formatCategoryValue(colFieldDef, row)}${CATEGORY_LABEL_SEPARATOR}${formatCategoryValue(col3FieldDef, row)}` : formatCategoryValue(colFieldDef, row);
+      if (!rowLabels2.includes(rowLabel)) {
+        rowLabels2.push(rowLabel);
+        rowRepresentatives.set(rowLabel, row);
+      }
+      if (!colLabels2.includes(colLabel)) {
+        colLabels2.push(colLabel);
+        colRepresentatives.set(colLabel, row);
+      }
+      const cellKey = `${rowLabel}::${colLabel}`;
+      if (!cellRecords2.has(cellKey)) cellRecords2.set(cellKey, /* @__PURE__ */ new Map());
+      const seriesMap = cellRecords2.get(cellKey);
+      activeSeriesKeys.forEach((seriesKey) => {
+        if (!seriesMap.has(seriesKey)) seriesMap.set(seriesKey, []);
+        seriesMap.get(seriesKey).push(row);
+      });
+    });
+    const orderedRowLabels = sortList && compareValues ? orderCrosstabHeaders(rowLabels2, rowRepresentatives, [rowFieldDef], sortList, compareValues) : rowLabels2;
+    const orderedColLabels = sortList && compareValues ? orderCrosstabHeaders(colLabels2, colRepresentatives, [colFieldDef, col3FieldDef], sortList, compareValues) : colLabels2;
+    return { rowLabels: orderedRowLabels, colLabels: orderedColLabels, cellRecords: cellRecords2 };
+  }, [rows, rowFieldDef, colFieldDef, col3FieldDef, hasColDimension, formatCategoryValue, activeSeriesKeys, sortList, compareValues]);
+  const { rowLabels, colLabels, cellRecords } = pivot;
+  const isAggregatedField = useCallback((seriesKey) => {
+    if (seriesKey === COUNT_KEY) return true;
+    const field = modelField(seriesKey);
+    return Boolean(field && field.type === "number" && !field.reference);
+  }, [modelField]);
+  const cellAllRecords = useCallback(
+    (rowLabel, colLabel, seriesKey) => {
+      return cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
+    },
+    [cellRecords]
+  );
+  const contributingRecords = useCallback(
+    (rowLabel, colLabel, seriesKey) => {
+      const records = cellRecords.get(`${rowLabel}::${colLabel}`)?.get(seriesKey) || [];
+      return records.filter((rec) => effectiveValue(rec, seriesKey) !== null);
+    },
+    [cellRecords, effectiveValue]
+  );
+  const cellAggregate = useCallback(
+    (rowLabel, colLabel, seriesKey) => {
+      const values = contributingRecords(rowLabel, colLabel, seriesKey).map((rec) => effectiveValue(rec, seriesKey));
+      return values.length > 0 ? summarize(values) : null;
+    },
+    [contributingRecords, effectiveValue, summarize]
+  );
+  const seriesMaxes = useMemo(() => {
+    return activeSeriesKeys.reduce((acc, seriesKey) => {
+      let maxForSeries = 0;
+      rowLabels.forEach((rowLabel) => {
+        colLabels.forEach((colLabel) => {
+          const summarized = cellAggregate(rowLabel, colLabel, seriesKey);
+          if (summarized !== null) maxForSeries = Math.max(maxForSeries, Math.abs(summarized));
+        });
+      });
+      acc[seriesKey] = maxForSeries;
+      return acc;
+    }, {});
+  }, [activeSeriesKeys, rowLabels, colLabels, cellAggregate]);
+  const inputRefs = useRef(/* @__PURE__ */ new Map());
+  const cellAddr = (r, c) => `${r}:${c}`;
+  const editableColumns = colLabels.length * activeSeriesKeys.length;
+  const focusCell = useCallback((r, c) => {
+    if (r < 0 || c < 0 || r >= rowLabels.length || c >= editableColumns) return;
+    const el = inputRefs.current.get(cellAddr(r, c));
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
+  }, [rowLabels.length, editableColumns]);
+  const isSeriesEditable = useCallback(
+    (rowLabel, colLabel, seriesKey) => {
+      if (!editable || seriesKey === COUNT_KEY || !isAggregatedField(seriesKey)) return false;
+      const n = contributingRecords(rowLabel, colLabel, seriesKey).length;
+      if (n === 0) return false;
+      if (CROSSTAB_PRORATABLE_FNS.includes(summaryFn)) return true;
+      return n === 1;
+    },
+    [editable, contributingRecords, summaryFn, isAggregatedField]
+  );
+  const computeProration = useCallback(
+    (records, seriesKey, newAggregate) => {
+      const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
+      const n = records.length;
+      if (n === 1) {
+        return [{ recordId: recordId2(records[0]), fieldKey: seriesKey, value: round2(newAggregate) }];
+      }
+      const oldValues = records.map((rec) => effectiveValue(rec, seriesKey));
+      if (summaryFn === "sum") {
+        const oldSum = oldValues.reduce((acc, v) => acc + v, 0);
+        const raw = oldValues.map((v) => oldSum !== 0 ? v * (newAggregate / oldSum) : newAggregate / n);
+        const rounded = raw.map(round2);
+        const targetTotal = round2(newAggregate);
+        const residual = round2(targetTotal - rounded.reduce((acc, v) => acc + v, 0));
+        if (residual !== 0) {
+          let maxIdx = 0;
+          for (let i = 1; i < raw.length; i++) {
+            if (Math.abs(raw[i]) > Math.abs(raw[maxIdx])) maxIdx = i;
+          }
+          rounded[maxIdx] = round2(rounded[maxIdx] + residual);
+        }
+        return records.map((rec, idx) => ({ recordId: recordId2(rec), fieldKey: seriesKey, value: rounded[idx] }));
+      }
+      const oldAvg = oldValues.reduce((acc, v) => acc + v, 0) / n;
+      return records.map((rec, idx) => ({
+        recordId: recordId2(rec),
+        fieldKey: seriesKey,
+        value: round2(oldAvg !== 0 ? oldValues[idx] * (newAggregate / oldAvg) : newAggregate)
+      }));
+    },
+    [recordId2, effectiveValue, summaryFn]
+  );
+  const commitCellEdit = useCallback(
+    (rowLabel, colLabel, seriesKey, newAggregate) => {
+      if (!editable || newAggregate === null || Number.isNaN(newAggregate)) return;
+      const records = contributingRecords(rowLabel, colLabel, seriesKey);
+      if (records.length === 0) return;
+      const current2 = cellAggregate(rowLabel, colLabel, seriesKey);
+      if (current2 !== null && Math.abs(current2 - newAggregate) < 1e-9) return;
+      const updates = computeProration(records, seriesKey, newAggregate);
+      if (records.length > 1 && editable.confirmProration !== false) {
+        Modal.confirm({
+          title: _31("Distribute value across records"),
+          width: 520,
+          content: /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx(Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _31("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
+              /* @__PURE__ */ jsx("span", { children: rec?._label ?? recordId2(rec) }),
+              /* @__PURE__ */ jsxs("span", { style: { color: token.colorTextTertiary }, children: [
+                formatNumberValue(effectiveValue(rec, seriesKey)),
+                " \u2192 ",
+                /* @__PURE__ */ jsx("b", { children: formatNumberValue(updates[idx].value) })
+              ] })
+            ] }, String(recordId2(rec)))) })
+          ] }),
+          okText: _31("Apply"),
+          cancelText: _31("Cancel"),
+          onOk: () => editable.onCommitCell(updates)
+        });
+        return;
+      }
+      editable.onCommitCell(updates);
+    },
+    [editable, contributingRecords, cellAggregate, computeProration, recordId2, effectiveValue, token.colorTextTertiary]
+  );
+  if (!rowField && !colField) {
+    return /* @__PURE__ */ jsx(Empty, { description: _31("Crosstab needs at least one category field.") });
+  }
+  if (rowLabels.length === 0) {
+    return /* @__PURE__ */ jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _31("No data available for this view.") });
+  }
+  const headerCellStyle = {
+    fontWeight: "normal"
+  };
+  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 8 }, children: [
+    caption && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: caption }),
+    /* @__PURE__ */ jsx("div", { style: { overflow: "auto", border: `1px solid ${token.colorBorder}`, borderRadius: 8 }, children: /* @__PURE__ */ jsxs("table", { style: { borderCollapse: "collapse", width: "100%", minWidth: "max-content", fontSize: 12 }, children: [
+      /* @__PURE__ */ jsxs("thead", { children: [
+        hasColDimension && /* @__PURE__ */ jsxs("tr", { children: [
+          /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `1px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }, children: [colFieldDef?.label || colField, col3FieldDef?.label].filter(Boolean).join(CATEGORY_LABEL_SEPARATOR) }),
+          colLabels.map((colLabel, colIndex) => /* @__PURE__ */ jsx(
+            "th",
+            {
+              className: CROSSTAB_HEADER_CLASS,
+              colSpan: activeSeriesKeys.length,
+              style: {
+                ...headerCellStyle,
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                borderLeft: colIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorderSecondary}`,
+                borderRight: `4px solid ${token.colorTextQuaternary}`,
+                padding: "8px 6px 4px",
+                textAlign: "center",
+                verticalAlign: "bottom"
+              },
+              children: /* @__PURE__ */ jsx("div", { style: { writingMode: "vertical-rl", transform: "rotate(210deg)", whiteSpace: "normal", wordBreak: "break-word", display: "inline-block", lineHeight: 1.2, maxHeight: 200 }, children: colLabel })
+            },
+            `crosstab-col-${colLabel}`
+          ))
+        ] }),
+        /* @__PURE__ */ jsxs("tr", { children: [
+          /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, ...headerCellStyle, borderBottom: `2px solid ${token.colorBorderSecondary}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", wordBreak: "break-word", maxWidth: 180 }, children: hasRowDimension ? rowFieldDef?.label || rowField : "" }),
+          colLabels.flatMap(
+            (colLabel) => activeSeriesKeys.map((seriesKey, seriesIndex) => /* @__PURE__ */ jsx(
+              "th",
+              {
+                className: CROSSTAB_HEADER_CLASS,
+                style: {
+                  ...headerCellStyle,
+                  borderBottom: `2px solid ${token.colorBorderSecondary}`,
+                  borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : void 0,
+                  borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
+                  padding: "6px 4px 4px",
+                  textAlign: "center",
+                  verticalAlign: "bottom",
+                  maxWidth: 48,
+                  minWidth: 36
+                },
+                children: /* @__PURE__ */ jsx("div", { style: { writingMode: "vertical-rl", transform: "rotate(210deg)", whiteSpace: "normal", wordBreak: "break-word", display: "inline-block", lineHeight: 1.2, maxHeight: 200 }, children: seriesLabel(seriesKey) })
+              },
+              `crosstab-head-${colLabel}-${seriesKey}`
+            ))
+          )
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx("tbody", { children: rowLabels.map((rowLabel, rowIndex) => /* @__PURE__ */ jsxs("tr", { children: [
+        /* @__PURE__ */ jsx("th", { className: CROSSTAB_HEADER_CLASS, style: { position: "sticky", left: 0, zIndex: 1, borderBottom: `1px solid ${token.colorBorder}`, borderRight: `2px solid ${token.colorBorderSecondary}`, padding: "8px 10px", textAlign: "left", fontWeight: "normal" }, children: rowLabel }),
+        colLabels.flatMap(
+          (colLabel, colIndex) => activeSeriesKeys.map((seriesKey, seriesIndex) => {
+            const summarized = cellAggregate(rowLabel, colLabel, seriesKey);
+            const editableCell = isSeriesEditable(rowLabel, colLabel, seriesKey);
+            const flatCol = colIndex * activeSeriesKeys.length + seriesIndex;
+            const cellStyle = {
+              borderBottom: `1px solid ${token.colorBorder}`,
+              borderLeft: seriesIndex === 0 ? `4px solid ${token.colorTextQuaternary}` : void 0,
+              borderRight: seriesIndex === activeSeriesKeys.length - 1 ? `4px solid ${token.colorTextQuaternary}` : `1px solid ${token.colorBorder}`,
+              padding: editableCell ? "2px 4px" : "8px 10px",
+              textAlign: "right",
+              whiteSpace: "nowrap"
+            };
+            const key = `crosstab-cell-${rowLabel}-${colLabel}-${seriesKey}`;
+            if (editableCell) {
+              return /* @__PURE__ */ jsx("td", { style: cellStyle, children: /* @__PURE__ */ jsx(
+                InputNumber,
+                {
+                  size: "small",
+                  variant: "borderless",
+                  controls: false,
+                  defaultValue: summarized ?? void 0,
+                  style: { width: "100%", textAlign: "right" },
+                  ref: (node) => {
+                    const el = node?.input ?? node?.nativeElement?.querySelector?.("input") ?? null;
+                    inputRefs.current.set(cellAddr(rowIndex, flatCol), el);
+                  },
+                  onPressEnter: (e) => {
+                    const next = Number(e.target.value);
+                    commitCellEdit(rowLabel, colLabel, seriesKey, Number.isNaN(next) ? null : next);
+                    focusCell(rowIndex + 1, flatCol);
+                  },
+                  onBlur: (e) => {
+                    const next = Number(e.target.value);
+                    commitCellEdit(rowLabel, colLabel, seriesKey, Number.isNaN(next) ? null : next);
+                  },
+                  onKeyDown: (e) => {
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      focusCell(rowIndex - 1, flatCol);
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      focusCell(rowIndex + 1, flatCol);
+                    } else if (e.key === "ArrowLeft" && e.target.selectionStart === 0) {
+                      e.preventDefault();
+                      focusCell(rowIndex, flatCol - 1);
+                    } else if (e.key === "ArrowRight") {
+                      const input = e.target;
+                      if (input.selectionStart === input.value.length) {
+                        e.preventDefault();
+                        focusCell(rowIndex, flatCol + 1);
+                      }
+                    }
+                  }
+                }
+              ) }, key);
+            }
+            if (!isAggregatedField(seriesKey)) {
+              const field = modelField(seriesKey);
+              const records = cellAllRecords(rowLabel, colLabel, seriesKey);
+              const seen = /* @__PURE__ */ new Set();
+              const rendered = [];
+              records.forEach((rec, i) => {
+                const raw = rec?.[seriesKey];
+                const dedupeKey = raw === void 0 || raw === null ? "" : String(raw);
+                if (dedupeKey !== "" && seen.has(dedupeKey)) return;
+                seen.add(dedupeKey);
+                if (dedupeKey === "") return;
+                rendered.push(
+                  /* @__PURE__ */ jsx("div", { style: { marginBottom: records.length > 1 ? 4 : 0 }, children: field ? renderFieldValue(field, rec, allModels, true) : String(raw) }, `${key}-v${i}`)
+                );
+              });
+              return /* @__PURE__ */ jsx("td", { style: { ...cellStyle, textAlign: "left", whiteSpace: "normal", minWidth: 160, maxWidth: 320 }, children: rendered.length > 0 ? rendered : "\u2013" }, key);
+            }
+            const display = summarized !== null ? renderNumericValueBar(summarized, seriesMaxes[seriesKey] || 0, formatNumberValue(summarized), numericBarColor) : "\u2013";
+            return /* @__PURE__ */ jsx("td", { style: cellStyle, children: display }, key);
+          })
+        )
+      ] }, `crosstab-row-${rowLabel}`)) })
+    ] }) })
+  ] });
+};
+
 // src/components/DynamicResource/analysis/chartCatalog.ts
-var _35 = (text) => {
+var _32 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -9186,7 +8548,7 @@ var normalizeChartTypeId = (id, fallback = DEFAULT_CHART_TYPE) => {
   return LEGACY_CHART_TYPE_IDS[raw] ?? fallback;
 };
 var getChartTypeDef = (id) => CHART_TYPE_BY_ID.get(id);
-var getChartTypeLabel = (id) => _35(CHART_TYPE_BY_ID.get(id)?.label ?? id);
+var getChartTypeLabel = (id) => _32(CHART_TYPE_BY_ID.get(id)?.label ?? id);
 var getFrontendChartTypes = () => CHART_TYPES.filter((def) => def.frontend);
 var ICONS = {
   AreaChartOutlined,
@@ -9211,7 +8573,7 @@ var ChartTypeIcon = ({ chartType }) => {
   if (!Icon) return null;
   return /* @__PURE__ */ jsx(Icon, { rotate: def?.iconRotate || void 0 });
 };
-var _36 = window._ || ((text) => text);
+var _33 = window._ || ((text) => text);
 var getChartTypeOptions = () => getFrontendChartTypes().map((def) => ({
   value: def.id,
   title: getChartTypeLabel(def.id),
@@ -9285,21 +8647,21 @@ var AnalyzePanel = ({
   const plotsIndividualRows = ["scatter", "bubble", "scatter3d", "histogram", "box"].includes(chartType);
   const waitingForServer = Boolean(serverAggregation && !serverAggregation.hasResult && !serverAggregation.error);
   const axisRoles = {
-    scatter: [_36("X"), _36("Y")],
-    bubble: [_36("X"), _36("Y"), _36("Bubble size")],
-    scatter3d: [_36("X"), _36("Y"), _36("Z")]
+    scatter: [_33("X"), _33("Y")],
+    bubble: [_33("X"), _33("Y"), _33("Bubble size")],
+    scatter3d: [_33("X"), _33("Y"), _33("Z")]
   };
   const axisSeries = chartData.seriesKeys.filter((key) => key !== COUNT_SERIES_KEY);
   const axisHint = axisRoles[chartType] && axisSeries.length > 0 ? axisRoles[chartType].map((role, index) => `${role}: ${chartData.seriesLabels[axisSeries[Math.min(index, axisSeries.length - 1)]] || ""}`).join(" \xB7 ") : null;
   const category3Options = [
-    { label: _36("None"), value: "__none__" },
+    { label: _33("None"), value: "__none__" },
     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
   ];
   return /* @__PURE__ */ jsx(
     Card,
     {
       size: "small",
-      "aria-label": _36("Analyze"),
+      "aria-label": _33("Analyze"),
       styles: { body: { padding: 0 } },
       children: /* @__PURE__ */ jsx("div", { style: { perspective: 1600, padding: 12 }, children: /* @__PURE__ */ jsxs(
         "div",
@@ -9323,15 +8685,15 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    onSaveClick && /* @__PURE__ */ jsx(Tooltip, { title: _36("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _36("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _36("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _36("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _36("Export chart") }) })
+                    onSaveClick && /* @__PURE__ */ jsx(Tooltip, { title: _33("Save preferences"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _33("Stats"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _33("Export chart PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                    !isCrosstab && /* @__PURE__ */ jsx(Tooltip, { title: _33("Export chart PNG"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _33("Export chart") }) })
                   ] }),
                   serverAggregation?.error && /* @__PURE__ */ jsx(Alert, { type: "error", showIcon: true, message: serverAggregation.error }),
                   waitingForServer ? /* @__PURE__ */ jsxs("div", { style: { padding: 48, textAlign: "center", color: token.colorTextSecondary }, children: [
                     /* @__PURE__ */ jsx(Spin, {}),
-                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _36("Aggregating on the server...") })
+                    /* @__PURE__ */ jsx("div", { style: { marginTop: 12 }, children: _33("Aggregating on the server...") })
                   ] }) : isCrosstab ? /* @__PURE__ */ jsx(
                     CrosstabTable,
                     {
@@ -9365,7 +8727,7 @@ var AnalyzePanel = ({
                       graphRef: chartGraphRef
                     }
                   ),
-                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _36("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
+                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _33("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
                   /* @__PURE__ */ jsx(
                     Collapse,
                     {
@@ -9374,11 +8736,11 @@ var AnalyzePanel = ({
                       items: [
                         {
                           key: "configure-chart",
-                          label: _36("Customize chart"),
+                          label: _33("Customize chart"),
                           children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                             /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Category 1") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Category 1") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9389,12 +8751,12 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _36("Select category")
+                                    placeholder: _33("Select category")
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Category 2") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Category 2") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9405,14 +8767,14 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _36("None"), value: "__none__" },
+                                      { label: _33("None"), value: "__none__" },
                                       ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Category 3") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Category 3") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9427,7 +8789,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Chart Type") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Chart Type") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9445,7 +8807,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Summary") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Summary") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9460,7 +8822,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 180 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Ranking Filter") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Ranking Filter") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9471,15 +8833,15 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _36("None"), value: "none" },
-                                      { label: _36("Top N"), value: "top" },
-                                      { label: _36("Bottom N"), value: "bottom" }
+                                      { label: _33("None"), value: "none" },
+                                      { label: _33("Top N"), value: "top" },
+                                      { label: _33("Bottom N"), value: "bottom" }
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 220 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("Ranking Column") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("Ranking Column") }),
                                 /* @__PURE__ */ jsx(
                                   Select,
                                   {
@@ -9490,13 +8852,13 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _36("Select numeric column"),
+                                    placeholder: _33("Select numeric column"),
                                     disabled: rankingMode === "none" || numericFields.length === 0
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxs("div", { style: { minWidth: 120 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _36("N") }),
+                                /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _33("N") }),
                                 /* @__PURE__ */ jsx(
                                   InputNumber,
                                   {
@@ -9515,8 +8877,8 @@ var AnalyzePanel = ({
                             ] }),
                             /* @__PURE__ */ jsxs("div", { children: [
                               /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _36("Series") }),
-                                /* @__PURE__ */ jsx(Tooltip, { title: _36("Unselect All"), children: /* @__PURE__ */ jsx(
+                                /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _33("Series") }),
+                                /* @__PURE__ */ jsx(Tooltip, { title: _33("Unselect All"), children: /* @__PURE__ */ jsx(
                                   Button,
                                   {
                                     size: "small",
@@ -9536,7 +8898,7 @@ var AnalyzePanel = ({
                                     markAnalyzePrefsTouched();
                                     setSelectedSeriesKeys(values);
                                   },
-                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _36("Count"), value: COUNT_SERIES_KEY }]
+                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _33("Count"), value: COUNT_SERIES_KEY }]
                                 }
                               ),
                               axisHint && /* @__PURE__ */ jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary, marginTop: 6 }, children: axisHint })
@@ -9563,11 +8925,11 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsx(Tooltip, { title: _36("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                    /* @__PURE__ */ jsx(Tooltip, { title: _36("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                    /* @__PURE__ */ jsx(Tooltip, { title: _33("Analysis"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                    /* @__PURE__ */ jsx(Tooltip, { title: _33("Export stats PDF"), children: /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _36("Numeric columns") }), children: /* @__PURE__ */ jsxs(
+                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsx(Card, { size: "small", title: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _33("Numeric columns") }), children: /* @__PURE__ */ jsxs(
                       Table,
                       {
                         dataSource: statsSummary.numericStats,
@@ -9578,18 +8940,18 @@ var AnalyzePanel = ({
                           /* @__PURE__ */ jsx(
                             Table.Column,
                             {
-                              title: _36("Field"),
+                              title: _33("Field"),
                               dataIndex: "label",
                               render: (label) => /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: label }),
                               onHeaderCell: () => ({ style: statsHeaderStyle })
                             },
                             "label"
                           ),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _36("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _36("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _36("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _36("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                          /* @__PURE__ */ jsx(Table.Column, { title: _36("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                          /* @__PURE__ */ jsx(Table.Column, { title: _33("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _33("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _33("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _33("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                          /* @__PURE__ */ jsx(Table.Column, { title: _33("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                         ]
                       }
                     ) }),
@@ -9601,7 +8963,7 @@ var AnalyzePanel = ({
                         items: [
                           {
                             key: "categorical-columns",
-                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _36("Categorical columns (distinct < 20)") }),
+                            label: /* @__PURE__ */ jsx("span", { style: statsTitleStyle, children: _33("Categorical columns (distinct < 20)") }),
                             children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxs("div", { style: { marginBottom: 12 }, children: [
                               /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsx("span", { style: statsLabelStyle, children: field.label }) }),
                               /* @__PURE__ */ jsxs(
@@ -9612,11 +8974,11 @@ var AnalyzePanel = ({
                                   pagination: false,
                                   rowKey: (row) => row.value,
                                   children: [
-                                    /* @__PURE__ */ jsx(Table.Column, { title: _36("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                    /* @__PURE__ */ jsx(Table.Column, { title: _33("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                     /* @__PURE__ */ jsx(
                                       Table.Column,
                                       {
-                                        title: _36("Count"),
+                                        title: _33("Count"),
                                         dataIndex: "count",
                                         align: "right",
                                         onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -9645,153 +9007,7 @@ var AnalyzePanel = ({
     }
   );
 };
-var _37 = window._ || ((text) => text);
-var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
-  const { token } = theme.useToken();
-  const {
-    categoricalFields,
-    categoryField1,
-    setCategoryField1,
-    categoryField2,
-    setCategoryField2,
-    categoryField3,
-    setCategoryField3,
-    selectedSeriesKeys,
-    setSelectedSeriesKeys,
-    summaryFn,
-    setSummaryFn,
-    crosstabFilterFields,
-    setCrosstabFilterFields,
-    isSavingAnalyzePrefs,
-    markAnalyzePrefsTouched
-  } = analyze;
-  const controlLabelStyle = { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 };
-  return /* @__PURE__ */ jsx(
-    Collapse,
-    {
-      size: "small",
-      defaultActiveKey: [],
-      style: { marginBottom: 12 },
-      items: [{
-        key: "crosstab-config",
-        label: /* @__PURE__ */ jsx(Tooltip, { title: _37("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
-        children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
-          /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Category 1 (rows)") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  value: categoryField1 || void 0,
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setCategoryField1(value);
-                  },
-                  style: { width: "100%" },
-                  options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _37("Select category")
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Category 2 (columns)") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  value: categoryField2 || "__none__",
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setCategoryField2(value === "__none__" ? null : value);
-                  },
-                  style: { width: "100%" },
-                  options: [
-                    { label: _37("None"), value: "__none__" },
-                    ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Category 3 (columns)") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  value: categoryField3 || "__none__",
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setCategoryField3(value === "__none__" ? null : value);
-                  },
-                  style: { width: "100%" },
-                  options: [
-                    { label: _37("None"), value: "__none__" },
-                    ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
-                  ]
-                }
-              )
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Cell fields") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  mode: "multiple",
-                  allowClear: true,
-                  value: selectedSeriesKeys || [],
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setSelectedSeriesKeys(value);
-                  },
-                  style: { width: "100%" },
-                  options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _37("All numeric fields"),
-                  maxTagCount: "responsive"
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 150 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Summary") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  value: summaryFn,
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setSummaryFn(value);
-                  },
-                  style: { width: "100%" },
-                  options: getSummaryFnOptions()
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
-              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _37("Filter fields") }),
-              /* @__PURE__ */ jsx(
-                Select,
-                {
-                  mode: "multiple",
-                  allowClear: true,
-                  value: crosstabFilterFields,
-                  onChange: (value) => {
-                    markAnalyzePrefsTouched();
-                    setCrosstabFilterFields(value);
-                  },
-                  style: { width: "100%" },
-                  options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                  placeholder: _37("Select filter fields"),
-                  maxTagCount: "responsive"
-                }
-              )
-            ] })
-          ] }),
-          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _37("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _37("Save configuration") }) }) })
-        ] })
-      }]
-    }
-  );
-};
-var _38 = window._ || ((text) => text);
+var _34 = window._ || ((text) => text);
 var useAnalyzeSettings = ({
   model,
   apiUrl,
@@ -9862,9 +9078,9 @@ var useAnalyzeSettings = ({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      message.success(_38("Analyze preferences saved."));
+      message.success(_34("Analyze preferences saved."));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : _38("Failed to save analyze preferences."));
+      message.error(error instanceof Error ? error.message : _34("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -10005,7 +9221,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     return merged;
   }, [pageLabelCache, serverResult, model.fields]);
   const formatCategoryValue = useCallback((field, record) => {
-    if (!field) return _38("All");
+    if (!field) return _34("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -10016,7 +9232,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _38("Yes") : _38("No");
+    if (field.type === "boolean") return raw ? _34("Yes") : _34("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -10077,7 +9293,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const sampleInfo = serverResult && (serverResult.sample_rows || []).length < serverResult.total_rows ? { shown: serverResult.sample_rows.length, total: serverResult.total_rows } : null;
   const chartTitle = useMemo(() => {
     const labelOf = (key) => key ? model.fields.find((field) => field.key === key)?.label : null;
-    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _38("All")];
+    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _34("All")];
     [categoryField2, categoryField3].forEach((key) => {
       const label = labelOf(key);
       if (label) parts.push(label);
@@ -10193,6 +9409,826 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     exportChartPdf,
     exportStatsPdf
   };
+};
+var KanbanColumnAnalyze = ({ model, records, cardFields, analyze }) => {
+  const tone = useModelTone(model);
+  const results = useAnalyzeResults(analyze.settings, {
+    rows: records,
+    statsFields: cardFields,
+    labelCache: analyze.labelCache
+  });
+  if (!analyze.settings.analyzePrefsReady) return null;
+  return /* @__PURE__ */ jsx(
+    AnalyzePanel,
+    {
+      analyze: results,
+      allFields: model.fields,
+      tone,
+      numericBarColor: analyze.numericBarColor
+    }
+  );
+};
+var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize, analyze }) => {
+  const boardId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
+  const rowModel = useMemo(() => {
+    const { resource: _ownResource, ...modelWithoutResource } = model;
+    return {
+      ...modelWithoutResource,
+      fields: cardFields,
+      // Records link to their own show pages; the column has no create, import or Analyze section.
+      isNamedQuery: true,
+      primaryResource: model.resource || model.name,
+      showAnalyzeSection: false,
+      ...pageSize ? { defaultPageSize: pageSize } : {}
+    };
+  }, [model, cardFields, pageSize]);
+  const rowsStore = useInPageRowsStore(storeName, rowModel, records);
+  const shownRecords = useRef(records);
+  useEffect(() => {
+    if (shownRecords.current === records) return;
+    shownRecords.current = records;
+    rowsStore.setRows(records);
+  }, [records, rowsStore]);
+  if (viewType === "analyze") {
+    return analyze ? /* @__PURE__ */ jsx(KanbanColumnAnalyze, { model, records, cardFields, analyze }) : null;
+  }
+  return /* @__PURE__ */ jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
+};
+var _35 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_35("Sun"), _35("Mon"), _35("Tue"), _35("Wed"), _35("Thu"), _35("Fri"), _35("Sat")];
+var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
+var isCalendarDateField = (field) => {
+  const rawType = String(field?.type || "").trim().toLowerCase();
+  return rawType === "date" || rawType === "datetime";
+};
+var getCalendarDateFieldOptions = (fields) => {
+  const dateFields = fields.filter(isCalendarDateField);
+  if (dateFields.length === 0) return [];
+  const regularFields = [];
+  const footerFields = [];
+  dateFields.forEach((field) => {
+    const key = String(field.key || "").trim().toLowerCase();
+    if (CALENDAR_DATE_FOOTER_FIELDS.has(key)) {
+      footerFields.push(field);
+      return;
+    }
+    regularFields.push(field);
+  });
+  footerFields.sort((a, b) => {
+    const order = (key) => key === "creation_date" ? 1 : key === "modification_date" ? 2 : 3;
+    return order(String(a.key || "").trim().toLowerCase()) - order(String(b.key || "").trim().toLowerCase());
+  });
+  return [...regularFields, ...footerFields];
+};
+var getCalendarRecordDate = (record, fieldKey) => {
+  const rawValue = record?.[fieldKey];
+  if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
+  const parsed = dayjs14(rawValue);
+  if (!parsed.isValid()) return null;
+  return parsed.startOf("day");
+};
+var isCalendarHeatmapField = (field) => field.type === "number" && !field.reference;
+var getCalendarHeatmapFieldOptions = (fields) => fields.filter(isCalendarHeatmapField);
+var toHeatmapNumber = (value) => {
+  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+var getCalendarHeatmapTotals = (entriesByDate, dayKeys, fieldKey) => {
+  const totals = /* @__PURE__ */ new Map();
+  if (!fieldKey) return totals;
+  dayKeys.forEach((dayKey) => {
+    let total = null;
+    (entriesByDate.get(dayKey) || []).forEach((entry) => {
+      const value = toHeatmapNumber(entry.record?.[fieldKey]);
+      if (value !== null) total = (total ?? 0) + value;
+    });
+    if (total !== null) totals.set(dayKey, total);
+  });
+  return totals;
+};
+var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
+  if (total === void 0 || totals.size === 0) return void 0;
+  const values = Array.from(totals.values());
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const ratio = max === min ? 1 : (total - min) / (max - min);
+  const percent = Math.round(8 + ratio * 37);
+  return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
+};
+var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
+
+// src/components/DynamicResource/utils/mapView.ts
+var MAP_MEASURE_COLORSCALE = "Viridis";
+var DEFAULT_MAP_LOOK = "points";
+var MAXIMUM_LATITUDE_DEGREES = 90;
+var MAXIMUM_LONGITUDE_DEGREES = 180;
+var getMapCoordinateFieldOptions = (fields) => fields.filter((field) => field.type === "number" && !field.reference);
+var getMapMeasureFieldOptions = (fields) => getCalendarHeatmapFieldOptions(fields);
+var getModelMapLocation = (model) => {
+  const declared = model.mapLocation;
+  if (!declared?.latitude || !declared?.longitude) return null;
+  const keys = new Set(model.fields.map((field) => field.key));
+  return keys.has(declared.latitude) && keys.has(declared.longitude) ? declared : null;
+};
+var modelHasMapLocation = (model) => getModelMapLocation(model) !== null;
+var toMapCoordinate = (value, limitDegrees) => {
+  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= limitDegrees ? parsed : null;
+};
+var getMapRecordTitle = (model, record) => {
+  const titleParts = (model.titleFields ?? []).map((fieldKey) => record?.[fieldKey]).filter((value) => value !== void 0 && value !== null && value !== "").map(String);
+  return titleParts.length > 0 ? titleParts.join(" ") : getRecordDisplayLabel(record);
+};
+var buildMapPoints = (records, location, measureFieldKey, getTitle) => {
+  const points = [];
+  let recordsWithoutLocation = 0;
+  records.forEach((record) => {
+    const latitude = toMapCoordinate(record?.[location.latitude], MAXIMUM_LATITUDE_DEGREES);
+    const longitude = toMapCoordinate(record?.[location.longitude], MAXIMUM_LONGITUDE_DEGREES);
+    if (latitude === null || longitude === null) {
+      recordsWithoutLocation += 1;
+      return;
+    }
+    const rawMeasure = measureFieldKey ? record?.[measureFieldKey] : null;
+    const measure2 = rawMeasure === null || rawMeasure === void 0 || rawMeasure === "" || typeof rawMeasure === "boolean" ? null : Number.isFinite(Number(rawMeasure)) ? Number(rawMeasure) : null;
+    points.push({ id: record?.eid ?? record?.id ?? null, latitude, longitude, label: getTitle(record), measure: measure2, recordCount: 1 });
+  });
+  return { points, recordsWithoutLocation };
+};
+var MAP_GRID_CELLS_ALONG_LONGER_SIDE = 100;
+var aggregateMapPointsIntoGridCells = (points) => {
+  if (points.length === 0) return [];
+  let minLatitude = Infinity, maxLatitude = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
+  points.forEach((point) => {
+    minLatitude = Math.min(minLatitude, point.latitude);
+    maxLatitude = Math.max(maxLatitude, point.latitude);
+    minLongitude = Math.min(minLongitude, point.longitude);
+    maxLongitude = Math.max(maxLongitude, point.longitude);
+  });
+  const longerSide = Math.max(maxLatitude - minLatitude, maxLongitude - minLongitude);
+  const cellSize = longerSide > 0 ? longerSide / MAP_GRID_CELLS_ALONG_LONGER_SIDE : 1;
+  const cells = /* @__PURE__ */ new Map();
+  points.forEach((point) => {
+    const cellKey = `${Math.floor((point.latitude - minLatitude) / cellSize)}:${Math.floor((point.longitude - minLongitude) / cellSize)}`;
+    const cell = cells.get(cellKey) ?? { latitudeSum: 0, longitudeSum: 0, measureSum: null, recordCount: 0 };
+    cell.latitudeSum += point.latitude * point.recordCount;
+    cell.longitudeSum += point.longitude * point.recordCount;
+    cell.recordCount += point.recordCount;
+    if (point.measure !== null) cell.measureSum = (cell.measureSum ?? 0) + point.measure;
+    cells.set(cellKey, cell);
+  });
+  return Array.from(cells.values()).map((cell) => ({
+    id: null,
+    latitude: cell.latitudeSum / cell.recordCount,
+    longitude: cell.longitudeSum / cell.recordCount,
+    label: "",
+    measure: cell.measureSum,
+    recordCount: cell.recordCount
+  }));
+};
+var WORLD_SIZE_AT_ZOOM_ZERO_PX = 512;
+var POINTS_EXTENT_SHARE_OF_MAP = 0.85;
+var MINIMUM_FIT_ZOOM = 0;
+var MAXIMUM_FIT_ZOOM = 14;
+var SINGLE_POSITION_ZOOM = 10;
+var toMercatorY = (latitudeDegrees) => Math.log(Math.tan(Math.PI / 4 + latitudeDegrees * Math.PI / 360));
+var fromMercatorY = (mercatorY) => (2 * Math.atan(Math.exp(mercatorY)) - Math.PI / 2) * (180 / Math.PI);
+var getMapViewportForPoints = (points, mapWidthPx, mapHeightPx) => {
+  if (points.length === 0) return { latitude: 0, longitude: 0, zoom: 1 };
+  let minMercatorY = Infinity, maxMercatorY = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
+  points.forEach((point) => {
+    const mercatorY = toMercatorY(point.latitude);
+    minMercatorY = Math.min(minMercatorY, mercatorY);
+    maxMercatorY = Math.max(maxMercatorY, mercatorY);
+    minLongitude = Math.min(minLongitude, point.longitude);
+    maxLongitude = Math.max(maxLongitude, point.longitude);
+  });
+  const centre = {
+    latitude: fromMercatorY((minMercatorY + maxMercatorY) / 2),
+    longitude: (minLongitude + maxLongitude) / 2
+  };
+  const longitudeSpanDegrees = maxLongitude - minLongitude;
+  const mercatorSpan = maxMercatorY - minMercatorY;
+  if (longitudeSpanDegrees <= 0 && mercatorSpan <= 0) return { ...centre, zoom: SINGLE_POSITION_ZOOM };
+  const zoomToFitLongitude = longitudeSpanDegrees > 0 ? Math.log2(mapWidthPx * POINTS_EXTENT_SHARE_OF_MAP * 360 / (WORLD_SIZE_AT_ZOOM_ZERO_PX * longitudeSpanDegrees)) : Infinity;
+  const zoomToFitLatitude = mercatorSpan > 0 ? Math.log2(mapHeightPx * POINTS_EXTENT_SHARE_OF_MAP * 2 * Math.PI / (WORLD_SIZE_AT_ZOOM_ZERO_PX * mercatorSpan)) : Infinity;
+  const zoom = Math.min(MAXIMUM_FIT_ZOOM, Math.max(MINIMUM_FIT_ZOOM, Math.min(zoomToFitLongitude, zoomToFitLatitude)));
+  return { ...centre, zoom };
+};
+
+// src/components/DynamicResource/utils/applicableViewTypes.ts
+var hasNumericField = (model) => model.fields.some((field) => field.type === "number" && !field.reference && !isPkField(field, model));
+function modelMeetsRequirement(requirement, model) {
+  switch (requirement) {
+    case "image-source":
+      return modelHasImageSource(model);
+    case "date-field":
+      return getCalendarDateFieldOptions(model.fields).length > 0;
+    case "number-field":
+      return hasNumericField(model);
+    case "split-field":
+      return getKanbanSplitFieldOptions(model.fields).length > 0;
+    case "map-location":
+      return modelHasMapLocation(model);
+    default:
+      return true;
+  }
+}
+function isViewTypeApplicable(token, model) {
+  const entry = VIEW_TYPE_CATALOG.find((candidate) => candidate.token === token);
+  return modelMeetsRequirement(entry?.requires, model);
+}
+function getSelectableViewTypes(context, model) {
+  return getViewTypeCatalogEntries(context).filter((entry) => modelMeetsRequirement(entry.requires, model)).map((entry) => entry.token);
+}
+var _36 = (text) => translateText(text, text);
+var { Text: Text6 } = Typography;
+var KANBAN_COLUMN_MINIMUM_WIDTH = 420;
+var KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
+var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
+var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels, analyze }) => {
+  const { token } = theme.useToken();
+  const tone = useModelTone(model);
+  return /* @__PURE__ */ jsxs(
+    "div",
+    {
+      "data-kanban-column": label,
+      style: {
+        flex: "0 0 auto",
+        width: "max-content",
+        minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
+        maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
+        display: "flex",
+        flexDirection: "column",
+        border: `1px solid ${tone.border}`,
+        borderRadius: 8,
+        background: token.colorBgContainer,
+        boxShadow: `0 8px 20px -16px ${tone.shadow}`,
+        overflow: "hidden"
+      },
+      children: [
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: {
+              padding: "8px 12px",
+              background: tone.soft,
+              borderBottom: `1px solid ${tone.border}`,
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8
+            },
+            children: [
+              /* @__PURE__ */ jsx(Text6, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
+              /* @__PURE__ */ jsxs(Text6, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
+                "(",
+                records.length,
+                ")"
+              ] })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx("div", { style: { padding: 12, flex: 1, minHeight: 0, minWidth: 0, overflowX: "auto" }, children: /* @__PURE__ */ jsx(
+          KanbanColumnContent,
+          {
+            model,
+            allModels,
+            records,
+            cardFields,
+            viewType,
+            columnIndex,
+            pageSize,
+            analyze
+          }
+        ) })
+      ]
+    }
+  );
+};
+var KanbanView = (props) => {
+  const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys, analyze } = props;
+  const fields = model.fields;
+  const splitFieldOptions = useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
+  const cardFieldOptions = useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
+  const [splitFieldKeys, setSplitFieldKeys] = useState(() => getDefaultKanbanSplitFieldKeys(fields));
+  const [chosenColumnViewType, setColumnViewType] = useState(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
+  const applicableColumnViewTypes = useMemo(
+    () => getSelectableViewTypes("kanban-column", model).filter((viewType) => viewType !== "analyze" || Boolean(analyze)),
+    [model, analyze]
+  );
+  const columnViewType = applicableColumnViewTypes.includes(chosenColumnViewType) ? chosenColumnViewType : DEFAULT_KANBAN_COLUMN_VIEW_TYPE;
+  const splitFields = useMemo(
+    () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field) => Boolean(field)),
+    [fields, splitFieldKeys]
+  );
+  const cardFields = useMemo(() => {
+    const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
+    return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
+  }, [fieldSequenceKeys, cardFieldOptions]);
+  const apiUrl = useApiUrl();
+  const [referenceTitles, setReferenceTitles] = useState({});
+  const requestedTitleKeys = useRef(/* @__PURE__ */ new Set());
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    splitFields.filter((field) => field.reference).forEach((field) => {
+      records.forEach((record) => {
+        const id = record?.[field.key];
+        if (id === void 0 || id === null || id === "") return;
+        const cacheKey = `${field.reference}:${id}`;
+        if (requestedTitleKeys.current.has(cacheKey)) return;
+        requestedTitleKeys.current.add(cacheKey);
+        const resourcePath = field.referencePath || resolveResourcePath(field.reference, allModels);
+        authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`).then(async (response) => {
+          if (!response.ok) throw new Error(String(response.status));
+          const data = await response.json();
+          if (!isMounted.current) return;
+          const title = String(getReferenceRecordTitle(data, id));
+          setReferenceTitles((previous) => previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title });
+        }).catch(() => {
+          requestedTitleKeys.current.delete(cacheKey);
+        });
+      });
+    });
+  }, [records, splitFields, apiUrl, allModels]);
+  const formatColumnValue = useMemo(
+    () => (field, record) => {
+      if (field.reference) {
+        const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
+        if (title !== void 0) return title;
+      }
+      return formatValue(field, record);
+    },
+    [referenceTitles, formatValue]
+  );
+  const columns = useMemo(
+    () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _36("(empty)"), _36("All")),
+    [records, splitFields, maximumColumns, formatColumnValue]
+  );
+  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
+    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, align: "start", children: [
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          mode: "multiple",
+          allowClear: true,
+          maxTagCount: "responsive",
+          value: splitFieldKeys,
+          onChange: setSplitFieldKeys,
+          options: splitFieldOptions.map((field) => ({ label: field.label, value: field.key })),
+          style: { minWidth: 240 },
+          placeholder: _36("Split columns by"),
+          "aria-label": _36("Split columns by")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: columnViewType,
+          onChange: setColumnViewType,
+          options: applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType })),
+          style: { minWidth: 140 },
+          "aria-label": _36("Column view type")
+        }
+      ),
+      toolbarExtra
+    ] }),
+    columns.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _36("No records available") }) : /* @__PURE__ */ jsx(
+      "div",
+      {
+        "data-kanban-board": true,
+        style: { overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 },
+        children: /* @__PURE__ */ jsx("div", { style: { display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }, children: columns.map((column, columnIndex) => /* @__PURE__ */ jsx(
+          KanbanColumnPanel,
+          {
+            label: column.label,
+            records: column.records,
+            viewType: columnViewType,
+            cardFields,
+            columnIndex,
+            pageSize,
+            model,
+            allModels,
+            analyze
+          },
+          column.label
+        )) })
+      }
+    )
+  ] });
+};
+var _37 = (text) => translateText(text, text);
+var { Text: Text7 } = Typography;
+var MAP_HEIGHT = 520;
+var SMALLEST_MARKER_SIZE = 10;
+var LARGEST_MARKER_SIZE = 32;
+var DEFAULT_MARKER_SIZE = 14;
+var HEATMAP_RADIUS = 24;
+var MARKER_RING_COLOR = "#ffffff";
+var MARKER_RING_EXTRA_DIAMETER = 6;
+var MARKER_EDGE_COLOR = "#8a9096";
+var MARKER_EDGE_EXTRA_DIAMETER = 10;
+var PLAIN_BACKGROUND_COLORS = { light: "#eef1f4", dark: "#1b2226" };
+var buildMapStyle = (dark, tileUrl) => {
+  const background = dark ? PLAIN_BACKGROUND_COLORS.dark : PLAIN_BACKGROUND_COLORS.light;
+  const layers = [{ id: "plain-background", type: "background", paint: { "background-color": background } }];
+  const sources = {};
+  if (tileUrl) {
+    sources["base-map-tiles"] = { type: "raster", tiles: [tileUrl], tileSize: 256 };
+    layers.push({ id: "base-map-tiles", type: "raster", source: "base-map-tiles" });
+  }
+  return { version: 8, sources, layers };
+};
+var getMarkerSize = (measure2, smallest, largest) => {
+  if (measure2 === null || largest <= smallest) return DEFAULT_MARKER_SIZE;
+  return SMALLEST_MARKER_SIZE + (LARGEST_MARKER_SIZE - SMALLEST_MARKER_SIZE) * (measure2 - smallest) / (largest - smallest);
+};
+var MapView = ({ model, allModels, records, tileUrl, tileAttribution, aggregationThreshold, toolbarExtra }) => {
+  const { token } = theme.useToken();
+  const go = useGo();
+  const dark = isDarkColor2(token.colorBgContainer);
+  const graphRef = useRef(null);
+  const drawnFigureKindRef = useRef(null);
+  const declaredLocation = useMemo(() => getModelMapLocation(model), [model]);
+  const coordinateFieldOptions = useMemo(() => getMapCoordinateFieldOptions(model.fields), [model.fields]);
+  const measureFieldOptions = useMemo(() => getMapMeasureFieldOptions(model.fields), [model.fields]);
+  const [latitudeFieldKey, setLatitudeFieldKey] = useState(declaredLocation?.latitude ?? "");
+  const [longitudeFieldKey, setLongitudeFieldKey] = useState(declaredLocation?.longitude ?? "");
+  const [measureFieldKey, setMeasureFieldKey] = useState("");
+  const [look, setLook] = useState(DEFAULT_MAP_LOOK);
+  const [selectedRecordId, setSelectedRecordId] = useState(null);
+  const [mapWidthPx, setMapWidthPx] = useState(0);
+  const measureField = measureFieldOptions.find((field) => field.key === measureFieldKey);
+  const { points: recordPoints, recordsWithoutLocation } = useMemo(
+    () => buildMapPoints(records, { latitude: latitudeFieldKey, longitude: longitudeFieldKey }, measureFieldKey, (record) => getMapRecordTitle(model, record)),
+    [records, latitudeFieldKey, longitudeFieldKey, measureFieldKey, model]
+  );
+  const isAggregated = recordPoints.length > aggregationThreshold;
+  const points = useMemo(
+    () => isAggregated ? aggregateMapPointsIntoGridCells(recordPoints) : recordPoints,
+    [isAggregated, recordPoints]
+  );
+  const measureRange = useMemo(() => {
+    const measures = points.map((point) => point.measure).filter((value) => value !== null);
+    return measures.length > 0 ? { smallest: Math.min(...measures), largest: Math.max(...measures) } : null;
+  }, [points]);
+  const selectedPoint = selectedRecordId === null ? void 0 : recordPoints.find((point) => point.id === selectedRecordId);
+  useEffect(() => {
+    const graphDiv = graphRef.current;
+    if (!graphDiv || points.length === 0 || mapWidthPx === 0) return;
+    let cancelled = false;
+    ensurePlotly().then(() => {
+      const Plotly = getPlotly();
+      if (cancelled || !Plotly) return;
+      const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
+      const smallest = measureRange?.smallest ?? 0;
+      const largest = measureRange?.largest ?? 0;
+      const latitudes = points.map((point) => point.latitude);
+      const longitudes = points.map((point) => point.longitude);
+      const hoverTexts = points.map((point) => {
+        const title = point.recordCount > 1 ? `${point.recordCount} ${_37("records")}` : point.label;
+        return point.measure === null ? title : `${title}<br>${measureField?.label ?? measureFieldKey}: ${point.measure}`;
+      });
+      const hasMeasure = measureRange !== null;
+      const markerSizes = points.map((point) => point.recordCount > 1 ? LARGEST_MARKER_SIZE : getMarkerSize(point.measure, smallest, largest));
+      const buildUnderlayTrace = (color, extraDiameter) => ({
+        type: "scattermap",
+        mode: "markers",
+        lat: latitudes,
+        lon: longitudes,
+        customdata: points.map((point) => point.id),
+        hoverinfo: "skip",
+        marker: { size: markerSizes.map((size) => size + extraDiameter), color, opacity: 1 }
+      });
+      const trace = look === "heatmap" ? {
+        type: "densitymap",
+        lat: latitudes,
+        lon: longitudes,
+        ...hasMeasure ? { z: points.map((point) => point.measure ?? 0) } : {},
+        radius: HEATMAP_RADIUS,
+        colorscale: MAP_MEASURE_COLORSCALE,
+        showscale: hasMeasure,
+        colorbar: { title: { text: measureField?.label ?? "" }, tickfont: { color: colors.text } },
+        hoverinfo: "skip"
+      } : {
+        type: "scattermap",
+        mode: "markers",
+        lat: latitudes,
+        lon: longitudes,
+        text: hoverTexts,
+        hoverinfo: "text",
+        customdata: points.map((point) => point.id),
+        marker: {
+          size: markerSizes,
+          color: hasMeasure ? points.map((point) => point.measure ?? smallest) : CHART_COLORWAY[0],
+          ...hasMeasure ? {
+            colorscale: MAP_MEASURE_COLORSCALE,
+            showscale: true,
+            colorbar: { title: { text: measureField?.label ?? "" }, tickfont: { color: colors.text } }
+          } : {},
+          opacity: 1
+        }
+      };
+      const traces = look === "points" ? [buildUnderlayTrace(MARKER_EDGE_COLOR, MARKER_EDGE_EXTRA_DIAMETER), buildUnderlayTrace(MARKER_RING_COLOR, MARKER_RING_EXTRA_DIAMETER), trace] : [trace];
+      const viewport = getMapViewportForPoints(points, mapWidthPx, MAP_HEIGHT);
+      const layout = {
+        height: MAP_HEIGHT,
+        autosize: true,
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        paper_bgcolor: "rgba(0,0,0,0)",
+        font: { family: CHART_FONT_FAMILY, size: CHART_FONT_SIZE, color: colors.text },
+        showlegend: false,
+        map: {
+          style: buildMapStyle(dark, tileUrl),
+          center: { lat: viewport.latitude, lon: viewport.longitude },
+          zoom: viewport.zoom
+        }
+      };
+      const config = { responsive: true, displaylogo: false, displayModeBar: false };
+      const figureKind = `${look}:${hasMeasure}:${dark}:${tileUrl ?? ""}`;
+      if (drawnFigureKindRef.current === figureKind) {
+        Plotly.react(graphDiv, traces, layout, config);
+        return;
+      }
+      try {
+        Plotly.purge(graphDiv);
+      } catch {
+      }
+      Plotly.newPlot(graphDiv, traces, layout, config).then(() => {
+        if (cancelled) return;
+        drawnFigureKindRef.current = figureKind;
+        graphDiv.on?.("plotly_click", (event) => {
+          const clickedId = event?.points?.[0]?.customdata;
+          setSelectedRecordId(clickedId === void 0 || clickedId === null ? null : clickedId);
+        });
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [points, look, dark, tileUrl, measureRange, measureField, measureFieldKey, mapWidthPx]);
+  useEffect(() => {
+    const graphDiv = graphRef.current;
+    if (!graphDiv) return;
+    setMapWidthPx(graphDiv.clientWidth);
+    const observer = new ResizeObserver(() => {
+      setMapWidthPx(graphDiv.clientWidth);
+      const Plotly = getPlotly();
+      if (Plotly?.Plots?.resize && graphDiv.isConnected) {
+        try {
+          Plotly.Plots.resize(graphDiv);
+        } catch {
+        }
+      }
+    });
+    observer.observe(graphDiv);
+    return () => {
+      observer.disconnect();
+      try {
+        getPlotly()?.purge?.(graphDiv);
+      } catch {
+      }
+      drawnFigureKindRef.current = null;
+    };
+  }, [points.length === 0]);
+  const coordinateOptions = coordinateFieldOptions.map((field) => ({ label: field.label, value: field.key }));
+  const resource = resolveResourcePath(model.resource || model.name, allModels);
+  return /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
+    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, align: "start", children: [
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: latitudeFieldKey,
+          onChange: setLatitudeFieldKey,
+          options: coordinateOptions,
+          style: { minWidth: 160 },
+          "aria-label": _37("Latitude field"),
+          placeholder: _37("Latitude field")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: longitudeFieldKey,
+          onChange: setLongitudeFieldKey,
+          options: coordinateOptions,
+          style: { minWidth: 160 },
+          "aria-label": _37("Longitude field"),
+          placeholder: _37("Longitude field")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          allowClear: true,
+          value: measureFieldKey || void 0,
+          onChange: (value) => setMeasureFieldKey(value ?? ""),
+          options: measureFieldOptions.map((field) => ({ label: field.label, value: field.key })),
+          style: { minWidth: 160 },
+          "aria-label": _37("Measure"),
+          placeholder: _37("Measure")
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        Select,
+        {
+          size: "small",
+          value: look,
+          onChange: setLook,
+          options: [
+            { label: _37("Points"), value: "points" },
+            { label: _37("Heatmap"), value: "heatmap" }
+          ],
+          style: { minWidth: 120 },
+          "aria-label": _37("Look")
+        }
+      ),
+      toolbarExtra
+    ] }),
+    points.length === 0 ? /* @__PURE__ */ jsx(Empty, { description: _37("No records have a location.") }) : /* @__PURE__ */ jsx("div", { "data-map-view": true, style: { border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8, overflow: "hidden", background: token.colorBgContainer }, children: /* @__PURE__ */ jsx("div", { ref: graphRef, style: { width: "100%", height: MAP_HEIGHT } }) }),
+    /* @__PURE__ */ jsxs(Space, { wrap: true, size: 12, children: [
+      measureRange && measureField && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${measureField.label}: ${measureRange.smallest} \u2013 ${measureRange.largest}` }),
+      tileUrl && tileAttribution && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: tileAttribution }),
+      isAggregated && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${_37("Grouped into grid cells")}: ${recordPoints.length} ${_37("records")}` }),
+      recordsWithoutLocation > 0 && /* @__PURE__ */ jsx(Text7, { type: "secondary", style: { fontSize: 12 }, children: `${_37("Records without a location")}: ${recordsWithoutLocation}` })
+    ] }),
+    selectedPoint && /* @__PURE__ */ jsxs(Space, { wrap: true, size: 8, "data-map-selected-record": true, children: [
+      /* @__PURE__ */ jsx(Text7, { strong: true, children: selectedPoint.label }),
+      selectedPoint.measure !== null && measureField && /* @__PURE__ */ jsx(Text7, { type: "secondary", children: `${measureField.label}: ${selectedPoint.measure}` }),
+      selectedPoint.id !== null && /* @__PURE__ */ jsx(Button, { size: "small", type: "link", href: getShowHref(resource, selectedPoint.id, allModels), onClick: (event) => {
+        event.preventDefault();
+        go({ to: getShowHref(resource, selectedPoint.id, allModels) });
+      }, children: _37("Open") })
+    ] })
+  ] });
+};
+
+// src/components/DynamicResource/utils/listVisibilityOnDetailLevelChange.ts
+var ANALYZE_DETAIL_LEVEL = 6;
+var resolveListVisibilityOnDetailLevelChange = (previousLevel, currentLevel, analyzeSectionAvailable, mayShowAgain) => {
+  if (currentLevel === previousLevel) return "keep";
+  if (currentLevel === ANALYZE_DETAIL_LEVEL && analyzeSectionAvailable) return "hide";
+  if (previousLevel === ANALYZE_DETAIL_LEVEL && mayShowAgain) return "show";
+  return "keep";
+};
+var _38 = window._ || ((text) => text);
+var CrosstabConfigPanel = ({ analyze, model, onSaveClick }) => {
+  const { token } = theme.useToken();
+  const {
+    categoricalFields,
+    categoryField1,
+    setCategoryField1,
+    categoryField2,
+    setCategoryField2,
+    categoryField3,
+    setCategoryField3,
+    selectedSeriesKeys,
+    setSelectedSeriesKeys,
+    summaryFn,
+    setSummaryFn,
+    crosstabFilterFields,
+    setCrosstabFilterFields,
+    isSavingAnalyzePrefs,
+    markAnalyzePrefsTouched
+  } = analyze;
+  const controlLabelStyle = { fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 };
+  return /* @__PURE__ */ jsx(
+    Collapse,
+    {
+      size: "small",
+      defaultActiveKey: [],
+      style: { marginBottom: 12 },
+      items: [{
+        key: "crosstab-config",
+        label: /* @__PURE__ */ jsx(Tooltip, { title: _38("Crosstab configuration"), children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(SettingOutlined, {}) }) }),
+        children: /* @__PURE__ */ jsxs("div", { style: { display: "grid", gap: 12 }, children: [
+          /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Category 1 (rows)") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  value: categoryField1 || void 0,
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setCategoryField1(value);
+                  },
+                  style: { width: "100%" },
+                  options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
+                  placeholder: _38("Select category")
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Category 2 (columns)") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  value: categoryField2 || "__none__",
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setCategoryField2(value === "__none__" ? null : value);
+                  },
+                  style: { width: "100%" },
+                  options: [
+                    { label: _38("None"), value: "__none__" },
+                    ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Category 3 (columns)") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  value: categoryField3 || "__none__",
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setCategoryField3(value === "__none__" ? null : value);
+                  },
+                  style: { width: "100%" },
+                  options: [
+                    { label: _38("None"), value: "__none__" },
+                    ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
+                  ]
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Cell fields") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  mode: "multiple",
+                  allowClear: true,
+                  value: selectedSeriesKeys || [],
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setSelectedSeriesKeys(value);
+                  },
+                  style: { width: "100%" },
+                  options: model.fields.filter((field) => !isPkField(field, model)).map((field) => ({ label: field.label, value: field.key })),
+                  placeholder: _38("All numeric fields"),
+                  maxTagCount: "responsive"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 150 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Summary") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  value: summaryFn,
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setSummaryFn(value);
+                  },
+                  style: { width: "100%" },
+                  options: getSummaryFnOptions()
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("div", { style: { minWidth: 200, flex: 1 }, children: [
+              /* @__PURE__ */ jsx("div", { style: controlLabelStyle, children: _38("Filter fields") }),
+              /* @__PURE__ */ jsx(
+                Select,
+                {
+                  mode: "multiple",
+                  allowClear: true,
+                  value: crosstabFilterFields,
+                  onChange: (value) => {
+                    markAnalyzePrefsTouched();
+                    setCrosstabFilterFields(value);
+                  },
+                  style: { width: "100%" },
+                  options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
+                  placeholder: _38("Select filter fields"),
+                  maxTagCount: "responsive"
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsx(Tooltip, { title: _38("Save configuration"), children: onSaveClick && /* @__PURE__ */ jsx(Button, { size: "small", icon: /* @__PURE__ */ jsx(SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs, "aria-label": _38("Save configuration") }) }) })
+        ] })
+      }]
+    }
+  );
 };
 var buildListFilterParams = (filters) => {
   const params = new URLSearchParams();
@@ -18857,7 +18893,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       pageSize,
       fieldSequenceKeys: displayFields.map((field) => field.key),
       maximumColumns: viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW,
-      formatValue: (field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? "")
+      formatValue: (field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? ""),
+      analyze: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : void 0
     }
   ) : null;
   return /* @__PURE__ */ jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(relatedModelTone), children: [
@@ -23198,6 +23235,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           pageSize,
           fieldSequenceKeys: orderedSelectedColumns,
           maximumColumns: viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW,
+          analyze: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : void 0,
           formatValue: (field, record) => String(getFieldValueForFilter(field, record) ?? ""),
           toolbarExtra: analyzeSectionAvailable ? /* @__PURE__ */ jsx(AnalyzeToggleButton, { open: analyzeOpen, onToggle: toggleAnalyzeSection }) : void 0
         }

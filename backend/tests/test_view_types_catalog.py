@@ -16,7 +16,9 @@ def test_each_token_is_listed_once_and_has_a_label():
 
 
 def test_configuration_context_offers_every_view_type():
-    assert get_view_types_for_context("configuration") == get_all_view_types()
+    assert get_view_types_for_context("configuration") == [token for token in get_all_view_types() if token != "analyze"]
+    assert "analyze" not in get_view_types_for_context("configuration")
+    assert "analyze" in get_view_types_for_context("kanban-column")
     assert "csv" not in get_view_types_for_context("list-page")
     assert "editable-csv" in get_view_types_for_context("relation-edit")
 

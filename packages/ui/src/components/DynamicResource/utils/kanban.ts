@@ -7,10 +7,11 @@ export const DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW = 10;
 
 /**
  * The view types a kanban column's content can be shown with (the catalog's "kanban-column" entries): the standard list view types.
+ * "analyze" shows the column's records with the model's Analyze section (chart and statistics).
  * Kanban itself is not one of them (a column would hold a kanban of its own), nor are the editable
  * types (a column shows a copy of its records, so an edit would not reach the data).
  */
-export type KanbanColumnViewType = "list" | "table" | "gallery" | "image" | "primary" | "totals-details" | "crosstab" | "calendar";
+export type KanbanColumnViewType = "list" | "table" | "gallery" | "image" | "primary" | "totals-details" | "crosstab" | "calendar" | "analyze";
 export const DEFAULT_KANBAN_COLUMN_VIEW_TYPE: KanbanColumnViewType = "list";
 
 export interface KanbanColumn {

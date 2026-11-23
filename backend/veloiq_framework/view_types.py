@@ -9,7 +9,8 @@ view types anywhere else.
 Selector contexts (``offeredIn`` in the file): ``list-page``, ``relation-show``,
 ``relation-edit``, ``kanban-column`` and ``default-setting`` (the default view
 type settings of System Configuration). The context ``configuration`` is
-implicit and stands for every entry.
+implicit and stands for every entry except those marked ``kanbanColumnOnly``
+(a view type that only a kanban column can show, such as ``analyze``).
 """
 from __future__ import annotations
 
@@ -37,7 +38,7 @@ def get_all_view_types() -> List[str]:
 def get_view_types_for_context(context: str) -> List[str]:
     """The tokens a selector in *context* can offer, before a model's fields are considered."""
     if context == CONFIGURATION_CONTEXT:
-        return get_all_view_types()
+        return [entry["token"] for entry in _read_catalog() if not entry.get("kanbanColumnOnly")]
     return [entry["token"] for entry in _read_catalog() if context in entry["offeredIn"]]
 
 

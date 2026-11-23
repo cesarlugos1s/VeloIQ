@@ -9,7 +9,7 @@ import { modelHasImageSource } from "./gallery";
 import { getKanbanSplitFieldOptions } from "./kanban";
 import { modelHasMapLocation } from "./mapView";
 import { isPkField } from "./model";
-import { getViewTypeCatalogEntries, type ViewTypeFieldRequirement, type ViewTypeSelectorContext } from "./viewTypeCatalog";
+import { VIEW_TYPE_CATALOG, getViewTypeCatalogEntries, type ViewTypeFieldRequirement, type ViewTypeSelectorContext } from "./viewTypeCatalog";
 
 /** Number fields a crosstab can total (the key and references are not measures). */
 const hasNumericField = (model: ModelDef): boolean =>
@@ -29,7 +29,7 @@ function modelMeetsRequirement(requirement: ViewTypeFieldRequirement | undefined
 
 /** Whether one view type token can show the model's records. Tokens outside the catalog always apply. */
 export function isViewTypeApplicable(token: string, model: ModelDef): boolean {
-    const entry = getViewTypeCatalogEntries("configuration").find((candidate) => candidate.token === token);
+    const entry = VIEW_TYPE_CATALOG.find((candidate) => candidate.token === token);
     return modelMeetsRequirement(entry?.requires, model);
 }
 

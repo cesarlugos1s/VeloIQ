@@ -32,9 +32,11 @@ export interface ViewTypeCatalogEntry {
     label: string;
     /** Other spellings of the token that configurations accept (compared without case, spaces, dashes and underscores). */
     aliases?: readonly string[];
-    /** The temporary selectors that offer it (a "configuration" selector offers every entry). */
+    /** The temporary selectors that offer it (a "configuration" selector offers every entry except the kanban-column-only ones). */
     offeredIn: readonly TemporarySelectorContext[];
     requires?: ViewTypeFieldRequirement;
+    /** A view type only a kanban column can show: the "configuration" selector leaves it out. */
+    kanbanColumnOnly?: boolean;
 }
 
 /** Every view type, in the order selectors list them (read from the file the backend reads too). */
@@ -42,7 +44,7 @@ export const VIEW_TYPE_CATALOG: readonly ViewTypeCatalogEntry[] = viewTypeCatalo
 
 /** The entries a selector in the given place can offer, before the model's fields are considered. */
 export function getViewTypeCatalogEntries(context: ViewTypeSelectorContext): ViewTypeCatalogEntry[] {
-    if (context === "configuration") return [...VIEW_TYPE_CATALOG];
+    if (context === "configuration") return VIEW_TYPE_CATALOG.filter((entry) => !entry.kanbanColumnOnly);
     return VIEW_TYPE_CATALOG.filter((entry) => entry.offeredIn.includes(context));
 }
 

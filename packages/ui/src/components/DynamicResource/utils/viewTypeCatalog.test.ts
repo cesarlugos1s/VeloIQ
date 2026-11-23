@@ -22,7 +22,9 @@ describe("view type catalog", () => {
         });
     });
     it("lets configuration tools choose from every view type", () => {
-        expect(catalog.getViewTypesForContext("configuration")).toEqual(catalog.getAllViewTypes());
+        expect(catalog.getViewTypesForContext("configuration")).toEqual(catalog.getAllViewTypes().filter((token) => token !== "analyze"));
+        expect(catalog.getViewTypesForContext("configuration")).not.toContain("analyze");
+        expect(catalog.getViewTypesForContext("kanban-column")).toContain("analyze");
         expect(catalog.getViewTypesForContext("list-page")).not.toContain("csv");
         expect(catalog.getViewTypesForContext("relation-edit")).toContain("editable-csv");
         expect(catalog.getViewTypesForContext("relation-show")).not.toContain("editable-csv");

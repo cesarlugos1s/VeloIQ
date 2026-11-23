@@ -54,6 +54,8 @@ const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
     "crosstab": CROSSTAB,
     "editable-crosstab": CROSSTAB,
     "kanban": KANBAN,
+    // Only a kanban column shows its records as Analyze; the column has no controls of its own.
+    "analyze": { ...NONE },
     "gallery": GALLERY,
     "image": GALLERY,
     "calendar": CALENDAR,

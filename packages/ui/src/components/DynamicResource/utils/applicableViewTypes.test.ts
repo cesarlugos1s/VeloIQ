@@ -44,7 +44,7 @@ describe("getSelectableViewTypes", () => {
     it("filters each place's own candidates", async () => {
         const { getSelectableViewTypes } = await import("./applicableViewTypes");
         const model = modelWith([{ key: "name", label: "Name", type: "string" } as any]);
-        expect(getSelectableViewTypes("kanban-column", model)).toEqual(["table", "list", "totals-details", "primary"]);
+        expect(getSelectableViewTypes("kanban-column", model)).toEqual(["table", "list", "totals-details", "analyze", "primary"]);
         expect(getSelectableViewTypes("relation-show", model)).not.toContain("editable-table");
         expect(getSelectableViewTypes("relation-edit", model)).toContain("editable-table");
         expect(getSelectableViewTypes("list-page", model)).not.toContain("crosstab");
