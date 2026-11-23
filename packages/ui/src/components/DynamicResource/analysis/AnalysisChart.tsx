@@ -56,6 +56,55 @@ interface ChartFigure {
     layout: Record<string, any>;
 }
 
+/** Longest axis tick label drawn in full; longer category labels end with an ellipsis (the hover text keeps them whole). */
+const MAXIMUM_TICK_LABEL_LENGTH = 48;
+
+/**
+ * Axis layouts whose category tick labels are shortened. Labels such as "Status • title of a related
+ * record" can be hundreds of characters long; Plotly makes room for them (automargin) until the plot
+ * area has a negative size, then fails with "Something went wrong with axis scaling" and keeps the
+ * previous chart.
+ */
+const shortenCategoryTickLabels = (traces: any[], layout: Record<string, any>): Record<string, any> => {
+    const shortened: Record<string, any> = {};
+    (["x", "y"] as const).forEach((axis) => {
+        const axisLayout = layout[`${axis}axis`] || {};
+        if (axisLayout.type && axisLayout.type !== "category") return;
+        const labels = new Set<string>();
+        traces.forEach((trace) => {
+            if (!["bar", "scatter", "scattergl"].includes(trace?.type)) return;
+            (Array.isArray(trace[axis]) ? trace[axis] : []).forEach((value: unknown) => {
+                if (typeof value === "string") labels.add(value);
+            });
+        });
+        const values = Array.from(labels);
+        if (!values.some((label) => label.length > MAXIMUM_TICK_LABEL_LENGTH)) return;
+        shortened[`${axis}axis`] = {
+            ...axisLayout,
+            type: "category",
+            tickmode: "array",
+            tickvals: values,
+            ticktext: values.map((label) => (label.length > MAXIMUM_TICK_LABEL_LENGTH ? `${label.slice(0, MAXIMUM_TICK_LABEL_LENGTH - 1)}…` : label)),
+        };
+    });
+    return shortened;
+};
+
+/**
+ * The traces with the full category label in their hover text. A shortened axis (see above) would otherwise
+ * show its shortened tick text there too, as `%{x}` and `%{y}` read the axis' tick text.
+ */
+const withFullCategoryHoverLabels = (traces: any[], shortenedAxes: Record<string, any>): any[] => {
+    const shortenedAxisLetters = (["x", "y"] as const).filter((axis) => shortenedAxes[`${axis}axis`]);
+    if (shortenedAxisLetters.length === 0) return traces;
+    return traces.map((trace) => {
+        const axis = shortenedAxisLetters.find((letter) => typeof trace?.hovertemplate === "string" && trace.hovertemplate.includes(`%{${letter}}`));
+        // A trace that already carries customdata (e.g. bubble sizes) keeps its own.
+        if (!axis || trace.customdata !== undefined || !Array.isArray(trace[axis])) return trace;
+        return { ...trace, customdata: trace[axis], hovertemplate: trace.hovertemplate.split(`%{${axis}}`).join("%{customdata}") };
+    });
+};
+
 /** Value-axis hover text: the trace name, the category and the formatted number. */
 const valueHover = (categoryAxis: "x" | "y", valueAxis: "x" | "y") =>
     `%{fullData.name}<br>%{${categoryAxis}}: %{${valueAxis}:${CHART_NUMBER_FORMAT}}<extra></extra>`;
@@ -300,22 +349,25 @@ export const AnalysisChart: React.FC<AnalysisChartProps> = (props) => {
             if (cancelled || !Plotly) return;
             const base = buildStandardChartLayout(dark, props.title, { height: CHART_HEIGHT, autosize: true });
             const sameChartType = drawnChartTypeRef.current === props.chartType;
+            const shortenedAxes = shortenCategoryTickLabels(figure.traces, figure.layout);
+            const traces = withFullCategoryHoverLabels(figure.traces, shortenedAxes);
             const layout = {
                 ...base,
                 ...figure.layout,
-                xaxis: { ...base.xaxis, ...(figure.layout.xaxis || {}) },
-                yaxis: { ...base.yaxis, ...(figure.layout.yaxis || {}) },
-                // Animate data updates of the same chart (the SVG chart's enter/update animation).
-                ...(sameChartType ? { transition: { duration: 400, easing: "cubic-in-out" } } : {}),
+                xaxis: { ...base.xaxis, ...(figure.layout.xaxis || {}), ...(shortenedAxes.xaxis || {}) },
+                yaxis: { ...base.yaxis, ...(figure.layout.yaxis || {}), ...(shortenedAxes.yaxis || {}) },
+                // No layout.transition: an update that arrives while the previous one is still animating
+                // (e.g. the titles of a reference category, loaded just after the categories change) leaves
+                // the chart drawn with the earlier data.
             };
             const config = { responsive: true, displaylogo: false, displayModeBar: false };
             if (sameChartType) {
-                Plotly.react(graphDiv, figure.traces, layout, config);
+                Plotly.react(graphDiv, traces, layout, config);
             } else {
                 // Switching between trace types (e.g. bars to a 3D scatter) with Plotly.react
                 // leaves stale axes/scenes behind and throws inside Plotly; start from a clean div.
                 try { Plotly.purge(graphDiv); } catch { /* nothing drawn yet */ }
-                Plotly.newPlot(graphDiv, figure.traces, layout, config);
+                Plotly.newPlot(graphDiv, traces, layout, config);
                 drawnChartTypeRef.current = props.chartType;
             }
         });

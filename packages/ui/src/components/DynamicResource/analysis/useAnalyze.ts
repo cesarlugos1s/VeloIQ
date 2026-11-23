@@ -17,9 +17,13 @@ import {
     type SummaryFn,
 } from "./aggregation";
 import type { ServerAnalyzeState } from "./useServerAnalyze";
+import { useReferenceTitles } from "../utils/useReferenceTitles";
 import { DEFAULT_CHART_TYPE, normalizeChartTypeId, type ChartTypeId } from "./chartCatalog";
 
 const _ = (((window as any)._ as ((text: string) => string) | undefined) || ((text: string) => text));
+
+/** No rows, for the title lookup when the server aggregates (the rows are not plotted). */
+const NO_ROWS: readonly any[] = [];
 
 /** Chart-type IDs the Analyze section can render (see chartCatalog). */
 export type AnalyzeChartType = ChartTypeId;
@@ -282,6 +286,12 @@ export interface UseAnalyzeResultsOptions {
      * threshold (see useServerAnalyze); `rows` is then not used for the chart.
      */
     server?: ServerAnalyzeState | null;
+    /**
+     * Every model of the app. When given, the titles of the records the category fields point to are
+     * read here, so a reference category shows titles even when no table cell has shown them yet.
+     * Leave it out when the caller already holds those titles (e.g. a kanban board reads them once for its columns).
+     */
+    referenceModels?: ModelDef[];
 }
 
 /**
@@ -298,7 +308,7 @@ export interface UseAnalyzeResultsOptions {
  */
 export const useAnalyzeResults = (
     settings: AnalyzeSettings,
-    { rows, statsFields, labelCache: pageLabelCache, server = null }: UseAnalyzeResultsOptions,
+    { rows, statsFields, labelCache: pageLabelCache, server = null, referenceModels }: UseAnalyzeResultsOptions,
 ) => {
     const {
         model,
@@ -318,7 +328,7 @@ export const useAnalyzeResults = (
 
     const serverResult = server?.result ?? null;
     // Titles the server resolved for referenced records, added to the page's own label cache.
-    const labelCache = useMemo(() => {
+    const knownLabelCache = useMemo(() => {
         if (!serverResult) return pageLabelCache;
         const merged = { ...pageLabelCache };
         Object.entries(serverResult.reference_titles || {}).forEach(([fieldKey, titles]) => {
@@ -328,6 +338,16 @@ export const useAnalyzeResults = (
         });
         return merged;
     }, [pageLabelCache, serverResult, model.fields]);
+    // A table fills the page's label cache only for the cells it renders; the categories may use other fields.
+    const categoryReferenceFields = useMemo(
+        () => (referenceModels
+            ? [categoryField1, categoryField2, categoryField3]
+                .map((key) => model.fields.find((field) => field.key === key))
+                .filter((field): field is FieldDef => Boolean(field?.reference))
+            : []),
+        [referenceModels, categoryField1, categoryField2, categoryField3, model.fields],
+    );
+    const labelCache = useReferenceTitles(categoryReferenceFields, serverResult ? NO_ROWS : rows, referenceModels, knownLabelCache);
 
     /** Display text of a category value: record titles, option labels, translated booleans, formatted dates. */
     const formatCategoryValue = useCallback((field: FieldDef | undefined, record: any) => {

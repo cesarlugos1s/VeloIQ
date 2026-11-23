@@ -1002,6 +1002,7 @@ const DynamicListPage: React.FC<{
         rows: columnFilteredDataSource,
         statsFields: displayFields,
         labelCache,
+        referenceModels: allModels,
         server: serverAnalyzeEnabled ? serverAnalyze : null,
     });
     const { formatCategoryValue, setIsStatsFlipped } = analyze;

@@ -947,6 +947,7 @@ export const RelatedObjectsTable: React.FC<{
         rows: columnFilteredRows,
         statsFields: displayFields,
         labelCache,
+        referenceModels: allModels,
     });
     const { formatCategoryValue, setIsStatsFlipped } = analyze;
 

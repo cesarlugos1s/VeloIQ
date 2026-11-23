@@ -147,6 +147,17 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
             .filter((field): field is FieldDef => Boolean(field));
         return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
     }, [fieldSequenceKeys, cardFieldOptions]);
+    // The reference fields whose record titles the board needs: the split fields (column headers) and
+    // the Analyze categories (chart labels). A table fills the page's label cache as its cells render;
+    // the board has no table, so it reads the titles itself.
+    const analyzeCategoryField1 = analyze?.settings.categoryField1;
+    const analyzeCategoryField2 = analyze?.settings.categoryField2;
+    const analyzeCategoryField3 = analyze?.settings.categoryField3;
+    const titleFields = useMemo(() => {
+        const wantedKeys = new Set<string>(splitFields.map((field) => field.key));
+        [analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3].forEach((key) => { if (key) wantedKeys.add(key); });
+        return fields.filter((field) => field.reference && wantedKeys.has(field.key));
+    }, [fields, splitFields, analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3]);
     // A foreign key split field shows the related record's title (dc_title(), fetched as the Show page does), not the id.
     const apiUrl = useApiUrl();
     const [referenceTitles, setReferenceTitles] = useState<Record<string, string>>({});
@@ -159,7 +170,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
         return () => { isMounted.current = false; };
     }, []);
     useEffect(() => {
-        splitFields.filter((field) => field.reference).forEach((field) => {
+        titleFields.forEach((field) => {
             records.forEach((record) => {
                 const id = record?.[field.key];
                 if (id === undefined || id === null || id === "") return;
@@ -178,7 +189,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                     .catch(() => { requestedTitleKeys.current.delete(cacheKey); /* best-effort: the column keeps the raw value */ });
             });
         });
-    }, [records, splitFields, apiUrl, allModels]);
+    }, [records, titleFields, apiUrl, allModels]);
     const formatColumnValue = useMemo(
         () => (field: FieldDef, record: any): string => {
             if (field.reference) {
@@ -188,6 +199,10 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
             return formatValue(field, record);
         },
         [referenceTitles, formatValue],
+    );
+    const analyzeWithTitles = useMemo(
+        () => (analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : undefined),
+        [analyze, referenceTitles],
     );
     const columns = useMemo(
         () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _("(empty)"), _("All")),
@@ -238,7 +253,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                                 pageSize={pageSize}
                                 model={model}
                                 allModels={allModels}
-                                analyze={analyze}
+                                analyze={analyzeWithTitles}
                             />
                         ))}
                     </div>

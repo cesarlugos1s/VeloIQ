@@ -7553,6 +7553,40 @@ var applyChartThemeToGraph = (graphDiv, dark, plotly) => {
   }
 };
 var CHART_HEIGHT = 420;
+var MAXIMUM_TICK_LABEL_LENGTH = 48;
+var shortenCategoryTickLabels = (traces, layout) => {
+  const shortened = {};
+  ["x", "y"].forEach((axis) => {
+    const axisLayout = layout[`${axis}axis`] || {};
+    if (axisLayout.type && axisLayout.type !== "category") return;
+    const labels = /* @__PURE__ */ new Set();
+    traces.forEach((trace) => {
+      if (!["bar", "scatter", "scattergl"].includes(trace?.type)) return;
+      (Array.isArray(trace[axis]) ? trace[axis] : []).forEach((value) => {
+        if (typeof value === "string") labels.add(value);
+      });
+    });
+    const values = Array.from(labels);
+    if (!values.some((label) => label.length > MAXIMUM_TICK_LABEL_LENGTH)) return;
+    shortened[`${axis}axis`] = {
+      ...axisLayout,
+      type: "category",
+      tickmode: "array",
+      tickvals: values,
+      ticktext: values.map((label) => label.length > MAXIMUM_TICK_LABEL_LENGTH ? `${label.slice(0, MAXIMUM_TICK_LABEL_LENGTH - 1)}\u2026` : label)
+    };
+  });
+  return shortened;
+};
+var withFullCategoryHoverLabels = (traces, shortenedAxes) => {
+  const shortenedAxisLetters = ["x", "y"].filter((axis) => shortenedAxes[`${axis}axis`]);
+  if (shortenedAxisLetters.length === 0) return traces;
+  return traces.map((trace) => {
+    const axis = shortenedAxisLetters.find((letter) => typeof trace?.hovertemplate === "string" && trace.hovertemplate.includes(`%{${letter}}`));
+    if (!axis || trace.customdata !== void 0 || !Array.isArray(trace[axis])) return trace;
+    return { ...trace, customdata: trace[axis], hovertemplate: trace.hovertemplate.split(`%{${axis}}`).join("%{customdata}") };
+  });
+};
 var valueHover = (categoryAxis, valueAxis) => `%{fullData.name}<br>%{${categoryAxis}}: %{${valueAxis}:${CHART_NUMBER_FORMAT}}<extra></extra>`;
 var getSummaryLabel = (fn) => getSummaryFnOptions().find((option) => option.value === fn)?.label ?? fn;
 var seriesAt = (seriesKeys, n) => seriesKeys[Math.min(n, seriesKeys.length - 1)] ?? COUNT_SERIES_KEY;
@@ -7816,23 +7850,26 @@ var AnalysisChart = (props) => {
       if (cancelled || !Plotly) return;
       const base = buildStandardChartLayout(dark, props.title, { height: CHART_HEIGHT, autosize: true });
       const sameChartType = drawnChartTypeRef.current === props.chartType;
+      const shortenedAxes = shortenCategoryTickLabels(figure.traces, figure.layout);
+      const traces = withFullCategoryHoverLabels(figure.traces, shortenedAxes);
       const layout = {
         ...base,
         ...figure.layout,
-        xaxis: { ...base.xaxis, ...figure.layout.xaxis || {} },
-        yaxis: { ...base.yaxis, ...figure.layout.yaxis || {} },
-        // Animate data updates of the same chart (the SVG chart's enter/update animation).
-        ...sameChartType ? { transition: { duration: 400, easing: "cubic-in-out" } } : {}
+        xaxis: { ...base.xaxis, ...figure.layout.xaxis || {}, ...shortenedAxes.xaxis || {} },
+        yaxis: { ...base.yaxis, ...figure.layout.yaxis || {}, ...shortenedAxes.yaxis || {} }
+        // No layout.transition: an update that arrives while the previous one is still animating
+        // (e.g. the titles of a reference category, loaded just after the categories change) leaves
+        // the chart drawn with the earlier data.
       };
       const config = { responsive: true, displaylogo: false, displayModeBar: false };
       if (sameChartType) {
-        Plotly.react(graphDiv, figure.traces, layout, config);
+        Plotly.react(graphDiv, traces, layout, config);
       } else {
         try {
           Plotly.purge(graphDiv);
         } catch {
         }
-        Plotly.newPlot(graphDiv, figure.traces, layout, config);
+        Plotly.newPlot(graphDiv, traces, layout, config);
         drawnChartTypeRef.current = props.chartType;
       }
     });
@@ -9007,7 +9044,75 @@ var AnalyzePanel = ({
     }
   );
 };
+var IDS_PER_REQUEST = 200;
+var referenceTitleKey = (reference, id) => `${reference}:${id}`;
+var useReferenceTitles = (fields, rows, allModels, knownTitles) => {
+  const apiUrl = useApiUrl();
+  const [fetchedTitles, setFetchedTitles] = useState({});
+  const referenceFields = useMemo(
+    () => fields.filter((field) => field.reference && hasReferenceModel(field.reference, allModels)),
+    [fields, allModels]
+  );
+  const missingIdsByField = useMemo(() => {
+    const missing = [];
+    for (const field of referenceFields) {
+      const ids = /* @__PURE__ */ new Set();
+      for (const row of rows) {
+        const id = row?.[field.key];
+        if (id === void 0 || id === null || id === "") continue;
+        const key = referenceTitleKey(field.reference, id);
+        if (knownTitles[key] === void 0 && fetchedTitles[key] === void 0) ids.add(id);
+      }
+      if (ids.size > 0) missing.push({ field, ids: Array.from(ids) });
+    }
+    return missing;
+  }, [referenceFields, rows, knownTitles, fetchedTitles]);
+  useEffect(() => {
+    if (missingIdsByField.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const found = {};
+      for (const { field, ids } of missingIdsByField) {
+        const resource = resolveResourcePath(field.referencePath || field.reference, allModels);
+        for (let start = 0; start < ids.length; start += IDS_PER_REQUEST) {
+          const chunk = ids.slice(start, start + IDS_PER_REQUEST);
+          try {
+            const response = await authenticatedFetch(`${apiUrl}/_meta/bulk-read`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resource, ids: chunk })
+            });
+            if (!response.ok) continue;
+            const items = (await response.json())?.items;
+            for (const item of Array.isArray(items) ? items : []) {
+              const id = item?.eid ?? item?.id;
+              const title = item?._label ?? item?.name ?? item?.description;
+              if (id !== void 0 && id !== null && title !== void 0 && title !== null) {
+                found[referenceTitleKey(field.reference, id)] = String(title);
+              }
+            }
+          } catch {
+          }
+          for (const id of chunk) {
+            const key = referenceTitleKey(field.reference, id);
+            if (found[key] === void 0) found[key] = String(id);
+          }
+        }
+      }
+      if (!cancelled && Object.keys(found).length > 0) {
+        setFetchedTitles((previous) => ({ ...previous, ...found }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [missingIdsByField, apiUrl, allModels]);
+  return useMemo(() => ({ ...fetchedTitles, ...knownTitles }), [fetchedTitles, knownTitles]);
+};
+
+// src/components/DynamicResource/analysis/useAnalyze.ts
 var _34 = window._ || ((text) => text);
+var NO_ROWS = [];
 var useAnalyzeSettings = ({
   model,
   apiUrl,
@@ -9192,7 +9297,7 @@ var useAnalyzeSettings = ({
     persistAnalyzePreferences
   };
 };
-var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCache, server = null }) => {
+var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCache, server = null, referenceModels }) => {
   const {
     model,
     numericFields,
@@ -9208,7 +9313,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const [isStatsFlipped, setIsStatsFlipped] = useState(false);
   const chartGraphRef = useRef(null);
   const serverResult = server?.result ?? null;
-  const labelCache = useMemo(() => {
+  const knownLabelCache = useMemo(() => {
     if (!serverResult) return pageLabelCache;
     const merged = { ...pageLabelCache };
     Object.entries(serverResult.reference_titles || {}).forEach(([fieldKey, titles]) => {
@@ -9220,6 +9325,11 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     });
     return merged;
   }, [pageLabelCache, serverResult, model.fields]);
+  const categoryReferenceFields = useMemo(
+    () => referenceModels ? [categoryField1, categoryField2, categoryField3].map((key) => model.fields.find((field) => field.key === key)).filter((field) => Boolean(field?.reference)) : [],
+    [referenceModels, categoryField1, categoryField2, categoryField3, model.fields]
+  );
+  const labelCache = useReferenceTitles(categoryReferenceFields, serverResult ? NO_ROWS : rows, referenceModels, knownLabelCache);
   const formatCategoryValue = useCallback((field, record) => {
     if (!field) return _34("All");
     const raw = record?.[field.key];
@@ -9728,6 +9838,16 @@ var KanbanView = (props) => {
     const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
     return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
   }, [fieldSequenceKeys, cardFieldOptions]);
+  const analyzeCategoryField1 = analyze?.settings.categoryField1;
+  const analyzeCategoryField2 = analyze?.settings.categoryField2;
+  const analyzeCategoryField3 = analyze?.settings.categoryField3;
+  const titleFields = useMemo(() => {
+    const wantedKeys = new Set(splitFields.map((field) => field.key));
+    [analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3].forEach((key) => {
+      if (key) wantedKeys.add(key);
+    });
+    return fields.filter((field) => field.reference && wantedKeys.has(field.key));
+  }, [fields, splitFields, analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3]);
   const apiUrl = useApiUrl();
   const [referenceTitles, setReferenceTitles] = useState({});
   const requestedTitleKeys = useRef(/* @__PURE__ */ new Set());
@@ -9739,7 +9859,7 @@ var KanbanView = (props) => {
     };
   }, []);
   useEffect(() => {
-    splitFields.filter((field) => field.reference).forEach((field) => {
+    titleFields.forEach((field) => {
       records.forEach((record) => {
         const id = record?.[field.key];
         if (id === void 0 || id === null || id === "") return;
@@ -9758,7 +9878,7 @@ var KanbanView = (props) => {
         });
       });
     });
-  }, [records, splitFields, apiUrl, allModels]);
+  }, [records, titleFields, apiUrl, allModels]);
   const formatColumnValue = useMemo(
     () => (field, record) => {
       if (field.reference) {
@@ -9768,6 +9888,10 @@ var KanbanView = (props) => {
       return formatValue(field, record);
     },
     [referenceTitles, formatValue]
+  );
+  const analyzeWithTitles = useMemo(
+    () => analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : void 0,
+    [analyze, referenceTitles]
   );
   const columns = useMemo(
     () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _36("(empty)"), _36("All")),
@@ -9819,7 +9943,7 @@ var KanbanView = (props) => {
             pageSize,
             model,
             allModels,
-            analyze
+            analyze: analyzeWithTitles
           },
           column.label
         )) })
@@ -12314,71 +12438,6 @@ function matchesColumnFilterValue(field, record, value) {
   }
   return String(record?.[field.key]) === strValue;
 }
-var IDS_PER_REQUEST = 200;
-var referenceTitleKey = (reference, id) => `${reference}:${id}`;
-var useReferenceTitles = (fields, rows, allModels, knownTitles) => {
-  const apiUrl = useApiUrl();
-  const [fetchedTitles, setFetchedTitles] = useState({});
-  const referenceFields = useMemo(
-    () => fields.filter((field) => field.reference && hasReferenceModel(field.reference, allModels)),
-    [fields, allModels]
-  );
-  const missingIdsByField = useMemo(() => {
-    const missing = [];
-    for (const field of referenceFields) {
-      const ids = /* @__PURE__ */ new Set();
-      for (const row of rows) {
-        const id = row?.[field.key];
-        if (id === void 0 || id === null || id === "") continue;
-        const key = referenceTitleKey(field.reference, id);
-        if (knownTitles[key] === void 0 && fetchedTitles[key] === void 0) ids.add(id);
-      }
-      if (ids.size > 0) missing.push({ field, ids: Array.from(ids) });
-    }
-    return missing;
-  }, [referenceFields, rows, knownTitles, fetchedTitles]);
-  useEffect(() => {
-    if (missingIdsByField.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const found = {};
-      for (const { field, ids } of missingIdsByField) {
-        const resource = resolveResourcePath(field.referencePath || field.reference, allModels);
-        for (let start = 0; start < ids.length; start += IDS_PER_REQUEST) {
-          const chunk = ids.slice(start, start + IDS_PER_REQUEST);
-          try {
-            const response = await authenticatedFetch(`${apiUrl}/_meta/bulk-read`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ resource, ids: chunk })
-            });
-            if (!response.ok) continue;
-            const items = (await response.json())?.items;
-            for (const item of Array.isArray(items) ? items : []) {
-              const id = item?.eid ?? item?.id;
-              const title = item?._label ?? item?.name ?? item?.description;
-              if (id !== void 0 && id !== null && title !== void 0 && title !== null) {
-                found[referenceTitleKey(field.reference, id)] = String(title);
-              }
-            }
-          } catch {
-          }
-          for (const id of chunk) {
-            const key = referenceTitleKey(field.reference, id);
-            if (found[key] === void 0) found[key] = String(id);
-          }
-        }
-      }
-      if (!cancelled && Object.keys(found).length > 0) {
-        setFetchedTitles((previous) => ({ ...previous, ...found }));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [missingIdsByField, apiUrl, allModels]);
-  return useMemo(() => ({ ...fetchedTitles, ...knownTitles }), [fetchedTitles, knownTitles]);
-};
 function getCurrentUserRoles() {
   try {
     const raw = localStorage.getItem(signInStorageKeys().signedInUser);
@@ -18120,7 +18179,8 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
   const analyze = useAnalyzeResults(analyzeSettings, {
     rows: columnFilteredRows,
     statsFields: displayFields,
-    labelCache
+    labelCache,
+    referenceModels: allModels
   });
   const { formatCategoryValue, setIsStatsFlipped } = analyze;
   useEffect(() => {
@@ -20941,6 +21001,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
     rows: columnFilteredDataSource,
     statsFields: displayFields,
     labelCache,
+    referenceModels: allModels,
     server: serverAnalyzeEnabled ? serverAnalyze : null
   });
   const { formatCategoryValue, setIsStatsFlipped } = analyze;
