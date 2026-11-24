@@ -13,7 +13,7 @@ import { resolveResourcePath } from "./utils/model";
 import { Empty, Select, Space, Typography, theme } from "antd";
 import type { FieldDef, ModelDef } from "./types";
 import { KanbanColumnContent } from "./KanbanColumnContent";
-import type { KanbanAnalyzeConfig } from "./KanbanColumnAnalyze";
+import { AnalyzeSharedProvider, useAnalyzeSharedConfig } from "./analysis/AnalyzeSharedContext";
 import { getReferenceRecordTitle } from "./fields/ReferenceField";
 import {
     DEFAULT_KANBAN_COLUMN_VIEW_TYPE,
@@ -57,8 +57,6 @@ export interface KanbanViewProps {
     pageSize?: number;
     /** Visible fields in the shared field sequence order; the cards show these (all card fields when empty). */
     fieldSequenceKeys?: string[];
-    /** The page's Analyze configuration; without it the "Analyze" column view type is not offered. */
-    analyze?: KanbanAnalyzeConfig;
 }
 
 const KanbanColumnPanel: React.FC<{
@@ -70,8 +68,7 @@ const KanbanColumnPanel: React.FC<{
     pageSize?: number;
     model: ModelDef;
     allModels?: ModelDef[];
-    analyze?: KanbanAnalyzeConfig;
-}> = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels, analyze }) => {
+}> = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
     const { token } = theme.useToken();
     // The title bar takes the model's tone: the colour scheme chosen in System Configuration.
     const tone = useModelTone(model);
@@ -114,7 +111,6 @@ const KanbanColumnPanel: React.FC<{
                     viewType={viewType}
                     columnIndex={columnIndex}
                     pageSize={pageSize}
-                    analyze={analyze}
                 />
             </div>
         </div>
@@ -122,7 +118,9 @@ const KanbanColumnPanel: React.FC<{
 };
 
 export const KanbanView: React.FC<KanbanViewProps> = (props) => {
-    const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys, analyze } = props;
+    const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys } = props;
+    // The page's Analyze configuration, when it has an Analyze section: the "Analyze" column view type draws it.
+    const analyze = useAnalyzeSharedConfig();
     const fields = model.fields;
     const splitFieldOptions = useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
     const cardFieldOptions = useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
@@ -201,7 +199,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
         [referenceTitles, formatValue],
     );
     const analyzeWithTitles = useMemo(
-        () => (analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : undefined),
+        () => (analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : null),
         [analyze, referenceTitles],
     );
     const columns = useMemo(
@@ -241,6 +239,7 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                     data-kanban-board
                     style={{ overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 }}
                 >
+                    <AnalyzeSharedProvider value={analyzeWithTitles}>
                     <div style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }}>
                         {columns.map((column, columnIndex) => (
                             <KanbanColumnPanel
@@ -253,10 +252,10 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
                                 pageSize={pageSize}
                                 model={model}
                                 allModels={allModels}
-                                analyze={analyzeWithTitles}
                             />
                         ))}
                     </div>
+                    </AnalyzeSharedProvider>
                 </div>
             )}
         </div>

@@ -6014,6 +6014,7 @@ var LIST = withOverrides({ analyze: true });
 var CSV = withOverrides({});
 var TOTALS_DETAILS = withOverrides({ summaries: true, analyze: true });
 var CROSSTAB = withOverrides({ pagination: false, summaries: true, analyze: true });
+var ANALYZE = withOverrides({ multiSort: false, pagination: false, analyze: false });
 var KANBAN = withOverrides({ analyze: true });
 var GALLERY = withOverrides({});
 var CALENDAR = withOverrides({ pagination: false });
@@ -6034,8 +6035,7 @@ var CAPABILITIES_BY_VIEW_TYPE = {
   "crosstab": CROSSTAB,
   "editable-crosstab": CROSSTAB,
   "kanban": KANBAN,
-  // Only a kanban column shows its records as Analyze; the column has no controls of its own.
-  "analyze": { ...NONE },
+  "analyze": ANALYZE,
   "gallery": GALLERY,
   "image": GALLERY,
   "calendar": CALENDAR,
@@ -7290,6 +7290,451 @@ function useInPageRowsStore(storeName, model, initialRows = []) {
   }, [store, invalidate]);
   return React6.useMemo(() => ({ model: store.model, getRows: store.getRows, setRows }), [store, setRows]);
 }
+var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize }) => {
+  const boardId = React6.useId().replace(/[^a-zA-Z0-9]/g, "");
+  const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
+  const rowModel = React6.useMemo(() => {
+    const { resource: _ownResource, ...modelWithoutResource } = model;
+    return {
+      ...modelWithoutResource,
+      fields: cardFields,
+      // Records link to their own show pages; the column has no create, import or Analyze section.
+      isNamedQuery: true,
+      primaryResource: model.resource || model.name,
+      showAnalyzeSection: false,
+      ...pageSize ? { defaultPageSize: pageSize } : {}
+    };
+  }, [model, cardFields, pageSize]);
+  const rowsStore = useInPageRowsStore(storeName, rowModel, records);
+  const shownRecords = React6.useRef(records);
+  React6.useEffect(() => {
+    if (shownRecords.current === records) return;
+    shownRecords.current = records;
+    rowsStore.setRows(records);
+  }, [records, rowsStore]);
+  return /* @__PURE__ */ jsxRuntime.jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
+};
+var AnalyzeSharedContext = React6.createContext(null);
+var AnalyzeSharedProvider = AnalyzeSharedContext.Provider;
+var useAnalyzeSharedConfig = () => React6.useContext(AnalyzeSharedContext);
+var getReferenceRecordTitle = (record, id) => record?._label || record?.name || record?.description || id;
+var ReferenceField = ({ id, resource, onLabel }) => {
+  const { data, isLoading } = core.useOne({ resource, id, queryOptions: { enabled: !!id } });
+  const record = data?.data;
+  const label = getReferenceRecordTitle(record, id);
+  const go = core.useGo();
+  const paneNav = usePaneNavigation();
+  const { token } = antd.theme.useToken();
+  React6.useEffect(() => {
+    if (onLabel && !isLoading && label !== void 0 && label !== null) {
+      onLabel(String(label));
+    }
+  }, [label, onLabel, isLoading]);
+  if (isLoading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
+  const href = getShowHref(resource, id);
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    "a",
+    {
+      href,
+      onClick: (e) => {
+        if (!shouldHandleLinkClick(e)) return;
+        e.preventDefault();
+        if (paneNav?.isInMultiPane) {
+          paneNav.openDetail(resource, id);
+        } else {
+          go({ to: { resource, action: "show", id } });
+        }
+      },
+      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
+      children: label
+    }
+  );
+};
+var _28 = window._ || ((text) => text);
+var CALENDAR_WEEKDAYS = [_28("Sun"), _28("Mon"), _28("Tue"), _28("Wed"), _28("Thu"), _28("Fri"), _28("Sat")];
+var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
+var isCalendarDateField = (field) => {
+  const rawType = String(field?.type || "").trim().toLowerCase();
+  return rawType === "date" || rawType === "datetime";
+};
+var getCalendarDateFieldOptions = (fields) => {
+  const dateFields = fields.filter(isCalendarDateField);
+  if (dateFields.length === 0) return [];
+  const regularFields = [];
+  const footerFields = [];
+  dateFields.forEach((field) => {
+    const key = String(field.key || "").trim().toLowerCase();
+    if (CALENDAR_DATE_FOOTER_FIELDS.has(key)) {
+      footerFields.push(field);
+      return;
+    }
+    regularFields.push(field);
+  });
+  footerFields.sort((a, b) => {
+    const order = (key) => key === "creation_date" ? 1 : key === "modification_date" ? 2 : 3;
+    return order(String(a.key || "").trim().toLowerCase()) - order(String(b.key || "").trim().toLowerCase());
+  });
+  return [...regularFields, ...footerFields];
+};
+var getCalendarRecordDate = (record, fieldKey) => {
+  const rawValue = record?.[fieldKey];
+  if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
+  const parsed = dayjs14__default.default(rawValue);
+  if (!parsed.isValid()) return null;
+  return parsed.startOf("day");
+};
+var isCalendarHeatmapField = (field) => field.type === "number" && !field.reference;
+var getCalendarHeatmapFieldOptions = (fields) => fields.filter(isCalendarHeatmapField);
+var toHeatmapNumber = (value) => {
+  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+var getCalendarHeatmapTotals = (entriesByDate, dayKeys, fieldKey) => {
+  const totals = /* @__PURE__ */ new Map();
+  if (!fieldKey) return totals;
+  dayKeys.forEach((dayKey) => {
+    let total = null;
+    (entriesByDate.get(dayKey) || []).forEach((entry) => {
+      const value = toHeatmapNumber(entry.record?.[fieldKey]);
+      if (value !== null) total = (total ?? 0) + value;
+    });
+    if (total !== null) totals.set(dayKey, total);
+  });
+  return totals;
+};
+var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
+  if (total === void 0 || totals.size === 0) return void 0;
+  const values = Array.from(totals.values());
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const ratio = max === min ? 1 : (total - min) / (max - min);
+  const percent = Math.round(8 + ratio * 37);
+  return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
+};
+var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
+
+// src/components/DynamicResource/utils/mapView.ts
+var MAP_MEASURE_COLORSCALE = "Viridis";
+var DEFAULT_MAP_LOOK = "points";
+var MAXIMUM_LATITUDE_DEGREES = 90;
+var MAXIMUM_LONGITUDE_DEGREES = 180;
+var getMapCoordinateFieldOptions = (fields) => fields.filter((field) => field.type === "number" && !field.reference);
+var getMapMeasureFieldOptions = (fields) => getCalendarHeatmapFieldOptions(fields);
+var getModelMapLocation = (model) => {
+  const declared = model.mapLocation;
+  if (!declared?.latitude || !declared?.longitude) return null;
+  const keys = new Set(model.fields.map((field) => field.key));
+  return keys.has(declared.latitude) && keys.has(declared.longitude) ? declared : null;
+};
+var modelHasMapLocation = (model) => getModelMapLocation(model) !== null;
+var toMapCoordinate = (value, limitDegrees) => {
+  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= limitDegrees ? parsed : null;
+};
+var getMapRecordTitle = (model, record) => {
+  const titleParts = (model.titleFields ?? []).map((fieldKey) => record?.[fieldKey]).filter((value) => value !== void 0 && value !== null && value !== "").map(String);
+  return titleParts.length > 0 ? titleParts.join(" ") : getRecordDisplayLabel(record);
+};
+var buildMapPoints = (records, location, measureFieldKey, getTitle) => {
+  const points = [];
+  let recordsWithoutLocation = 0;
+  records.forEach((record) => {
+    const latitude = toMapCoordinate(record?.[location.latitude], MAXIMUM_LATITUDE_DEGREES);
+    const longitude = toMapCoordinate(record?.[location.longitude], MAXIMUM_LONGITUDE_DEGREES);
+    if (latitude === null || longitude === null) {
+      recordsWithoutLocation += 1;
+      return;
+    }
+    const rawMeasure = measureFieldKey ? record?.[measureFieldKey] : null;
+    const measure2 = rawMeasure === null || rawMeasure === void 0 || rawMeasure === "" || typeof rawMeasure === "boolean" ? null : Number.isFinite(Number(rawMeasure)) ? Number(rawMeasure) : null;
+    points.push({ id: record?.eid ?? record?.id ?? null, latitude, longitude, label: getTitle(record), measure: measure2, recordCount: 1 });
+  });
+  return { points, recordsWithoutLocation };
+};
+var MAP_GRID_CELLS_ALONG_LONGER_SIDE = 100;
+var aggregateMapPointsIntoGridCells = (points) => {
+  if (points.length === 0) return [];
+  let minLatitude = Infinity, maxLatitude = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
+  points.forEach((point) => {
+    minLatitude = Math.min(minLatitude, point.latitude);
+    maxLatitude = Math.max(maxLatitude, point.latitude);
+    minLongitude = Math.min(minLongitude, point.longitude);
+    maxLongitude = Math.max(maxLongitude, point.longitude);
+  });
+  const longerSide = Math.max(maxLatitude - minLatitude, maxLongitude - minLongitude);
+  const cellSize = longerSide > 0 ? longerSide / MAP_GRID_CELLS_ALONG_LONGER_SIDE : 1;
+  const cells = /* @__PURE__ */ new Map();
+  points.forEach((point) => {
+    const cellKey = `${Math.floor((point.latitude - minLatitude) / cellSize)}:${Math.floor((point.longitude - minLongitude) / cellSize)}`;
+    const cell = cells.get(cellKey) ?? { latitudeSum: 0, longitudeSum: 0, measureSum: null, recordCount: 0 };
+    cell.latitudeSum += point.latitude * point.recordCount;
+    cell.longitudeSum += point.longitude * point.recordCount;
+    cell.recordCount += point.recordCount;
+    if (point.measure !== null) cell.measureSum = (cell.measureSum ?? 0) + point.measure;
+    cells.set(cellKey, cell);
+  });
+  return Array.from(cells.values()).map((cell) => ({
+    id: null,
+    latitude: cell.latitudeSum / cell.recordCount,
+    longitude: cell.longitudeSum / cell.recordCount,
+    label: "",
+    measure: cell.measureSum,
+    recordCount: cell.recordCount
+  }));
+};
+var WORLD_SIZE_AT_ZOOM_ZERO_PX = 512;
+var POINTS_EXTENT_SHARE_OF_MAP = 0.85;
+var MINIMUM_FIT_ZOOM = 0;
+var MAXIMUM_FIT_ZOOM = 14;
+var SINGLE_POSITION_ZOOM = 10;
+var toMercatorY = (latitudeDegrees) => Math.log(Math.tan(Math.PI / 4 + latitudeDegrees * Math.PI / 360));
+var fromMercatorY = (mercatorY) => (2 * Math.atan(Math.exp(mercatorY)) - Math.PI / 2) * (180 / Math.PI);
+var getMapViewportForPoints = (points, mapWidthPx, mapHeightPx) => {
+  if (points.length === 0) return { latitude: 0, longitude: 0, zoom: 1 };
+  let minMercatorY = Infinity, maxMercatorY = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
+  points.forEach((point) => {
+    const mercatorY = toMercatorY(point.latitude);
+    minMercatorY = Math.min(minMercatorY, mercatorY);
+    maxMercatorY = Math.max(maxMercatorY, mercatorY);
+    minLongitude = Math.min(minLongitude, point.longitude);
+    maxLongitude = Math.max(maxLongitude, point.longitude);
+  });
+  const centre = {
+    latitude: fromMercatorY((minMercatorY + maxMercatorY) / 2),
+    longitude: (minLongitude + maxLongitude) / 2
+  };
+  const longitudeSpanDegrees = maxLongitude - minLongitude;
+  const mercatorSpan = maxMercatorY - minMercatorY;
+  if (longitudeSpanDegrees <= 0 && mercatorSpan <= 0) return { ...centre, zoom: SINGLE_POSITION_ZOOM };
+  const zoomToFitLongitude = longitudeSpanDegrees > 0 ? Math.log2(mapWidthPx * POINTS_EXTENT_SHARE_OF_MAP * 360 / (WORLD_SIZE_AT_ZOOM_ZERO_PX * longitudeSpanDegrees)) : Infinity;
+  const zoomToFitLatitude = mercatorSpan > 0 ? Math.log2(mapHeightPx * POINTS_EXTENT_SHARE_OF_MAP * 2 * Math.PI / (WORLD_SIZE_AT_ZOOM_ZERO_PX * mercatorSpan)) : Infinity;
+  const zoom = Math.min(MAXIMUM_FIT_ZOOM, Math.max(MINIMUM_FIT_ZOOM, Math.min(zoomToFitLongitude, zoomToFitLatitude)));
+  return { ...centre, zoom };
+};
+
+// src/components/DynamicResource/utils/applicableViewTypes.ts
+var hasNumericField = (model) => model.fields.some((field) => field.type === "number" && !field.reference && !isPkField(field, model));
+function modelMeetsRequirement(requirement, model) {
+  switch (requirement) {
+    case "image-source":
+      return modelHasImageSource(model);
+    case "date-field":
+      return getCalendarDateFieldOptions(model.fields).length > 0;
+    case "number-field":
+      return hasNumericField(model);
+    case "split-field":
+      return getKanbanSplitFieldOptions(model.fields).length > 0;
+    case "map-location":
+      return modelHasMapLocation(model);
+    default:
+      return true;
+  }
+}
+function isViewTypeApplicable(token, model) {
+  const entry = VIEW_TYPE_CATALOG.find((candidate) => candidate.token === token);
+  return modelMeetsRequirement(entry?.requires, model);
+}
+function getSelectableViewTypes(context, model) {
+  return getViewTypeCatalogEntries(context).filter((entry) => modelMeetsRequirement(entry.requires, model)).map((entry) => entry.token);
+}
+var _29 = (text) => translateText(text, text);
+var { Text: Text6 } = antd.Typography;
+var KANBAN_COLUMN_MINIMUM_WIDTH = 420;
+var KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
+var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
+var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels }) => {
+  const { token } = antd.theme.useToken();
+  const tone = useModelTone(model);
+  return /* @__PURE__ */ jsxRuntime.jsxs(
+    "div",
+    {
+      "data-kanban-column": label,
+      style: {
+        flex: "0 0 auto",
+        width: "max-content",
+        minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
+        maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
+        display: "flex",
+        flexDirection: "column",
+        border: `1px solid ${tone.border}`,
+        borderRadius: 8,
+        background: token.colorBgContainer,
+        boxShadow: `0 8px 20px -16px ${tone.shadow}`,
+        overflow: "hidden"
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntime.jsxs(
+          "div",
+          {
+            style: {
+              padding: "8px 12px",
+              background: tone.soft,
+              borderBottom: `1px solid ${tone.border}`,
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntime.jsx(Text6, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
+              /* @__PURE__ */ jsxRuntime.jsxs(Text6, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
+                "(",
+                records.length,
+                ")"
+              ] })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 12, flex: 1, minHeight: 0, minWidth: 0, overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
+          KanbanColumnContent,
+          {
+            model,
+            allModels,
+            records,
+            cardFields,
+            viewType,
+            columnIndex,
+            pageSize
+          }
+        ) })
+      ]
+    }
+  );
+};
+var KanbanView = (props) => {
+  const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys } = props;
+  const analyze = useAnalyzeSharedConfig();
+  const fields = model.fields;
+  const splitFieldOptions = React6.useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
+  const cardFieldOptions = React6.useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
+  const [splitFieldKeys, setSplitFieldKeys] = React6.useState(() => getDefaultKanbanSplitFieldKeys(fields));
+  const [chosenColumnViewType, setColumnViewType] = React6.useState(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
+  const applicableColumnViewTypes = React6.useMemo(
+    () => getSelectableViewTypes("kanban-column", model).filter((viewType) => viewType !== "analyze" || Boolean(analyze)),
+    [model, analyze]
+  );
+  const columnViewType = applicableColumnViewTypes.includes(chosenColumnViewType) ? chosenColumnViewType : DEFAULT_KANBAN_COLUMN_VIEW_TYPE;
+  const splitFields = React6.useMemo(
+    () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field) => Boolean(field)),
+    [fields, splitFieldKeys]
+  );
+  const cardFields = React6.useMemo(() => {
+    const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
+    return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
+  }, [fieldSequenceKeys, cardFieldOptions]);
+  const analyzeCategoryField1 = analyze?.settings.categoryField1;
+  const analyzeCategoryField2 = analyze?.settings.categoryField2;
+  const analyzeCategoryField3 = analyze?.settings.categoryField3;
+  const titleFields = React6.useMemo(() => {
+    const wantedKeys = new Set(splitFields.map((field) => field.key));
+    [analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3].forEach((key) => {
+      if (key) wantedKeys.add(key);
+    });
+    return fields.filter((field) => field.reference && wantedKeys.has(field.key));
+  }, [fields, splitFields, analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3]);
+  const apiUrl = core.useApiUrl();
+  const [referenceTitles, setReferenceTitles] = React6.useState({});
+  const requestedTitleKeys = React6.useRef(/* @__PURE__ */ new Set());
+  const isMounted = React6.useRef(true);
+  React6.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  React6.useEffect(() => {
+    titleFields.forEach((field) => {
+      records.forEach((record) => {
+        const id = record?.[field.key];
+        if (id === void 0 || id === null || id === "") return;
+        const cacheKey = `${field.reference}:${id}`;
+        if (requestedTitleKeys.current.has(cacheKey)) return;
+        requestedTitleKeys.current.add(cacheKey);
+        const resourcePath = field.referencePath || resolveResourcePath(field.reference, allModels);
+        authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`).then(async (response) => {
+          if (!response.ok) throw new Error(String(response.status));
+          const data = await response.json();
+          if (!isMounted.current) return;
+          const title = String(getReferenceRecordTitle(data, id));
+          setReferenceTitles((previous) => previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title });
+        }).catch(() => {
+          requestedTitleKeys.current.delete(cacheKey);
+        });
+      });
+    });
+  }, [records, titleFields, apiUrl, allModels]);
+  const formatColumnValue = React6.useMemo(
+    () => (field, record) => {
+      if (field.reference) {
+        const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
+        if (title !== void 0) return title;
+      }
+      return formatValue(field, record);
+    },
+    [referenceTitles, formatValue]
+  );
+  const analyzeWithTitles = React6.useMemo(
+    () => analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : null,
+    [analyze, referenceTitles]
+  );
+  const columns = React6.useMemo(
+    () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _29("(empty)"), _29("All")),
+    [records, splitFields, maximumColumns, formatColumnValue]
+  );
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, size: 8, align: "start", children: [
+      /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Select,
+        {
+          size: "small",
+          mode: "multiple",
+          allowClear: true,
+          maxTagCount: "responsive",
+          value: splitFieldKeys,
+          onChange: setSplitFieldKeys,
+          options: splitFieldOptions.map((field) => ({ label: field.label, value: field.key })),
+          style: { minWidth: 240 },
+          placeholder: _29("Split columns by"),
+          "aria-label": _29("Split columns by")
+        }
+      ),
+      /* @__PURE__ */ jsxRuntime.jsx(
+        antd.Select,
+        {
+          size: "small",
+          value: columnViewType,
+          onChange: setColumnViewType,
+          options: applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType })),
+          style: { minWidth: 140 },
+          "aria-label": _29("Column view type")
+        }
+      ),
+      toolbarExtra
+    ] }),
+    columns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _29("No records available") }) : /* @__PURE__ */ jsxRuntime.jsx(
+      "div",
+      {
+        "data-kanban-board": true,
+        style: { overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 },
+        children: /* @__PURE__ */ jsxRuntime.jsx(AnalyzeSharedProvider, { value: analyzeWithTitles, children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }, children: columns.map((column, columnIndex) => /* @__PURE__ */ jsxRuntime.jsx(
+          KanbanColumnPanel,
+          {
+            label: column.label,
+            records: column.records,
+            viewType: columnViewType,
+            cardFields,
+            columnIndex,
+            pageSize,
+            model,
+            allModels
+          },
+          column.label
+        )) }) })
+      }
+    )
+  ] });
+};
 var ToneSharedStyles = () => /* @__PURE__ */ jsxRuntime.jsx("style", { children: `
             .jm-tone-scope .ant-form-item .ant-form-item-label > label {
                 color: #475569 !important;
@@ -7491,7 +7936,7 @@ var ensurePlotly = () => {
 var getPlotly = () => window.Plotly;
 
 // src/components/DynamicResource/analysis/chartTheme.ts
-var _28 = (text) => {
+var _30 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -7526,7 +7971,7 @@ var CHART_THEME_COLORS = {
   dark: { text: "#c9d1d9", grid: "rgba(160,160,160,0.25)", legendBorder: "rgba(160,160,160,0.4)", surface: "transparent" }
 };
 var CHART_EMPTY_MESSAGE = "No data available for this chart.";
-var getChartEmptyMessage = () => _28(CHART_EMPTY_MESSAGE);
+var getChartEmptyMessage = () => _30(CHART_EMPTY_MESSAGE);
 var buildStandardChartLayout = (dark, title, overrides = {}) => {
   const colors = dark ? CHART_THEME_COLORS.dark : CHART_THEME_COLORS.light;
   const axis = {
@@ -7964,40 +8409,7 @@ function orderCrosstabHeaders(labels, representatives, axisFields, sortList, com
     return 0;
   });
 }
-var getReferenceRecordTitle = (record, id) => record?._label || record?.name || record?.description || id;
-var ReferenceField = ({ id, resource, onLabel }) => {
-  const { data, isLoading } = core.useOne({ resource, id, queryOptions: { enabled: !!id } });
-  const record = data?.data;
-  const label = getReferenceRecordTitle(record, id);
-  const go = core.useGo();
-  const paneNav = usePaneNavigation();
-  const { token } = antd.theme.useToken();
-  React6.useEffect(() => {
-    if (onLabel && !isLoading && label !== void 0 && label !== null) {
-      onLabel(String(label));
-    }
-  }, [label, onLabel, isLoading]);
-  if (isLoading) return /* @__PURE__ */ jsxRuntime.jsx(antd.Skeleton.Input, { active: true, size: "small", style: { width: 100 } });
-  const href = getShowHref(resource, id);
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    "a",
-    {
-      href,
-      onClick: (e) => {
-        if (!shouldHandleLinkClick(e)) return;
-        e.preventDefault();
-        if (paneNav?.isInMultiPane) {
-          paneNav.openDetail(resource, id);
-        } else {
-          go({ to: { resource, action: "show", id } });
-        }
-      },
-      style: { color: token.colorLink, textDecoration: "none", cursor: "pointer" },
-      children: label
-    }
-  );
-};
-var _29 = window._ || ((text) => text);
+var _31 = window._ || ((text) => text);
 var StorageFieldValue = ({ storageKey }) => {
   const [busy, setBusy] = React6.useState(false);
   const filename = storageKey.split("/").slice(1).join("/") || storageKey;
@@ -8006,7 +8418,7 @@ var StorageFieldValue = ({ storageKey }) => {
     try {
       const encodedKey = storageKey.split("/").map(encodeURIComponent).join("/");
       const res = await authenticatedFetch(`/api/advanced-development/media/storage-field/by-key/${encodedKey}`);
-      if (!res.ok) throw new Error(_29("Download failed."));
+      if (!res.ok) throw new Error(_31("Download failed."));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -8015,7 +8427,7 @@ var StorageFieldValue = ({ storageKey }) => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      antd.message.error(err?.message || _29("Download failed."));
+      antd.message.error(err?.message || _31("Download failed."));
     } finally {
       setBusy(false);
     }
@@ -8061,7 +8473,7 @@ function resolveRowTypedField(field, record) {
   return resolved;
 }
 dayjs14__default.default.extend(relativeTime2__default.default);
-var _30 = window._ || ((text) => text);
+var _32 = window._ || ((text) => text);
 var ReactMarkdown2 = React6.lazy(() => import('react-markdown').then((m) => ({ default: m.default })));
 var QRCodeSVG = React6.lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })));
 function formatDuration(totalSeconds) {
@@ -8182,7 +8594,7 @@ var renderFieldValue = (rawField, record, allModels, inTable) => {
         value: value === null || value === void 0 ? "" : String(value),
         autoSize: { minRows: 3, maxRows: 18 },
         style: { resize: "vertical", background: "#f3f6f9" },
-        placeholder: _30(field.key),
+        placeholder: _32(field.key),
         readOnly: true
       }
     );
@@ -8215,7 +8627,7 @@ var renderFieldValue = (rawField, record, allModels, inTable) => {
   }
   return value ?? "-";
 };
-var _31 = window._ || ((text) => text);
+var _33 = window._ || ((text) => text);
 var CROSSTAB_PRORATABLE_FNS = ["sum", "avg"];
 var COUNT_KEY = "__count__";
 var CROSSTAB_HEADER_CLASS = "jm-crosstab-header";
@@ -8244,7 +8656,7 @@ var CrosstabTable = ({
   const activeSeriesKeys = cellFieldKeys.length > 0 ? cellFieldKeys : [COUNT_KEY];
   const seriesLabel = React6.useCallback(
     (seriesKey) => {
-      if (seriesKey === COUNT_KEY) return _31("Count");
+      if (seriesKey === COUNT_KEY) return _33("Count");
       return cellFieldLabels?.[seriesKey] || modelField(seriesKey)?.label || seriesKey;
     },
     [cellFieldLabels, modelField]
@@ -8401,10 +8813,10 @@ var CrosstabTable = ({
       const updates = computeProration(records, seriesKey, newAggregate);
       if (records.length > 1 && editable.confirmProration !== false) {
         antd.Modal.confirm({
-          title: _31("Distribute value across records"),
+          title: _33("Distribute value across records"),
           width: 520,
           content: /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _31("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { marginBottom: 8 }, children: _33("This cell covers N records. The entered value will be distributed (prorated) as:").replace("N", String(records.length)) }),
             /* @__PURE__ */ jsxRuntime.jsx("div", { style: { maxHeight: 240, overflow: "auto" }, children: records.map((rec, idx) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, padding: "2px 0" }, children: [
               /* @__PURE__ */ jsxRuntime.jsx("span", { children: rec?._label ?? recordId2(rec) }),
               /* @__PURE__ */ jsxRuntime.jsxs("span", { style: { color: token.colorTextTertiary }, children: [
@@ -8414,8 +8826,8 @@ var CrosstabTable = ({
               ] })
             ] }, String(recordId2(rec)))) })
           ] }),
-          okText: _31("Apply"),
-          cancelText: _31("Cancel"),
+          okText: _33("Apply"),
+          cancelText: _33("Cancel"),
           onOk: () => editable.onCommitCell(updates)
         });
         return;
@@ -8425,10 +8837,10 @@ var CrosstabTable = ({
     [editable, contributingRecords, cellAggregate, computeProration, recordId2, effectiveValue, token.colorTextTertiary]
   );
   if (!rowField && !colField) {
-    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _31("Crosstab needs at least one category field.") });
+    return /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _33("Crosstab needs at least one category field.") });
   }
   if (rowLabels.length === 0) {
-    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _31("No data available for this view.") });
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 24, color: token.colorTextTertiary, textAlign: "center" }, children: _33("No data available for this view.") });
   }
   const headerCellStyle = {
     fontWeight: "normal"
@@ -8569,7 +8981,7 @@ var CrosstabTable = ({
 };
 
 // src/components/DynamicResource/analysis/chartCatalog.ts
-var _32 = (text) => {
+var _34 = (text) => {
   const translate = typeof window !== "undefined" ? window._ : void 0;
   return translate ? translate(text) : text;
 };
@@ -8613,7 +9025,7 @@ var normalizeChartTypeId = (id, fallback = DEFAULT_CHART_TYPE) => {
   return LEGACY_CHART_TYPE_IDS[raw] ?? fallback;
 };
 var getChartTypeDef = (id) => CHART_TYPE_BY_ID.get(id);
-var getChartTypeLabel = (id) => _32(CHART_TYPE_BY_ID.get(id)?.label ?? id);
+var getChartTypeLabel = (id) => _34(CHART_TYPE_BY_ID.get(id)?.label ?? id);
 var getFrontendChartTypes = () => CHART_TYPES.filter((def) => def.frontend);
 var ICONS = {
   AreaChartOutlined: AntDIcons2.AreaChartOutlined,
@@ -8638,7 +9050,7 @@ var ChartTypeIcon = ({ chartType }) => {
   if (!Icon) return null;
   return /* @__PURE__ */ jsxRuntime.jsx(Icon, { rotate: def?.iconRotate || void 0 });
 };
-var _33 = window._ || ((text) => text);
+var _35 = window._ || ((text) => text);
 var getChartTypeOptions = () => getFrontendChartTypes().map((def) => ({
   value: def.id,
   title: getChartTypeLabel(def.id),
@@ -8712,21 +9124,21 @@ var AnalyzePanel = ({
   const plotsIndividualRows = ["scatter", "bubble", "scatter3d", "histogram", "box"].includes(chartType);
   const waitingForServer = Boolean(serverAggregation && !serverAggregation.hasResult && !serverAggregation.error);
   const axisRoles = {
-    scatter: [_33("X"), _33("Y")],
-    bubble: [_33("X"), _33("Y"), _33("Bubble size")],
-    scatter3d: [_33("X"), _33("Y"), _33("Z")]
+    scatter: [_35("X"), _35("Y")],
+    bubble: [_35("X"), _35("Y"), _35("Bubble size")],
+    scatter3d: [_35("X"), _35("Y"), _35("Z")]
   };
   const axisSeries = chartData.seriesKeys.filter((key) => key !== COUNT_SERIES_KEY);
   const axisHint = axisRoles[chartType] && axisSeries.length > 0 ? axisRoles[chartType].map((role, index) => `${role}: ${chartData.seriesLabels[axisSeries[Math.min(index, axisSeries.length - 1)]] || ""}`).join(" \xB7 ") : null;
   const category3Options = [
-    { label: _33("None"), value: "__none__" },
+    { label: _35("None"), value: "__none__" },
     ...categoricalFields.filter((field) => field.key !== categoryField1 && field.key !== categoryField2).map((field) => ({ label: field.label, value: field.key }))
   ];
   return /* @__PURE__ */ jsxRuntime.jsx(
     antd.Card,
     {
       size: "small",
-      "aria-label": _33("Analyze"),
+      "aria-label": _35("Analyze"),
       styles: { body: { padding: 0 } },
       children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { perspective: 1600, padding: 12 }, children: /* @__PURE__ */ jsxRuntime.jsxs(
         "div",
@@ -8750,15 +9162,15 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
-                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
-                    !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
-                    !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _33("Export chart") }) })
+                    onSaveClick && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Save preferences"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.SaveOutlined, {}), onClick: onSaveClick, loading: isSavingAnalyzePrefs }) }),
+                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Stats"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FileTextOutlined, {}), onClick: () => setIsStatsFlipped(true) }) }),
+                    !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Export chart PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportChartPdf }) }),
+                    !isCrosstab && /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Export chart PNG"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownloadOutlined, {}), onClick: exportChartImage, "aria-label": _35("Export chart") }) })
                   ] }),
                   serverAggregation?.error && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "error", showIcon: true, message: serverAggregation.error }),
                   waitingForServer ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { padding: 48, textAlign: "center", color: token.colorTextSecondary }, children: [
                     /* @__PURE__ */ jsxRuntime.jsx(antd.Spin, {}),
-                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12 }, children: _33("Aggregating on the server...") })
+                    /* @__PURE__ */ jsxRuntime.jsx("div", { style: { marginTop: 12 }, children: _35("Aggregating on the server...") })
                   ] }) : isCrosstab ? /* @__PURE__ */ jsxRuntime.jsx(
                     CrosstabTable,
                     {
@@ -8792,7 +9204,7 @@ var AnalyzePanel = ({
                       graphRef: chartGraphRef
                     }
                   ),
-                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _33("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
+                  !waitingForServer && sampleInfo && plotsIndividualRows && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary }, children: _35("Showing a sample of {shown} of {total} rows").replace("{shown}", sampleInfo.shown.toLocaleString()).replace("{total}", sampleInfo.total.toLocaleString()) }),
                   /* @__PURE__ */ jsxRuntime.jsx(
                     antd.Collapse,
                     {
@@ -8801,11 +9213,11 @@ var AnalyzePanel = ({
                       items: [
                         {
                           key: "configure-chart",
-                          label: _33("Customize chart"),
+                          label: _35("Customize chart"),
                           children: /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
                             /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" }, children: [
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Category 1") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Category 1") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8816,12 +9228,12 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: categoricalFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _33("Select category")
+                                    placeholder: _35("Select category")
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Category 2") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Category 2") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8832,14 +9244,14 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _33("None"), value: "__none__" },
+                                      { label: _35("None"), value: "__none__" },
                                       ...categoricalFields.filter((field) => field.key !== categoryField1).map((field) => ({ label: field.label, value: field.key }))
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220, flex: 1 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Category 3") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Category 3") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8854,7 +9266,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Chart Type") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Chart Type") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8872,7 +9284,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 200 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Summary") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Summary") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8887,7 +9299,7 @@ var AnalyzePanel = ({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 180 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Ranking Filter") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Ranking Filter") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8898,15 +9310,15 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: [
-                                      { label: _33("None"), value: "none" },
-                                      { label: _33("Top N"), value: "top" },
-                                      { label: _33("Bottom N"), value: "bottom" }
+                                      { label: _35("None"), value: "none" },
+                                      { label: _35("Top N"), value: "top" },
+                                      { label: _35("Bottom N"), value: "bottom" }
                                     ]
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 220 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("Ranking Column") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("Ranking Column") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Select,
                                   {
@@ -8917,13 +9329,13 @@ var AnalyzePanel = ({
                                     },
                                     style: { width: "100%" },
                                     options: numericFields.map((field) => ({ label: field.label, value: field.key })),
-                                    placeholder: _33("Select numeric column"),
+                                    placeholder: _35("Select numeric column"),
                                     disabled: rankingMode === "none" || numericFields.length === 0
                                   }
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { minWidth: 120 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _33("N") }),
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: controlLabelStyle, children: _35("N") }),
                                 /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.InputNumber,
                                   {
@@ -8942,8 +9354,8 @@ var AnalyzePanel = ({
                             ] }),
                             /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
                               /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }, children: [
-                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _33("Series") }),
-                                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
+                                /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextSecondary }, children: _35("Series") }),
+                                /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Unselect All"), children: /* @__PURE__ */ jsxRuntime.jsx(
                                   antd.Button,
                                   {
                                     size: "small",
@@ -8963,7 +9375,7 @@ var AnalyzePanel = ({
                                     markAnalyzePrefsTouched();
                                     setSelectedSeriesKeys(values);
                                   },
-                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _33("Count"), value: COUNT_SERIES_KEY }]
+                                  options: numericFields.length > 0 ? numericFields.map((field) => ({ label: field.label, value: field.key })) : [{ label: _35("Count"), value: COUNT_SERIES_KEY }]
                                 }
                               ),
                               axisHint && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontSize: 12, color: token.colorTextTertiary, marginTop: 6 }, children: axisHint })
@@ -8990,11 +9402,11 @@ var AnalyzePanel = ({
                 styles: { body: { display: "grid", gap: 16, position: "relative", paddingTop: 48 } },
                 children: [
                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }, children: [
-                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
-                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _33("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
+                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Analysis"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.BarChartOutlined, {}), onClick: () => setIsStatsFlipped(false) }) }),
+                    /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: _35("Export stats PDF"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { size: "small", icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.FilePdfOutlined, {}), onClick: exportStatsPdf }) })
                   ] }),
                   /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 16 }, children: [
-                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _33("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
+                    statsSummary.numericStats.length > 0 && /* @__PURE__ */ jsxRuntime.jsx(antd.Card, { size: "small", title: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _35("Numeric columns") }), children: /* @__PURE__ */ jsxRuntime.jsxs(
                       antd.Table,
                       {
                         dataSource: statsSummary.numericStats,
@@ -9005,18 +9417,18 @@ var AnalyzePanel = ({
                           /* @__PURE__ */ jsxRuntime.jsx(
                             antd.Table.Column,
                             {
-                              title: _33("Field"),
+                              title: _35("Field"),
                               dataIndex: "label",
                               render: (label) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: label }),
                               onHeaderCell: () => ({ style: statsHeaderStyle })
                             },
                             "label"
                           ),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
-                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Sum"), align: "right", render: (_unused, row) => renderStatBar(row.sum, statsNumericMaxes.sum, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "sum"),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Average"), align: "right", render: (_unused, row) => renderStatBar(row.avg, statsNumericMaxes.avg, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "avg"),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Min"), align: "right", render: (_unused, row) => renderStatBar(row.min, statsNumericMaxes.min, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "min"),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Max"), align: "right", render: (_unused, row) => renderStatBar(row.max, statsNumericMaxes.max, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "max"),
+                          /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Std Dev"), align: "right", render: (_unused, row) => renderStatBar(row.stddev, statsNumericMaxes.stddev, formatNumberValue), onHeaderCell: () => ({ style: statsHeaderStyle }) }, "stddev")
                         ]
                       }
                     ) }),
@@ -9028,7 +9440,7 @@ var AnalyzePanel = ({
                         items: [
                           {
                             key: "categorical-columns",
-                            label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _33("Categorical columns (distinct < 20)") }),
+                            label: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsTitleStyle, children: _35("Categorical columns (distinct < 20)") }),
                             children: statsSummary.categoricalStats.map((field) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { marginBottom: 12 }, children: [
                               /* @__PURE__ */ jsxRuntime.jsx("div", { style: { fontWeight: 600, marginBottom: 4 }, children: /* @__PURE__ */ jsxRuntime.jsx("span", { style: statsLabelStyle, children: field.label }) }),
                               /* @__PURE__ */ jsxRuntime.jsxs(
@@ -9039,11 +9451,11 @@ var AnalyzePanel = ({
                                   pagination: false,
                                   rowKey: (row) => row.value,
                                   children: [
-                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _33("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
+                                    /* @__PURE__ */ jsxRuntime.jsx(antd.Table.Column, { title: _35("Value"), dataIndex: "value", onHeaderCell: () => ({ style: statsHeaderStyle }) }, "value"),
                                     /* @__PURE__ */ jsxRuntime.jsx(
                                       antd.Table.Column,
                                       {
-                                        title: _33("Count"),
+                                        title: _35("Count"),
                                         dataIndex: "count",
                                         align: "right",
                                         onHeaderCell: () => ({ style: statsHeaderStyle }),
@@ -9139,7 +9551,7 @@ var useReferenceTitles = (fields, rows, allModels, knownTitles) => {
 };
 
 // src/components/DynamicResource/analysis/useAnalyze.ts
-var _34 = window._ || ((text) => text);
+var _36 = window._ || ((text) => text);
 var NO_ROWS = [];
 var useAnalyzeSettings = ({
   model,
@@ -9211,9 +9623,9 @@ var useAnalyzeSettings = ({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      antd.message.success(_34("Analyze preferences saved."));
+      antd.message.success(_36("Analyze preferences saved."));
     } catch (error) {
-      antd.message.error(error instanceof Error ? error.message : _34("Failed to save analyze preferences."));
+      antd.message.error(error instanceof Error ? error.message : _36("Failed to save analyze preferences."));
     } finally {
       setIsSavingAnalyzePrefs(false);
     }
@@ -9359,7 +9771,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   );
   const labelCache = useReferenceTitles(categoryReferenceFields, serverResult ? NO_ROWS : rows, referenceModels, knownLabelCache);
   const formatCategoryValue = React6.useCallback((field, record) => {
-    if (!field) return _34("All");
+    if (!field) return _36("All");
     const raw = record?.[field.key];
     if (raw === void 0 || raw === null) return "-";
     if (isPkField(field, model) && record?._label) return record._label;
@@ -9370,7 +9782,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     if (field.options) {
       return field.options.find((option) => option && option.value === raw)?.label || String(raw);
     }
-    if (field.type === "boolean") return raw ? _34("Yes") : _34("No");
+    if (field.type === "boolean") return raw ? _36("Yes") : _36("No");
     if (field.type === "date") return formatDateValue(raw);
     if (field.type === "datetime") return formatDateTimeValue(raw) ?? String(raw);
     if (field.type === "time") return formatTimeValue(raw);
@@ -9431,7 +9843,7 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
   const sampleInfo = serverResult && (serverResult.sample_rows || []).length < serverResult.total_rows ? { shown: serverResult.sample_rows.length, total: serverResult.total_rows } : null;
   const chartTitle = React6.useMemo(() => {
     const labelOf = (key) => key ? model.fields.find((field) => field.key === key)?.label : null;
-    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _34("All")];
+    const parts = [model.label || model.name, categoryField1 ? labelOf(categoryField1) : _36("All")];
     [categoryField2, categoryField3].forEach((key) => {
       const label = labelOf(key);
       if (label) parts.push(label);
@@ -9548,436 +9960,38 @@ var useAnalyzeResults = (settings, { rows, statsFields, labelCache: pageLabelCac
     exportStatsPdf
   };
 };
-var KanbanColumnAnalyze = ({ model, records, cardFields, analyze }) => {
-  const tone = useModelTone(model);
-  const results = useAnalyzeResults(analyze.settings, {
+var AnalyzeViewBody = ({ config, records, statsFields, allModels, resolveTitles }) => {
+  const { settings } = config;
+  const tone = useModelTone(settings.model);
+  const results = useAnalyzeResults(settings, {
     rows: records,
-    statsFields: cardFields,
-    labelCache: analyze.labelCache
+    statsFields,
+    labelCache: config.labelCache,
+    // The page (or the board) that shares its settings already holds the titles of the reference categories.
+    referenceModels: resolveTitles ? allModels : void 0
   });
-  if (!analyze.settings.analyzePrefsReady) return null;
-  return /* @__PURE__ */ jsxRuntime.jsx(
-    AnalyzePanel,
-    {
-      analyze: results,
-      allFields: model.fields,
-      tone,
-      numericBarColor: analyze.numericBarColor
-    }
-  );
+  if (!settings.analyzePrefsReady) return null;
+  return /* @__PURE__ */ jsxRuntime.jsx(AnalyzePanel, { analyze: results, allFields: settings.model.fields, tone, numericBarColor: config.numericBarColor });
 };
-var KanbanColumnContent = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize, analyze }) => {
-  const boardId = React6.useId().replace(/[^a-zA-Z0-9]/g, "");
-  const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
-  const rowModel = React6.useMemo(() => {
-    const { resource: _ownResource, ...modelWithoutResource } = model;
-    return {
-      ...modelWithoutResource,
-      fields: cardFields,
-      // Records link to their own show pages; the column has no create, import or Analyze section.
-      isNamedQuery: true,
-      primaryResource: model.resource || model.name,
-      showAnalyzeSection: false,
-      ...pageSize ? { defaultPageSize: pageSize } : {}
-    };
-  }, [model, cardFields, pageSize]);
-  const rowsStore = useInPageRowsStore(storeName, rowModel, records);
-  const shownRecords = React6.useRef(records);
-  React6.useEffect(() => {
-    if (shownRecords.current === records) return;
-    shownRecords.current = records;
-    rowsStore.setRows(records);
-  }, [records, rowsStore]);
-  if (viewType === "analyze") {
-    return analyze ? /* @__PURE__ */ jsxRuntime.jsx(KanbanColumnAnalyze, { model, records, cardFields, analyze }) : null;
-  }
-  return /* @__PURE__ */ jsxRuntime.jsx(DynamicList, { model: rowsStore.model, allModels, listViewType: viewType, isEmbedded: true, hideDataControls: true }, rowsStore.model.resource);
-};
-var _35 = window._ || ((text) => text);
-var CALENDAR_WEEKDAYS = [_35("Sun"), _35("Mon"), _35("Tue"), _35("Wed"), _35("Thu"), _35("Fri"), _35("Sat")];
-var CALENDAR_DATE_FOOTER_FIELDS = /* @__PURE__ */ new Set(["creation_date", "modification_date"]);
-var isCalendarDateField = (field) => {
-  const rawType = String(field?.type || "").trim().toLowerCase();
-  return rawType === "date" || rawType === "datetime";
-};
-var getCalendarDateFieldOptions = (fields) => {
-  const dateFields = fields.filter(isCalendarDateField);
-  if (dateFields.length === 0) return [];
-  const regularFields = [];
-  const footerFields = [];
-  dateFields.forEach((field) => {
-    const key = String(field.key || "").trim().toLowerCase();
-    if (CALENDAR_DATE_FOOTER_FIELDS.has(key)) {
-      footerFields.push(field);
-      return;
-    }
-    regularFields.push(field);
-  });
-  footerFields.sort((a, b) => {
-    const order = (key) => key === "creation_date" ? 1 : key === "modification_date" ? 2 : 3;
-    return order(String(a.key || "").trim().toLowerCase()) - order(String(b.key || "").trim().toLowerCase());
-  });
-  return [...regularFields, ...footerFields];
-};
-var getCalendarRecordDate = (record, fieldKey) => {
-  const rawValue = record?.[fieldKey];
-  if (rawValue === void 0 || rawValue === null || rawValue === "") return null;
-  const parsed = dayjs14__default.default(rawValue);
-  if (!parsed.isValid()) return null;
-  return parsed.startOf("day");
-};
-var isCalendarHeatmapField = (field) => field.type === "number" && !field.reference;
-var getCalendarHeatmapFieldOptions = (fields) => fields.filter(isCalendarHeatmapField);
-var toHeatmapNumber = (value) => {
-  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-var getCalendarHeatmapTotals = (entriesByDate, dayKeys, fieldKey) => {
-  const totals = /* @__PURE__ */ new Map();
-  if (!fieldKey) return totals;
-  dayKeys.forEach((dayKey) => {
-    let total = null;
-    (entriesByDate.get(dayKey) || []).forEach((entry) => {
-      const value = toHeatmapNumber(entry.record?.[fieldKey]);
-      if (value !== null) total = (total ?? 0) + value;
-    });
-    if (total !== null) totals.set(dayKey, total);
-  });
-  return totals;
-};
-var getCalendarHeatmapBackground = (total, totals, accentColor, baseColor) => {
-  if (total === void 0 || totals.size === 0) return void 0;
-  const values = Array.from(totals.values());
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const ratio = max === min ? 1 : (total - min) / (max - min);
-  const percent = Math.round(8 + ratio * 37);
-  return `color-mix(in srgb, ${accentColor} ${percent}%, ${baseColor})`;
-};
-var formatCalendarHeatmapTotal = (total) => total.toLocaleString(void 0, { maximumFractionDigits: 2 });
-
-// src/components/DynamicResource/utils/mapView.ts
-var MAP_MEASURE_COLORSCALE = "Viridis";
-var DEFAULT_MAP_LOOK = "points";
-var MAXIMUM_LATITUDE_DEGREES = 90;
-var MAXIMUM_LONGITUDE_DEGREES = 180;
-var getMapCoordinateFieldOptions = (fields) => fields.filter((field) => field.type === "number" && !field.reference);
-var getMapMeasureFieldOptions = (fields) => getCalendarHeatmapFieldOptions(fields);
-var getModelMapLocation = (model) => {
-  const declared = model.mapLocation;
-  if (!declared?.latitude || !declared?.longitude) return null;
-  const keys = new Set(model.fields.map((field) => field.key));
-  return keys.has(declared.latitude) && keys.has(declared.longitude) ? declared : null;
-};
-var modelHasMapLocation = (model) => getModelMapLocation(model) !== null;
-var toMapCoordinate = (value, limitDegrees) => {
-  if (value === void 0 || value === null || value === "" || typeof value === "boolean") return null;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && Math.abs(parsed) <= limitDegrees ? parsed : null;
-};
-var getMapRecordTitle = (model, record) => {
-  const titleParts = (model.titleFields ?? []).map((fieldKey) => record?.[fieldKey]).filter((value) => value !== void 0 && value !== null && value !== "").map(String);
-  return titleParts.length > 0 ? titleParts.join(" ") : getRecordDisplayLabel(record);
-};
-var buildMapPoints = (records, location, measureFieldKey, getTitle) => {
-  const points = [];
-  let recordsWithoutLocation = 0;
-  records.forEach((record) => {
-    const latitude = toMapCoordinate(record?.[location.latitude], MAXIMUM_LATITUDE_DEGREES);
-    const longitude = toMapCoordinate(record?.[location.longitude], MAXIMUM_LONGITUDE_DEGREES);
-    if (latitude === null || longitude === null) {
-      recordsWithoutLocation += 1;
-      return;
-    }
-    const rawMeasure = measureFieldKey ? record?.[measureFieldKey] : null;
-    const measure2 = rawMeasure === null || rawMeasure === void 0 || rawMeasure === "" || typeof rawMeasure === "boolean" ? null : Number.isFinite(Number(rawMeasure)) ? Number(rawMeasure) : null;
-    points.push({ id: record?.eid ?? record?.id ?? null, latitude, longitude, label: getTitle(record), measure: measure2, recordCount: 1 });
-  });
-  return { points, recordsWithoutLocation };
-};
-var MAP_GRID_CELLS_ALONG_LONGER_SIDE = 100;
-var aggregateMapPointsIntoGridCells = (points) => {
-  if (points.length === 0) return [];
-  let minLatitude = Infinity, maxLatitude = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
-  points.forEach((point) => {
-    minLatitude = Math.min(minLatitude, point.latitude);
-    maxLatitude = Math.max(maxLatitude, point.latitude);
-    minLongitude = Math.min(minLongitude, point.longitude);
-    maxLongitude = Math.max(maxLongitude, point.longitude);
-  });
-  const longerSide = Math.max(maxLatitude - minLatitude, maxLongitude - minLongitude);
-  const cellSize = longerSide > 0 ? longerSide / MAP_GRID_CELLS_ALONG_LONGER_SIDE : 1;
-  const cells = /* @__PURE__ */ new Map();
-  points.forEach((point) => {
-    const cellKey = `${Math.floor((point.latitude - minLatitude) / cellSize)}:${Math.floor((point.longitude - minLongitude) / cellSize)}`;
-    const cell = cells.get(cellKey) ?? { latitudeSum: 0, longitudeSum: 0, measureSum: null, recordCount: 0 };
-    cell.latitudeSum += point.latitude * point.recordCount;
-    cell.longitudeSum += point.longitude * point.recordCount;
-    cell.recordCount += point.recordCount;
-    if (point.measure !== null) cell.measureSum = (cell.measureSum ?? 0) + point.measure;
-    cells.set(cellKey, cell);
-  });
-  return Array.from(cells.values()).map((cell) => ({
-    id: null,
-    latitude: cell.latitudeSum / cell.recordCount,
-    longitude: cell.longitudeSum / cell.recordCount,
-    label: "",
-    measure: cell.measureSum,
-    recordCount: cell.recordCount
-  }));
-};
-var WORLD_SIZE_AT_ZOOM_ZERO_PX = 512;
-var POINTS_EXTENT_SHARE_OF_MAP = 0.85;
-var MINIMUM_FIT_ZOOM = 0;
-var MAXIMUM_FIT_ZOOM = 14;
-var SINGLE_POSITION_ZOOM = 10;
-var toMercatorY = (latitudeDegrees) => Math.log(Math.tan(Math.PI / 4 + latitudeDegrees * Math.PI / 360));
-var fromMercatorY = (mercatorY) => (2 * Math.atan(Math.exp(mercatorY)) - Math.PI / 2) * (180 / Math.PI);
-var getMapViewportForPoints = (points, mapWidthPx, mapHeightPx) => {
-  if (points.length === 0) return { latitude: 0, longitude: 0, zoom: 1 };
-  let minMercatorY = Infinity, maxMercatorY = -Infinity, minLongitude = Infinity, maxLongitude = -Infinity;
-  points.forEach((point) => {
-    const mercatorY = toMercatorY(point.latitude);
-    minMercatorY = Math.min(minMercatorY, mercatorY);
-    maxMercatorY = Math.max(maxMercatorY, mercatorY);
-    minLongitude = Math.min(minLongitude, point.longitude);
-    maxLongitude = Math.max(maxLongitude, point.longitude);
-  });
-  const centre = {
-    latitude: fromMercatorY((minMercatorY + maxMercatorY) / 2),
-    longitude: (minLongitude + maxLongitude) / 2
-  };
-  const longitudeSpanDegrees = maxLongitude - minLongitude;
-  const mercatorSpan = maxMercatorY - minMercatorY;
-  if (longitudeSpanDegrees <= 0 && mercatorSpan <= 0) return { ...centre, zoom: SINGLE_POSITION_ZOOM };
-  const zoomToFitLongitude = longitudeSpanDegrees > 0 ? Math.log2(mapWidthPx * POINTS_EXTENT_SHARE_OF_MAP * 360 / (WORLD_SIZE_AT_ZOOM_ZERO_PX * longitudeSpanDegrees)) : Infinity;
-  const zoomToFitLatitude = mercatorSpan > 0 ? Math.log2(mapHeightPx * POINTS_EXTENT_SHARE_OF_MAP * 2 * Math.PI / (WORLD_SIZE_AT_ZOOM_ZERO_PX * mercatorSpan)) : Infinity;
-  const zoom = Math.min(MAXIMUM_FIT_ZOOM, Math.max(MINIMUM_FIT_ZOOM, Math.min(zoomToFitLongitude, zoomToFitLatitude)));
-  return { ...centre, zoom };
-};
-
-// src/components/DynamicResource/utils/applicableViewTypes.ts
-var hasNumericField = (model) => model.fields.some((field) => field.type === "number" && !field.reference && !isPkField(field, model));
-function modelMeetsRequirement(requirement, model) {
-  switch (requirement) {
-    case "image-source":
-      return modelHasImageSource(model);
-    case "date-field":
-      return getCalendarDateFieldOptions(model.fields).length > 0;
-    case "number-field":
-      return hasNumericField(model);
-    case "split-field":
-      return getKanbanSplitFieldOptions(model.fields).length > 0;
-    case "map-location":
-      return modelHasMapLocation(model);
-    default:
-      return true;
-  }
-}
-function isViewTypeApplicable(token, model) {
-  const entry = VIEW_TYPE_CATALOG.find((candidate) => candidate.token === token);
-  return modelMeetsRequirement(entry?.requires, model);
-}
-function getSelectableViewTypes(context, model) {
-  return getViewTypeCatalogEntries(context).filter((entry) => modelMeetsRequirement(entry.requires, model)).map((entry) => entry.token);
-}
-var _36 = (text) => translateText(text, text);
-var { Text: Text6 } = antd.Typography;
-var KANBAN_COLUMN_MINIMUM_WIDTH = 420;
-var KANBAN_COLUMN_MAXIMUM_WIDTH = 720;
-var KANBAN_BOARD_MAX_HEIGHT = "calc(100vh - 280px)";
-var KanbanColumnPanel = ({ label, records, viewType, cardFields, columnIndex, pageSize, model, allModels, analyze }) => {
-  const { token } = antd.theme.useToken();
-  const tone = useModelTone(model);
-  return /* @__PURE__ */ jsxRuntime.jsxs(
-    "div",
-    {
-      "data-kanban-column": label,
-      style: {
-        flex: "0 0 auto",
-        width: "max-content",
-        minWidth: KANBAN_COLUMN_MINIMUM_WIDTH,
-        maxWidth: KANBAN_COLUMN_MAXIMUM_WIDTH,
-        display: "flex",
-        flexDirection: "column",
-        border: `1px solid ${tone.border}`,
-        borderRadius: 8,
-        background: token.colorBgContainer,
-        boxShadow: `0 8px 20px -16px ${tone.shadow}`,
-        overflow: "hidden"
-      },
-      children: [
-        /* @__PURE__ */ jsxRuntime.jsxs(
-          "div",
-          {
-            style: {
-              padding: "8px 12px",
-              background: tone.soft,
-              borderBottom: `1px solid ${tone.border}`,
-              display: "flex",
-              alignItems: "baseline",
-              gap: 8
-            },
-            children: [
-              /* @__PURE__ */ jsxRuntime.jsx(Text6, { strong: true, style: { overflowWrap: "anywhere", color: tone.text }, children: label }),
-              /* @__PURE__ */ jsxRuntime.jsxs(Text6, { style: { fontSize: 12, whiteSpace: "nowrap", color: tone.text, opacity: 0.65 }, children: [
-                "(",
-                records.length,
-                ")"
-              ] })
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding: 12, flex: 1, minHeight: 0, minWidth: 0, overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
-          KanbanColumnContent,
-          {
-            model,
-            allModels,
-            records,
-            cardFields,
-            viewType,
-            columnIndex,
-            pageSize,
-            analyze
-          }
-        ) })
-      ]
-    }
-  );
-};
-var KanbanView = (props) => {
-  const { model, allModels, records, maximumColumns, formatValue, initialColumnViewType, toolbarExtra, pageSize, fieldSequenceKeys, analyze } = props;
-  const fields = model.fields;
-  const splitFieldOptions = React6.useMemo(() => getKanbanSplitFieldOptions(fields), [fields]);
-  const cardFieldOptions = React6.useMemo(() => getKanbanCardFieldOptions(fields), [fields]);
-  const [splitFieldKeys, setSplitFieldKeys] = React6.useState(() => getDefaultKanbanSplitFieldKeys(fields));
-  const [chosenColumnViewType, setColumnViewType] = React6.useState(initialColumnViewType ?? DEFAULT_KANBAN_COLUMN_VIEW_TYPE);
-  const applicableColumnViewTypes = React6.useMemo(
-    () => getSelectableViewTypes("kanban-column", model).filter((viewType) => viewType !== "analyze" || Boolean(analyze)),
-    [model, analyze]
-  );
-  const columnViewType = applicableColumnViewTypes.includes(chosenColumnViewType) ? chosenColumnViewType : DEFAULT_KANBAN_COLUMN_VIEW_TYPE;
-  const splitFields = React6.useMemo(
-    () => splitFieldKeys.map((key) => fields.find((field) => field.key === key)).filter((field) => Boolean(field)),
-    [fields, splitFieldKeys]
-  );
-  const cardFields = React6.useMemo(() => {
-    const fromSequence = (fieldSequenceKeys ?? []).map((key) => cardFieldOptions.find((field) => field.key === key)).filter((field) => Boolean(field));
-    return fromSequence.length > 0 ? fromSequence : cardFieldOptions;
-  }, [fieldSequenceKeys, cardFieldOptions]);
-  const analyzeCategoryField1 = analyze?.settings.categoryField1;
-  const analyzeCategoryField2 = analyze?.settings.categoryField2;
-  const analyzeCategoryField3 = analyze?.settings.categoryField3;
-  const titleFields = React6.useMemo(() => {
-    const wantedKeys = new Set(splitFields.map((field) => field.key));
-    [analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3].forEach((key) => {
-      if (key) wantedKeys.add(key);
-    });
-    return fields.filter((field) => field.reference && wantedKeys.has(field.key));
-  }, [fields, splitFields, analyzeCategoryField1, analyzeCategoryField2, analyzeCategoryField3]);
+var AnalyzeViewWithOwnSettings = ({ model, allModels, records, statsFields }) => {
   const apiUrl = core.useApiUrl();
-  const [referenceTitles, setReferenceTitles] = React6.useState({});
-  const requestedTitleKeys = React6.useRef(/* @__PURE__ */ new Set());
-  const isMounted = React6.useRef(true);
-  React6.useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  React6.useEffect(() => {
-    titleFields.forEach((field) => {
-      records.forEach((record) => {
-        const id = record?.[field.key];
-        if (id === void 0 || id === null || id === "") return;
-        const cacheKey = `${field.reference}:${id}`;
-        if (requestedTitleKeys.current.has(cacheKey)) return;
-        requestedTitleKeys.current.add(cacheKey);
-        const resourcePath = field.referencePath || resolveResourcePath(field.reference, allModels);
-        authenticatedFetch(`${apiUrl}/${resourcePath}/${id}`).then(async (response) => {
-          if (!response.ok) throw new Error(String(response.status));
-          const data = await response.json();
-          if (!isMounted.current) return;
-          const title = String(getReferenceRecordTitle(data, id));
-          setReferenceTitles((previous) => previous[cacheKey] === title ? previous : { ...previous, [cacheKey]: title });
-        }).catch(() => {
-          requestedTitleKeys.current.delete(cacheKey);
-        });
-      });
-    });
-  }, [records, titleFields, apiUrl, allModels]);
-  const formatColumnValue = React6.useMemo(
-    () => (field, record) => {
-      if (field.reference) {
-        const title = referenceTitles[`${field.reference}:${record?.[field.key]}`];
-        if (title !== void 0) return title;
-      }
-      return formatValue(field, record);
-    },
-    [referenceTitles, formatValue]
-  );
-  const analyzeWithTitles = React6.useMemo(
-    () => analyze ? { ...analyze, labelCache: { ...analyze.labelCache, ...referenceTitles } } : void 0,
-    [analyze, referenceTitles]
-  );
-  const columns = React6.useMemo(
-    () => buildKanbanColumns(records, splitFields, maximumColumns, formatColumnValue, _36("(empty)"), _36("All")),
-    [records, splitFields, maximumColumns, formatColumnValue]
-  );
-  return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "grid", gap: 12 }, children: [
-    /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { wrap: true, size: 8, align: "start", children: [
-      /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Select,
-        {
-          size: "small",
-          mode: "multiple",
-          allowClear: true,
-          maxTagCount: "responsive",
-          value: splitFieldKeys,
-          onChange: setSplitFieldKeys,
-          options: splitFieldOptions.map((field) => ({ label: field.label, value: field.key })),
-          style: { minWidth: 240 },
-          placeholder: _36("Split columns by"),
-          "aria-label": _36("Split columns by")
-        }
-      ),
-      /* @__PURE__ */ jsxRuntime.jsx(
-        antd.Select,
-        {
-          size: "small",
-          value: columnViewType,
-          onChange: setColumnViewType,
-          options: applicableColumnViewTypes.map((viewType) => ({ label: getViewTypeLabel(viewType), value: viewType })),
-          style: { minWidth: 140 },
-          "aria-label": _36("Column view type")
-        }
-      ),
-      toolbarExtra
-    ] }),
-    columns.length === 0 ? /* @__PURE__ */ jsxRuntime.jsx(antd.Empty, { description: _36("No records available") }) : /* @__PURE__ */ jsxRuntime.jsx(
-      "div",
-      {
-        "data-kanban-board": true,
-        style: { overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 },
-        children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }, children: columns.map((column, columnIndex) => /* @__PURE__ */ jsxRuntime.jsx(
-          KanbanColumnPanel,
-          {
-            label: column.label,
-            records: column.records,
-            viewType: columnViewType,
-            cardFields,
-            columnIndex,
-            pageSize,
-            model,
-            allModels,
-            analyze: analyzeWithTitles
-          },
-          column.label
-        )) })
-      }
-    )
-  ] });
+  const tone = useModelTone(model);
+  const settings = useAnalyzeSettings({
+    model,
+    apiUrl,
+    prefsResourceKey: resolveResourcePath(model.resource || model.name, allModels),
+    currentViewName: ""
+  });
+  const [labelCache] = React6__default.default.useState({});
+  const config = { settings, labelCache, numericBarColor: tone.soft };
+  return /* @__PURE__ */ jsxRuntime.jsx(AnalyzeViewBody, { config, records, statsFields, allModels, resolveTitles: true });
+};
+var AnalyzeView = (props) => {
+  const shared = useAnalyzeSharedConfig();
+  if (shared && shared.settings.model.name === props.model.name) {
+    return /* @__PURE__ */ jsxRuntime.jsx(AnalyzeViewBody, { config: shared, records: props.records, statsFields: props.statsFields, allModels: props.allModels, resolveTitles: false });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsx(AnalyzeViewWithOwnSettings, { ...props });
 };
 var _37 = (text) => translateText(text, text);
 var { Text: Text7 } = antd.Typography;
@@ -18972,7 +18986,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       ] })
     ] });
   };
-  const kanbanBodyNode = isKanbanView ? /* @__PURE__ */ jsxRuntime.jsx(
+  const kanbanBodyNode = isKanbanView ? /* @__PURE__ */ jsxRuntime.jsx(AnalyzeSharedProvider, { value: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : null, children: /* @__PURE__ */ jsxRuntime.jsx(
     KanbanView,
     {
       model: relatedModel,
@@ -18981,10 +18995,9 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
       pageSize,
       fieldSequenceKeys: displayFields.map((field) => field.key),
       maximumColumns: viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW,
-      formatValue: (field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? ""),
-      analyze: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : void 0
+      formatValue: (field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? "")
     }
-  ) : null;
+  ) }) : null;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-tone-scope", style: toneScopeStyle(relatedModelTone), children: [
     /* @__PURE__ */ jsxRuntime.jsx(ToneSharedStyles, {}),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }, children: [
@@ -20542,6 +20555,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const isCalendarView = resolvedListViewType === "calendar";
   const isKanbanView = resolvedListViewType === "kanban";
   const isMapView = resolvedListViewType === "map";
+  const isAnalyzeView = resolvedListViewType === "analyze";
   const isTotalsDetailsView = resolvedListViewType === "totals-details" || resolvedListViewType === "totalsdetails";
   const isCrosstabView = resolvedListViewType === "crosstab" || resolvedListViewType === "editable-crosstab" || resolvedListViewType === "editablecrosstab";
   const isPrimaryCarouselView = resolvedListViewType === "primary-carousel";
@@ -21129,10 +21143,11 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
   const shouldLoadAllRows = React6.useMemo(() => {
     return Boolean(
       localSearch.trim().length > 0 || hasActiveFilterRules || analyzeNeedsAllRows || exportRequested || isTotalsDetailsView || isCrosstabView || isKanbanView || // The map places every record, so it needs them all.
-      isMapView || isPrimaryCarouselView || // The calendar needs every record to know which months and weeks hold data.
+      isMapView || // The analyze view summarises every record.
+      isAnalyzeView || isPrimaryCarouselView || // The calendar needs every record to know which months and weeks hold data.
       isCalendarView || columnFilterDropdownEverOpened || hasActiveRangeColumnFilter
     );
-  }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isMapView, isPrimaryCarouselView, isCalendarView, localSearch]);
+  }, [analyzeNeedsAllRows, columnFilterDropdownEverOpened, exportRequested, hasActiveFilterRules, hasActiveRangeColumnFilter, isTotalsDetailsView, isCrosstabView, isKanbanView, isMapView, isAnalyzeView, isPrimaryCarouselView, isCalendarView, localSearch]);
   const resetLayoutDefaults = React6.useCallback(() => {
     setListVisible(defaultListVisible ?? true);
     setAnalyzeOpen(isEmbedded);
@@ -22211,7 +22226,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       )
     ] })
   ] }) : null;
-  const bulkActionsToolbar = !isGalleryView && !isCalendarView && !isKanbanView && !isMapView && bulkSelectedRowKeys.length > 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: {
+  const bulkActionsToolbar = !isGalleryView && !isCalendarView && !isKanbanView && !isMapView && !isAnalyzeView && bulkSelectedRowKeys.length > 0 ? /* @__PURE__ */ jsxRuntime.jsxs("div", { style: {
     display: "flex",
     flexWrap: "wrap",
     alignItems: "center",
@@ -23315,7 +23330,7 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
       }
     ),
     /* @__PURE__ */ jsxRuntime.jsxs("div", { style: listAnalyzeLayoutStyle, children: [
-      listVisible && /* @__PURE__ */ jsxRuntime.jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isKanbanView ? /* @__PURE__ */ jsxRuntime.jsx(
+      listVisible && /* @__PURE__ */ jsxRuntime.jsx("div", { style: listContainerStyle, children: isCalendarView ? renderCalendarView() : isAnalyzeView ? /* @__PURE__ */ jsxRuntime.jsx(AnalyzeView, { model, allModels, records: recordsInSharedOrder, statsFields: displayFields }) : isKanbanView ? /* @__PURE__ */ jsxRuntime.jsx(AnalyzeSharedProvider, { value: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : null, children: /* @__PURE__ */ jsxRuntime.jsx(
         KanbanView,
         {
           model,
@@ -23324,11 +23339,10 @@ var DynamicListPage = ({ model: modelProp, allModels: allModelsProp, filter, rel
           pageSize,
           fieldSequenceKeys: orderedSelectedColumns,
           maximumColumns: viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW,
-          analyze: analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : void 0,
           formatValue: (field, record) => String(getFieldValueForFilter(field, record) ?? ""),
           toolbarExtra: analyzeSectionAvailable ? /* @__PURE__ */ jsxRuntime.jsx(AnalyzeToggleButton, { open: analyzeOpen, onToggle: toggleAnalyzeSection }) : void 0
         }
-      ) : isMapView ? /* @__PURE__ */ jsxRuntime.jsx(
+      ) }) : isMapView ? /* @__PURE__ */ jsxRuntime.jsx(
         MapView,
         {
           model,

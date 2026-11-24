@@ -32,6 +32,8 @@ const LIST = withOverrides({ analyze: true });
 const CSV = withOverrides({});
 const TOTALS_DETAILS = withOverrides({ summaries: true, analyze: true });
 const CROSSTAB = withOverrides({ pagination: false, summaries: true, analyze: true });
+/** The analyze view draws the records' chart and statistics: it takes filters and the statistics fields, has no sort order or pages, and is itself the Analyze section. */
+const ANALYZE = withOverrides({ multiSort: false, pagination: false, analyze: false });
 const KANBAN = withOverrides({ analyze: true });
 const GALLERY = withOverrides({});
 const CALENDAR = withOverrides({ pagination: false });
@@ -54,8 +56,7 @@ const CAPABILITIES_BY_VIEW_TYPE: Record<string, ViewTypeCapabilities> = {
     "crosstab": CROSSTAB,
     "editable-crosstab": CROSSTAB,
     "kanban": KANBAN,
-    // Only a kanban column shows its records as Analyze; the column has no controls of its own.
-    "analyze": { ...NONE },
+    "analyze": ANALYZE,
     "gallery": GALLERY,
     "image": GALLERY,
     "calendar": CALENDAR,

@@ -97,6 +97,7 @@ import { renderFieldValue } from "../fields/renderFieldValue";
 import { ReferenceField } from "../fields/ReferenceField";
 import { CrosstabTable } from "../analysis/CrosstabTable";
 import { KanbanView } from "../KanbanView";
+import { AnalyzeSharedProvider } from "../analysis/AnalyzeSharedContext";
 import { resolveListVisibilityOnDetailLevelChange } from "../utils/listVisibilityOnDetailLevelChange";
 import { DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW } from "../utils/kanban";
 import { sortRecordsBySortList } from "../viewState/sortRecords";
@@ -1833,6 +1834,7 @@ export const RelatedObjectsTable: React.FC<{
     // Kanban: the rows left by the search, filter rules and column filters, in the shared sort order,
     // split into columns. Each column pages its own cards with the shared page size.
     const kanbanBodyNode = isKanbanView ? (
+<AnalyzeSharedProvider value={analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : null}>
         <KanbanView
             model={relatedModel}
             allModels={allModels}
@@ -1841,8 +1843,8 @@ export const RelatedObjectsTable: React.FC<{
             fieldSequenceKeys={displayFields.map((field) => field.key)}
             maximumColumns={viewSettings?.maximumColumnsInKanbanView ?? DEFAULT_MAXIMUM_COLUMNS_IN_KANBAN_VIEW}
             formatValue={(field, recordRow) => String(getFieldValueForFilter(field, recordRow) ?? "")}
-            analyze={analyzeSectionAvailable ? { settings: analyzeSettings, labelCache, numericBarColor } : undefined}
         />
+        </AnalyzeSharedProvider>
     ) : null;
 
     return (

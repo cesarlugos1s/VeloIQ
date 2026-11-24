@@ -11,7 +11,6 @@ import { useInPageRowsStore } from "../../hooks/useInPageRowsStore";
 import type { FieldDef, ModelDef } from "./types";
 import type { KanbanColumnViewType } from "./utils/kanban";
 import { DynamicList } from "./index";
-import { KanbanColumnAnalyze, type KanbanAnalyzeConfig } from "./KanbanColumnAnalyze";
 
 export interface KanbanColumnContentProps {
     /** The model whose records the kanban shows. */
@@ -26,11 +25,9 @@ export interface KanbanColumnContentProps {
     columnIndex: number;
     /** Page size of the column (the board's shared page size). */
     pageSize?: number;
-    /** The page's Analyze configuration; the "analyze" view type needs it. */
-    analyze?: KanbanAnalyzeConfig;
 }
 
-export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize, analyze }) => {
+export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model, allModels, records, cardFields, viewType, columnIndex, pageSize }) => {
     const boardId = useId().replace(/[^a-zA-Z0-9]/g, "");
     // The store is made again (with the records) when the shown fields change, as its model is fixed at creation.
     const storeName = `kanban_${boardId}_${columnIndex}_${pageSize ?? ""}_${cardFields.map((field) => field.key).join("_")}`;
@@ -56,8 +53,5 @@ export const KanbanColumnContent: React.FC<KanbanColumnContentProps> = ({ model,
         rowsStore.setRows(records);
     }, [records, rowsStore]);
 
-    if (viewType === "analyze") {
-        return analyze ? <KanbanColumnAnalyze model={model} records={records} cardFields={cardFields} analyze={analyze} /> : null;
-    }
     return <DynamicList key={rowsStore.model.resource} model={rowsStore.model} allModels={allModels} listViewType={viewType} isEmbedded hideDataControls />;
 };

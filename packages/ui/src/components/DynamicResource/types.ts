@@ -135,7 +135,7 @@ export interface ModelDef {
     resource?: string;
     description?: string;
     pkField?: string;
-    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "map" | "totals-details" | "primary" | "primary-carousel" | "list" | "editable-list";
+    listViewType?: "table" | "editable-table" | "gallery" | "image" | "calendar" | "kanban" | "map" | "totals-details" | "primary" | "primary-carousel" | "list" | "editable-list" | "analyze";
     /** Field keys whose values compose this model's record title (space-joined).
      *  Configured via `veloiq set-title` and stored on the model's
      *  `__veloiq_ui__["titleFields"]`; mirrors the backend `dc_title()`/`__str__`. */

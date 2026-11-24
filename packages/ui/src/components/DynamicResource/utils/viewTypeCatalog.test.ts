@@ -29,6 +29,10 @@ describe("view type catalog", () => {
         expect(catalog.getViewTypesForContext("relation-edit")).toContain("editable-csv");
         expect(catalog.getViewTypesForContext("relation-show")).not.toContain("editable-csv");
     });
+    it("declares the analyze view as the Analyze section itself: filters and statistics fields, no sort, pages or second Analyze section", () => {
+        const analyze = capabilities.getViewTypeCapabilities("analyze");
+        expect(analyze).toMatchObject({ filters: true, advancedFilter: true, fieldSequence: true, multiSort: false, pagination: false, analyze: false });
+    });
     it("resolves the spellings configurations use", () => {
         expect(catalog.resolveViewTypeToken("Editable Table")).toBe("editable-table");
         expect(catalog.resolveViewTypeToken("editable")).toBe("editable-table");
