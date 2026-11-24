@@ -237,7 +237,9 @@ export const KanbanView: React.FC<KanbanViewProps> = (props) => {
             ) : (
                 <div
                     data-kanban-board
-                    style={{ overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 }}
+                    // The Analyze view (chart, statistics and controls) is taller than the room under the page header: the
+                    // cards grow to its height and the page scrolls, not the board.
+                    style={{ overflow: "auto", ...(columnViewType === "analyze" ? {} : { maxHeight: KANBAN_BOARD_MAX_HEIGHT }), paddingBottom: 4 }}
                 >
                     <AnalyzeSharedProvider value={analyzeWithTitles}>
                     <div style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }}>

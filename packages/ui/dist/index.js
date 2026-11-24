@@ -7716,7 +7716,7 @@ var KanbanView = (props) => {
       "div",
       {
         "data-kanban-board": true,
-        style: { overflow: "auto", maxHeight: KANBAN_BOARD_MAX_HEIGHT, paddingBottom: 4 },
+        style: { overflow: "auto", ...columnViewType === "analyze" ? {} : { maxHeight: KANBAN_BOARD_MAX_HEIGHT }, paddingBottom: 4 },
         children: /* @__PURE__ */ jsxRuntime.jsx(AnalyzeSharedProvider, { value: analyzeWithTitles, children: /* @__PURE__ */ jsxRuntime.jsx("div", { style: { display: "flex", gap: 12, alignItems: "flex-start", width: "max-content", minWidth: "100%" }, children: columns.map((column, columnIndex) => /* @__PURE__ */ jsxRuntime.jsx(
           KanbanColumnPanel,
           {
