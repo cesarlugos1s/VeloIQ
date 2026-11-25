@@ -12,7 +12,8 @@ from pathlib import Path
 
 from veloiq_framework.documentation_workflow.specification_front_matter import split_front_matter
 from veloiq_framework.documentation_workflow.workflow_constants import (
-    ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, CHANGELOG_FILE_NAME, CHANGES_FOLDER_NAME, OPENSPEC_FOLDER_NAME, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
+    ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, CHANGELOG_FILE_NAME, CHANGES_FOLDER_NAME, ELEMENT_TYPE_CAPABILITIES,
+    ELEMENT_TYPE_FEATURES, OPENSPEC_FOLDER_NAME, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
 )
 
 SITE_BUILD_FOLDER_NAME = "documentation-site"
@@ -118,6 +119,24 @@ def _link_epic_headings(body_text: str, links: LinkTargets, page_path: str) -> s
         for line in body_text.split("\n"))
 
 
+def _features_by_capability(openspec_folder: Path) -> dict[str, list[str]]:
+    """Return {capability name: feature names}, read from the `capability` front matter of each feature."""
+    features_folder = openspec_folder / SPECIFICATIONS_FOLDER_NAME / ELEMENT_TYPE_FEATURES
+    features: dict[str, list[str]] = {}
+    if features_folder.exists():
+        for feature_folder in sorted(path for path in features_folder.iterdir() if (path / SPECIFICATION_FILE_NAME).exists()):
+            front_matter, _ = split_front_matter((feature_folder / SPECIFICATION_FILE_NAME).read_text(encoding="utf-8"))
+            if front_matter.get("capability"):
+                features.setdefault(str(front_matter["capability"]), []).append(feature_folder.name)
+    return features
+
+
+def _features_section(capability_name: str, features: dict[str, list[str]], links: LinkTargets, page_path: str) -> str:
+    names = features.get(capability_name, [])
+    listed = "\n".join(f"- {links.link('elements', name, page_path)}" for name in names) if names else "No feature is specified for this capability yet."
+    return f"\n\n## Features of this capability\n\n{listed}\n"
+
+
 def _archived_changes(openspec_folder: Path) -> list[tuple[str, Path]]:
     """Return (change name, archived folder) pairs, oldest first; the name has the archive date prefix removed."""
     archive_folder = openspec_folder / CHANGES_FOLDER_NAME / ARCHIVE_FOLDER_NAME
@@ -192,6 +211,7 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
     docs_folder.mkdir(parents=True)
     specifications_root = openspec_folder / SPECIFICATIONS_FOLDER_NAME
     links = _collect_link_targets(openspec_folder)
+    features_of_capability = _features_by_capability(openspec_folder)
     navigation: list[str] = ["  - Home: index.md"]
     home_lines = [f"# {site_name}", "", "Product Specification, current state at this version.", ""]
     for element_type in ALL_ELEMENT_TYPES:
@@ -205,7 +225,10 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
             front_matter, body_text = split_front_matter((element_folder / SPECIFICATION_FILE_NAME).read_text(encoding="utf-8"))
             page = docs_folder / element_type / f"{element_folder.name}.md"
             page.parent.mkdir(parents=True, exist_ok=True)
-            page.write_text(_metadata_table(front_matter, links, f"{element_type}/{element_folder.name}.md") + body_text, encoding="utf-8")
+            page_path = f"{element_type}/{element_folder.name}.md"
+            features_text = _features_section(element_folder.name, features_of_capability, links, page_path) \
+                if element_type == ELEMENT_TYPE_CAPABILITIES else ""
+            page.write_text(_metadata_table(front_matter, links, page_path) + body_text + features_text, encoding="utf-8")
             navigation.append(f"    - {element_folder.name}: {element_type}/{element_folder.name}.md")
             for extra_file in sorted(element_folder.iterdir()):
                 if extra_file.is_file() and extra_file.name != SPECIFICATION_FILE_NAME:

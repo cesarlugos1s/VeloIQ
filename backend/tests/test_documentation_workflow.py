@@ -214,8 +214,14 @@ def test_site_links_origin_prerequisites_and_relations_to_their_pages(tmp_path):
         "origin": {"changes": ["add-feature"], "epics": ["the-epic"], "stories": ["the-story", "unknown-story"]},
         "prerequisites": [{"text": "A role exists", "inherited-from": "epic the-epic"}]})
     write_file(openspec_folder / "reverse-views" / "implemented-by-epic.md", "# Specification elements by epic\n\n## the-epic\n\n- features/do-it\n- features/missing\n")
+    write_element(openspec_folder, "features", "second-feature", {"type": "feature", "capability": "the-capability"})
+    write_element(openspec_folder, "capabilities", "lonely-capability", {"type": "capability"})
     stage_documentation_site(openspec_folder, tmp_path / "build", "Demo")
     docs = tmp_path / "build" / "docs"
+    capability_page = (docs / "capabilities" / "the-capability.md").read_text()
+    assert "## Features of this capability" in capability_page
+    assert "- [do-it](../features/do-it.md)\n- [second-feature](../features/second-feature.md)" in capability_page
+    assert "No feature is specified for this capability yet." in (docs / "capabilities" / "lonely-capability.md").read_text()
     reverse_view = (docs / "implemented-by-epic.md").read_text()
     assert "## [the-epic](changes/add-feature/epics/the-epic.md)" in reverse_view
     assert "- [features/do-it](features/do-it.md)" in reverse_view and "- features/missing" in reverse_view
