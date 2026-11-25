@@ -663,11 +663,21 @@ class Explorer:
         self._divider(stdscr, r, max_x)
         r += 1
 
-        for i, action in enumerate(DOCUMENTATION_ACTIONS):
+        # The list scrolls when the terminal is short, so the explanation below it always fits.
+        list_height = max(4, min(len(DOCUMENTATION_ACTIONS), max_y - r - 11))
+        if f.cursor < f.scroll:
+            f.scroll = f.cursor
+        elif f.cursor >= f.scroll + list_height:
+            f.scroll = f.cursor - list_height + 1
+        for i in range(f.scroll, min(len(DOCUMENTATION_ACTIONS), f.scroll + list_height)):
+            action = DOCUMENTATION_ACTIONS[i]
             is_sel = i == f.cursor
             attr = curses.color_pair(_C_SEL) if is_sel else 0
             prefix = " ► " if is_sel else "   "
             self._w(stdscr, r, 2, f"{prefix}[{action.key}]  {action.label}", attr)
+            r += 1
+        if len(DOCUMENTATION_ACTIONS) > list_height:
+            self._w(stdscr, r, 4, f"({f.scroll + 1}-{min(len(DOCUMENTATION_ACTIONS), f.scroll + list_height)} of {len(DOCUMENTATION_ACTIONS)}; keys work for hidden actions)", curses.A_DIM)
             r += 1
         r += 1
         selected = DOCUMENTATION_ACTIONS[min(f.cursor, len(DOCUMENTATION_ACTIONS) - 1)]
@@ -693,8 +703,8 @@ class Explorer:
 
     def _handle_docs(self, key, stdscr, max_y, max_x) -> Optional[str]:
         from veloiq_framework.documentation_workflow.documentation_workflow_guide import (
-            DOCUMENTATION_ACTIONS, SOURCE_APPLIED_CHANGES, SOURCE_IN_PROGRESS_CHANGES, build_documentation_command,
-            read_documentation_status,
+            DOCUMENTATION_ACTIONS, SOURCE_APPLIED_CHANGES, SOURCE_ELEMENT_TYPES, SOURCE_EPICS_OF_CHANGE,
+            SOURCE_IN_PROGRESS_CHANGES, SOURCE_STORIES_OF_CHANGE, build_documentation_command, read_documentation_status,
         )
         f = self._f
         self._move_cursor(f, len(DOCUMENTATION_ACTIONS), key)
@@ -714,18 +724,26 @@ class Explorer:
             return None
         values: dict[str, str] = {}
         for action_input in selected.inputs:
+            chosen_change = values.get(action_input.depends_on, "") if action_input.depends_on else ""
             candidates = {SOURCE_IN_PROGRESS_CHANGES: status.in_progress_changes,
-                          SOURCE_APPLIED_CHANGES: status.applied_changes}.get(action_input.source, [])
-            if action_input.source != "text" and not candidates:
-                self._docs_message = ("No change in progress: start one with [n]." if action_input.source == SOURCE_IN_PROGRESS_CHANGES
-                                      else "No applied change yet: apply a change with [a] first.")
+                          SOURCE_APPLIED_CHANGES: status.applied_changes,
+                          SOURCE_ELEMENT_TYPES: status.element_types,
+                          SOURCE_EPICS_OF_CHANGE: status.epics_by_change.get(chosen_change, []),
+                          SOURCE_STORIES_OF_CHANGE: status.stories_by_change.get(chosen_change, [])}.get(action_input.source, [])
+            if action_input.source != "text" and not candidates and action_input.required:
+                self._docs_message = {
+                    SOURCE_IN_PROGRESS_CHANGES: "No change in progress: start one with [n].",
+                    SOURCE_EPICS_OF_CHANGE: "This change has no epic yet: add one with [e].",
+                }.get(action_input.source, "No applied change yet: apply a change with [a] first.")
                 return None
-            prompt = action_input.label
+            prompt = action_input.label + ("" if action_input.required else " - optional")
             if candidates:
-                prompt += f" ({', '.join(candidates[-4:])})"
+                shown = candidates if action_input.source == SOURCE_ELEMENT_TYPES else candidates[-4:]
+                prompt += f" ({', '.join(shown)})"
             elif action_input.help_text:
                 prompt += f" ({action_input.help_text})"
-            default = candidates[-1] if candidates else (status.latest_git_tag if action_input.key == "product_version" else "")
+            default = "" if (not action_input.required or action_input.source == SOURCE_ELEMENT_TYPES) \
+                else (candidates[-1] if candidates else (status.latest_git_tag if action_input.key == "product_version" else ""))
             values[action_input.key] = self._get_input(stdscr, max_y, max_x, prompt, default)
         try:
             command = build_documentation_command(selected, values)

@@ -15,9 +15,13 @@ function buildDocumentationCommand(action: DocumentationAction, values: Record<s
 
 function buildCommandDefinition(action: DocumentationAction, guide: DocumentationGuide): CommandDef {
   const { status } = guide;
+  const flatten = (byChange: Record<string, string[]>) => Array.from(new Set(Object.values(byChange).flat()));
   const choicesBySource: Record<string, string[]> = {
     in_progress_changes: status.in_progress_changes,
     applied_changes: status.applied_changes,
+    epics_of_change: flatten(status.epics_by_change),
+    stories_of_change: flatten(status.stories_by_change),
+    element_types: status.element_types,
   };
   const inputs: InputDef[] = action.inputs.map((input) => {
     const choices = choicesBySource[input.source] ?? [];
@@ -32,11 +36,16 @@ function buildCommandDefinition(action: DocumentationAction, guide: Documentatio
     };
   });
   const needsMissingChange = action.inputs.some(
-    (input) => input.source !== "text" && (choicesBySource[input.source] ?? []).length === 0
+    (input) => input.required && input.source !== "text" && (choicesBySource[input.source] ?? []).length === 0
   );
   const notes: string[] = [`When to use it: ${action.when_to_use}`];
   action.inputs.filter((input) => input.help_text).forEach((input) => notes.push(`${input.label}: ${input.help_text}`));
   if (!status.installed && action.identifier !== "install") notes.push("Set up the documentation workflow first.");
+  action.inputs.filter((input) => input.depends_on).forEach((input) => {
+    const perChange = input.source === "epics_of_change" ? status.epics_by_change : status.stories_by_change;
+    const listing = Object.entries(perChange).map(([change, names]) => `${change}: ${names.join(", ") || "none"}`).join("; ");
+    notes.push(`${input.label} must belong to the chosen change. Now: ${listing || "no change in progress"}.`);
+  });
   if (needsMissingChange) {
     notes.push(action.inputs.some((i) => i.source === "in_progress_changes")
       ? "There is no change in progress. Use \"Start a change\" first."

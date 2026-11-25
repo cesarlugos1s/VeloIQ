@@ -64,10 +64,88 @@ def create_change(change_name, project_root_option):
     """Create a change folder with the veloiq-docs schema."""
     from veloiq_framework.documentation_workflow.run_openspec_command import run_openspec_command
     project_root = _resolve_project_root(project_root_option)
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, prefill_new_change_files
     result = run_openspec_command(project_root, ["new", "change", change_name, "--schema", CUSTOM_SCHEMA_NAME])
     click.echo(result.combined_output)
     if result.exit_code != 0:
         raise SystemExit(result.exit_code)
+    try:
+        for created in prefill_new_change_files(project_root, change_name):
+            click.echo(f"  ✅ {Path(created).relative_to(project_root)}")
+    except ScaffoldError as error:
+        raise click.ClickException(str(error))
+    click.echo("Next: veloiq docs epic new <epic-name> --change " + change_name
+               + "   then   veloiq docs story new <story-name> --epic <epic-name> --change " + change_name)
+
+
+def _echo_created(project_root: Path, created: str) -> None:
+    click.echo(f"  ✅ {Path(created).relative_to(project_root)}")
+
+
+@docs.group(name="epic")
+def epic():
+    """Epics of a change."""
+
+
+@epic.command(name="new")
+@click.argument("epic_name")
+@click.option("--change", "change_name", required=True, help="The change the epic belongs to.")
+@PROJECT_ROOT_OPTION
+def create_epic_command(epic_name, change_name, project_root_option):
+    """Create an epic with its front matter and sections filled in; write the text."""
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, create_epic
+    project_root = _resolve_project_root(project_root_option)
+    try:
+        _echo_created(project_root, create_epic(project_root, change_name, epic_name))
+    except ScaffoldError as error:
+        raise click.ClickException(str(error))
+    click.echo("Next: write the goal and the business value, then add its stories with `veloiq docs story new`.")
+
+
+@docs.group(name="story")
+def story():
+    """User stories of a change."""
+
+
+@story.command(name="new")
+@click.argument("story_name")
+@click.option("--epic", "epic_name", required=True, help="The epic of this change the story belongs to.")
+@click.option("--change", "change_name", required=True, help="The change the story belongs to.")
+@PROJECT_ROOT_OPTION
+def create_story_command(story_name, epic_name, change_name, project_root_option):
+    """Create a user story linked to its epic, and list it in the epic; write the text."""
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, create_story
+    project_root = _resolve_project_root(project_root_option)
+    try:
+        _echo_created(project_root, create_story(project_root, change_name, story_name, epic_name))
+    except ScaffoldError as error:
+        raise click.ClickException(str(error))
+    click.echo("Next: write the user story and its acceptance criteria, then create the elements it changes with `veloiq docs element new`.")
+
+
+@docs.group(name="element")
+def element():
+    """Specification elements (journeys, capabilities, features, rules, ...) that a change adds, modifies or removes."""
+
+
+@element.command(name="new")
+@click.argument("element_type")
+@click.argument("element_name")
+@click.option("--change", "change_name", required=True, help="The change that adds or modifies the element.")
+@click.option("--story", "story_names", multiple=True, help="A story of the change that asks for this element (repeatable).")
+@click.option("--capability", "capability_name", default=None, help="Features only: the capability the feature belongs to.")
+@PROJECT_ROOT_OPTION
+def create_element_command(element_type, element_name, change_name, story_names, capability_name, project_root_option):
+    """Create the delta of a specification element with its front matter filled in; write the requirements."""
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, create_element_delta
+    project_root = _resolve_project_root(project_root_option)
+    try:
+        _echo_created(project_root, create_element_delta(project_root, change_name, element_type, element_name,
+                                                         list(story_names), capability_name))
+    except ScaffoldError as error:
+        raise click.ClickException(str(error))
+    click.echo("Next: write the Purpose and the requirements with their scenarios, then run `veloiq docs change validate "
+               + change_name + "`.")
 
 
 @change.command(name="validate")

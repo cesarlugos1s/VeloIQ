@@ -391,6 +391,13 @@ def test_actions_build_safe_commands_and_reject_unsafe_values():
     assert build_documentation_command(screenshots, {}) == "veloiq docs help screenshots"
     with pytest.raises(ValueError, match="must look like"):
         build_documentation_command(screenshots, {"base_url": "file:///etc/passwd"})
+    element = find_documentation_action("new-element")
+    assert build_documentation_command(element, {"change_name": "add-x", "element_type": "features", "element_name": "bulk-reassign-tasks",
+                                                 "story_name": "s1", "capability_name": "task-assignment"}) == \
+        "veloiq docs element new features bulk-reassign-tasks --change add-x --story s1 --capability task-assignment"
+    assert build_documentation_command(find_documentation_action("new-story"),
+                                       {"change_name": "add-x", "epic_name": "e1", "story_name": "s1"}) == \
+        "veloiq docs story new s1 --epic e1 --change add-x"
     keys = [action.key for action in DOCUMENTATION_ACTIONS]
     assert len(set(keys)) == len(keys) and not set(keys) & {"j", "k", "b", "q"}
 
@@ -452,11 +459,14 @@ def test_home_menu_opens_the_documentation_screen():
 
 def test_studio_allows_only_the_documentation_commands_with_safe_arguments():
     from veloiq_framework.studio.router import _is_allowed_command
-    for command in ("veloiq docs help import --dry-run", "veloiq docs help screenshots --base-url http://localhost:8001 --username admin",
+    for command in ("veloiq docs epic new team-balance --change add-x", "veloiq docs story new s1 --epic e1 --change add-x",
+                    "veloiq docs element new features bulk-reassign-tasks --change add-x --story s1 --capability task-assignment",
+                    "veloiq docs help import --dry-run", "veloiq docs help screenshots --base-url http://localhost:8001 --username admin",
                     "veloiq docs init", "veloiq docs change new add-x", "veloiq docs change apply add-x --product-version 1.4.0",
                     "veloiq docs spec generate-data-model", "veloiq docs help sync add-x", "veloiq docs site build --git-tag 0.1.0"):
         assert _is_allowed_command(command), command
-    for command in ("veloiq docs help screenshots --base-url file:///etc/passwd", "veloiq docs help import --root /etc",
+    for command in ("veloiq docs epic new x --change add-x --root /etc", "veloiq docs element new features x --change add-x --evil",
+                    "veloiq docs help screenshots --base-url file:///etc/passwd", "veloiq docs help import --root /etc",
                     "veloiq docs change new x --root /etc", "veloiq docs change apply x; rm -rf /", "veloiq docs change new $(id)",
                     "veloiq docs bogus", "veloiq docs spec check --evil"):
         assert not _is_allowed_command(command), command
@@ -480,10 +490,12 @@ def test_studio_documentation_endpoint_returns_actions_and_status(tmp_path, monk
     response = client.get("/veloiq-studio/api/documentation", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     body = response.json()
-    assert [action["identifier"] for action in body["actions"]][:3] == ["install", "new-change", "validate"]
+    assert [action["identifier"] for action in body["actions"]][:5] == ["install", "new-change", "new-epic", "new-story", "new-element"]
     apply_action = next(action for action in body["actions"] if action["identifier"] == "apply")
     assert apply_action["inputs"][0]["source"] == "in_progress_changes" and apply_action["when_to_use"]
-    assert body["status"]["installed"] is True
+    assert body["status"]["installed"] is True and body["status"]["element_types"][0] == "journeys"
+    story_action = next(action for action in body["actions"] if action["identifier"] == "new-story")
+    assert story_action["inputs"][1]["source"] == "epics_of_change" and story_action["inputs"][1]["depends_on"] == "change_name"
 
 
 # ── Help documents: the draft contract, the import and the screenshots ───────────────────────────────────────────
@@ -605,3 +617,100 @@ def test_help_sync_keeps_existing_drafts_unless_overwrite_is_given(tmp_path):
     assert sync_help_documents_for_change(tmp_path, "add-feature", overwrite=True)[0]
     draft_file.write_text(draft_file.read_text().replace("status: draft", "status: reviewed"))
     assert "reviewed" in sync_help_documents_for_change(tmp_path, "add-feature", overwrite=True)[1][0]
+
+
+# ── Scaffolds: pre-filled epic, story and element files ───────────────────────────────────────────────────────────
+
+@pytest.fixture
+def project_with_change(tmp_path):
+    (tmp_path / "openspec" / "changes" / "add-x").mkdir(parents=True)
+    return tmp_path
+
+
+def test_epic_and_story_are_created_pre_filled_and_the_story_is_listed_in_its_epic(project_with_change):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import create_epic, create_story
+    epic_file = Path(create_epic(project_with_change, "add-x", "team-balance", TODAY))
+    front_matter, body = split_front_matter(epic_file.read_text())
+    assert front_matter == {"name": "team-balance", "type": "epic", "change": "add-x", "created": "2026-11-25"}
+    assert "## Goal" in body and "## User stories" in body
+
+    story_file = Path(create_story(project_with_change, "add-x", "manager-sees-load", "team-balance", TODAY))
+    story_front_matter, story_body = split_front_matter(story_file.read_text())
+    assert story_front_matter == {"name": "manager-sees-load", "type": "story", "epic": "team-balance", "change": "add-x", "created": "2026-11-25"}
+    assert "As a <role>" in story_body
+    create_story(project_with_change, "add-x", "another-story", "team-balance", TODAY)
+    epic_text = epic_file.read_text()
+    assert "- manager-sees-load\n- another-story\n\n## Out of scope" in epic_text and "\n- \n" not in epic_text
+
+
+def test_scaffolds_reject_bad_names_missing_parents_and_existing_files(project_with_change):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, create_epic, create_story
+    for bad_name in ("epic-1", "Team Balance", "12"):
+        with pytest.raises(ScaffoldError, match="descriptive kebab-case"):
+            create_epic(project_with_change, "add-x", bad_name)
+    with pytest.raises(ScaffoldError, match="Create it first with `veloiq docs change new"):
+        create_epic(project_with_change, "no-such-change", "team-balance")
+    with pytest.raises(ScaffoldError, match="Create it first with `veloiq docs epic new"):
+        create_story(project_with_change, "add-x", "manager-sees-load", "missing-epic")
+    create_epic(project_with_change, "add-x", "team-balance")
+    with pytest.raises(ScaffoldError, match="already exists"):
+        create_epic(project_with_change, "add-x", "team-balance")
+    with pytest.raises(ScaffoldError, match="epics: team-balance"):
+        create_story(project_with_change, "add-x", "manager-sees-load", "missing-epic")
+
+
+def test_element_delta_is_pre_filled_checked_and_listed_in_the_proposal(project_with_change):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import (
+        ScaffoldError, create_element_delta, create_story, create_epic, prefill_new_change_files,
+    )
+    assert len(prefill_new_change_files(project_with_change, "add-x")) == 3
+    assert prefill_new_change_files(project_with_change, "add-x") == []
+    create_epic(project_with_change, "add-x", "team-balance")
+    create_story(project_with_change, "add-x", "manager-sees-load", "team-balance")
+    with pytest.raises(ScaffoldError, match="needs --capability"):
+        create_element_delta(project_with_change, "add-x", "features", "bulk-reassign-tasks")
+    capability_file = Path(create_element_delta(project_with_change, "add-x", "capabilities", "task-assignment", ["manager-sees-load"]))
+    assert split_front_matter(capability_file.read_text())[0] == {"name": "task-assignment", "type": "capabilities", "stories": ["manager-sees-load"]}
+    feature_file = Path(create_element_delta(project_with_change, "add-x", "features", "bulk-reassign-tasks",
+                                             ["manager-sees-load"], "task-assignment"))
+    feature_front_matter, feature_body = split_front_matter(feature_file.read_text())
+    assert feature_front_matter["capability"] == "task-assignment" and "## ADDED Requirements" in feature_body
+    proposal = (project_with_change / "openspec" / "changes" / "add-x" / "proposal.md").read_text()
+    assert "- `capabilities/task-assignment`: \n- `features/bulk-reassign-tasks`: " in proposal and "<element-type>" not in proposal.split("### Modified")[0]
+    with pytest.raises(ScaffoldError, match="already used by an element of type capabilities"):
+        create_element_delta(project_with_change, "add-x", "journeys", "task-assignment")
+    with pytest.raises(ScaffoldError, match="not a story of change"):
+        create_element_delta(project_with_change, "add-x", "journeys", "plan-a-sprint", ["unknown-story"])
+    with pytest.raises(ScaffoldError, match="data model is generated"):
+        create_element_delta(project_with_change, "add-x", "data-model", "Task")
+
+
+def test_element_delta_of_an_existing_element_is_a_modification(project_with_change):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import create_element_delta
+    write_element(project_with_change / "openspec", "capabilities", "task-assignment", {"name": "task-assignment"})
+    write_element(project_with_change / "openspec", "features", "bulk-reassign-tasks", {"capability": "task-assignment"})
+    feature_file = Path(create_element_delta(project_with_change, "add-x", "features", "bulk-reassign-tasks"))
+    assert "## MODIFIED Requirements" in feature_file.read_text() and "## ADDED Requirements" not in feature_file.read_text()
+
+
+def test_terminal_explorer_offers_the_epics_and_stories_of_the_chosen_change(tmp_path, monkeypatch):
+    from veloiq_framework.cli.explorer import AppData, Explorer, _Frame
+    write_file(tmp_path / "openspec" / "config.yaml", "schema: veloiq-docs\n")
+    write_file(tmp_path / "openspec" / "changes" / "add-x" / "epics" / "team-balance.md", "x")
+    write_file(tmp_path / "openspec" / "changes" / "add-x" / "stories" / "manager-sees-load.md", "x")
+    (tmp_path / "openspec" / "changes" / "empty-change").mkdir(parents=True)
+    explorer = Explorer(AppData(name="demo", root=tmp_path))
+    explorer.nav.append(_Frame("docs"))
+    prompts: list[str] = []
+    answers = iter(["add-x", "team-balance", "another-story"])
+    monkeypatch.setattr(explorer, "_get_input", lambda stdscr, max_y, max_x, prompt, default="": prompts.append(prompt) or next(answers))
+    monkeypatch.setattr(explorer, "_confirm", lambda *arguments: True)
+    assert explorer._handle(ord("t"), None, 40, 120) == "veloiq docs story new another-story --epic team-balance --change add-x"
+    assert "team-balance" in prompts[1] and "empty-change" in prompts[0]
+
+    answers = iter(["empty-change"])
+    assert explorer._handle(ord("t"), None, 40, 120) is None and "no epic yet" in explorer._docs_message
+    answers = iter(["add-x", "features", "bulk-reassign-tasks", "manager-sees-load", "task-assignment"])
+    assert explorer._handle(ord("l"), None, 40, 120) == \
+        "veloiq docs element new features bulk-reassign-tasks --change add-x --story manager-sees-load --capability task-assignment"
+    assert "features" in prompts[-4] and "optional" in prompts[-2]

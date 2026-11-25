@@ -97,6 +97,9 @@ _ALLOWED_PREFIXES = (
     "veloiq import-schema ",
     "veloiq docs init",
     "veloiq docs change new ",
+    "veloiq docs epic new ",
+    "veloiq docs story new ",
+    "veloiq docs element new ",
     "veloiq docs change validate ",
     "veloiq docs change apply ",
     "veloiq docs spec generate-data-model",
@@ -114,7 +117,7 @@ _runs: dict[str, subprocess.Popen] = {}
 
 
 _DOCUMENTATION_ARGUMENT = re.compile(
-    r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*|https?://[A-Za-z0-9.:_-]+|--product-version|--git-tag|--base-url|--username|--dry-run|--overwrite)$")
+    r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*|https?://[A-Za-z0-9.:_-]+|--product-version|--git-tag|--base-url|--username|--dry-run|--overwrite|--change|--epic|--story|--capability)$")
 
 
 def _is_allowed_command(cmd: str) -> bool:

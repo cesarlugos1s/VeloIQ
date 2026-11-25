@@ -85,10 +85,12 @@ export interface UpsellMessages {
 export interface DocumentationActionInput {
   key: string;
   label: string;
-  source: "text" | "in_progress_changes" | "applied_changes";
+  source: "text" | "in_progress_changes" | "applied_changes" | "epics_of_change" | "stories_of_change" | "element_types";
   required: boolean;
   placeholder: string;
   help_text: string;
+  is_address: boolean;
+  depends_on: string;
 }
 
 export interface DocumentationAction {
@@ -107,6 +109,9 @@ export interface DocumentationStatus {
   in_progress_changes: string[];
   applied_changes: string[];
   element_counts: Record<string, number>;
+  epics_by_change: Record<string, string[]>;
+  stories_by_change: Record<string, string[]>;
+  element_types: string[];
   help_draft_count: number;
   latest_git_tag: string;
   next_step: string;

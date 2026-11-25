@@ -11,13 +11,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from veloiq_framework.documentation_workflow.workflow_constants import (
-    ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, CHANGES_FOLDER_NAME, OPENSPEC_FOLDER_NAME, SPECIFICATIONS_FOLDER_NAME,
+    ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, AUTHORED_ELEMENT_TYPES, CHANGES_FOLDER_NAME, OPENSPEC_FOLDER_NAME, SPECIFICATIONS_FOLDER_NAME,
     SPECIFICATION_FILE_NAME,
 )
 
 SOURCE_TEXT = "text"
 SOURCE_IN_PROGRESS_CHANGES = "in_progress_changes"
 SOURCE_APPLIED_CHANGES = "applied_changes"
+SOURCE_EPICS_OF_CHANGE = "epics_of_change"      # the epics of the change chosen in the input named by `depends_on`
+SOURCE_STORIES_OF_CHANGE = "stories_of_change"  # the stories of that change
+SOURCE_ELEMENT_TYPES = "element_types"
 SAFE_ARGUMENT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 SAFE_ADDRESS_PATTERN = re.compile(r"^https?://[A-Za-z0-9.:_-]+$")
 
@@ -32,6 +35,7 @@ class DocumentationActionInput:
     placeholder: str = ""
     help_text: str = ""
     is_address: bool = False  # a web address such as http://localhost:8000 instead of a name
+    depends_on: str = ""      # key of the input whose value narrows the choices (for example the change)
 
 
 @dataclass(frozen=True)
@@ -54,13 +58,48 @@ DOCUMENTATION_ACTIONS: tuple[DocumentationAction, ...] = (
         "veloiq docs init"),
     DocumentationAction(
         "new-change", "n", "Start a change",
-        "Creates a change folder under openspec/changes/. A change holds the proposal, epics, user stories, designs and the "
-        "specification deltas of one piece of work.",
+        "Creates a change folder under openspec/changes/ with the proposal, the high-level design and the task list already "
+        "started from the templates. A change holds the proposal, epics, user stories, designs and the specification deltas "
+        "of one piece of work.",
         "Before building or changing a feature. Name it by its outcome in kebab-case, for example add-workload-balancing "
-        "(never a number). Then ask Claude Code to fill it with /docs-propose.",
+        "(never a number). Then add its epics and stories with the next actions, or ask Claude Code to write it with /docs-propose.",
         "veloiq docs change new {change_name}",
         (DocumentationActionInput("change_name", "Change name", placeholder="add-workload-balancing",
                                   help_text="Descriptive kebab-case outcome name."),)),
+    DocumentationAction(
+        "new-epic", "e", "Add an epic to a change",
+        "Creates the epic file with its name, type, change and today's date already filled in, and the Goal, Business value, "
+        "User stories and Out of scope sections ready. You only write the text.",
+        "After starting a change. Name the epic by its outcome in kebab-case, for example team-workload-balancing.",
+        "veloiq docs epic new {epic_name} --change {change_name}",
+        (DocumentationActionInput("change_name", "Change", SOURCE_IN_PROGRESS_CHANGES),
+         DocumentationActionInput("epic_name", "Epic name", placeholder="team-workload-balancing",
+                                  help_text="Descriptive kebab-case outcome name."))),
+    DocumentationAction(
+        "new-story", "t", "Add a user story to an epic",
+        "Creates the user story file linked to its epic, with name, type, change and today's date filled in and the "
+        "\"As a ..., I want ..., so that ...\" and acceptance criteria sections ready. It also lists the story in the epic.",
+        "After the epic exists. Name the story by role and want in kebab-case, for example manager-sees-overloaded-members.",
+        "veloiq docs story new {story_name} --epic {epic_name} --change {change_name}",
+        (DocumentationActionInput("change_name", "Change", SOURCE_IN_PROGRESS_CHANGES),
+         DocumentationActionInput("epic_name", "Epic", SOURCE_EPICS_OF_CHANGE, depends_on="change_name"),
+         DocumentationActionInput("story_name", "Story name", placeholder="manager-sees-overloaded-members",
+                                  help_text="Role and want in kebab-case."))),
+    DocumentationAction(
+        "new-element", "l", "Add a specification element to a change",
+        "Creates the delta of a journey, capability, feature, business rule, algorithm, non-functional requirement or "
+        "implementation element, with its front matter filled in and the Purpose and Requirement/Scenario sections ready. "
+        "An element that already exists becomes a modification. It is also listed in the proposal.",
+        "After the story. A new feature needs the capability it belongs to. Name elements descriptively, never with a number.",
+        "veloiq docs element new {element_type} {element_name} --change {change_name}",
+        (DocumentationActionInput("change_name", "Change", SOURCE_IN_PROGRESS_CHANGES),
+         DocumentationActionInput("element_type", "Element type", SOURCE_ELEMENT_TYPES),
+         DocumentationActionInput("element_name", "Element name", placeholder="bulk-reassign-tasks",
+                                  help_text="Descriptive kebab-case name."),
+         DocumentationActionInput("story_name", "Story that asks for it", SOURCE_STORIES_OF_CHANGE, required=False, depends_on="change_name"),
+         DocumentationActionInput("capability_name", "Capability (features only)", required=False, placeholder="task-assignment",
+                                  help_text="Leave empty unless the element is a new feature.")),
+        (("story_name", "--story {story_name}"), ("capability_name", "--capability {capability_name}"))),
     DocumentationAction(
         "validate", "v", "Validate a change",
         "Runs OpenSpec's validation and the VeloIQ checks: descriptive unique names, stories linked to epics, features "
@@ -167,6 +206,9 @@ class DocumentationStatus:
     in_progress_changes: list[str]
     applied_changes: list[str]
     element_counts: dict[str, int]
+    epics_by_change: dict[str, list[str]]
+    stories_by_change: dict[str, list[str]]
+    element_types: list[str]
     help_draft_count: int
     latest_git_tag: str
     next_step: str
@@ -191,12 +233,15 @@ def read_documentation_status(project_root: Path) -> DocumentationStatus:
         count = sum(1 for path in type_folder.iterdir() if (path / SPECIFICATION_FILE_NAME).exists()) if type_folder.exists() else 0
         if count:
             element_counts[element_type] = count
+    epics_by_change = {name: sorted(path.stem for path in (changes_folder / name / "epics").glob("*.md")) for name in in_progress}
+    stories_by_change = {name: sorted(path.stem for path in (changes_folder / name / "stories").glob("*.md")) for name in in_progress}
     drafts_folder = openspec_root / "help-drafts"
     help_draft_count = len(list(drafts_folder.glob("*.md"))) if drafts_folder.exists() else 0
     described = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], cwd=project_root, capture_output=True, text=True) \
         if (project_root / ".git").exists() else None
     latest_tag = described.stdout.strip() if described is not None and described.returncode == 0 else ""
-    return DocumentationStatus(installed, in_progress, applied, element_counts, help_draft_count, latest_tag,
+    return DocumentationStatus(installed, in_progress, applied, element_counts, epics_by_change, stories_by_change,
+                               list(AUTHORED_ELEMENT_TYPES), help_draft_count, latest_tag,
                                _next_step_advice(installed, in_progress, applied, element_counts))
 
 
