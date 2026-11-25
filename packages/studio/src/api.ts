@@ -85,6 +85,7 @@ export const api = {
   extensions: () =>
     get<{ extensions: import("./types").ExtInfo[] }>("/extensions"),
   upsells: () => get<import("./types").UpsellMessages>("/upsells"),
+  documentation: () => get<import("./types").DocumentationGuide>("/documentation"),
   health: () =>
     get<{ stdout: string; stderr: string; returncode: number }>("/health"),
   runCommand: (command: string) =>

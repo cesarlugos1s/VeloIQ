@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import re
 import shlex
 import subprocess
 import uuid
@@ -94,6 +95,17 @@ _ALLOWED_PREFIXES = (
     "veloiq extend-package ",
     "veloiq remove-package ",
     "veloiq import-schema ",
+    "veloiq docs init",
+    "veloiq docs change new ",
+    "veloiq docs change validate ",
+    "veloiq docs change apply ",
+    "veloiq docs spec generate-data-model",
+    "veloiq docs spec index-code",
+    "veloiq docs spec check",
+    "veloiq docs help sync ",
+    "veloiq docs help screenshots",
+    "veloiq docs help import",
+    "veloiq docs site build",
 )
 
 _SHELL_METACHARACTERS = (";", "|", "&", "`", "$", ">", "<", "\n", "\r")
@@ -101,10 +113,19 @@ _SHELL_METACHARACTERS = (";", "|", "&", "`", "$", ">", "<", "\n", "\r")
 _runs: dict[str, subprocess.Popen] = {}
 
 
+_DOCUMENTATION_ARGUMENT = re.compile(
+    r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*|https?://[A-Za-z0-9.:_-]+|--product-version|--git-tag|--base-url|--username|--dry-run|--overwrite)$")
+
+
 def _is_allowed_command(cmd: str) -> bool:
     if any(c in cmd for c in _SHELL_METACHARACTERS):
         return False
-    return any(cmd == p.strip() or cmd.startswith(p) for p in _ALLOWED_PREFIXES)
+    if not any(cmd == p.strip() or cmd.startswith(p) for p in _ALLOWED_PREFIXES):
+        return False
+    if cmd.startswith("veloiq docs"):
+        # Documentation commands take names and versions only: no other option may be smuggled in.
+        return all(_DOCUMENTATION_ARGUMENT.match(token) for token in cmd.split()[1:])
+    return True
 
 
 # ── Router factory ────────────────────────────────────────────────────────────
@@ -124,6 +145,18 @@ def make_studio_router(cfg: VeloIQConfig) -> APIRouter:
             "app_name": cfg.title,
             "framework_version": fv,
             "dev_mode": _is_dev_mode(),
+        }
+
+    @router.get("/documentation")
+    def documentation(request: Request):
+        """The documentation workflow's actions with their explanations, and the project's status."""
+        _admin(request)
+        from veloiq_framework.documentation_workflow.documentation_workflow_guide import (
+            DOCUMENTATION_ACTIONS, read_documentation_status,
+        )
+        return {
+            "actions": _to_dict(list(DOCUMENTATION_ACTIONS)),
+            "status": _to_dict(read_documentation_status(_get_root())),
         }
 
     @router.get("/schema")

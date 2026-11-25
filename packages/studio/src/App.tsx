@@ -11,6 +11,7 @@ import SearchConfig from "./pages/SearchConfig";
 import Extensions from "./pages/Extensions";
 import HealthCheck from "./pages/HealthCheck";
 import CommandPanel from "./pages/CommandPanel";
+import Documentation from "./pages/Documentation";
 
 const THEME_KEY = "vs_theme";
 
@@ -130,6 +131,7 @@ export default function App() {
         onSuccess={invalidateSchema}
       />
     ),
+    documentation: <Documentation />,
   };
 
   return (

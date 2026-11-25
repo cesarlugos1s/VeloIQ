@@ -557,6 +557,8 @@ class Explorer:
             self._draw_search(stdscr, max_y, max_x)
         elif screen == "extensions":
             self._draw_extensions(stdscr, max_y, max_x)
+        elif screen == "docs":
+            self._draw_docs(stdscr, max_y, max_x)
 
     # ── Home ──────────────────────────────────────────────────────────────────
 
@@ -604,6 +606,7 @@ class Explorer:
             ("1", "Browse Modules & Models"),
             ("2", "Search Configuration"),
             ("3", "Manage Extensions"),
+            ("4", "Documentation workflow  (changes, Product Specification, data model, help)"),
             ("i", "Import schema from existing database"),
             ("g", "Run: veloiq generate"),
             ("c", "Run: veloiq check  (health report)"),
@@ -620,8 +623,116 @@ class Explorer:
             r += 1
 
         self._w(stdscr, max_y - 2, 0,
-                "  ↑↓ / jk  navigate    Enter  select    i  import-schema    g  generate    b  build    m  migrate    u  db-upgrade    q  quit",
+                "  ↑↓ / jk  navigate    Enter  select    d  documentation    i  import-schema    g  generate    b  build    m  migrate    u  db-upgrade    q  quit",
                 curses.color_pair(_C_WARN))
+
+    # ── Documentation workflow ────────────────────────────────────────────────
+
+    def _draw_docs(self, stdscr, max_y, max_x):
+        from veloiq_framework.documentation_workflow.documentation_workflow_guide import (
+            DOCUMENTATION_ACTIONS, read_documentation_status,
+        )
+        f = self._f
+        status = read_documentation_status(self.data.root)
+        r = 2
+        self._w(stdscr, r, 2, "Documentation workflow  (openspec/ — changes and the Product Specification)",
+                curses.color_pair(_C_TTL) | curses.A_BOLD)
+        r += 1
+        self._divider(stdscr, r, max_x)
+        r += 1
+
+        def kv(key, val, val_attr=0):
+            nonlocal r
+            self._w(stdscr, r, 4, f"{key:<13}", curses.A_DIM)
+            self._w(stdscr, r, 17, str(val), val_attr)
+            r += 1
+
+        if status.installed:
+            kv("Set up", "yes", curses.color_pair(_C_OK) | curses.A_BOLD)
+        else:
+            kv("Set up", "no — start with [i]", curses.color_pair(_C_WARN) | curses.A_BOLD)
+        kv("In progress", ", ".join(status.in_progress_changes) or "no change in progress")
+        kv("Applied", f"{len(status.applied_changes)} change(s)")
+        kv("Elements", "  ".join(f"{name}:{count}" for name, count in status.element_counts.items()) or "none yet")
+        kv("Help drafts", f"{status.help_draft_count}")
+        import textwrap
+        for line_number, line in enumerate(textwrap.wrap(status.next_step, max(20, max_x - 21))):
+            self._w(stdscr, r, 4, "Next step    " if line_number == 0 else " " * 13, curses.A_DIM)
+            self._w(stdscr, r, 17, line, curses.color_pair(_C_OK))
+            r += 1
+        self._divider(stdscr, r, max_x)
+        r += 1
+
+        for i, action in enumerate(DOCUMENTATION_ACTIONS):
+            is_sel = i == f.cursor
+            attr = curses.color_pair(_C_SEL) if is_sel else 0
+            prefix = " ► " if is_sel else "   "
+            self._w(stdscr, r, 2, f"{prefix}[{action.key}]  {action.label}", attr)
+            r += 1
+        r += 1
+        selected = DOCUMENTATION_ACTIONS[min(f.cursor, len(DOCUMENTATION_ACTIONS) - 1)]
+        self._divider(stdscr, r, max_x)
+        r += 1
+        for label, text in (("What it does", selected.summary), ("When to use", selected.when_to_use)):
+            for line_number, line in enumerate(textwrap.wrap(text, max(20, max_x - 21))):
+                if r >= max_y - 3:
+                    break
+                self._w(stdscr, r, 4, f"{label:<13}" if line_number == 0 else " " * 13, curses.A_DIM)
+                self._w(stdscr, r, 17, line)
+                r += 1
+        self._w(stdscr, max_y - 3, 0, f"  Runs: {selected.command}", curses.A_DIM)
+        if getattr(self, "_docs_message", ""):
+            self._w(stdscr, max_y - 2, 0, f"  {self._docs_message}", curses.color_pair(_C_ERR) | curses.A_BOLD)
+            self._docs_message = ""
+        else:
+            self._w(stdscr, max_y - 2, 0, "  ↑↓ / jk  navigate    Enter  run the selected action    b  back    q  quit",
+                    curses.color_pair(_C_WARN))
+        self._w(stdscr, max_y - 1, 0,
+                "  " + "  ".join(f"{action.key} {action.identifier}" for action in DOCUMENTATION_ACTIONS),
+                curses.color_pair(_C_WARN))
+
+    def _handle_docs(self, key, stdscr, max_y, max_x) -> Optional[str]:
+        from veloiq_framework.documentation_workflow.documentation_workflow_guide import (
+            DOCUMENTATION_ACTIONS, SOURCE_APPLIED_CHANGES, SOURCE_IN_PROGRESS_CHANGES, build_documentation_command,
+            read_documentation_status,
+        )
+        f = self._f
+        self._move_cursor(f, len(DOCUMENTATION_ACTIONS), key)
+        selected = None
+        if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
+            selected = DOCUMENTATION_ACTIONS[f.cursor]
+        else:
+            selected = next((action for action in DOCUMENTATION_ACTIONS if key == ord(action.key)), None)
+            if selected is not None:
+                f.cursor = DOCUMENTATION_ACTIONS.index(selected)
+        if selected is None:
+            return None
+
+        status = read_documentation_status(self.data.root)
+        if not status.installed and selected.identifier != "install":
+            self._docs_message = "Set up the documentation workflow first: press [i]."
+            return None
+        values: dict[str, str] = {}
+        for action_input in selected.inputs:
+            candidates = {SOURCE_IN_PROGRESS_CHANGES: status.in_progress_changes,
+                          SOURCE_APPLIED_CHANGES: status.applied_changes}.get(action_input.source, [])
+            if action_input.source != "text" and not candidates:
+                self._docs_message = ("No change in progress: start one with [n]." if action_input.source == SOURCE_IN_PROGRESS_CHANGES
+                                      else "No applied change yet: apply a change with [a] first.")
+                return None
+            prompt = action_input.label
+            if candidates:
+                prompt += f" ({', '.join(candidates[-4:])})"
+            elif action_input.help_text:
+                prompt += f" ({action_input.help_text})"
+            default = candidates[-1] if candidates else (status.latest_git_tag if action_input.key == "product_version" else "")
+            values[action_input.key] = self._get_input(stdscr, max_y, max_x, prompt, default)
+        try:
+            command = build_documentation_command(selected, values)
+        except ValueError as error:
+            self._docs_message = str(error)
+            return None
+        return command if self._confirm(stdscr, max_y, max_x, command) else None
 
     # ── Extensions ────────────────────────────────────────────────────────────
 
@@ -1073,6 +1184,8 @@ class Explorer:
             return self._handle_search(key, stdscr, max_y, max_x)
         if screen == "extensions":
             return self._handle_extensions(key, stdscr, max_y, max_x)
+        if screen == "docs":
+            return self._handle_docs(key, stdscr, max_y, max_x)
         return None
 
     def _move_cursor(self, f: _Frame, n: int, key: int) -> None:
@@ -1089,7 +1202,7 @@ class Explorer:
 
     def _handle_home(self, key, stdscr, max_y, max_x) -> Optional[str]:
         f = self._f
-        self._move_cursor(f, 9, key)
+        self._move_cursor(f, 10, key)
 
         if key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
             if f.cursor == 0:
@@ -1099,24 +1212,26 @@ class Explorer:
             elif f.cursor == 2:
                 self.nav.append(_Frame("extensions"))
             elif f.cursor == 3:
+                self.nav.append(_Frame("docs"))
+            elif f.cursor == 4:
                 if self._confirm(stdscr, max_y, max_x, "veloiq import-schema"):
                     return "veloiq import-schema"
-            elif f.cursor == 4:
+            elif f.cursor == 5:
                 if self._confirm(stdscr, max_y, max_x, "veloiq generate"):
                     return "veloiq generate"
-            elif f.cursor == 5:
+            elif f.cursor == 6:
                 if self._confirm(stdscr, max_y, max_x, "veloiq check"):
                     return "veloiq check"
-            elif f.cursor == 6:
+            elif f.cursor == 7:
                 if self._confirm(stdscr, max_y, max_x, "veloiq build"):
                     return "veloiq build"
-            elif f.cursor == 7:
+            elif f.cursor == 8:
                 if self._confirm(stdscr, max_y, max_x, "veloiq migrate"):
                     return "veloiq migrate"
-            elif f.cursor == 8:
+            elif f.cursor == 9:
                 if self._confirm(stdscr, max_y, max_x, "veloiq db upgrade"):
                     return "veloiq db upgrade"
-            elif f.cursor == 9:
+            elif f.cursor == 10:
                 return ""
         elif key == ord('1'):
             self.nav.append(_Frame("modules"))
@@ -1124,6 +1239,8 @@ class Explorer:
             self.nav.append(_Frame("search"))
         elif key == ord('3'):
             self.nav.append(_Frame("extensions"))
+        elif key in (ord('4'), ord('d')):
+            self.nav.append(_Frame("docs"))
         elif key == ord('i'):
             if self._confirm(stdscr, max_y, max_x, "veloiq import-schema"):
                 return "veloiq import-schema"

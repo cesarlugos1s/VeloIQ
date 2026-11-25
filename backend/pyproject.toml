@@ -37,6 +37,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7",
     "sqladmin>=0.16",
     "click>=8.0",
+    "pyyaml>=6.0",
     "python-dotenv>=1.0",
     "itsdangerous>=2.0",
     "typing-extensions>=4.9",
@@ -133,6 +134,9 @@ include = ["veloiq_framework*"]
     "studio/static/index.html",
     "studio/static/assets/*",
     "static_assets/*",
+    "documentation_workflow/schema_template/*",
+    "documentation_workflow/schema_template/templates/*",
+    "documentation_workflow/assistant_commands/*",
     "help/frontend/components/*.tsx",
     "system_config/frontend/components/*.tsx",
 ]

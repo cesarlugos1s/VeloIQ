@@ -82,6 +82,41 @@ export interface UpsellMessages {
   commercial_apps_advisory: UpsellEntry[];
 }
 
+export interface DocumentationActionInput {
+  key: string;
+  label: string;
+  source: "text" | "in_progress_changes" | "applied_changes";
+  required: boolean;
+  placeholder: string;
+  help_text: string;
+}
+
+export interface DocumentationAction {
+  identifier: string;
+  key: string;
+  label: string;
+  summary: string;
+  when_to_use: string;
+  command: string;
+  inputs: DocumentationActionInput[];
+  optional_argument_templates: [string, string][];
+}
+
+export interface DocumentationStatus {
+  installed: boolean;
+  in_progress_changes: string[];
+  applied_changes: string[];
+  element_counts: Record<string, number>;
+  help_draft_count: number;
+  latest_git_tag: string;
+  next_step: string;
+}
+
+export interface DocumentationGuide {
+  actions: DocumentationAction[];
+  status: DocumentationStatus;
+}
+
 export interface AppSchema {
   name: string;
   root: string;
@@ -114,7 +149,8 @@ export type Page =
   | "search"
   | "extensions"
   | "health"
-  | "commands";
+  | "commands"
+  | "documentation";
 
 // ── Named query types ─────────────────────────────────────────────────────────
 

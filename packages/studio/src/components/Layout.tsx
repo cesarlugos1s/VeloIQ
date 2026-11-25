@@ -16,6 +16,7 @@ const NAV: NavEntry[] = [
   { page: "extensions", label: "Extensions" },
   { page: "health", label: "Health Check", devOnly: true },
   { page: "commands", label: "Command Panel", devOnly: true },
+  { page: "documentation", label: "Documentation", devOnly: true },
 ];
 
 interface Props {

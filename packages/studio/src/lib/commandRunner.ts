@@ -84,7 +84,9 @@ export async function executeCommand(opts: ExecuteCommandOptions): Promise<void>
     return;
   }
 
-  if (!SKIP_AUTO_GENERATE.has(command)) {
+  // Documentation commands read the code and write openspec/ files; they never change the schemas.
+  const skipsAutoGenerate = SKIP_AUTO_GENERATE.has(command) || command.startsWith("veloiq docs ");
+  if (!skipsAutoGenerate) {
     append("");
     append("─── veloiq generate ───");
     let genRc: number | null = null;

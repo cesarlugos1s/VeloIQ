@@ -1,0 +1,97 @@
+name: veloiq-docs
+version: 1
+description: VeloIQ documentation workflow - proposal, epics, stories, element specs, designs, tasks
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Why the change is needed and which specification elements it touches
+    template: proposal.md
+    instruction: |
+      Explain WHY this change is needed and WHAT it changes, in English.
+      Under "Capabilities", list every specification element the change creates or modifies as
+      `<element-type>/<element-name>` (for example `features/bulk-reassign-tasks`). Element types are
+      journeys, capabilities, features, business-rules, algorithms, non-functional-requirements and
+      implementation. Names are descriptive kebab-case, never numbered. Each listed element needs a delta
+      spec at specs/<element-type>/<element-name>/spec.md. Never list data-model elements: the data model
+      is generated from the code.
+    requires: []
+
+  - id: epics
+    generates: "epics/*.md"
+    description: Epics of the change, one file per outcome
+    template: epic.md
+    instruction: |
+      One epic per file, named by the outcome in kebab-case (for example team-workload-balancing).
+      Start the file with YAML front matter: name, type: epic, change, created. Optional front matter keys
+      `requires` (names of specification elements) and `prerequisites` (plain statements) are inherited by
+      the epic's stories. Write Goal, Business value, User stories and Out of scope.
+    requires: [proposal]
+
+  - id: stories
+    generates: "stories/*.md"
+    description: User stories of the change, one file per story
+    template: story.md
+    instruction: |
+      One user story per file, named by role and want in kebab-case. Front matter: name, type: story,
+      epic (the epic file name without .md), change, created, and optionally `requires`, `prerequisites`
+      and `not-applicable` (a list of {item, reason} for inherited prerequisites that do not apply).
+      Body: "As a <role>, I want <goal>, so that <benefit>", then Acceptance criteria written as
+      Given/When/Then, then the specification elements the story changes.
+    requires: [epics]
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Delta specs of the Product Specification elements this change creates, modifies or removes
+    template: spec.md
+    instruction: |
+      One delta per element at specs/<element-type>/<element-name>/spec.md. Start with YAML front matter
+      (OpenSpec does not merge it; the VeloIQ step reads it after the archive): name, type, and as
+      applicable capability (required for features), journeys, stories (the story file names that change
+      this element), epics, rule-id (for business rules), requires, prerequisites.
+      Body uses OpenSpec's format: "## Purpose" (read only when the element is new), then the delta
+      sections "## ADDED Requirements", "## MODIFIED Requirements" or "## REMOVED Requirements", each
+      requirement written as "### Requirement: <name>" with "#### Scenario: <name>" blocks using
+      WHEN and THEN. A MODIFIED requirement carries its complete new text. Content that does not fit a
+      requirement (journey steps as JSON, algorithm steps) goes in extra files beside spec.md, for example
+      journey.json; the VeloIQ step copies them into the element's folder.
+    requires: [proposal]
+
+  - id: high-level-design
+    generates: "design/high-level-design.md"
+    description: High-level technical design of the change
+    template: design.md
+    instruction: |
+      Describe the architecture, the components involved, the integrations and an overview of the
+      entities and relations (a Mermaid erDiagram is welcome).
+    requires: [stories]
+
+  - id: low-level-design
+    generates: "design/low-level-design/*.md"
+    description: Low-level technical design, one file per component
+    template: design.md
+    instruction: |
+      One file per component, named by the component in kebab-case (for example
+      workload-balancing-service). Describe interfaces, algorithms, business rules and data model
+      changes. Name code elements exactly as they are named in the code.
+    requires: [high-level-design]
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Break the implementation into small tasks written as "- [ ] 1.1 description", grouped under
+      numbered "## 1. Group" headings. Mark them "- [x]" as the work is completed.
+    requires:
+      - specs
+      - high-level-design
+      - low-level-design
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Read the stories, the delta specs and the designs, work through the pending tasks and mark each
+    complete as you go. Add a "# spec: <element-name>" comment above each function or class that
+    implements a specification element. Write docstrings of those functions in English so they can be
+    reused in the Product Specification.

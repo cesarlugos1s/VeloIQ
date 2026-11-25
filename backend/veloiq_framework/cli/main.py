@@ -23,6 +23,7 @@ from veloiq_framework.cli.set_title import set_title
 from veloiq_framework.cli.import_schema import import_schema
 from veloiq_framework.cli.worker import worker
 from veloiq_framework.cli.i18n import i18n
+from veloiq_framework.cli.docs import docs
 from veloiq_framework.cli.extension_cmds import (
     extend_package,
     remove_package,
@@ -53,6 +54,7 @@ def cli(ctx):
       veloiq check                   Health-check the project (descriptions, config gaps)
       veloiq worker start            Run the background job queue worker (needs Advanced Development)
       veloiq i18n migrate            Keep only this app's own translations and overrides
+      veloiq docs init               Set up the documentation workflow (OpenSpec changes, Product Specification)
 
     Extension packages:
       veloiq new-extension myext     Scaffold a new extension package
@@ -95,3 +97,4 @@ cli.add_command(set_title)
 cli.add_command(import_schema)
 cli.add_command(worker)
 cli.add_command(i18n)
+cli.add_command(docs)
