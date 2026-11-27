@@ -10,10 +10,13 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from veloiq_framework.documentation_workflow.data_specification_tables import EntityDefinition, read_entity_definition
+from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import implementation_status_label
 from veloiq_framework.documentation_workflow.specification_front_matter import split_front_matter
 from veloiq_framework.documentation_workflow.workflow_constants import (
     ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, CHANGELOG_FILE_NAME, CHANGES_FOLDER_NAME, ELEMENT_TYPE_CAPABILITIES,
-    ELEMENT_TYPE_FEATURES, OPENSPEC_FOLDER_NAME, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
+    DATA_NOT_APPLICABLE_KEY, DATA_REFERENCE_KEYWORD, ELEMENT_TYPE_ENTITY_DEFINITIONS, ELEMENT_TYPE_FEATURES, ENTITY_DEFINITION_FILE_NAME,
+    OPENSPEC_FOLDER_NAME, RELATION_REFERENCE_KEYWORD, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
 )
 
 SITE_BUILD_FOLDER_NAME = "documentation-site"
@@ -28,6 +31,7 @@ MERMAID_FENCE_CONFIGURATION = """markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 """
 METADATA_KEYS_SHOWN = ("type", "capability", "created", "created-in-version", "last-changed", "last-changed-in-version")
+STATUS_LABEL_SYMBOLS = {"planned": "🕓", "partial": "◐", "implemented": "✅"}
 
 
 def export_openspec_folder_at_tag(project_root: Path, git_tag: str, destination: Path) -> Path:
@@ -61,8 +65,11 @@ class LinkTargets:
 
 def _metadata_table(front_matter: dict, links: LinkTargets, page_path: str) -> str:
     rows = [(key, front_matter[key]) for key in METADATA_KEYS_SHOWN if key in front_matter and key != "capability"]
+    status_label = implementation_status_label(front_matter)
+    if status_label:
+        rows.insert(1, ("implementation", f"{STATUS_LABEL_SYMBOLS.get(front_matter.get('implementation-status'), '')} {status_label}".strip()))
     if front_matter.get("capability"):
-        rows.insert(1, ("capability", links.link("elements", front_matter["capability"], page_path)))
+        rows.insert(2 if status_label else 1, ("capability", links.link("elements", front_matter["capability"], page_path)))
     if front_matter.get("journeys"):
         rows.append(("journeys", ", ".join(links.link("elements", name, page_path) for name in front_matter["journeys"])))
     if front_matter.get("epic"):
@@ -119,6 +126,76 @@ def _link_epic_headings(body_text: str, links: LinkTargets, page_path: str) -> s
         for line in body_text.split("\n"))
 
 
+def _link_entities_in_relations_table(definition_text: str, entities: dict[str, EntityDefinition], page_path: str) -> str:
+    """Turn the subject and object entity of each row of the Relations table into links to their entity definition pages."""
+    lines: list[str] = []
+    in_relations = False
+    for line in definition_text.splitlines():
+        if line.startswith("## "):
+            in_relations = line.strip() == "## Relations"
+        elif in_relations and line.strip().startswith("|"):
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) == 5 and cells[0] in entities:
+                cells[0], cells[2] = _entity_link(cells[0], entities, page_path), _entity_link(cells[2], entities, page_path)
+                line = "| " + " | ".join(cells) + " |"
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
+def _data_section(element_folder: Path, front_matter: dict, entities: dict[str, EntityDefinition], page_path: str) -> str:
+    """Return the definition of an entity for its page, or the reason a feature uses no data."""
+    definition_file = element_folder / ENTITY_DEFINITION_FILE_NAME
+    if definition_file.exists():
+        return "\n\n# Definition\n\n" + _link_entities_in_relations_table(definition_file.read_text(encoding="utf-8"), entities, page_path)
+    if str(front_matter.get(DATA_NOT_APPLICABLE_KEY) or "").strip():
+        return f"\n\n# Data\n\nNot applicable: {front_matter[DATA_NOT_APPLICABLE_KEY]}\n"
+    return ""
+
+
+def _load_entity_definitions(specifications_root: Path) -> dict[str, EntityDefinition]:
+    entities: dict[str, EntityDefinition] = {}
+    type_folder = specifications_root / ELEMENT_TYPE_ENTITY_DEFINITIONS
+    if type_folder.exists():
+        for entity_folder in sorted(path for path in type_folder.iterdir() if (path / ENTITY_DEFINITION_FILE_NAME).exists()):
+            entities[entity_folder.name] = read_entity_definition(entity_folder.name, (entity_folder / ENTITY_DEFINITION_FILE_NAME).read_text(encoding="utf-8"))[0]
+    return entities
+
+
+def _entity_link(entity_name: str, entities: dict[str, EntityDefinition], page_path: str) -> str:
+    if entity_name not in entities:
+        return entity_name
+    return f"[{entity_name}]({os.path.relpath(f'{ELEMENT_TYPE_ENTITY_DEFINITIONS}/{entity_name}.md', os.path.dirname(page_path))})"
+
+
+def _render_data_references(body_text: str, entities: dict[str, EntityDefinition], page_path: str) -> str:
+    """Replace each `Data:` and `Relation:` line of a requirement by the table of what it points to, read from the entity definitions.
+
+    The values are written once, in the entity definition; this is the only place they are repeated, in the generated documentation.
+    """
+    rendered: list[str] = []
+    for line in body_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(DATA_REFERENCE_KEYWORD):
+            rows = ["", "Data this requirement uses:", "", "| Field | Description | Type | Required | Allowed values | Default |", "| --- | --- | --- | --- | --- | --- |"]
+            for item in (part.strip() for part in stripped[len(DATA_REFERENCE_KEYWORD):].split(",")):
+                entity_name, _, field_name = item.partition(".")
+                values = entities[entity_name].field_rows.get(field_name) if entity_name in entities else None
+                label = f"{_entity_link(entity_name, entities, page_path)}.{field_name}"
+                rows.append(f"| {label} | " + " | ".join(values[1:]) + " |" if values else f"| {label} | not defined | | | | |")
+            rendered += rows + [""]
+        elif stripped.startswith(RELATION_REFERENCE_KEYWORD):
+            parts = [part.strip() for part in stripped[len(RELATION_REFERENCE_KEYWORD):].split(">")]
+            known = next((relation for relation in entities[parts[0]].relations if len(parts) == 3 and relation[1] == parts[1] and relation[2] == parts[2]), None) \
+                if parts and parts[0] in entities else None
+            rendered += ["", "Relation this requirement uses:", "", "| Subject entity | Relation | Object entity | Subject cardinality | Object cardinality |", "| --- | --- | --- | --- | --- |"]
+            rendered.append(f"| {_entity_link(known[0], entities, page_path)} | {known[1]} | {_entity_link(known[2], entities, page_path)} | {known[3]} | {known[4]} |"
+                            if known else f"| {stripped} | not defined | | | |")
+            rendered.append("")
+        else:
+            rendered.append(line)
+    return "\n".join(rendered) + ("\n" if body_text.endswith("\n") else "")
+
+
 def _features_by_capability(openspec_folder: Path) -> dict[str, list[str]]:
     """Return {capability name: feature names}, read from the `capability` front matter of each feature."""
     features_folder = openspec_folder / SPECIFICATIONS_FOLDER_NAME / ELEMENT_TYPE_FEATURES
@@ -131,9 +208,18 @@ def _features_by_capability(openspec_folder: Path) -> dict[str, list[str]]:
     return features
 
 
-def _features_section(capability_name: str, features: dict[str, list[str]], links: LinkTargets, page_path: str) -> str:
+def _status_of_feature(openspec_folder: Path, feature_name: str) -> str | None:
+    spec_file = openspec_folder / SPECIFICATIONS_FOLDER_NAME / ELEMENT_TYPE_FEATURES / feature_name / SPECIFICATION_FILE_NAME
+    return implementation_status_label(split_front_matter(spec_file.read_text(encoding="utf-8"))[0])
+
+
+def _features_section(capability_name: str, features: dict[str, list[str]], links: LinkTargets, page_path: str,
+                      openspec_folder: Path | None = None) -> str:
     names = features.get(capability_name, [])
-    listed = "\n".join(f"- {links.link('elements', name, page_path)}" for name in names) if names else "No feature is specified for this capability yet."
+    def feature_line(name: str) -> str:
+        status_label = _status_of_feature(openspec_folder, name) if openspec_folder else None
+        return f"- {links.link('elements', name, page_path)}" + (f": {status_label}" if status_label else "")
+    listed = "\n".join(feature_line(name) for name in names) if names else "No feature is specified for this capability yet."
     return f"\n\n## Features of this capability\n\n{listed}\n"
 
 
@@ -212,6 +298,7 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
     specifications_root = openspec_folder / SPECIFICATIONS_FOLDER_NAME
     links = _collect_link_targets(openspec_folder)
     features_of_capability = _features_by_capability(openspec_folder)
+    entities = _load_entity_definitions(specifications_root)
     navigation: list[str] = ["  - Home: index.md"]
     home_lines = [f"# {site_name}", "", "Product Specification, current state at this version.", ""]
     for element_type in ALL_ELEMENT_TYPES:
@@ -226,9 +313,10 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
             page = docs_folder / element_type / f"{element_folder.name}.md"
             page.parent.mkdir(parents=True, exist_ok=True)
             page_path = f"{element_type}/{element_folder.name}.md"
-            features_text = _features_section(element_folder.name, features_of_capability, links, page_path) \
+            features_text = _features_section(element_folder.name, features_of_capability, links, page_path, openspec_folder) \
                 if element_type == ELEMENT_TYPE_CAPABILITIES else ""
-            page.write_text(_metadata_table(front_matter, links, page_path) + body_text + features_text, encoding="utf-8")
+            page.write_text(_metadata_table(front_matter, links, page_path) + _render_data_references(body_text, entities, page_path) + features_text
+                            + _data_section(element_folder, front_matter, entities, page_path), encoding="utf-8")
             navigation.append(f"    - {element_folder.name}: {element_type}/{element_folder.name}.md")
             for extra_file in sorted(element_folder.iterdir()):
                 if extra_file.is_file() and extra_file.name != SPECIFICATION_FILE_NAME:

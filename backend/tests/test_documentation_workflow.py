@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -16,7 +17,7 @@ from veloiq_framework.documentation_workflow.apply_documentation_change import (
 from veloiq_framework.documentation_workflow.build_documentation_site import stage_documentation_site
 from veloiq_framework.documentation_workflow.draft_help_documents_from_features import draft_help_document
 from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import (
-    check_code_markers, index_code_for_specifications, scan_code_markers,
+    check_code_markers, implementation_status_label, index_code_for_specifications, scan_code_markers,
 )
 from veloiq_framework.documentation_workflow.specification_front_matter import join_front_matter, split_front_matter
 from veloiq_framework.documentation_workflow.validate_documentation_change import validate_documentation_change
@@ -46,7 +47,8 @@ def test_validation_accepts_a_correct_change(tmp_path):
     write_file(change / "epics" / "team-balance.md", join_front_matter({"name": "team-balance"}, "x"))
     write_file(change / "stories" / "manager-sees-load.md", join_front_matter({"epic": "team-balance"}, "x"))
     write_element(change, "capabilities", "task-assignment", {"stories": ["manager-sees-load"]})
-    write_element(change, "features", "bulk-reassign-tasks", {"capability": "task-assignment", "stories": ["manager-sees-load"]})
+    write_element(change, "features", "bulk-reassign-tasks",
+                  {"capability": "task-assignment", "stories": ["manager-sees-load"], "data-not-applicable": "It changes only a user journey."})
     assert validate_documentation_change(change, tmp_path / "specs") == []
 
 
@@ -68,7 +70,7 @@ def test_validation_reports_numbered_names_missing_links_cycles_and_data_model_d
 
 
 def test_modified_feature_takes_its_capability_from_the_existing_specification(tmp_path):
-    write_element(tmp_path, "features", "bulk-reassign-tasks", {"capability": "task-assignment"})
+    write_element(tmp_path, "features", "bulk-reassign-tasks", {"capability": "task-assignment", "data-not-applicable": "No data."})
     write_element(tmp_path, "capabilities", "task-assignment")
     change = tmp_path / "changes" / "c"
     write_element(change, "features", "bulk-reassign-tasks", {}, "## MODIFIED Requirements\n\n### Requirement: Do it\nThe system SHALL do more.\n")
@@ -180,6 +182,217 @@ def test_code_markers_are_resolved_unresolved_ones_are_reported_and_front_matter
     assert "tasks" in (tmp_path / "openspec" / "reverse-views" / "implemented-by-module.md").read_text()
     assert "team-balance" in (tmp_path / "openspec" / "reverse-views" / "implemented-by-epic.md").read_text()
     assert check_code_markers(tmp_path) == [problem for problem in check_code_markers(tmp_path) if "missing-element" in problem]
+
+
+TWO_REQUIREMENTS_BODY = ("## Purpose\n\nx\n\n## ADDED Requirements\n\n### Requirement: First step\nThe system SHALL a.\n\n"
+                         "#### Scenario: A\n- **WHEN** a\n- **THEN** b\n\n### Requirement: Second step\nThe system SHALL b.\n\n"
+                         "#### Scenario: B\n- **WHEN** a\n- **THEN** b\n")
+
+
+def read_element_front_matter(root: Path, element_type: str, name: str) -> dict:
+    return split_front_matter((root / "openspec" / "specs" / element_type / name / "spec.md").read_text())[0]
+
+
+def test_status_is_planned_partial_or_implemented_from_the_requirements_the_markers_cover(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implementation-status"] == "planned"
+
+    code_file = tmp_path / "backend" / "app" / "modules" / "work" / "custom_api.py"
+    write_file(code_file, "# spec: two-step-feature :: First step\ndef first():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert (front_matter["implementation-status"], front_matter["requirements-implemented"], front_matter["requirements-total"]) == ("partial", 1, 2)
+    assert implementation_status_label(front_matter) == "Partially implemented: 1 of 2 requirements"
+
+    write_file(code_file, code_file.read_text() + "\n# spec: two-step-feature :: Second step\ndef second():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert front_matter["implementation-status"] == "implemented" and front_matter["implemented-in-version"] == "unreleased"
+    assert "requirements-implemented" not in front_matter
+    assert implementation_status_label(front_matter) == "Implemented in unreleased"
+    assert check_code_markers(tmp_path) == []
+
+
+def test_a_marker_without_a_requirement_covers_all_and_an_unknown_requirement_is_reported(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    write_file(tmp_path / "backend" / "app" / "work.py",
+               "# spec: two-step-feature\ndef everything():\n    pass\n\n# spec: two-step-feature :: Third step\ndef other():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implementation-status"] == "implemented"
+    assert any("no requirement named `Third step`" in problem for problem in check_code_markers(tmp_path))
+
+
+def test_capability_status_is_rolled_up_from_its_features(tmp_path):
+    write_element(tmp_path / "openspec", "capabilities", "task-assignment", {"name": "task-assignment"})
+    write_element(tmp_path / "openspec", "features", "feature-one", {"capability": "task-assignment"})
+    write_element(tmp_path / "openspec", "features", "feature-two", {"capability": "task-assignment"})
+    write_file(tmp_path / "backend" / "app" / "work.py", "# spec: feature-one\ndef one():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    capability = read_element_front_matter(tmp_path, "capabilities", "task-assignment")
+    assert (capability["implementation-status"], capability["features-implemented"], capability["features-total"]) == ("partial", 1, 2)
+    write_file(tmp_path / "backend" / "app" / "work.py",
+               "# spec: feature-one\ndef one():\n    pass\n\n# spec: feature-two\ndef two():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "capabilities", "task-assignment")["implementation-status"] == "implemented"
+
+
+def run_git(root: Path, *arguments: str) -> None:
+    subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", *arguments], cwd=root, check=True, capture_output=True)
+
+
+def test_implemented_in_version_is_the_oldest_tag_containing_the_commit_of_the_last_requirement_marker(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    code_file = tmp_path / "backend" / "app" / "work.py"
+    run_git(tmp_path, "init", "-q")
+    write_file(code_file, "# spec: two-step-feature :: First step\ndef first():\n    pass\n")
+    run_git(tmp_path, "add", "-A"); run_git(tmp_path, "commit", "-q", "-m", "first")
+    run_git(tmp_path, "tag", "v1.0.0")
+    write_file(code_file, code_file.read_text() + "\n# spec: two-step-feature :: Second step\ndef second():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implementation-status"] == "implemented"
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implemented-in-version"] == "unreleased"  # second marker not committed
+
+    run_git(tmp_path, "add", "-A"); run_git(tmp_path, "commit", "-q", "-m", "second")
+    run_git(tmp_path, "tag", "v1.1.0")
+    run_git(tmp_path, "tag", "v1.2.0")
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implemented-in-version"] == "v1.1.0"
+
+
+def test_site_shows_the_implementation_status_and_the_status_view_lists_it_by_epic(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature",
+                  {"name": "two-step-feature", "type": "feature", "origin": {"epics": ["team-balance"]}}, TWO_REQUIREMENTS_BODY)
+    write_file(tmp_path / "openspec" / "CHANGELOG.md", "# Changelog\n")
+    index_code_for_specifications(tmp_path)
+    status_view = (tmp_path / "openspec" / "reverse-views" / "implementation-status-by-epic.md").read_text()
+    assert "- features/two-step-feature: Planned, not implemented yet" in status_view
+    stage_documentation_site(tmp_path / "openspec", tmp_path / "build", "Demo 0.1.0")
+    assert "| implementation | 🕓 Planned, not implemented yet |" in (tmp_path / "build" / "docs" / "features" / "two-step-feature.md").read_text()
+
+
+ENTITY_DEFINITION_TEXT = (
+    "## Fields\n\n| Field | Description | Type | Required | Allowed values | Default |\n| --- | --- | --- | --- | --- | --- |\n"
+    "| name | Name of the flow | text | yes | free | none |\n| max_attempts | Attempts before a record is dead-lettered | number | yes | 1 to 10 | 3 |\n"
+    "| is_enabled | Whether the flow runs | yes or no | yes | true, false | true |\n| started_at | When it last started | date and time | no | free | none |\n"
+    "| end_date | When it stops | date | no | free | none |\n\n"
+    "## Relations\n\n| Subject entity | Relation | Object entity | Subject cardinality | Object cardinality |\n| --- | --- | --- | --- | --- |\n"
+    "| Flow | flow_has_step | Step | one | one or more |\n")
+
+
+def make_data_change(root: Path, requirement_lines: str, front_matter: dict | None = None) -> Path:
+    change = root / "changes" / "c"
+    write_file(change / "stories" / "s.md", join_front_matter({"epic": "e"}, "x"))
+    write_file(change / "epics" / "e.md", join_front_matter({}, "x"))
+    write_element(root, "capabilities", "the-capability")
+    write_element(root, "entity-definitions", "Flow", {"name": "Flow"})
+    write_file(root / "specs" / "entity-definitions" / "Flow" / "definition.md", ENTITY_DEFINITION_TEXT)
+    body = SPEC_BODY.replace("The system SHALL do it.\n", "The system SHALL do it.\n" + requirement_lines)
+    write_element(change, "features", "do-it", {"capability": "the-capability", "stories": ["s"], **(front_matter or {})}, body)
+    return change
+
+
+def test_a_feature_needs_to_point_to_its_data_or_give_a_reason_and_the_setting_can_turn_this_off(tmp_path):
+    change = make_data_change(tmp_path, "")
+    assert any("needs to point to its data" in str(problem) for problem in validate_documentation_change(change, tmp_path / "specs"))
+    assert validate_documentation_change(change, tmp_path / "specs", require_feature_data=False) == []
+    write_element(change, "features", "do-it", {"capability": "the-capability", "stories": ["s"], "data-not-applicable": "It changes a business rule only."})
+    assert validate_documentation_change(change, tmp_path / "specs") == []
+
+
+def test_requirements_must_point_to_fields_and_relations_the_entity_defines(tmp_path):
+    change = make_data_change(tmp_path, "Data: Flow.max_attempts, Flow.name\nRelation: Flow > flow_has_step > Step\n")
+    assert validate_documentation_change(change, tmp_path / "specs") == []
+    bad = make_data_change(tmp_path, "Data: Flow.retries, Missing.name, not a reference\nRelation: Flow > flow_owns_step > Step\n")
+    messages = " | ".join(str(problem) for problem in validate_documentation_change(bad, tmp_path / "specs"))
+    assert "field `retries` is not defined by entity `Flow`" in messages and "entity `Missing` has no entity definition" in messages
+    assert "`not a reference` is not `Entity.field`" in messages and "relation `Flow > flow_owns_step > Step` is not defined" in messages
+
+
+def test_a_capability_does_not_point_to_data_but_its_features_do(tmp_path):
+    change = tmp_path / "changes" / "c"
+    write_file(change / "stories" / "s.md", join_front_matter({"epic": "e"}, "x"))
+    write_file(change / "epics" / "e.md", join_front_matter({}, "x"))
+    write_element(tmp_path, "entity-definitions", "Flow", {"name": "Flow"})
+    write_file(tmp_path / "specs" / "entity-definitions" / "Flow" / "definition.md", ENTITY_DEFINITION_TEXT)
+    write_element(change, "capabilities", "the-capability", {"stories": ["s"]}, SPEC_BODY.replace("The system SHALL do it.\n", "The system SHALL do it.\nData: Flow.name\n"))
+    assert any("a capability does not point to data" in str(problem) for problem in validate_documentation_change(change, tmp_path / "specs"))
+
+
+def test_entity_definitions_check_cardinalities_and_subject(tmp_path):
+    change = tmp_path / "changes" / "c"
+    write_file(change / "stories" / "s.md", join_front_matter({"epic": "e"}, "x"))
+    write_file(change / "epics" / "e.md", join_front_matter({}, "x"))
+    write_element(change, "entity-definitions", "Step", {"name": "Step", "stories": ["s"]})
+    write_file(change / "specs" / "entity-definitions" / "Step" / "definition.md",
+               ENTITY_DEFINITION_TEXT.replace("| Flow | flow_has_step | Step | one | one or more |", "| Flow | belongs to | Step | many | one |"))
+    messages = " | ".join(str(problem) for problem in validate_documentation_change(change, tmp_path / "specs"))
+    assert "subject `Flow`; it must be this entity, `Step`" in messages and "cardinality `many` is not one of" in messages
+
+
+def test_names_follow_the_conventions_of_the_applications():
+    from veloiq_framework.documentation_workflow.data_specification_tables import read_entity_definition, snake_case_of_entity
+    assert snake_case_of_entity("CashAccount") == "cash_account"
+    bad_text = ("## Fields\n\n| Field | Description | Type | Required | Allowed values | Default |\n| --- | --- | --- | --- | --- | --- |\n"
+                "| Name | x | text | yes | free | none |\n| enabled | x | yes or no | yes | true, false | true |\n"
+                "| started | x | date and time | no | free | none |\n| ends | x | date | no | free | none |\n\n"
+                "## Relations\n\n| Subject entity | Relation | Object entity | Subject cardinality | Object cardinality |\n| --- | --- | --- | --- | --- |\n"
+                "| cash_account | has steps | Step | one | one or more |\n| cash_account | steps | Step | one | one or more |\n")
+    _, problems = read_entity_definition("cash_account", bad_text)
+    messages = " | ".join(problems)
+    for expected in ("must be singular PascalCase", "field `Name`", "yes or no field `enabled`", "must end with _at", "must end with _date"):
+        assert expected in messages
+    _, problems = read_entity_definition("CashAccount", ENTITY_DEFINITION_TEXT.replace("Flow", "CashAccount").replace("flow_has", "cash_account_has").replace("Step", "Entry").replace("cash_account_has_step", "cash_account_has_entry"))
+    assert problems == []
+    _, problems = read_entity_definition("CashAccount", ENTITY_DEFINITION_TEXT.replace("Flow", "CashAccount").replace("flow_has_step", "has_entry"))
+    assert any("cash_account_<verb phrase>_step" in problem for problem in problems)
+
+
+def test_each_relation_is_listed_on_both_entities_with_swapped_cardinalities(tmp_path):
+    change = tmp_path / "changes" / "c"
+    write_file(change / "stories" / "s.md", join_front_matter({"epic": "e"}, "x"))
+    write_file(change / "epics" / "e.md", join_front_matter({}, "x"))
+    fields = "## Fields\n\n| Field | Description | Type | Required | Allowed values | Default |\n| --- | --- | --- | --- | --- | --- |\n| name | x | text | yes | free | none |\n\n"
+    header = "## Relations\n\n| Subject entity | Relation | Object entity | Subject cardinality | Object cardinality |\n| --- | --- | --- | --- | --- |\n"
+    def define(entity: str, relation_rows: str) -> None:
+        write_element(change, "entity-definitions", entity, {"name": entity, "stories": ["s"]})
+        write_file(change / "specs" / "entity-definitions" / entity / "definition.md", fields + header + relation_rows)
+    define("Flow", "| Flow | flow_has_step | Step | one | one or more |\n")
+    define("Step", "")
+    messages = " | ".join(str(problem) for problem in validate_documentation_change(change, tmp_path / "specs"))
+    assert "relation `flow_has_step` of `Flow` needs its other side `flow_has_step_reverse` listed here" in messages
+    define("Step", "| Step | flow_has_step_reverse | Flow | one | one or more |\n")
+    assert "must have subject `Step`, object `Flow` and the cardinalities one or more / one" in " ".join(str(problem) for problem in validate_documentation_change(change, tmp_path / "specs"))
+    define("Step", "| Step | flow_has_step_reverse | Flow | one or more | one |\n")
+    assert validate_documentation_change(change, tmp_path / "specs") == []
+
+
+def test_scaffold_creates_the_entity_definition_and_the_site_shows_the_values_next_to_the_requirement(tmp_path):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import create_element_delta
+    change = tmp_path / "openspec" / "changes" / "c"
+    write_file(change / "stories" / "s.md", join_front_matter({"epic": "e"}, "x"))
+    write_file(change / "proposal.md", "## Capabilities\n\n### New Capabilities\n\n### Modified Capabilities\n")
+    create_element_delta(tmp_path, "c", "entity-definitions", "Flow", ["s"])
+    create_element_delta(tmp_path, "c", "capabilities", "the-capability", ["s"])
+    create_element_delta(tmp_path, "c", "features", "no-data-feature", ["s"], "the-capability", "It changes a user journey only.")
+    assert (change / "specs" / "entity-definitions" / "Flow" / "definition.md").exists()
+    assert not (change / "specs" / "features" / "no-data-feature" / "data.md").exists()
+    assert split_front_matter((change / "specs" / "features" / "no-data-feature" / "spec.md").read_text())[0]["data-not-applicable"] == "It changes a user journey only."
+    # the values are written once, in the entity definition; the product page of the feature repeats them from there
+    openspec_folder = tmp_path / "openspec"
+    write_element(openspec_folder, "entity-definitions", "Flow", {"type": "entity-definition"})
+    write_file(openspec_folder / "specs" / "entity-definitions" / "Flow" / "definition.md", ENTITY_DEFINITION_TEXT)
+    write_element(openspec_folder, "features", "do-it", {"type": "feature"},
+                  SPEC_BODY.replace("The system SHALL do it.\n", "The system SHALL do it.\nData: Flow.max_attempts\nRelation: Flow > flow_has_step > Step\n"))
+    write_element(openspec_folder, "features", "no-data-feature", {"type": "feature", "data-not-applicable": "It changes a user journey only."})
+    write_file(openspec_folder / "CHANGELOG.md", "# Changelog\n")
+    stage_documentation_site(openspec_folder, tmp_path / "build", "Demo")
+    page = (tmp_path / "build" / "docs" / "features" / "do-it.md").read_text()
+    assert "[Flow](../entity-definitions/Flow.md).max_attempts | Attempts before a record is dead-lettered | number | yes | 1 to 10 | 3 |" in page
+    assert "| [Flow](../entity-definitions/Flow.md) | flow_has_step | Step | one | one or more |" in page and "Data: Flow" not in page
+    assert "Not applicable: It changes a user journey only." in (tmp_path / "build" / "docs" / "features" / "no-data-feature.md").read_text()
+    assert "# Definition" in (tmp_path / "build" / "docs" / "entity-definitions" / "Flow.md").read_text()
+    assert "| [Flow](Flow.md) | flow_has_step | Step | one | one or more |" in (tmp_path / "build" / "docs" / "entity-definitions" / "Flow.md").read_text()
 
 
 def test_help_draft_is_built_from_purpose_requirements_and_scenarios():
@@ -340,7 +553,7 @@ def test_full_loop_with_openspec_init_validate_apply_rename_and_modify(tmp_path)
     write_file(change / "epics" / "the-epic.md", join_front_matter({"name": "the-epic", "prerequisites": ["A role exists"]}, "## Goal\nx\n"))
     write_file(change / "stories" / "the-story.md", join_front_matter({"epic": "the-epic"}, "## User story\nx\n"))
     write_element(change, "capabilities", "the-capability", {"stories": ["the-story"]})
-    write_element(change, "features", "do-it", {"capability": "the-capability", "stories": ["the-story"]})
+    write_element(change, "features", "do-it", {"capability": "the-capability", "stories": ["the-story"], "data-not-applicable": "No data."})
     write_file(change / "specs" / "features" / "do-it" / "extra.json", "{}")
     write_file(change / "design" / "high-level-design.md", "x\n")
     write_file(change / "design" / "low-level-design" / "component.md", "x\n")
@@ -360,7 +573,7 @@ def test_full_loop_with_openspec_init_validate_apply_rename_and_modify(tmp_path)
     write_file(rename / "epics" / "rename-epic.md", join_front_matter({"name": "rename-epic"}, "x"))
     write_file(rename / "stories" / "rename-story.md", join_front_matter({"epic": "rename-epic"}, "x"))
     write_element(rename, "features", "do-it", {}, "## REMOVED Requirements\n\n### Requirement: Do it\n**Reason**: renamed\n**Migration**: use do-it-better\n")
-    write_element(rename, "features", "do-it-better", {"capability": "the-capability", "stories": ["rename-story"]})
+    write_element(rename, "features", "do-it-better", {"capability": "the-capability", "stories": ["rename-story"], "data-not-applicable": "No data."})
     write_file(rename / "design" / "high-level-design.md", "x\n")
     write_file(rename / "design" / "low-level-design" / "component.md", "x\n")
     write_file(rename / "tasks.md", "## 1. Work\n\n- [x] 1.1 done\n")

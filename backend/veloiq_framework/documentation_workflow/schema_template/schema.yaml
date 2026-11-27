@@ -10,8 +10,8 @@ artifacts:
       Explain WHY this change is needed and WHAT it changes, in English.
       Under "Capabilities", list every specification element the change creates or modifies as
       `<element-type>/<element-name>` (for example `features/bulk-reassign-tasks`). Element types are
-      journeys, capabilities, features, business-rules, algorithms, non-functional-requirements and
-      implementation. Names are descriptive kebab-case, never numbered. Each listed element needs a delta
+      journeys, capabilities, features, business-rules, algorithms, non-functional-requirements,
+      entity-definitions and implementation. Names are descriptive kebab-case, never numbered. Each listed element needs a delta
       spec at specs/<element-type>/<element-name>/spec.md. Never list data-model elements: the data model
       is generated from the code.
     requires: []
@@ -54,6 +54,14 @@ artifacts:
       WHEN and THEN. A MODIFIED requirement carries its complete new text. Content that does not fit a
       requirement (journey steps as JSON, algorithm steps) goes in extra files beside spec.md, for example
       journey.json; the VeloIQ step copies them into the element's folder.
+      A requirement that uses data points to it and never copies its values: a line `Data: Entity.field, Entity.field` and a line
+      `Relation: Subject > relation name > Object` inside the requirement. When a feature's requirements use no data (a business rule
+      change, a user journey or a UI design) put the reason in the front matter key `data-not-applicable` instead. An
+      entity-definitions element defines the entity once in definition.md ("## Fields" and "## Relations" tables); every reference
+      must exist there.
+      Names follow the application conventions: entity PascalCase and singular (CashAccount), field lowercase with underscores
+      (risk_tolerance), yes or no fields start with is_ or has_, dates end with _date and date and times with _at, choice values
+      lowercase with underscores, relations <subject_snake>_<verb phrase>_<object_snake> (cash_account_has_position).
     requires: [proposal]
 
   - id: high-level-design

@@ -13,7 +13,8 @@ from veloiq_framework.documentation_workflow.specification_front_matter import j
 from veloiq_framework.documentation_workflow.validate_documentation_change import DESCRIPTIVE_NAME_PATTERN, NUMBERED_NAME_PATTERN
 from veloiq_framework.documentation_workflow.workflow_constants import (
     ARCHIVE_FOLDER_NAME, AUTHORED_ELEMENT_TYPES, CODE_NAMED_ELEMENT_TYPES, CHANGES_FOLDER_NAME, CUSTOM_SCHEMA_NAME,
-    ELEMENT_TYPE_FEATURES, OPENSPEC_FOLDER_NAME, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
+    DATA_NOT_APPLICABLE_KEY, ELEMENT_TYPE_ENTITY_DEFINITIONS, ELEMENT_TYPE_FEATURES, ENTITY_DEFINITION_FILE_NAME,
+    OPENSPEC_FOLDER_NAME, SPECIFICATION_FILE_NAME, SPECIFICATIONS_FOLDER_NAME,
 )
 
 PACKAGED_TEMPLATES_FOLDER = Path(__file__).parent / "schema_template" / "templates"
@@ -105,8 +106,13 @@ def _element_exists(project_root: Path, change_folder: Path, element_name: str) 
 
 
 def create_element_delta(project_root: Path, change_name: str, element_type: str, element_name: str,
-                         story_names: list[str] | None = None, capability_name: str | None = None) -> str:
-    """Create specs/<type>/<name>/spec.md in the change with its front matter filled in; return the file path."""
+                         story_names: list[str] | None = None, capability_name: str | None = None,
+                         data_not_applicable_reason: str | None = None) -> str:
+    """Create specs/<type>/<name>/spec.md in the change with its front matter filled in; return the file path.
+
+    An entity definition also gets `definition.md` (its fields and relations; an existing one is copied as the start). A feature whose
+    requirements use no data is given the front matter key `data-not-applicable` when a reason is passed.
+    """
     change_folder = _change_folder(project_root, change_name)
     if element_type not in AUTHORED_ELEMENT_TYPES:
         raise ScaffoldError(f"Element type {element_type!r} is not one of: {', '.join(AUTHORED_ELEMENT_TYPES)} "
@@ -130,11 +136,22 @@ def create_element_delta(project_root: Path, change_name: str, element_type: str
             front_matter["capability"] = capability_name
     if story_names:
         front_matter["stories"] = story_names
-    body = _template_body(project_root, "spec.md")
+    if data_not_applicable_reason and element_type != ELEMENT_TYPE_FEATURES:
+        raise ScaffoldError("`--data-not-applicable` is only for features.")
+    if data_not_applicable_reason:
+        front_matter[DATA_NOT_APPLICABLE_KEY] = data_not_applicable_reason
+    body = _template_body(project_root, "entity-definition-spec.md" if element_type == ELEMENT_TYPE_ENTITY_DEFINITIONS else "spec.md")
+    if element_type == ELEMENT_TYPE_ENTITY_DEFINITIONS:
+        body = body.replace("<EntityName>", element_name)
     if is_modification:
         body = body.replace("## ADDED Requirements", "## MODIFIED Requirements", 1)
     created = _write_new_file(change_folder / SPECIFICATIONS_FOLDER_NAME / element_type / element_name / SPECIFICATION_FILE_NAME,
                               join_front_matter(front_matter, body))
+    if element_type == ELEMENT_TYPE_ENTITY_DEFINITIONS:
+        existing_definition = project_root / OPENSPEC_FOLDER_NAME / SPECIFICATIONS_FOLDER_NAME / element_type / element_name / ENTITY_DEFINITION_FILE_NAME
+        definition_text = existing_definition.read_text(encoding="utf-8") if existing_definition.exists() \
+            else _template_body(project_root, ENTITY_DEFINITION_FILE_NAME)
+        (change_folder / SPECIFICATIONS_FOLDER_NAME / element_type / element_name / ENTITY_DEFINITION_FILE_NAME).write_text(definition_text, encoding="utf-8")
     _list_element_in_proposal(change_folder / "proposal.md", element_type, element_name, is_modification)
     return created
 

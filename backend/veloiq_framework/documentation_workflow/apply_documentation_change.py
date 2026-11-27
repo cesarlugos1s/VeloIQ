@@ -14,6 +14,7 @@ from typing import Any
 
 import yaml
 
+from veloiq_framework.documentation_workflow.documentation_settings import read_documentation_settings
 from veloiq_framework.documentation_workflow.run_openspec_command import run_openspec_command
 from veloiq_framework.documentation_workflow.specification_front_matter import (
     join_front_matter, read_front_matter_of_file, split_front_matter,
@@ -138,7 +139,9 @@ def resolve_prerequisites(change_folder: Path, delta: DeltaElement) -> tuple[lis
     return required_names, statements
 
 
-BOOKKEEPING_KEYS = ("created", "created-in-version", "last-changed", "last-changed-in-version", "origin", "requires", "prerequisites", "implemented-by")
+BOOKKEEPING_KEYS = ("created", "created-in-version", "last-changed", "last-changed-in-version", "origin", "requires", "prerequisites", "implemented-by",
+                   "implementation-status", "requirements-implemented", "requirements-total", "features-implemented",
+                   "features-total", "implemented-in-version")
 
 
 def _in_reading_order(front_matter: dict[str, Any]) -> dict[str, Any]:
@@ -199,6 +202,8 @@ def stamp_specification_metadata(archived_folder: Path, specifications_root: Pat
         }
         stamped["requires"] = required_names if (required_names or statements) else _as_list(main_front_matter.get("requires"))
         stamped["prerequisites"] = statements if (required_names or statements) else _as_list(main_front_matter.get("prerequisites"))
+        if is_new:
+            stamped["implementation-status"] = "planned"  # no code marker exists yet; `veloiq docs spec index-code` keeps it up to date
         for key, value in main_front_matter.items():
             stamped.setdefault(key, value)
         for empty_key in [key for key in ("requires", "prerequisites") if not stamped.get(key)]:
@@ -238,7 +243,7 @@ def apply_documentation_change(project_root: Path, change_name: str, product_ver
     if not change_folder.exists():
         raise RuntimeError(f"Change {change_name!r} does not exist at {change_folder}")
 
-    problems = validate_documentation_change(change_folder, specifications_root)
+    problems = validate_documentation_change(change_folder, specifications_root, read_documentation_settings(project_root).require_feature_data)
     if problems:
         raise RuntimeError("The change has problems:\n" + "\n".join(f"  - {problem}" for problem in problems))
     validation = run_openspec_command(project_root, ["validate", change_name])

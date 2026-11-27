@@ -125,9 +125,10 @@ DOCUMENTATION_ACTIONS: tuple[DocumentationAction, ...] = (
         "veloiq docs spec generate-data-model"),
     DocumentationAction(
         "index-code", "x", "Link specification to code",
-        "Reads the `# spec: <element-name>` comments in the code, records which functions and components implement each "
-        "element, and builds the traceability pages by module and by epic.",
-        "After implementing. Put the comment above the function or component that implements the element, not above helpers.",
+        "Reads the `# spec: <element-name> :: <Requirement name>` comments in the code, records which functions and components "
+        "implement each element, computes its status (planned, partial, implemented) and the version it shipped in from the git "
+        "tags, and builds the traceability pages by module, by epic and by status.",
+        "After implementing. Put the comment above the function or component that implements the requirement, not above helpers.",
         "veloiq docs spec index-code"),
     DocumentationAction(
         "check", "c", "Check specification against code",

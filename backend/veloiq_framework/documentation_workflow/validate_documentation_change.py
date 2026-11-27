@@ -5,10 +5,14 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from veloiq_framework.documentation_workflow.data_specification_tables import (
+    EntityDefinition, check_data_references, find_data_references, read_entity_definition, reverse_relation_problems,
+)
 from veloiq_framework.documentation_workflow.specification_front_matter import read_front_matter_of_file
 from veloiq_framework.documentation_workflow.workflow_constants import (
     AUTHORED_ELEMENT_TYPES, CODE_NAMED_ELEMENT_TYPES, DELTA_HEADING_ADDED, DELTA_HEADING_MODIFIED,
-    ELEMENT_TYPE_CAPABILITIES, ELEMENT_TYPE_DATA_MODEL, ELEMENT_TYPE_FEATURES, SPECIFICATION_FILE_NAME,
+    DATA_NOT_APPLICABLE_KEY, DATA_REFERENCE_KEYWORD, RELATION_REFERENCE_KEYWORD, ELEMENT_TYPE_CAPABILITIES, ELEMENT_TYPE_DATA_MODEL, ELEMENT_TYPE_ENTITY_DEFINITIONS,
+    ELEMENT_TYPE_FEATURES, ENTITY_DEFINITION_FILE_NAME, SPECIFICATION_FILE_NAME,
     SPECIFICATIONS_FOLDER_NAME,
 )
 
@@ -70,12 +74,49 @@ def _find_requirement_cycle(requirements_by_element: dict[str, list[str]]) -> li
     return None
 
 
-def validate_documentation_change(change_folder: Path, specifications_root: Path) -> list[DocumentationProblem]:
-    """Return every problem found in a change folder; an empty list means the change passes."""
+def _entity_definitions(specifications_root: Path, change_specifications_folder: Path) -> tuple[dict[str, EntityDefinition], list[DocumentationProblem]]:
+    """Read the entity definitions of the product and of the change (the change's version wins), with the problems of the change's ones."""
+    entities: dict[str, EntityDefinition] = {}
+    problems: list[DocumentationProblem] = []
+    for root, is_change in ((specifications_root, False), (change_specifications_folder, True)):
+        type_folder = root / ELEMENT_TYPE_ENTITY_DEFINITIONS
+        if not type_folder.exists():
+            continue
+        for entity_folder in sorted(path for path in type_folder.iterdir() if path.is_dir()):
+            definition_file = entity_folder / ENTITY_DEFINITION_FILE_NAME
+            location = f"specs/{ELEMENT_TYPE_ENTITY_DEFINITIONS}/{entity_folder.name}"
+            if not definition_file.exists():
+                if is_change and (entity_folder / SPECIFICATION_FILE_NAME).exists() and DELTA_HEADING_ADDED in (entity_folder / SPECIFICATION_FILE_NAME).read_text(encoding="utf-8"):
+                    problems.append(DocumentationProblem(location, f"an entity definition needs {ENTITY_DEFINITION_FILE_NAME} with its fields and relations"))
+                continue
+            entity, entity_problems = read_entity_definition(entity_folder.name, definition_file.read_text(encoding="utf-8"))
+            entities[entity_folder.name] = entity
+            if is_change:
+                problems += [DocumentationProblem(location, message) for message in entity_problems]
+    for entity_name, message in reverse_relation_problems(entities, set(problems_entity_names(change_specifications_folder))):
+        problems.append(DocumentationProblem(f"specs/{ELEMENT_TYPE_ENTITY_DEFINITIONS}/{entity_name}", message))
+    return entities, problems
+
+
+def problems_entity_names(change_specifications_folder: Path) -> list[str]:
+    """Names of the entity definitions the change carries."""
+    type_folder = change_specifications_folder / ELEMENT_TYPE_ENTITY_DEFINITIONS
+    return sorted(path.name for path in type_folder.iterdir() if path.is_dir()) if type_folder.exists() else []
+
+
+def validate_documentation_change(change_folder: Path, specifications_root: Path, require_feature_data: bool = True) -> list[DocumentationProblem]:
+    """Return every problem found in a change folder; an empty list means the change passes.
+
+    With `require_feature_data` (the project setting, default true) every feature that is added or modified must point to the shared
+    data its requirements use (`Data:` and `Relation:` lines) or say why it has none with the front matter key `data-not-applicable`.
+    """
     problems: list[DocumentationProblem] = []
     existing_names = _element_names_by_type(specifications_root)
     change_specifications_folder = change_folder / SPECIFICATIONS_FOLDER_NAME
     change_names = _element_names_by_type(change_specifications_folder)
+    entities, entity_problems = _entity_definitions(specifications_root, change_specifications_folder)
+    problems += entity_problems
+    generated_entity_names = existing_names.get("data-model", set())
 
     all_known_names: set[str] = set()
     for names in list(existing_names.values()) + list(change_names.values()):
@@ -128,14 +169,27 @@ def validate_documentation_change(change_folder: Path, specifications_root: Path
             spec_text = spec_file.read_text(encoding="utf-8")
             adds_or_modifies = DELTA_HEADING_ADDED in spec_text or DELTA_HEADING_MODIFIED in spec_text
 
-            if element_type == ELEMENT_TYPE_FEATURES and adds_or_modifies:
+            if adds_or_modifies:
                 existing_spec_file = specifications_root / element_type / name / SPECIFICATION_FILE_NAME
-                existing_front_matter = read_front_matter_of_file(existing_spec_file) if existing_spec_file.exists() else {}
-                capability_name = front_matter.get("capability") or existing_front_matter.get("capability")
-                if not capability_name:
-                    problems.append(DocumentationProblem(location, "a feature needs the front matter key `capability`"))
-                elif capability_name not in change_names.get(ELEMENT_TYPE_CAPABILITIES, set()) | existing_names.get(ELEMENT_TYPE_CAPABILITIES, set()):
-                    problems.append(DocumentationProblem(location, f"capability `{capability_name}` does not exist"))
+                existing_text = existing_spec_file.read_text(encoding="utf-8") if existing_spec_file.exists() else ""
+                references = find_data_references(spec_text)
+                problems += [DocumentationProblem(location, message) for message in check_data_references(references, entities, generated_entity_names)]
+                if element_type == ELEMENT_TYPE_CAPABILITIES and not references.is_empty():
+                    problems.append(DocumentationProblem(
+                        location, f"a capability does not point to data: remove its `{DATA_REFERENCE_KEYWORD}` and `{RELATION_REFERENCE_KEYWORD}` "
+                                  "lines; its features do"))
+                if element_type == ELEMENT_TYPE_FEATURES:
+                    existing_front_matter = read_front_matter_of_file(existing_spec_file) if existing_spec_file.exists() else {}
+                    capability_name = front_matter.get("capability") or existing_front_matter.get("capability")
+                    if not capability_name:
+                        problems.append(DocumentationProblem(location, "a feature needs the front matter key `capability`"))
+                    elif capability_name not in change_names.get(ELEMENT_TYPE_CAPABILITIES, set()) | existing_names.get(ELEMENT_TYPE_CAPABILITIES, set()):
+                        problems.append(DocumentationProblem(location, f"capability `{capability_name}` does not exist"))
+                    has_reason = str(front_matter.get(DATA_NOT_APPLICABLE_KEY) or existing_front_matter.get(DATA_NOT_APPLICABLE_KEY) or "").strip()
+                    if require_feature_data and not has_reason and references.is_empty() and find_data_references(existing_text).is_empty():
+                        problems.append(DocumentationProblem(
+                            location, f"a feature needs to point to its data: a `{DATA_REFERENCE_KEYWORD}` or `{RELATION_REFERENCE_KEYWORD}` line in the "
+                                      f"requirements that use data, or the front matter key `{DATA_NOT_APPLICABLE_KEY}` with the reason"))
             for story_name in _as_list(front_matter.get("stories")):
                 if story_name not in story_names:
                     problems.append(DocumentationProblem(location, f"story `{story_name}` is not a story of this change"))

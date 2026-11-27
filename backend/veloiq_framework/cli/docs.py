@@ -134,18 +134,23 @@ def element():
 @click.option("--change", "change_name", required=True, help="The change that adds or modifies the element.")
 @click.option("--story", "story_names", multiple=True, help="A story of the change that asks for this element (repeatable).")
 @click.option("--capability", "capability_name", default=None, help="Features only: the capability the feature belongs to.")
+@click.option("--data-not-applicable", "data_not_applicable_reason", default=None,
+              help="Features only: the reason the feature's requirements use no data (instead of `Data:` lines).")
 @PROJECT_ROOT_OPTION
-def create_element_command(element_type, element_name, change_name, story_names, capability_name, project_root_option):
+def create_element_command(element_type, element_name, change_name, story_names, capability_name, data_not_applicable_reason, project_root_option):
     """Create the delta of a specification element with its front matter filled in; write the requirements."""
     from veloiq_framework.documentation_workflow.scaffold_documentation_files import ScaffoldError, create_element_delta
     project_root = _resolve_project_root(project_root_option)
     try:
         _echo_created(project_root, create_element_delta(project_root, change_name, element_type, element_name,
-                                                         list(story_names), capability_name))
+                                                         list(story_names), capability_name, data_not_applicable_reason))
     except ScaffoldError as error:
         raise click.ClickException(str(error))
-    click.echo("Next: write the Purpose and the requirements with their scenarios, then run `veloiq docs change validate "
-               + change_name + "`.")
+    click.echo("Next: write the Purpose and the requirements with their scenarios"
+               + (", add `Data: Entity.field` and `Relation: Subject > relation > Object` lines to the requirements that use data"
+                  if element_type == "features" and not data_not_applicable_reason else "")
+               + (", fill definition.md (fields and relations of the entity)" if element_type == "entity-definitions" else "")
+               + ", then run `veloiq docs change validate " + change_name + "`.")
 
 
 @change.command(name="validate")
@@ -161,7 +166,9 @@ def validate_change(change_name, project_root_option):
     openspec_result = run_openspec_command(project_root, ["validate", change_name])
     click.echo(openspec_result.combined_output)
     failed = openspec_result.exit_code != 0
-    problems = validate_documentation_change(openspec_root / CHANGES_FOLDER_NAME / change_name, openspec_root / SPECIFICATIONS_FOLDER_NAME)
+    from veloiq_framework.documentation_workflow.documentation_settings import read_documentation_settings
+    problems = validate_documentation_change(openspec_root / CHANGES_FOLDER_NAME / change_name, openspec_root / SPECIFICATIONS_FOLDER_NAME,
+                                             read_documentation_settings(project_root).require_feature_data)
     for problem in problems:
         click.echo(click.style(f"  ✗ {problem}", fg="red"))
     if problems or failed:
@@ -203,10 +210,13 @@ def generate_data_model(product_version, project_root_option):
 @spec.command(name="index-code")
 @PROJECT_ROOT_OPTION
 def index_code(project_root_option):
-    """Find the code markers and write implemented-by and the reverse views."""
+    """Find the code markers and write implemented-by, the implementation status and the reverse views."""
     from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import index_code_for_specifications
     result = index_code_for_specifications(_resolve_project_root(project_root_option))
     click.echo(f"  ✅ {sum(len(references) for references in result.references_by_element.values())} markers indexed")
+    from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import count_elements_by_implementation_status
+    counts = count_elements_by_implementation_status(_resolve_project_root(project_root_option))
+    click.echo("  Implementation status: " + ", ".join(f"{counts[status]} {status}" for status in ("implemented", "partial", "planned")))
     for problem in result.unresolved_markers + result.ambiguous_markers:
         click.echo(click.style(f"  ⚠️  {problem}", fg="yellow"))
 
