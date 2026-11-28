@@ -40,6 +40,10 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   user and the expected host key fingerprint; the SFTP password or private key are secrets). A package can supply the test of an
   endpoint type the registry cannot test itself with `register_connection_tester`. **Existing registry tables need two new tables**
   (`veloiq_registry_file_connection_settings` and its link table).
+- **Connection pages show only the settings of their type** — the show, edit and create pages of a registry connection hide the settings
+  of the other endpoint types (a file connection no longer shows the REST paging fields); the new connection page first asks for the type.
+  `GET /registry/choices` lists the fields each endpoint type shows (`fields_by_endpoint_type`). After `veloiq generate` the host app has
+  the new edit and create overrides.
 - **Many-to-one relations through a link table behave like foreign keys** — a relation
   declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
   schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit

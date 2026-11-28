@@ -2931,3 +2931,7 @@ msgstr "Una conexión SFTP necesita {what}."
 
 msgid "Only a file or SFTP connection has file settings."
 msgstr "Solo una conexión de archivos o SFTP tiene ajustes de archivos."
+
+# Added by veloiq i18n extract
+msgid "What does the connection connect to?"
+msgstr "¿A qué se conecta la conexión?"

@@ -1,18 +1,19 @@
 /**
  * The record pages of the shared connection registry that add the shared operation interface to the standard pages:
  *
- *   - Connection page: the standard record page with "Test Connection" in the header (also in side panels).
+ *   - Connection pages (show, edit, create): the standard pages showing only the settings of the connection's endpoint type, with "Test
+ *     Connection" in the header of the record page (also in side panels). The create page first asks for the endpoint type.
  *   - Operation page: the standard record page with "Test API" in the header, which can record the answer's structure as the output.
  *   - New operation page: the standard create form with the import card above it, to import operations from an OpenAPI description or
  *     discover one from a URL; one discovered operation fills the form for review, several are recorded under the chosen connection.
  *
  * Registered in the manifest as the show and create overrides of the registry's resources (see menu.py).
  */
-import React, { useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Spin, message } from "antd";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { Select, Spin, Typography, message } from "antd";
 import {
-    API_URL, ConnectionTestButton, DynamicCreate, DynamicShow, OperationImportCard, OperationTestButton, authenticatedFetch,
+    API_URL, ConnectionTestButton, DynamicCreate, DynamicEdit, DynamicShow, OperationImportCard, OperationTestButton, authenticatedFetch,
     createRegistryOperationInterfaceClient, registryOperationFromDiscovered, testRegistryConnection, useAllModels,
 } from "@juicemantics/veloiq-ui";
 import type { DiscoveredOperation, ModelDef, OperationTestResult } from "@juicemantics/veloiq-ui";
@@ -26,6 +27,7 @@ const _ = (text: string): string => {
 const CONNECTIONS_RESOURCE_NAME = "veloiq_registry_connections";
 const OPERATIONS_RESOURCE_NAME = "veloiq_registry_operations";
 // Endpoint types the registry can test: a REST connection with a GET to its base address, a database with a trivial read, a file or SFTP connection by looking for its folder.
+const DEFAULT_ENDPOINT_TYPE = "rest_api";
 const TESTABLE_ENDPOINT_TYPES = ["rest_api", "database", "file", "sftp_folder"];
 
 const LoadingPage = () => <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><Spin /></div>;
@@ -35,20 +37,104 @@ function useResourceModel(resourceName: string): { model?: ModelDef; allModels: 
     return { model: allModels.find((candidate: ModelDef) => candidate.resource === resourceName), allModels };
 }
 
-/** A connection's page: the standard record page with "Test Connection" (a REST connection is tested with a GET to its base address, a database with a trivial read). */
+interface ConnectionFieldChoices {
+    endpointTypes: string[];
+    fieldsOfEveryConnection: string[];
+    fieldsByEndpointType: Record<string, string[]>;
+}
+
+/** Which fields each endpoint type shows, from the registry (undefined while it loads). */
+function useConnectionFieldChoices(): ConnectionFieldChoices | undefined {
+    const [choices, setChoices] = useState<ConnectionFieldChoices>();
+    useEffect(() => {
+        let cancelled = false;
+        authenticatedFetch(`${API_URL}/registry/choices`).then((response) => response.json()).then((answer) => {
+            if (!cancelled) setChoices({
+                endpointTypes: answer.endpoint_types ?? [], fieldsOfEveryConnection: answer.fields_of_every_connection ?? [],
+                fieldsByEndpointType: answer.fields_by_endpoint_type ?? {},
+            });
+        }).catch(() => { if (!cancelled) setChoices({ endpointTypes: [], fieldsOfEveryConnection: [], fieldsByEndpointType: {} }); });
+        return () => { cancelled = true; };
+    }, []);
+    return choices;
+}
+
+/** The endpoint type of a stored connection (undefined while it loads). */
+function useEndpointTypeOfConnection(connectionId: string | undefined): string | undefined {
+    const [endpointType, setEndpointType] = useState<string>();
+    useEffect(() => {
+        let cancelled = false;
+        if (!connectionId) return;
+        authenticatedFetch(`${API_URL}/${CONNECTIONS_RESOURCE_NAME}/${connectionId}`).then((response) => response.json())
+            .then((record) => { if (!cancelled) setEndpointType(String(record?.endpoint_type ?? "")); })
+            .catch(() => { if (!cancelled) setEndpointType(""); });
+        return () => { cancelled = true; };
+    }, [connectionId]);
+    return endpointType;
+}
+
+/** The model with only the fields of one endpoint type (the common ones and its settings); a type with no known settings keeps the common ones. */
+function modelForEndpointType(model: ModelDef, endpointType: string | undefined, choices: ConnectionFieldChoices): ModelDef {
+    const shown = new Set([...choices.fieldsOfEveryConnection, ...(choices.fieldsByEndpointType[endpointType ?? ""] ?? [])]);
+    return { ...model, fields: model.fields.filter((field) => shown.has(field.key)) };
+}
+
+/** A connection's page: the standard record page with "Test Connection" (a REST connection is tested with a GET to its base address, a database with a trivial read, a file or SFTP connection by looking for its folder), showing only the settings of its type. */
 export const ConnectionShow: React.FC<{ idOverride?: string }> = ({ idOverride }) => {
     const { model, allModels } = useResourceModel(CONNECTIONS_RESOURCE_NAME);
-    const routeId = useParams().id;
-    if (!model) return <LoadingPage />;
+    const routeParams = useParams();
+    const routeId = idOverride ?? routeParams.id;
+    const choices = useConnectionFieldChoices();
+    const endpointType = useEndpointTypeOfConnection(routeId);
+    const shownModel = useMemo(() => (model && choices && endpointType !== undefined ? modelForEndpointType(model, endpointType, choices) : undefined), [model, choices, endpointType]);
+    if (!shownModel) return <LoadingPage />;
     return (
         <DynamicShow
-            model={model}
+            model={shownModel}
             allModels={allModels}
-            idOverride={idOverride ?? routeId}
+            idOverride={routeId}
             extraHeaderButtons={(record: any) => (
                 <ConnectionTestButton disabled={!TESTABLE_ENDPOINT_TYPES.includes(record?.endpoint_type)} runTest={() => testRegistryConnection(Number(record.id))} />
             )}
         />
+    );
+};
+
+/** A connection's edit page: the standard form with only the settings of its type. */
+export const ConnectionEdit: React.FC<{ idOverride?: string }> = ({ idOverride }) => {
+    const { model, allModels } = useResourceModel(CONNECTIONS_RESOURCE_NAME);
+    const routeParams = useParams();
+    const routeId = idOverride ?? routeParams.id;
+    const choices = useConnectionFieldChoices();
+    const endpointType = useEndpointTypeOfConnection(routeId);
+    const shownModel = useMemo(() => (model && choices && endpointType !== undefined ? modelForEndpointType(model, endpointType, choices) : undefined), [model, choices, endpointType]);
+    if (!shownModel) return <LoadingPage />;
+    return <DynamicEdit model={shownModel} allModels={allModels} idOverride={routeId} />;
+};
+
+/**
+ * The new connection page: choose the endpoint type first, then fill the standard create form that has only the settings of that type.
+ * The type travels in the address (?endpoint_type=file), which the standard create form takes as the value of the field and does not ask for.
+ */
+export const ConnectionCreate: React.FC<{ model?: ModelDef; allModels?: ModelDef[] }> = () => {
+    const { model, allModels } = useResourceModel(CONNECTIONS_RESOURCE_NAME);
+    const choices = useConnectionFieldChoices();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const endpointType = searchParams.get("endpoint_type") ?? DEFAULT_ENDPOINT_TYPE;
+    useEffect(() => {
+        if (!searchParams.get("endpoint_type")) setSearchParams({ endpoint_type: DEFAULT_ENDPOINT_TYPE }, { replace: true });
+    }, [searchParams, setSearchParams]);
+    const shownModel = useMemo(() => (model && choices ? modelForEndpointType(model, endpointType, choices) : undefined), [model, choices, endpointType]);
+    if (!shownModel || !choices || !searchParams.get("endpoint_type")) return <LoadingPage />;
+    return (
+        <>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 8px 6px" }}>
+                <Typography.Text strong className="jm-panel-title">{_("What does the connection connect to?")}</Typography.Text>
+                <Select size="small" style={{ minWidth: 220 }} value={endpointType} onChange={(chosen) => setSearchParams({ endpoint_type: chosen })}
+                        options={choices.endpointTypes.map((value) => ({ value, label: _(value.replace(/_/g, " ")) }))} />
+            </div>
+            <DynamicCreate key={endpointType} model={shownModel} allModels={allModels} />
+        </>
     );
 };
 

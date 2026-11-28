@@ -3,7 +3,8 @@
 Like the System Configuration console, this is not an installed extension package: the manifest is appended to the extensions the
 generator builds, so the pages are delivered to the host app's frontend by ``veloiq generate``. The lists, side panels and record pages
 are the standard ones of the registry's non-model data resources (see connection_registry_non_model_data_resources.py); the manifest
-adds the menu entries (for administrators) and the show and create overrides that embed the shared operation interface.
+adds the menu entries (for administrators) and the show, edit and create overrides: the connection pages show only the settings of their
+endpoint type, and the operation pages embed the shared operation interface.
 """
 from veloiq_framework.extension import VeloIQExtension
 
@@ -19,7 +20,12 @@ class _ConnectionRegistryMenuManifest(VeloIQExtension):
         {"resource": "veloiq_registry_operations", "component": "OperationShow", "source": "ConnectionRegistryPages.tsx", "export": "OperationShow"},
     ]
 
+    edit_overrides = [
+        {"resource": "veloiq_registry_connections", "component": "ConnectionEdit", "source": "ConnectionRegistryPages.tsx", "export": "ConnectionEdit"},
+    ]
+
     create_overrides = [
+        {"resource": "veloiq_registry_connections", "component": "ConnectionCreate", "source": "ConnectionRegistryPages.tsx", "export": "ConnectionCreate"},
         {"resource": "veloiq_registry_operations", "component": "OperationCreate", "source": "ConnectionRegistryPages.tsx", "export": "OperationCreate"},
     ]
 

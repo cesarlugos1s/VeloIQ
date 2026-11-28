@@ -76,3 +76,19 @@ def test_the_connections_list_shows_the_settings_of_each_kind_without_one_kind_b
     rows = {row["id"]: row for row in client.get("/api/veloiq_registry_connections?_start=0&_end=5000", headers=auth).json()}
     assert rows[database["id"]]["host"] == "db.example.com" and rows[database["id"]]["username"] == "reader"
     assert rows[sftp["id"]]["host"] == "sftp.example.com" and rows[sftp["id"]]["username"] == "hub"
+
+
+def test_the_choices_say_which_fields_each_endpoint_type_shows(client, auth):
+    choices = client.get("/api/registry/choices", headers=auth).json()
+    by_type = choices["fields_by_endpoint_type"]
+    assert choices["fields_of_every_connection"] == ["id", "name", "endpoint_type", "is_enabled"]
+    assert "base_url" in by_type["rest_api"] and "folder_path" not in by_type["rest_api"]
+    assert "host_key_fingerprint" in by_type["sftp_folder"] and "host_key_fingerprint" not in by_type["file"] and "folder_path" in by_type["file"]
+    assert "cursor_column" in by_type["database"] and "target_url" in by_type["outgoing_webhook"] and "target_url" not in by_type["incoming_webhook"]
+    assert by_type["incoming_api_endpoint"] == ["endpoint_name", "inbound_authentication", "max_records_per_push"]
+    from veloiq_framework.shared_connection_registry.connection_registry_non_model_data_resources import build_connections_non_model_data_resource
+    every_field = {field for fields in by_type.values() for field in fields}
+    resource_fields = {field.key for field in build_connections_non_model_data_resource().fields}
+    decided_by_the_type = {"location", "direction"}                                             # the endpoint type decides them; the pages do not ask
+    assert resource_fields - set(choices["fields_of_every_connection"]) == every_field | decided_by_the_type
+    assert not decided_by_the_type & every_field

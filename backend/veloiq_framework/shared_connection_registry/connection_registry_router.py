@@ -72,10 +72,12 @@ def make_connection_registry_router(cfg) -> APIRouter:
         """The allowed values of the registry's choice fields (endpoint types, methods, authentications, paging styles, secret keys, usages)."""
         _require_admin(request)
         from . import registry_choice_values as values
+        from .connection_registry_non_model_data_resources import FIELDS_OF_EVERY_CONNECTION, fields_shown_for_each_endpoint_type
         return {"endpoint_types": list(values.ENDPOINT_TYPES), "operation_methods": list(values.OPERATION_METHODS),
                 "operation_sources": list(values.OPERATION_SOURCES), "secret_keys": list(values.SECRET_KEYS),
                 "rest_authentications": list(values.REST_AUTHENTICATIONS), "rest_paging_styles": list(values.REST_PAGING_STYLES),
-                "usages": list(values.USAGES), "database_types": list(values.DATABASE_TYPES), "file_locations": list(values.FILE_LOCATIONS), "file_formats": list(values.FILE_FORMATS), "inbound_api_authentications": list(values.INBOUND_API_AUTHENTICATIONS),
+                "usages": list(values.USAGES), "fields_of_every_connection": list(FIELDS_OF_EVERY_CONNECTION), "fields_by_endpoint_type": fields_shown_for_each_endpoint_type(),
+                "database_types": list(values.DATABASE_TYPES), "file_locations": list(values.FILE_LOCATIONS), "file_formats": list(values.FILE_FORMATS), "inbound_api_authentications": list(values.INBOUND_API_AUTHENTICATIONS),
                 "database_usual_ports": values.DATABASE_USUAL_PORTS, "database_types_without_host": list(values.DATABASE_TYPES_WITHOUT_HOST),
                 "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
 

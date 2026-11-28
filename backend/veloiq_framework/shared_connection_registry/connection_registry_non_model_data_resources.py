@@ -100,6 +100,32 @@ def _database_settings_of_row(row: dict) -> dict[str, Any]:
     return {field: row[field] for field in store.DATABASE_SETTING_FIELDS if row.get(field) not in (None, "")}
 
 
+# Fields every connection shows whatever its endpoint type is.
+FIELDS_OF_EVERY_CONNECTION = ("id", "name", "endpoint_type", "is_enabled")
+SFTP_ONLY_FILE_FIELDS = ("host", "port", "username", "host_key_fingerprint")
+OUTGOING_ONLY_WEBHOOK_FIELDS = ("target_url", "event_types")
+# Settings the endpoint type already decides (a file connection is a local folder, an SFTP connection an SFTP folder, an incoming webhook receives),
+# so the pages do not ask for them.
+FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE = ("location", "direction")
+
+
+def fields_shown_for_each_endpoint_type() -> dict[str, list[str]]:
+    """The fields of the connection pages that matter for each endpoint type (the common fields come with every one).
+
+    A connection page shows the settings of its own type only; the pages read this from ``GET /registry/choices``, so the lists live in one place.
+    """
+    inbound_fields = ["endpoint_name", "inbound_authentication", "max_records_per_push"]
+    return {
+        "rest_api": list(store.REST_SETTING_FIELDS),
+        "database": list(store.DATABASE_SETTING_FIELDS),
+        "file": [name for name in store.FILE_SETTING_FIELDS if name not in (*SFTP_ONLY_FILE_FIELDS, *FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE)],
+        "sftp_folder": [name for name in store.FILE_SETTING_FIELDS if name not in FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE],
+        "incoming_webhook": [name for name in store.WEBHOOK_SETTING_FIELDS if name not in (*OUTGOING_ONLY_WEBHOOK_FIELDS, *FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE)],
+        "outgoing_webhook": [name for name in store.WEBHOOK_SETTING_FIELDS if name not in FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE],
+        "incoming_api_endpoint": inbound_fields,
+    }
+
+
 def _endpoint_settings_of_row(row: dict) -> dict[str, Any]:
     """The settings of a webhook or inbound API endpoint a row holds (the ones that have a value), as the store takes them."""
     if row.get("endpoint_type") == store.INBOUND_API_ENDPOINT_TYPE:
