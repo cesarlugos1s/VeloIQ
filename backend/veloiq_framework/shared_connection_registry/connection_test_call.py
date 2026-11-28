@@ -12,7 +12,9 @@ from veloiq_framework.utils.i18n_utils import _
 from .connection_registry_models import Connection
 from .connection_registry_store import RegistryRuleError
 from .http_calls_to_other_systems import send_http_request
-from .operation_test_call import build_authentication_headers
+from urllib.parse import urlencode
+
+from .operation_test_call import build_authentication
 
 REACHABLE_WITHOUT_A_PAGE_STATUSES = (404, 405)
 CREDENTIALS_REFUSED_STATUSES = (401, 403)
@@ -27,7 +29,9 @@ def test_rest_connection(connection: Connection) -> dict[str, Any]:
     if not connection.connection_has_rest_connection_settings:
         raise RegistryRuleError(_("Only a REST connection can be tested."))
     settings = connection.connection_has_rest_connection_settings[0]
-    answer = send_http_request("GET", settings.base_url, headers=build_authentication_headers(connection),
+    authentication_headers, authentication_query = build_authentication(connection)
+    url = settings.base_url + (("&" if "?" in settings.base_url else "?") + urlencode(authentication_query) if authentication_query else "")
+    answer = send_http_request("GET", url, headers=authentication_headers,
                                timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
     result: dict[str, Any] = {"status": "error", "endpoint_type": connection.endpoint_type, "url": settings.base_url,
                               "http_status": answer.http_status, "duration_ms": answer.duration_ms,

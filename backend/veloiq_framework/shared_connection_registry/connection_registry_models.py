@@ -111,6 +111,17 @@ class RestConnectionSettings(SQLModel, table=True):
     timeout_seconds: int = Field(default=30, ge=1, le=300, description="Seconds to wait for an answer")
     is_tls_verified: bool = Field(default=True, description="Check the server certificate")
     rate_limit_per_second: Optional[int] = Field(default=None, ge=1, description="Most calls per second")
+    user_name: Optional[str] = Field(default=None, description="User name of basic authentication")
+    api_key_header_name: Optional[str] = Field(default="X-API-Key", description="Header that carries the API key")
+    api_key_query_parameter_name: Optional[str] = Field(default="api_key", description="Query parameter that carries the API key")
+    page_size: Optional[int] = Field(default=100, ge=1, description="Records asked for in each page")
+    page_size_parameter: Optional[str] = Field(default=None, description="Query parameter that carries the page size")
+    page_parameter: Optional[str] = Field(default=None, description="Query parameter that moves to the next page: the offset or the page number")
+    first_page_number: Optional[int] = Field(default=1, ge=0, description="Number of the first page")
+    cursor_parameter: Optional[str] = Field(default=None, description="Query parameter that carries the cursor")
+    next_cursor_path: Optional[str] = Field(default=None, description="Where the answer holds the cursor of the next page")
+    next_link_path: Optional[str] = Field(default=None, description="Where the answer holds the address of the next page")
+    maximum_pages: int = Field(default=100, ge=1, le=10000, description="Most pages one read follows")
 
     connection_has_rest_connection_settings_reverse: List["Connection"] = jm_relationship(
         min_items=1, max_items=1, required=True, link_model=connection_has_rest_connection_settings,

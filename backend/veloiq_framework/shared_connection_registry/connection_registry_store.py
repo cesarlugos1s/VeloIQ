@@ -9,6 +9,7 @@ from veloiq_framework.utils.i18n_utils import _
 
 from .connection_registry_models import Connection, ConnectionSecret, Operation, RestConnectionSettings, UsageSelection
 from .connection_secret_encryption import encrypt_secret
+from .registry_item_in_use_checks import ensure_item_is_not_in_use
 from .registry_choice_values import (
     ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS_THAT_USE_OAUTH,
     SECRET_KEYS, USAGE_SELECTION_ITEM_KINDS, USAGES,
@@ -20,6 +21,8 @@ CONNECTION_ITEM_KIND = "connection"
 REST_SETTING_FIELDS = (
     "base_url", "authentication", "oauth_token_url", "oauth_client_id", "oauth_scope", "paging",
     "timeout_seconds", "is_tls_verified", "rate_limit_per_second",
+    "user_name", "api_key_header_name", "api_key_query_parameter_name",
+    "page_size", "page_size_parameter", "page_parameter", "first_page_number", "cursor_parameter", "next_cursor_path", "next_link_path", "maximum_pages",
 )
 
 
@@ -72,6 +75,17 @@ def _check_rest_settings(settings: RestConnectionSettings) -> None:
         raise RegistryRuleError(_("OAuth needs the token address and the client identifier."))
     if not 1 <= settings.timeout_seconds <= 300:
         raise RegistryRuleError(_("The timeout is between 1 and 300 seconds."))
+    if settings.authentication == "user_name_and_password" and not settings.user_name:
+        raise RegistryRuleError(_("Basic authentication needs the user name."))
+    if settings.authentication == "api_key_header" and not settings.api_key_header_name:
+        raise RegistryRuleError(_("An API key sent in a header needs the name of the header."))
+    if settings.authentication == "api_key_query" and not settings.api_key_query_parameter_name:
+        raise RegistryRuleError(_("An API key sent in the query needs the name of the parameter."))
+    paging_needs = {"offset": ("page_parameter",), "page_number": ("page_parameter",), "cursor": ("cursor_parameter", "next_cursor_path"),
+                    "json_link": ("next_link_path",)}
+    for needed in paging_needs.get(settings.paging, ()):
+        if not getattr(settings, needed):
+            raise RegistryRuleError(_("Paging by {paging} needs the setting {setting}.").format(paging=settings.paging, setting=needed))
 
 
 def update_connection(session: Session, connection: Connection, values: dict[str, Any]) -> Connection:
@@ -101,7 +115,13 @@ def update_connection(session: Session, connection: Connection, values: dict[str
 
 
 def delete_connection(session: Session, connection: Connection) -> None:
-    """Delete a connection with its secrets, settings, operations and usage selections."""
+    """Delete a connection with its secrets, settings, operations and usage selections.
+
+    :raises RegistryRuleError: When a flow step uses the connection or one of its operations.
+    """
+    ensure_item_is_not_in_use(CONNECTION_ITEM_KIND, connection.id, connection.name)
+    for operation in connection.connection_has_operation:
+        ensure_item_is_not_in_use(API_OPERATION_ITEM_KIND, operation.id, operation.name)
     for operation in list(connection.connection_has_operation):
         _delete_operation_rows(session, operation)
     for child in (*connection.connection_has_connection_secret, *connection.connection_has_rest_connection_settings):
@@ -207,7 +227,11 @@ def _delete_operation_rows(session: Session, operation: Operation) -> None:
 
 
 def delete_operation(session: Session, operation: Operation) -> None:
-    """Delete an operation with its usage selections."""
+    """Delete an operation with its usage selections.
+
+    :raises RegistryRuleError: When a flow step uses the operation.
+    """
+    ensure_item_is_not_in_use(API_OPERATION_ITEM_KIND, operation.id, operation.name)
     _delete_operation_rows(session, operation)
     session.commit()
 

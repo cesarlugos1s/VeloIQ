@@ -2706,3 +2706,55 @@ msgstr ""
 
 msgid "Collapse"
 msgstr ""
+
+# Added by veloiq i18n extract
+msgid "For basic authentication; the password is a secret of the connection."
+msgstr ""
+
+msgid "Moves to the next page: the offset or the page number."
+msgstr ""
+
+msgid "Where the answer holds the cursor of the next page."
+msgstr ""
+
+msgid "Where the answer holds the address of the next page."
+msgstr ""
+
+msgid "Basic authentication needs the user name."
+msgstr ""
+
+msgid "An API key sent in a header needs the name of the header."
+msgstr ""
+
+msgid "An API key sent in the query needs the name of the parameter."
+msgstr ""
+
+msgid "Paging by {paging} needs the setting {setting}."
+msgstr ""
+
+msgid "The connection has no password secret."
+msgstr ""
+
+msgid "The connection has no api key secret."
+msgstr ""
+
+msgid "The authentication {name} is not supported."
+msgstr ""
+
+msgid "{item} is used by: {users}. Remove it from them first."
+msgstr ""
+
+msgid "The answer has no key {key} for the list of records."
+msgstr ""
+
+msgid "The answer is not a list; name the key that holds the list of records."
+msgstr ""
+
+msgid "The operation could not be reached: {problem}"
+msgstr ""
+
+msgid "The operation answered with the status {status} ({url})."
+msgstr ""
+
+msgid "The read stopped after {pages} pages, the most the connection allows; more are available."
+msgstr ""

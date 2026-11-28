@@ -111,7 +111,10 @@ def make_connection_registry_router(cfg) -> APIRouter:
     def delete_connection(connection_id: int, request: Request):
         _require_admin(request)
         with Session(get_engine()) as session:
-            store.delete_connection(session, _connection_or_404(session, connection_id))
+            try:
+                store.delete_connection(session, _connection_or_404(session, connection_id))
+            except store.RegistryRuleError as in_use:
+                _refuse(in_use, 409)
 
     # spec: manage-connections-with-secrets-and-a-connection-test :: Test a REST connection
     @router.post("/registry/connections/{connection_id}/test")
@@ -194,7 +197,10 @@ def make_connection_registry_router(cfg) -> APIRouter:
     def delete_operation(operation_id: int, request: Request):
         _require_admin(request)
         with Session(get_engine()) as session:
-            store.delete_operation(session, _operation_or_404(session, operation_id))
+            try:
+                store.delete_operation(session, _operation_or_404(session, operation_id))
+            except store.RegistryRuleError as in_use:
+                _refuse(in_use, 409)
 
     # spec: import-api-operations-through-a-guided-wizard :: Import wizard
     # spec: import-api-operations-through-a-guided-wizard :: Unreachable address

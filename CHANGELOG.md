@@ -15,6 +15,13 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   tables: add `import veloiq_framework.shared_connection_registry.connection_registry_models` to `alembic/env.py` (the scaffold
   of a new app already has it) and create the migration. On a database with legacy tables, autogenerate may list unrelated
   differences; keep only the registry's tables in the migration. Until the tables exist, the two registry lists show an error.
+- **REST connections: basic and API-key authentication, and paging** — a REST connection can authenticate with basic
+  authentication (`user_name` and the `password` secret) or an API key sent in a header or a query parameter (names settable,
+  defaults `X-API-Key` and `api_key`), and an operation can be read page after page with the offset, page number, cursor, link in
+  the body or `Link` header styles (`read_all_pages`), with a page limit that fails the read instead of returning part of the
+  records. Packages that use registry items can register a check (`register_item_in_use_check`) so the registry refuses to delete
+  an item that is in use and names what uses it. **Existing registry tables need the new columns** of
+  `veloiq_registry_rest_connection_settings` (see the migration of the test host).
 - **Many-to-one relations through a link table behave like foreign keys** — a relation
   declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
   schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit

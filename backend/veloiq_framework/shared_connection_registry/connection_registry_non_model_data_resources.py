@@ -113,7 +113,10 @@ def _delete_connection(_context: DataSourceRequestContext, eid: str) -> None:
     with _session() as session:
         connection = session.get(Connection, int(eid))
         if connection is not None:
-            store.delete_connection(session, connection)
+            try:
+                store.delete_connection(session, connection)
+            except store.RegistryRuleError as in_use:
+                raise _refused(in_use, 409)
 
 
 def build_connections_non_model_data_resource() -> NonModelDataResource:
@@ -135,6 +138,17 @@ def build_connections_non_model_data_resource() -> NonModelDataResource:
             NonModelDataField(key="timeout_seconds", label="Timeout (seconds)", type="number", integer=True, default=30, show_in_list=False),
             NonModelDataField(key="is_tls_verified", label="Verify TLS Certificate", type="boolean", default=True, show_in_list=False),
             NonModelDataField(key="rate_limit_per_second", label="Rate Limit (per second)", type="number", integer=True, show_in_list=False),
+            NonModelDataField(key="user_name", label="User Name", show_in_list=False, description=_("For basic authentication; the password is a secret of the connection.")),
+            NonModelDataField(key="api_key_header_name", label="API Key Header", show_in_list=False, default="X-API-Key"),
+            NonModelDataField(key="api_key_query_parameter_name", label="API Key Query Parameter", show_in_list=False, default="api_key"),
+            NonModelDataField(key="page_size", label="Page Size", type="number", integer=True, default=100, show_in_list=False),
+            NonModelDataField(key="page_size_parameter", label="Page Size Parameter", show_in_list=False),
+            NonModelDataField(key="page_parameter", label="Page Parameter", show_in_list=False, description=_("Moves to the next page: the offset or the page number.")),
+            NonModelDataField(key="first_page_number", label="First Page Number", type="number", integer=True, default=1, show_in_list=False),
+            NonModelDataField(key="cursor_parameter", label="Cursor Parameter", show_in_list=False),
+            NonModelDataField(key="next_cursor_path", label="Next Cursor Path", show_in_list=False, description=_("Where the answer holds the cursor of the next page.")),
+            NonModelDataField(key="next_link_path", label="Next Link Path", show_in_list=False, description=_("Where the answer holds the address of the next page.")),
+            NonModelDataField(key="maximum_pages", label="Maximum Pages", type="number", integer=True, default=100, show_in_list=False),
         ],
         relations=[
             NonModelDataRelation(OPERATIONS_RESOURCE_NAME, "connection_id", "Operations"),
@@ -182,7 +196,10 @@ def _delete_operation(_context: DataSourceRequestContext, eid: str) -> None:
     with _session() as session:
         operation = session.get(Operation, int(eid))
         if operation is not None:
-            store.delete_operation(session, operation)
+            try:
+                store.delete_operation(session, operation)
+            except store.RegistryRuleError as in_use:
+                raise _refused(in_use, 409)
 
 
 def build_operations_non_model_data_resource() -> NonModelDataResource:

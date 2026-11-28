@@ -220,3 +220,22 @@ def test_the_allowed_values_of_the_choice_fields_come_from_one_endpoint(client, 
     assert "bearer_token" in choices["rest_authentications"] and "offset" in choices["rest_paging_styles"] and choices["usages"] == ["ai_agents", "integration_hub"]
     assert "api_key" in choices["secret_keys"] and choices["oauth_authentications"] == ["oauth2_client_credentials"]
     assert client.get("/api/registry/choices").status_code in (401, 403)
+
+
+def test_an_item_that_another_package_uses_is_not_deleted_and_the_message_names_what_uses_it(client, auth):
+    from veloiq_framework.shared_connection_registry.registry_item_in_use_checks import register_item_in_use_check, remove_registered_item_in_use_checks
+    connection_id = _create(client, auth).json()["id"]
+    operation_id = client.post(f"/api/registry/connections/{connection_id}/operations", headers=auth, json={"name": "used", "path": "/u"}).json()["id"]
+    free_id = client.post(f"/api/registry/connections/{connection_id}/operations", headers=auth, json={"name": "free", "path": "/f"}).json()["id"]
+    register_item_in_use_check(lambda kind, item_id: ["Orders", "Invoices"] if (kind, item_id) == ("api_operation", operation_id) else [])
+    try:
+        refused = client.delete(f"/api/registry/operations/{operation_id}", headers=auth)
+        assert refused.status_code == 409 and "Orders, Invoices" in refused.json()["detail"] and "used" in refused.json()["detail"]
+        via_list = client.delete(f"/api/veloiq_registry_operations/{operation_id}", headers=auth)
+        assert via_list.status_code == 409 and "Orders" in str(via_list.json())
+        connection_refused = client.delete(f"/api/registry/connections/{connection_id}", headers=auth)       # one of its operations is in use
+        assert connection_refused.status_code == 409 and "Orders" in connection_refused.json()["detail"]
+        assert client.delete(f"/api/registry/operations/{free_id}", headers=auth).status_code == 204            # not in use: deleted
+    finally:
+        remove_registered_item_in_use_checks()
+    assert client.delete(f"/api/registry/connections/{connection_id}", headers=auth).status_code == 204          # no check any more

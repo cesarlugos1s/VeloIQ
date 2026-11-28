@@ -48,6 +48,16 @@ class OtherSystem(BaseHTTPRequestHandler):
         OtherSystem.received.append(("GET", self.path, self.headers.get("Authorization")))
         if path == "/openapi.json":
             return self._send(200, OPENAPI)
+        if path == "/basic":
+            ok = self.headers.get("Authorization") == "Basic dXNlcjpwdw=="            # user:pw
+            return self._send(200 if ok else 401, {"ok": ok})
+        if path == "/header-key":
+            ok = self.headers.get("X-Token") == "k1" or self.headers.get("X-API-Key") == "k1"
+            return self._send(200 if ok else 401, {"ok": ok, "by": "X-Token" if self.headers.get("X-Token") else "X-API-Key"})
+        if path == "/query-key":
+            query = self.path.partition("?")[2]
+            ok = "key=k1" in query or "api_key=k1" in query
+            return self._send(200 if ok else 401, {"ok": ok, "query": query})
         if path == "/secure":
             ok = self.headers.get("Authorization") in ("Bearer s3cr3t", "Bearer oauth-token-1")
             return self._send(200 if ok else 401, {"ok": ok})
@@ -203,11 +213,47 @@ def test_oauth_client_credentials_get_a_token_first(client, auth, secret_key, ot
     assert client.post(f"/api/registry/operations/{operation_id}/tests", headers=auth).json()["http_status"] == 200
 
 
-def test_an_authentication_the_settings_cannot_describe_yet_is_refused_clearly(client, auth, other_system):
+def _operation_and_call(client, auth, connection_id, path):
+    operation_id = _operation(client, auth, connection_id, path=path)
+    return client.post(f"/api/registry/operations/{operation_id}/tests", headers=auth).json()
+
+
+def test_basic_authentication_sends_the_user_name_and_the_password_secret(client, auth, secret_key, other_system):
+    nameless = client.post("/api/registry/connections", headers=auth, json={"name": f"n-{uuid.uuid4().hex[:6]}", "endpoint_type": "rest_api",
+                           "rest_settings": {"base_url": other_system, "authentication": "user_name_and_password"}})
+    assert nameless.status_code == 422 and "needs the user name" in nameless.json()["detail"]        # refused when it is saved
+    connection_id = _connection(client, auth, other_system, authentication="user_name_and_password", user_name="user")
+    no_secret = client.post(f"/api/registry/operations/{_operation(client, auth, connection_id, path='/basic')}/tests", headers=auth)
+    assert no_secret.status_code == 422 and "no password secret" in no_secret.json()["detail"]
+    client.put(f"/api/registry/connections/{connection_id}/secrets/password", headers=auth, json={"value": "pw"})
+    assert _operation_and_call(client, auth, connection_id, "/basic")["http_status"] == 200
+    client.put(f"/api/registry/connections/{connection_id}/secrets/password", headers=auth, json={"value": "wrong"})
+    assert _operation_and_call(client, auth, connection_id, "/basic")["status"] == "error"
+    assert client.post(f"/api/registry/connections/{connection_id}/test", headers=auth).json()["status"] in ("error", "success")
+
+
+def test_an_api_key_goes_in_the_header_or_the_query_parameter_the_connection_names_with_conventional_defaults(client, auth, secret_key, other_system):
+    in_default_header = _connection(client, auth, other_system, authentication="api_key_header")
+    client.put(f"/api/registry/connections/{in_default_header}/secrets/api_key", headers=auth, json={"value": "k1"})
+    answered = _operation_and_call(client, auth, in_default_header, "/header-key")
+    assert answered["http_status"] == 200 and answered["body_parsed"]["by"] == "X-API-Key"           # the default header name
+    in_named_header = _connection(client, auth, other_system, authentication="api_key_header", api_key_header_name="X-Token")
+    client.put(f"/api/registry/connections/{in_named_header}/secrets/api_key", headers=auth, json={"value": "k1"})
+    assert _operation_and_call(client, auth, in_named_header, "/header-key")["body_parsed"]["by"] == "X-Token"
+    in_query = _connection(client, auth, other_system, authentication="api_key_query", api_key_query_parameter_name="key")
+    client.put(f"/api/registry/connections/{in_query}/secrets/api_key", headers=auth, json={"value": "k1"})
+    sent = _operation_and_call(client, auth, in_query, "/query-key")
+    assert sent["http_status"] == 200 and "key=k1" in sent["body_parsed"]["query"]
+    assert "k1" not in sent["url"]                                                                    # the key is sent but not shown in the result
+    assert client.post(f"/api/registry/connections/{in_query}/test", headers=auth).json()["http_status"] in (200, 404)
+
+
+def test_an_api_key_without_its_secret_or_a_header_name_is_refused_with_a_message(client, auth, secret_key, other_system):
     connection_id = _connection(client, auth, other_system, authentication="api_key_header")
-    operation_id = _operation(client, auth, connection_id, path="/secure")
-    refused = client.post(f"/api/registry/operations/{operation_id}/tests", headers=auth)
-    assert refused.status_code == 422 and "not supported yet" in refused.json()["detail"]
+    no_secret = client.post(f"/api/registry/operations/{_operation(client, auth, connection_id, path='/header-key')}/tests", headers=auth)
+    assert no_secret.status_code == 422 and "no api key secret" in no_secret.json()["detail"]
+    nameless = client.put(f"/api/registry/connections/{connection_id}", headers=auth, json={"rest_settings": {"api_key_header_name": None}})
+    assert nameless.status_code == 422 and "name of the header" in nameless.json()["detail"]
 
 
 def test_a_server_that_does_not_answer_is_reported_with_the_address(client, auth):

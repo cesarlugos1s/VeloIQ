@@ -2705,3 +2705,55 @@ msgstr "Expandir"
 
 msgid "Collapse"
 msgstr "Contraer"
+
+# Added by veloiq i18n extract
+msgid "For basic authentication; the password is a secret of the connection."
+msgstr "Para la autenticación básica; la contraseña es un secreto de la conexión."
+
+msgid "Moves to the next page: the offset or the page number."
+msgstr "Pasa a la página siguiente: el desplazamiento o el número de página."
+
+msgid "Where the answer holds the cursor of the next page."
+msgstr "Dónde guarda la respuesta el cursor de la página siguiente."
+
+msgid "Where the answer holds the address of the next page."
+msgstr "Dónde guarda la respuesta la dirección de la página siguiente."
+
+msgid "Basic authentication needs the user name."
+msgstr "La autenticación básica necesita el nombre de usuario."
+
+msgid "An API key sent in a header needs the name of the header."
+msgstr "Una clave de API enviada en una cabecera necesita el nombre de la cabecera."
+
+msgid "An API key sent in the query needs the name of the parameter."
+msgstr "Una clave de API enviada en la consulta necesita el nombre del parámetro."
+
+msgid "Paging by {paging} needs the setting {setting}."
+msgstr "La paginación por {paging} necesita el ajuste {setting}."
+
+msgid "The connection has no password secret."
+msgstr "La conexión no tiene el secreto de la contraseña."
+
+msgid "The connection has no api key secret."
+msgstr "La conexión no tiene el secreto de la clave de API."
+
+msgid "The authentication {name} is not supported."
+msgstr "La autenticación {name} no se admite."
+
+msgid "{item} is used by: {users}. Remove it from them first."
+msgstr "{item} lo usan: {users}. Quítelo primero de ellos."
+
+msgid "The answer has no key {key} for the list of records."
+msgstr "La respuesta no tiene la clave {key} para la lista de registros."
+
+msgid "The answer is not a list; name the key that holds the list of records."
+msgstr "La respuesta no es una lista; indique la clave que contiene la lista de registros."
+
+msgid "The operation could not be reached: {problem}"
+msgstr "No se pudo alcanzar la operación: {problem}"
+
+msgid "The operation answered with the status {status} ({url})."
+msgstr "La operación respondió con el estado {status} ({url})."
+
+msgid "The read stopped after {pages} pages, the most the connection allows; more are available."
+msgstr "La lectura se detuvo tras {pages} páginas, el máximo que permite la conexión; hay más disponibles."
