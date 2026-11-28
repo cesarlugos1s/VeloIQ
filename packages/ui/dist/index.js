@@ -4529,7 +4529,7 @@ var LayoutWrapper = ({
               label: "Confirm Password",
               dependencies: ["new_password"],
               rules: [{ required: true }, ({ getFieldValue }) => ({
-                validator(_97, value) {
+                validator(_98, value) {
                   if (!value || getFieldValue("new_password") === value) return Promise.resolve();
                   return Promise.reject(new Error("Passwords do not match"));
                 }
@@ -4872,8 +4872,8 @@ function useGridDensity(storageKey, defaultValue) {
   }, [storageKey, defaultValue]);
   return { gridDensity, setGridDensityByStep };
 }
-function buildGridDensityMarks(_97) {
-  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _97(text) });
+function buildGridDensityMarks(_98) {
+  const label = (text) => /* @__PURE__ */ jsxRuntime.jsx("span", { style: { fontSize: 11 }, children: _98(text) });
   return {
     0: label("Original"),
     1: label("Small"),
@@ -4884,15 +4884,15 @@ function buildGridDensityMarks(_97) {
     6: label("Large")
   };
 }
-function buildGridDensityLabelText(_97) {
+function buildGridDensityLabelText(_98) {
   return {
-    original: _97("Original"),
-    small: _97("Small"),
-    fit: _97("Page"),
-    "fit-row": _97("Row"),
-    "fit-cell": _97("Cell"),
-    medium: _97("Medium"),
-    large: _97("Large")
+    original: _98("Original"),
+    small: _98("Small"),
+    fit: _98("Page"),
+    "fit-row": _98("Row"),
+    "fit-cell": _98("Cell"),
+    medium: _98("Medium"),
+    large: _98("Large")
   };
 }
 function computeRowTrackHeight(gridDensity, fitRowHeight, originalMinPx = 320, growPastFixedHeight = false) {
@@ -6489,7 +6489,7 @@ var parseInlineStyle = (styleText) => {
   return styleText.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, rule) => {
     const [rawKey, rawValue] = rule.split(":").map((part) => part.trim());
     if (!rawKey || !rawValue) return acc;
-    const camelKey = rawKey.replace(/-([a-z])/g, (_97, char) => char.toUpperCase());
+    const camelKey = rawKey.replace(/-([a-z])/g, (_98, char) => char.toUpperCase());
     acc[camelKey] = rawValue;
     return acc;
   }, {});
@@ -13670,7 +13670,7 @@ var DynamicCreatePage = ({ model: modelProp, allModels: allModelsProp, journeyCa
     const prefix = useReadonly ? "pc" : "cr";
     return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { border: `1px solid ${token.colorBorder}`, borderRadius: 8, padding: "6px 6px", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsxRuntime.jsx(Title2, { level: 5, style: { margin: 0, marginBottom: 6, color: "#1677ff" }, children: _56(section) }),
-      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_97, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_98, colIdx) => {
+      /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_98, rowIdx) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_99, colIdx) => {
         const cellItems = normalized.filter((r) => r.row === rowIdx + 1 && r.column === colIdx + 1);
         return /* @__PURE__ */ jsxRuntime.jsx("td", { style: { padding: "0 4px", verticalAlign: "top", width: `${100 / maxCol}%` }, children: cellItems.map(
           (item, idx) => useReadonly ? renderReadonlyCell(item, idx) : renderFormCell(item, idx)
@@ -14601,7 +14601,7 @@ function parseInlineStyle2(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_97, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_98, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -14996,7 +14996,7 @@ var SectionCellContent = ({
     sectionLook?.section_description && /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { className: "jm-section-description", type: "secondary", style: { margin: "0 0 6px 0", fontSize: token.fontSizeSM }, children: _62(sectionLook.section_description) }),
     parsedSnippet.css && /* @__PURE__ */ jsxRuntime.jsx("style", { dangerouslySetInnerHTML: { __html: parsedSnippet.css } }),
     parsedSnippet.html && /* @__PURE__ */ jsxRuntime.jsx("div", { dangerouslySetInnerHTML: { __html: parsedSnippet.html } }),
-    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_97, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_98, colIndex) => {
+    /* @__PURE__ */ jsxRuntime.jsx("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: Array.from({ length: maxRow }).map((_98, rowIndex) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: Array.from({ length: maxCol }).map((_99, colIndex) => {
       const cellItems = normalized.filter(
         (item) => item.row === rowIndex + 1 && item.column === colIndex + 1
       );
@@ -17296,7 +17296,7 @@ var RelatedObjectsEditableList = ({ rel, record, allModels }) => {
                 setPage(p);
               }
             },
-            onShowSizeChange: (_97, newPageSize) => {
+            onShowSizeChange: (_98, newPageSize) => {
               setPageSize(newPageSize);
               setPage(1);
             },
@@ -19266,7 +19266,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                         setCurrentPage(1);
                       }
                     },
-                    onShowSizeChange: (_97, newPageSize) => {
+                    onShowSizeChange: (_98, newPageSize) => {
                       if (newPageSize && newPageSize !== pageSize) {
                         setPageSize(newPageSize);
                         setCurrentPage(1);
@@ -19280,7 +19280,7 @@ var RelatedObjectsTable = ({ rel, record, relatedModel, parentModel, showActions
                     onClick: () => setActiveRowKey(relationRowKey(row))
                   }),
                   locale: filteredRows.length === 0 ? { emptyText: /* @__PURE__ */ jsxRuntime.jsx("span", { style: { display: "inline-block", fontSize: 12, color: "#8c8c8c" }, children: _73("No related records") }) } : void 0,
-                  onChange: (_97, filters, sorter, extra) => {
+                  onChange: (_98, filters, sorter, extra) => {
                     const nextFilters = {};
                     Object.entries(filters || {}).forEach(([key, values]) => {
                       if (!values) return;
@@ -26174,19 +26174,19 @@ function Ut({
       const { defaultLayoutDeferred: Y, derivedPanelConstraints: Ee, layout: ce } = j.next;
       if (Y || Ee.length === 0)
         return;
-      const ut = R.panels.map(({ id: _97 }) => _97).join(",");
-      R.mutableState.layouts[ut] = ce, Ee.forEach((_97) => {
-        if (_97.collapsible) {
+      const ut = R.panels.map(({ id: _98 }) => _98).join(",");
+      R.mutableState.layouts[ut] = ce, Ee.forEach((_98) => {
+        if (_98.collapsible) {
           const { layout: ge } = j.prev ?? {};
           if (ge) {
             const ft = I(
-              _97.collapsedSize,
-              ce[_97.panelId]
+              _98.collapsedSize,
+              ce[_98.panelId]
             ), dt = I(
-              _97.collapsedSize,
-              ge[_97.panelId]
+              _98.collapsedSize,
+              ge[_98.panelId]
             );
-            ft && !dt && (R.mutableState.expandedPanelSizes[_97.panelId] = ge[_97.panelId]);
+            ft && !dt && (R.mutableState.expandedPanelSizes[_98.panelId] = ge[_98.panelId]);
           }
         }
       });
@@ -27023,7 +27023,7 @@ var MultiPaneLayout = ({ children, mainLabel }) => {
     [openDetail]
   );
   const detailContexts = React6.useMemo(
-    () => panes.map((_97, idx) => ({
+    () => panes.map((_98, idx) => ({
       isInMultiPane: true,
       paneIndex: idx + 1,
       openDetail: (resource, id) => openDetail(idx + 1, resource, id)
@@ -28508,7 +28508,7 @@ function parseInlineStyle4(cssText) {
     const prop = declaration.slice(0, idx).trim();
     const value = declaration.slice(idx + 1).trim();
     if (!prop || !value) return;
-    const camel = prop.replace(/-([a-z])/g, (_97, c) => c.toUpperCase());
+    const camel = prop.replace(/-([a-z])/g, (_98, c) => c.toUpperCase());
     result[camel] = value;
   });
   return result;
@@ -29264,10 +29264,82 @@ var _93 = (text) => {
   return typeof translate === "function" ? translate(text) : text;
 };
 var { Text: Text13 } = antd.Typography;
-var OperationTestButton = ({ readCall, client }) => {
+var OperationTestWindow = ({ result, onClose, onConfirm, onRecordOutput }) => {
+  const [recording, setRecording] = React6.useState(false);
+  const canRecordOutput = Boolean(onRecordOutput && result?.status === "success" && result.body_parsed);
+  const footer = result?.status === "warning" ? [
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: onClose, children: _93("Cancel") }, "cancel"),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", danger: true, onClick: () => {
+      onClose();
+      onConfirm();
+    }, children: _93("Send Anyway") }, "confirm")
+  ] : [
+    ...canRecordOutput ? [/* @__PURE__ */ jsxRuntime.jsx(antd.Button, { loading: recording, onClick: async () => {
+      setRecording(true);
+      try {
+        await onRecordOutput(result);
+        antd.message.success(_93("The output structure was recorded."));
+      } catch (problem) {
+        antd.message.error(problem?.message || _93("The output structure could not be recorded."));
+      } finally {
+        setRecording(false);
+      }
+    }, children: _93("Record the output structure") }, "record")] : [],
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: onClose, children: _93("Close") }, "close")
+  ];
+  return /* @__PURE__ */ jsxRuntime.jsx(antd.Modal, { title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
+    /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApiOutlined, {}),
+    _93("API Test Result")
+  ] }), open: result !== null, onCancel: onClose, width: 780, footer, children: result?.status === "warning" ? /* @__PURE__ */ jsxRuntime.jsx(
+    antd.Alert,
+    {
+      type: "warning",
+      showIcon: true,
+      message: _93("Mutating Request"),
+      description: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { whiteSpace: "pre-wrap", margin: 0, fontSize: 13 }, children: result.warning })
+    }
+  ) : result ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntime.jsxs(antd.Descriptions, { bordered: true, size: "small", column: 2, style: { marginBottom: 16 }, children: [
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("URL"), span: 2, children: /* @__PURE__ */ jsxRuntime.jsx(Text13, { code: true, style: { wordBreak: "break-all" }, children: result.url }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("HTTP Status"), children: result.http_status != null ? /* @__PURE__ */ jsxRuntime.jsx(antd.Badge, { status: result.http_status < 400 ? "success" : "error", text: /* @__PURE__ */ jsxRuntime.jsx(Text13, { strong: true, children: result.http_status }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "default", children: "\u2014" }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Duration"), children: /* @__PURE__ */ jsxRuntime.jsxs(Text13, { children: [
+        result.duration_ms,
+        " ms"
+      ] }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Status"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: result.status === "success" ? "green" : "red", children: result.status }) }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Content-Type"), children: /* @__PURE__ */ jsxRuntime.jsx(Text13, { code: true, children: result.headers?.["content-type"] || result.headers?.["Content-Type"] || "\u2014" }) })
+    ] }),
+    result.warning && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _93("Note"), description: result.warning, style: { marginBottom: 16 } }),
+    result.error && /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Alert,
+      {
+        type: "error",
+        showIcon: true,
+        message: _93("Error"),
+        style: { marginBottom: 16 },
+        description: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { whiteSpace: "pre-wrap", margin: 0 }, children: result.error })
+      }
+    ),
+    (result.body_parsed || result.body) && /* @__PURE__ */ jsxRuntime.jsx(antd.Collapse, { defaultActiveKey: ["body"], items: [{
+      key: "body",
+      label: _93("Response Body"),
+      children: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: {
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-all",
+        maxHeight: 400,
+        overflow: "auto",
+        padding: 12,
+        borderRadius: 4,
+        fontSize: 12,
+        fontFamily: "monospace",
+        margin: 0
+      }, children: result.body_parsed ? JSON.stringify(result.body_parsed, null, 2) : result.body })
+    }] })
+  ] }) : null });
+};
+var OperationTestButton = ({ readCall, client, onRecordOutput }) => {
   const [testing, setTesting] = React6.useState(false);
   const [testResult, setTestResult] = React6.useState(null);
-  const [resultOpen, setResultOpen] = React6.useState(false);
   const runTest = async (confirmed) => {
     setTesting(true);
     try {
@@ -29277,81 +29349,15 @@ var OperationTestButton = ({ readCall, client }) => {
         return;
       }
       setTestResult(await client.testOperation(call, confirmed));
-      setResultOpen(true);
     } catch (error) {
       setTestResult({ status: "error", error: error?.message || _93("Test request failed") });
-      setResultOpen(true);
     } finally {
       setTesting(false);
     }
   };
   return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
     /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.PlayCircleOutlined, {}), loading: testing, onClick: () => runTest(false), children: _93("Test API") }),
-    /* @__PURE__ */ jsxRuntime.jsx(
-      antd.Modal,
-      {
-        title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
-          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApiOutlined, {}),
-          _93("API Test Result")
-        ] }),
-        open: resultOpen,
-        onCancel: () => setResultOpen(false),
-        width: 780,
-        footer: testResult?.status === "warning" ? [
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: () => setResultOpen(false), children: _93("Cancel") }, "cancel"),
-          /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", danger: true, onClick: () => {
-            setResultOpen(false);
-            void runTest(true);
-          }, children: _93("Send Anyway") }, "confirm")
-        ] : [/* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => setResultOpen(false), children: _93("Close") }, "close")],
-        children: testResult?.status === "warning" ? /* @__PURE__ */ jsxRuntime.jsx(
-          antd.Alert,
-          {
-            type: "warning",
-            showIcon: true,
-            message: _93("Mutating Request"),
-            description: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { whiteSpace: "pre-wrap", margin: 0, fontSize: 13 }, children: testResult.warning })
-          }
-        ) : testResult ? /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntime.jsxs(antd.Descriptions, { bordered: true, size: "small", column: 2, style: { marginBottom: 16 }, children: [
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("URL"), span: 2, children: /* @__PURE__ */ jsxRuntime.jsx(Text13, { code: true, style: { wordBreak: "break-all" }, children: testResult.url }) }),
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("HTTP Status"), children: testResult.http_status != null ? /* @__PURE__ */ jsxRuntime.jsx(antd.Badge, { status: testResult.http_status < 400 ? "success" : "error", text: /* @__PURE__ */ jsxRuntime.jsx(Text13, { strong: true, children: testResult.http_status }) }) : /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: "default", children: "\u2014" }) }),
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Duration"), children: /* @__PURE__ */ jsxRuntime.jsxs(Text13, { children: [
-              testResult.duration_ms,
-              " ms"
-            ] }) }),
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Status"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { color: testResult.status === "success" ? "green" : "red", children: testResult.status }) }),
-            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _93("Content-Type"), children: /* @__PURE__ */ jsxRuntime.jsx(Text13, { code: true, children: testResult.headers?.["content-type"] || testResult.headers?.["Content-Type"] || "\u2014" }) })
-          ] }),
-          testResult.warning && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _93("Note"), description: testResult.warning, style: { marginBottom: 16 } }),
-          testResult.error && /* @__PURE__ */ jsxRuntime.jsx(
-            antd.Alert,
-            {
-              type: "error",
-              showIcon: true,
-              message: _93("Error"),
-              style: { marginBottom: 16 },
-              description: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { whiteSpace: "pre-wrap", margin: 0 }, children: testResult.error })
-            }
-          ),
-          (testResult.body_parsed || testResult.body) && /* @__PURE__ */ jsxRuntime.jsx(antd.Collapse, { defaultActiveKey: ["body"], items: [{
-            key: "body",
-            label: _93("Response Body"),
-            children: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: {
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-              maxHeight: 400,
-              overflow: "auto",
-              padding: 12,
-              borderRadius: 4,
-              fontSize: 12,
-              fontFamily: "monospace",
-              margin: 0
-            }, children: testResult.body_parsed ? JSON.stringify(testResult.body_parsed, null, 2) : testResult.body })
-          }] })
-        ] }) : null
-      }
-    )
+    /* @__PURE__ */ jsxRuntime.jsx(OperationTestWindow, { result: testResult, onClose: () => setTestResult(null), onConfirm: () => void runTest(true), onRecordOutput })
   ] });
 };
 var _94 = (text) => {
@@ -29594,6 +29600,82 @@ function registryOperationFromDiscovered(operation, name) {
     source: operation.source || "openapi_import"
   };
 }
+var _95 = (text) => {
+  const translate = window._;
+  return typeof translate === "function" ? translate(text) : text;
+};
+var { Text: Text14 } = antd.Typography;
+var ConnectionTestButton = ({ runTest, disabled }) => {
+  const [testing, setTesting] = React6.useState(false);
+  const [result, setResult] = React6.useState(null);
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      setResult(await runTest());
+    } catch (problem) {
+      setResult({ status: "error", error_type: "Error", error_message: problem?.message || _95("Test request failed"), details: [] });
+    } finally {
+      setTesting(false);
+    }
+  };
+  const isSuccess = result?.status === "success";
+  return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApiOutlined, {}), onClick: handleTest, loading: testing, disabled, children: _95("Test Connection") }),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      antd.Modal,
+      {
+        title: /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { children: [
+          /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.ApiOutlined, {}),
+          _95("Test Connection")
+        ] }),
+        open: result !== null,
+        onCancel: () => setResult(null),
+        width: 640,
+        footer: [/* @__PURE__ */ jsxRuntime.jsx(antd.Button, { type: "primary", onClick: () => setResult(null), children: _95("Close") }, "close")],
+        children: result && /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
+          isSuccess ? /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "success", showIcon: true, message: _95("Connection successful"), description: result.note || void 0, style: { marginBottom: 16 } }) : /* @__PURE__ */ jsxRuntime.jsx(
+            antd.Alert,
+            {
+              type: "error",
+              showIcon: true,
+              message: _95("Connection failed"),
+              style: { marginBottom: 16 },
+              description: /* @__PURE__ */ jsxRuntime.jsx("pre", { style: { whiteSpace: "pre-wrap", margin: 0 }, children: result.error_message || "" })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntime.jsxs(antd.Descriptions, { bordered: true, size: "small", column: 2, children: [
+            result.details.map((detail) => /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _95(detail.label), children: /* @__PURE__ */ jsxRuntime.jsx(Text14, { code: true, children: detail.value }) }, detail.label)),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _95("Status"), children: /* @__PURE__ */ jsxRuntime.jsx(antd.Badge, { status: isSuccess ? "success" : "error", text: /* @__PURE__ */ jsxRuntime.jsx(Text14, { strong: true, children: isSuccess ? _95("Success") : result.error_type || _95("Error") }) }) }),
+            /* @__PURE__ */ jsxRuntime.jsx(antd.Descriptions.Item, { label: _95("Response Time"), children: /* @__PURE__ */ jsxRuntime.jsx(Text14, { children: result.duration_ms != null ? `${result.duration_ms} ms` : "\u2014" }) })
+          ] })
+        ] })
+      }
+    )
+  ] });
+};
+
+// src/components/ConnectionTest/registryConnectionTest.ts
+function connectionTestResultFromRegistry(answer) {
+  return {
+    status: answer.status === "success" ? "success" : "error",
+    error_type: answer.error_type,
+    error_message: answer.error_message,
+    duration_ms: answer.duration_ms,
+    note: answer.note,
+    details: [
+      { label: "Endpoint Type", value: String(answer.endpoint_type ?? "\u2014") },
+      { label: "HTTP Status", value: answer.http_status != null ? String(answer.http_status) : "\u2014" },
+      { label: "Server", value: String(answer.server ?? "\u2014") },
+      { label: "Address", value: String(answer.url ?? "\u2014") }
+    ]
+  };
+}
+async function testRegistryConnection(connectionId) {
+  const response = await authenticatedFetch(`${API_URL2}/registry/connections/${connectionId}/test`, { method: "POST" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof body?.detail === "string" ? body.detail : "Test request failed");
+  return connectionTestResultFromRegistry(body);
+}
 var usePageTone = (seed = "module:extension") => {
   const { mode, schemaVersion } = React6.useContext(ColorModeContext);
   return getModelTone(seed, mode === "dark");
@@ -29619,13 +29701,13 @@ var TonedPage = ({ seed, style, children }) => {
     children
   ] });
 };
-var _95 = (text) => {
+var _96 = (text) => {
   const translate = window._;
   return typeof translate === "function" ? translate(text) : text;
 };
-var { Text: Text14 } = antd.Typography;
+var { Text: Text15 } = antd.Typography;
 var COLLAPSED_SPINE_WIDTH = 34;
-var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_95("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxRuntime.jsxs("div", { onClick: onExpand, role: "button", style: {
+var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_96("Expand")}: ${title}`, placement: side === "left" ? "right" : "left", children: /* @__PURE__ */ jsxRuntime.jsxs("div", { onClick: onExpand, role: "button", style: {
   width: COLLAPSED_SPINE_WIDTH,
   flexShrink: 0,
   cursor: "pointer",
@@ -29639,9 +29721,9 @@ var CollapsedSpine = ({ title, side, token, onExpand }) => /* @__PURE__ */ jsxRu
   borderLeft: side === "right" ? `1px solid ${token.colorBorderSecondary}` : void 0
 }, children: [
   side === "left" ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DoubleRightOutlined, {}) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DoubleLeftOutlined, {}),
-  /* @__PURE__ */ jsxRuntime.jsx(Text14, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsxRuntime.jsx(Text15, { strong: true, className: "jm-panel-title", style: { writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: 12 }, children: title })
 ] }) });
-var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: minimized ? `${_95("Expand")}: ${title}` : `${_95("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { onClick: onToggle, role: "button", style: {
+var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: minimized ? `${_96("Expand")}: ${title}` : `${_96("Minimize")}: ${title}`, children: /* @__PURE__ */ jsxRuntime.jsxs("div", { onClick: onToggle, role: "button", style: {
   display: "flex",
   alignItems: "center",
   gap: 8,
@@ -29653,7 +29735,7 @@ var SectionBar = ({ title, minimized, token, onToggle }) => /* @__PURE__ */ jsxR
   borderBottom: `1px solid ${token.colorBorderSecondary}`
 }, children: [
   minimized ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DownOutlined, { style: { fontSize: 11 } }) : /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.UpOutlined, { style: { fontSize: 11 } }),
-  /* @__PURE__ */ jsxRuntime.jsx(Text14, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
+  /* @__PURE__ */ jsxRuntime.jsx(Text15, { strong: true, className: "jm-panel-title", style: { fontSize: 12 }, children: title })
 ] }) });
 function useRememberedFlag(storageKey) {
   const [flag, setFlag] = React6.useState(() => {
@@ -29686,7 +29768,7 @@ var CollapsibleSidePanel = ({ title, side, token, collapsed, onCollapsedChange, 
   }, children: [
     /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "jm-panel-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 2px 8px", borderBottom: `1px solid ${token.colorBorderSecondary}` }, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { className: "jm-panel-title", style: { fontWeight: 500 }, children: title }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_95("Collapse")}: ${title}`, children: /* @__PURE__ */ jsxRuntime.jsx(
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Tooltip, { title: `${_96("Collapse")}: ${title}`, children: /* @__PURE__ */ jsxRuntime.jsx(
         antd.Button,
         {
           type: "text",
@@ -29699,7 +29781,7 @@ var CollapsibleSidePanel = ({ title, side, token, collapsed, onCollapsedChange, 
     /* @__PURE__ */ jsxRuntime.jsx("div", { style: { padding, flex: 1, minHeight: 0, overflow: "auto" }, children })
   ] });
 };
-var _96 = (text) => {
+var _97 = (text) => {
   const t = window._;
   return typeof t === "function" ? t(text) : text;
 };
@@ -29713,10 +29795,10 @@ var ACTIONS = [
 var entryId = (e) => `${e.module_key}|${e.model_key ?? ""}`;
 var resourceLabel = (e) => {
   const moduleName = e.module_key.split(":").slice(1).join(":") || e.module_key;
-  return e.model_key ? `${_96(moduleName)} \u203A ${_96(e.model_key)}` : _96(moduleName);
+  return e.model_key ? `${_97(moduleName)} \u203A ${_97(e.model_key)}` : _97(moduleName);
 };
-var modeLabel = (mode) => mode === "allow" ? _96("Allowlist") : mode === "block" ? _96("Blocklist") : _96("No policy");
-var modeHelp = (mode) => mode === "allow" ? _96("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _96("Users with this role can use everything except the checked actions on the listed modules and models.") : _96("Users with this role can use every module and model their role and licenses allow.");
+var modeLabel = (mode) => mode === "allow" ? _97("Allowlist") : mode === "block" ? _97("Blocklist") : _97("No policy");
+var modeHelp = (mode) => mode === "allow" ? _97("Users with this role can use only the listed modules and models, and only the checked actions.") : mode === "block" ? _97("Users with this role can use everything except the checked actions on the listed modules and models.") : _97("Users with this role can use every module and model their role and licenses allow.");
 var policyKey = (mode, entries) => mode === "none" ? "none" : JSON.stringify({ mode, entries: entries.map(({ active: _active, ...e }) => e) });
 async function readJson(res) {
   return res.json().catch(() => ({}));
@@ -29737,7 +29819,7 @@ function useRolePolicy(roleId) {
       if (!res.ok) throw new Error();
       setRow(await res.json());
     } catch {
-      antd.message.error(_96("Could not load access policies."));
+      antd.message.error(_97("Could not load access policies."));
     } finally {
       setLoading(false);
     }
@@ -29752,7 +29834,7 @@ var AdminNote = () => /* @__PURE__ */ jsxRuntime.jsx(
   {
     type: "info",
     showIcon: true,
-    message: _96("The Admin role always has full access and can't be given an access policy.")
+    message: _97("The Admin role always has full access and can't be given an access policy.")
   }
 );
 var FEATURE_EVENTS = ["feature_save", "feature_delete"];
@@ -29777,9 +29859,9 @@ var ChangeHistory = ({
     [audit, events, excludeEvents]
   );
   const describeChange = (row) => {
-    if (row.event === "role_get_migration") return _96("Read access added to the role's methods");
-    if (row.event === "role_deleted") return _96("Role deleted");
-    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _96("No policy");
+    if (row.event === "role_get_migration") return _97("Read access added to the role's methods");
+    if (row.event === "role_deleted") return _97("Role deleted");
+    const side = (p) => p && p.mode ? `${modeLabel(p.mode)} (${p.entries?.length ?? 0})` : _97("No policy");
     return `${side(row.before)} \u2192 ${side(row.after)}`;
   };
   return /* @__PURE__ */ jsxRuntime.jsx(
@@ -29789,20 +29871,20 @@ var ChangeHistory = ({
       rowKey: "id",
       dataSource: rows,
       pagination: { pageSize: 10, hideOnSinglePage: true },
-      locale: { emptyText: _96("No changes recorded yet.") },
+      locale: { emptyText: _97("No changes recorded yet.") },
       columns: [
         {
-          title: _96("When"),
+          title: _97("When"),
           key: "created_at",
           render: (_v, row) => row.created_at ? new Date(row.created_at).toLocaleString() : ""
         },
         {
-          title: _96("Changed by"),
+          title: _97("Changed by"),
           key: "actor",
-          render: (_v, row) => row.actor_username || _96("System")
+          render: (_v, row) => row.actor_username || _97("System")
         },
         {
-          title: _96("Change"),
+          title: _97("Change"),
           key: "change",
           render: (_v, row) => describeChange(row)
         }
@@ -29811,11 +29893,11 @@ var ChangeHistory = ({
   );
 };
 var resourceColumn = () => ({
-  title: _96("Module or model"),
+  title: _97("Module or model"),
   key: "resource",
   render: (_value, e) => /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 6, wrap: true, children: [
     /* @__PURE__ */ jsxRuntime.jsx("span", { children: resourceLabel(e) }),
-    e.active === false && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _96("Inactive") })
+    e.active === false && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _97("Inactive") })
   ] })
 });
 var RoleAccessPolicyView = ({ record }) => {
@@ -29828,11 +29910,11 @@ var RoleAccessPolicyView = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _96(label),
+      title: _97(label),
       key: action,
       width: 90,
       align: "center",
-      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, { "aria-label": _96(label) }) : null
+      render: (_value, e) => e[flag] ? /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.CheckOutlined, { "aria-label": _97(label) }) : null
     }))
   ];
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
@@ -29848,10 +29930,10 @@ var RoleAccessPolicyView = ({ record }) => {
         columns,
         dataSource: row.policy?.entries ?? [],
         pagination: false,
-        locale: { emptyText: _96("No modules or models listed yet.") }
+        locale: { emptyText: _97("No modules or models listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _96("Change history") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _97("Change history") }),
     /* @__PURE__ */ jsxRuntime.jsx(ChangeHistory, { roleId: row.role_id, excludeEvents: FEATURE_EVENTS })
   ] });
 };
@@ -29887,21 +29969,21 @@ var RoleAccessPolicyEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      antd.message.error(typeof body?.detail === "string" ? body.detail : _96("Could not save the access policy."));
+      antd.message.error(typeof body?.detail === "string" ? body.detail : _97("Could not save the access policy."));
       throw new Error("access policy not saved");
     }
-    antd.message.success(mode === "none" ? _96("Access policy removed.") : _96("Access policy saved."));
+    antd.message.success(mode === "none" ? _97("Access policy removed.") : _97("Access policy saved."));
     await reload();
     void refreshAccess();
   });
   const usedIds = React6.useMemo(() => new Set(entries.map(entryId)), [entries]);
   const treeData = React6.useMemo(
     () => modules.map((m) => ({
-      title: _96(m.name),
+      title: _97(m.name),
       value: entryId({ module_key: m.key, model_key: null }),
       disabled: usedIds.has(entryId({ module_key: m.key, model_key: null })),
       children: m.models.map((model) => ({
-        title: _96(model.key),
+        title: _97(model.key),
         value: entryId({ module_key: m.key, model_key: model.key }),
         disabled: usedIds.has(entryId({ module_key: m.key, model_key: model.key }))
       }))
@@ -29957,7 +30039,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
   const columns = [
     resourceColumn(),
     ...ACTIONS.map(({ action, flag, label }) => ({
-      title: _96(label),
+      title: _97(label),
       key: action,
       width: 90,
       align: "center",
@@ -29966,7 +30048,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           checked: Boolean(e[flag]),
           onChange: (ev) => toggle(entryId(e), action, ev.target.checked),
-          "aria-label": `${_96(label)} ${resourceLabel(e)}`
+          "aria-label": `${_97(label)} ${resourceLabel(e)}`
         }
       )
     })),
@@ -29979,27 +30061,27 @@ var RoleAccessPolicyEditor = ({ record }) => {
         {
           type: "text",
           icon: /* @__PURE__ */ jsxRuntime.jsx(AntDIcons2.DeleteOutlined, {}),
-          "aria-label": _96("Remove"),
+          "aria-label": _97("Remove"),
           onClick: () => setEntries((prev) => prev.filter((x) => entryId(x) !== entryId(e)))
         }
       )
     }
   ];
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _96("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _97("Decide which modules and models each role can create, read, update and delete. A policy can only restrict: it never grants more than the role's own permissions or the installation's licenses.") }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Radio.Group, { value: mode, onChange: (e) => changeMode(e.target.value), children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _96("No policy") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _96("Allowlist") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _96("Blocklist") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _97("No policy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _97("Allowlist") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _97("Blocklist") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: modeHelp(mode) }),
-    mode === "none" && row.policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _96("This role's access policy will be removed when you save.") }),
+    mode === "none" && row.policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _97("This role's access policy will be removed when you save.") }),
     mode === "allow" && entries.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(
       antd.Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _96("This allowlist is empty: users with this role will lose access to every module.")
+        message: _97("This allowlist is empty: users with this role will lose access to every module.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
@@ -30009,7 +30091,7 @@ var RoleAccessPolicyEditor = ({ record }) => {
           style: { width: "100%" },
           treeData,
           value: null,
-          placeholder: _96("Add a module or model"),
+          placeholder: _97("Add a module or model"),
           onChange: (value) => value && addEntry(value),
           showSearch: true,
           treeNodeFilterProp: "title",
@@ -30024,12 +30106,12 @@ var RoleAccessPolicyEditor = ({ record }) => {
           columns,
           dataSource: entries,
           pagination: false,
-          locale: { emptyText: _96("No modules or models listed yet.") }
+          locale: { emptyText: _97("No modules or models listed yet.") }
         }
       ) }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _96("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: _97("A module entry applies to every model in it; a model entry overrides its module's entry for that model.") })
     ] }),
-    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _96("Discard changes") })
+    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _97("Discard changes") })
   ] });
 };
 var roleAccessPolicyTab = {
@@ -30038,7 +30120,7 @@ var roleAccessPolicyTab = {
   show: RoleAccessPolicyView,
   edit: RoleAccessPolicyEditor
 };
-var featureModeHelp = (mode) => mode === "allow" ? _96("Users with this role can use only the listed features.") : mode === "block" ? _96("Users with this role can use every feature except the listed ones.") : _96("Users with this role can use every feature.");
+var featureModeHelp = (mode) => mode === "allow" ? _97("Users with this role can use only the listed features.") : mode === "block" ? _97("Users with this role can use every feature except the listed ones.") : _97("Users with this role can use every feature.");
 var featurePolicyKey = (mode, keys) => mode === "none" ? "none" : JSON.stringify({ mode, keys: [...keys].sort() });
 function useRegisteredFeatures() {
   const [features, setFeatures] = React6.useState([]);
@@ -30072,15 +30154,15 @@ function featureRows(features, saved) {
 }
 var featureColumns = () => [
   {
-    title: _96("Feature"),
+    title: _97("Feature"),
     key: "label",
     render: (_value, r) => /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { size: 6, wrap: true, children: [
       /* @__PURE__ */ jsxRuntime.jsx("span", { children: r.label }),
-      !r.active && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _96("Inactive") })
+      !r.active && /* @__PURE__ */ jsxRuntime.jsx(antd.Tag, { children: _97("Inactive") })
     ] })
   },
-  { title: _96("Group"), dataIndex: "group", key: "group" },
-  { title: _96("Description"), dataIndex: "description", key: "description" }
+  { title: _97("Group"), dataIndex: "group", key: "group" },
+  { title: _97("Description"), dataIndex: "description", key: "description" }
 ];
 var RoleFeatureAccessView = ({ record }) => {
   const { row, loading, forbidden } = useRolePolicy(record?.id);
@@ -30106,10 +30188,10 @@ var RoleFeatureAccessView = ({ record }) => {
         columns: featureColumns(),
         dataSource: rows,
         pagination: false,
-        locale: { emptyText: _96("No features listed yet.") }
+        locale: { emptyText: _97("No features listed yet.") }
       }
     ) }),
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _96("Change history") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Title, { level: 5, style: { margin: 0 }, children: _97("Change history") }),
     /* @__PURE__ */ jsxRuntime.jsx(ChangeHistory, { roleId: row.role_id, events: FEATURE_EVENTS })
   ] });
 };
@@ -30137,10 +30219,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
     });
     if (!res.ok) {
       const body = await readJson(res);
-      antd.message.error(typeof body?.detail === "string" ? body.detail : _96("Could not save the feature access."));
+      antd.message.error(typeof body?.detail === "string" ? body.detail : _97("Could not save the feature access."));
       throw new Error("feature policy not saved");
     }
-    antd.message.success(mode === "none" ? _96("Feature access removed.") : _96("Feature access saved."));
+    antd.message.success(mode === "none" ? _97("Feature access removed.") : _97("Feature access saved."));
     await reload();
     void refreshAccess();
   });
@@ -30150,20 +30232,20 @@ var RoleFeatureAccessEditor = ({ record }) => {
   if (row.is_admin) return /* @__PURE__ */ jsxRuntime.jsx(AdminNote, {});
   const rows = featureRows(features, row.feature_policy?.entries ?? []);
   return /* @__PURE__ */ jsxRuntime.jsxs(antd.Space, { direction: "vertical", size: 16, style: { width: "100%" }, children: [
-    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _96("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
+    /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Paragraph, { type: "secondary", style: { margin: 0 }, children: _97("Decide which features, such as answering methods, each role can use. A feature also has to be switched on in the configuration to be used.") }),
     /* @__PURE__ */ jsxRuntime.jsxs(antd.Radio.Group, { value: mode, onChange: (e) => setMode(e.target.value), children: [
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _96("No policy") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _96("Allowlist") }),
-      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _96("Blocklist") })
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "none", children: _97("No policy") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "allow", children: _97("Allowlist") }),
+      /* @__PURE__ */ jsxRuntime.jsx(antd.Radio.Button, { value: "block", children: _97("Blocklist") })
     ] }),
     /* @__PURE__ */ jsxRuntime.jsx(antd.Typography.Text, { type: "secondary", children: featureModeHelp(mode) }),
-    mode === "none" && row.feature_policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _96("This role's feature access will be removed when you save.") }),
+    mode === "none" && row.feature_policy && /* @__PURE__ */ jsxRuntime.jsx(antd.Alert, { type: "warning", showIcon: true, message: _97("This role's feature access will be removed when you save.") }),
     mode === "allow" && keys.length === 0 && /* @__PURE__ */ jsxRuntime.jsx(
       antd.Alert,
       {
         type: "warning",
         showIcon: true,
-        message: _96("This allowlist is empty: users with this role will not be able to use any feature.")
+        message: _97("This allowlist is empty: users with this role will not be able to use any feature.")
       }
     ),
     mode !== "none" && /* @__PURE__ */ jsxRuntime.jsx("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -30178,10 +30260,10 @@ var RoleFeatureAccessEditor = ({ record }) => {
           selectedRowKeys: keys,
           onChange: (selected) => setKeys(selected.map(String))
         },
-        locale: { emptyText: _96("No features are registered.") }
+        locale: { emptyText: _97("No features are registered.") }
       }
     ) }),
-    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _96("Discard changes") })
+    dirty && /* @__PURE__ */ jsxRuntime.jsx(antd.Button, { onClick: resetToSaved, style: { alignSelf: "flex-start" }, children: _97("Discard changes") })
   ] });
 };
 var roleFeatureAccessTab = {
@@ -30391,6 +30473,7 @@ exports.ColorModeContext = ColorModeContext;
 exports.ColorModeContextProvider = ColorModeContextProvider;
 exports.ColumnFilterValuesEditor = ColumnFilterValuesEditor;
 exports.CommandCenterPortal = CommandCenterPortal;
+exports.ConnectionTestButton = ConnectionTestButton;
 exports.CustomSider = CustomSider;
 exports.DEFAULT_CONTENT_SELECTOR = DEFAULT_CONTENT_SELECTOR;
 exports.DEFAULT_HEADER_SELECTOR = DEFAULT_HEADER_SELECTOR;
@@ -30425,6 +30508,7 @@ exports.NoAccessResult = NoAccessResult;
 exports.NonModelDataResourcePages = NonModelDataResourcePages;
 exports.OperationImportCard = OperationImportCard;
 exports.OperationTestButton = OperationTestButton;
+exports.OperationTestWindow = OperationTestWindow;
 exports.PORTAL_REQUEST_HEADER = PORTAL_REQUEST_HEADER;
 exports.PaneNavigationContext = PaneNavigationContext;
 exports.PinnedRecordsPanel = PinnedRecordsPanel;
@@ -30469,6 +30553,7 @@ exports.callFromFormValues = callFromFormValues;
 exports.clearAccess = clearAccess;
 exports.clearTemporaryPageSetup = clearTemporaryPageSetup;
 exports.clipToViewport = clipToViewport;
+exports.connectionTestResultFromRegistry = connectionTestResultFromRegistry;
 exports.createInPageRowsStore = createInPageRowsStore;
 exports.createRegistryOperationInterfaceClient = createRegistryOperationInterfaceClient;
 exports.discoveredFromRegistryOperation = discoveredFromRegistryOperation;
@@ -30527,6 +30612,7 @@ exports.signInStorageKeys = signInStorageKeys;
 exports.signedOutVisitorsAllowed = signedOutVisitorsAllowed;
 exports.siteScopedStorageKey = siteScopedStorageKey;
 exports.sortItemsByNavConfig = sortItemsByNavConfig;
+exports.testRegistryConnection = testRegistryConnection;
 exports.useAccess = useAccess;
 exports.useAccessQueryInvalidation = useAccessQueryInvalidation;
 exports.useAllModels = useAllModels;

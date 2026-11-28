@@ -1,4 +1,4 @@
-export { OperationTestButton } from "./OperationTestButton";
+export { OperationTestButton, OperationTestWindow } from "./OperationTestButton";
 export { OperationImportCard } from "./OperationImportCard";
 export type { OperationImportCardProps } from "./OperationImportCard";
 export { createRegistryOperationInterfaceClient, discoveredFromRegistryOperation } from "./registryOperationInterfaceClient";

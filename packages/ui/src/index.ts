@@ -194,6 +194,7 @@ export { useAuthenticatedFileUrl, AuthenticatedImage } from "./components/Dynami
 export { getModelTone, normalizeToneKey, setColorSchemas } from "./utils/modelTone";
 // Shared operation interface: discover, import, review and test API operations (used by IQVigilant and the Integration Hub).
 export * from "./components/OperationInterface";
+export * from "./components/ConnectionTest";
 export { TonedPage, usePageTone, CollapsedSpine, CollapsibleSidePanel, SectionBar, useRememberedFlag, COLLAPSED_SPINE_WIDTH, COMPACT_GROUP_PADDING } from "./components/PageStyling";
 export { guessIcon, resolveIcon, getNavEntry, resolveNavKey, sortItemsByNavConfig, resolveFallbackLandingPath } from "./utils/navConfig";
 export type { NavConfigEntry, NavConfig } from "./utils/navConfig";
