@@ -269,6 +269,7 @@ def create_veloiq_app(
         from veloiq_framework.auth import models as _auth_models  # noqa: F401
         from veloiq_framework.help import models as _help_models  # noqa: F401
         from veloiq_framework.access import models as _access_models  # noqa: F401
+        from veloiq_framework.shared_connection_registry import connection_registry_models as _registry_models  # noqa: F401
         _create_tables_safe(engine)
         _sync_schema(engine)
     from veloiq_framework.auth.utils import seed_admin_user_if_needed, seed_roles
@@ -660,6 +661,10 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     from veloiq_framework.help.models import HelpDocument, HelpAction
     app.include_router(create_crud_router(HelpDocument), prefix="/api")
     app.include_router(create_crud_router(HelpAction), prefix="/api")
+    # Shared registry of connections and operations (admin only); its tables are created with the others.
+    from veloiq_framework.shared_connection_registry import connection_registry_models as _registry_models  # noqa: F401
+    from veloiq_framework.shared_connection_registry.connection_registry_router import make_connection_registry_router
+    app.include_router(make_connection_registry_router(cfg), prefix="/api")
 
     # All data API endpoints live under /api so the frontend's API_URL="/api"
     # works in production without any Vite proxy path-rewriting.

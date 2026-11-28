@@ -21,6 +21,7 @@ except ImportError:
 import veloiq_framework.auth.models  # noqa: F401
 import veloiq_framework.help.models  # noqa: F401
 import veloiq_framework.access.models  # noqa: F401  (role access policies: veloiq_role_access_*, veloiq_role_feature_*)
+import veloiq_framework.shared_connection_registry.connection_registry_models  # noqa: F401  (shared registry: veloiq_registry_*)
 
 # Auto-discover and import all app module models so autogenerate can detect them.
 _modules_dir = Path(__file__).parent.parent / "app" / "modules"
