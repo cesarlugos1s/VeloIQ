@@ -1065,3 +1065,19 @@ def test_a_pipe_in_a_cell_does_not_split_the_row():
     from veloiq_framework.documentation_workflow.documentation_site_tables import render_status_view, TableLinks
     page = render_status_view("# S\n\n## e\n\n- features/a: Partially implemented: 1 of 2 (a | b)\n", TableLinks(), "x.md")
     assert "(a \\| b)" in page
+
+
+def test_the_staged_site_carries_the_script_that_sorts_and_filters_the_list_pages_but_not_the_home_page(tmp_path):
+    openspec = tmp_path / "openspec"
+    write_element(openspec, "features", "a-feature", {"name": "a-feature", "implementation-status": "planned"}, TWO_REQUIREMENTS_BODY)
+    write_file(openspec / "CHANGELOG.md", "# Changelog\n\n## unreleased\n\n- a-change (2026-11-01): added features/a-feature\n")
+    write_file(openspec / "reverse-views" / "implemented-by-module.md", "# By module\n\n## tasks\n\n- features/a-feature\n")
+    configuration = stage_documentation_site(openspec, tmp_path / "build", "Demo")
+    configuration_text = configuration.read_text()
+    assets = tmp_path / "build" / "docs" / "site-tables"
+    assert "extra_css:\n  - site-tables/site_tables.css" in configuration_text and "  - site-tables/site_tables_config.js\n  - site-tables/site_tables.js" in configuration_text
+    assert (assets / "site_tables.js").exists() and (assets / "site_tables.css").exists()
+    pages = (assets / "site_tables_config.js").read_text()
+    assert '"CHANGELOG.html"' in pages and '"implemented-by-module.html"' in pages and "index.html" not in pages and '"implemented-by-epic.html"' not in pages
+    script = (assets / "site_tables.js").read_text()
+    assert "veloiqSortableTablePages" in script and "http" not in script.replace("https://", "x").replace("http://", "x")          # nothing is fetched from the network

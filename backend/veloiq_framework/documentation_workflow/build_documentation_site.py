@@ -1,6 +1,7 @@
 """Build the documentation site of the Product Specification for one product version (`veloiq docs site build`)."""
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -37,6 +38,10 @@ MERMAID_FENCE_CONFIGURATION = """markdown_extensions:
 METADATA_KEYS_SHOWN = ("type", "capability", "created", "created-in-version", "last-changed", "last-changed-in-version")
 STATUS_LABEL_SYMBOLS = {"planned": "🕓", "partial": "◐", "implemented": "✅"}
 
+
+# The script and the style that sort and filter the tables of the list pages (package data), and where they go in the staged site.
+TABLE_ASSETS_SOURCE_FOLDER = Path(__file__).resolve().parent / "site_table_assets"
+TABLE_ASSETS_FOLDER_NAME = "site-tables"
 
 # The status values the indexer writes into the front matter, as the labels the home page counts.
 STATUS_LABEL_OF_VALUE = {"implemented": IMPLEMENTED_LABEL, "partial": PARTIAL_LABEL, "planned": PLANNED_LABEL}
@@ -314,6 +319,15 @@ def _stage_change_pages(openspec_folder: Path, docs_folder: Path, links: LinkTar
     return navigation
 
 
+def _stage_table_assets(docs_folder: Path, sortable_pages: list[str]) -> None:
+    """Copy the script and the style that sort and filter the list pages into the site, and tell the script which pages they are."""
+    assets_folder = docs_folder / TABLE_ASSETS_FOLDER_NAME
+    assets_folder.mkdir(parents=True, exist_ok=True)
+    for asset_name in ("site_tables.js", "site_tables.css"):
+        shutil.copy2(TABLE_ASSETS_SOURCE_FOLDER / asset_name, assets_folder / asset_name)
+    (assets_folder / "site_tables_config.js").write_text(f"window.veloiqSortableTablePages = {json.dumps(sortable_pages)};\n", encoding="utf-8")
+
+
 def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_name: str) -> Path:
     """Write the MkDocs project (docs folder and mkdocs.yml) into staging_folder; return the mkdocs.yml path."""
     docs_folder = staging_folder / "docs"
@@ -367,9 +381,13 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
                 (docs_folder / view_file.name).write_text(_link_epic_headings(view_text, links, view_file.name), encoding="utf-8")
             navigation.append(f"    - {view_file.stem}: {view_file.name}")
     (docs_folder / "index.md").write_text(render_home_page(site_name, home_rows), encoding="utf-8")
+    sortable_pages = [f"{Path(CHANGELOG_FILE_NAME).stem}.html"] + [f"{stem}.html" for stem in TABLE_RENDERERS if (docs_folder / f"{stem}.md").exists()]
+    _stage_table_assets(docs_folder, sortable_pages)
     configuration_file = staging_folder / "mkdocs.yml"
     configuration_file.write_text(
-        f"site_name: {site_name}\nuse_directory_urls: false\ntheme:\n  name: material\n{MERMAID_FENCE_CONFIGURATION}nav:\n" + "\n".join(navigation) + "\n",
+        f"site_name: {site_name}\nuse_directory_urls: false\ntheme:\n  name: material\n{MERMAID_FENCE_CONFIGURATION}"
+        f"extra_css:\n  - {TABLE_ASSETS_FOLDER_NAME}/site_tables.css\nextra_javascript:\n  - {TABLE_ASSETS_FOLDER_NAME}/site_tables_config.js\n"
+        f"  - {TABLE_ASSETS_FOLDER_NAME}/site_tables.js\nnav:\n" + "\n".join(navigation) + "\n",
         encoding="utf-8")
     return configuration_file
 

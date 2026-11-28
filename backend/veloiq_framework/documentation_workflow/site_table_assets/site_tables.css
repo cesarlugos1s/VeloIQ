@@ -1,0 +1,24 @@
+/* Sorting and filtering of the tables of the documentation site's list pages (see site_tables.js). */
+.md-typeset th.site-table-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.md-typeset th.site-table-sortable::after { content: "\2195"; margin-left: 0.4em; font-size: 0.8em; opacity: 0.35; }
+.md-typeset th.site-table-sortable[aria-sort="ascending"]::after { content: "\25B2"; opacity: 1; }
+.md-typeset th.site-table-sortable[aria-sort="descending"]::after { content: "\25BC"; opacity: 1; }
+.md-typeset th.site-table-sortable:focus-visible { outline: 2px solid var(--md-accent-fg-color); outline-offset: -2px; }
+
+.site-table-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.6rem 0 0.4rem; font-size: 0.68rem; }
+.site-table-filters input,
+.site-table-filters select,
+.site-table-filters button {
+  font-family: inherit;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  padding: 0.25rem 0.5rem;
+  color: var(--md-default-fg-color);
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.2rem;
+}
+.site-table-filters input { min-width: 12rem; }
+.site-table-filters button { cursor: pointer; }
+.site-table-filter-count { color: var(--md-default-fg-color--light); margin-left: auto; }
+.md-typeset table tr[hidden] { display: none; }

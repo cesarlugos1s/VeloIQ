@@ -122,6 +122,7 @@ include = ["veloiq_framework*"]
     "view_types.json",
     "page_configs.json",
     "locales/*/LC_MESSAGES/*.po",
+    "documentation_workflow/site_table_assets/*",
     "scaffold/**/*",
     "scaffold/.windsurfrules",
     "scaffold/.cursor/rules/*",

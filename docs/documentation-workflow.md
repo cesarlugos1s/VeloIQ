@@ -115,7 +115,8 @@ Whether an element is built, and in which product version, is computed from evid
   site, built when it is staged from the same source files (`CHANGELOG.md` and `openspec/reverse-views/`, which stay as they are). The home page has a row for each
   element type with how many elements are implemented, partial and planned; the changelog has a table for each version (change, date, and the elements it added,
   modified and removed, linked to their pages); the module and epic views have a row for each module or epic and element; the status view starts with a summary of the
-  statuses and has a row for each epic and element with its status and detail. A line that does not have the expected form is kept as it was below the table.
+  statuses and has a row for each epic and element with its status and detail. The changelog and the three Traceability pages can be sorted by clicking a column header and,
+  with ten rows or more, filtered by a text box and by a list for each column that has few values (the script is bundled with the site and needs no network). A line that does not have the expected form is kept as it was below the table.
 
 ### Requirements implemented in another application, or set by hand
 
