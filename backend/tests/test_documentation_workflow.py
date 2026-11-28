@@ -849,7 +849,8 @@ def test_epic_and_story_are_created_pre_filled_and_the_story_is_listed_in_its_ep
 
     story_file = Path(create_story(project_with_change, "add-x", "manager-sees-load", "team-balance", TODAY))
     story_front_matter, story_body = split_front_matter(story_file.read_text())
-    assert story_front_matter == {"name": "manager-sees-load", "type": "story", "epic": "team-balance", "change": "add-x", "created": "2026-11-25"}
+    assert story_front_matter == {"name": "manager-sees-load", "type": "story", "epic": "team-balance", "change": "add-x", "created": "2026-11-25",
+                                  "design": ["high-level-design"]}
     assert "As a <role>" in story_body
     create_story(project_with_change, "add-x", "another-story", "team-balance", TODAY)
     epic_text = epic_file.read_text()
@@ -927,3 +928,48 @@ def test_terminal_explorer_offers_the_epics_and_stories_of_the_chosen_change(tmp
     assert explorer._handle(ord("l"), None, 40, 120) == \
         "veloiq docs element new features bulk-reassign-tasks --change add-x --story manager-sees-load --capability task-assignment"
     assert "features" in prompts[-4] and "optional" in prompts[-2]
+
+
+def test_a_story_may_name_several_design_files_and_each_must_exist(tmp_path):
+    change = tmp_path / "changes" / "c"
+    write_file(change / "epics" / "team-balance.md", join_front_matter({"name": "team-balance"}, "x"))
+    write_file(change / "design" / "high-level-design.md", "## Overview\n")
+    write_file(change / "design" / "low-level-design" / "engine.md", "## Interfaces\n")
+    write_file(change / "stories" / "manager-sees-load.md",
+               join_front_matter({"epic": "team-balance", "design": ["high-level-design", "low-level-design/engine"]}, "x"))
+    write_element(change, "capabilities", "task-assignment", {"stories": ["manager-sees-load"]})
+    write_element(change, "features", "bulk-reassign-tasks",
+                  {"capability": "task-assignment", "stories": ["manager-sees-load"], "data-not-applicable": "A journey only."})
+    assert validate_documentation_change(change, tmp_path / "specs") == []
+    write_file(change / "stories" / "manager-sees-load.md",
+               join_front_matter({"epic": "team-balance", "design": ["high-level-design", "low-level-design/missing"]}, "x"))
+    problems = [str(problem) for problem in validate_documentation_change(change, tmp_path / "specs")]
+    assert any("`low-level-design/missing`" in problem and "not a design file" in problem for problem in problems)
+
+
+def test_a_new_story_lists_the_high_level_design_from_the_start(tmp_path):
+    from veloiq_framework.documentation_workflow.scaffold_documentation_files import create_epic, create_story
+    (tmp_path / "openspec" / "changes" / "c").mkdir(parents=True)
+    write_file(tmp_path / "openspec" / "schemas" / "veloiq-docs" / "templates" / "epic.md", "## Goal\n\n## User stories\n\n")
+    write_file(tmp_path / "openspec" / "schemas" / "veloiq-docs" / "templates" / "story.md", "## User story\n")
+    create_epic(tmp_path, "c", "team-balance")
+    story_file = Path(create_story(tmp_path, "c", "manager-sees-load", "team-balance"))
+    assert split_front_matter(story_file.read_text())[0]["design"] == ["high-level-design"]
+
+
+def test_the_site_links_a_story_to_its_designs_and_a_design_back_to_its_stories(tmp_path):
+    archived = tmp_path / "openspec" / "changes" / "archive" / "2026-01-01-the-change"
+    write_file(archived / "proposal.md", "## Why\n\nBecause.\n")
+    write_file(archived / "epics" / "team-balance.md", join_front_matter({"name": "team-balance", "type": "epic", "change": "the-change"}, "## Goal\n"))
+    write_file(archived / "stories" / "manager-sees-load.md", join_front_matter(
+        {"name": "manager-sees-load", "type": "story", "epic": "team-balance", "change": "the-change",
+         "design": ["high-level-design", "low-level-design/engine"]}, "## User story\n"))
+    write_file(archived / "design" / "high-level-design.md", "## Overview\n")
+    write_file(archived / "design" / "low-level-design" / "engine.md", "## Interfaces\n")
+    write_file(tmp_path / "openspec" / "CHANGELOG.md", "# Changelog\n")
+    stage_documentation_site(tmp_path / "openspec", tmp_path / "build", "Demo 0.1.0")
+    docs = tmp_path / "build" / "docs" / "changes" / "the-change"
+    story_page = (docs / "stories" / "manager-sees-load.md").read_text()
+    assert "| technical design | [high-level-design](../design/high-level-design.md)<br>[low-level-design/engine](../design/low-level-design/engine.md) |" in story_page
+    assert "[manager-sees-load](../../stories/manager-sees-load.md)" in (docs / "design" / "low-level-design" / "engine.md").read_text() or \
+        "manager-sees-load" in (docs / "design" / "low-level-design" / "engine.md").read_text()

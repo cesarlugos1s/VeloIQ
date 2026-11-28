@@ -20,6 +20,10 @@ DESCRIPTIVE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 NUMBERED_NAME_PATTERN = re.compile(r"^[a-z]*-?\d+$", re.IGNORECASE)
 
 
+# Folder of a change that holds its technical design (`high-level-design.md` and `low-level-design/*.md`).
+DESIGN_FOLDER_NAME = "design"
+
+
 @dataclass(frozen=True)
 class DocumentationProblem:
     location: str
@@ -140,6 +144,12 @@ def validate_documentation_change(change_folder: Path, specifications_root: Path
         elif epic_name not in epic_names:
             problems.append(DocumentationProblem(f"stories/{story_name}.md", f"epic `{epic_name}` is not an epic of this change"))
         requirements_by_element[story_name] = _as_list(front_matter.get("requires"))
+        for design_reference in _as_list(front_matter.get("design")):
+            if not (change_folder / DESIGN_FOLDER_NAME / f"{design_reference}.md").exists():
+                problems.append(DocumentationProblem(
+                    f"stories/{story_name}.md",
+                    f"front matter key `design` names `{design_reference}`, which is not a design file of this change "
+                    f"(use `high-level-design` or `low-level-design/<file name without .md>`)"))
     for epic_name in sorted(epic_names):
         front_matter = read_front_matter_of_file(change_folder / "epics" / f"{epic_name}.md")
         requirements_by_element[epic_name] = _as_list(front_matter.get("requires"))

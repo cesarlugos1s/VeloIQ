@@ -54,13 +54,16 @@ class LinkTargets:
     changes: dict[str, str] = field(default_factory=dict)
     epics: dict[str, str] = field(default_factory=dict)
     stories: dict[str, str] = field(default_factory=dict)
+    # Technical design pages, keyed "<change>/<design reference>" (for example "my-change/low-level-design/engine").
+    designs: dict[str, str] = field(default_factory=dict)
 
-    def link(self, kind: str, name, page_path: str) -> str:
-        """Return `name` as a markdown link relative to the page at page_path, or plain text when it has no page."""
+    def link(self, kind: str, name, page_path: str, label: str | None = None) -> str:
+        """Return `name` (or `label`) as a markdown link relative to the page at page_path, or plain text when it has no page."""
         target = getattr(self, kind).get(str(name))
+        shown = label if label is not None else name
         if target is None:
-            return str(name)
-        return f"[{name}]({os.path.relpath(target, os.path.dirname(page_path))})"
+            return str(shown)
+        return f"[{shown}]({os.path.relpath(target, os.path.dirname(page_path))})"
 
 
 def _metadata_table(front_matter: dict, links: LinkTargets, page_path: str) -> str:
@@ -76,6 +79,9 @@ def _metadata_table(front_matter: dict, links: LinkTargets, page_path: str) -> s
         rows.append(("epic", links.link("epics", front_matter["epic"], page_path)))
     if front_matter.get("change"):
         rows.append(("change", links.link("changes", front_matter["change"], page_path)))
+    if front_matter.get("design") and front_matter.get("change"):
+        rows.append(("technical design", "<br>".join(
+            links.link("designs", f"{front_matter['change']}/{reference}", page_path, label=str(reference)) for reference in front_matter["design"])))
     origin = front_matter.get("origin") or {}
     for key, kind in (("changes", "changes"), ("epics", "epics"), ("stories", "stories")):
         if origin.get(key):
@@ -246,6 +252,10 @@ def _collect_link_targets(openspec_folder: Path) -> LinkTargets:
             links.epics[epic_file.stem] = f"changes/{change_name}/epics/{epic_file.name}"
         for story_file in sorted((archived_folder / "stories").glob("*.md")):
             links.stories[story_file.stem] = f"changes/{change_name}/stories/{story_file.name}"
+        if (archived_folder / "design" / "high-level-design.md").exists():
+            links.designs[f"{change_name}/high-level-design"] = f"changes/{change_name}/design/high-level-design.md"
+        for design_file in sorted((archived_folder / "design" / "low-level-design").glob("*.md")):
+            links.designs[f"{change_name}/low-level-design/{design_file.stem}"] = f"changes/{change_name}/design/low-level-design/{design_file.name}"
     return links
 
 
@@ -282,6 +292,13 @@ def _stage_change_pages(openspec_folder: Path, docs_folder: Path, links: LinkTar
                     elements_text = "\n\n## Specification elements of this change\n\n" + "\n".join(
                         f"- {links.link('elements', name, page_path)} ({element_type})" for element_type, name in changed)
             body_text = _link_names_in_lists(body_text, links, page_path)
+            if relative_page.startswith("design/"):
+                design_reference = relative_page.removesuffix(".md").removeprefix("design/")
+                using_stories = [story_file.stem for story_file in sorted((archived_folder / "stories").glob("*.md"))
+                                 if design_reference in (split_front_matter(story_file.read_text(encoding="utf-8"))[0].get("design") or [])]
+                if using_stories:
+                    elements_text = "\n\n## Stories built from this design\n\n" + "\n".join(
+                        f"- {links.link('stories', story_name, page_path)}" for story_name in using_stories)
             page.write_text(f"# {title}\n\n" + _metadata_table(front_matter, links, page_path) + body_text + elements_text, encoding="utf-8")
             change_pages.append((title, page_path))
         navigation.append(f"    - {change_name}:")

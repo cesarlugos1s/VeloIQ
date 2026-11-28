@@ -73,8 +73,10 @@ def create_story(project_root: Path, change_name: str, story_name: str, epic_nam
         existing = sorted(path.stem for path in (change_folder / "epics").glob("*.md"))
         raise ScaffoldError(f"Epic {epic_name!r} is not an epic of change {change_name!r}"
                             + (f" (epics: {', '.join(existing)})." if existing else f". Create it first with `veloiq docs epic new {epic_name} --change {change_name}`."))
+    # `design` lists the technical design files of the change this story is built from (a story may use several).
+    # The high-level design always exists, so it is listed from the start; add `low-level-design/<file>` entries as they are written.
     front_matter = {"name": story_name, "type": "story", "epic": epic_name, "change": change_name,
-                    "created": (today or date.today()).isoformat()}
+                    "created": (today or date.today()).isoformat(), "design": ["high-level-design"]}
     created = _write_new_file(change_folder / "stories" / f"{story_name}.md",
                               join_front_matter(front_matter, _template_body(project_root, "story.md")))
     _list_story_in_epic(epic_file, story_name)

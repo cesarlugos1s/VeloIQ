@@ -28,6 +28,13 @@ the code, help document drafts and the documentation site.
 | `veloiq docs help import [--dry-run] [--include-unreviewed]` | Write the reviewed drafts into the application's help documents and action buttons |
 | `veloiq docs site build [--git-tag TAG]` | Stage and build the MkDocs Material site for a version (needs `pip install mkdocs-material`) |
 
+## Technical design of a story
+
+A user story names the technical design it is built from in the front matter key `design`, a list of design files of its change:
+`high-level-design` and `low-level-design/<file name without .md>`. `veloiq docs story new` writes `design: [high-level-design]`; add the
+low-level files as they are written. `veloiq docs change validate` refuses a name that is not a design file of the change, and the site shows a
+"technical design" row on the story page and a "Stories built from this design" list on the design page. A feature reaches its design through its stories.
+
 ## Layout
 
 ```
