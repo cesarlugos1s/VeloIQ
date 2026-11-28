@@ -69,8 +69,8 @@ def test_values_that_the_definition_does_not_allow_are_refused_with_a_message(cl
 
 def test_a_connection_name_is_unique(client, auth):
     name = _name()
-    assert client.post("/api/registry/connections", headers=auth, json={"name": name, "endpoint_type": "file"}).status_code == 201
-    again = client.post("/api/registry/connections", headers=auth, json={"name": name, "endpoint_type": "file"})
+    assert client.post("/api/registry/connections", headers=auth, json={"name": name, "endpoint_type": "veloiq_app"}).status_code == 201
+    again = client.post("/api/registry/connections", headers=auth, json={"name": name, "endpoint_type": "veloiq_app"})
     assert again.status_code == 422 and "already exists" in again.json()["detail"]
 
 

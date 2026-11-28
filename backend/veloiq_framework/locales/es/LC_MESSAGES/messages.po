@@ -2833,3 +2833,101 @@ msgstr "La conexión es de solo lectura: solo se aceptan sentencias SELECT."
 
 msgid "The database cannot be reached: {problem}"
 msgstr "No se puede acceder a la base de datos: {problem}"
+
+# Added by veloiq i18n extract
+msgid "Whether the hub receives or sends (a webhook)."
+msgstr "Si el hub recibe o envía (un webhook)."
+
+msgid "Name used in the address of an incoming webhook or an inbound API endpoint: lowercase letters, digits and hyphens."
+msgstr "Nombre usado en la dirección de un webhook entrante o de un endpoint de API de entrada: letras minúsculas, dígitos y guiones."
+
+msgid "Header that carries the HMAC-SHA256 signature; the shared secret is the connection's signing secret."
+msgstr "Cabecera que lleva la firma HMAC-SHA256; el secreto compartido es el secreto de firma de la conexión."
+
+msgid "How senders authenticate to an inbound API endpoint."
+msgstr "Cómo se autentican los remitentes en un endpoint de API de entrada."
+
+msgid "The endpoint name is lowercase letters, digits and hyphens."
+msgstr "El nombre del endpoint son letras minúsculas, dígitos y guiones."
+
+msgid "An endpoint named {name} already exists."
+msgstr "Ya existe un endpoint llamado {name}."
+
+msgid "Unknown webhook setting: {name}."
+msgstr "Ajuste de webhook desconocido: {name}."
+
+msgid "The direction"
+msgstr "La dirección"
+
+msgid "The direction of the webhook does not match its endpoint type."
+msgstr "La dirección del webhook no coincide con su tipo de endpoint."
+
+msgid "A webhook needs the header that carries the signature."
+msgstr "Un webhook necesita la cabecera que lleva la firma."
+
+msgid "An outgoing webhook needs the address it is sent to."
+msgstr "Un webhook saliente necesita la dirección a la que se envía."
+
+msgid "Unknown inbound API setting: {name}."
+msgstr "Ajuste de API de entrada desconocido: {name}."
+
+msgid "The most records in one push is between 1 and 1000."
+msgstr "El máximo de registros en un envío está entre 1 y 1000."
+
+msgid "Only a webhook or an inbound API connection has endpoint settings."
+msgstr "Solo una conexión de webhook o de API de entrada tiene ajustes de endpoint."
+
+# Added by veloiq i18n extract
+msgid "The database server or the SFTP server."
+msgstr "El servidor de base de datos o el servidor SFTP."
+
+msgid "The usual port of the database type, or 22 for SFTP, when empty."
+msgstr "El puerto habitual del tipo de base de datos, o 22 para SFTP, cuando está vacío."
+
+msgid "The database user or the SFTP user; the password is a secret of the connection."
+msgstr "El usuario de la base de datos o de SFTP; la contraseña es un secreto de la conexión."
+
+msgid "Where the files are (a file connection)."
+msgstr "Dónde están los archivos (una conexión de archivos)."
+
+msgid "Folder that holds the files; a local folder is relative to the root set in the configuration."
+msgstr "Carpeta que contiene los archivos; una carpeta local es relativa a la raíz fijada en la configuración."
+
+msgid "The server is refused unless its key has this fingerprint (for example SHA256:...)."
+msgstr "El servidor se rechaza salvo que su clave tenga esta huella (por ejemplo SHA256:...)."
+
+msgid "Unknown file setting: {name}."
+msgstr "Ajuste de archivos desconocido: {name}."
+
+msgid "The location"
+msgstr "La ubicación"
+
+msgid "The file format"
+msgstr "El formato de archivo"
+
+msgid "The location of the files does not match the endpoint type."
+msgstr "La ubicación de los archivos no coincide con el tipo de endpoint."
+
+msgid "A file connection needs the folder that holds the files."
+msgstr "Una conexión de archivos necesita la carpeta que contiene los archivos."
+
+msgid "A file connection needs a file name pattern."
+msgstr "Una conexión de archivos necesita un patrón de nombre de archivo."
+
+msgid "The delimiter of a CSV file is one character."
+msgstr "El separador de un archivo CSV es un carácter."
+
+msgid "the SFTP server"
+msgstr "el servidor SFTP"
+
+msgid "the SFTP user"
+msgstr "el usuario SFTP"
+
+msgid "the fingerprint of the SFTP server"
+msgstr "la huella del servidor SFTP"
+
+msgid "An SFTP connection needs {what}."
+msgstr "Una conexión SFTP necesita {what}."
+
+msgid "Only a file or SFTP connection has file settings."
+msgstr "Solo una conexión de archivos o SFTP tiene ajustes de archivos."

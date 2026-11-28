@@ -25,7 +25,7 @@ from . import connection_registry_store as store
 from .connection_registry_models import Connection, ConnectionSecret, Operation, UsageSelection
 from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
 from .registry_choice_values import (
-    DATABASE_TYPES, ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS, USAGES,
+    DATABASE_TYPES, ENDPOINT_TYPES, FILE_FORMATS, FILE_LOCATIONS, INBOUND_API_AUTHENTICATIONS, WEBHOOK_DIRECTIONS, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS, USAGES,
 )
 
 CONNECTIONS_RESOURCE_NAME = "veloiq_registry_connections"
@@ -75,9 +75,18 @@ def _guarded(action: Callable[[], Any]) -> Any:
 def _connection_row(connection: Connection) -> dict[str, Any]:
     rest = connection.connection_has_rest_connection_settings
     row: dict[str, Any] = {"id": connection.id, "name": connection.name, "endpoint_type": connection.endpoint_type, "is_enabled": connection.is_enabled}
-    row.update({field: (getattr(rest[0], field) if rest else None) for field in store.REST_SETTING_FIELDS})
+    row.update({field: None for field in (*store.REST_SETTING_FIELDS, *store.DATABASE_SETTING_FIELDS, *store.FILE_SETTING_FIELDS, *store.WEBHOOK_SETTING_FIELDS, *store.INBOUND_API_SETTING_FIELDS) if field != "authentication"})
+    row["authentication"] = None
+    # Settings that share a name (host, port, username of a database and of SFTP) take the value of the settings the connection has.
     database = connection.connection_has_database_connection_settings
-    row.update({field: (getattr(database[0], field) if database else None) for field in store.DATABASE_SETTING_FIELDS})
+    file_settings = connection.connection_has_file_connection_settings
+    webhook = connection.connection_has_webhook_endpoint_settings
+    inbound = connection.connection_has_inbound_api_endpoint_settings
+    for present, fields in ((rest, store.REST_SETTING_FIELDS), (database, store.DATABASE_SETTING_FIELDS), (file_settings, store.FILE_SETTING_FIELDS),
+                            (webhook, store.WEBHOOK_SETTING_FIELDS), (inbound, [name for name in store.INBOUND_API_SETTING_FIELDS if name != "authentication"])):
+        if present:
+            row.update({field: getattr(present[0], field) for field in fields})
+    row["inbound_authentication"] = inbound[0].authentication if inbound else None
     return row
 
 
@@ -91,6 +100,21 @@ def _database_settings_of_row(row: dict) -> dict[str, Any]:
     return {field: row[field] for field in store.DATABASE_SETTING_FIELDS if row.get(field) not in (None, "")}
 
 
+def _endpoint_settings_of_row(row: dict) -> dict[str, Any]:
+    """The settings of a webhook or inbound API endpoint a row holds (the ones that have a value), as the store takes them."""
+    if row.get("endpoint_type") == store.INBOUND_API_ENDPOINT_TYPE:
+        values = {field: row[field] for field in store.INBOUND_API_SETTING_FIELDS if field != "authentication" and row.get(field) not in (None, "")}
+        if row.get("inbound_authentication"):
+            values["authentication"] = row["inbound_authentication"]
+        return values
+    return {field: row[field] for field in store.WEBHOOK_SETTING_FIELDS if row.get(field) not in (None, "")}
+
+
+def _file_settings_of_row(row: dict) -> dict[str, Any]:
+    """The file settings a row holds (the ones that have a value), as the store takes them."""
+    return {field: row[field] for field in store.FILE_SETTING_FIELDS if row.get(field) not in (None, "")}
+
+
 def _load_connections(_context: DataSourceRequestContext) -> list[dict]:
     with _session() as session:
         return [_connection_row(connection) for connection in session.exec(select(Connection).order_by(Connection.name)).all()]
@@ -100,7 +124,9 @@ def _create_connection(_context: DataSourceRequestContext, row: dict) -> dict:
     with _session() as session:
         connection = _guarded(lambda: store.create_connection(session, row.get("name"), row.get("endpoint_type"), row.get("is_enabled", True),
                                                               _rest_settings_of_row(row) if row.get("endpoint_type") == store.REST_ENDPOINT_TYPE else None,
-                                                              _database_settings_of_row(row) if row.get("endpoint_type") == store.DATABASE_ENDPOINT_TYPE else None))
+                                                              _database_settings_of_row(row) if row.get("endpoint_type") == store.DATABASE_ENDPOINT_TYPE else None,
+                                                              _endpoint_settings_of_row(row) if row.get("endpoint_type") in store.ENDPOINT_TYPES_WITH_ENDPOINT_SETTINGS else None,
+                                                              _file_settings_of_row(row) if row.get("endpoint_type") in (store.FILE_ENDPOINT_TYPE, store.SFTP_ENDPOINT_TYPE) else None))
         return _connection_row(connection)
 
 
@@ -116,6 +142,10 @@ def _update_connection(_context: DataSourceRequestContext, eid: str, row: dict) 
             values["rest_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.REST_SETTING_FIELDS if field in row}
         if connection.endpoint_type == store.DATABASE_ENDPOINT_TYPE:
             values["database_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.DATABASE_SETTING_FIELDS if field in row}
+        if connection.endpoint_type in (store.FILE_ENDPOINT_TYPE, store.SFTP_ENDPOINT_TYPE):
+            values["file_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.FILE_SETTING_FIELDS if field in row}
+        if connection.endpoint_type in store.ENDPOINT_TYPES_WITH_ENDPOINT_SETTINGS:
+            values["endpoint_settings"] = _endpoint_settings_of_row({**row, "endpoint_type": connection.endpoint_type})
         return _connection_row(_guarded(lambda: store.update_connection(session, connection, values)))
 
 
@@ -160,13 +190,28 @@ def build_connections_non_model_data_resource() -> NonModelDataResource:
             NonModelDataField(key="next_link_path", label="Next Link Path", show_in_list=False, description=_("Where the answer holds the address of the next page.")),
             NonModelDataField(key="maximum_pages", label="Maximum Pages", type="number", integer=True, default=100, show_in_list=False),
             NonModelDataField(key="database_type", label="Database Type", options=list(DATABASE_TYPES), show_in_list=False, description=_("Kind of database (a database connection).")),
-            NonModelDataField(key="host", label="Database Server", show_in_list=False),
-            NonModelDataField(key="port", label="Database Port", type="number", integer=True, show_in_list=False, description=_("The usual port of the database type when empty.")),
+            NonModelDataField(key="host", label="Server", show_in_list=False, description=_("The database server or the SFTP server.")),
+            NonModelDataField(key="port", label="Port", type="number", integer=True, show_in_list=False, description=_("The usual port of the database type, or 22 for SFTP, when empty.")),
             NonModelDataField(key="database_name", label="Database Name", show_in_list=False),
-            NonModelDataField(key="username", label="Database User", show_in_list=False, description=_("The password is a secret of the connection.")),
+            NonModelDataField(key="username", label="User", show_in_list=False, description=_("The database user or the SFTP user; the password is a secret of the connection.")),
+            NonModelDataField(key="location", label="File Location", options=list(FILE_LOCATIONS), show_in_list=False, description=_("Where the files are (a file connection).")),
+            NonModelDataField(key="folder_path", label="Folder", show_in_list=False, description=_("Folder that holds the files; a local folder is relative to the root set in the configuration.")),
+            NonModelDataField(key="file_pattern", label="File Pattern", show_in_list=False, default="*"),
+            NonModelDataField(key="format", label="File Format", options=list(FILE_FORMATS), show_in_list=False, default="csv"),
+            NonModelDataField(key="encoding", label="Encoding", show_in_list=False, default="utf-8"),
+            NonModelDataField(key="delimiter", label="CSV Separator", show_in_list=False, default=","),
+            NonModelDataField(key="has_header", label="First Row Holds Names", type="boolean", default=True, show_in_list=False),
+            NonModelDataField(key="host_key_fingerprint", label="SFTP Host Key Fingerprint", show_in_list=False, description=_("The server is refused unless its key has this fingerprint (for example SHA256:...).")),
             NonModelDataField(key="is_read_only", label="Read Only", type="boolean", default=True, show_in_list=False),
             NonModelDataField(key="query_timeout_seconds", label="Query Timeout (seconds)", type="number", integer=True, default=60, show_in_list=False),
             NonModelDataField(key="max_rows_per_run", label="Most Rows in One Run", type="number", integer=True, default=100000, show_in_list=False),
+            NonModelDataField(key="direction", label="Webhook Direction", options=list(WEBHOOK_DIRECTIONS), show_in_list=False, description=_("Whether the hub receives or sends (a webhook).")),
+            NonModelDataField(key="endpoint_name", label="Endpoint Name", show_in_list=False, description=_("Name used in the address of an incoming webhook or an inbound API endpoint: lowercase letters, digits and hyphens.")),
+            NonModelDataField(key="target_url", label="Webhook Target URL", show_in_list=False),
+            NonModelDataField(key="signature_header", label="Signature Header", show_in_list=False, default="X-IH-Signature", description=_("Header that carries the HMAC-SHA256 signature; the shared secret is the connection's signing secret.")),
+            NonModelDataField(key="event_types", label="Event Types", show_in_list=False, default="all"),
+            NonModelDataField(key="inbound_authentication", label="Inbound Authentication", options=list(INBOUND_API_AUTHENTICATIONS), show_in_list=False, description=_("How senders authenticate to an inbound API endpoint.")),
+            NonModelDataField(key="max_records_per_push", label="Most Records in One Push", type="number", integer=True, default=1000, show_in_list=False),
             NonModelDataField(key="cursor_column", label="Cursor Column", show_in_list=False, description=_("Column that marks new and changed rows.")),
         ],
         relations=[

@@ -28,6 +28,18 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   token by token, with the session set read only where the database supports it, a query timeout and a row limit that fails the read.
   The 12 database types of IQVigilant's connections are offered; their drivers are not installed by the framework. **Existing
   registry tables need two new tables** (`veloiq_registry_database_connection_settings` and its link table).
+- **Extensions can open endpoints that check their callers themselves** — a manifest lists `public_path_prefixes` (full paths); the
+  auth middleware then skips the login-token and role checks for them, still reading a valid login token into `request.state.user`.
+  The extension's endpoint must authenticate the caller. Nothing is opened unless an extension declares it.
+- **Incoming webhooks and inbound API endpoints in the shared registry** — connections of the types `incoming_webhook`,
+  `outgoing_webhook` and `incoming_api_endpoint` keep their settings (`WebhookEndpointSettings`, `InboundApiEndpointSettings`); the
+  shared secret of a webhook is the connection's new secret key `signing_secret`. `incoming_call_verification` checks an HMAC-SHA256
+  signature and an API key in constant time. **Existing registry tables need four new tables** (two settings tables and their link tables).
+- **File and SFTP connections in the shared registry** — connections of the types `file` (a local folder) and `sftp_folder` keep their
+  settings (`FileConnectionSettings`: location, folder, pattern, format csv/excel/json, encoding, separator, header, SFTP server, port,
+  user and the expected host key fingerprint; the SFTP password or private key are secrets). A package can supply the test of an
+  endpoint type the registry cannot test itself with `register_connection_tester`. **Existing registry tables need two new tables**
+  (`veloiq_registry_file_connection_settings` and its link table).
 - **Many-to-one relations through a link table behave like foreign keys** — a relation
   declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
   schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit

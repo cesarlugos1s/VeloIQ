@@ -2834,3 +2834,101 @@ msgstr ""
 
 msgid "The database cannot be reached: {problem}"
 msgstr ""
+
+# Added by veloiq i18n extract
+msgid "Whether the hub receives or sends (a webhook)."
+msgstr ""
+
+msgid "Name used in the address of an incoming webhook or an inbound API endpoint: lowercase letters, digits and hyphens."
+msgstr ""
+
+msgid "Header that carries the HMAC-SHA256 signature; the shared secret is the connection's signing secret."
+msgstr ""
+
+msgid "How senders authenticate to an inbound API endpoint."
+msgstr ""
+
+msgid "The endpoint name is lowercase letters, digits and hyphens."
+msgstr ""
+
+msgid "An endpoint named {name} already exists."
+msgstr ""
+
+msgid "Unknown webhook setting: {name}."
+msgstr ""
+
+msgid "The direction"
+msgstr ""
+
+msgid "The direction of the webhook does not match its endpoint type."
+msgstr ""
+
+msgid "A webhook needs the header that carries the signature."
+msgstr ""
+
+msgid "An outgoing webhook needs the address it is sent to."
+msgstr ""
+
+msgid "Unknown inbound API setting: {name}."
+msgstr ""
+
+msgid "The most records in one push is between 1 and 1000."
+msgstr ""
+
+msgid "Only a webhook or an inbound API connection has endpoint settings."
+msgstr ""
+
+# Added by veloiq i18n extract
+msgid "The database server or the SFTP server."
+msgstr ""
+
+msgid "The usual port of the database type, or 22 for SFTP, when empty."
+msgstr ""
+
+msgid "The database user or the SFTP user; the password is a secret of the connection."
+msgstr ""
+
+msgid "Where the files are (a file connection)."
+msgstr ""
+
+msgid "Folder that holds the files; a local folder is relative to the root set in the configuration."
+msgstr ""
+
+msgid "The server is refused unless its key has this fingerprint (for example SHA256:...)."
+msgstr ""
+
+msgid "Unknown file setting: {name}."
+msgstr ""
+
+msgid "The location"
+msgstr ""
+
+msgid "The file format"
+msgstr ""
+
+msgid "The location of the files does not match the endpoint type."
+msgstr ""
+
+msgid "A file connection needs the folder that holds the files."
+msgstr ""
+
+msgid "A file connection needs a file name pattern."
+msgstr ""
+
+msgid "The delimiter of a CSV file is one character."
+msgstr ""
+
+msgid "the SFTP server"
+msgstr ""
+
+msgid "the SFTP user"
+msgstr ""
+
+msgid "the fingerprint of the SFTP server"
+msgstr ""
+
+msgid "An SFTP connection needs {what}."
+msgstr ""
+
+msgid "Only a file or SFTP connection has file settings."
+msgstr ""

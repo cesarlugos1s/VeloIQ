@@ -25,8 +25,8 @@ const _ = (text: string): string => {
 
 const CONNECTIONS_RESOURCE_NAME = "veloiq_registry_connections";
 const OPERATIONS_RESOURCE_NAME = "veloiq_registry_operations";
-// Endpoint types the registry can test: a REST connection with a GET to its base address, a database with a trivial read.
-const TESTABLE_ENDPOINT_TYPES = ["rest_api", "database"];
+// Endpoint types the registry can test: a REST connection with a GET to its base address, a database with a trivial read, a file or SFTP connection by looking for its folder.
+const TESTABLE_ENDPOINT_TYPES = ["rest_api", "database", "file", "sftp_folder"];
 
 const LoadingPage = () => <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><Spin /></div>;
 

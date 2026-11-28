@@ -190,7 +190,7 @@ def create_veloiq_app(
     )
 
     # ── Auth middleware ───────────────────────────────────────────────────────
-    _add_auth_middleware(app, cfg)
+    _add_auth_middleware(app, cfg, tuple(prefix for extension in extensions for prefix in getattr(extension, "public_path_prefixes", ())))
 
     # ── Request locale ────────────────────────────────────────────────────────
     app.add_middleware(_RequestLocaleMiddleware)
@@ -471,7 +471,7 @@ class _RequestLocaleMiddleware:
 # Auth middleware
 # ---------------------------------------------------------------------------
 
-def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
+def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig, extension_public_paths: tuple[str, ...] = ()) -> None:
     """Add JWT Bearer token validation + RBAC middleware.
 
     Registration order matters: Starlette executes @app.middleware decorators in
@@ -498,7 +498,9 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
     )
     # Framework endpoints read before anyone signs in: an external portal's public settings.
     from veloiq_framework.portals.portal_settings_api_router import PORTAL_PUBLIC_SETTINGS_PATH_PREFIX
-    _framework_public_paths = (PORTAL_PUBLIC_SETTINGS_PATH_PREFIX,)
+    # Paths of extension endpoints that authenticate the caller themselves (a signed webhook, an API key).
+    _framework_public_paths = (PORTAL_PUBLIC_SETTINGS_PATH_PREFIX, *extension_public_paths)
+    _extension_public_paths = tuple(extension_public_paths)
     _rbac_exempt = ("/auth/", "/admin", "/static/", "/health", "/docs", "/openapi.json", "/redoc", "/veloiq-studio", "/api/debug/ddl-trace", *_framework_public_paths, *cfg.auth_exempt_paths)
 
     # In production SPA mode only these prefixes require a JWT; everything else
@@ -553,6 +555,19 @@ def _add_auth_middleware(app: FastAPI, cfg: VeloIQConfig) -> None:
         # Host-app-declared exemptions bypass auth unconditionally, in both
         # SPA/production and dev mode — checked first since the SPA branch
         # below only consults _spa_protected, never _auth_exempt.
+        if any(path.startswith(p) for p in _extension_public_paths):
+            # The extension's endpoint authenticates the caller itself. A valid login token is still read, so it can accept one
+            # (request.state.user); anything else (a signature, an API key) passes through for the endpoint to check.
+            bearer_header = request.headers.get("Authorization", "")
+            if bearer_header.startswith("Bearer "):
+                try:
+                    from veloiq_framework.auth.utils import decode_access_token
+                    token_payload = decode_access_token(bearer_header[7:], cfg.auth_secret)
+                    token_payload["eid"] = int(token_payload.get("sub", 0) or 0)
+                    request.state.user = token_payload
+                except Exception:
+                    pass
+            return await call_next(request)
         if any(path.startswith(p) for p in (*_framework_public_paths, *cfg.auth_exempt_paths)):
             return await call_next(request)
         if cfg.serve_frontend is not None:

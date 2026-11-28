@@ -38,6 +38,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
     from .connection_registry_models import Connection, Operation, UsageSelection
     from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
     from .connection_test_call import test_rest_connection
+    from .connection_tester_registrations import find_connection_tester
     from .database_connection_access import test_database_connection
     from .json_schema_from_sample import infer_json_schema
     from .operation_discovery_from_url import discover_operation_from_url
@@ -74,7 +75,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
         return {"endpoint_types": list(values.ENDPOINT_TYPES), "operation_methods": list(values.OPERATION_METHODS),
                 "operation_sources": list(values.OPERATION_SOURCES), "secret_keys": list(values.SECRET_KEYS),
                 "rest_authentications": list(values.REST_AUTHENTICATIONS), "rest_paging_styles": list(values.REST_PAGING_STYLES),
-                "usages": list(values.USAGES), "database_types": list(values.DATABASE_TYPES),
+                "usages": list(values.USAGES), "database_types": list(values.DATABASE_TYPES), "file_locations": list(values.FILE_LOCATIONS), "file_formats": list(values.FILE_FORMATS), "inbound_api_authentications": list(values.INBOUND_API_AUTHENTICATIONS),
                 "database_usual_ports": values.DATABASE_USUAL_PORTS, "database_types_without_host": list(values.DATABASE_TYPES_WITHOUT_HOST),
                 "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
 
@@ -90,7 +91,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
         with Session(get_engine()) as session:
             try:
                 connection = store.create_connection(session, body.get("name"), body.get("endpoint_type"),
-                                                     body.get("is_enabled", True), body.get("rest_settings"), body.get("database_settings"))
+                                                     body.get("is_enabled", True), body.get("rest_settings"), body.get("database_settings"), body.get("endpoint_settings"), body.get("file_settings"))
             except store.RegistryRuleError as refusal:
                 _refuse(refusal)
             return store.connection_to_dict(connection)
@@ -122,13 +123,16 @@ def make_connection_registry_router(cfg) -> APIRouter:
     # spec: manage-connections-with-secrets-and-a-connection-test :: Test a REST connection
     @router.post("/registry/connections/{connection_id}/test")
     def test_connection(connection_id: int, request: Request):
-        """Test a connection: a GET to the base address of a REST connection, or a trivial read on a database; nothing is changed."""
+        """Test a connection: a GET to the base address of a REST connection, a trivial read on a database, or the test a package supplies; nothing is changed."""
         _require_admin(request)
         with Session(get_engine()) as session:
             try:
                 connection = _connection_or_404(session, connection_id)
                 if connection.endpoint_type == store.DATABASE_ENDPOINT_TYPE:
                     return test_database_connection(connection)
+                supplied_tester = find_connection_tester(connection.endpoint_type)
+                if supplied_tester is not None:
+                    return supplied_tester(connection)
                 return test_rest_connection(connection)
             except (store.RegistryRuleError, SecretKeyNotConfiguredError, SecretCannotBeDecryptedError) as refusal:
                 _refuse(refusal)

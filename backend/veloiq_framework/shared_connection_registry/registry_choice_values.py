@@ -7,7 +7,7 @@ ENDPOINT_TYPES = (
 )
 OPERATION_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 OPERATION_SOURCES = ("openapi_import", "url_discovery", "by_hand")
-SECRET_KEYS = ("password", "token", "client_secret", "api_key", "private_key")
+SECRET_KEYS = ("password", "token", "client_secret", "api_key", "private_key", "signing_secret")
 REST_AUTHENTICATIONS = ("none", "user_name_and_password", "bearer_token", "api_key_header", "api_key_query", "oauth2_client_credentials")
 REST_AUTHENTICATIONS_THAT_USE_OAUTH = ("oauth2_client_credentials",)
 REST_PAGING_STYLES = ("none", "offset", "page_number", "cursor", "json_link", "header_link")
@@ -25,6 +25,14 @@ DATABASE_USUAL_PORTS = {
 }
 # Database types that are a file or a service addressed by name only: they need no host.
 DATABASE_TYPES_WITHOUT_HOST = ("sqlite", "duckdb", "bigquery")
+FILE_LOCATIONS = ("local_folder", "sftp_folder")
+FILE_FORMATS = ("csv", "excel", "json")
+DEFAULT_SFTP_PORT = 22
+WEBHOOK_DIRECTIONS = ("incoming", "outgoing")
+INBOUND_API_AUTHENTICATIONS = ("hub_token", "api_key")
+# Names used in the address of an incoming webhook or an inbound API endpoint: lowercase letters, digits and hyphens.
+ENDPOINT_NAME_PATTERN = r"^[a-z0-9-]+$"
+DEFAULT_WEBHOOK_SIGNATURE_HEADER = "X-IH-Signature"
 USAGE_SELECTION_ITEM_KINDS = (
     "api_operation", "connection", "webhook_subscription", "job_type", "business_rule_set", "database_connection",
 )

@@ -12,9 +12,10 @@ from sqlmodel import Field, SQLModel
 from veloiq_framework import jm_relationship, veloiq_field
 
 from .registry_choice_values import (
-    DATABASE_TYPES, ENDPOINT_TYPES, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS,
-    USAGE_SELECTION_ITEM_KINDS, USAGES,
+    DATABASE_TYPES, DEFAULT_WEBHOOK_SIGNATURE_HEADER, ENDPOINT_TYPES, INBOUND_API_AUTHENTICATIONS, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS,
+    USAGE_SELECTION_ITEM_KINDS, USAGES, WEBHOOK_DIRECTIONS,
 )
+from .registry_choice_values import DEFAULT_SFTP_PORT, FILE_FORMATS, FILE_LOCATIONS
 
 # ___________________________________________________________________________
 # 1. LINK MODELS (relation tables)
@@ -60,6 +61,32 @@ class connection_has_database_connection_settings(SQLModel, table=True):
     eid_to: int = Field(sa_column=_link_column("veloiq_registry_database_connection_settings.id"))
 
 
+class connection_has_file_connection_settings(SQLModel, table=True):
+    """Link: Connection has FileConnectionSettings."""
+    # Shorter than the relation name: a table name over 63 characters is silently truncated by PostgreSQL.
+    __tablename__ = "veloiq_registry_connection_has_file_settings_relation"
+    __table_args__ = {"extend_existing": True}
+    eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
+    eid_to: int = Field(sa_column=_link_column("veloiq_registry_file_connection_settings.id"))
+
+
+class connection_has_webhook_endpoint_settings(SQLModel, table=True):
+    """Link: Connection has WebhookEndpointSettings."""
+    # Shorter than the relation name: a table name over 63 characters is silently truncated by PostgreSQL.
+    __tablename__ = "veloiq_registry_connection_has_webhook_settings_relation"
+    __table_args__ = {"extend_existing": True}
+    eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
+    eid_to: int = Field(sa_column=_link_column("veloiq_registry_webhook_endpoint_settings.id"))
+
+
+class connection_has_inbound_api_endpoint_settings(SQLModel, table=True):
+    """Link: Connection has InboundApiEndpointSettings."""
+    __tablename__ = "veloiq_registry_connection_has_inbound_api_settings_relation"
+    __table_args__ = {"extend_existing": True}
+    eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
+    eid_to: int = Field(sa_column=_link_column("veloiq_registry_inbound_api_endpoint_settings.id"))
+
+
 # ___________________________________________________________________________
 # 2. ENTITIES
 # ___________________________________________________________________________
@@ -88,6 +115,18 @@ class Connection(SQLModel, table=True):
     connection_has_database_connection_settings: List["DatabaseConnectionSettings"] = jm_relationship(
         min_items=0, max_items=1, link_model=connection_has_database_connection_settings,
         back_populates="connection_has_database_connection_settings_reverse",
+    )
+    connection_has_file_connection_settings: List["FileConnectionSettings"] = jm_relationship(
+        min_items=0, max_items=1, link_model=connection_has_file_connection_settings,
+        back_populates="connection_has_file_connection_settings_reverse",
+    )
+    connection_has_webhook_endpoint_settings: List["WebhookEndpointSettings"] = jm_relationship(
+        min_items=0, max_items=1, link_model=connection_has_webhook_endpoint_settings,
+        back_populates="connection_has_webhook_endpoint_settings_reverse",
+    )
+    connection_has_inbound_api_endpoint_settings: List["InboundApiEndpointSettings"] = jm_relationship(
+        min_items=0, max_items=1, link_model=connection_has_inbound_api_endpoint_settings,
+        back_populates="connection_has_inbound_api_endpoint_settings_reverse",
     )
 
     def __str__(self) -> str:
@@ -161,6 +200,64 @@ class DatabaseConnectionSettings(SQLModel, table=True):
     connection_has_database_connection_settings_reverse: List["Connection"] = jm_relationship(
         min_items=1, max_items=1, required=True, link_model=connection_has_database_connection_settings,
         back_populates="connection_has_database_connection_settings",
+    )
+
+
+class FileConnectionSettings(SQLModel, table=True):
+    """Settings of a connection whose endpoint type is file (a local folder) or sftp_folder. An SFTP password or private key is a secret of the connection."""
+    __tablename__ = "veloiq_registry_file_connection_settings"
+    __table_args__ = {"extend_existing": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    location: str = veloiq_field(default="local_folder", options=list(FILE_LOCATIONS), description="Where the files are")
+    folder_path: str = Field(description="Folder that holds the files")
+    file_pattern: str = Field(default="*", description="Which files are used")
+    format: str = veloiq_field(default="csv", options=list(FILE_FORMATS), description="File format")
+    encoding: Optional[str] = Field(default="utf-8", description="Text encoding")
+    delimiter: Optional[str] = Field(default=",", max_length=1, description="Separator of a CSV file")
+    has_header: bool = Field(default=True, description="First row holds column names")
+    host: Optional[str] = Field(default=None, description="SFTP server")
+    port: Optional[int] = Field(default=None, ge=1, le=65535, description="SFTP port; 22 when empty")
+    username: Optional[str] = Field(default=None, description="SFTP user")
+    host_key_fingerprint: Optional[str] = Field(default=None, description="Expected fingerprint of the SFTP server")
+
+    connection_has_file_connection_settings_reverse: List["Connection"] = jm_relationship(
+        min_items=1, max_items=1, required=True, link_model=connection_has_file_connection_settings,
+        back_populates="connection_has_file_connection_settings",
+    )
+
+
+class WebhookEndpointSettings(SQLModel, table=True):
+    """Settings of a connection whose endpoint type is incoming_webhook or outgoing_webhook. The shared secret is the connection's ``signing_secret``."""
+    __tablename__ = "veloiq_registry_webhook_endpoint_settings"
+    __table_args__ = {"extend_existing": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    direction: str = veloiq_field(default="incoming", options=list(WEBHOOK_DIRECTIONS), description="Whether the hub receives or sends")
+    endpoint_name: Optional[str] = Field(default=None, unique=True, index=True, regex=r"^[a-z0-9-]+$", description="Name used in the address of an incoming webhook")
+    target_url: Optional[str] = Field(default=None, description="Where an outgoing webhook is sent")
+    signature_header: str = Field(default=DEFAULT_WEBHOOK_SIGNATURE_HEADER, description="Header that carries the signature")
+    event_types: Optional[str] = Field(default="all", description="Events an outgoing webhook sends")
+
+    connection_has_webhook_endpoint_settings_reverse: List["Connection"] = jm_relationship(
+        min_items=1, max_items=1, required=True, link_model=connection_has_webhook_endpoint_settings,
+        back_populates="connection_has_webhook_endpoint_settings",
+    )
+
+
+class InboundApiEndpointSettings(SQLModel, table=True):
+    """Settings of a connection whose endpoint type is incoming_api_endpoint. An API key is the connection's ``api_key`` secret."""
+    __tablename__ = "veloiq_registry_inbound_api_endpoint_settings"
+    __table_args__ = {"extend_existing": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    endpoint_name: str = Field(unique=True, index=True, regex=r"^[a-z0-9-]+$", description="Name used in the address")
+    authentication: str = veloiq_field(default="hub_token", options=list(INBOUND_API_AUTHENTICATIONS), description="How senders authenticate")
+    max_records_per_push: int = Field(default=1000, ge=1, le=1000, description="Most records in one push")
+
+    connection_has_inbound_api_endpoint_settings_reverse: List["Connection"] = jm_relationship(
+        min_items=1, max_items=1, required=True, link_model=connection_has_inbound_api_endpoint_settings,
+        back_populates="connection_has_inbound_api_endpoint_settings",
     )
 
 

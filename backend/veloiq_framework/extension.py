@@ -205,6 +205,13 @@ class VeloIQExtension:
     #: extension ships no banners.
     banners_file: Optional[str] = None
 
+    #: Request path prefixes (full paths, e.g. ``/api/my-extension/webhooks/``)
+    #: that skip the framework's login-token check and role check, for
+    #: endpoints that authenticate the caller themselves (a signed webhook, an
+    #: API key). The extension's endpoint MUST check the caller; an empty tuple
+    #: (the default) opens nothing.
+    public_path_prefixes: tuple = ()
+
     #: Path *relative to the installed package directory* of the extension's
     #: packaged ``page_configs.json``: page configurations (sections and the
     #: row/column of each field) of the extension's own pages, in the format
