@@ -6,15 +6,9 @@ import hmac
 from typing import Optional
 
 from .connection_registry_models import Connection
-from .connection_secret_encryption import decrypt_secret
+from .connection_secret_encryption import read_decrypted_secret
 
 SIGNATURE_PREFIX = "sha256="
-
-
-def read_connection_secret(connection: Connection, key: str) -> Optional[str]:
-    """The decrypted secret of a connection with that key; None when it has none."""
-    stored = next((secret for secret in connection.connection_has_connection_secret if secret.key == key), None)
-    return decrypt_secret(stored.value) if stored is not None else None
 
 
 def compute_webhook_signature(shared_secret: str, body: bytes) -> str:
@@ -29,7 +23,7 @@ def webhook_signature_is_valid(connection: Connection, body: bytes, received_sig
     The signature may carry the prefix ``sha256=``. A missing signature, a missing secret or any difference gives False; the comparison
     takes the same time wherever the texts differ.
     """
-    shared_secret = read_connection_secret(connection, "signing_secret")
+    shared_secret = read_decrypted_secret(connection, "signing_secret")
     if not shared_secret or not received_signature:
         return False
     received = received_signature.strip().removeprefix(SIGNATURE_PREFIX).lower()
@@ -39,5 +33,5 @@ def webhook_signature_is_valid(connection: Connection, body: bytes, received_sig
 # spec: receive-pushed-data-through-inbound-api-endpoints :: Inbound API endpoint
 def api_key_is_valid(connection: Connection, received_key: Optional[str]) -> bool:
     """Whether the key a sender sent is the connection's api key secret (compared in constant time)."""
-    stored_key = read_connection_secret(connection, "api_key")
+    stored_key = read_decrypted_secret(connection, "api_key")
     return bool(stored_key and received_key) and hmac.compare_digest(stored_key.encode(), received_key.encode())

@@ -14,8 +14,8 @@ from veloiq_framework.utils.i18n_utils import _
 
 from .connection_registry_models import Connection, Operation
 from .connection_registry_store import RegistryRuleError
-from .connection_secret_encryption import decrypt_secret
 from .http_calls_to_other_systems import send_http_request
+from .rest_authentication_resolution import resolve_rest_authentication
 
 MUTATING_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 
@@ -31,20 +31,12 @@ def mutation_note(method: str) -> str | None:
     return notes.get(method)
 
 
-def _secret(connection: Connection, key: str) -> str | None:
-    stored = next((secret for secret in connection.connection_has_connection_secret if secret.key == key), None)
-    return decrypt_secret(stored.value) if stored is not None else None
-
-
-def _oauth_access_token(connection: Connection, settings) -> str:
-    """Get an access token with the client credentials the connection holds."""
-    client_secret = _secret(connection, "client_secret")
-    if not (settings.oauth_token_url and settings.oauth_client_id and client_secret):
-        raise RegistryRuleError(_("OAuth needs the token address, the client identifier and the client secret."))
-    form = {"grant_type": "client_credentials", "client_id": settings.oauth_client_id, "client_secret": client_secret}
-    if settings.oauth_scope:
-        form["scope"] = settings.oauth_scope
-    answer = send_http_request("POST", settings.oauth_token_url, form=form, timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
+def _oauth_access_token(authentication, settings) -> str:
+    """Get an access token with the client credentials of the resolved authentication."""
+    form = {"grant_type": "client_credentials", "client_id": authentication.oauth_client_id, "client_secret": authentication.oauth_client_secret}
+    if authentication.oauth_scope:
+        form["scope"] = authentication.oauth_scope
+    answer = send_http_request("POST", authentication.oauth_token_url, form=form, timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
     token = (answer.parsed_json() or {}).get("access_token") if answer.http_status == 200 else None
     if not token:
         raise RegistryRuleError(_("The token address did not give an access token."))
@@ -58,34 +50,22 @@ def build_authentication(connection: Connection) -> tuple[dict[str, str], dict[s
     :raises RegistryRuleError: When a setting or a secret the authentication needs is missing.
     """
     settings = connection.connection_has_rest_connection_settings[0]
-    if settings.authentication == "none":
+    authentication = resolve_rest_authentication(connection)
+    if authentication.kind == "none":
         return {}, {}
-    if settings.authentication == "bearer_token":
-        token = _secret(connection, "token")
-        if not token:
-            raise RegistryRuleError(_("The connection has no token secret."))
-        return {"Authorization": f"Bearer {token}"}, {}
-    if settings.authentication == "oauth2_client_credentials":
-        return {"Authorization": f"Bearer {_oauth_access_token(connection, settings)}"}, {}
-    if settings.authentication == "login_token":
+    if authentication.kind == "bearer_token":
+        return {"Authorization": f"Bearer {authentication.token}"}, {}
+    if authentication.kind == "oauth2_client_credentials":
+        return {"Authorization": f"Bearer {_oauth_access_token(authentication, settings)}"}, {}
+    if authentication.kind == "login_token":
         from .rest_login_token import obtain_login_token
         return {"Authorization": f"Bearer {obtain_login_token(connection)}"}, {}
-    if settings.authentication == "user_name_and_password":
-        password = _secret(connection, "password")
-        if not settings.user_name:
-            raise RegistryRuleError(_("Basic authentication needs the user name."))
-        if not password:
-            raise RegistryRuleError(_("The connection has no password secret."))
-        encoded = base64.b64encode(f"{settings.user_name}:{password}".encode()).decode()
+    if authentication.kind == "user_name_and_password":
+        encoded = base64.b64encode(f"{authentication.user_name}:{authentication.password}".encode()).decode()
         return {"Authorization": f"Basic {encoded}"}, {}
-    api_key = _secret(connection, "api_key")
-    if settings.authentication in ("api_key_header", "api_key_query"):
-        if not api_key:
-            raise RegistryRuleError(_("The connection has no api key secret."))
-        if settings.authentication == "api_key_header":
-            return {settings.api_key_header_name or "X-API-Key": api_key}, {}
-        return {}, {settings.api_key_query_parameter_name or "api_key": api_key}
-    raise RegistryRuleError(_("The authentication {name} is not supported.").format(name=settings.authentication))
+    if authentication.kind == "api_key_header":
+        return {authentication.api_key_header_name: authentication.api_key}, {}
+    return {}, {authentication.api_key_query_parameter_name: authentication.api_key}
 
 
 def build_authentication_headers(connection: Connection) -> dict[str, str]:

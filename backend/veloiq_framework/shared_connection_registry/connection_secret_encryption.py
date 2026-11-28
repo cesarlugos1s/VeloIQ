@@ -65,3 +65,9 @@ def decrypt_secret(stored_value: str) -> str:
         return build_cipher().decrypt(stored_value.encode()).decode()
     except InvalidToken as unreadable:
         raise SecretCannotBeDecryptedError(_("A stored secret cannot be read with the configured key.")) from unreadable
+
+
+def read_decrypted_secret(connection, key: str) -> "str | None":
+    """The decrypted secret of a connection with that key; None when it has none (only code that must send the secret to another system calls this)."""
+    stored = next((secret for secret in connection.connection_has_connection_secret if secret.key == key), None)
+    return decrypt_secret(stored.value) if stored is not None else None

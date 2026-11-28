@@ -6,13 +6,13 @@ is refused with 401. Several workers each keep their own token.
 from __future__ import annotations
 
 import threading
-from typing import Optional
+
 
 from veloiq_framework.utils.i18n_utils import _
 
 from .connection_registry_models import Connection
 from .connection_registry_store import RegistryRuleError
-from .connection_secret_encryption import decrypt_secret
+from .connection_secret_encryption import read_decrypted_secret
 from .http_calls_to_other_systems import send_http_request
 from .registry_answer_paths import read_at_path
 
@@ -41,12 +41,12 @@ def obtain_login_token(connection: Connection, force_new_login: bool = False) ->
             held = _login_tokens.get(connection.id)
         if held:
             return held
-    stored_password = next((secret for secret in connection.connection_has_connection_secret if secret.key == "password"), None)
+    password = read_decrypted_secret(connection, "password")
     if not settings.user_name or not settings.login_path:
         raise RegistryRuleError(_("The login-token authentication needs the user name and the path of the login."))
-    if stored_password is None:
+    if not password:
         raise RegistryRuleError(_("The connection has no password secret."))
-    login_body = {settings.login_user_field or "username": settings.user_name, settings.login_password_field or "password": decrypt_secret(stored_password.value)}
+    login_body = {settings.login_user_field or "username": settings.user_name, settings.login_password_field or "password": password}
     answer = send_http_request("POST", f"{settings.base_url.rstrip('/')}/{settings.login_path.lstrip('/')}", body=login_body,
                                timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
     if answer.failure is not None:
