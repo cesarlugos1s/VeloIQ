@@ -680,6 +680,9 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     from veloiq_framework.shared_connection_registry import connection_registry_models as _registry_models  # noqa: F401
     from veloiq_framework.shared_connection_registry.connection_registry_router import make_connection_registry_router
     app.include_router(make_connection_registry_router(cfg), prefix="/api")
+    # Which model each reference field of a record points to (admin only), for the tools that connect applications.
+    from veloiq_framework.model_relation_metadata.model_relation_metadata_router import make_model_relation_metadata_router
+    app.include_router(make_model_relation_metadata_router(cfg), prefix="/api")
 
     # All data API endpoints live under /api so the frontend's API_URL="/api"
     # works in production without any Vite proxy path-rewriting.
