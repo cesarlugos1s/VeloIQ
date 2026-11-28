@@ -1,6 +1,7 @@
 """Storage and rules of the shared connection registry: connections, secrets, operations and usage selection."""
 from __future__ import annotations
 
+import json
 from typing import Any, Optional
 
 from sqlmodel import Session, select
@@ -8,11 +9,13 @@ from sqlmodel import Session, select
 from veloiq_framework.utils.i18n_utils import _
 
 from .connection_registry_models import (
-    Connection, ConnectionSecret, DatabaseConnectionSettings, FileConnectionSettings, InboundApiEndpointSettings, Operation, RestConnectionSettings,
+    Connection, ConnectionSecret, DatabaseConnectionSettings, ExtensionConnectionSettings, FileConnectionSettings, InboundApiEndpointSettings, Operation, RestConnectionSettings,
     UsageSelection, WebhookEndpointSettings,
 )
 from .connection_secret_encryption import encrypt_secret
+from .registry_extension_endpoint_types import ExtensionEndpointTypeError, check_extension_settings, find_extension_endpoint_type
 from .registry_item_in_use_checks import ensure_item_is_not_in_use
+from .registry_choice_values import allowed_endpoint_types
 from .registry_choice_values import (
     DATABASE_TYPES, DATABASE_TYPES_WITHOUT_HOST, ENDPOINT_NAME_PATTERN, FILE_FORMATS, FILE_LOCATIONS, ENDPOINT_TYPES, INBOUND_API_AUTHENTICATIONS, WEBHOOK_DIRECTIONS, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS_THAT_USE_OAUTH,
     SECRET_KEYS, USAGE_SELECTION_ITEM_KINDS, USAGES,
@@ -56,12 +59,16 @@ def _require_allowed(value: str, allowed: tuple[str, ...], what: str) -> None:
 # spec: manage-connections-with-secrets-and-a-connection-test :: Connection settings
 def create_connection(session: Session, name: str, endpoint_type: str, is_enabled: bool = True,
                       rest_settings: Optional[dict[str, Any]] = None, database_settings: Optional[dict[str, Any]] = None,
-                      endpoint_settings: Optional[dict[str, Any]] = None, file_settings: Optional[dict[str, Any]] = None) -> Connection:
-    """Create a connection with its settings and one usage selection row for each usage, all disabled."""
+                      endpoint_settings: Optional[dict[str, Any]] = None, file_settings: Optional[dict[str, Any]] = None,
+                      extension_settings: Optional[Any] = None) -> Connection:
+    """Create a connection with its settings and one usage selection row for each usage, all disabled.
+
+    :param extension_settings: For an endpoint type an extension package added: its settings as an object or as JSON text, checked against the type.
+    """
     name = (name or "").strip()
     if not name:
         raise RegistryRuleError(_("A connection needs a name."))
-    _require_allowed(endpoint_type, ENDPOINT_TYPES, _("The endpoint type"))
+    _require_allowed(endpoint_type, allowed_endpoint_types(), _("The endpoint type"))
     if session.exec(select(Connection).where(Connection.name == name)).first() is not None:
         raise RegistryRuleError(_("A connection named {name} already exists.").format(name=name))
     connection = Connection(name=name, endpoint_type=endpoint_type, is_enabled=is_enabled)
@@ -75,12 +82,23 @@ def create_connection(session: Session, name: str, endpoint_type: str, is_enable
         connection.connection_has_webhook_endpoint_settings.append(_build_webhook_settings(session, endpoint_type, endpoint_settings or {}))
     if endpoint_type == INBOUND_API_ENDPOINT_TYPE:
         connection.connection_has_inbound_api_endpoint_settings.append(_build_inbound_api_settings(session, endpoint_settings or {}))
+    extension_type = find_extension_endpoint_type(endpoint_type)
+    if extension_type is not None:
+        connection.connection_has_extension_connection_settings.append(_build_extension_settings(extension_type, extension_settings))
     session.add(connection)
     session.commit()
     for usage in USAGES:
         session.add(UsageSelection(item_kind=CONNECTION_ITEM_KIND, item_id=connection.id, usage=usage, is_enabled=False))
     session.commit()
     return connection
+
+
+def _build_extension_settings(extension_type, values: Any) -> ExtensionConnectionSettings:
+    """The stored settings of a connection of an extension type: the values checked against the type, as JSON."""
+    try:
+        return ExtensionConnectionSettings(settings_json=json.dumps(check_extension_settings(extension_type, values)))
+    except ExtensionEndpointTypeError as refusal:
+        raise RegistryRuleError(str(refusal)) from refusal
 
 
 def _build_rest_settings(values: dict[str, Any]) -> RestConnectionSettings:
@@ -267,6 +285,13 @@ def update_connection(session: Session, connection: Connection, values: dict[str
             setattr(current_file, field_name, value)
         _check_file_settings(connection.endpoint_type, current_file)
         session.add(current_file)
+    if values.get("extension_settings") is not None:
+        extension_type = find_extension_endpoint_type(connection.endpoint_type)
+        if extension_type is None:
+            raise RegistryRuleError(_("Only a connection of an endpoint type an extension added has extension settings."))
+        current_extension = connection.connection_has_extension_connection_settings[0]
+        current_extension.settings_json = _build_extension_settings(extension_type, values["extension_settings"]).settings_json
+        session.add(current_extension)
     if values.get("endpoint_settings") is not None:
         if connection.endpoint_type in (INCOMING_WEBHOOK_ENDPOINT_TYPE, OUTGOING_WEBHOOK_ENDPOINT_TYPE):
             current_webhook = connection.connection_has_webhook_endpoint_settings[0]
@@ -303,7 +328,8 @@ def delete_connection(session: Session, connection: Connection) -> None:
         _delete_operation_rows(session, operation)
     for child in (*connection.connection_has_connection_secret, *connection.connection_has_rest_connection_settings,
                   *connection.connection_has_database_connection_settings, *connection.connection_has_webhook_endpoint_settings,
-                  *connection.connection_has_inbound_api_endpoint_settings, *connection.connection_has_file_connection_settings):
+                  *connection.connection_has_inbound_api_endpoint_settings, *connection.connection_has_file_connection_settings,
+                  *connection.connection_has_extension_connection_settings):
         session.delete(child)
     for selection in session.exec(select(UsageSelection).where(
             UsageSelection.item_kind == CONNECTION_ITEM_KIND, UsageSelection.item_id == connection.id)).all():
@@ -350,6 +376,7 @@ def connection_to_dict(connection: Connection) -> dict[str, Any]:
     webhook = connection.connection_has_webhook_endpoint_settings
     inbound = connection.connection_has_inbound_api_endpoint_settings
     file_settings = connection.connection_has_file_connection_settings
+    extension = connection.connection_has_extension_connection_settings
     return {
         "id": connection.id,
         "name": connection.name,
@@ -360,6 +387,7 @@ def connection_to_dict(connection: Connection) -> dict[str, Any]:
         "file_settings": {name: getattr(file_settings[0], name) for name in FILE_SETTING_FIELDS} if file_settings else None,
         "endpoint_settings": ({name: getattr(webhook[0], name) for name in WEBHOOK_SETTING_FIELDS} if webhook
                               else {name: getattr(inbound[0], name) for name in INBOUND_API_SETTING_FIELDS} if inbound else None),
+        "extension_settings": json.loads(extension[0].settings_json) if extension else None,
         "secrets": [{"key": secret.key, "value": MASKED_SECRET_VALUE} for secret in connection.connection_has_connection_secret],
     }
 

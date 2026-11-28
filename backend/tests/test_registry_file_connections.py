@@ -90,5 +90,6 @@ def test_the_choices_say_which_fields_each_endpoint_type_shows(client, auth):
     every_field = {field for fields in by_type.values() for field in fields}
     resource_fields = {field.key for field in build_connections_non_model_data_resource().fields}
     decided_by_the_type = {"location", "direction"}                                             # the endpoint type decides them; the pages do not ask
-    assert resource_fields - set(choices["fields_of_every_connection"]) == every_field | decided_by_the_type
+    only_for_extension_types = {"extension_settings"}                                           # shown for the types extension packages add, so for none of the framework's
+    assert resource_fields - set(choices["fields_of_every_connection"]) == every_field | decided_by_the_type | only_for_extension_types
     assert not decided_by_the_type & every_field

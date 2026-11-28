@@ -14,12 +14,17 @@ MAXIMUM_BODY_CHARACTERS = 50_000
 
 @dataclass
 class HttpResult:
-    """What came back from a call: a status (None when nothing answered), headers, the text, and how long it took."""
+    """What came back from a call: a status (None when nothing answered), headers, the text, and how long it took.
+
+    ``headers`` holds one value for each name (the last, when a name repeats); ``set_cookies`` holds every ``Set-Cookie`` value, because a server can set
+    several cookies and a session (SAP's CSRF token, for one) is only valid with all of them.
+    """
     http_status: Optional[int] = None
     headers: dict[str, str] = field(default_factory=dict)
     text: str = ""
     duration_ms: int = 0
     failure: Optional[str] = None
+    set_cookies: list[str] = field(default_factory=list)
 
     def parsed_json(self) -> Any:
         """The body as JSON, or None when it is not JSON."""
@@ -47,10 +52,10 @@ def send_http_request(method: str, url: str, headers: Optional[dict[str, str]] =
     try:
         with urllib.request.urlopen(request, timeout=timeout_seconds, context=context) as response:  # noqa: S310
             return HttpResult(response.status, dict(response.headers), response.read().decode("utf-8", "replace")[:MAXIMUM_BODY_CHARACTERS],
-                              round((time.monotonic() - started) * 1000))
+                              round((time.monotonic() - started) * 1000), set_cookies=list(response.headers.get_all("Set-Cookie") or []))
     except urllib.error.HTTPError as http_error:
         return HttpResult(http_error.code, dict(http_error.headers), http_error.read().decode("utf-8", "replace")[:MAXIMUM_BODY_CHARACTERS],
-                          round((time.monotonic() - started) * 1000))
+                          round((time.monotonic() - started) * 1000), set_cookies=list(http_error.headers.get_all("Set-Cookie") or []))
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as unreachable:
         reason = getattr(unreachable, "reason", unreachable)
         return HttpResult(duration_ms=round((time.monotonic() - started) * 1000), failure=str(reason))

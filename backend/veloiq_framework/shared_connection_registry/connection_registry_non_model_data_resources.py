@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from veloiq_framework.utils.i18n_utils import _
+from .registry_extension_endpoint_types import find_extension_endpoint_type
 from veloiq_framework.non_model_data_resources import (
     DataSourceRequestContext, NonModelDataField, NonModelDataRelation, NonModelDataResource, PythonFunctionsDataSource, decode_eid, encode_eid,
 )
@@ -87,6 +88,8 @@ def _connection_row(connection: Connection) -> dict[str, Any]:
         if present:
             row.update({field: getattr(present[0], field) for field in fields})
     row["inbound_authentication"] = inbound[0].authentication if inbound else None
+    extension = connection.connection_has_extension_connection_settings
+    row["extension_settings"] = extension[0].settings_json if extension else None
     return row
 
 
@@ -115,7 +118,10 @@ def fields_shown_for_each_endpoint_type() -> dict[str, list[str]]:
     A connection page shows the settings of its own type only; the pages read this from ``GET /registry/choices``, so the lists live in one place.
     """
     inbound_fields = ["endpoint_name", "inbound_authentication", "max_records_per_push"]
+    from .registry_extension_endpoint_types import list_extension_endpoint_types
+
     return {
+        **{definition.name: ["extension_settings"] for definition in list_extension_endpoint_types()},
         "rest_api": list(store.REST_SETTING_FIELDS),
         "database": list(store.DATABASE_SETTING_FIELDS),
         "file": [name for name in store.FILE_SETTING_FIELDS if name not in (*SFTP_ONLY_FILE_FIELDS, *FIELDS_DECIDED_BY_THE_ENDPOINT_TYPE)],
@@ -152,7 +158,8 @@ def _create_connection(_context: DataSourceRequestContext, row: dict) -> dict:
                                                               _rest_settings_of_row(row) if row.get("endpoint_type") == store.REST_ENDPOINT_TYPE else None,
                                                               _database_settings_of_row(row) if row.get("endpoint_type") == store.DATABASE_ENDPOINT_TYPE else None,
                                                               _endpoint_settings_of_row(row) if row.get("endpoint_type") in store.ENDPOINT_TYPES_WITH_ENDPOINT_SETTINGS else None,
-                                                              _file_settings_of_row(row) if row.get("endpoint_type") in (store.FILE_ENDPOINT_TYPE, store.SFTP_ENDPOINT_TYPE) else None))
+                                                              _file_settings_of_row(row) if row.get("endpoint_type") in (store.FILE_ENDPOINT_TYPE, store.SFTP_ENDPOINT_TYPE) else None,
+                                                              row.get("extension_settings") if find_extension_endpoint_type(row.get("endpoint_type") or "") else None))
         return _connection_row(connection)
 
 
@@ -172,6 +179,8 @@ def _update_connection(_context: DataSourceRequestContext, eid: str, row: dict) 
             values["file_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.FILE_SETTING_FIELDS if field in row}
         if connection.endpoint_type in store.ENDPOINT_TYPES_WITH_ENDPOINT_SETTINGS:
             values["endpoint_settings"] = _endpoint_settings_of_row({**row, "endpoint_type": connection.endpoint_type})
+        if find_extension_endpoint_type(connection.endpoint_type) is not None and "extension_settings" in row:
+            values["extension_settings"] = row["extension_settings"]
         return _connection_row(_guarded(lambda: store.update_connection(session, connection, values)))
 
 
@@ -193,7 +202,7 @@ def build_connections_non_model_data_resource() -> NonModelDataResource:
         fields=[
             NonModelDataField(key="id", label="ID", type="number", read_only=True, show_in_list=False),
             NonModelDataField(key="name", label="Name", required=True),
-            NonModelDataField(key="endpoint_type", label="Endpoint Type", required=True, options=list(ENDPOINT_TYPES), default="rest_api"),
+            NonModelDataField(key="endpoint_type", label="Endpoint Type", required=True, options_url="/registry/choices", default="rest_api"),     # the list answers with the types extension packages added too
             NonModelDataField(key="is_enabled", label="Enabled", type="boolean", default=True),
             NonModelDataField(key="base_url", label="Base URL", description=_("Address of the API (a REST connection).")),
             NonModelDataField(key="authentication", label="Authentication", options=list(REST_AUTHENTICATIONS), default="none"),
@@ -243,6 +252,7 @@ def build_connections_non_model_data_resource() -> NonModelDataResource:
             NonModelDataField(key="inbound_authentication", label="Inbound Authentication", options=list(INBOUND_API_AUTHENTICATIONS), show_in_list=False, description=_("How senders authenticate to an inbound API endpoint.")),
             NonModelDataField(key="max_records_per_push", label="Most Records in One Push", type="number", integer=True, default=1000, show_in_list=False),
             NonModelDataField(key="cursor_column", label="Cursor Column", show_in_list=False, description=_("Column that marks new and changed rows.")),
+            NonModelDataField(key="extension_settings", label="Extension Settings", show_in_list=False, description=_("The settings of a connection of an endpoint type an extension package added, as a JSON object.")),
         ],
         relations=[
             NonModelDataRelation(OPERATIONS_RESOURCE_NAME, "connection_id", "Operations"),

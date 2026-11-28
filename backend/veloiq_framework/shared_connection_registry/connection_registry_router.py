@@ -73,13 +73,19 @@ def make_connection_registry_router(cfg) -> APIRouter:
         _require_admin(request)
         from . import registry_choice_values as values
         from .connection_registry_non_model_data_resources import FIELDS_OF_EVERY_CONNECTION, fields_shown_for_each_endpoint_type
-        return {"endpoint_types": list(values.ENDPOINT_TYPES), "operation_methods": list(values.OPERATION_METHODS),
+        from .registry_extension_endpoint_types import list_extension_endpoint_types
+        return {"endpoint_types": list(values.allowed_endpoint_types()), "operation_methods": list(values.OPERATION_METHODS),
                 "operation_sources": list(values.OPERATION_SOURCES), "secret_keys": list(values.SECRET_KEYS),
                 "rest_authentications": list(values.REST_AUTHENTICATIONS), "rest_paging_styles": list(values.REST_PAGING_STYLES),
                 "usages": list(values.USAGES), "fields_of_every_connection": list(FIELDS_OF_EVERY_CONNECTION), "fields_by_endpoint_type": fields_shown_for_each_endpoint_type(),
                 "database_types": list(values.DATABASE_TYPES), "file_locations": list(values.FILE_LOCATIONS), "file_formats": list(values.FILE_FORMATS), "inbound_api_authentications": list(values.INBOUND_API_AUTHENTICATIONS),
                 "database_usual_ports": values.DATABASE_USUAL_PORTS, "database_types_without_host": list(values.DATABASE_TYPES_WITHOUT_HOST),
-                "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
+                "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH),
+                "extension_endpoint_types": [{"name": definition.name, "label": definition.label, "secret_keys": list(definition.secret_keys),
+                                              "settings_fields": [{"name": setting.name, "label": setting.label, "type": setting.type, "required": setting.required,
+                                                                   "choices": list(setting.choices), "default": setting.default, "description": setting.description}
+                                                                  for setting in definition.settings_fields]}
+                                             for definition in list_extension_endpoint_types()]}
 
     @router.get("/registry/connections")
     def list_connections(request: Request, usage: Optional[str] = None):
@@ -99,7 +105,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
         with Session(get_engine()) as session:
             try:
                 connection = store.create_connection(session, body.get("name"), body.get("endpoint_type"),
-                                                     body.get("is_enabled", True), body.get("rest_settings"), body.get("database_settings"), body.get("endpoint_settings"), body.get("file_settings"))
+                                                     body.get("is_enabled", True), body.get("rest_settings"), body.get("database_settings"), body.get("endpoint_settings"), body.get("file_settings"), body.get("extension_settings"))
             except store.RegistryRuleError as refusal:
                 _refuse(refusal)
             return store.connection_to_dict(connection)

@@ -87,6 +87,15 @@ class connection_has_inbound_api_endpoint_settings(SQLModel, table=True):
     eid_to: int = Field(sa_column=_link_column("veloiq_registry_inbound_api_endpoint_settings.id"))
 
 
+class connection_has_extension_connection_settings(SQLModel, table=True):
+    """Link: Connection has ExtensionConnectionSettings."""
+    # Shorter than the relation name: a table name over 63 characters is silently truncated by PostgreSQL.
+    __tablename__ = "veloiq_registry_connection_has_extension_settings_relation"
+    __table_args__ = {"extend_existing": True}
+    eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
+    eid_to: int = Field(sa_column=_link_column("veloiq_registry_extension_connection_settings.id"))
+
+
 # ___________________________________________________________________________
 # 2. ENTITIES
 # ___________________________________________________________________________
@@ -127,6 +136,11 @@ class Connection(SQLModel, table=True):
     connection_has_inbound_api_endpoint_settings: List["InboundApiEndpointSettings"] = jm_relationship(
         min_items=0, max_items=1, link_model=connection_has_inbound_api_endpoint_settings,
         back_populates="connection_has_inbound_api_endpoint_settings_reverse",
+    )
+
+    connection_has_extension_connection_settings: List["ExtensionConnectionSettings"] = jm_relationship(
+        min_items=0, max_items=1, link_model=connection_has_extension_connection_settings,
+        back_populates="connection_has_extension_connection_settings_reverse",
     )
 
     def __str__(self) -> str:
@@ -297,3 +311,18 @@ class UsageSelection(SQLModel, table=True):
     item_id: int = Field(description="The shared item")
     usage: str = veloiq_field(options=list(USAGES), description="Who may use the item")
     is_enabled: bool = Field(default=False, description="Whether the usage may use the item")
+
+
+class ExtensionConnectionSettings(SQLModel, table=True):
+    """Settings of a connection whose endpoint type an extension package added to the registry: one JSON object, checked against the type's definition."""
+    __tablename__ = "veloiq_registry_extension_connection_settings"
+    __table_args__ = {"extend_existing": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    settings_json: str = Field(sa_column=Column(Text, nullable=False), description="The settings as a JSON object")
+
+    connection_has_extension_connection_settings_reverse: List["Connection"] = jm_relationship(
+        min_items=1, max_items=1, required=True, link_model=connection_has_extension_connection_settings,
+        back_populates="connection_has_extension_connection_settings",
+    )
+

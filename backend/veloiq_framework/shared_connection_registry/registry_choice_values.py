@@ -40,3 +40,11 @@ USAGES = ("ai_agents", "integration_hub")
 
 # Values of the secret that the API returns instead of the stored one.
 MASKED_SECRET_VALUE = "********"
+
+
+def allowed_endpoint_types() -> tuple[str, ...]:
+    """Every endpoint type a connection can have: the framework's and the ones extension packages registered."""
+    from .registry_extension_endpoint_types import list_extension_endpoint_types
+
+    return (*ENDPOINT_TYPES, *(definition.name for definition in list_extension_endpoint_types()))
+
