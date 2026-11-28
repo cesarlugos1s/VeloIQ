@@ -1169,12 +1169,14 @@ def _sync_extension_schemas(frontend_src: Path) -> None:
     # Built-in System Configuration page (General Configuration submenu),
     # delivered the same way.
     from veloiq_framework.system_config.menu import get_system_config_menu_manifest
+    from veloiq_framework.shared_connection_registry.menu import get_connection_registry_menu_manifest
     # Built-in Portals configuration page (General Configuration submenu) and
     # its "Open portal" Show header button, delivered the same way.
     from veloiq_framework.portals.menu import get_portals_menu_manifest
     extensions = extensions + [
         get_help_menu_manifest(),
         get_system_config_menu_manifest(),
+        get_connection_registry_menu_manifest(),
         get_portals_menu_manifest(),
     ]
 

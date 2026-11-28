@@ -238,3 +238,27 @@ def test_an_openapi_description_can_be_previewed_before_a_connection_is_chosen(c
     assert refused.status_code == 422 and "not an OpenAPI description" in refused.json()["detail"]
     unreachable = client.post("/api/registry/openapi-previews", headers=auth, json={"address": "http://127.0.0.1:9/openapi.json"})
     assert unreachable.status_code == 422 and "supply the description as a file" in unreachable.json()["detail"]
+
+
+def test_a_rest_connection_is_tested_with_a_get_to_its_base_address(client, auth, secret_key, other_system):
+    def tested(base_path, **rest):
+        connection_id = _connection(client, auth, other_system + base_path, **rest)
+        return connection_id, client.post(f"/api/registry/connections/{connection_id}/test", headers=auth)
+    connection_id, ok = tested("/secure", authentication="bearer_token")
+    assert ok.status_code == 422 and "no token secret" in ok.json()["detail"]                  # the secret is missing: nothing is sent
+    client.put(f"/api/registry/connections/{connection_id}/secrets/token", headers=auth, json={"value": "s3cr3t"})
+    answered = client.post(f"/api/registry/connections/{connection_id}/test", headers=auth).json()
+    assert answered["status"] == "success" and answered["http_status"] == 200 and answered["duration_ms"] >= 0 and answered["error_message"] is None
+    client.put(f"/api/registry/connections/{connection_id}/secrets/token", headers=auth, json={"value": "wrong"})
+    refused = client.post(f"/api/registry/connections/{connection_id}/test", headers=auth).json()
+    assert refused["status"] == "error" and refused["error_type"] == "credentials_refused" and "did not accept the credentials" in refused["error_message"]
+    _id, nothing_at_root = tested("/no-such-page")
+    assert nothing_at_root.json()["status"] == "success" and "Nothing is served" in nothing_at_root.json()["note"]      # a 404 on the base address is reachable
+    _id, unreachable = tested("", )
+    down = client.post("/api/registry/connections", headers=auth, json={"name": f"d-{uuid.uuid4().hex[:6]}", "endpoint_type": "rest_api",
+                                                                       "rest_settings": {"base_url": "http://127.0.0.1:9", "timeout_seconds": 2}}).json()["id"]
+    failed = client.post(f"/api/registry/connections/{down}/test", headers=auth).json()
+    assert failed["status"] == "error" and failed["error_type"] == "unreachable" and "127.0.0.1:9" in failed["error_message"]
+    file_connection = client.post("/api/registry/connections", headers=auth, json={"name": f"f-{uuid.uuid4().hex[:6]}", "endpoint_type": "file"}).json()["id"]
+    assert "Only a REST connection" in client.post(f"/api/registry/connections/{file_connection}/test", headers=auth).json()["detail"]
+    assert client.post(f"/api/registry/connections/{connection_id}/test").status_code in (401, 403)

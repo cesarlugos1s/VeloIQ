@@ -2431,3 +2431,277 @@ msgstr "Filtros por valores de campo"
 
 msgid "Add a field filter"
 msgstr "Añadir un filtro de campo"
+
+# Added by veloiq i18n extract
+msgid "Authentication required"
+msgstr "Se requiere autenticación"
+
+msgid "There is no connection with that identifier."
+msgstr "No hay ninguna conexión con ese identificador."
+
+msgid "The endpoint type of a connection does not change."
+msgstr "El tipo de punto de conexión de una conexión no cambia."
+
+msgid "Address of the API (a REST connection)."
+msgstr "Dirección de la API (una conexión REST)."
+
+msgid "An operation needs a connection."
+msgstr "Una operación necesita una conexión."
+
+msgid "There is no operation with that identifier."
+msgstr "No hay ninguna operación con ese identificador."
+
+msgid "A secret needs a connection."
+msgstr "Un secreto necesita una conexión."
+
+msgid "A secret needs a value."
+msgstr "Un secreto necesita un valor."
+
+msgid "Written only; a stored value is never shown."
+msgstr "Solo se escribe; un valor guardado nunca se muestra."
+
+msgid "The connection has no secret with that key."
+msgstr "La conexión no tiene ningún secreto con esa clave."
+
+msgid "Send the sample response as sample."
+msgstr "Envíe la respuesta de muestra como sample."
+
+msgid "{what} must be one of: {allowed}."
+msgstr "{what} debe ser uno de: {allowed}."
+
+msgid "A connection needs a name."
+msgstr "Una conexión necesita un nombre."
+
+msgid "The endpoint type"
+msgstr "El tipo de punto de conexión"
+
+msgid "A connection named {name} already exists."
+msgstr "Ya existe una conexión llamada {name}."
+
+msgid "Unknown REST setting: {name}."
+msgstr "Ajuste REST desconocido: {name}."
+
+msgid "A REST connection needs the address of the API."
+msgstr "Una conexión REST necesita la dirección de la API."
+
+msgid "The authentication"
+msgstr "La autenticación"
+
+msgid "The paging"
+msgstr "La paginación"
+
+msgid "OAuth needs the token address and the client identifier."
+msgstr "OAuth necesita la dirección del token y el identificador de cliente."
+
+msgid "The timeout is between 1 and 300 seconds."
+msgstr "El tiempo de espera es de entre 1 y 300 segundos."
+
+msgid "Only a REST connection has REST settings."
+msgstr "Solo una conexión REST tiene ajustes REST."
+
+msgid "The secret key"
+msgstr "La clave del secreto"
+
+msgid "An operation needs a name and a path."
+msgstr "Una operación necesita un nombre y una ruta."
+
+msgid "The method"
+msgstr "El método"
+
+msgid "The source"
+msgstr "El origen"
+
+msgid "The connection already has an operation named {name}."
+msgstr "La conexión ya tiene una operación llamada {name}."
+
+msgid "The kind of item"
+msgstr "El tipo de elemento"
+
+msgid "The usage"
+msgstr "El uso"
+
+msgid "The configured secret key is not valid; generate one with Fernet.generate_key()."
+msgstr "La clave de secretos configurada no es válida; genere una con Fernet.generate_key()."
+
+msgid "A stored secret cannot be read with the configured key."
+msgstr "Un secreto guardado no se puede leer con la clave configurada."
+
+msgid "Only a REST connection can be tested."
+msgstr "Solo se puede probar una conexión REST."
+
+msgid "The address {url} cannot be reached: {problem}"
+msgstr "No se puede alcanzar la dirección {url}: {problem}"
+
+msgid "The system did not accept the credentials (status {status})."
+msgstr "El sistema no aceptó las credenciales (estado {status})."
+
+msgid "Nothing is served at the base address (status {status}), but the system answered."
+msgstr "No hay nada servido en la dirección base (estado {status}), pero el sistema respondió."
+
+msgid "The system answered with the status {status}."
+msgstr "El sistema respondió con el estado {status}."
+
+msgid "The output structure could not be recorded."
+msgstr "No se pudo registrar la estructura de la salida."
+
+msgid "The discovered values are in the form; review them and save."
+msgstr "Los valores descubiertos están en el formulario; revíselos y guarde."
+
+msgid "Choose the connection first."
+msgstr "Elija primero la conexión."
+
+msgid "Import failed"
+msgstr "Falló la importación"
+
+msgid "The address {address} cannot be reached. Reading it needs access to that address; supply the description as a file instead."
+msgstr "No se puede alcanzar la dirección {address}. Leerla necesita acceso a esa dirección; proporcione la descripción como archivo."
+
+msgid "The content is neither JSON nor YAML."
+msgstr "El contenido no es JSON ni YAML."
+
+msgid "The content is not an OpenAPI description."
+msgstr "El contenido no es una descripción OpenAPI."
+
+msgid "Path parameter: {name}"
+msgstr "Parámetro de ruta: {name}"
+
+msgid "Query parameter: {name}"
+msgstr "Parámetro de consulta: {name}"
+
+msgid "A URL is required."
+msgstr "Se requiere una URL."
+
+msgid "The method must be one of: {allowed}."
+msgstr "El método debe ser uno de: {allowed}."
+
+msgid "A POST request was sent: data may have been created."
+msgstr "Se envió una petición POST: es posible que se hayan creado datos."
+
+msgid "A PUT request was sent: data may have been replaced."
+msgstr "Se envió una petición PUT: es posible que se hayan reemplazado datos."
+
+msgid "A PATCH request was sent: data may have been updated."
+msgstr "Se envió una petición PATCH: es posible que se hayan actualizado datos."
+
+msgid "A DELETE request was sent: data may have been removed."
+msgstr "Se envió una petición DELETE: es posible que se hayan eliminado datos."
+
+msgid "OAuth needs the token address, the client identifier and the client secret."
+msgstr "OAuth necesita la dirección del token, el identificador de cliente y el secreto de cliente."
+
+msgid "The token address did not give an access token."
+msgstr "La dirección del token no entregó un token de acceso."
+
+msgid "The connection has no token secret."
+msgstr "La conexión no tiene el secreto del token."
+
+msgid "The authentication {name} is not supported yet: the connection settings do not hold what it needs."
+msgstr "La autenticación {name} aún no se admite: los ajustes de la conexión no tienen lo que necesita."
+
+msgid "This is a {method} request, which can change data. Confirm to send it to: {url}"
+msgstr "Esta es una petición {method}, que puede cambiar datos. Confirme para enviarla a: {url}"
+
+msgid "Test request failed"
+msgstr "Prueba de solicitud fallida"
+
+msgid "Test Connection"
+msgstr "Probar conexión"
+
+msgid "Connection successful"
+msgstr "Conexión exitosa"
+
+msgid "Connection failed"
+msgstr "Conexión fallida"
+
+msgid "Success"
+msgstr "Éxito"
+
+msgid "Response Time"
+msgstr "Tiempo de respuesta"
+
+msgid "View in full page"
+msgstr "Ver en página completa"
+
+msgid "Go to…"
+msgstr "Ir a…"
+
+msgid "Provide a spec URL or upload a JSON/YAML file"
+msgstr "Proporcione una URL de especificación o suba un archivo JSON/YAML"
+
+msgid "Discovery completed"
+msgstr "Descubrimiento completado"
+
+msgid "No operations found"
+msgstr "No se encontraron operaciones"
+
+msgid "Import Selected"
+msgstr "Importar seleccionados"
+
+msgid "Import from OpenAPI Spec"
+msgstr "Importar desde especificación OpenAPI"
+
+msgid "Provide an OpenAPI 3.0/3.1 spec URL or upload a JSON/YAML spec file to import its operations. If the content isn't a recognized spec, it falls back to single-endpoint Auto-Discover."
+msgstr "Indique la URL de una especificación OpenAPI 3.0/3.1 o suba un archivo JSON/YAML para importar sus operaciones. Si el contenido no es una especificación reconocida, se descubre un solo punto de conexión."
+
+msgid "Spec URL or Endpoint URL"
+msgstr "URL de especificación o URL de endpoint"
+
+msgid "e.g. https://api.example.com/openapi.json, or a single endpoint URL"
+msgstr "p. ej. https://api.example.com/openapi.json, o una URL de endpoint único"
+
+msgid "Upload Spec File"
+msgstr "Subir archivo de especificación"
+
+msgid "Discover / Import"
+msgstr "Descubrir / Importar"
+
+msgid "Some sections could not be parsed"
+msgstr "Algunas secciones no se pudieron interpretar"
+
+msgid "Base URL for Selected"
+msgstr "URL base para lo seleccionado"
+
+msgid "Send Anyway"
+msgstr "Enviar de Todos Modos"
+
+msgid "The output structure was recorded."
+msgstr "Se registró la estructura de la salida."
+
+msgid "Record the output structure"
+msgstr "Registrar la estructura de la salida"
+
+msgid "API Test Result"
+msgstr "Resultado de Prueba API"
+
+msgid "Mutating Request"
+msgstr "Solicitud con Mutación"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "HTTP Status"
+msgstr "Estado HTTP"
+
+msgid "Duration"
+msgstr "Duración"
+
+msgid "Content-Type"
+msgstr "Tipo de Contenido"
+
+msgid "Note"
+msgstr "Nota"
+
+msgid "Response Body"
+msgstr "Cuerpo de Respuesta"
+
+msgid "API URL is required"
+msgstr "La URL de API es requerida"
+
+msgid "Test API"
+msgstr "Probar API"
+
+msgid "Expand"
+msgstr "Expandir"
+
+msgid "Collapse"
+msgstr "Contraer"

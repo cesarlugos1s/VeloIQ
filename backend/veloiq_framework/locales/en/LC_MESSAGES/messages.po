@@ -2432,3 +2432,277 @@ msgstr ""
 
 msgid "Add a field filter"
 msgstr ""
+
+# Added by veloiq i18n extract
+msgid "Authentication required"
+msgstr ""
+
+msgid "There is no connection with that identifier."
+msgstr ""
+
+msgid "The endpoint type of a connection does not change."
+msgstr ""
+
+msgid "Address of the API (a REST connection)."
+msgstr ""
+
+msgid "An operation needs a connection."
+msgstr ""
+
+msgid "There is no operation with that identifier."
+msgstr ""
+
+msgid "A secret needs a connection."
+msgstr ""
+
+msgid "A secret needs a value."
+msgstr ""
+
+msgid "Written only; a stored value is never shown."
+msgstr ""
+
+msgid "The connection has no secret with that key."
+msgstr ""
+
+msgid "Send the sample response as sample."
+msgstr ""
+
+msgid "{what} must be one of: {allowed}."
+msgstr ""
+
+msgid "A connection needs a name."
+msgstr ""
+
+msgid "The endpoint type"
+msgstr ""
+
+msgid "A connection named {name} already exists."
+msgstr ""
+
+msgid "Unknown REST setting: {name}."
+msgstr ""
+
+msgid "A REST connection needs the address of the API."
+msgstr ""
+
+msgid "The authentication"
+msgstr ""
+
+msgid "The paging"
+msgstr ""
+
+msgid "OAuth needs the token address and the client identifier."
+msgstr ""
+
+msgid "The timeout is between 1 and 300 seconds."
+msgstr ""
+
+msgid "Only a REST connection has REST settings."
+msgstr ""
+
+msgid "The secret key"
+msgstr ""
+
+msgid "An operation needs a name and a path."
+msgstr ""
+
+msgid "The method"
+msgstr ""
+
+msgid "The source"
+msgstr ""
+
+msgid "The connection already has an operation named {name}."
+msgstr ""
+
+msgid "The kind of item"
+msgstr ""
+
+msgid "The usage"
+msgstr ""
+
+msgid "The configured secret key is not valid; generate one with Fernet.generate_key()."
+msgstr ""
+
+msgid "A stored secret cannot be read with the configured key."
+msgstr ""
+
+msgid "Only a REST connection can be tested."
+msgstr ""
+
+msgid "The address {url} cannot be reached: {problem}"
+msgstr ""
+
+msgid "The system did not accept the credentials (status {status})."
+msgstr ""
+
+msgid "Nothing is served at the base address (status {status}), but the system answered."
+msgstr ""
+
+msgid "The system answered with the status {status}."
+msgstr ""
+
+msgid "The output structure could not be recorded."
+msgstr ""
+
+msgid "The discovered values are in the form; review them and save."
+msgstr ""
+
+msgid "Choose the connection first."
+msgstr ""
+
+msgid "Import failed"
+msgstr ""
+
+msgid "The address {address} cannot be reached. Reading it needs access to that address; supply the description as a file instead."
+msgstr ""
+
+msgid "The content is neither JSON nor YAML."
+msgstr ""
+
+msgid "The content is not an OpenAPI description."
+msgstr ""
+
+msgid "Path parameter: {name}"
+msgstr ""
+
+msgid "Query parameter: {name}"
+msgstr ""
+
+msgid "A URL is required."
+msgstr ""
+
+msgid "The method must be one of: {allowed}."
+msgstr ""
+
+msgid "A POST request was sent: data may have been created."
+msgstr ""
+
+msgid "A PUT request was sent: data may have been replaced."
+msgstr ""
+
+msgid "A PATCH request was sent: data may have been updated."
+msgstr ""
+
+msgid "A DELETE request was sent: data may have been removed."
+msgstr ""
+
+msgid "OAuth needs the token address, the client identifier and the client secret."
+msgstr ""
+
+msgid "The token address did not give an access token."
+msgstr ""
+
+msgid "The connection has no token secret."
+msgstr ""
+
+msgid "The authentication {name} is not supported yet: the connection settings do not hold what it needs."
+msgstr ""
+
+msgid "This is a {method} request, which can change data. Confirm to send it to: {url}"
+msgstr ""
+
+msgid "Test request failed"
+msgstr ""
+
+msgid "Test Connection"
+msgstr ""
+
+msgid "Connection successful"
+msgstr ""
+
+msgid "Connection failed"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Response Time"
+msgstr ""
+
+msgid "View in full page"
+msgstr ""
+
+msgid "Go to…"
+msgstr ""
+
+msgid "Provide a spec URL or upload a JSON/YAML file"
+msgstr ""
+
+msgid "Discovery completed"
+msgstr ""
+
+msgid "No operations found"
+msgstr ""
+
+msgid "Import Selected"
+msgstr ""
+
+msgid "Import from OpenAPI Spec"
+msgstr ""
+
+msgid "Provide an OpenAPI 3.0/3.1 spec URL or upload a JSON/YAML spec file to import its operations. If the content isn't a recognized spec, it falls back to single-endpoint Auto-Discover."
+msgstr ""
+
+msgid "Spec URL or Endpoint URL"
+msgstr ""
+
+msgid "e.g. https://api.example.com/openapi.json, or a single endpoint URL"
+msgstr ""
+
+msgid "Upload Spec File"
+msgstr ""
+
+msgid "Discover / Import"
+msgstr ""
+
+msgid "Some sections could not be parsed"
+msgstr ""
+
+msgid "Base URL for Selected"
+msgstr ""
+
+msgid "Send Anyway"
+msgstr ""
+
+msgid "The output structure was recorded."
+msgstr ""
+
+msgid "Record the output structure"
+msgstr ""
+
+msgid "API Test Result"
+msgstr ""
+
+msgid "Mutating Request"
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "HTTP Status"
+msgstr ""
+
+msgid "Duration"
+msgstr ""
+
+msgid "Content-Type"
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Response Body"
+msgstr ""
+
+msgid "API URL is required"
+msgstr ""
+
+msgid "Test API"
+msgstr ""
+
+msgid "Expand"
+msgstr ""
+
+msgid "Collapse"
+msgstr ""

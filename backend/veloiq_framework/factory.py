@@ -682,6 +682,10 @@ def _register_core_endpoints(app: FastAPI, engine, cfg: VeloIQConfig, *, extensi
     from veloiq_framework.system_config.system_config_non_model_data_resource import build_system_config_non_model_data_resource
     core_api.include_router(non_model_data_catalog_router)
     mount_non_model_data_resource(core_api, build_system_config_non_model_data_resource(), prefix="")
+    # The shared connection registry as standard lists with record pages (connections, operations, secrets, usage).
+    from veloiq_framework.shared_connection_registry.connection_registry_non_model_data_resources import build_registry_non_model_data_resources
+    for registry_data_resource in build_registry_non_model_data_resources():
+        mount_non_model_data_resource(core_api, registry_data_resource, prefix="")
     # The external portals' configuration (veloiq.toml [portals.*]), for administrators.
     from veloiq_framework.portals.portal_definitions_non_model_data_resource import build_portal_definitions_non_model_data_resource
     mount_non_model_data_resource(core_api, build_portal_definitions_non_model_data_resource(), prefix="")

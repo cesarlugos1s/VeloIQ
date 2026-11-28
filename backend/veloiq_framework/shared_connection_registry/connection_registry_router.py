@@ -1,6 +1,8 @@
 """Admin-only endpoints of the shared connection registry, under ``/api/registry``.
 
+* ``GET /registry/choices`` (the allowed values of the choice fields)
 * ``GET/POST /registry/connections``, ``GET/PUT/DELETE /registry/connections/{id}``
+* ``POST /registry/connections/{id}/test`` (a REST connection: a GET to its base address with its authentication)
 * ``PUT/DELETE /registry/connections/{id}/secrets/{key}`` (a secret is written, never read back)
 * ``GET/POST /registry/connections/{id}/operations``, ``GET /registry/operations`` (all, with their connection; ``?method=GET``),
   ``GET/PUT/DELETE /registry/operations/{id}`` (a read shows the connection too)
@@ -35,6 +37,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
     from . import connection_registry_store as store
     from .connection_registry_models import Connection, Operation, UsageSelection
     from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
+    from .connection_test_call import test_rest_connection
     from .json_schema_from_sample import infer_json_schema
     from .operation_discovery_from_url import discover_operation_from_url
     from .operation_test_call import run_operation_test
@@ -61,6 +64,16 @@ def make_connection_registry_router(cfg) -> APIRouter:
 
     def _refuse(problem: Exception, status_code: int = 422):
         raise HTTPException(status_code=status_code, detail=str(problem))
+
+    @router.get("/registry/choices")
+    def read_allowed_values(request: Request):
+        """The allowed values of the registry's choice fields (endpoint types, methods, authentications, paging styles, secret keys, usages)."""
+        _require_admin(request)
+        from . import registry_choice_values as values
+        return {"endpoint_types": list(values.ENDPOINT_TYPES), "operation_methods": list(values.OPERATION_METHODS),
+                "operation_sources": list(values.OPERATION_SOURCES), "secret_keys": list(values.SECRET_KEYS),
+                "rest_authentications": list(values.REST_AUTHENTICATIONS), "rest_paging_styles": list(values.REST_PAGING_STYLES),
+                "usages": list(values.USAGES), "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
 
     @router.get("/registry/connections")
     def list_connections(request: Request):
@@ -99,6 +112,17 @@ def make_connection_registry_router(cfg) -> APIRouter:
         _require_admin(request)
         with Session(get_engine()) as session:
             store.delete_connection(session, _connection_or_404(session, connection_id))
+
+    # spec: manage-connections-with-secrets-and-a-connection-test :: Test a REST connection
+    @router.post("/registry/connections/{connection_id}/test")
+    def test_connection(connection_id: int, request: Request):
+        """Test a REST connection: a GET to its base address with its authentication; nothing is changed on the other system."""
+        _require_admin(request)
+        with Session(get_engine()) as session:
+            try:
+                return test_rest_connection(_connection_or_404(session, connection_id))
+            except (store.RegistryRuleError, SecretKeyNotConfiguredError, SecretCannotBeDecryptedError) as refusal:
+                _refuse(refusal)
 
     @router.put("/registry/connections/{connection_id}/secrets/{key}", status_code=204)
     def write_secret(connection_id: int, key: str, request: Request, body: dict[str, Any] = Body(...)):

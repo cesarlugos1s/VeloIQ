@@ -212,3 +212,11 @@ def test_every_operation_is_listed_with_its_connection_and_can_be_kept_by_method
     reads = {row["id"] for row in client.get("/api/registry/operations?method=get", headers=auth).json()}
     assert get_id in reads and post_id not in reads
     assert client.get("/api/registry/operations").status_code in (401, 403)
+
+
+def test_the_allowed_values_of_the_choice_fields_come_from_one_endpoint(client, auth):
+    choices = client.get("/api/registry/choices", headers=auth).json()
+    assert "rest_api" in choices["endpoint_types"] and choices["operation_methods"] == ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    assert "bearer_token" in choices["rest_authentications"] and "offset" in choices["rest_paging_styles"] and choices["usages"] == ["ai_agents", "integration_hub"]
+    assert "api_key" in choices["secret_keys"] and choices["oauth_authentications"] == ["oauth2_client_credentials"]
+    assert client.get("/api/registry/choices").status_code in (401, 403)
