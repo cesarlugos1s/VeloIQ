@@ -12,7 +12,7 @@ from sqlmodel import Field, SQLModel
 from veloiq_framework import jm_relationship, veloiq_field
 
 from .registry_choice_values import (
-    ENDPOINT_TYPES, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS,
+    DATABASE_TYPES, ENDPOINT_TYPES, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS,
     USAGE_SELECTION_ITEM_KINDS, USAGES,
 )
 
@@ -51,6 +51,15 @@ class connection_has_rest_connection_settings(SQLModel, table=True):
     eid_to: int = Field(sa_column=_link_column("veloiq_registry_rest_connection_settings.id"))
 
 
+class connection_has_database_connection_settings(SQLModel, table=True):
+    """Link: Connection has DatabaseConnectionSettings."""
+    # Shorter than the relation name: a table name over 63 characters is silently truncated by PostgreSQL.
+    __tablename__ = "veloiq_registry_connection_has_database_settings_relation"
+    __table_args__ = {"extend_existing": True}
+    eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
+    eid_to: int = Field(sa_column=_link_column("veloiq_registry_database_connection_settings.id"))
+
+
 # ___________________________________________________________________________
 # 2. ENTITIES
 # ___________________________________________________________________________
@@ -75,6 +84,10 @@ class Connection(SQLModel, table=True):
     connection_has_rest_connection_settings: List["RestConnectionSettings"] = jm_relationship(
         min_items=0, max_items=1, link_model=connection_has_rest_connection_settings,
         back_populates="connection_has_rest_connection_settings_reverse",
+    )
+    connection_has_database_connection_settings: List["DatabaseConnectionSettings"] = jm_relationship(
+        min_items=0, max_items=1, link_model=connection_has_database_connection_settings,
+        back_populates="connection_has_database_connection_settings_reverse",
     )
 
     def __str__(self) -> str:
@@ -126,6 +139,28 @@ class RestConnectionSettings(SQLModel, table=True):
     connection_has_rest_connection_settings_reverse: List["Connection"] = jm_relationship(
         min_items=1, max_items=1, required=True, link_model=connection_has_rest_connection_settings,
         back_populates="connection_has_rest_connection_settings",
+    )
+
+
+class DatabaseConnectionSettings(SQLModel, table=True):
+    """Settings of a connection whose endpoint type is database. The password is a secret of the connection."""
+    __tablename__ = "veloiq_registry_database_connection_settings"
+    __table_args__ = {"extend_existing": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    database_type: str = veloiq_field(options=list(DATABASE_TYPES), description="Kind of database")
+    host: Optional[str] = Field(default=None, description="Database server")
+    port: Optional[int] = Field(default=None, ge=1, le=65535, description="Database port; the usual one of the database type when empty")
+    database_name: str = Field(description="Database to use (the file for SQLite and DuckDB)")
+    username: Optional[str] = Field(default=None, description="Database user")
+    is_read_only: bool = Field(default=True, description="Only reads are allowed")
+    query_timeout_seconds: int = Field(default=60, ge=1, le=600, description="Seconds before a query stops")
+    max_rows_per_run: int = Field(default=100000, ge=1, description="Most rows read in one run")
+    cursor_column: Optional[str] = Field(default=None, description="Column that marks new and changed rows")
+
+    connection_has_database_connection_settings_reverse: List["Connection"] = jm_relationship(
+        min_items=1, max_items=1, required=True, link_model=connection_has_database_connection_settings,
+        back_populates="connection_has_database_connection_settings",
     )
 
 

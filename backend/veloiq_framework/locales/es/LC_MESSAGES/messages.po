@@ -2757,3 +2757,79 @@ msgstr "La operación respondió con el estado {status} ({url})."
 
 msgid "The read stopped after {pages} pages, the most the connection allows; more are available."
 msgstr "La lectura se detuvo tras {pages} páginas, el máximo que permite la conexión; hay más disponibles."
+
+# Added by veloiq i18n extract
+msgid "Kind of database (a database connection)."
+msgstr "Tipo de base de datos (una conexión de base de datos)."
+
+msgid "The usual port of the database type when empty."
+msgstr "El puerto habitual del tipo de base de datos cuando está vacío."
+
+msgid "The password is a secret of the connection."
+msgstr "La contraseña es un secreto de la conexión."
+
+msgid "Column that marks new and changed rows."
+msgstr "Columna que marca las filas nuevas y cambiadas."
+
+msgid "Unknown database setting: {name}."
+msgstr "Ajuste de base de datos desconocido: {name}."
+
+msgid "The database type"
+msgstr "El tipo de base de datos"
+
+msgid "A database connection needs the name of the database."
+msgstr "Una conexión de base de datos necesita el nombre de la base de datos."
+
+msgid "A database connection needs the database server."
+msgstr "Una conexión de base de datos necesita el servidor de la base de datos."
+
+msgid "The port is between 1 and 65535."
+msgstr "El puerto está entre 1 y 65535."
+
+msgid "The query timeout is between 1 and 600 seconds."
+msgstr "El tiempo máximo de la consulta está entre 1 y 600 segundos."
+
+msgid "The most rows in one run is 1 or more."
+msgstr "El máximo de filas en una ejecución es 1 o más."
+
+msgid "Only a database connection has database settings."
+msgstr "Solo una conexión de base de datos tiene ajustes de base de datos."
+
+msgid "Only a database connection can be used this way."
+msgstr "Solo una conexión de base de datos se puede usar así."
+
+msgid "The driver for the database type {database_type} is not installed ({problem})."
+msgstr "El controlador del tipo de base de datos {database_type} no está instalado ({problem})."
+
+msgid "The statement has a comment that is never closed."
+msgstr "La sentencia tiene un comentario que nunca se cierra."
+
+msgid "The statement has a quote that is never closed."
+msgstr "La sentencia tiene unas comillas que nunca se cierran."
+
+msgid "The query is empty."
+msgstr "La consulta está vacía."
+
+msgid "The query must be one statement."
+msgstr "La consulta debe ser una sola sentencia."
+
+msgid "The query must be a SELECT statement."
+msgstr "La consulta debe ser una sentencia SELECT."
+
+msgid "The query must only read: it contains {keyword}."
+msgstr "La consulta solo debe leer: contiene {keyword}."
+
+msgid "Reading only what changed needs the cursor column of the connection."
+msgstr "Leer solo lo que cambió necesita la columna cursor de la conexión."
+
+msgid "The query returned more than {rows} rows, the most the connection allows in one run."
+msgstr "La consulta devolvió más de {rows} filas, el máximo que la conexión permite en una ejecución."
+
+msgid "The database refused the query: {problem}"
+msgstr "La base de datos rechazó la consulta: {problem}"
+
+msgid "The connection is read only: only SELECT statements are accepted."
+msgstr "La conexión es de solo lectura: solo se aceptan sentencias SELECT."
+
+msgid "The database cannot be reached: {problem}"
+msgstr "No se puede acceder a la base de datos: {problem}"

@@ -7,15 +7,16 @@ from sqlmodel import Session, select
 
 from veloiq_framework.utils.i18n_utils import _
 
-from .connection_registry_models import Connection, ConnectionSecret, Operation, RestConnectionSettings, UsageSelection
+from .connection_registry_models import Connection, ConnectionSecret, DatabaseConnectionSettings, Operation, RestConnectionSettings, UsageSelection
 from .connection_secret_encryption import encrypt_secret
 from .registry_item_in_use_checks import ensure_item_is_not_in_use
 from .registry_choice_values import (
-    ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS_THAT_USE_OAUTH,
+    DATABASE_TYPES, DATABASE_TYPES_WITHOUT_HOST, ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS_THAT_USE_OAUTH,
     SECRET_KEYS, USAGE_SELECTION_ITEM_KINDS, USAGES,
 )
 
 REST_ENDPOINT_TYPE = "rest_api"
+DATABASE_ENDPOINT_TYPE = "database"
 API_OPERATION_ITEM_KIND = "api_operation"
 CONNECTION_ITEM_KIND = "connection"
 REST_SETTING_FIELDS = (
@@ -23,6 +24,9 @@ REST_SETTING_FIELDS = (
     "timeout_seconds", "is_tls_verified", "rate_limit_per_second",
     "user_name", "api_key_header_name", "api_key_query_parameter_name",
     "page_size", "page_size_parameter", "page_parameter", "first_page_number", "cursor_parameter", "next_cursor_path", "next_link_path", "maximum_pages",
+)
+DATABASE_SETTING_FIELDS = (
+    "database_type", "host", "port", "database_name", "username", "is_read_only", "query_timeout_seconds", "max_rows_per_run", "cursor_column",
 )
 
 
@@ -37,7 +41,7 @@ def _require_allowed(value: str, allowed: tuple[str, ...], what: str) -> None:
 
 # spec: manage-connections-with-secrets-and-a-connection-test :: Connection settings
 def create_connection(session: Session, name: str, endpoint_type: str, is_enabled: bool = True,
-                      rest_settings: Optional[dict[str, Any]] = None) -> Connection:
+                      rest_settings: Optional[dict[str, Any]] = None, database_settings: Optional[dict[str, Any]] = None) -> Connection:
     """Create a connection with its settings and one usage selection row for each usage, all disabled."""
     name = (name or "").strip()
     if not name:
@@ -48,6 +52,8 @@ def create_connection(session: Session, name: str, endpoint_type: str, is_enable
     connection = Connection(name=name, endpoint_type=endpoint_type, is_enabled=is_enabled)
     if endpoint_type == REST_ENDPOINT_TYPE:
         connection.connection_has_rest_connection_settings.append(_build_rest_settings(rest_settings or {}))
+    if endpoint_type == DATABASE_ENDPOINT_TYPE:
+        connection.connection_has_database_connection_settings.append(_build_database_settings(database_settings or {}))
     session.add(connection)
     session.commit()
     for usage in USAGES:
@@ -65,6 +71,31 @@ def _build_rest_settings(values: dict[str, Any]) -> RestConnectionSettings:
     settings = RestConnectionSettings(**values)
     _check_rest_settings(settings)
     return settings
+
+
+def _build_database_settings(values: dict[str, Any]) -> DatabaseConnectionSettings:
+    unknown = set(values) - set(DATABASE_SETTING_FIELDS)
+    if unknown:
+        raise RegistryRuleError(_("Unknown database setting: {name}.").format(name=sorted(unknown)[0]))
+    settings = DatabaseConnectionSettings(**values)
+    _check_database_settings(settings)
+    return settings
+
+
+# spec: read-from-databases-with-read-only-limits :: Supported databases
+def _check_database_settings(settings: DatabaseConnectionSettings) -> None:
+    """Refuse database settings that are missing something the database type needs or are outside their limits."""
+    _require_allowed(settings.database_type, DATABASE_TYPES, _("The database type"))
+    if not str(settings.database_name or "").strip():
+        raise RegistryRuleError(_("A database connection needs the name of the database."))
+    if settings.database_type not in DATABASE_TYPES_WITHOUT_HOST and not str(settings.host or "").strip():
+        raise RegistryRuleError(_("A database connection needs the database server."))
+    if settings.port is not None and not 1 <= settings.port <= 65535:
+        raise RegistryRuleError(_("The port is between 1 and 65535."))
+    if not 1 <= settings.query_timeout_seconds <= 600:
+        raise RegistryRuleError(_("The query timeout is between 1 and 600 seconds."))
+    if settings.max_rows_per_run < 1:
+        raise RegistryRuleError(_("The most rows in one run is 1 or more."))
 
 
 def _check_rest_settings(settings: RestConnectionSettings) -> None:
@@ -109,6 +140,16 @@ def update_connection(session: Session, connection: Connection, values: dict[str
             setattr(current, field_name, value)
         _check_rest_settings(current)
         session.add(current)
+    if values.get("database_settings") is not None:
+        if connection.endpoint_type != DATABASE_ENDPOINT_TYPE:
+            raise RegistryRuleError(_("Only a database connection has database settings."))
+        current_database = connection.connection_has_database_connection_settings[0]
+        for field_name, value in values["database_settings"].items():
+            if field_name not in DATABASE_SETTING_FIELDS:
+                raise RegistryRuleError(_("Unknown database setting: {name}.").format(name=field_name))
+            setattr(current_database, field_name, value)
+        _check_database_settings(current_database)
+        session.add(current_database)
     session.add(connection)
     session.commit()
     return connection
@@ -124,7 +165,8 @@ def delete_connection(session: Session, connection: Connection) -> None:
         ensure_item_is_not_in_use(API_OPERATION_ITEM_KIND, operation.id, operation.name)
     for operation in list(connection.connection_has_operation):
         _delete_operation_rows(session, operation)
-    for child in (*connection.connection_has_connection_secret, *connection.connection_has_rest_connection_settings):
+    for child in (*connection.connection_has_connection_secret, *connection.connection_has_rest_connection_settings,
+                  *connection.connection_has_database_connection_settings):
         session.delete(child)
     for selection in session.exec(select(UsageSelection).where(
             UsageSelection.item_kind == CONNECTION_ITEM_KIND, UsageSelection.item_id == connection.id)).all():
@@ -167,12 +209,14 @@ def delete_connection_secret(session: Session, connection: Connection, key: str)
 def connection_to_dict(connection: Connection) -> dict[str, Any]:
     """A connection as the API returns it. A secret is shown as present and masked, never with its value."""
     rest = connection.connection_has_rest_connection_settings
+    database = connection.connection_has_database_connection_settings
     return {
         "id": connection.id,
         "name": connection.name,
         "endpoint_type": connection.endpoint_type,
         "is_enabled": connection.is_enabled,
         "rest_settings": {name: getattr(rest[0], name) for name in REST_SETTING_FIELDS} if rest else None,
+        "database_settings": {name: getattr(database[0], name) for name in DATABASE_SETTING_FIELDS} if database else None,
         "secrets": [{"key": secret.key, "value": MASKED_SECRET_VALUE} for secret in connection.connection_has_connection_secret],
     }
 

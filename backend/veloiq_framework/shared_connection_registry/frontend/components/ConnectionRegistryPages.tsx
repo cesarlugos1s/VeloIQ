@@ -25,7 +25,8 @@ const _ = (text: string): string => {
 
 const CONNECTIONS_RESOURCE_NAME = "veloiq_registry_connections";
 const OPERATIONS_RESOURCE_NAME = "veloiq_registry_operations";
-const REST_ENDPOINT_TYPE = "rest_api";
+// Endpoint types the registry can test: a REST connection with a GET to its base address, a database with a trivial read.
+const TESTABLE_ENDPOINT_TYPES = ["rest_api", "database"];
 
 const LoadingPage = () => <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><Spin /></div>;
 
@@ -34,7 +35,7 @@ function useResourceModel(resourceName: string): { model?: ModelDef; allModels: 
     return { model: allModels.find((candidate: ModelDef) => candidate.resource === resourceName), allModels };
 }
 
-/** A connection's page: the standard record page with "Test Connection" (a REST connection is tested with a GET to its base address). */
+/** A connection's page: the standard record page with "Test Connection" (a REST connection is tested with a GET to its base address, a database with a trivial read). */
 export const ConnectionShow: React.FC<{ idOverride?: string }> = ({ idOverride }) => {
     const { model, allModels } = useResourceModel(CONNECTIONS_RESOURCE_NAME);
     const routeId = useParams().id;
@@ -45,7 +46,7 @@ export const ConnectionShow: React.FC<{ idOverride?: string }> = ({ idOverride }
             allModels={allModels}
             idOverride={idOverride ?? routeId}
             extraHeaderButtons={(record: any) => (
-                <ConnectionTestButton disabled={record?.endpoint_type !== REST_ENDPOINT_TYPE} runTest={() => testRegistryConnection(Number(record.id))} />
+                <ConnectionTestButton disabled={!TESTABLE_ENDPOINT_TYPES.includes(record?.endpoint_type)} runTest={() => testRegistryConnection(Number(record.id))} />
             )}
         />
     );

@@ -22,6 +22,12 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
   records. Packages that use registry items can register a check (`register_item_in_use_check`) so the registry refuses to delete
   an item that is in use and names what uses it. **Existing registry tables need the new columns** of
   `veloiq_registry_rest_connection_settings` (see the migration of the test host).
+- **Database connections in the shared registry** — a connection of the endpoint type `database` keeps its settings
+  (`DatabaseConnectionSettings`: type, server, port, database, user, read-only, query timeout, most rows, cursor column) with the
+  password as a secret, can be tested from the connection page (a trivial read), and is read with `run_read_query`: one SELECT, checked
+  token by token, with the session set read only where the database supports it, a query timeout and a row limit that fails the read.
+  The 12 database types of IQVigilant's connections are offered; their drivers are not installed by the framework. **Existing
+  registry tables need two new tables** (`veloiq_registry_database_connection_settings` and its link table).
 - **Many-to-one relations through a link table behave like foreign keys** — a relation
   declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
   schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit

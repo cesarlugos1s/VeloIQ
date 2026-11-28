@@ -2758,3 +2758,79 @@ msgstr ""
 
 msgid "The read stopped after {pages} pages, the most the connection allows; more are available."
 msgstr ""
+
+# Added by veloiq i18n extract
+msgid "Kind of database (a database connection)."
+msgstr ""
+
+msgid "The usual port of the database type when empty."
+msgstr ""
+
+msgid "The password is a secret of the connection."
+msgstr ""
+
+msgid "Column that marks new and changed rows."
+msgstr ""
+
+msgid "Unknown database setting: {name}."
+msgstr ""
+
+msgid "The database type"
+msgstr ""
+
+msgid "A database connection needs the name of the database."
+msgstr ""
+
+msgid "A database connection needs the database server."
+msgstr ""
+
+msgid "The port is between 1 and 65535."
+msgstr ""
+
+msgid "The query timeout is between 1 and 600 seconds."
+msgstr ""
+
+msgid "The most rows in one run is 1 or more."
+msgstr ""
+
+msgid "Only a database connection has database settings."
+msgstr ""
+
+msgid "Only a database connection can be used this way."
+msgstr ""
+
+msgid "The driver for the database type {database_type} is not installed ({problem})."
+msgstr ""
+
+msgid "The statement has a comment that is never closed."
+msgstr ""
+
+msgid "The statement has a quote that is never closed."
+msgstr ""
+
+msgid "The query is empty."
+msgstr ""
+
+msgid "The query must be one statement."
+msgstr ""
+
+msgid "The query must be a SELECT statement."
+msgstr ""
+
+msgid "The query must only read: it contains {keyword}."
+msgstr ""
+
+msgid "Reading only what changed needs the cursor column of the connection."
+msgstr ""
+
+msgid "The query returned more than {rows} rows, the most the connection allows in one run."
+msgstr ""
+
+msgid "The database refused the query: {problem}"
+msgstr ""
+
+msgid "The connection is read only: only SELECT statements are accepted."
+msgstr ""
+
+msgid "The database cannot be reached: {problem}"
+msgstr ""

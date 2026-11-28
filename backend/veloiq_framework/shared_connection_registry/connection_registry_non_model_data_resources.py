@@ -25,7 +25,7 @@ from . import connection_registry_store as store
 from .connection_registry_models import Connection, ConnectionSecret, Operation, UsageSelection
 from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
 from .registry_choice_values import (
-    ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS, USAGES,
+    DATABASE_TYPES, ENDPOINT_TYPES, MASKED_SECRET_VALUE, OPERATION_METHODS, OPERATION_SOURCES, REST_AUTHENTICATIONS, REST_PAGING_STYLES, SECRET_KEYS, USAGES,
 )
 
 CONNECTIONS_RESOURCE_NAME = "veloiq_registry_connections"
@@ -76,12 +76,19 @@ def _connection_row(connection: Connection) -> dict[str, Any]:
     rest = connection.connection_has_rest_connection_settings
     row: dict[str, Any] = {"id": connection.id, "name": connection.name, "endpoint_type": connection.endpoint_type, "is_enabled": connection.is_enabled}
     row.update({field: (getattr(rest[0], field) if rest else None) for field in store.REST_SETTING_FIELDS})
+    database = connection.connection_has_database_connection_settings
+    row.update({field: (getattr(database[0], field) if database else None) for field in store.DATABASE_SETTING_FIELDS})
     return row
 
 
 def _rest_settings_of_row(row: dict) -> dict[str, Any]:
     """The REST settings a row holds (the ones that have a value), as the store takes them."""
     return {field: row[field] for field in store.REST_SETTING_FIELDS if row.get(field) not in (None, "")}
+
+
+def _database_settings_of_row(row: dict) -> dict[str, Any]:
+    """The database settings a row holds (the ones that have a value), as the store takes them."""
+    return {field: row[field] for field in store.DATABASE_SETTING_FIELDS if row.get(field) not in (None, "")}
 
 
 def _load_connections(_context: DataSourceRequestContext) -> list[dict]:
@@ -92,7 +99,8 @@ def _load_connections(_context: DataSourceRequestContext) -> list[dict]:
 def _create_connection(_context: DataSourceRequestContext, row: dict) -> dict:
     with _session() as session:
         connection = _guarded(lambda: store.create_connection(session, row.get("name"), row.get("endpoint_type"), row.get("is_enabled", True),
-                                                              _rest_settings_of_row(row) if row.get("endpoint_type") == store.REST_ENDPOINT_TYPE else None))
+                                                              _rest_settings_of_row(row) if row.get("endpoint_type") == store.REST_ENDPOINT_TYPE else None,
+                                                              _database_settings_of_row(row) if row.get("endpoint_type") == store.DATABASE_ENDPOINT_TYPE else None))
         return _connection_row(connection)
 
 
@@ -106,6 +114,8 @@ def _update_connection(_context: DataSourceRequestContext, eid: str, row: dict) 
         values: dict[str, Any] = {"name": row.get("name"), "is_enabled": row.get("is_enabled", connection.is_enabled)}
         if connection.endpoint_type == store.REST_ENDPOINT_TYPE:
             values["rest_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.REST_SETTING_FIELDS if field in row}
+        if connection.endpoint_type == store.DATABASE_ENDPOINT_TYPE:
+            values["database_settings"] = {field: (row.get(field) if row.get(field) != "" else None) for field in store.DATABASE_SETTING_FIELDS if field in row}
         return _connection_row(_guarded(lambda: store.update_connection(session, connection, values)))
 
 
@@ -149,6 +159,15 @@ def build_connections_non_model_data_resource() -> NonModelDataResource:
             NonModelDataField(key="next_cursor_path", label="Next Cursor Path", show_in_list=False, description=_("Where the answer holds the cursor of the next page.")),
             NonModelDataField(key="next_link_path", label="Next Link Path", show_in_list=False, description=_("Where the answer holds the address of the next page.")),
             NonModelDataField(key="maximum_pages", label="Maximum Pages", type="number", integer=True, default=100, show_in_list=False),
+            NonModelDataField(key="database_type", label="Database Type", options=list(DATABASE_TYPES), show_in_list=False, description=_("Kind of database (a database connection).")),
+            NonModelDataField(key="host", label="Database Server", show_in_list=False),
+            NonModelDataField(key="port", label="Database Port", type="number", integer=True, show_in_list=False, description=_("The usual port of the database type when empty.")),
+            NonModelDataField(key="database_name", label="Database Name", show_in_list=False),
+            NonModelDataField(key="username", label="Database User", show_in_list=False, description=_("The password is a secret of the connection.")),
+            NonModelDataField(key="is_read_only", label="Read Only", type="boolean", default=True, show_in_list=False),
+            NonModelDataField(key="query_timeout_seconds", label="Query Timeout (seconds)", type="number", integer=True, default=60, show_in_list=False),
+            NonModelDataField(key="max_rows_per_run", label="Most Rows in One Run", type="number", integer=True, default=100000, show_in_list=False),
+            NonModelDataField(key="cursor_column", label="Cursor Column", show_in_list=False, description=_("Column that marks new and changed rows.")),
         ],
         relations=[
             NonModelDataRelation(OPERATIONS_RESOURCE_NAME, "connection_id", "Operations"),

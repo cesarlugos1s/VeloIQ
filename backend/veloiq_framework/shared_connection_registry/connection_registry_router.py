@@ -2,7 +2,7 @@
 
 * ``GET /registry/choices`` (the allowed values of the choice fields)
 * ``GET/POST /registry/connections``, ``GET/PUT/DELETE /registry/connections/{id}``
-* ``POST /registry/connections/{id}/test`` (a REST connection: a GET to its base address with its authentication)
+* ``POST /registry/connections/{id}/test`` (a REST connection: a GET to its base address with its authentication; a database: a trivial read)
 * ``PUT/DELETE /registry/connections/{id}/secrets/{key}`` (a secret is written, never read back)
 * ``GET/POST /registry/connections/{id}/operations``, ``GET /registry/operations`` (all, with their connection; ``?method=GET``),
   ``GET/PUT/DELETE /registry/operations/{id}`` (a read shows the connection too)
@@ -38,6 +38,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
     from .connection_registry_models import Connection, Operation, UsageSelection
     from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
     from .connection_test_call import test_rest_connection
+    from .database_connection_access import test_database_connection
     from .json_schema_from_sample import infer_json_schema
     from .operation_discovery_from_url import discover_operation_from_url
     from .operation_test_call import run_operation_test
@@ -73,7 +74,9 @@ def make_connection_registry_router(cfg) -> APIRouter:
         return {"endpoint_types": list(values.ENDPOINT_TYPES), "operation_methods": list(values.OPERATION_METHODS),
                 "operation_sources": list(values.OPERATION_SOURCES), "secret_keys": list(values.SECRET_KEYS),
                 "rest_authentications": list(values.REST_AUTHENTICATIONS), "rest_paging_styles": list(values.REST_PAGING_STYLES),
-                "usages": list(values.USAGES), "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
+                "usages": list(values.USAGES), "database_types": list(values.DATABASE_TYPES),
+                "database_usual_ports": values.DATABASE_USUAL_PORTS, "database_types_without_host": list(values.DATABASE_TYPES_WITHOUT_HOST),
+                "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
 
     @router.get("/registry/connections")
     def list_connections(request: Request):
@@ -87,7 +90,7 @@ def make_connection_registry_router(cfg) -> APIRouter:
         with Session(get_engine()) as session:
             try:
                 connection = store.create_connection(session, body.get("name"), body.get("endpoint_type"),
-                                                     body.get("is_enabled", True), body.get("rest_settings"))
+                                                     body.get("is_enabled", True), body.get("rest_settings"), body.get("database_settings"))
             except store.RegistryRuleError as refusal:
                 _refuse(refusal)
             return store.connection_to_dict(connection)
@@ -119,11 +122,14 @@ def make_connection_registry_router(cfg) -> APIRouter:
     # spec: manage-connections-with-secrets-and-a-connection-test :: Test a REST connection
     @router.post("/registry/connections/{connection_id}/test")
     def test_connection(connection_id: int, request: Request):
-        """Test a REST connection: a GET to its base address with its authentication; nothing is changed on the other system."""
+        """Test a connection: a GET to the base address of a REST connection, or a trivial read on a database; nothing is changed."""
         _require_admin(request)
         with Session(get_engine()) as session:
             try:
-                return test_rest_connection(_connection_or_404(session, connection_id))
+                connection = _connection_or_404(session, connection_id)
+                if connection.endpoint_type == store.DATABASE_ENDPOINT_TYPE:
+                    return test_database_connection(connection)
+                return test_rest_connection(connection)
             except (store.RegistryRuleError, SecretKeyNotConfiguredError, SecretCannotBeDecryptedError) as refusal:
                 _refuse(refusal)
 
