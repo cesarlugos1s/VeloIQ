@@ -2,15 +2,21 @@
 
 * ``GET/POST /registry/connections``, ``GET/PUT/DELETE /registry/connections/{id}``
 * ``PUT/DELETE /registry/connections/{id}/secrets/{key}`` (a secret is written, never read back)
-* ``GET/POST /registry/connections/{id}/operations``, ``PUT/DELETE /registry/operations/{id}``
+* ``GET/POST /registry/connections/{id}/operations``, ``GET /registry/operations`` (all, with their connection; ``?method=GET``),
+  ``GET/PUT/DELETE /registry/operations/{id}`` (a read shows the connection too)
 * ``POST /registry/connections/{id}/operation-imports/preview`` (an address or the content of an OpenAPI description)
 * ``POST /registry/connections/{id}/operation-imports`` (record the operations the administrator chose)
+* ``POST /registry/openapi-previews`` (the operations of an OpenAPI description, before a connection is chosen)
+* ``POST /registry/operation-discoveries`` (work out an operation from a URL)
+* ``POST /registry/operations/{id}/tests`` (send an operation; a write method needs confirmation)
+* ``POST /registry/operations/{id}/response-schema-from-sample`` (learn the output from a test)
 * ``GET /registry/usage-selections``, ``PUT /registry/usage-selections``
 
 Only the Admin role may call them. Errors answer ``{"detail": "<message>"}`` with a status the caller can act on.
 """
 from __future__ import annotations
 
+import json
 from typing import Any, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Request
@@ -28,7 +34,10 @@ def make_connection_registry_router(cfg) -> APIRouter:
 
     from . import connection_registry_store as store
     from .connection_registry_models import Connection, Operation, UsageSelection
-    from .connection_secret_encryption import SecretKeyNotConfiguredError
+    from .connection_secret_encryption import SecretCannotBeDecryptedError, SecretKeyNotConfiguredError
+    from .json_schema_from_sample import infer_json_schema
+    from .operation_discovery_from_url import discover_operation_from_url
+    from .operation_test_call import run_operation_test
     from .openapi_operation_import import OpenApiDescriptionError, fetch_openapi_description, list_operations_of_description
 
     router = APIRouter(tags=["connection-registry"])
@@ -124,6 +133,30 @@ def make_connection_registry_router(cfg) -> APIRouter:
             except store.RegistryRuleError as refusal:
                 _refuse(refusal)
 
+    def _operation_with_connection(operation) -> dict[str, Any]:
+        connection = operation.connection_has_operation_reverse[0]
+        rest = connection.connection_has_rest_connection_settings
+        return {**store.operation_to_dict(operation), "connection": {
+            "id": connection.id, "name": connection.name, "endpoint_type": connection.endpoint_type,
+            "is_enabled": connection.is_enabled, "base_url": rest[0].base_url if rest else None}}
+
+    @router.get("/registry/operations")
+    def list_all_operations(request: Request, method: Optional[str] = None):
+        """Every operation of every connection, each with its connection (for a list to choose from); ``method`` keeps one HTTP method."""
+        _require_admin(request)
+        with Session(get_engine()) as session:
+            query = select(Operation).order_by(Operation.id)
+            if method:
+                query = query.where(Operation.method == method.upper())
+            return [_operation_with_connection(operation) for operation in session.exec(query).all()]
+
+    @router.get("/registry/operations/{operation_id}")
+    def read_operation(operation_id: int, request: Request):
+        """One operation with the connection it belongs to (its name and, for a REST connection, the address of the API)."""
+        _require_admin(request)
+        with Session(get_engine()) as session:
+            return _operation_with_connection(_operation_or_404(session, operation_id))
+
     @router.put("/registry/operations/{operation_id}")
     def update_operation(operation_id: int, request: Request, body: dict[str, Any] = Body(...)):
         _require_admin(request)
@@ -188,5 +221,54 @@ def make_connection_registry_router(cfg) -> APIRouter:
             except store.RegistryRuleError as refusal:
                 _refuse(refusal)
             return {"id": row.id, "item_kind": row.item_kind, "item_id": row.item_id, "usage": row.usage, "is_enabled": row.is_enabled}
+
+    # spec: import-api-operations-through-a-guided-wizard :: Import wizard
+    # spec: import-api-operations-through-a-guided-wizard :: Unreachable address
+    @router.post("/registry/openapi-previews")
+    def preview_openapi_description(request: Request, body: dict[str, Any] = Body(...)):
+        """List the operations of an OpenAPI description (address or content) before a connection is chosen; nothing is recorded."""
+        _require_admin(request)
+        try:
+            content = body.get("content") or fetch_openapi_description(str(body.get("address") or ""))
+            return {"operations": list_operations_of_description(content)}
+        except OpenApiDescriptionError as unreadable:
+            _refuse(unreadable)
+
+    # spec: discover-an-operation-from-a-url :: Discovery from a URL
+    # spec: discover-an-operation-from-a-url :: Unreachable URL
+    @router.post("/registry/operation-discoveries")
+    def discover_operation(request: Request, body: dict[str, Any] = Body(...)):
+        """Work out an operation from a URL (and an optional method); nothing is recorded until the administrator confirms."""
+        _require_admin(request)
+        try:
+            return discover_operation_from_url(str(body.get("url") or ""), str(body.get("method") or "GET"))
+        except ValueError as refusal:
+            _refuse(refusal, 400)
+
+    # spec: test-an-operation-from-the-registry :: Operation test
+    # spec: test-an-operation-from-the-registry :: Confirmation for write operations
+    @router.post("/registry/operations/{operation_id}/tests")
+    def test_operation(operation_id: int, request: Request, body: dict[str, Any] = Body(default_factory=dict)):
+        """Send an operation with the connection's authentication; a write method needs ``confirm_mutation``."""
+        _require_admin(request)
+        with Session(get_engine()) as session:
+            operation = _operation_or_404(session, operation_id)
+            try:
+                return run_operation_test(operation.connection_has_operation_reverse[0], operation,
+                                          body.get("sample_values") or {}, bool(body.get("confirm_mutation")))
+            except (store.RegistryRuleError, SecretKeyNotConfiguredError, SecretCannotBeDecryptedError) as refusal:
+                _refuse(refusal)
+
+    # spec: test-an-operation-from-the-registry :: Learn the output from a test
+    @router.post("/registry/operations/{operation_id}/response-schema-from-sample")
+    def record_response_schema(operation_id: int, request: Request, body: dict[str, Any] = Body(...)):
+        """Record the structure of a sample response (for example the body of a test) as the output schema of the operation."""
+        _require_admin(request)
+        if "sample" not in body:
+            raise HTTPException(status_code=400, detail=_("Send the sample response as sample."))
+        with Session(get_engine()) as session:
+            operation = _operation_or_404(session, operation_id)
+            return store.operation_to_dict(store.update_operation(
+                session, operation, {"response_schema": json.dumps(infer_json_schema(body["sample"]), ensure_ascii=False)}))
 
     return router

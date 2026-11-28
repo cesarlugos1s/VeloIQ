@@ -189,3 +189,26 @@ def test_only_an_administrator_may_use_the_registry(client, auth, manager_auth, 
         assert client.post("/api/registry/connections", headers=headers, json={"name": "x", "endpoint_type": "file"}).status_code in (401, 403)
     assert client.get("/api/registry/connections").status_code in (401, 403)
     assert client.get("/api/registry/connections", headers=auth).status_code == 200
+
+
+def test_one_operation_is_read_with_its_connection_and_without_any_secret(client, auth, secret_key):
+    connection_id = _create(client, auth).json()["id"]
+    client.put(f"/api/registry/connections/{connection_id}/secrets/token", headers=auth, json={"value": "never-shown"})
+    operation_id = client.post(f"/api/registry/connections/{connection_id}/operations", headers=auth, json={"name": "List todos", "path": "/todos"}).json()["id"]
+    read = client.get(f"/api/registry/operations/{operation_id}", headers=auth)
+    assert read.status_code == 200 and read.json()["method"] == "GET" and read.json()["path"] == "/todos"
+    assert read.json()["connection"]["base_url"] == "https://api.example.com" and read.json()["connection"]["id"] == connection_id
+    assert "never-shown" not in read.text and "secrets" not in read.json()["connection"]
+    assert client.get("/api/registry/operations/999999", headers=auth).status_code == 404
+
+
+def test_every_operation_is_listed_with_its_connection_and_can_be_kept_by_method(client, auth):
+    connection_id = _create(client, auth).json()["id"]
+    name = client.get(f"/api/registry/connections/{connection_id}", headers=auth).json()["name"]
+    get_id = client.post(f"/api/registry/connections/{connection_id}/operations", headers=auth, json={"name": "read", "path": "/a"}).json()["id"]
+    post_id = client.post(f"/api/registry/connections/{connection_id}/operations", headers=auth, json={"name": "write", "path": "/b", "method": "POST"}).json()["id"]
+    everything = {row["id"]: row for row in client.get("/api/registry/operations", headers=auth).json()}
+    assert {get_id, post_id} <= set(everything) and everything[get_id]["connection"]["name"] == name
+    reads = {row["id"] for row in client.get("/api/registry/operations?method=get", headers=auth).json()}
+    assert get_id in reads and post_id not in reads
+    assert client.get("/api/registry/operations").status_code in (401, 403)
