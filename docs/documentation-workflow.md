@@ -111,6 +111,11 @@ Whether an element is built, and in which product version, is computed from evid
   requirement the element does not have.
 - The site shows an **implementation** row on each element, the status of each feature on its capability page, and the page
   *implementation-status-by-epic* under Traceability, which lists what is still to build.
+- The home page, the changelog and the three Traceability pages (*implemented-by-module*, *implemented-by-epic*, *implementation-status-by-epic*) are tables on the
+  site, built when it is staged from the same source files (`CHANGELOG.md` and `openspec/reverse-views/`, which stay as they are). The home page has a row for each
+  element type with how many elements are implemented, partial and planned; the changelog has a table for each version (change, date, and the elements it added,
+  modified and removed, linked to their pages); the module and epic views have a row for each module or epic and element; the status view starts with a summary of the
+  statuses and has a row for each epic and element with its status and detail. A line that does not have the expected form is kept as it was below the table.
 
 ### Requirements implemented in another application, or set by hand
 

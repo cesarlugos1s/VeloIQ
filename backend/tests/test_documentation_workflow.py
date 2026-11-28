@@ -436,8 +436,8 @@ def test_site_links_origin_prerequisites_and_relations_to_their_pages(tmp_path):
     assert "- [do-it](../features/do-it.md)\n- [second-feature](../features/second-feature.md)" in capability_page
     assert "No feature is specified for this capability yet." in (docs / "capabilities" / "lonely-capability.md").read_text()
     reverse_view = (docs / "implemented-by-epic.md").read_text()
-    assert "## [the-epic](changes/add-feature/epics/the-epic.md)" in reverse_view
-    assert "- [features/do-it](features/do-it.md)" in reverse_view and "- features/missing" in reverse_view
+    assert "| [the-epic](changes/add-feature/epics/the-epic.md) | features | [do-it](features/do-it.md) |" in reverse_view
+    assert "| [the-epic](changes/add-feature/epics/the-epic.md) | features | features/missing |" in reverse_view
     feature_page = (docs / "features" / "do-it.md").read_text()
     assert "[add-feature](../changes/add-feature/index.md)" in feature_page
     assert "[the-epic](../changes/add-feature/epics/the-epic.md)" in feature_page
@@ -1024,3 +1024,44 @@ def test_without_a_manual_statuses_file_nothing_changes(tmp_path):
     index_code_for_specifications(tmp_path)
     front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
     assert front_matter["implementation-status"] == "planned" and "requirements-marked-by-hand" not in front_matter
+
+
+def test_the_home_page_the_changelog_and_the_traceability_views_are_tables_with_links_and_counts(tmp_path):
+    openspec = tmp_path / "openspec"
+    write_element(openspec, "features", "two-step-feature", {"name": "two-step-feature", "implementation-status": "partial", "origin": {"epics": ["team-balance"]}}, TWO_REQUIREMENTS_BODY)
+    write_element(openspec, "features", "other-feature", {"name": "other-feature", "implementation-status": "implemented"}, TWO_REQUIREMENTS_BODY)
+    write_element(openspec, "business-rules", "a-rule", {"name": "a-rule", "implementation-status": "planned"}, "## Purpose\n\nx\n")
+    write_file(openspec / "CHANGELOG.md", "# Changelog\n\n## unreleased\n\n- second-change (2026-11-02): added features/other-feature; modified features/two-step-feature; removed features/gone-feature\n"
+                                          "- first-change (2026-11-01): added features/two-step-feature\n- a line that is not an entry\n\n## 0.1.0\n\n- old-change (2026-10-01): no element changes\n")
+    write_file(openspec / "reverse-views" / "implemented-by-module.md", "# Elements by module\n\nGenerated.\n\n## tasks\n\n- features/two-step-feature\n- features/other-feature\n")
+    write_file(openspec / "reverse-views" / "implemented-by-epic.md", "# By epic\n\nGenerated.\n\n## team-balance\n\n- features/two-step-feature\n")
+    write_file(openspec / "reverse-views" / "implementation-status-by-epic.md",
+               "# Status\n\nGenerated.\n\n## team-balance\n\n- features/two-step-feature: Partially implemented: 1 of 2 requirements (1 marked by hand in Elsewhere)\n"
+               "- features/other-feature: Implemented in 0.1.0\n- business-rules/a-rule: Planned, not implemented yet\n")
+    stage_documentation_site(openspec, tmp_path / "build", "Demo")
+    docs = tmp_path / "build" / "docs"
+
+    home = (docs / "index.md").read_text()
+    assert "| Element type | Elements | Implemented | Partial | Planned |" in home and "| features | 2 | 1 | 1 | 0 |" in home and "| business-rules | 1 | 0 | 0 | 1 |" in home
+
+    changelog = (docs / "CHANGELOG.md").read_text()
+    assert "| Change | Date | Added | Modified | Removed |" in changelog and "## 0.1.0" in changelog
+    row = next(line for line in changelog.splitlines() if line.startswith("| second-change"))
+    assert "[other-feature](features/other-feature.md)" in row and "[two-step-feature](features/two-step-feature.md)" in row and "features/gone-feature" in row
+    assert "- a line that is not an entry" in changelog and "| old-change | 2026-10-01 |" in changelog
+
+    by_module = (docs / "implemented-by-module.md").read_text()
+    assert "| Code module | Element type | Element |" in by_module and "| tasks | features | [two-step-feature](features/two-step-feature.md) |" in by_module
+    by_epic = (docs / "implemented-by-epic.md").read_text()
+    assert "| Epic | Element type | Element |" in by_epic and "| team-balance | features | [two-step-feature](features/two-step-feature.md) |" in by_epic
+
+    status = (docs / "implementation-status-by-epic.md").read_text()
+    assert "| Implemented | 1 |" in status and "| Partial | 1 |" in status and "| Planned | 1 |" in status
+    assert "| Epic | Element type | Element | Status | Detail |" in status
+    assert "| Partial | 1 of 2 requirements (1 marked by hand in Elsewhere) |" in status and "| Implemented | 0.1.0 |" in status and "| Planned | not implemented yet |" in status
+
+
+def test_a_pipe_in_a_cell_does_not_split_the_row():
+    from veloiq_framework.documentation_workflow.documentation_site_tables import render_status_view, TableLinks
+    page = render_status_view("# S\n\n## e\n\n- features/a: Partially implemented: 1 of 2 (a | b)\n", TableLinks(), "x.md")
+    assert "(a \\| b)" in page

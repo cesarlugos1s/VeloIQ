@@ -7,11 +7,15 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from veloiq_framework.documentation_workflow.data_specification_tables import EntityDefinition, read_entity_definition
 from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import implementation_status_label
+from veloiq_framework.documentation_workflow.documentation_site_tables import (
+    IMPLEMENTED_LABEL, PARTIAL_LABEL, PLANNED_LABEL, TABLE_RENDERERS, TableLinks, render_changelog_page, render_home_page,
+)
 from veloiq_framework.documentation_workflow.specification_front_matter import split_front_matter
 from veloiq_framework.documentation_workflow.workflow_constants import (
     ALL_ELEMENT_TYPES, ARCHIVE_FOLDER_NAME, CHANGELOG_FILE_NAME, CHANGES_FOLDER_NAME, ELEMENT_TYPE_CAPABILITIES,
@@ -32,6 +36,10 @@ MERMAID_FENCE_CONFIGURATION = """markdown_extensions:
 """
 METADATA_KEYS_SHOWN = ("type", "capability", "created", "created-in-version", "last-changed", "last-changed-in-version")
 STATUS_LABEL_SYMBOLS = {"planned": "🕓", "partial": "◐", "implemented": "✅"}
+
+
+# The status values the indexer writes into the front matter, as the labels the home page counts.
+STATUS_LABEL_OF_VALUE = {"implemented": IMPLEMENTED_LABEL, "partial": PARTIAL_LABEL, "planned": PLANNED_LABEL}
 
 
 def export_openspec_folder_at_tag(project_root: Path, git_tag: str, destination: Path) -> Path:
@@ -317,16 +325,20 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
     features_of_capability = _features_by_capability(openspec_folder)
     entities = _load_entity_definitions(specifications_root)
     navigation: list[str] = ["  - Home: index.md"]
-    home_lines = [f"# {site_name}", "", "Product Specification, current state at this version.", ""]
+    home_rows: list[tuple[str, int, Counter]] = []
+    table_links = TableLinks(
+        elements={f"{page.split('/', 1)[0]}/{name}": page for name, page in links.elements.items()}, changes=dict(links.changes), epics=dict(links.epics))
     for element_type in ALL_ELEMENT_TYPES:
         type_folder = specifications_root / element_type
         element_folders = sorted(path for path in type_folder.iterdir() if (path / SPECIFICATION_FILE_NAME).exists()) if type_folder.exists() else []
         if not element_folders:
             continue
         navigation.append(f"  - {element_type}:")
-        home_lines.append(f"- {element_type}: {len(element_folders)} elements")
+        status_counts: Counter = Counter()
         for element_folder in element_folders:
             front_matter, body_text = split_front_matter((element_folder / SPECIFICATION_FILE_NAME).read_text(encoding="utf-8"))
+            if front_matter.get("implementation-status") in STATUS_LABEL_OF_VALUE:
+                status_counts[STATUS_LABEL_OF_VALUE[front_matter["implementation-status"]]] += 1
             page = docs_folder / element_type / f"{element_folder.name}.md"
             page.parent.mkdir(parents=True, exist_ok=True)
             page_path = f"{element_type}/{element_folder.name}.md"
@@ -338,19 +350,23 @@ def stage_documentation_site(openspec_folder: Path, staging_folder: Path, site_n
             for extra_file in sorted(element_folder.iterdir()):
                 if extra_file.is_file() and extra_file.name != SPECIFICATION_FILE_NAME:
                     shutil.copy2(extra_file, page.parent / f"{element_folder.name}-{extra_file.name}")
+        home_rows.append((element_type, len(element_folders), status_counts))
     navigation += _stage_change_pages(openspec_folder, docs_folder, links)
     for extra_name, source_path in ((CHANGELOG_FILE_NAME, openspec_folder / CHANGELOG_FILE_NAME),):
         if source_path.exists():
-            shutil.copy2(source_path, docs_folder / extra_name)
+            (docs_folder / extra_name).write_text(render_changelog_page(source_path.read_text(encoding="utf-8"), table_links, extra_name), encoding="utf-8")
             navigation.append(f"  - Changelog: {extra_name}")
     reverse_views_folder = openspec_folder / "reverse-views"
     if reverse_views_folder.exists():
         navigation.append("  - Traceability:")
         for view_file in sorted(reverse_views_folder.glob("*.md")):
-            view_text = _link_names_in_lists(view_file.read_text(encoding="utf-8"), links, view_file.name)
-            (docs_folder / view_file.name).write_text(_link_epic_headings(view_text, links, view_file.name), encoding="utf-8")
+            if view_file.stem in TABLE_RENDERERS:
+                (docs_folder / view_file.name).write_text(TABLE_RENDERERS[view_file.stem](view_file.read_text(encoding="utf-8"), table_links, view_file.name), encoding="utf-8")
+            else:
+                view_text = _link_names_in_lists(view_file.read_text(encoding="utf-8"), links, view_file.name)
+                (docs_folder / view_file.name).write_text(_link_epic_headings(view_text, links, view_file.name), encoding="utf-8")
             navigation.append(f"    - {view_file.stem}: {view_file.name}")
-    (docs_folder / "index.md").write_text("\n".join(home_lines) + "\n", encoding="utf-8")
+    (docs_folder / "index.md").write_text(render_home_page(site_name, home_rows), encoding="utf-8")
     configuration_file = staging_folder / "mkdocs.yml"
     configuration_file.write_text(
         f"site_name: {site_name}\nuse_directory_urls: false\ntheme:\n  name: material\n{MERMAID_FENCE_CONFIGURATION}nav:\n" + "\n".join(navigation) + "\n",
