@@ -217,7 +217,7 @@ def index_code(project_root_option):
     from veloiq_framework.documentation_workflow.index_code_markers_for_specifications import count_elements_by_implementation_status
     counts = count_elements_by_implementation_status(_resolve_project_root(project_root_option))
     click.echo("  Implementation status: " + ", ".join(f"{counts[status]} {status}" for status in ("implemented", "partial", "planned")))
-    for problem in result.unresolved_markers + result.ambiguous_markers:
+    for problem in result.unresolved_markers + result.ambiguous_markers + result.manual_status_problems:
         click.echo(click.style(f"  ⚠️  {problem}", fg="yellow"))
 
 

@@ -112,6 +112,27 @@ Whether an element is built, and in which product version, is computed from evid
 - The site shows an **implementation** row on each element, the status of each feature on its capability page, and the page
   *implementation-status-by-epic* under Traceability, which lists what is still to build.
 
+### Requirements implemented in another application, or set by hand
+
+A marker is only looked for in the application the specification belongs to, so a requirement implemented in another application would show as
+planned. List it, and any requirement whose status you want to set by hand, in `openspec/implementation-status-overrides.yaml`:
+
+```yaml
+features/add-event-id-timestamp-and-origin-to-webhook-events:
+  Event identity:
+    status: implemented          # implemented or planned
+    where: Advanced Development  # where the code is (optional, shown on the page)
+    since: unreleased            # the product version that has it (optional, unreleased when omitted)
+  "*":                           # every requirement of the element that has no entry of its own
+    status: planned
+```
+
+- An entry for a requirement wins over the markers; with no entry the markers decide. The element and its capability are rolled up as usual,
+  and the page says how many requirements were marked by hand and where (`marked-by-hand-in` in the front matter).
+- Editing the file needs no specification change and survives `veloiq docs change apply`.
+- `veloiq docs spec check` reports an entry that is malformed, names an element or requirement that does not exist, or says `implemented` for a
+  requirement that a marker in the application already covers (remove the entry then).
+
 A marker proves that code exists for a requirement, not that it works.
 
 ## Authoring a change

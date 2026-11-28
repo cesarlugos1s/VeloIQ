@@ -10,6 +10,9 @@ views by module, by epic and by implementation status.
 The implementation status is computed, never typed: no marker means `planned`; markers for some requirements mean
 `partial`; markers for every requirement mean `implemented`, in the version of the oldest git tag that contains the
 commit that added the last of those markers. A marker without a requirement covers every requirement of its element.
+
+A requirement implemented in another application, or one whose status has to be set by hand, is listed in
+`openspec/implementation-status-overrides.yaml` (see manual_implementation_statuses.py); that entry wins over the markers.
 """
 from __future__ import annotations
 
@@ -18,6 +21,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from veloiq_framework.documentation_workflow.manual_implementation_statuses import (
+    ALL_REQUIREMENTS_KEY, MANUAL_STATUS_FILE_NAME, MANUAL_STATUS_IMPLEMENTED, ManualStatuses, read_manual_statuses,
+)
 from veloiq_framework.documentation_workflow.release_version_of_code_markers import (
     earliest_release_version, latest_release_version, release_tags_oldest_first, release_version_of_marker,
 )
@@ -38,7 +44,7 @@ IMPLEMENTATION_STATUS_PARTIAL = "partial"
 IMPLEMENTATION_STATUS_IMPLEMENTED = "implemented"
 #: Front matter keys written by the scan from the code and git; nobody edits them.
 IMPLEMENTATION_STATUS_KEYS = ("implementation-status", "requirements-implemented", "requirements-total",
-                              "features-implemented", "features-total", "implemented-in-version")
+                              "features-implemented", "features-total", "implemented-in-version", "requirements-marked-by-hand", "marked-by-hand-in")
 PYTHON_DEFINITION_PATTERN = re.compile(r"^\s*(?:async\s+)?(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)")
 TYPESCRIPT_DEFINITION_PATTERN = re.compile(
     r"^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:function|class|const|let)\s+([A-Za-z_$][A-Za-z0-9_$]*)")
@@ -62,6 +68,7 @@ class IndexResult:
     references_by_element: dict[str, list[CodeReference]] = field(default_factory=dict)
     unresolved_markers: list[str] = field(default_factory=list)
     ambiguous_markers: list[str] = field(default_factory=list)
+    manual_status_problems: list[str] = field(default_factory=list)
 
 
 def _iter_source_files(project_root: Path):
@@ -159,13 +166,23 @@ def _implemented_by_for(existing: dict, references: list[CodeReference]) -> dict
 
 
 def _implementation_of_element(project_root: Path, spec_file: Path, references: list[CodeReference],
-                               tags_oldest_first: list[str]) -> dict:
-    """Return the implementation status keys of one element, from the markers that cover its requirements."""
+                               tags_oldest_first: list[str], element_key: str = "", manual_statuses: ManualStatuses | None = None) -> dict:
+    """Return the implementation status keys of one element: for each requirement, its manual status when it has one, else the markers that cover it."""
+    manual_statuses = manual_statuses or ManualStatuses()
     requirement_names = _requirement_names_of(spec_file)
     covering_references: dict[str | None, list[CodeReference]] = {}
+    manual_versions: list[str] = []
+    marked_by_hand: dict[str, str] = {}
     if requirement_names:
         whole_element_references = [reference for reference in references if reference.requirement_name is None]
         for requirement_name in requirement_names:
+            manual = manual_statuses.for_requirement(element_key, requirement_name)
+            if manual is not None:
+                marked_by_hand[requirement_name] = manual.where
+                if manual.status == MANUAL_STATUS_IMPLEMENTED:
+                    covering_references[requirement_name] = []
+                    manual_versions.append(manual.since)
+                continue
             own_references = [reference for reference in references if reference.requirement_name == requirement_name]
             if own_references or whole_element_references:
                 covering_references[requirement_name] = own_references + whole_element_references
@@ -173,17 +190,18 @@ def _implementation_of_element(project_root: Path, spec_file: Path, references: 
         covering_references[None] = references
     total = len(requirement_names) or 1
     implemented_count = len(covering_references)
+    by_hand_keys = {"requirements-marked-by-hand": len(marked_by_hand), "marked-by-hand-in": sorted({where for where in marked_by_hand.values() if where})} if marked_by_hand else {}
     if implemented_count == 0:
-        return {"implementation-status": IMPLEMENTATION_STATUS_PLANNED}
+        return {"implementation-status": IMPLEMENTATION_STATUS_PLANNED, **by_hand_keys}
     if implemented_count < total:
         return {"implementation-status": IMPLEMENTATION_STATUS_PARTIAL,
-                "requirements-implemented": implemented_count, "requirements-total": total}
+                "requirements-implemented": implemented_count, "requirements-total": total, **by_hand_keys}
     versions_by_requirement = [
         earliest_release_version([release_version_of_marker(project_root, reference.source_path, reference.marker_text)
                                   for reference in covering], tags_oldest_first)
-        for covering in covering_references.values()]
+        for covering in covering_references.values() if covering] + manual_versions
     return {"implementation-status": IMPLEMENTATION_STATUS_IMPLEMENTED,
-            "implemented-in-version": latest_release_version(versions_by_requirement, tags_oldest_first)}
+            "implemented-in-version": latest_release_version(versions_by_requirement, tags_oldest_first), **by_hand_keys}
 
 
 def _implementation_of_capability(features: list[dict], tags_oldest_first: list[str]) -> dict:
@@ -202,14 +220,17 @@ def _implementation_of_capability(features: list[dict], tags_oldest_first: list[
 def implementation_status_label(front_matter: dict) -> str | None:
     """Return the status as a sentence for readers, or None when the element has no status yet."""
     status = front_matter.get("implementation-status")
+    by_hand = front_matter.get("requirements-marked-by-hand")
+    where = ", ".join(front_matter.get("marked-by-hand-in") or [])
+    by_hand_note = f" ({by_hand} marked by hand{' in ' + where if where else ''})" if by_hand else ""
     if status == IMPLEMENTATION_STATUS_PLANNED:
-        return "Planned, not implemented yet"
+        return "Planned, not implemented yet" + by_hand_note
     if status == IMPLEMENTATION_STATUS_PARTIAL:
         if "features-total" in front_matter:
             return f"Partially implemented: {front_matter.get('features-implemented')} of {front_matter.get('features-total')} features"
-        return f"Partially implemented: {front_matter.get('requirements-implemented')} of {front_matter.get('requirements-total')} requirements"
+        return f"Partially implemented: {front_matter.get('requirements-implemented')} of {front_matter.get('requirements-total')} requirements" + by_hand_note
     if status == IMPLEMENTATION_STATUS_IMPLEMENTED:
-        return f"Implemented in {front_matter.get('implemented-in-version', UNRELEASED_VERSION_LABEL)}"
+        return f"Implemented in {front_matter.get('implemented-in-version', UNRELEASED_VERSION_LABEL)}" + by_hand_note
     return None
 
 
@@ -222,9 +243,30 @@ def count_elements_by_implementation_status(project_root: Path) -> dict[str, int
     return counts
 
 
+def _problems_of_manual_statuses(project_root: Path, manual_statuses: ManualStatuses, result: IndexResult) -> list[str]:
+    """Problems of the manual statuses: a malformed entry, an element or requirement that does not exist, and an implemented entry that a marker of this
+    application already covers (the entry is then redundant and hides the marker)."""
+    problems = list(manual_statuses.problems)
+    element_files = _element_files(project_root)
+    for element_key, entries in manual_statuses.by_element.items():
+        if element_key not in element_files:
+            problems.append(f"{MANUAL_STATUS_FILE_NAME}: no element named `{element_key}`")
+            continue
+        requirement_names = _requirement_names_of(element_files[element_key])
+        marked_requirements = {reference.requirement_name for reference in result.references_by_element.get(element_key, [])}
+        for requirement_name, manual in entries.items():
+            if requirement_name != ALL_REQUIREMENTS_KEY and requirement_name not in requirement_names:
+                problems.append(f"{MANUAL_STATUS_FILE_NAME}: `{element_key}` has no requirement named `{requirement_name}`")
+            elif manual.status == MANUAL_STATUS_IMPLEMENTED and (None in marked_requirements or requirement_name in marked_requirements):
+                problems.append(f"{MANUAL_STATUS_FILE_NAME}: `{element_key}` / `{requirement_name}` has a marker in this application; remove the manual entry")
+    return problems
+
+
 def compute_front_matter_updates(project_root: Path) -> tuple[dict[Path, dict], IndexResult]:
     """Return ({spec file: new front matter}, scan result) for the elements whose implemented-by or status changes."""
     result = scan_code_markers(project_root)
+    manual_statuses = read_manual_statuses(project_root)
+    result.manual_status_problems = _problems_of_manual_statuses(project_root, manual_statuses, result)
     tags_oldest_first = release_tags_oldest_first(project_root)
     element_files = _element_files(project_root)
     current: dict[str, dict] = {key: split_front_matter(spec_file.read_text(encoding="utf-8"))[0] for key, spec_file in element_files.items()}
@@ -232,14 +274,14 @@ def compute_front_matter_updates(project_root: Path) -> tuple[dict[Path, dict], 
     for element_key, spec_file in element_files.items():
         if not element_key.startswith(ELEMENT_TYPE_CAPABILITIES + "/"):
             computed[element_key] = _implementation_of_element(
-                project_root, spec_file, result.references_by_element.get(element_key, []), tags_oldest_first)
+                project_root, spec_file, result.references_by_element.get(element_key, []), tags_oldest_first, element_key, manual_statuses)
     for element_key, spec_file in element_files.items():
         if element_key.startswith(ELEMENT_TYPE_CAPABILITIES + "/"):
             capability_name = element_key.split("/", 1)[1]
             features = [computed[key] for key, front_matter in current.items()
                         if key in computed and front_matter.get("capability") == capability_name]
             computed[element_key] = _implementation_of_capability(features, tags_oldest_first) if features else \
-                _implementation_of_element(project_root, spec_file, result.references_by_element.get(element_key, []), tags_oldest_first)
+                _implementation_of_element(project_root, spec_file, result.references_by_element.get(element_key, []), tags_oldest_first, element_key, manual_statuses)
     updates: dict[Path, dict] = {}
     for element_key, spec_file in element_files.items():
         front_matter = current[element_key]
@@ -313,7 +355,7 @@ def write_reverse_views(project_root: Path) -> None:
 def check_code_markers(project_root: Path) -> list[str]:
     """Return problems: unresolved or ambiguous markers, and elements whose implemented-by or implementation status is out of date."""
     updates, result = compute_front_matter_updates(project_root)
-    problems = list(result.unresolved_markers) + list(result.ambiguous_markers)
+    problems = list(result.unresolved_markers) + list(result.ambiguous_markers) + list(result.manual_status_problems)
     problems += [f"{spec_file.parent.parent.name}/{spec_file.parent.name}: implemented-by or the implementation status is out of date; run `veloiq docs spec index-code`"
                  for spec_file in updates]
     return problems

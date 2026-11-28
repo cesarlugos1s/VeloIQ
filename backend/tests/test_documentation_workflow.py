@@ -973,3 +973,54 @@ def test_the_site_links_a_story_to_its_designs_and_a_design_back_to_its_stories(
     assert "| technical design | [high-level-design](../design/high-level-design.md)<br>[low-level-design/engine](../design/low-level-design/engine.md) |" in story_page
     assert "[manager-sees-load](../../stories/manager-sees-load.md)" in (docs / "design" / "low-level-design" / "engine.md").read_text() or \
         "manager-sees-load" in (docs / "design" / "low-level-design" / "engine.md").read_text()
+
+
+def write_manual_statuses(root: Path, text: str) -> None:
+    write_file(root / "openspec" / "implementation-status-overrides.yaml", text)
+
+
+def test_a_requirement_implemented_in_another_application_is_marked_by_hand_and_rolls_up_with_the_markers(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    write_manual_statuses(tmp_path, "features/two-step-feature:\n  First step:\n    status: implemented\n    where: Advanced Development\n    since: unreleased\n")
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert (front_matter["implementation-status"], front_matter["requirements-implemented"], front_matter["requirements-total"]) == ("partial", 1, 2)
+    assert front_matter["requirements-marked-by-hand"] == 1 and front_matter["marked-by-hand-in"] == ["Advanced Development"]
+    assert implementation_status_label(front_matter) == "Partially implemented: 1 of 2 requirements (1 marked by hand in Advanced Development)"
+
+    write_file(tmp_path / "backend" / "app" / "modules" / "work" / "custom_api.py", "# spec: two-step-feature :: Second step\ndef second():\n    pass\n")
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert front_matter["implementation-status"] == "implemented" and front_matter["implemented-in-version"] == "unreleased"
+    assert implementation_status_label(front_matter) == "Implemented in unreleased (1 marked by hand in Advanced Development)"
+    assert check_code_markers(tmp_path) == []
+
+
+def test_a_manual_entry_wins_over_a_marker_and_star_covers_the_requirements_without_an_entry(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    write_file(tmp_path / "backend" / "app" / "modules" / "work" / "custom_api.py", "# spec: two-step-feature :: First step\ndef first():\n    pass\n")
+    write_manual_statuses(tmp_path, "features/two-step-feature:\n  First step:\n    status: planned\n  '*':\n    status: implemented\n    where: the framework\n")
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert (front_matter["implementation-status"], front_matter["requirements-implemented"]) == ("partial", 1)      # only the second step: the first is planned by hand
+    write_manual_statuses(tmp_path, "features/two-step-feature:\n  '*':\n    status: planned\n")
+    index_code_for_specifications(tmp_path)
+    assert read_element_front_matter(tmp_path, "features", "two-step-feature")["implementation-status"] == "planned"
+
+
+def test_the_check_reports_manual_entries_that_are_malformed_unknown_or_redundant_with_a_marker(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    write_file(tmp_path / "backend" / "app" / "modules" / "work" / "custom_api.py", "# spec: two-step-feature :: First step\ndef first():\n    pass\n")
+    write_manual_statuses(tmp_path, "features/two-step-feature:\n  First step:\n    status: implemented\n  Third step:\n    status: implemented\n  Second step:\n    status: maybe\n"
+                                    "features/missing-element:\n  Anything:\n    status: planned\n")
+    index_code_for_specifications(tmp_path)
+    problems = " | ".join(check_code_markers(tmp_path))
+    assert "no requirement named `Third step`" in problems and "needs a status of implemented or planned" in problems
+    assert "no element named `features/missing-element`" in problems and "has a marker in this application; remove the manual entry" in problems
+
+
+def test_without_a_manual_statuses_file_nothing_changes(tmp_path):
+    write_element(tmp_path / "openspec", "features", "two-step-feature", {"name": "two-step-feature"}, TWO_REQUIREMENTS_BODY)
+    index_code_for_specifications(tmp_path)
+    front_matter = read_element_front_matter(tmp_path, "features", "two-step-feature")
+    assert front_matter["implementation-status"] == "planned" and "requirements-marked-by-hand" not in front_matter
