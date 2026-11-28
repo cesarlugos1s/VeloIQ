@@ -6,6 +6,15 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 
 ### Added
 
+- **Shared connection registry** — connections to other systems with encrypted secrets, their operations (by hand, from an
+  OpenAPI description or discovered from a URL), a REST connection test, and which usages (AI agents, the Integration Hub) may
+  use each item. It is managed from **Connections** and **Operations** under Configurations › General Configuration
+  (administrators), with the standard lists, record pages and relation tabs; the API is under `/api/registry`. Secrets are
+  encrypted with a key from `[registry] secret_key` of `jm_config.ini` or the environment variable
+  `VELOIQ_REGISTRY_SECRET_KEY`. **Apps that manage their schema with Alembic** need a migration for the eight `veloiq_registry_*`
+  tables: add `import veloiq_framework.shared_connection_registry.connection_registry_models` to `alembic/env.py` (the scaffold
+  of a new app already has it) and create the migration. On a database with legacy tables, autogenerate may list unrelated
+  differences; keep only the registry's tables in the migration. Until the tables exist, the two registry lists show an error.
 - **Many-to-one relations through a link table behave like foreign keys** — a relation
   declared with `jm_relationship(link_model=…, max_items=1)` now gets a field in the generated
   schema (`viaLinkTable: true`, value = the related row's id). Lists, relation rows and show/edit

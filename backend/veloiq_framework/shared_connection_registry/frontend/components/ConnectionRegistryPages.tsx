@@ -100,6 +100,7 @@ export const OperationCreate: React.FC<{ model?: ModelDef; allModels?: ModelDef[
         form?.setFieldsValue({
             name: body.name, method: body.method, path: body.path, description: body.description,
             parameters_schema: body.parameters_schema ?? undefined, response_schema: body.response_schema ?? undefined,
+            source: body.source,
         });
         message.info(_("The discovered values are in the form; review them and save."));
     };

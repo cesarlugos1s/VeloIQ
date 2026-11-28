@@ -50,8 +50,11 @@ def test_operations_are_listed_for_every_connection_and_written_through_the_stor
     operation = client.post("/api/veloiq_registry_operations", headers=auth, json={"connection_id": connection["id"], "name": "list", "method": "GET", "path": "/orders"}).json()
     assert operation["connection_id"] == connection["id"] and operation["source"] == "by_hand"
     assert operation["id"] in [row["id"] for row in client.get(f"/api/veloiq_registry_operations?{EVERY_ROW}", headers=auth).json()]
-    changed = client.put(f"/api/veloiq_registry_operations/{operation['id']}", headers=auth, json={**operation, "description": "All orders", "method": "POST"})
+    changed = client.put(f"/api/veloiq_registry_operations/{operation['id']}", headers=auth, json={**operation, "description": "All orders", "method": "POST", "source": "url_discovery"})
     assert changed.json()["description"] == "All orders" and changed.json()["method"] == "POST"
+    assert changed.json()["source"] == "by_hand"                        # a change leaves how the operation was recorded as it is
+    imported = client.post("/api/veloiq_registry_operations", headers=auth, json={"connection_id": connection["id"], "name": "imported", "path": "/i", "source": "openapi_import"}).json()
+    assert imported["source"] == "openapi_import"                       # an import or a discovery records its own source
     duplicate = client.post("/api/veloiq_registry_operations", headers=auth, json={"connection_id": connection["id"], "name": "list", "path": "/x"})
     assert duplicate.status_code == 422 and "already has an operation" in str(duplicate.json())
     assert client.delete(f"/api/veloiq_registry_operations/{operation['id']}", headers=auth).status_code in (200, 204)

@@ -196,7 +196,8 @@ def build_operations_non_model_data_resource() -> NonModelDataResource:
             NonModelDataField(key="name", label="Name", required=True),
             NonModelDataField(key="method", label="Method", required=True, options=list(OPERATION_METHODS), default="GET"),
             NonModelDataField(key="path", label="Path", required=True),
-            NonModelDataField(key="source", label="Source", read_only=True, options=list(OPERATION_SOURCES), default="by_hand"),
+            # Written when an operation is recorded (an import or a discovery sets it); a change of an operation leaves it as it is.
+            NonModelDataField(key="source", label="Source", options=list(OPERATION_SOURCES), default="by_hand"),
             NonModelDataField(key="description", label="Description", show_in_list=False),
             NonModelDataField(key="parameters_schema", label="Parameters", show_in_list=False),
             NonModelDataField(key="response_schema", label="Output", show_in_list=False),

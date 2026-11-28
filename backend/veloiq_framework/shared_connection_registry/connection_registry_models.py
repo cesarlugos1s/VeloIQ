@@ -44,7 +44,8 @@ class connection_has_connection_secret(SQLModel, table=True):
 
 class connection_has_rest_connection_settings(SQLModel, table=True):
     """Link: Connection has RestConnectionSettings."""
-    __tablename__ = "veloiq_registry_connection_has_rest_connection_settings_relation"
+    # Shorter than the relation name: a table name over 63 characters is silently truncated by PostgreSQL.
+    __tablename__ = "veloiq_registry_connection_has_rest_settings_relation"
     __table_args__ = {"extend_existing": True}
     eid_from: int = Field(sa_column=_link_column("veloiq_registry_connection.id"))
     eid_to: int = Field(sa_column=_link_column("veloiq_registry_rest_connection_settings.id"))
