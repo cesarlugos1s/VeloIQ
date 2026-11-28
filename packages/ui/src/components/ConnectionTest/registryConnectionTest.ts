@@ -20,7 +20,7 @@ export function connectionTestResultFromRegistry(answer: Record<string, any>): C
     };
 }
 
-/** Send the test for a connection; a refusal of the registry (no secret, not a REST connection) is thrown with its message. */
+/** Send the test for a connection; a refusal of the registry (no secret, not a testable connection) is thrown with its message. */
 export async function testRegistryConnection(connectionId: number): Promise<ConnectionTestResult> {
     const response = await authenticatedFetch(`${API_URL}/registry/connections/${connectionId}/test`, { method: "POST" });
     const body = await response.json().catch(() => ({}));
