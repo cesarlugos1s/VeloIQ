@@ -10,7 +10,7 @@ import re
 import time
 from typing import Any, Optional
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.exc import NoSuchModuleError, SQLAlchemyError
@@ -47,14 +47,25 @@ def build_database_url(connection: Connection) -> URL:
                       port=settings.port or DATABASE_USUAL_PORTS.get(settings.database_type), database=settings.database_name)
 
 
-def open_database_engine(connection: Connection) -> Engine:
+def open_database_engine(connection: Connection, with_session_limits: bool = False) -> Engine:
     """An engine for the database of a connection (one connection at a time, closed when the caller disposes it).
 
+    :param with_session_limits: True to set the query timeout and the read-only mode on every session the engine opens (for a reader that opens
+        its own sessions, such as dlt's), where the database type has a statement for it.
     :raises RegistryRuleError: When the driver of the database type is not installed.
     """
     settings = _database_settings(connection)
     try:
-        return create_engine(build_database_url(connection), poolclass=NullPool)
+        engine = create_engine(build_database_url(connection), poolclass=NullPool)
+        if with_session_limits:
+            @event.listens_for(engine, "connect")
+            def set_session_limits(dbapi_connection, _connection_record):
+                cursor = dbapi_connection.cursor()
+                try:
+                    _limit_the_session(cursor.execute, settings.database_type, settings.query_timeout_seconds, settings.is_read_only)
+                finally:
+                    cursor.close()
+        return engine
     except (NoSuchModuleError, ModuleNotFoundError, ImportError) as missing_driver:
         raise RegistryRuleError(_("The driver for the database type {database_type} is not installed ({problem}).").format(
             database_type=settings.database_type, problem=missing_driver)) from missing_driver
