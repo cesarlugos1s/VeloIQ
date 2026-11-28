@@ -2,13 +2,13 @@
 
 # Endpoint types a connection can have. Installed connectivity packs add their own.
 ENDPOINT_TYPES = (
-    "rest_api", "veloiq_app", "file", "sftp_folder", "database",
+    "rest_api", "file", "sftp_folder", "database",
     "outgoing_webhook", "incoming_webhook", "incoming_api_endpoint",
 )
 OPERATION_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 OPERATION_SOURCES = ("openapi_import", "url_discovery", "by_hand")
 SECRET_KEYS = ("password", "token", "client_secret", "api_key", "private_key", "signing_secret")
-REST_AUTHENTICATIONS = ("none", "user_name_and_password", "bearer_token", "api_key_header", "api_key_query", "oauth2_client_credentials")
+REST_AUTHENTICATIONS = ("none", "user_name_and_password", "bearer_token", "api_key_header", "api_key_query", "oauth2_client_credentials", "login_token")
 REST_AUTHENTICATIONS_THAT_USE_OAUTH = ("oauth2_client_credentials",)
 REST_PAGING_STYLES = ("none", "offset", "page_number", "cursor", "json_link", "header_link")
 # Database types a database connection can have, with the SQLAlchemy dialect (and driver) that opens each one and its usual port.

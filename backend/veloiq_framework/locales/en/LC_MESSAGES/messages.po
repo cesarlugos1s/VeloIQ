@@ -2936,3 +2936,40 @@ msgstr ""
 # Added by veloiq i18n extract
 msgid "What does the connection connect to?"
 msgstr ""
+
+# Added by veloiq i18n extract
+msgid "For the login-token authentication: the path of the login call; the password is a secret of the connection."
+msgstr ""
+
+msgid "Where the answer to the login holds the token."
+msgstr ""
+
+msgid "the user name"
+msgstr ""
+
+msgid "the path of the login"
+msgstr ""
+
+msgid "the field of the user name"
+msgstr ""
+
+msgid "the field of the password"
+msgstr ""
+
+msgid "the path of the token in the answer"
+msgstr ""
+
+msgid "The login-token authentication needs {what}."
+msgstr ""
+
+msgid "The login-token authentication needs the user name and the path of the login."
+msgstr ""
+
+msgid "The login could not be reached: {problem}"
+msgstr ""
+
+msgid "The login was refused with the status {status}."
+msgstr ""
+
+msgid "The answer to the login has no token at '{path}'."
+msgstr ""

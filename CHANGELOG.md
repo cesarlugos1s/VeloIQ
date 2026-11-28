@@ -18,8 +18,8 @@ All notable changes to **veloiq-framework** and **@juicemantics/veloiq-ui** are 
 - **REST connections: basic and API-key authentication, and paging** — a REST connection can authenticate with basic
   authentication (`user_name` and the `password` secret) or an API key sent in a header or a query parameter (names settable,
   defaults `X-API-Key` and `api_key`), and an operation can be read page after page with the offset, page number, cursor, link in
-  the body or `Link` header styles (`read_all_pages`), with a page limit that fails the read instead of returning part of the
-  records. Packages that use registry items can register a check (`register_item_in_use_check`) so the registry refuses to delete
+  the body or `Link` header styles, with a page limit that fails the read instead of returning part of the records (in the Integration
+  Hub this is done by dlt; the registry's own paging function was removed once the hub no longer used it). Packages that use registry items can register a check (`register_item_in_use_check`) so the registry refuses to delete
   an item that is in use and names what uses it. **Existing registry tables need the new columns** of
   `veloiq_registry_rest_connection_settings` (see the migration of the test host).
 - **Database connections in the shared registry** — a connection of the endpoint type `database` keeps its settings

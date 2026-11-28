@@ -67,6 +67,9 @@ def build_authentication(connection: Connection) -> tuple[dict[str, str], dict[s
         return {"Authorization": f"Bearer {token}"}, {}
     if settings.authentication == "oauth2_client_credentials":
         return {"Authorization": f"Bearer {_oauth_access_token(connection, settings)}"}, {}
+    if settings.authentication == "login_token":
+        from .rest_login_token import obtain_login_token
+        return {"Authorization": f"Bearer {obtain_login_token(connection)}"}, {}
     if settings.authentication == "user_name_and_password":
         password = _secret(connection, "password")
         if not settings.user_name:
@@ -127,6 +130,12 @@ def run_operation_test(connection: Connection, operation: Operation, sample_valu
     sent_url = url + (("&" if "?" in url else "?") + urlencode(authentication_query) if authentication_query else "")    # a key in the query is sent, not shown
     result = send_http_request(operation.method, sent_url, headers=authentication_headers, body=body,
                                timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
+    if result.http_status == 401 and settings.authentication == "login_token":
+        # The token was refused (it has probably expired): log in again and send the call once more.
+        from .rest_login_token import obtain_login_token
+        authentication_headers = {"Authorization": f"Bearer {obtain_login_token(connection, force_new_login=True)}"}
+        result = send_http_request(operation.method, sent_url, headers=authentication_headers, body=body,
+                                   timeout_seconds=settings.timeout_seconds, verify_tls=settings.is_tls_verified)
     if result.failure is not None:
         return {"status": "error", "http_status": None, "headers": {}, "body": "", "body_parsed": None, "duration_ms": result.duration_ms,
                 "warning": None, "error": f"{result.failure} ({url})", "url": url}

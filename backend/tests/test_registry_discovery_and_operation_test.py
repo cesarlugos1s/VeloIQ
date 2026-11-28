@@ -305,6 +305,6 @@ def test_a_rest_connection_is_tested_with_a_get_to_its_base_address(client, auth
                                                                        "rest_settings": {"base_url": "http://127.0.0.1:9", "timeout_seconds": 2}}).json()["id"]
     failed = client.post(f"/api/registry/connections/{down}/test", headers=auth).json()
     assert failed["status"] == "error" and failed["error_type"] == "unreachable" and "127.0.0.1:9" in failed["error_message"]
-    file_connection = client.post("/api/registry/connections", headers=auth, json={"name": f"f-{uuid.uuid4().hex[:6]}", "endpoint_type": "veloiq_app"}).json()["id"]
+    file_connection = client.post("/api/registry/connections", headers=auth, json={"name": f"f-{uuid.uuid4().hex[:6]}", "endpoint_type": "incoming_webhook", "endpoint_settings": {"endpoint_name": f"w-{uuid.uuid4().hex[:6]}"}}).json()["id"]
     assert "Only a REST connection" in client.post(f"/api/registry/connections/{file_connection}/test", headers=auth).json()["detail"]
     assert client.post(f"/api/registry/connections/{connection_id}/test").status_code in (401, 403)

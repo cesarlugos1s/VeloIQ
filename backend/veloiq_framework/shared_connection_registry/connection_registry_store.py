@@ -30,7 +30,7 @@ CONNECTION_ITEM_KIND = "connection"
 REST_SETTING_FIELDS = (
     "base_url", "authentication", "oauth_token_url", "oauth_client_id", "oauth_scope", "paging",
     "timeout_seconds", "is_tls_verified", "rate_limit_per_second",
-    "user_name", "api_key_header_name", "api_key_query_parameter_name",
+    "user_name", "api_key_header_name", "api_key_query_parameter_name", "login_path", "login_user_field", "login_password_field", "login_token_path",
     "page_size", "page_size_parameter", "page_parameter", "first_page_number", "cursor_parameter", "next_cursor_path", "next_link_path", "maximum_pages",
 )
 DATABASE_SETTING_FIELDS = (
@@ -210,6 +210,11 @@ def _check_rest_settings(settings: RestConnectionSettings) -> None:
         raise RegistryRuleError(_("The timeout is between 1 and 300 seconds."))
     if settings.authentication == "user_name_and_password" and not settings.user_name:
         raise RegistryRuleError(_("Basic authentication needs the user name."))
+    if settings.authentication == "login_token":
+        for needed, label in (("user_name", _("the user name")), ("login_path", _("the path of the login")), ("login_user_field", _("the field of the user name")),
+                              ("login_password_field", _("the field of the password")), ("login_token_path", _("the path of the token in the answer"))):
+            if not str(getattr(settings, needed) or "").strip():
+                raise RegistryRuleError(_("The login-token authentication needs {what}.").format(what=label))
     if settings.authentication == "api_key_header" and not settings.api_key_header_name:
         raise RegistryRuleError(_("An API key sent in a header needs the name of the header."))
     if settings.authentication == "api_key_query" and not settings.api_key_query_parameter_name:

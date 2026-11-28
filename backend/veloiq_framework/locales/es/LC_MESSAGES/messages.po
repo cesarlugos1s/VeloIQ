@@ -2935,3 +2935,40 @@ msgstr "Solo una conexión de archivos o SFTP tiene ajustes de archivos."
 # Added by veloiq i18n extract
 msgid "What does the connection connect to?"
 msgstr "¿A qué se conecta la conexión?"
+
+# Added by veloiq i18n extract
+msgid "For the login-token authentication: the path of the login call; the password is a secret of the connection."
+msgstr "Para la autenticación con token de inicio de sesión: la ruta de la llamada de inicio de sesión; la contraseña es un secreto de la conexión."
+
+msgid "Where the answer to the login holds the token."
+msgstr "Dónde guarda la respuesta al inicio de sesión el token."
+
+msgid "the user name"
+msgstr "el nombre de usuario"
+
+msgid "the path of the login"
+msgstr "la ruta del inicio de sesión"
+
+msgid "the field of the user name"
+msgstr "el campo del nombre de usuario"
+
+msgid "the field of the password"
+msgstr "el campo de la contraseña"
+
+msgid "the path of the token in the answer"
+msgstr "la ruta del token en la respuesta"
+
+msgid "The login-token authentication needs {what}."
+msgstr "La autenticación con token de inicio de sesión necesita {what}."
+
+msgid "The login-token authentication needs the user name and the path of the login."
+msgstr "La autenticación con token de inicio de sesión necesita el nombre de usuario y la ruta del inicio de sesión."
+
+msgid "The login could not be reached: {problem}"
+msgstr "No se pudo acceder al inicio de sesión: {problem}"
+
+msgid "The login was refused with the status {status}."
+msgstr "El inicio de sesión fue rechazado con el estado {status}."
+
+msgid "The answer to the login has no token at '{path}'."
+msgstr "La respuesta al inicio de sesión no tiene token en '{path}'."
