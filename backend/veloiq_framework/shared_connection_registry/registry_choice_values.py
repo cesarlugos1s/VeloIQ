@@ -6,7 +6,7 @@ ENDPOINT_TYPES = (
     "outgoing_webhook", "incoming_webhook", "incoming_api_endpoint",
 )
 OPERATION_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
-OPERATION_SOURCES = ("openapi_import", "url_discovery", "by_hand")
+OPERATION_SOURCES = ("openapi_import", "url_discovery", "by_hand", "route_discovery")
 SECRET_KEYS = ("password", "token", "client_secret", "api_key", "private_key", "signing_secret")
 REST_AUTHENTICATIONS = ("none", "user_name_and_password", "bearer_token", "api_key_header", "api_key_query", "oauth2_client_credentials", "login_token")
 REST_AUTHENTICATIONS_THAT_USE_OAUTH = ("oauth2_client_credentials",)

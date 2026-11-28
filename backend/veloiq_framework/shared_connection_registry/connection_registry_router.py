@@ -82,10 +82,16 @@ def make_connection_registry_router(cfg) -> APIRouter:
                 "oauth_authentications": list(values.REST_AUTHENTICATIONS_THAT_USE_OAUTH)}
 
     @router.get("/registry/connections")
-    def list_connections(request: Request):
+    def list_connections(request: Request, usage: Optional[str] = None):
+        """Every connection; ``usage`` keeps the ones enabled for that usage (the Integration Hub offers only those)."""
         _require_admin(request)
+        from .registry_bulk_operations_and_selection import read_item_ids_enabled_for_usage
         with Session(get_engine()) as session:
-            return [store.connection_to_dict(connection) for connection in session.exec(select(Connection).order_by(Connection.name)).all()]
+            connections = session.exec(select(Connection).order_by(Connection.name)).all()
+            if usage:
+                enabled_ids = read_item_ids_enabled_for_usage(session, store.CONNECTION_ITEM_KIND, usage)
+                connections = [connection for connection in connections if connection.id in enabled_ids]
+            return [store.connection_to_dict(connection) for connection in connections]
 
     @router.post("/registry/connections", status_code=201)
     def create_connection(request: Request, body: dict[str, Any] = Body(...)):
@@ -180,14 +186,22 @@ def make_connection_registry_router(cfg) -> APIRouter:
             "is_enabled": connection.is_enabled, "base_url": rest[0].base_url if rest else None}}
 
     @router.get("/registry/operations")
-    def list_all_operations(request: Request, method: Optional[str] = None):
-        """Every operation of every connection, each with its connection (for a list to choose from); ``method`` keeps one HTTP method."""
+    def list_all_operations(request: Request, method: Optional[str] = None, usage: Optional[str] = None):
+        """Every operation of every connection, each with its connection (for a list to choose from); ``method`` keeps one HTTP method and ``usage`` the
+        operations enabled for that usage whose connection is enabled for it too."""
         _require_admin(request)
+        from .registry_bulk_operations_and_selection import read_item_ids_enabled_for_usage
         with Session(get_engine()) as session:
             query = select(Operation).order_by(Operation.id)
             if method:
                 query = query.where(Operation.method == method.upper())
-            return [_operation_with_connection(operation) for operation in session.exec(query).all()]
+            operations = session.exec(query).all()
+            if usage:
+                operation_ids = read_item_ids_enabled_for_usage(session, store.API_OPERATION_ITEM_KIND, usage)
+                connection_ids = read_item_ids_enabled_for_usage(session, store.CONNECTION_ITEM_KIND, usage)
+                operations = [operation for operation in operations
+                              if operation.id in operation_ids and operation.connection_has_operation_reverse and operation.connection_has_operation_reverse[0].id in connection_ids]
+            return [_operation_with_connection(operation) for operation in operations]
 
     @router.get("/registry/operations/{operation_id}")
     def read_operation(operation_id: int, request: Request):
